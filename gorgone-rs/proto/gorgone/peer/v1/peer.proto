@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package gorgone.peer.v1;
+
+// Replica-to-replica hints. Losing a hint is harmless: the store is the
+// source of truth and every replica sweeps the nodes it holds.
+service Peer {
+  // "A job was queued for this node, which you hold a session for."
+  rpc Wake(WakeRequest) returns (WakeReply);
+}
+
+message WakeRequest {
+  string node_id = 1;
+}
+
+message WakeReply {
+  // False when the replica does not hold a session for the node any more.
+  bool held = 1;
+}

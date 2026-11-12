@@ -1,0 +1,159 @@
+# gorgone-agent configuration example. Every key is listed; the value shown
+# is the default unless the comment says otherwise.
+#
+# Every key can be overridden by environment, with the prefix GORGONE_AGENT__
+# and `__` between nesting levels, so a container needs no file at all:
+#   GORGONE_AGENT__NODE_ID=7
+#   GORGONE_AGENT__TLS__CA_FILE=/etc/centreon-gorgone/ca.pem
+#   GORGONE_AGENT__SERVICES__ENGINE__RELOAD="sudo systemctl reload centengine"
+#   GORGONE_AGENT__COMMANDS__ALLOWLIST='["/usr/lib/centreon/plugins/\\S+( .*)?"]'
+# Environment values are typed before they are read: `7` is a number and
+# `true` a boolean. Text keys accept them anyway (`NODE_ID=7` gives "7").
+# Two limits: a decimal number is normalised (`1.50` gives "1.5"), and a value
+# starting with `[` or `{` is read as a list or a table. Wrap such a value in
+# double quotes inside the variable to keep it as written: TOKEN='"1.50"'.
+# A list (the allowlist) is written `["a", "b"]`, with double quotes.
+
+# Required. Identifier of this poller on the central (the `nagios_server.id`
+# of Centreon).
+node_id = "1"
+
+# Required. gRPC gateway of gorgone-server. `http://` disables TLS: tests only.
+server_url = "https://central.example.com:5556"
+
+# Enrolment token returned once by `PUT /v1/nodes/{node}` on the central.
+# Required unless a client certificate is configured. No default.
+# Keep it out of this file: point to a file readable by the agent user only
+# (`token_file`), or set GORGONE_AGENT__TOKEN from a secret store. `token`
+# wins when both are set.
+# token = "..."
+token_file = "/etc/centreon-gorgone/agent.token"
+
+# Directory where the job journal survives a restart. Unset by default: the
+# journal then lives in memory only and a restart forgets it. When set, after
+# a restart the agent resends the events the server did not acknowledge,
+# answers a repeated dispatch of a finished job with its recorded events
+# instead of running it again, and closes a job that was running when the
+# agent died as failed ("agent restarted during execution"). The directory
+# must be writable by the agent user and private to one agent; it holds
+# command outputs.
+state_dir = "/var/lib/centreon-gorgone-agent"
+
+# RunCommands jobs executed at the same time. ApplyConfig, ServiceControl and
+# EngineCommands jobs always run one at a time, in dispatch order, and do not
+# count against this limit.
+max_concurrent_jobs = 4
+
+# Timeout of a command that does not carry its own, and of every service
+# control command, in seconds.
+default_command_timeout_s = 30
+
+# When a command is stopped (timeout, cancellation, job deadline) its whole
+# process group receives SIGTERM, then SIGKILL after this delay, in
+# milliseconds. 0 kills at once.
+kill_grace_ms = 2000
+
+# Cap on the captured stdout, and on the captured stderr, of one command, in
+# bytes. What exceeds it is dropped and the output is marked as truncated.
+max_output_bytes = 65536
+
+# Time given to running jobs when the agent stops, in seconds. Past it they
+# are cancelled. Jobs that did not start are left to the server.
+shutdown_grace_s = 30
+
+# Largest configuration bundle accepted, as downloaded, in bytes.
+max_bundle_bytes = 268435456
+
+# Cap on the size of a configuration bundle once unpacked, in bytes.
+max_unpacked_bytes = 1073741824
+
+# Number of recent jobs remembered: a repeated dispatch of one of them is
+# ignored (still running) or answered with its recorded events (finished).
+# The oldest finished jobs are forgotten first, in memory and in `state_dir`.
+job_history = 1024
+
+# Cap on the size of the remembered events, in bytes; same eviction order.
+max_buffered_event_bytes = 67108864
+
+[tls]
+# PEM file of the authorities signing the server certificate. Unset by
+# default: the system trust store is used.
+ca_file = "/etc/centreon-gorgone/ca.pem"
+# PEM client certificate and private key, for mTLS; set both or none. The
+# certificate CN must equal `node_id`. Unset by default.
+# cert_file = "/etc/centreon-gorgone/agent.crt"
+# key_file = "/etc/centreon-gorgone/agent.key"
+# Name expected in the server certificate when it differs from the host of
+# `server_url`. Unset by default.
+# server_name = "gorgone.example.com"
+
+[reconnect]
+# Delay before reconnecting to the server, in milliseconds: starts at
+# `min_ms`, doubles after each failure up to `max_ms`, with random jitter,
+# and returns to `min_ms` once a session is established.
+min_ms = 500
+max_ms = 30000
+
+[commands]
+# A RunCommands command runs only when one of these regular expressions
+# matches it entirely. Empty by default: every command is refused. The two
+# expressions below are examples.
+allowlist = [
+  '/usr/lib/centreon/plugins/\S+( .*)?',
+  '/usr/lib64/nagios/plugins/\S+( .*)?',
+]
+# false: the command is split into arguments and executed directly, so shell
+# syntax (pipes, redirections, `;`, `$(...)`) has no effect.
+# true: the command is given to `sh -c`; the allowlist is then the only guard.
+shell = false
+
+[engine]
+# External command pipe of centengine (EngineCommands jobs). Must be a FIFO
+# with a reader, that is a running engine.
+command_file = "/var/lib/centreon-engine/rw/centengine.cmd"
+
+# Destinations of the configuration bundles (ApplyConfig jobs), one table per
+# target. None by default: the central only names a target, and a target
+# missing here is refused.
+#   path:  required, directory the bundle is synchronised into.
+#   prune: remove the files of `path` that are not in the bundle (default false).
+[targets.engine]
+path = "/etc/centreon-engine"
+prune = true
+
+[targets.broker]
+path = "/etc/centreon-broker"
+prune = false
+
+[targets.vmware]
+path = "/etc/centreon"
+prune = false
+
+# Command lines of the ServiceControl jobs, one table per service, with the
+# optional keys `start`, `stop`, `reload` and `restart`. None by default: the
+# central only names a service and an operation, and a missing service or
+# operation is refused. Commands are split into arguments and executed
+# without a shell. The agent runs unprivileged: grant these exact commands to
+# its user in sudoers.
+[services.engine]
+start = "sudo systemctl start centengine"
+stop = "sudo systemctl stop centengine"
+reload = "sudo systemctl reload centengine"
+restart = "sudo systemctl restart centengine"
+
+[services.broker]
+start = "sudo systemctl start cbd"
+stop = "sudo systemctl stop cbd"
+reload = "sudo systemctl reload cbd"
+restart = "sudo systemctl restart cbd"
+
+[services.centreontrapd]
+start = "sudo systemctl start centreontrapd"
+stop = "sudo systemctl stop centreontrapd"
+reload = "sudo systemctl reload centreontrapd"
+restart = "sudo systemctl restart centreontrapd"
+
+[services.vmware]
+start = "sudo systemctl start centreon_vmware"
+stop = "sudo systemctl stop centreon_vmware"
+restart = "sudo systemctl restart centreon_vmware"

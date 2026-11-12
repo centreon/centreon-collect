@@ -1,0 +1,46 @@
+[package]
+name = "gorgone-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+anyhow = "1.0.104"
+axum = { version = "0.8", features = ["tokio", "http1", "http2", "json", "query"] }
+axum-server = { version = "0.9.2", default-features = false, features = ["tls-rustls-no-provider"] }
+base64 = "0.23.1"
+clap = { version = "4.6.7", features = ["derive", "env"] }
+figment = { version = "0.10.19", features = ["toml", "env"] }
+futures-util = "0.3.34"
+gorgone-core = { version = "0.1.0", path = "../gorgone-core" }
+gorgone-proto = { version = "0.1.0", path = "../gorgone-proto" }
+hex = "0.4.3"
+ipnet = { version = "2.12.2", features = ["serde"] }
+metrics = "0.24.6"
+metrics-exporter-prometheus = { version = "0.18.3", default-features = false }
+prost = "0.14"
+rand = { version = "0.10.3", features = ["thread_rng"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+sqlx = { version = "0.8", default-features = false, features = ["any", "sqlite", "mysql", "runtime-tokio", "tls-rustls"] }
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "fs"] }
+tokio-stream = { version = "0.1.19", features = ["sync"] }
+tokio-util = "0.7.20"
+tonic = { version = "0.14", features = ["tls-ring"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
+uuid = { version = "1.29.2", features = ["v4", "v7"] }
+x509-parser = "0.18.1"
+
+[dev-dependencies]
+rcgen = "0.14.10"
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "stream"] }
+tempfile = { version = "3.27.0", default-features = false }
+
+[[bin]]
+name = "gorgone-server"
+path = "src/main.rs"
