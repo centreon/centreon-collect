@@ -37,6 +37,7 @@ This part of the configuration is only used if some poller must connect with the
 | port          | TCP port to listen to.                                                                         |               |
 | check_interval | Time in seconds between two internal health checks of the httpserver child process            | `30`          |
 | check_timeout  | Time in seconds without an answer to a health check before the httpserver child is considered stuck and recreated | `60` |
+| token_check_interval | Time in seconds between two checks that every connected node's token is still valid (not revoked, not expired). One API call per check regardless of the number of connected nodes. | `60` |
 
 
 #### Example
@@ -282,6 +283,38 @@ Recreating the child clears every wss/pullwss node's in-flight GETLOG/ping/chann
 (the same reset also runs on the older crash-recovery path, where a dead child is caught via
 `dead_childs`): otherwise `routing()` keeps refusing traffic as "already in progress" against a
 child that no longer exists.
+
+#### Token revocation check
+
+When `httpserver.token` auth is used, `httpserver.pm::run()` also runs a recurring check (every
+`httpserver.token_check_interval` seconds) that closes the websocket of any connected node whose
+token has since been revoked or has expired. It fetches every token in one `GET
+/administration/tokens` call (`centreonv2::get_api_tokens()`) and matches the result locally
+against each connected node's token name - not one `GET /administration/tokens/<name>` call per
+node (`centreonv2::get_api_token()`, still used for a node's one-time login check in
+`is_logged_websocket()`). The Centreon API client is synchronous (`gorgone::class::http::backend::curl`),
+and this is the SAME single-threaded reactor that reads and writes every pullwss websocket: one
+blocking call per connected node, repeated every cycle, delays PING/PONG/GETLOG/SETLOGS on every
+other node for the combined duration of all of them - the node count (and the API's own latency
+under load) directly sets how often, and for how long, the reactor is unavailable. This was
+identified as a likely contributor to pullwss ping/GETLOG timeouts under load at a high node
+count, independently of `check_httpserver_health()` above (that check still gets an answer - the
+child is busy, not wedged). A separate, still-open investigation found pullwss ping/GETLOG
+timeouts recurring even at rest, with no evidence of this check (or anything else) blocking the
+reactor at the time - that mechanism is not yet identified; this change is not expected to resolve
+it by itself.
+
+A failed list call leaves every connected node as-is (logged, not disconnected): unlike the
+previous per-node call, where a transient failure for one node's own GET closed only that node's
+websocket, a transient failure here no longer drops every connected node at once.
+
+Fetching every token in one call only sees every connected node's token if the Centreon API
+account gorgone authenticates as can list every token, not just its own: the
+`/administration/tokens` list endpoint is restricted to tokens the caller created unless that
+account is an admin or holds `ROLE_MANAGE_TOKENS` (the by-name endpoint used for the one-time
+login check restricts to the caller's own tokens too, but with no such admin/role bypass found;
+gorgone's configured account already fetching tokens it does not own through that endpoint today
+is evidence, not proof, that it is privileged enough for the list too).
 
 ## check()
 

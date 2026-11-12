@@ -24,6 +24,7 @@ gorgone:
         port: 8086
         check_interval: @HTTPSERVER_CHECK_INTERVAL@
         check_timeout: @HTTPSERVER_CHECK_TIMEOUT@
+        token_check_interval: @HTTPSERVER_TOKEN_CHECK_INTERVAL@
 
     - name: nodes
       package: "gorgone::modules::centreon::nodes::hooks"
