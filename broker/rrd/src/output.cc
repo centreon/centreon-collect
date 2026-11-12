@@ -129,6 +129,7 @@ output<cached<asio::local::stream_protocol::socket>>::output(
  *  @param[in] status_path          See standard constructor.
  *  @param[in] cache_size           The maximum number of cache element.
  *  @param[in] ignore_update_errors Set to true to ignore update errors.
+ *  @param[in] host                 rrdcached listening host/address.
  *  @param[in] port                 rrdcached listening port.
  *  @param[in] write_metrics        Set to true if metrics graph must be
  *                                  written.
@@ -140,6 +141,7 @@ output<cached<asio::ip::tcp::socket>>::output(std::string const& metrics_path,
                                               std::string const& status_path,
                                               uint32_t cache_size,
                                               bool ignore_update_errors,
+                                              std::string const& host,
                                               unsigned short port,
                                               bool write_metrics,
                                               bool write_status)
@@ -149,8 +151,9 @@ output<cached<asio::ip::tcp::socket>>::output(std::string const& metrics_path,
       _status_path(status_path),
       _write_metrics(write_metrics),
       _write_status(write_status),
-      _backend(metrics_path, cache_size) {
-  _backend.connect_remote("localhost", port);
+      _backend(metrics_path, cache_size),
+      _logger{log_v2::instance().get(log_v2::RRD)} {
+  _backend.connect_remote(host, port);
 }
 }  // namespace com::centreon::broker::rrd
 

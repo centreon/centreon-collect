@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/broker/rrd/cached.hh"
+#include "com/centreon/broker/rrd/output.hh"
 #include <absl/strings/str_split.h>
 
 #include <gtest/gtest.h>
@@ -177,4 +178,42 @@ TEST(RRDCached, BatchRemote) {
       break;
     }
   ASSERT_TRUE(connection_found);
+}
+
+// output<cached<tcp::socket>>::output() used to leave _logger
+// default-constructed (null) and hardcode "localhost" regardless of the
+// host given - the first real write() crashed cbd on a null
+// shared_ptr<spdlog::logger> dereference (SPDLOG_LOGGER_TRACE is the first
+// line of write()). Bound explicitly to 127.0.0.1 (not the wildcard address
+// BatchRemote above uses) to also prove the host argument is honored, not
+// discarded.
+TEST(RRDCached, OutputTcpHasLogger) {
+  std::atomic_bool init_done{false};
+  asio::io_context io;
+  std::thread t{[&] {
+    asio::ip::tcp::acceptor acceptor(
+        io, asio::ip::tcp::endpoint(asio::ip::make_address("127.0.0.1"), 4243));
+    asio::ip::tcp::socket socket(io);
+    init_done = true;
+    acceptor.accept(socket);
+  }};
+
+  while (!init_done)
+    ;
+
+  // host must be a std::string (a literal converts to bool, a standard
+  // conversion ranked above the std::string user-defined one, and silently
+  // resolves to the wrong sibling constructor - the file one, undefined for
+  // this T, link error) and port must be exactly unsigned short (an int
+  // literal is otherwise just as good a match for the local-socket
+  // constructor's trailing bool parameter, making the call ambiguous - a
+  // compile error). Real callers (rrd::connector) already pass a
+  // std::string and a uint16_t member, so they aren't affected either way.
+  std::string host("127.0.0.1");
+  unsigned short port(4243);
+  rrd::output<rrd::cached<asio::ip::tcp::socket>> out(
+      "/tmp/metrics", "/tmp/status", 16, true, host, port);
+  ASSERT_NO_THROW(out.write(std::shared_ptr<io::data>()));
+
+  t.join();
 }
