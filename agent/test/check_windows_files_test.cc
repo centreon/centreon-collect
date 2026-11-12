@@ -24,6 +24,7 @@
 #include "check.hh"
 #include "check_files.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
+#include "com/centreon/common/utf8.hh"
 
 using namespace com::centreon::agent;
 using namespace std::string_literals;
@@ -823,6 +824,80 @@ TEST_F(check_files_test, status_updates_when_file_added_and_removed) {
   run_one_check();
   EXPECT_EQ(status, e_status::ok)
       << "expected OK after the file is removed, got: " << output;
+
+  fs::remove_all(dir);
+}
+// path, pattern and filters are UTF-8: a directory and files with non ASCII
+// names (inside and outside of the ANSI code page) must be found and matched
+TEST_F(check_files_test, non_ascii_path_pattern_and_filter) {
+  namespace fs = std::filesystem;
+
+  fs::path dir = fs::temp_directory_path() / L"check_files_Données";
+  fs::remove_all(dir);
+  fs::create_directories(dir);
+  { std::ofstream(dir / L"Café.csv") << "a\nb\n"; }
+  { std::ofstream(dir / L"Москва.csv") << "a\n"; }
+  { std::ofstream(dir / L"plain.txt") << "a\n"; }
+
+  std::string dir_utf8 =
+      com::centreon::common::wstring_to_utf8(dir.generic_wstring());
+
+  auto run_check = [&](std::string_view pattern, std::string_view critical,
+                       std::string* output) {
+    std::string json_str = fmt::format(R"cfg({{
+    "path": "{}",
+    "max-depth": 0,
+    "pattern": "{}",
+    "files-detail-syntax": "${{filename}}",
+    "critical-status": "{}",
+    "output-syntax": "${{status}}: ${{problem_count}}/${{total}} files (${{problem_list}})",
+    "ok-syntax": "${{status}}: ${{total}} files are ok",
+    "verbose": false
+  }})cfg",
+                                       dir_utf8, pattern, critical);
+    rapidjson::Document check_args;
+    check_args.Parse(json_str.c_str());
+
+    absl::Mutex wait_m;
+    int status = -1;
+    bool complete = false;
+    auto is_complete = [&]() { return complete; };
+
+    auto checker = std::make_shared<check_files>(
+        g_io_context, spdlog::default_logger(),
+        std::chrono::system_clock::now(), serv, check_args, nullptr,
+        [&]([[maybe_unused]] const std::shared_ptr<check>& caller, int st,
+            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+                perfdata,
+            const std::list<std::string>& outputs) {
+          absl::MutexLock lck(wait_m);
+          complete = true;
+          status = st;
+          *output = outputs.front();
+        },
+        std::make_shared<checks_statistics>());
+
+    checker->start_check(std::chrono::seconds(20));
+    absl::MutexLock lck(wait_m);
+    wait_m.Await(absl::Condition(&is_complete));
+    return status;
+  };
+
+  std::string output;
+  // default pattern must not skip accented names
+  EXPECT_EQ(run_check("*.*", "count > 10", &output), e_status::ok) << output;
+  EXPECT_EQ(output, "OK: 3 files are ok");
+
+  EXPECT_EQ(run_check("*.csv", "filename == 'Café.csv'", &output),
+            e_status::critical)
+      << output;
+  EXPECT_NE(output.find("1/2 files"), std::string::npos) << output;
+  EXPECT_NE(output.find("Café.csv"), std::string::npos) << output;
+  EXPECT_EQ(output.find("Москва.csv"), std::string::npos) << output;
+
+  EXPECT_EQ(run_check("Моск*", "count > 0", &output), e_status::critical)
+      << output;
+  EXPECT_NE(output.find("/1 files"), std::string::npos) << output;
 
   fs::remove_all(dir);
 }
