@@ -403,4 +403,15 @@ sub read_zmq_events {
     }
 }
 
+# PONG/SETLOGS/ACK are dispatched through transmit_back() by read_zmq_events(), not
+# through the action_<name> convention gorgone::class::module::event() looks for: a
+# message still on the internal socket when event() runs as a side effect of
+# send_internal_action() lands here instead of being silently dropped (the websocket
+# frame back to the central never gets sent otherwise).
+sub unhandled_event {
+    my ($self, %options) = @_;
+
+    $self->transmit_back(message => \$options{message});
+}
+
 1;

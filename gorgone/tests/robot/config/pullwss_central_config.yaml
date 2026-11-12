@@ -14,6 +14,8 @@ gorgone:
       package: "gorgone::modules::core::proxy::hooks"
       enable: true
       ping: @PROXY_PING@
+      synchistory_time: @PROXY_SYNCHISTORY_TIME@
+      synchistory_timeout: @PROXY_SYNCHISTORY_TIMEOUT@
       httpserver:
         enable: true
         ssl: false
