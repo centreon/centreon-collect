@@ -613,7 +613,7 @@ sequenceDiagram
     note right of E: Dans les deux cas, reloading = false<br/>pour traiter les diffs suivants.
 ```
 
-Le parcours complet des fichiers pendant l'envoi d'une configuration (`.lck`, `new-X.prot`, `diff-X.prot`, `X.prot`) est décrit dans [Le parcours d'une configuration](02-configuration-delivery-fr.md#le-parcours-dune-configuration).
+Le parcours complet des fichiers pendant l'envoi d'une configuration (`.lck`, `new-X.prot`, `new-diff-X.prot`, `diff-X.prot`, `X.prot`) est décrit dans [Le parcours d'une configuration](02-configuration-delivery-fr.md#le-parcours-dune-configuration).
 
 ## Cas épineux
 
@@ -654,7 +654,7 @@ sequenceDiagram
     PHP ->> B: export C1
     B ->> E: DiffState C0→C1
     PHP ->> B: export C2
-    Note over B: diff-X.prot = C0→C2<br/>rien n'est envoyé, C1 est en cours
+    Note over B: new-diff-X.prot = C0→C2<br/>rien n'est envoyé, C1 est en cours
     E -->> B: pb_diff_state_ack C1, hors de la file d'événements
     Note over B: engine_conf = C1<br/>C1 n'est plus la version préparée, rien n'est renommé
     B ->> E: C2 en entier, car C1 ≠ from_version C0

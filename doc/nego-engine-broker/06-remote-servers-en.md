@@ -288,7 +288,7 @@ sequenceDiagram
     participant E as Engine (poller N)
 
     P->>C: new-N.prot
-    C->>C: computes diff-N.prot
+    C->>C: computes new-diff-N.prot
     C->>C: _engine_peers[N].via_remote = R → route to R
     C->>R: pb_diff_state {diff-N}
     R->>R: updates N.prot locally
@@ -366,7 +366,7 @@ sequenceDiagram
     C->>C: _engine_peers[N].via_remote = R (hint from topology.cache)
 
     P->>C: new-N.prot (while R not yet reconnected)
-    C->>C: computes diff-N.prot
+    C->>C: computes new-diff-N.prot
     C->>C: _engine_peers[N].via_remote = R → diff queued for R
 
     Note over R,C: R reconnects to central
@@ -742,7 +742,7 @@ the debounce.
   **Implementation**: `broker_state::pollers_via_relay_needing_update(relay_id)` collects
   the pollers with `via_remote == relay_id` that `_peer_needs_update()` reports as still owed
   a configuration — the same test as everywhere else, deliberately not rewritten here.  In `broker_stream::read()`, when `peer_type() == BROKER &&
-  !is_relay()`, the central iterates this list and pushes the `diff-N.prot` to the relay —
+  !is_relay()`, the central iterates this list and pushes the `new-diff-N.prot` to the relay —
   identical to the `ConfigRequest` diff_ready path, but triggered by the PHP push timer instead
   of an incoming request.
 

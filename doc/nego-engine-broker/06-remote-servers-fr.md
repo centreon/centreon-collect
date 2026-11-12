@@ -291,7 +291,7 @@ sequenceDiagram
     participant E as Engine (poller N)
 
     P->>C: new-N.prot
-    C->>C: calcule diff-N.prot
+    C->>C: calcule new-diff-N.prot
     C->>C: _engine_peers[N].via_remote = R → routage vers R
     C->>R: pb_diff_state {diff-N}
     R->>R: met à jour N.prot localement
@@ -369,7 +369,7 @@ sequenceDiagram
     C->>C: _engine_peers[N].via_remote = R (hint depuis topology.cache)
 
     P->>C: new-N.prot (pendant que R n'est pas encore reconnecté)
-    C->>C: calcule diff-N.prot
+    C->>C: calcule new-diff-N.prot
     C->>C: _engine_peers[N].via_remote = R → diff mis en attente pour R
 
     Note over R,C: R se reconnecte au central
@@ -746,7 +746,7 @@ configuration plus récente suit via
   **Implémentation** : `broker_state::pollers_via_relay_needing_update(relay_id)` collecte les
   pollers dont `via_remote == relay_id` que `_peer_needs_update()` signale comme encore en attente
   de configuration — le même test que partout ailleurs, délibérément non réécrit ici. Dans `broker_stream::read()`, quand `peer_type() == BROKER &&
-  !is_relay()`, le central itère cette liste et pousse le `diff-N.prot` au relais — identique au
+  !is_relay()`, le central itère cette liste et pousse le `new-diff-N.prot` au relais — identique au
   chemin diff_ready du `ConfigRequest`, mais déclenché par le timer PHP push.
 
   → CCCRC4 (`centralized-relay-conf.robot`) : Config initiale établie via relais (ack reçu). Puis

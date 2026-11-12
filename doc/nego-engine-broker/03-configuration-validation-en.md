@@ -563,7 +563,7 @@ sequenceDiagram
     note right of E: In both cases, reloading = false<br/>to process subsequent diffs.
 ```
 
-The full journey of the files while a configuration is sent (`.lck`, `new-X.prot`, `diff-X.prot`, `X.prot`) is described in [The journey of a configuration](02-configuration-delivery-en.md#the-journey-of-a-configuration).
+The full journey of the files while a configuration is sent (`.lck`, `new-X.prot`, `new-diff-X.prot`, `diff-X.prot`, `X.prot`) is described in [The journey of a configuration](02-configuration-delivery-en.md#the-journey-of-a-configuration).
 
 ## Tricky cases
 
@@ -604,7 +604,7 @@ sequenceDiagram
     PHP ->> B: export C1
     B ->> E: DiffState C0→C1
     PHP ->> B: export C2
-    Note over B: diff-X.prot = C0→C2<br/>nothing is sent, C1 is in flight
+    Note over B: new-diff-X.prot = C0→C2<br/>nothing is sent, C1 is in flight
     E -->> B: pb_diff_state_ack C1, outside the event queue
     Note over B: engine_conf = C1<br/>C1 is no longer the prepared version, nothing is renamed
     B ->> E: C2 in full, since C1 ≠ from_version C0

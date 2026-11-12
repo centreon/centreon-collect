@@ -54,8 +54,8 @@ Here number 1 represents the poller ID.
 Currently, with centralized configuration:
 
 * creation of new-1.prot file with configuration inside
-* Creation of diff-1.prot which contains the difference with previous configuration.
-* Sending diff-1 to poller 1.
+* Creation of new-diff-1.prot which contains the difference with previous configuration.
+* Sending new-diff-1 to poller 1.
 * On acknowledgement from poller 1, we move to next steps:
 * Updating global configuration for broker cache
 * updating global difference, if several configurations are received simultaneously, to be able to update the STORAGE database.

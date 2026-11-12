@@ -56,8 +56,8 @@ Ici le numero 1 représente l'ID du poller.
 Actuellement, avec la configuration centralisée :
 
 * création du fichier new-1.prot avec la configuration à l'intérieur
-* Création de diff-1.prot qui contient la différence avec la configuration précédente.
-* Envoi de diff-1 au poller 1.
+* Création de new-diff-1.prot qui contient la différence avec la configuration précédente.
+* Envoi de new-diff-1 au poller 1.
 * À l'acquittement de poller 1, on passe aux étapes suivantes:
 * Mise à jour de la configuration globale pour le cache de broker
 * mise à jour de la différence globale, si plusieurs configurations sont reçues simultanément, pour pouvoir faire la
