@@ -132,11 +132,14 @@ class poller_conf {
    * case. Kept after the poller leaves rejected, so that GetPollers still
    * tells it, until a configuration is acknowledged. */
   std::optional<rejection> _rejection;
-  /* Whether the poller is still owed the runtime snapshot of its resources:
-   * true by construction, a poller that was just registered got nothing yet,
-   * and again once Broker rebuilt and restored a configuration it had lost;
-   * false once the stream serving the poller sent the snapshot, with a
-   * configuration diff or alone. It belongs to neither automaton. */
+  /* Whether the poller is still owed the full runtime snapshot of its
+   * resources: true by construction, a poller that was just registered got
+   * nothing yet, again when a relay asks for its configuration (the Engine
+   * just connected to the relay), and once Broker rebuilt and restored a
+   * configuration it had lost; false once a DiffState carrying the full
+   * snapshot was built for it, with a configuration diff or alone. While it is
+   * false, a DiffState only describes the resources its diff adds to the
+   * poller. It belongs to neither automaton. */
   bool _runtime_state_owed = true;
   /* How this poller is registered in peer_registry. The accessors of
    * broker_state ignore a poller_conf not registered; keeping it here spares

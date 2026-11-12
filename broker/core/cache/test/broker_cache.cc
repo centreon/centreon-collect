@@ -1585,6 +1585,75 @@ TEST_F(BrokerCacheTest, FillRuntimeState) {
 }
 
 /**
+ * Scenario: the runtime of the resources a diff adds to a running poller.
+ * Given host 1 and its services 1 and 2, checked, on poller 1
+ * And host 2, never checked, on poller 1
+ * When a diff for poller 2 adds host 1 with its services, host 2 and a service
+ * the cache does not know
+ * Then the snapshot describes host 1 and its two services, although the cache
+ * still attaches them to poller 1
+ * And neither host 2, which has nothing to carry, nor the unknown service
+ * When a diff adds nothing
+ * Then the snapshot is empty.
+ */
+TEST_F(BrokerCacheTest, FillAddedRuntimeState) {
+  namespace cfg = com::centreon::engine::configuration;
+  publish_hosts(1, 2, 1);
+  publish_services(1, 2, 1);
+
+  auto hs = std::make_shared<neb::pb_host_status>();
+  hs->mut_obj().set_host_id(1);
+  hs->mut_obj().set_checked(true);
+  hs->mut_obj().set_state(HostStatus_State_DOWN);
+  hs->mut_obj().set_last_check(1000);
+  hs->mut_obj().set_output("host down");
+  _cache->publish(hs);
+  for (uint64_t svc : {1u, 2u}) {
+    auto ss = std::make_shared<neb::pb_service_status>();
+    ss->mut_obj().set_host_id(1);
+    ss->mut_obj().set_service_id(svc);
+    ss->mut_obj().set_checked(true);
+    ss->mut_obj().set_state(ServiceStatus_State_CRITICAL);
+    ss->mut_obj().set_state_type(ServiceStatus_StateType_HARD);
+    ss->mut_obj().set_last_check(2000);
+    ss->mut_obj().set_output(fmt::format("service {} critical", svc));
+    _cache->publish(ss);
+  }
+
+  cfg::DiffState diff;
+  diff.set_poller_id(2);
+  for (uint64_t host_id : {1u, 2u})
+    diff.mutable_hosts()->add_added()->set_host_id(host_id);
+  for (uint64_t svc : {1u, 2u, 99u}) {
+    auto* s = diff.mutable_services()->add_added();
+    s->set_host_id(1);
+    s->set_service_id(svc);
+  }
+
+  cfg::RuntimeState out;
+  _cache->fill_added_runtime_state(diff, &out);
+  ASSERT_EQ(out.hosts_size(), 1) << "host 2 was never checked";
+  EXPECT_EQ(out.hosts(0).host_id(), 1u);
+  EXPECT_EQ(out.hosts(0).state(), cfg::state_down);
+  EXPECT_EQ(out.hosts(0).output(), "host down");
+  ASSERT_EQ(out.services_size(), 2) << "service 99 is not in the cache";
+  for (const auto& s : out.services()) {
+    EXPECT_EQ(s.host_id(), 1u);
+    EXPECT_EQ(s.state(), cfg::state_critical);
+    EXPECT_EQ(s.state_type(), cfg::HARD);
+    EXPECT_EQ(s.output(), fmt::format("service {} critical", s.service_id()));
+  }
+
+  cfg::DiffState nothing_added;
+  nothing_added.set_poller_id(1);
+  nothing_added.mutable_hosts()->add_removed(2);
+  cfg::RuntimeState empty;
+  _cache->fill_added_runtime_state(nothing_added, &empty);
+  EXPECT_EQ(empty.hosts_size(), 0);
+  EXPECT_EQ(empty.services_size(), 0);
+}
+
+/**
  * @brief The event, problem and notification ids: a full status sets them, an
  * adaptive status after a notification moves the notification id, a status
  * that does not carry them (older poller, BAM) keeps them, as do a

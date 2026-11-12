@@ -243,12 +243,15 @@ void poller_conf::on_expected() noexcept {
  * again, and whose acknowledgement still counts for the round.
  *
  * Reaching Broker through a relay is a connection: a poller expected from
- * topology.cache is connected from now on.
+ * topology.cache is connected from now on. The relay asks because the Engine
+ * just connected to it, so it starts, and is owed the runtime snapshot of its
+ * resources as after a direct connection.
  *
  * @param engine_conf The version the relay knows, empty if none.
  */
 void poller_conf::on_relay_request(const std::string& engine_conf) {
   _registration = registration::connected;
+  _runtime_state_owed = true;
   if (!engine_conf.empty())
     _engine_conf = engine_conf;
   if (!awaits_acknowledgement())

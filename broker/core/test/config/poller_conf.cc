@@ -399,3 +399,16 @@ TEST_F(PollerConfDelivery, RelayRequestConnectsAnExpectedPoller) {
   conf.on_disconnected();
   EXPECT_EQ(conf.registration_status(), registration::none);
 }
+
+/**
+ * Scenario: an Engine that connects to a relay is owed its runtime snapshot.
+ * Given a poller_conf that was sent its snapshot
+ * When a relay asks for its configuration
+ * Then the snapshot is owed again: the Engine just connected to the relay.
+ */
+TEST_F(PollerConfDelivery, RelayRequestOwesTheRuntimeSnapshot) {
+  poller_conf conf = up_to_date();
+  conf.set_runtime_state_owed(false);
+  conf.on_relay_request("v0");
+  EXPECT_TRUE(conf.runtime_state_owed());
+}

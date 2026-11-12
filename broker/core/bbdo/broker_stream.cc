@@ -53,11 +53,24 @@ uint32_t broker_stream::stop() {
 }
 
 /**
- * @brief Add the runtime snapshot of the poller's resources to a DiffState
- * about to be sent to it: what replaces retention.dat at the poller's startup
- * in centralized configuration. Engine applies it once the objects of the
- * diff exist. Nothing is added when this Broker holds no poller configuration
- * (relay) -- its cache knows no resource to describe.
+ * @brief Add to a DiffState about to be sent to a poller the runtime it needs,
+ * taken from the cache.
+ *
+ * The full snapshot of its resources when it is owed one: it just connected,
+ * directly or through a relay, or Broker rebuilt a configuration it had lost.
+ * That is what replaces retention.dat at the poller's startup in centralized
+ * configuration, and the flag that says it is owed is lowered here.
+ *
+ * Otherwise the poller runs, and knows its resources better than the cache,
+ * whose state lags behind the events still on their way: a full snapshot would
+ * undo what the poller did meanwhile. Only the resources the diff adds to it
+ * are described -- a host moved from another poller, for instance -- since
+ * the poller knows nothing of them. A full configuration carries none then: it
+ * is only sent to a poller running another version, which just reconnected.
+ *
+ * Engine applies the runtime once the objects of the diff exist. Nothing is
+ * added when this Broker holds no poller configuration (relay) -- its cache
+ * knows no resource to describe.
  *
  * @param diff The DiffState, whose poller_id says which poller.
  */
@@ -65,13 +78,28 @@ void broker_stream::_add_runtime_state(
     com::centreon::engine::configuration::DiffState& diff) {
   if (!_state.supports_centralized_conf() || diff.unknown())
     return;
-  _state.cache().fill_runtime_state(diff.poller_id(),
-                                    diff.mutable_runtime_state());
-  SPDLOG_LOGGER_INFO(_logger,
-                     "BBDO: runtime state of {} hosts and {} services added to "
-                     "the DiffState of poller {}",
-                     diff.runtime_state().hosts_size(),
-                     diff.runtime_state().services_size(), diff.poller_id());
+  const uint64_t poller_id = diff.poller_id();
+  if (_state.runtime_state_owed(poller_id)) {
+    _state.cache().fill_runtime_state(poller_id, diff.mutable_runtime_state());
+    _state.set_runtime_state_owed(poller_id, false);
+    SPDLOG_LOGGER_INFO(_logger,
+                       "BBDO: runtime state of {} hosts and {} services added "
+                       "to the DiffState of poller {}",
+                       diff.runtime_state().hosts_size(),
+                       diff.runtime_state().services_size(), poller_id);
+  } else if (!diff.has_state()) {
+    /* Only what the diff adds; most diffs add nothing the cache knows, and
+     * Engine applies -- and logs -- any runtime_state present, empty or not. */
+    com::centreon::engine::configuration::RuntimeState added;
+    _state.cache().fill_added_runtime_state(diff, &added);
+    if (added.hosts_size() > 0 || added.services_size() > 0) {
+      SPDLOG_LOGGER_INFO(_logger,
+                         "BBDO: runtime state of the {} hosts and {} services "
+                         "the diff adds to poller {} added to its DiffState",
+                         added.hosts_size(), added.services_size(), poller_id);
+      *diff.mutable_runtime_state() = std::move(added);
+    }
+  }
 }
 
 /**
@@ -396,7 +424,6 @@ void broker_stream::_serve_engine_peer() {
         "BBDO: We should send the Engine configuration to the poller {}",
         poller_id());
     _send_diff_state_for_poller(poller_id());
-    _state.set_runtime_state_owed(poller_id(), false);
   } else if (_state.runtime_state_owed(poller_id()) && extended_negotiation() &&
              _state.supports_centralized_conf() &&
              _state.broker_knows_poller_conf(poller_id()) &&
@@ -405,7 +432,6 @@ void broker_stream::_serve_engine_peer() {
      * cache later, through the reference output, which sets the flag again
      * once there is something to describe. */
     _send_runtime_state_alone();
-    _state.set_runtime_state_owed(poller_id(), false);
   }
 
   /* Downward channel: deliver the events queued for the poller this stream
