@@ -13,12 +13,18 @@ Test Teardown       Ctn Save Logs If Failed
 &{ext}                  yes=TLS    no=    auto=TLS
 @{choices}              yes    no    auto
 @{LIST_HANDSHAKE}       performing handshake    successful handshake
+@{TLS_REFUSED}
+...                     BBDO: connection refused: extension 'TLS' is set to 'yes' in the configuration but peer
 
 
 *** Test Cases ***
 BECT1
     [Documentation]    Broker/Engine communication with anonymous TLS between central and poller
     [Tags]    broker    engine    tls    tcp
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests: TLS is not a BBDO extension there
+    END
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
@@ -33,27 +39,9 @@ BECT1
             ${start}    Get Current Date
             Ctn Start Broker
             Ctn Start Engine
-            ${result}    Ctn Check Connections
-            Should Be True    ${result}    Engine and Broker not connected
+            Ctn Check Tls Negotiation    ${comp1}    ${comp2}    ${start}
             Ctn Kindly Stop Broker
             Ctn Stop Engine
-            ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
-            ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
-            IF    "${comp1}" == "yes" and "${comp2}" == "no"
-                Insert Into List
-                ...    ${content1}
-                ...    ${-1}
-                ...    extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
-            ELSE IF    "${comp1}" == "no" and "${comp2}" == "yes"
-                Insert Into List
-                ...    ${content2}
-                ...    ${-1}
-                ...    extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
-            END
-            ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content1}
-            Should Be True    ${result}
-            ${result}    Ctn Find In Log    ${moduleLog0}    ${start}    ${content2}
-            Should Be True    ${result}
         END
     END
 
@@ -261,6 +249,10 @@ BECT4
 BECT_GRPC1
     [Documentation]    Broker/Engine communication with GRPC and with anonymous TLS between central and poller
     [Tags]    broker    engine    tls    tcp
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests: TLS is not a BBDO extension there
+    END
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     FOR    ${comp1}    IN    @{choices}
@@ -279,27 +271,9 @@ BECT_GRPC1
             ${start}    Get Current Date
             Ctn Start Broker
             Ctn Start Engine
-            ${result}    Ctn Check Connections
-            Should Be True    ${result}    Engine and Broker not connected
+            Ctn Check Tls Negotiation    ${comp1}    ${comp2}    ${start}
             Ctn Kindly Stop Broker
             Ctn Stop Engine
-            ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
-            ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
-            IF    "${comp1}" == "yes" and "${comp2}" == "no"
-                Insert Into List
-                ...    ${content1}
-                ...    ${-1}
-                ...    extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
-            ELSE IF    "${comp1}" == "no" and "${comp2}" == "yes"
-                Insert Into List
-                ...    ${content2}
-                ...    ${-1}
-                ...    extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
-            END
-            ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content1}
-            Should Be True    ${result}
-            ${result}    Ctn Find In Log    ${moduleLog0}    ${start}    ${content2}
-            Should Be True    ${result}
         END
     END
 
@@ -510,3 +484,27 @@ BECT_GRPC4
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
     ${result}    Ctn Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
+
+
+*** Keywords ***
+Ctn Check Tls Negotiation
+    [Documentation]    Check the BBDO negotiation between the central input with TLS set to
+    ...    ${central_tls} and the poller output with TLS set to ${module_tls}. When TLS is
+    ...    set to 'yes' on one side only, this side refuses the connection.
+    [Arguments]    ${central_tls}    ${module_tls}    ${start}
+    IF    "${central_tls}" == "yes" and "${module_tls}" == "no"
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${TLS_REFUSED}    30
+        Should Be True    ${result}    The central should refuse a poller that does not activate TLS
+    ELSE IF    "${central_tls}" == "no" and "${module_tls}" == "yes"
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${TLS_REFUSED}    30
+        Should Be True    ${result}    The poller should refuse a central that does not activate TLS
+    ELSE
+        ${result}    Ctn Check Connections
+        Should Be True    ${result}    Engine and Broker not connected
+    END
+    ${content1}    Create List    we have extensions '${ext["${central_tls}"]}' and peer has '${ext["${module_tls}"]}'
+    ${content2}    Create List    we have extensions '${ext["${module_tls}"]}' and peer has '${ext["${central_tls}"]}'
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content1}    30
+    Should Be True    ${result}    Unexpected extensions in the central log
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content2}    30
+    Should Be True    ${result}    Unexpected extensions in the poller log
