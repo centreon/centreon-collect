@@ -146,10 +146,16 @@ sub action_brokerstats {
     if (defined($options{data}->{variables}[0]) && $options{data}->{variables}[0] =~ /\d+/) {
         $request .= " AND id = '" . $options{data}->{variables}[0] . "'";
     }
-    
+
     if (!defined($options{data}->{content}->{collect_localhost}) ||
         $options{data}->{content}->{collect_localhost} eq 'false') {
-        $request .= " AND localhost = '0'";
+        # localhost=1 excludes a row from this dispatch-by-target collection
+        # (no local-collocated fallback exists here, unlike legacycmd), except
+        # in a docker/k8s split (poller_type='docker'): there localhost=1 just
+        # means "this is the Central poller" - it's a real registered node
+        # (own gorgone process, collocated with its own broker), so COMMAND
+        # dispatched to it works the same as for any other poller.
+        $request .= " AND (localhost = '0' OR poller_type = 'docker')";
     }
 
     my ($status, $data) = $self->{class_object_centreon}->custom_execute(request => $request, mode => 2);

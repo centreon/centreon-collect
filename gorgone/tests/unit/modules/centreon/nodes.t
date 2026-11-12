@@ -155,6 +155,7 @@ sub prepare_db {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     localhost TEXT CHECK (localhost IN ('0', '1')),
+    poller_type TEXT DEFAULT NULL,
     is_default INTEGER DEFAULT 0,
     remote_server_use_as_proxy TEXT CHECK (remote_server_use_as_proxy IN ('0', '1')) DEFAULT '0',
     ns_ip_address TEXT,
@@ -172,7 +173,8 @@ sub prepare_db {
         ON DELETE SET NULL
         ON UPDATE CASCADE
 );");
-    $sqlquery->do(request => "INSERT INTO `nagios_server` VALUES
+    $sqlquery->do(request => "INSERT INTO `nagios_server`
+(id, name, localhost, is_default, remote_server_use_as_proxy, ns_ip_address, ns_activate, ssh_port, gorgone_communication_type, gorgone_port, uid, remote_id) VALUES
 (1,'central','1',1,NULL,'127.0.0.2','1',22,'1',5556,'',NULL),
 (11,'poller_push','0',0,NULL,'127.0.0.2','1',22,'1',5556,'',NULL),
 (12,'poller_ssh','0',0,NULL,'127.0.0.3','1',22,'2',22,'',NULL),
