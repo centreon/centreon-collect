@@ -163,3 +163,36 @@ TEST_F(ApplierPbHost, PbHostParentChildUnreachable) {
   ASSERT_EQ(child->second->get_current_state(),
             engine::host::state_unreachable);
 }
+
+// Given a host whose active checks were disabled by an external command (the
+// MODATTR_ACTIVE_CHECKS_ENABLED bit is set)
+// When its configuration is modified, with active checks enabled
+// Then modify_object applies the other attributes and keeps the checks
+// disabled, and unscheduled.
+TEST_F(ApplierPbHost, PbModifyKeepsOverrides) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_alias("alias");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_checks_active(true);
+  hst_aply.add_object(hst);
+  std::shared_ptr<com::centreon::engine::host> h1 =
+      engine::host::hosts.begin()->second;
+  ASSERT_TRUE(h1->active_checks_enabled());
+
+  // What DISABLE_HOST_CHECK does.
+  h1->set_checks_enabled(false);
+  h1->set_should_be_scheduled(false);
+  h1->add_modified_attributes(MODATTR_ACTIVE_CHECKS_ENABLED);
+
+  hst.set_alias("alias2");
+  hst_aply.modify_object(pb_indexed_config.hosts().at(12).get(), hst);
+
+  ASSERT_EQ(h1->get_alias(), "alias2");
+  ASSERT_FALSE(h1->active_checks_enabled());
+  ASSERT_FALSE(h1->get_should_be_scheduled());
+  ASSERT_EQ(h1->get_modified_attributes(), MODATTR_ACTIVE_CHECKS_ENABLED);
+}

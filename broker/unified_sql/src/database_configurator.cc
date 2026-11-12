@@ -16,7 +16,10 @@
  * For more information : contact@centreon.com
  */
 #include "com/centreon/broker/unified_sql/database_configurator.hh"
+#include <absl/types/span.h>
 #include <google/protobuf/repeated_ptr_field.h>
+#include <array>
+#include <cassert>
 #include <iterator>
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -30,6 +33,128 @@ using com::centreon::engine::configuration::ActionHostOn;
 using com::centreon::engine::configuration::ActionServiceOn;
 
 namespace com::centreon::broker::unified_sql {
+
+namespace {
+/* The columns an external command can override (DISABLE_*_NOTIFICATIONS,
+ * CHANGE_*_CHECK_INTERVAL...), per upsert: only those it writes. The hosts
+ * one does not write notification_period, the anomalydetections one not
+ * check_period, and VALUES() of a column the INSERT does not name is NULL. */
+constexpr std::array<std::string_view, 11> host_overridable_columns = {
+    "notify",          "active_checks",
+    "passive_checks",  "event_handler_enabled",
+    "flap_detection",  "check_interval",
+    "retry_interval",  "max_check_attempts",
+    "check_freshness", "obsess_over_host",
+    "check_period"};
+constexpr std::array<std::string_view, 12> service_overridable_columns = {
+    "notify",          "active_checks",
+    "passive_checks",  "event_handler_enabled",
+    "flap_detection",  "check_interval",
+    "retry_interval",  "max_check_attempts",
+    "check_freshness", "obsess_over_service",
+    "check_period",    "notification_period"};
+constexpr std::array<std::string_view, 11>
+    anomalydetection_overridable_columns = {"notify",
+                                            "active_checks",
+                                            "passive_checks",
+                                            "event_handler_enabled",
+                                            "flap_detection",
+                                            "check_interval",
+                                            "retry_interval",
+                                            "max_check_attempts",
+                                            "check_freshness",
+                                            "obsess_over_service",
+                                            "notification_period"};
+
+/**
+ * @brief The ModifiedAttribute bit of an overridable column.
+ */
+ModifiedAttribute bit_of(std::string_view column) {
+  constexpr std::array<std::pair<std::string_view, ModifiedAttribute>, 13>
+      bits = {{
+          {"notify", MOD_NOTIFICATIONS_ENABLED},
+          {"active_checks", MOD_ACTIVE_CHECKS_ENABLED},
+          {"passive_checks", MOD_PASSIVE_CHECKS_ENABLED},
+          {"event_handler_enabled", MOD_EVENT_HANDLER_ENABLED},
+          {"flap_detection", MOD_FLAP_DETECTION_ENABLED},
+          {"obsess_over_host", MOD_OBSESSIVE_HANDLER_ENABLED},
+          {"obsess_over_service", MOD_OBSESSIVE_HANDLER_ENABLED},
+          {"check_interval", MOD_NORMAL_CHECK_INTERVAL},
+          {"retry_interval", MOD_RETRY_CHECK_INTERVAL},
+          {"max_check_attempts", MOD_MAX_CHECK_ATTEMPTS},
+          {"check_freshness", MOD_FRESHNESS_CHECKS_ENABLED},
+          {"check_period", MOD_CHECK_TIMEPERIOD},
+          {"notification_period", MOD_NOTIFICATION_TIMEPERIOD},
+      }};
+  for (const auto& [name, bit] : bits)
+    if (name == column)
+      return bit;
+  assert(false && "not an overridable column");
+  return MOD_NONE;
+}
+
+/**
+ * @brief The ON DUPLICATE KEY UPDATE assignments of the overridable columns:
+ * a row keeps its value when the bit of the column is set in its
+ * modified_attributes, and the configuration only fills the others, as the
+ * Broker cache does. The mask itself is left to the adaptive events; it is
+ * NULL on a row never overridden, hence the COALESCE.
+ *
+ * @param columns The overridable columns the upsert writes.
+ *
+ * @return The assignments, comma separated, without a trailing comma.
+ */
+std::string overridden_attributes_kept(
+    absl::Span<const std::string_view> columns) {
+  std::string out;
+  for (std::string_view column : columns)
+    fmt::format_to(
+        std::back_inserter(out),
+        "{0}=IF(COALESCE(modified_attributes,0)&{1},{0},VALUES({0})),", column,
+        static_cast<uint32_t>(bit_of(column)));
+  out.pop_back();
+  return out;
+}
+
+/**
+ * @brief The attributes of a resources row an external command can override
+ * (DISABLE_*_NOTIFICATIONS, DISABLE_*_CHECK, CHANGE_MAX_*_CHECK_ATTEMPTS...).
+ * The row has no modified_attributes column to keep them under, as hosts and
+ * services have, so they come from the global cache, which keeps its
+ * overrides and their bits across configuration changes: every attribute
+ * whose bit the cache entry carries takes the value of the cache, the others
+ * that of the configuration. A resource the cache does not know gets its
+ * configuration.
+ */
+struct resource_attributes {
+  bool notify;
+  bool active_checks;
+  bool passive_checks;
+  uint32_t max_check_attempts;
+};
+
+template <typename Conf, typename Cached>
+resource_attributes resource_attributes_of(
+    const Conf& conf,
+    const std::shared_ptr<Cached>& cached) {
+  resource_attributes r{conf.notifications_enabled(), conf.checks_active(),
+                        conf.checks_passive(),
+                        static_cast<uint32_t>(conf.max_check_attempts())};
+  if (!cached)
+    return r;
+  const auto& c = cached->obj();
+  const uint32_t mask = c.modified_attributes();
+  if (mask & MOD_NOTIFICATIONS_ENABLED)
+    r.notify = c.notify();
+  if (mask & MOD_ACTIVE_CHECKS_ENABLED)
+    r.active_checks = c.active_checks();
+  if (mask & MOD_PASSIVE_CHECKS_ENABLED)
+    r.passive_checks = c.passive_checks();
+  if (mask & MOD_MAX_CHECK_ATTEMPTS)
+    r.max_check_attempts = c.max_check_attempts();
+  return r;
+}
+}  // namespace
 
 /**
  * @brief Execute the configuration process.
@@ -893,7 +1018,7 @@ void database_configurator::_add_hosts_mariadb(
 
   mysql& mysql = _stream->get_mysql();
   if (!_add_hosts_stmt) {
-    std::string query(
+    std::string query(fmt::format(
         "INSERT INTO hosts "
         "(host_id,name,instance_id,action_url,active_checks,address,alias,"
         "check_command,check_freshness,check_interval,check_period,default_"
@@ -911,39 +1036,34 @@ void database_configurator::_add_hosts_mariadb(
         "statusmap_image,timezone) VALUES "
         "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
         ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,4,1,?,?) ON DUPLICATE KEY UPDATE "
-        "name=VALUES(name),instance_id=VALUES(instance_id),action_url=VALUES("
-        "action_url),active_checks=VALUES(active_checks),address=VALUES("
-        "address),alias=VALUES(alias),check_command=VALUES(check_command),"
-        "check_freshness=VALUES(check_freshness),check_interval=VALUES(check_"
-        "interval),check_period=VALUES(check_period),default_active_checks="
-        "VALUES(default_active_checks),default_event_handler_enabled=VALUES("
-        "default_event_handler_enabled),default_flap_detection=VALUES(default_"
-        "flap_detection),default_notify=VALUES(default_notify),default_passive_"
-        "checks=VALUES(default_passive_checks),default_process_perfdata=VALUES("
-        "default_process_perfdata),display_name=VALUES(display_name),enabled="
-        "VALUES(enabled),event_handler=VALUES(event_handler),event_handler_"
-        "enabled=VALUES(event_handler_enabled),first_notification_delay=VALUES("
-        "first_notification_delay),flap_detection=VALUES(flap_detection),flap_"
-        "detection_on_down=VALUES(flap_detection_on_down),flap_detection_on_"
-        "unreachable=VALUES(flap_detection_on_unreachable),flap_detection_on_"
-        "up=VALUES(flap_detection_on_up),freshness_threshold=VALUES(freshness_"
-        "threshold),high_flap_threshold=VALUES(high_flap_threshold),icon_image="
-        "VALUES(icon_image),icon_image_alt=VALUES(icon_image_alt),low_flap_"
-        "threshold=VALUES(low_flap_threshold),max_check_attempts=VALUES(max_"
-        "check_attempts),notes=VALUES(notes),notes_url=VALUES(notes_url),"
-        "notification_interval=VALUES(notification_interval),notify=VALUES("
-        "notify),notify_on_down=VALUES(notify_on_down),notify_on_downtime="
-        "VALUES(notify_on_downtime),notify_on_flapping=VALUES(notify_on_"
-        "flapping),notify_on_recovery=VALUES(notify_on_recovery),notify_on_"
-        "unreachable=VALUES(notify_on_unreachable),obsess_over_host=VALUES("
-        "obsess_over_host),passive_checks=VALUES(passive_checks),process_"
-        "perfdata=VALUES(process_perfdata),retain_nonstatus_information=VALUES("
-        "retain_nonstatus_information),retain_status_information=VALUES(retain_"
-        "status_information),retry_interval=VALUES(retry_interval),stalk_on_"
-        "down=VALUES(stalk_on_down),stalk_on_unreachable=VALUES(stalk_on_"
-        "unreachable),stalk_on_up=VALUES(stalk_on_up),state=COALESCE(state, 4),"
-        "state_type=COALESCE(state_type, 1),"
-        "statusmap_image=VALUES(statusmap_image),timezone=VALUES(timezone)");
+        "{},name=VALUES(name),instance_id=VALUES(instance_id),action_url="
+        "VALUES(action_url),address=VALUES(address),alias=VALUES(alias),check_"
+        "command=VALUES(check_command),default_active_checks=VALUES(default_"
+        "active_checks),default_event_handler_enabled=VALUES(default_event_"
+        "handler_enabled),default_flap_detection=VALUES(default_flap_detection)"
+        ",default_notify=VALUES(default_notify),default_passive_checks=VALUES("
+        "default_passive_checks),default_process_perfdata=VALUES(default_"
+        "process_perfdata),display_name=VALUES(display_name),enabled=VALUES("
+        "enabled),event_handler=VALUES(event_handler),first_notification_delay="
+        "VALUES(first_notification_delay),flap_detection_on_down=VALUES(flap_"
+        "detection_on_down),flap_detection_on_unreachable=VALUES(flap_"
+        "detection_on_unreachable),flap_detection_on_up=VALUES(flap_detection_"
+        "on_up),freshness_threshold=VALUES(freshness_threshold),high_flap_"
+        "threshold=VALUES(high_flap_threshold),icon_image=VALUES(icon_image),"
+        "icon_image_alt=VALUES(icon_image_alt),low_flap_threshold=VALUES(low_"
+        "flap_threshold),notes=VALUES(notes),notes_url=VALUES(notes_url),"
+        "notification_interval=VALUES(notification_interval),notify_on_down="
+        "VALUES(notify_on_down),notify_on_downtime=VALUES(notify_on_downtime),"
+        "notify_on_flapping=VALUES(notify_on_flapping),notify_on_recovery="
+        "VALUES(notify_on_recovery),notify_on_unreachable=VALUES(notify_on_"
+        "unreachable),process_perfdata=VALUES(process_perfdata),retain_"
+        "nonstatus_information=VALUES(retain_nonstatus_information),retain_"
+        "status_information=VALUES(retain_status_information),stalk_on_down="
+        "VALUES(stalk_on_down),stalk_on_unreachable=VALUES(stalk_on_"
+        "unreachable),stalk_on_up=VALUES(stalk_on_up),state=COALESCE(state, "
+        "4),state_type=COALESCE(state_type, "
+        "1),statusmap_image=VALUES(statusmap_image),timezone=VALUES(timezone)",
+        overridden_attributes_kept(host_overridable_columns)));
     _add_hosts_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_hosts_stmt);
   }
@@ -1168,53 +1288,48 @@ void database_configurator::_add_hosts_mysql(
   }
   std::string query(fmt::format(
       "INSERT INTO hosts "
-      "(host_id,name,instance_id,action_url,active_checks,address,alias,"
-      "check_command,check_freshness,check_interval,check_period,default_"
-      "active_checks,default_event_handler_enabled,default_flap_detection,"
-      "default_notify,default_passive_checks,default_process_perfdata,"
-      "display_name,enabled,event_handler,event_handler_enabled,first_"
-      "notification_delay,flap_detection,flap_detection_on_down,flap_"
-      "detection_on_unreachable,flap_detection_on_up,freshness_threshold,"
-      "high_flap_threshold,icon_image,icon_image_alt,low_flap_threshold,max_"
-      "check_attempts,notes,notes_url,notification_interval,notify,notify_on_"
-      "down,notify_on_downtime,notify_on_flapping,notify_on_recovery,notify_"
-      "on_unreachable,obsess_over_host,passive_checks,process_perfdata,"
-      "retain_nonstatus_information,retain_status_information,retry_interval,"
-      "stalk_on_down,stalk_on_unreachable,stalk_on_up,state,state_type, "
-      "statusmap_image,timezone) VALUES {} ON DUPLICATE KEY UPDATE "
-      "name=VALUES(name),instance_id=VALUES(instance_id),action_url=VALUES("
-      "action_url),active_checks=VALUES(active_checks),address=VALUES(address),"
-      "alias=VALUES(alias),check_command=VALUES(check_command),check_freshness="
-      "VALUES(check_freshness),check_interval=VALUES(check_interval),check_"
-      "period=VALUES(check_period),default_active_checks=VALUES(default_active_"
+      "(host_id,name,instance_id,action_url,active_checks,address,alias,check_"
+      "command,check_freshness,check_interval,check_period,default_active_"
+      "checks,default_event_handler_enabled,default_flap_detection,default_"
+      "notify,default_passive_checks,default_process_perfdata,display_name,"
+      "enabled,event_handler,event_handler_enabled,first_notification_delay,"
+      "flap_detection,flap_detection_on_down,flap_detection_on_unreachable,"
+      "flap_detection_on_up,freshness_threshold,high_flap_threshold,icon_image,"
+      "icon_image_alt,low_flap_threshold,max_check_attempts,notes,notes_url,"
+      "notification_interval,notify,notify_on_down,notify_on_downtime,notify_"
+      "on_flapping,notify_on_recovery,notify_on_unreachable,obsess_over_host,"
+      "passive_checks,process_perfdata,retain_nonstatus_information,retain_"
+      "status_information,retry_interval,stalk_on_down,stalk_on_unreachable,"
+      "stalk_on_up,state,state_type, statusmap_image,timezone) VALUES {0} ON "
+      "DUPLICATE KEY UPDATE "
+      "{1},name=VALUES(name),instance_id=VALUES(instance_id),action_url=VALUES("
+      "action_url),address=VALUES(address),alias=VALUES(alias),check_command="
+      "VALUES(check_command),default_active_checks=VALUES(default_active_"
       "checks),default_event_handler_enabled=VALUES(default_event_handler_"
       "enabled),default_flap_detection=VALUES(default_flap_detection),default_"
       "notify=VALUES(default_notify),default_passive_checks=VALUES(default_"
       "passive_checks),default_process_perfdata=VALUES(default_process_"
       "perfdata),display_name=VALUES(display_name),enabled=VALUES(enabled),"
-      "event_handler=VALUES(event_handler),event_handler_enabled=VALUES(event_"
-      "handler_enabled),first_notification_delay=VALUES(first_notification_"
-      "delay),flap_detection=VALUES(flap_detection),flap_detection_on_down="
-      "VALUES(flap_detection_on_down),flap_detection_on_unreachable=VALUES("
-      "flap_detection_on_unreachable),flap_detection_on_up=VALUES(flap_"
-      "detection_on_up),freshness_threshold=VALUES(freshness_threshold),high_"
-      "flap_threshold=VALUES(high_flap_threshold),icon_image=VALUES(icon_image)"
-      ",icon_image_alt=VALUES(icon_image_alt),low_flap_threshold=VALUES(low_"
-      "flap_threshold),max_check_attempts=VALUES(max_check_attempts),notes="
-      "VALUES(notes),notes_url=VALUES(notes_url),notification_interval=VALUES("
-      "notification_interval),notify=VALUES(notify),notify_on_down=VALUES("
-      "notify_on_down),notify_on_downtime=VALUES(notify_on_downtime),notify_on_"
-      "flapping=VALUES(notify_on_flapping),notify_on_recovery=VALUES(notify_on_"
-      "recovery),notify_on_unreachable=VALUES(notify_on_unreachable),obsess_"
-      "over_host=VALUES(obsess_over_host),passive_checks=VALUES(passive_checks)"
-      ",process_perfdata=VALUES(process_perfdata),retain_nonstatus_information="
-      "VALUES(retain_nonstatus_information),retain_status_information=VALUES("
-      "retain_status_information),retry_interval=VALUES(retry_interval),stalk_"
-      "on_down=VALUES(stalk_on_down),stalk_on_unreachable=VALUES(stalk_on_"
-      "unreachable),stalk_on_up=VALUES(stalk_on_up),state=COALESCE(state, 4), "
-      "state_type=COALESCE(state_type, 1), "
+      "event_handler=VALUES(event_handler),first_notification_delay=VALUES("
+      "first_notification_delay),flap_detection_on_down=VALUES(flap_detection_"
+      "on_down),flap_detection_on_unreachable=VALUES(flap_detection_on_"
+      "unreachable),flap_detection_on_up=VALUES(flap_detection_on_up),"
+      "freshness_threshold=VALUES(freshness_threshold),high_flap_threshold="
+      "VALUES(high_flap_threshold),icon_image=VALUES(icon_image),icon_image_"
+      "alt=VALUES(icon_image_alt),low_flap_threshold=VALUES(low_flap_threshold)"
+      ",notes=VALUES(notes),notes_url=VALUES(notes_url),notification_interval="
+      "VALUES(notification_interval),notify_on_down=VALUES(notify_on_down),"
+      "notify_on_downtime=VALUES(notify_on_downtime),notify_on_flapping=VALUES("
+      "notify_on_flapping),notify_on_recovery=VALUES(notify_on_recovery),"
+      "notify_on_unreachable=VALUES(notify_on_unreachable),process_perfdata="
+      "VALUES(process_perfdata),retain_nonstatus_information=VALUES(retain_"
+      "nonstatus_information),retain_status_information=VALUES(retain_status_"
+      "information),stalk_on_down=VALUES(stalk_on_down),stalk_on_unreachable="
+      "VALUES(stalk_on_unreachable),stalk_on_up=VALUES(stalk_on_up),state="
+      "COALESCE(state, 4), state_type=COALESCE(state_type, 1), "
       "statusmap_image=VALUES(statusmap_image),timezone=VALUES(timezone)",
-      fmt::join(values, ",")));
+      fmt::join(values, ","),
+      overridden_attributes_kept(host_overridable_columns)));
   mysql.run_query(query);
 }
 
@@ -1272,7 +1387,9 @@ void database_configurator::_add_host_resources_mariadb(
     bind->set_value_as_u64(1, 0);
     bind->set_null_u64(2);
     bind->set_value_as_u32(3, 1);
-    bind->set_value_as_u32(4, msg.max_check_attempts());
+    const resource_attributes attrs =
+        resource_attributes_of(msg, bc.host(msg.host_id()));
+    bind->set_value_as_u32(4, attrs.max_check_attempts);
     bind->set_value_as_u64(5, msg.poller_id());
     if (msg.has_severity_id()) {
       uint64_t db_sid = bc.get_db_id_for_severity(msg.severity_id(), 1);
@@ -1315,9 +1432,9 @@ void database_configurator::_add_host_resources_mariadb(
         14, common::truncate_utf8(msg.action_url(),
                                   get_centreon_storage_resources_col_size(
                                       centreon_storage_resources_action_url)));
-    bind->set_value_as_bool(15, msg.notifications_enabled());
-    bind->set_value_as_bool(16, msg.checks_passive());
-    bind->set_value_as_bool(17, msg.checks_active());
+    bind->set_value_as_bool(15, attrs.notify);
+    bind->set_value_as_bool(16, attrs.passive_checks);
+    bind->set_value_as_bool(17, attrs.active_checks);
     bind->set_value_as_bool(18, true);
     bind->next_row();
     _add_customvariables_mariadb(msg.host_id(), 0, msg.customvariables());
@@ -1374,10 +1491,12 @@ void database_configurator::_add_host_resources_mysql(
     uint64_t sid = 0;
     if (msg.has_severity_id())
       sid = bc.get_db_id_for_severity(msg.severity_id(), 1);
+    const resource_attributes attrs =
+        resource_attributes_of(msg, bc.host(msg.host_id()));
     std::string value(fmt::format(
         "({},{},NULL,{},4,1,1,{},{},{},'{}','{}','{}',NULL,{},'{}','{}','{}',{}"
         ",{},{},1)",
-        msg.host_id(), 0, 1, msg.max_check_attempts(), msg.poller_id(),
+        msg.host_id(), 0, 1, attrs.max_check_attempts, msg.poller_id(),
         sid ? fmt::to_string(sid) : "NULL",
         misc::string::escape(msg.host_name(),
                              get_centreon_storage_resources_col_size(
@@ -1398,8 +1517,7 @@ void database_configurator::_add_host_resources_mysql(
         misc::string::escape(msg.action_url(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_action_url)),
-        msg.notifications_enabled(), msg.checks_passive(),
-        msg.checks_active()));
+        attrs.notify, attrs.passive_checks, attrs.active_checks));
     values.emplace_back(value);
     _add_customvariables_mysql(msg.host_id(), 0, msg.customvariables());
   }
@@ -1457,15 +1575,15 @@ void database_configurator::_add_services_mariadb(
 
   mysql& mysql = _stream->get_mysql();
   if (!_add_services_stmt) {
-    std::string query(
+    std::string query(fmt::format(
         "INSERT INTO services "
         "(host_id,description,service_id,action_url,active_checks, "
-        "check_command, check_freshness,check_interval,check_period,"
-        "default_active_checks,default_event_handler_enabled,"
-        "default_flap_detection,default_notify,default_passive_checks,"
-        "default_process_perfdata,display_name,"
-        "enabled,event_handler,event_handler_enabled,first_notification_delay,"
-        "flap_detection,flap_detection_on_critical,flap_detection_on_ok,flap_"
+        "check_command, "
+        "check_freshness,check_interval,check_period,default_active_checks,"
+        "default_event_handler_enabled,default_flap_detection,default_notify,"
+        "default_passive_checks,default_process_perfdata,display_name,enabled,"
+        "event_handler,event_handler_enabled,first_notification_delay,flap_"
+        "detection,flap_detection_on_critical,flap_detection_on_ok,flap_"
         "detection_on_unknown,flap_detection_on_warning,freshness_threshold,"
         "high_flap_threshold,icon_image,icon_image_alt,low_flap_threshold,max_"
         "check_attempts,notes,notes_url,notification_interval,notification_"
@@ -1477,40 +1595,34 @@ void database_configurator::_add_services_mariadb(
         "state_type) VALUES "
         "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
         ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,4,1) ON DUPLICATE KEY UPDATE "
-        "description=VALUES(description),action_url=VALUES(action_url),active_"
-        "checks=VALUES(active_checks),check_command=VALUES(check_command),"
-        "check_freshness=VALUES(check_freshness),check_interval=VALUES(check_"
-        "interval),check_period=VALUES(check_period),default_active_checks="
-        "VALUES(default_active_checks),default_event_handler_enabled=VALUES("
-        "default_event_handler_enabled),default_flap_detection=VALUES(default_"
-        "flap_detection),default_notify=VALUES(default_notify),default_passive_"
+        "{},description=VALUES(description),action_url=VALUES(action_url),"
+        "check_command=VALUES(check_command),default_active_checks=VALUES("
+        "default_active_checks),default_event_handler_enabled=VALUES(default_"
+        "event_handler_enabled),default_flap_detection=VALUES(default_flap_"
+        "detection),default_notify=VALUES(default_notify),default_passive_"
         "checks=VALUES(default_passive_checks),default_process_perfdata=VALUES("
         "default_process_perfdata),display_name=VALUES(display_name),enabled="
-        "VALUES(enabled),event_handler=VALUES(event_handler),event_handler_"
-        "enabled=VALUES(event_handler_enabled),first_notification_delay=VALUES("
-        "first_notification_delay),flap_detection=VALUES(flap_detection),flap_"
-        "detection_on_critical=VALUES(flap_detection_on_critical),flap_"
-        "detection_on_ok=VALUES(flap_detection_on_ok),flap_detection_on_"
-        "unknown=VALUES(flap_detection_on_unknown),flap_detection_on_warning="
-        "VALUES(flap_detection_on_warning),freshness_threshold=VALUES("
-        "freshness_threshold),high_flap_threshold=VALUES(high_flap_threshold),"
-        "icon_image=VALUES(icon_image),icon_image_alt=VALUES(icon_image_alt),"
-        "low_flap_threshold=VALUES(low_flap_threshold),max_check_attempts="
-        "VALUES(max_check_attempts),notes=VALUES(notes),notes_url=VALUES(notes_"
-        "url),notification_interval=VALUES(notification_interval),notification_"
-        "period=VALUES(notification_period),notify=VALUES(notify),notify_on_"
+        "VALUES(enabled),event_handler=VALUES(event_handler),first_"
+        "notification_delay=VALUES(first_notification_delay),flap_detection_on_"
+        "critical=VALUES(flap_detection_on_critical),flap_detection_on_ok="
+        "VALUES(flap_detection_on_ok),flap_detection_on_unknown=VALUES(flap_"
+        "detection_on_unknown),flap_detection_on_warning=VALUES(flap_detection_"
+        "on_warning),freshness_threshold=VALUES(freshness_threshold),high_flap_"
+        "threshold=VALUES(high_flap_threshold),icon_image=VALUES(icon_image),"
+        "icon_image_alt=VALUES(icon_image_alt),low_flap_threshold=VALUES(low_"
+        "flap_threshold),notes=VALUES(notes),notes_url=VALUES(notes_url),"
+        "notification_interval=VALUES(notification_interval),notify_on_"
         "critical=VALUES(notify_on_critical),notify_on_downtime=VALUES(notify_"
         "on_downtime),notify_on_flapping=VALUES(notify_on_flapping),notify_on_"
         "recovery=VALUES(notify_on_recovery),notify_on_unknown=VALUES(notify_"
-        "on_unknown),notify_on_warning=VALUES(notify_on_warning),obsess_over_"
-        "service=VALUES(obsess_over_service),passive_checks=VALUES(passive_"
-        "checks),process_perfdata=VALUES(process_perfdata),retain_nonstatus_"
-        "information=VALUES(retain_nonstatus_information),retain_status_"
-        "information=VALUES(retain_status_information),retry_interval=VALUES("
-        "retry_interval),stalk_on_critical=VALUES(stalk_on_critical),stalk_on_"
-        "ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES(stalk_on_unknown),"
-        "stalk_on_warning=VALUES(stalk_on_warning),state=COALESCE(state, 4),"
-        "state_type=COALESCE(state_type, 1)");
+        "on_unknown),notify_on_warning=VALUES(notify_on_warning),process_"
+        "perfdata=VALUES(process_perfdata),retain_nonstatus_information=VALUES("
+        "retain_nonstatus_information),retain_status_information=VALUES(retain_"
+        "status_information),stalk_on_critical=VALUES(stalk_on_critical),stalk_"
+        "on_ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES(stalk_on_unknown),"
+        "stalk_on_warning=VALUES(stalk_on_warning),state=COALESCE(state, "
+        "4),state_type=COALESCE(state_type, 1)",
+        overridden_attributes_kept(service_overridable_columns)));
     _add_services_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_services_stmt);
   }
@@ -1735,54 +1847,49 @@ void database_configurator::_add_services_mysql(
   std::string query(fmt::format(
       "INSERT INTO services "
       "(host_id,description,service_id,action_url,active_checks, "
-      "check_command, check_freshness,check_interval,check_period,"
-      "default_active_checks,default_event_handler_enabled,"
-      "default_flap_detection,default_notify,default_passive_checks,"
-      "default_process_perfdata,display_name,"
-      "enabled,event_handler,event_handler_enabled,first_notification_delay,"
-      "flap_detection,flap_detection_on_critical,flap_detection_on_ok,flap_"
-      "detection_on_unknown,flap_detection_on_warning,freshness_threshold,"
-      "high_flap_threshold,icon_image,icon_image_alt,low_flap_threshold,max_"
-      "check_attempts,notes,notes_url,notification_interval,notification_"
-      "period,notify,notify_on_critical,notify_on_downtime,notify_on_"
-      "flapping,notify_on_recovery,notify_on_unknown,notify_on_warning,"
-      "obsess_over_service,passive_checks,process_perfdata,retain_nonstatus_"
-      "information,retain_status_information,retry_interval,stalk_on_"
-      "critical,stalk_on_ok,stalk_on_unknown,stalk_on_warning,state, "
-      "state_type) VALUES {} ON DUPLICATE KEY UPDATE "
-      "description=VALUES(description),action_url=VALUES(action_url),active_"
-      "checks=VALUES(active_checks),check_command=VALUES(check_command),check_"
-      "freshness=VALUES(check_freshness),check_interval=VALUES(check_interval),"
-      "check_period=VALUES(check_period),default_active_checks=VALUES(default_"
+      "check_command, "
+      "check_freshness,check_interval,check_period,default_active_checks,"
+      "default_event_handler_enabled,default_flap_detection,default_notify,"
+      "default_passive_checks,default_process_perfdata,display_name,enabled,"
+      "event_handler,event_handler_enabled,first_notification_delay,flap_"
+      "detection,flap_detection_on_critical,flap_detection_on_ok,flap_"
+      "detection_on_unknown,flap_detection_on_warning,freshness_threshold,high_"
+      "flap_threshold,icon_image,icon_image_alt,low_flap_threshold,max_check_"
+      "attempts,notes,notes_url,notification_interval,notification_period,"
+      "notify,notify_on_critical,notify_on_downtime,notify_on_flapping,notify_"
+      "on_recovery,notify_on_unknown,notify_on_warning,obsess_over_service,"
+      "passive_checks,process_perfdata,retain_nonstatus_information,retain_"
+      "status_information,retry_interval,stalk_on_critical,stalk_on_ok,stalk_"
+      "on_unknown,stalk_on_warning,state, state_type) VALUES {0} ON DUPLICATE "
+      "KEY UPDATE "
+      "{1},description=VALUES(description),action_url=VALUES(action_url),check_"
+      "command=VALUES(check_command),default_active_checks=VALUES(default_"
       "active_checks),default_event_handler_enabled=VALUES(default_event_"
       "handler_enabled),default_flap_detection=VALUES(default_flap_detection),"
       "default_notify=VALUES(default_notify),default_passive_checks=VALUES("
       "default_passive_checks),default_process_perfdata=VALUES(default_process_"
       "perfdata),display_name=VALUES(display_name),enabled=VALUES(enabled),"
-      "event_handler=VALUES(event_handler),event_handler_enabled=VALUES(event_"
-      "handler_enabled),first_notification_delay=VALUES(first_notification_"
-      "delay),flap_detection=VALUES(flap_detection),flap_detection_on_critical="
-      "VALUES(flap_detection_on_critical),flap_detection_on_ok=VALUES(flap_"
-      "detection_on_ok),flap_detection_on_unknown=VALUES(flap_detection_on_"
-      "unknown),flap_detection_on_warning=VALUES(flap_detection_on_warning),"
-      "freshness_threshold=VALUES(freshness_threshold),high_flap_threshold="
-      "VALUES(high_flap_threshold),icon_image=VALUES(icon_image),icon_image_"
-      "alt=VALUES(icon_image_alt),low_flap_threshold=VALUES(low_flap_threshold)"
-      ",max_check_attempts=VALUES(max_check_attempts),notes=VALUES(notes),"
-      "notes_url=VALUES(notes_url),notification_interval=VALUES(notification_"
-      "interval),notification_period=VALUES(notification_period),notify=VALUES("
-      "notify),notify_on_critical=VALUES(notify_on_critical),notify_on_"
-      "downtime=VALUES(notify_on_downtime),notify_on_flapping=VALUES(notify_on_"
-      "flapping),notify_on_recovery=VALUES(notify_on_recovery),notify_on_"
-      "unknown=VALUES(notify_on_unknown),notify_on_warning=VALUES(notify_on_"
-      "warning),obsess_over_service=VALUES(obsess_over_service),passive_checks="
-      "VALUES(passive_checks),process_perfdata=VALUES(process_perfdata),retain_"
+      "event_handler=VALUES(event_handler),first_notification_delay=VALUES("
+      "first_notification_delay),flap_detection_on_critical=VALUES(flap_"
+      "detection_on_critical),flap_detection_on_ok=VALUES(flap_detection_on_ok)"
+      ",flap_detection_on_unknown=VALUES(flap_detection_on_unknown),flap_"
+      "detection_on_warning=VALUES(flap_detection_on_warning),freshness_"
+      "threshold=VALUES(freshness_threshold),high_flap_threshold=VALUES(high_"
+      "flap_threshold),icon_image=VALUES(icon_image),icon_image_alt=VALUES("
+      "icon_image_alt),low_flap_threshold=VALUES(low_flap_threshold),notes="
+      "VALUES(notes),notes_url=VALUES(notes_url),notification_interval=VALUES("
+      "notification_interval),notify_on_critical=VALUES(notify_on_critical),"
+      "notify_on_downtime=VALUES(notify_on_downtime),notify_on_flapping=VALUES("
+      "notify_on_flapping),notify_on_recovery=VALUES(notify_on_recovery),"
+      "notify_on_unknown=VALUES(notify_on_unknown),notify_on_warning=VALUES("
+      "notify_on_warning),process_perfdata=VALUES(process_perfdata),retain_"
       "nonstatus_information=VALUES(retain_nonstatus_information),retain_"
-      "status_information=VALUES(retain_status_information),retry_interval="
-      "VALUES(retry_interval),stalk_on_critical=VALUES(stalk_on_critical),"
-      "stalk_on_ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES(stalk_on_"
-      "unknown),stalk_on_warning=VALUES(stalk_on_warning)",
-      fmt::join(values, ",")));
+      "status_information=VALUES(retain_status_information),stalk_on_critical="
+      "VALUES(stalk_on_critical),stalk_on_ok=VALUES(stalk_on_ok),stalk_on_"
+      "unknown=VALUES(stalk_on_unknown),stalk_on_warning=VALUES(stalk_on_"
+      "warning)",
+      fmt::join(values, ","),
+      overridden_attributes_kept(service_overridable_columns)));
   mysql.run_query(query);
 }
 
@@ -1905,7 +2012,7 @@ void database_configurator::_add_anomalydetections_mariadb(
     return;
   }
   if (!_add_anomalydetections_stmt) {
-    std::string query(
+    std::string query(fmt::format(
         "INSERT INTO services "
         "(host_id,description,service_id,action_url,active_checks,check_"
         "freshness,check_interval,default_active_checks,default_event_handler_"
@@ -1923,39 +2030,34 @@ void database_configurator::_add_anomalydetections_mariadb(
         "unknown,stalk_on_warning, state, state_type) VALUES "
         "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
         ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,4,1) ON DUPLICATE KEY UPDATE "
-        "description=VALUES(description),action_url=VALUES(action_url),active_"
-        "checks=VALUES(active_checks),check_freshness=VALUES(check_freshness),"
-        "check_interval=VALUES(check_interval),default_active_checks=VALUES("
-        "default_active_checks),default_event_handler_enabled=VALUES(default_"
-        "event_handler_enabled),default_flap_detection=VALUES(default_flap_"
-        "detection),default_notify=VALUES(default_notify),default_passive_"
-        "checks=VALUES(default_passive_checks),default_process_perfdata=VALUES("
-        "default_process_perfdata),display_name=VALUES(display_name),enabled="
-        "VALUES(enabled),event_handler=VALUES(event_handler),event_handler_"
-        "enabled=VALUES(event_handler_enabled),first_notification_delay=VALUES("
-        "first_notification_delay),flap_detection=VALUES(flap_detection),flap_"
-        "detection_on_critical=VALUES(flap_detection_on_critical),flap_"
-        "detection_on_ok=VALUES(flap_detection_on_ok),flap_detection_on_"
-        "unknown=VALUES(flap_detection_on_unknown),flap_detection_on_warning="
-        "VALUES(flap_detection_on_warning),freshness_threshold=VALUES("
-        "freshness_threshold),high_flap_threshold=VALUES(high_flap_threshold),"
-        "icon_image=VALUES(icon_image),icon_image_alt=VALUES(icon_image_alt),"
-        "low_flap_threshold=VALUES(low_flap_threshold),max_check_attempts="
-        "VALUES(max_check_attempts),notes=VALUES(notes),notes_url=VALUES(notes_"
-        "url),notification_interval=VALUES(notification_interval),notification_"
-        "period=VALUES(notification_period),notify=VALUES(notify),notify_on_"
-        "critical=VALUES(notify_on_critical),notify_on_downtime=VALUES(notify_"
-        "on_downtime),notify_on_flapping=VALUES(notify_on_flapping),notify_on_"
-        "recovery=VALUES(notify_on_recovery),notify_on_unknown=VALUES(notify_"
-        "on_unknown),notify_on_warning=VALUES(notify_on_warning),obsess_over_"
-        "service=VALUES(obsess_over_service),passive_checks=VALUES(passive_"
-        "checks),process_perfdata=VALUES(process_perfdata),retain_nonstatus_"
-        "information=VALUES(retain_nonstatus_information),retain_status_"
-        "information=VALUES(retain_status_information),retry_interval=VALUES("
-        "retry_interval),stalk_on_critical=VALUES(stalk_on_critical),stalk_on_"
-        "ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES(stalk_on_unknown),"
-        "stalk_on_warning=VALUES(stalk_on_warning),state=COALESCE(state,4), "
-        "state_type=COALESCE(state_type, 1)");
+        "{},description=VALUES(description),action_url=VALUES(action_url),"
+        "default_active_checks=VALUES(default_active_checks),default_event_"
+        "handler_enabled=VALUES(default_event_handler_enabled),default_flap_"
+        "detection=VALUES(default_flap_detection),default_notify=VALUES("
+        "default_notify),default_passive_checks=VALUES(default_passive_checks),"
+        "default_process_perfdata=VALUES(default_process_perfdata),display_"
+        "name=VALUES(display_name),enabled=VALUES(enabled),event_handler="
+        "VALUES(event_handler),first_notification_delay=VALUES(first_"
+        "notification_delay),flap_detection_on_critical=VALUES(flap_detection_"
+        "on_critical),flap_detection_on_ok=VALUES(flap_detection_on_ok),flap_"
+        "detection_on_unknown=VALUES(flap_detection_on_unknown),flap_detection_"
+        "on_warning=VALUES(flap_detection_on_warning),freshness_threshold="
+        "VALUES(freshness_threshold),high_flap_threshold=VALUES(high_flap_"
+        "threshold),icon_image=VALUES(icon_image),icon_image_alt=VALUES(icon_"
+        "image_alt),low_flap_threshold=VALUES(low_flap_threshold),notes=VALUES("
+        "notes),notes_url=VALUES(notes_url),notification_interval=VALUES("
+        "notification_interval),notify_on_critical=VALUES(notify_on_critical),"
+        "notify_on_downtime=VALUES(notify_on_downtime),notify_on_flapping="
+        "VALUES(notify_on_flapping),notify_on_recovery=VALUES(notify_on_"
+        "recovery),notify_on_unknown=VALUES(notify_on_unknown),notify_on_"
+        "warning=VALUES(notify_on_warning),process_perfdata=VALUES(process_"
+        "perfdata),retain_nonstatus_information=VALUES(retain_nonstatus_"
+        "information),retain_status_information=VALUES(retain_status_"
+        "information),stalk_on_critical=VALUES(stalk_on_critical),stalk_on_ok="
+        "VALUES(stalk_on_ok),stalk_on_unknown=VALUES(stalk_on_unknown),stalk_"
+        "on_warning=VALUES(stalk_on_warning),state=COALESCE(state,4), "
+        "state_type=COALESCE(state_type, 1)",
+        overridden_attributes_kept(anomalydetection_overridable_columns)));
     _add_anomalydetections_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_anomalydetections_stmt);
   }
@@ -2165,51 +2267,44 @@ void database_configurator::_add_anomalydetections_mysql(
       "freshness,check_interval,default_active_checks,default_event_handler_"
       "enabled,default_flap_detection,default_notify,default_passive_checks,"
       "default_process_perfdata,display_name,enabled,event_handler,event_"
-      "handler_enabled,first_notification_delay,flap_detection,flap_"
-      "detection_on_critical,flap_detection_on_ok,flap_detection_on_unknown,"
-      "flap_detection_on_warning,freshness_threshold,high_flap_threshold,"
-      "icon_image,icon_image_alt,low_flap_threshold,max_check_attempts,notes,"
-      "notes_url,notification_interval,notification_period,notify,notify_on_"
-      "critical,notify_on_downtime,notify_on_flapping,notify_on_recovery,"
-      "notify_on_unknown,notify_on_warning,obsess_over_service,passive_"
-      "checks,process_perfdata,retain_nonstatus_information,retain_status_"
-      "information,retry_interval,stalk_on_critical,stalk_on_ok,stalk_on_"
-      "unknown,stalk_on_warning, state, state_type) VALUES {} ON DUPLICATE KEY "
-      "UPDATE "
-      "description=VALUES(description),action_url=VALUES(action_url),active_"
-      "checks=VALUES(active_checks),check_freshness=VALUES(check_freshness),"
-      "check_interval=VALUES(check_interval),default_active_checks=VALUES("
-      "default_active_checks),default_event_handler_enabled=VALUES(default_"
-      "event_handler_enabled),default_flap_detection=VALUES(default_flap_"
-      "detection),default_notify=VALUES(default_notify),default_passive_checks="
-      "VALUES(default_passive_checks),default_process_perfdata=VALUES(default_"
-      "process_perfdata),display_name=VALUES(display_name),enabled=VALUES("
-      "enabled),event_handler=VALUES(event_handler),event_handler_enabled="
-      "VALUES(event_handler_enabled),first_notification_delay=VALUES(first_"
-      "notification_delay),flap_detection=VALUES(flap_detection),flap_"
+      "handler_enabled,first_notification_delay,flap_detection,flap_detection_"
+      "on_critical,flap_detection_on_ok,flap_detection_on_unknown,flap_"
+      "detection_on_warning,freshness_threshold,high_flap_threshold,icon_image,"
+      "icon_image_alt,low_flap_threshold,max_check_attempts,notes,notes_url,"
+      "notification_interval,notification_period,notify,notify_on_critical,"
+      "notify_on_downtime,notify_on_flapping,notify_on_recovery,notify_on_"
+      "unknown,notify_on_warning,obsess_over_service,passive_checks,process_"
+      "perfdata,retain_nonstatus_information,retain_status_information,retry_"
+      "interval,stalk_on_critical,stalk_on_ok,stalk_on_unknown,stalk_on_"
+      "warning, state, state_type) VALUES {0} ON DUPLICATE KEY UPDATE "
+      "{1},description=VALUES(description),action_url=VALUES(action_url),"
+      "default_active_checks=VALUES(default_active_checks),default_event_"
+      "handler_enabled=VALUES(default_event_handler_enabled),default_flap_"
+      "detection=VALUES(default_flap_detection),default_notify=VALUES(default_"
+      "notify),default_passive_checks=VALUES(default_passive_checks),default_"
+      "process_perfdata=VALUES(default_process_perfdata),display_name=VALUES("
+      "display_name),enabled=VALUES(enabled),event_handler=VALUES(event_"
+      "handler),first_notification_delay=VALUES(first_notification_delay),flap_"
       "detection_on_critical=VALUES(flap_detection_on_critical),flap_detection_"
       "on_ok=VALUES(flap_detection_on_ok),flap_detection_on_unknown=VALUES("
       "flap_detection_on_unknown),flap_detection_on_warning=VALUES(flap_"
       "detection_on_warning),freshness_threshold=VALUES(freshness_threshold),"
       "high_flap_threshold=VALUES(high_flap_threshold),icon_image=VALUES(icon_"
       "image),icon_image_alt=VALUES(icon_image_alt),low_flap_threshold=VALUES("
-      "low_flap_threshold),max_check_attempts=VALUES(max_check_attempts),notes="
-      "VALUES(notes),notes_url=VALUES(notes_url),notification_interval=VALUES("
-      "notification_interval),notification_period=VALUES(notification_period),"
-      "notify=VALUES(notify),notify_on_critical=VALUES(notify_on_critical),"
-      "notify_on_downtime=VALUES(notify_on_downtime),notify_on_flapping=VALUES("
-      "notify_on_flapping),notify_on_recovery=VALUES(notify_on_recovery),"
-      "notify_on_unknown=VALUES(notify_on_unknown),notify_on_warning=VALUES("
-      "notify_on_warning),obsess_over_service=VALUES(obsess_over_service),"
-      "passive_checks=VALUES(passive_checks),process_perfdata=VALUES(process_"
-      "perfdata),retain_nonstatus_information=VALUES(retain_nonstatus_"
+      "low_flap_threshold),notes=VALUES(notes),notes_url=VALUES(notes_url),"
+      "notification_interval=VALUES(notification_interval),notify_on_critical="
+      "VALUES(notify_on_critical),notify_on_downtime=VALUES(notify_on_downtime)"
+      ",notify_on_flapping=VALUES(notify_on_flapping),notify_on_recovery="
+      "VALUES(notify_on_recovery),notify_on_unknown=VALUES(notify_on_unknown),"
+      "notify_on_warning=VALUES(notify_on_warning),process_perfdata=VALUES("
+      "process_perfdata),retain_nonstatus_information=VALUES(retain_nonstatus_"
       "information),retain_status_information=VALUES(retain_status_information)"
-      ",retry_interval=VALUES(retry_interval),stalk_on_critical=VALUES(stalk_"
-      "on_critical),stalk_on_ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES("
-      "stalk_on_unknown),stalk_on_warning=VALUES(stalk_on_warning), "
-      "state=COALESCE("
-      "state,4), state_type=COALESCE(state_type, 1)",
-      fmt::join(values, ",")));
+      ",stalk_on_critical=VALUES(stalk_on_critical),stalk_on_ok=VALUES(stalk_"
+      "on_ok),stalk_on_unknown=VALUES(stalk_on_unknown),stalk_on_warning="
+      "VALUES(stalk_on_warning), state=COALESCE(state,4), "
+      "state_type=COALESCE(state_type, 1)",
+      fmt::join(values, ","),
+      overridden_attributes_kept(anomalydetection_overridable_columns)));
   mysql.run_query(query);
 }
 
@@ -2273,7 +2368,9 @@ void database_configurator::_add_service_resources_mariadb(
     bind->set_value_as_u64(1, msg.host_id());
     bind->set_null_u64(2);
     bind->set_value_as_u32(3, get_service_type(msg));
-    bind->set_value_as_u32(4, msg.max_check_attempts());
+    const resource_attributes attrs = resource_attributes_of(
+        msg, global_cache.service(msg.host_id(), msg.service_id()));
+    bind->set_value_as_u32(4, attrs.max_check_attempts);
     auto h = global_cache.host(msg.host_id());
     bind->set_value_as_u64(5, h->obj().instance_id());
     if (msg.has_severity_id()) {
@@ -2308,9 +2405,9 @@ void database_configurator::_add_service_resources_mariadb(
         12, common::truncate_utf8(msg.action_url(),
                                   get_centreon_storage_resources_col_size(
                                       centreon_storage_resources_action_url)));
-    bind->set_value_as_bool(13, msg.notifications_enabled());
-    bind->set_value_as_bool(14, msg.checks_passive());
-    bind->set_value_as_bool(15, msg.checks_active());
+    bind->set_value_as_bool(13, attrs.notify);
+    bind->set_value_as_bool(14, attrs.passive_checks);
+    bind->set_value_as_bool(15, attrs.active_checks);
     bind->set_value_as_bool(16, true);
     bind->next_row();
     _add_customvariables_mariadb(msg.host_id(), 0, msg.customvariables());
@@ -2368,12 +2465,14 @@ void database_configurator::_add_service_resources_mysql(
     uint64_t svc_sid = 0;
     if (msg.has_severity_id())
       svc_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
+    const resource_attributes attrs = resource_attributes_of(
+        msg, global_cache.service(msg.host_id(), msg.service_id()));
     std::string value(fmt::format(
         "({},{},NULL,{},4, 1, "
         "1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
         "1)",
         msg.service_id(), msg.host_id(), get_service_type(msg),
-        msg.max_check_attempts(), h->obj().instance_id(),
+        attrs.max_check_attempts, h->obj().instance_id(),
         svc_sid ? fmt::to_string(svc_sid) : "NULL",
         misc::string::escape(msg.display_name().empty()
                                  ? msg.service_description()
@@ -2392,8 +2491,7 @@ void database_configurator::_add_service_resources_mysql(
         misc::string::escape(msg.action_url(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_action_url)),
-        msg.notifications_enabled(), msg.checks_passive(),
-        msg.checks_active()));
+        attrs.notify, attrs.passive_checks, attrs.active_checks));
     values.emplace_back(value);
     _add_customvariables_mysql(msg.host_id(), 0, msg.customvariables());
   }
@@ -2488,7 +2586,9 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     bind->set_value_as_u64(1, msg.host_id());
     bind->set_null_u64(2);
     bind->set_value_as_u32(3, 4);
-    bind->set_value_as_u32(4, msg.max_check_attempts());
+    const resource_attributes attrs = resource_attributes_of(
+        msg, global_cache.service(msg.host_id(), msg.service_id()));
+    bind->set_value_as_u32(4, attrs.max_check_attempts);
     auto h = global_cache.host(msg.host_id());
     bind->set_value_as_u64(5, h->obj().instance_id());
     if (msg.has_severity_id()) {
@@ -2521,9 +2621,9 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
         12, common::truncate_utf8(msg.action_url(),
                                   get_centreon_storage_resources_col_size(
                                       centreon_storage_resources_action_url)));
-    bind->set_value_as_bool(13, msg.notifications_enabled());
-    bind->set_value_as_bool(14, msg.checks_passive());
-    bind->set_value_as_bool(15, msg.checks_active());
+    bind->set_value_as_bool(13, attrs.notify);
+    bind->set_value_as_bool(14, attrs.passive_checks);
+    bind->set_value_as_bool(15, attrs.active_checks);
     bind->set_value_as_bool(16, true);
     bind->next_row();
     _add_customvariables_mariadb(msg.host_id(), msg.service_id(),
@@ -2583,10 +2683,12 @@ void database_configurator::_add_anomalydetection_resources_mysql(
     uint64_t ad_sid = 0;
     if (msg.has_severity_id())
       ad_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
+    const resource_attributes attrs = resource_attributes_of(
+        msg, global_cache.service(msg.host_id(), msg.service_id()));
     std::string value(fmt::format(
         "({},{},NULL,{},4,1,1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
         "1)",
-        msg.service_id(), msg.host_id(), 4, msg.max_check_attempts(),
+        msg.service_id(), msg.host_id(), 4, attrs.max_check_attempts,
         h->obj().instance_id(), ad_sid ? fmt::to_string(ad_sid) : "NULL",
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_resources_col_size(
@@ -2603,8 +2705,7 @@ void database_configurator::_add_anomalydetection_resources_mysql(
         misc::string::escape(msg.action_url(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_action_url)),
-        msg.notifications_enabled(), msg.checks_passive(),
-        msg.checks_active()));
+        attrs.notify, attrs.passive_checks, attrs.active_checks));
     values.emplace_back(value);
     _add_customvariables_mysql(msg.host_id(), msg.service_id(),
                                msg.customvariables());

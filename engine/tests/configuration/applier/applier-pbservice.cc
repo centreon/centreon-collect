@@ -878,3 +878,59 @@ TEST_F(ApplierService, PbHostServicesBacklinkIsBuiltByTheServiceResolver) {
   svc_aply.resolve_object(svc);
   ASSERT_EQ(host->second->services.size(), 1u);
 }
+
+// Given a service whose notifications and check interval were overridden by
+// external commands (their modified_attributes bits are set)
+// When its configuration is modified, on an overridden attribute and on
+// another one
+// Then modify_object applies the other one and keeps the overrides.
+TEST_F(ApplierService, PbModifyKeepsOverrides) {
+  configuration::applier::host hst_aply;
+  configuration::applier::service svc_aply;
+  configuration::Service svc;
+  configuration::Host hst;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+  ASSERT_NO_THROW(hst_aply.add_object(hst));
+  svc.set_host_name("test_host");
+  svc.set_service_description("test_description");
+  svc.set_service_id(3);
+  svc.set_check_interval(5);
+  svc.set_max_check_attempts(3);
+
+  configuration::applier::command cmd_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  svc.set_check_command("cmd");
+  cmd_aply.add_object(cmd);
+
+  // We fake here the expand_object on configuration::service
+  svc.set_host_id(1);
+  svc_aply.add_object(svc);
+  std::shared_ptr<engine::service> serv =
+      engine::service::services_by_id.begin()->second;
+  ASSERT_TRUE(serv->get_notifications_enabled());
+  ASSERT_EQ(serv->check_interval(), 5u);
+
+  // What DISABLE_SVC_NOTIFICATIONS and CHANGE_NORMAL_SVC_CHECK_INTERVAL do.
+  serv->set_notifications_enabled(false);
+  serv->set_check_interval(10);
+  serv->add_modified_attributes(MODATTR_NOTIFICATIONS_ENABLED |
+                                MODATTR_NORMAL_CHECK_INTERVAL);
+
+  svc.set_check_interval(7);
+  svc.set_max_check_attempts(4);
+  svc_aply.modify_object(pb_indexed_config.mut_services().at({1, 3}).get(),
+                         svc);
+
+  ASSERT_EQ(serv->max_check_attempts(), 4);
+  ASSERT_EQ(serv->check_interval(), 10u);
+  ASSERT_FALSE(serv->get_notifications_enabled());
+  ASSERT_EQ(serv->get_modified_attributes(),
+            MODATTR_NOTIFICATIONS_ENABLED | MODATTR_NORMAL_CHECK_INTERVAL);
+}

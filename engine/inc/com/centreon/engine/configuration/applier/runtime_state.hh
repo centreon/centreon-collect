@@ -20,6 +20,10 @@
 
 #include "common/engine_conf/state.pb.h"
 
+namespace com::centreon::engine {
+class notifier;
+}
+
 namespace com::centreon::engine::configuration::applier {
 
 /**
@@ -36,6 +40,9 @@ namespace com::centreon::engine::configuration::applier {
 class runtime_state {
  public:
   static void apply(const configuration::RuntimeState& rs);
+  static configuration::RuntimeOverrides capture_overrides(const notifier& obj);
+  static uint32_t apply_overrides(const configuration::RuntimeOverrides& r,
+                                  notifier& obj);
 };
 
 }  // namespace com::centreon::engine::configuration::applier

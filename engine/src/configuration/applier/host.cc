@@ -23,6 +23,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/config.hh"
+#include "com/centreon/engine/configuration/applier/runtime_state.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/notifier.hh"
@@ -181,6 +182,11 @@ void applier::host::modify_object(configuration::Host* old_obj,
         "Could not modify non-existing host object '{}' (id {})",
         new_obj.host_name(), new_obj.host_id());
   std::shared_ptr<engine::host> h = it_obj->second;
+  /* What external commands overrode comes back on top of the configuration
+   * below: an overridden attribute follows the last command, not the
+   * configuration, as the retention made it and as the Broker cache does. */
+  const configuration::RuntimeOverrides overrides =
+      runtime_state::capture_overrides(*h);
 
   /* Converted once, like in add_object: the comparison, the host::hosts key and
    * the runtime object must all hold the very same string. Comparing the stored
@@ -288,6 +294,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
                                  pb_indexed_config.state().interval_length());
   h->set_recovery_notification_delay(new_obj.recovery_notification_delay());
   h->set_icon_id(new_obj.icon_id());
+  runtime_state::apply_overrides(overrides, *h);
 
   // Contacts.
   if (!MessageDifferencer::Equals(new_obj.contacts(), old_obj->contacts())) {
