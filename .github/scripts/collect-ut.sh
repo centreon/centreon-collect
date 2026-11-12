@@ -18,12 +18,18 @@ echo "---------------------------   Execute tests/ut_$test   -------------------
 echo
 
 # Some tests of different components use the same /tmp paths (/tmp/toto, /tmp/test.txt...).
-unshare --mount --propagation private sh -c 'mount -t tmpfs tmpfs /tmp && exec "$@"' sh \
+# A hung test would block the job until its 6-hour limit: abort the binary after 20 minutes,
+# so that its core and the backtraces below show the stuck test.
+timeout -s ABRT 1200 \
+    unshare --mount --propagation private sh -c 'mount -t tmpfs tmpfs /tmp && exec "$@"' sh \
     tests/ut_$test --gtest_output=xml:ut_$test.xml
 
 
 if [ $? != 0 ]
 then
+    echo
+    echo "---------------------------   Fail execute tests/ut_$test   ---------------------------------"
+    echo
     for core in /var/tmp/core-ut_$test.*
     do
         if [ -f "$core" ]
@@ -32,5 +38,9 @@ then
         fi
     done
     exit 1
+else
+    echo
+    echo "---------------------------   End execute tests/ut_$test   ---------------------------------"
+    echo
 fi
 exit 0
