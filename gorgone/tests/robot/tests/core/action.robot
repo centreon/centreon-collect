@@ -84,6 +84,42 @@ action module with ${communication_mode} communcation mode
         ...    pullwss_uid     2
         ...    pullwss_uid     299123456
 
+ACTIONENGINE gRPC reload still validates plugins.json before the gRPC call
+    [Documentation]    Regression test for MON-214101: the gRPC reload/restart branch of
+    ...    action_actionengine (engine_grpc.enable) used to return before validate_plugins()
+    ...    ran, so a plugin listed in content.plugins (plugins.json) was never installed on
+    ...    ENGINERELOAD/ENGINERESTART. engine_grpc points at an address nothing listens on, and
+    ...    on EL distros Protocol::HTTP2::Client itself isn't packaged (no RPM provides it) -
+    ...    either way the gRPC call itself is expected to fail, but the plugin must be installed
+    ...    anyway.
+    ...    Uses Ctn Get Api Log Regardless Of Code With Timeout (not Ctn Get Api Log With
+    ...    Timeout): the latter only treats a code-100 per-command result as terminal and
+    ...    silently keeps polling past a code-1 (KO) entry, which is this test's correct,
+    ...    expected outcome.
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    actionengine_grpc_central
+
+    @{central_config}    Create List    ${ROOT_CONFIG}actions-grpc.yaml    ${push_central_config}    ${gorgone_core_config}
+    Setup Gorgone Config    ${central_config}    gorgone_name=actionengine_grpc_central
+    Start Gorgone    debug    actionengine_grpc_central
+    Wait Until Port Is Bind    8085
+
+    Setup Sudo
+    Ctn Prepare package manager
+
+    ${bodycmd}=    Create Dictionary
+    ...    command=sudo systemctl reload centengine
+    ...    plugins=${ROOT_CONFIG}actionengine-plugins.json
+    ${result}    POST    http://127.0.0.1:8085/api/core/action/engine    json=${bodycmd}
+
+    ${status}    ${logs}    Ctn Get Api Log Regardless Of Code With Timeout    token=${result.json()}[token]    timeout=60
+    Should Be True    ${status}    No log found in the gorgone api: ${logs}
+    ${internal_json}=    Evaluate    json.loads("""${logs}[data]""")    json
+    Should Contain    ${internal_json}[message]    engine grpc signal failed
+    ...    msg=expected the gRPC call to fail (unreachable address, or module absent on this distro): ${internal_json}
+
+    ${installed}=    Ctn Check Plugin Is Installed And Remove It    centreon-plugin-Operatingsystems-Linux-Snmp
+    Should Be True    ${installed}    plugins.json must be validated/installed even though the gRPC call itself fails
+
 *** Keywords ***
 Test Sync Action Module
     [Arguments]    ${get_params}=    ${node_path}=
