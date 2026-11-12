@@ -16,6 +16,7 @@ List of the available modules:
   * [Engine](../docs/modules/centreon/engine.md)
   * [Legacy Cmd](../docs/modules/centreon/legacycmd.md)
   * [Nodes](../docs/modules/centreon/nodes.md)
+  * [Prometheus](../docs/modules/centreon/prometheus.md)
 * Plugins
   * [Newtest](../docs/modules/plugins/newtest.md)
   * [Scom](../docs/modules/plugins/scom.md)
