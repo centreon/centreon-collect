@@ -47,9 +47,8 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        run: |
-          rustup toolchain install stable --profile minimal --component rustfmt,clippy
-          rustup default stable
+        # Version and components come from gorgone-rs/rust-toolchain.toml.
+        run: rustup toolchain install
 
       - name: Cache cargo registry and target
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -80,9 +79,8 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
+        # Version and components come from gorgone-rs/rust-toolchain.toml.
+        run: rustup toolchain install
 
       - name: Cache cargo registry and target
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -127,9 +125,8 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
+        # Version and components come from gorgone-rs/rust-toolchain.toml.
+        run: rustup toolchain install
 
       - name: Cache cargo registry and target
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
