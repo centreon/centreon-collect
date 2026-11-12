@@ -636,8 +636,116 @@ CERS9
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
 
+CERS10
+    [Documentation]    Scenario: a host moved from a running poller to another running poller keeps its state
+    ...    Given Broker and two Engines are started in centralized configuration, with passive services
+    ...    And service_1 of host_1, on poller 1, is CRITICAL HARD
+    ...    And the notifications of service_2 of host_1 are disabled
+    ...    When host_1 and its services are moved to poller 2, both Engines still running
+    ...    Then poller 1 removes host_1 and poller 2 creates it
+    ...    And poller 2 gets from Broker the state of service_1 and the disabled notifications of service_2
+    ...    And the database still shows service_1 CRITICAL HARD
+    [Tags]    engine    broker    centralized    retention    MON-187019
+    Ctn Config Centralized Engine    ${2}    ${4}    ${3}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${2}
+    FOR    ${i}    IN RANGE    2
+        Ctn Engine Config Set Value    ${i}    log_legacy_enabled    ${0}
+        Ctn Engine Config Set Value    ${i}    log_v2_enabled    ${1}
+        Ctn Engine Config Set Value    ${i}    log_level_config    debug
+        Ctn Set Services Passive    ${i}    service_[0-9]+
+    END
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    cache    info
+    Ctn Broker Config Log    central    config    info
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
+
+    # Two pieces of runtime a check does not give back: a HARD state, and an
+    # adaptive change.
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    60    HARD
+    Should Be True    ${result}    The service (host_1,service_1) should be CRITICAL HARD
+    Ctn Send External Command    DISABLE_SVC_NOTIFICATIONS;host_1;service_2
+    Wait Until Keyword Succeeds    60s    2s    Service Notify In Db Should Be    host_1    service_2    ${0}
+
+    # The user attaches host_1 to the other poller: one export for both.
+    Ctn Engine Config Move Host    ${0}    ${1}    host_1
+    ${move}    Ctn Get Round Current Date
+    Ctn Notify Broker Of Engine Config Change    ${0}    ${1}
+
+    ${content}    Create List    Removing host 'host_1'.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${move}    ${content}    60
+    Should Be True    ${result}    Poller 1 should remove host_1
+    ${content}    Create List    Creating new host 'host_1'.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog1}    ${move}    ${content}    60
+    Should Be True    ${result}    Poller 2 should create host_1
+    Wait Until Keyword Succeeds    60s    2s    Host Instance In Db Should Be    host_1    ${2}
+
+    # Poller 2 is described what it receives, poller 1 nothing: it runs, and
+    # knows its resources better than Broker.
+    ${content}    Create List    the diff adds to poller 2 added to its DiffState
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${move}    ${content}    30
+    Should Be True    ${result}    Broker should send poller 2 the runtime of the resources it receives
+    FOR    ${line}    IN    added to the DiffState of poller 1    the diff adds to poller 1
+        ${content}    Create List    ${line}
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${move}    ${content}    1
+        Should Not Be True    ${result}    Broker should send poller 1 no runtime state with the diff
+    END
+
+    # What poller 2 knows of the resources it received.
+    ${info}    Ctn Get Service Info Grpc    ${1}    ${1}    config=${1}
+    Should Be Equal As Strings    ${info}[currentState]    CRITICAL
+    ...    Poller 2 should get the CRITICAL state of service_1 from Broker
+    # Not stateType: the gRPC message types it as a State, HARD reads WARNING.
+    Should Be Equal As Strings    ${info}[lastHardState]    CRITICAL
+    ...    Poller 2 should get the last hard state of service_1 from Broker
+    Should Be Equal As Strings    ${info}[pluginOutput]    output critical for service_1
+    ...    Poller 2 should get the output of service_1 from Broker
+    ${info}    Ctn Get Service Info Grpc    ${1}    ${2}    config=${1}
+    Should Not Be True    ${info}[notificationsEnabled]
+    ...    Poller 2 should get the disabled notifications of service_2 from Broker
+
+    # Whatever poller 2 sends about them must not undo the database. Full
+    # statuses reach it through the bulk binds, some 30 s later.
+    Sleep    40s
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    5    HARD
+    Should Be True    ${result}    The database should still show service_1 CRITICAL HARD
+    # Not services.notify of service_2: database_configurator writes the
+    # configuration value of an added service over its override (known bug,
+    # whether an override survives a configuration change is still open).
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
 
 *** Keywords ***
+Service Notify In Db Should Be
+    [Documentation]    Fails unless the notify column of the service ${svc} of ${host} is ${expected} in the services table.
+    [Arguments]    ${host}    ${svc}    ${expected}
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${output}    Query
+    ...    SELECT s.notify FROM services s JOIN hosts h ON h.host_id = s.host_id WHERE h.name = '${host}' AND s.description = '${svc}'
+    Disconnect From Database
+    Should Not Be Empty    ${output}    The service ${svc} of ${host} should be in the database
+    Should Be Equal As Integers    ${output}[0][0]    ${expected}
+
+Host Instance In Db Should Be
+    [Documentation]    Fails unless the host ${host} belongs to the instance ${expected} in the hosts table.
+    [Arguments]    ${host}    ${expected}
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${output}    Query    SELECT instance_id FROM hosts WHERE name = '${host}'
+    Disconnect From Database
+    Should Not Be Empty    ${output}    The host ${host} should be in the database
+    Should Be Equal As Integers    ${output}[0][0]    ${expected}
 Service 1 Downtime Depth Should Be
     [Documentation]    Fails unless the scheduled downtime depth of (host_1, service_1) in Engine is ${expected}.
     [Arguments]    ${expected}

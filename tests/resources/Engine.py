@@ -1824,6 +1824,101 @@ def ctn_engine_config_remove_host(idx: int, host: str):
         f.writelines(lines)
 
 
+def _split_cfg_blocks(lines: list):
+    """
+    Split the lines of an Engine configuration file into its object
+    definitions.
+
+    Args:
+        lines (list): The lines of the file.
+
+    Returns:
+        The blocks, each one the list of the lines from "define ... {" to the
+        closing "}", and the lines outside any block.
+    """
+    blocks = []
+    others = []
+    current = None
+    for line in lines:
+        if current is None:
+            if re.match(r"^\s*define\s+\w+\s*{", line):
+                current = [line]
+            else:
+                others.append(line)
+        else:
+            current.append(line)
+            if re.match(r"^\s*}\s*$", line):
+                blocks.append(current)
+                current = None
+    return blocks, others
+
+
+def _cfg_block_value(block: list, key: str):
+    """
+    The value of a key in an object definition, None if the key is absent.
+    """
+    pattern = re.compile(rf"^\s*{key}\s+(.*?)\s*$")
+    for line in block:
+        m = pattern.match(line)
+        if m:
+            return m.group(1)
+    return None
+
+
+def ctn_engine_config_move_host(src: int, dst: int, host: str):
+    """
+    Move a host and all its services from one poller configuration to another,
+    as a user does when attaching the host to another poller. The host and
+    service ids are kept, which is what tells Broker it is the same resource.
+
+    The check commands of the moved objects are copied into the commands.cfg
+    of the destination when it does not define them: the commands of the
+    generated configurations differ from one poller to the other.
+
+    Args:
+        src (int): Index of the configuration the host leaves (from 0).
+        dst (int): Index of the configuration it joins (from 0).
+        host (str): Name of the host.
+    """
+    src_dir = engine.get_config_dir(src)
+    dst_dir = engine.get_config_dir(dst)
+    moved_commands = set()
+
+    for file in ("hosts.cfg", "services.cfg"):
+        with open(f"{src_dir}/{file}", "r") as f:
+            blocks, others = _split_cfg_blocks(f.readlines())
+        kept = []
+        moved = []
+        for block in blocks:
+            if _cfg_block_value(block, "host_name") == host:
+                moved.append(block)
+                cmd = _cfg_block_value(block, "check_command")
+                if cmd:
+                    moved_commands.add(cmd.split("!")[0])
+            else:
+                kept.append(block)
+        if file == "hosts.cfg" and not moved:
+            raise Exception(f"host '{host}' not found in configuration {src}")
+        with open(f"{src_dir}/{file}", "w") as f:
+            f.writelines(others)
+            for block in kept:
+                f.writelines(block)
+        with open(f"{dst_dir}/{file}", "a") as f:
+            for block in moved:
+                f.writelines(block)
+
+    with open(f"{src_dir}/commands.cfg", "r") as f:
+        src_commands, _ = _split_cfg_blocks(f.readlines())
+    with open(f"{dst_dir}/commands.cfg", "r") as f:
+        dst_commands, _ = _split_cfg_blocks(f.readlines())
+    known = {_cfg_block_value(b, "command_name") for b in dst_commands}
+    with open(f"{dst_dir}/commands.cfg", "a") as f:
+        for block in src_commands:
+            name = _cfg_block_value(block, "command_name")
+            if name in moved_commands and name not in known:
+                f.writelines(block)
+
+
 def ctn_engine_config_rename_host(idx: int, old_host_name: str, new_host_name: str):
     """
     Rename a host from the hosts.cfg configuration file.
@@ -5270,21 +5365,23 @@ def ctn_get_host_info_grpc(host_id:  int):
     return {}
 
 
-def ctn_get_service_info_grpc(id_h: int, id_s: int):
+def ctn_get_service_info_grpc(id_h: int, id_s: int, config: int = 0):
     """
     Retrieve service information via a gRPC call.
 
     Args:
         id_h: The identifier of the host to retrieve.
         id_s: The identifier of the service to retrieve.
+        config: The index of the Engine to ask (from 0), 0 by default.
 
     Returns:
         A dictionary containing the service informations, if successfully retrieved.
     """
+    port = 50001 + int(config)
     limit = time.time() + 30
     while time.time() < limit:
         time.sleep(1)
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             identifier = engine_pb2.PairIdsIdentifier(
                 host_id=id_h, service_id=id_s)
