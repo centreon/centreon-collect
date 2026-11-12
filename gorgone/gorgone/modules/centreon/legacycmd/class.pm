@@ -79,6 +79,13 @@ sub new {
     $connector->{pending_batches} = {};
     $connector->{config}->{legacycmd_result_timeout} = defined($connector->{config}->{legacycmd_result_timeout}) && $connector->{config}->{legacycmd_result_timeout} =~ /^\d+$/
         ? $connector->{config}->{legacycmd_result_timeout} : 40;
+    # bound on check_pending_batches_fast() below: at most this many remote nudges per 1s
+    # tick, rotating (fast_poll_offset) through every pending batch's targets combined, so a
+    # wide broadcast (or several small batches pending at once) never sends more
+    # httpserver-child traffic per second than before MON-214478.
+    $connector->{config}->{legacycmd_fast_poll_max_targets} = defined($connector->{config}->{legacycmd_fast_poll_max_targets}) && $connector->{config}->{legacycmd_fast_poll_max_targets} =~ /^\d+$/
+        ? $connector->{config}->{legacycmd_fast_poll_max_targets} : 3;
+    $connector->{fast_poll_offset} = 0;
 
     # nagios_server.id whose row means "gorgone and engine on the same host"
     # (classic VM/RPM install: localhost=1, poller_type != 'docker'). nodes'
@@ -340,6 +347,49 @@ sub check_pending_batches {
             data => { token => $token }
         });
     }
+}
+
+# Periodic sweep (every 1s, see run()): while a batch is pending, notices its result much
+# sooner than waiting for the 5s sweep above - the actual latency fix for MON-214478. The
+# local "-poll" query touches no shared resource (a local history read), so it runs for
+# every pending batch, every tick. The remote nudge does go through the shared httpserver
+# child (see proxy.md's "Message routing flow" and "httpserver child health check"), so at
+# most legacycmd_fast_poll_max_targets of them are sent per tick, rotating through every
+# pending (token, target) pair across every batch combined via fast_poll_offset: a single
+# wide broadcast, or several small batches pending at once (e.g. parallel delivery from the
+# web), each still gets covered within a few seconds instead of either multiplying the 5s
+# sweep's traffic by however many targets are pending in total, or missing the fast path
+# entirely once that total crosses the bound. The deadline check stays on the 5s sweep
+# only: a timeout landing up to ~4s late is harmless.
+sub check_pending_batches_fast {
+    my ($self) = @_;
+
+    return if (!%{$self->{pending_batches}});
+
+    foreach my $token (sort keys %{$self->{pending_batches}}) {
+        $self->send_internal_action({
+            action => 'GETLOG',
+            token => $token . '-poll',
+            data => { token => $token }
+        });
+    }
+
+    my @pairs;
+    foreach my $token (sort keys %{$self->{pending_batches}}) {
+        push @pairs, map { [$token, $_] } sort keys %{$self->{pending_batches}->{$token}->{targets}};
+    }
+    if (!@pairs) {
+        $self->{fast_poll_offset} = 0;
+        return;
+    }
+
+    my $count = $self->{config}->{legacycmd_fast_poll_max_targets};
+    $count = scalar(@pairs) if ($count > scalar(@pairs));
+    for (my $i = 0; $i < $count; $i++) {
+        my $pair = $pairs[ ($self->{fast_poll_offset} + $i) % scalar(@pairs) ];
+        $self->send_internal_action({ action => 'GETLOG', target => $pair->[1], data => {} });
+    }
+    $self->{fast_poll_offset} = ($self->{fast_poll_offset} + $count) % scalar(@pairs);
 }
 
 # Reply to the local GETLOG poll above (see event() for why it reaches here).
@@ -1402,6 +1452,12 @@ sub periodic_exec {
     $connector->check_pending_batches();
 }
 
+sub periodic_exec_fast {
+    return if ($connector->{stop} == 1);
+
+    $connector->check_pending_batches_fast();
+}
+
 sub run {
     my ($self, %options) = @_;
 
@@ -1440,6 +1496,7 @@ sub run {
     );
 
     my $watcher_timer = $self->{loop}->timer(5, 5, \&periodic_exec);
+    my $watcher_timer_fast = $self->{loop}->timer(1, 1, \&periodic_exec_fast);
     my $watcher_io = $self->{loop}->io($connector->{internal_socket}->get_fd(), EV::READ, sub { $connector->event() } );
     $self->{loop}->run();
 }
