@@ -5,7 +5,11 @@ startCbd() {
   systemctl unmask cbd.service ||:
   systemctl preset cbd.service ||:
   systemctl enable cbd.service ||:
-  systemctl restart cbd.service ||:
+  # rpm passes a number as $1: the restart is done by %posttrans, once the
+  # whole transaction is applied (see centreon-broker-cbd-posttrans.sh).
+  case "$1" in
+    '' | *[!0-9]*) systemctl restart cbd.service ||: ;;
+  esac
 }
 
 action="$1"
@@ -19,13 +23,13 @@ fi
 
 case "$action" in
   "1" | "install")
-    startCbd
+    startCbd "$1"
     ;;
   "2" | "upgrade")
-    startCbd
+    startCbd "$1"
     ;;
   *)
     # $1 == version being installed
-    startCbd
+    startCbd "$1"
     ;;
 esac
