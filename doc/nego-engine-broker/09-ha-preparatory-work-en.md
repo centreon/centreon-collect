@@ -741,6 +741,42 @@ and that `host_1` keeps its `workhours` check period with bit 16384.
 Unit test: `FillRuntimeState`. Custom variables and anomalydetection sensitivity stay out of
 scope.
 
+*Batch 5, done on 2026-11-12: overrides survive a configuration change.* Until then, a configuration export modifying a resource reset its attributes from the configuration on both sides: `applier::service::modify_object` (and its host and anomalydetection counterparts) set `notifications_enabled`, `check_interval`... without looking at the mask, and `database_configurator` wrote `notify=VALUES(notify)` on the row, whose mask stayed, contradicting the value. A host moved from one poller to another (`CERS10`) showed the sharpest gap: Engine kept the override, received through the snapshot, and the database lost it. The rule adopted is that of `retain_nonstatus_information`: an attribute toggled by an external command follows the last command, not the configuration, as long as its bit is set, in all three memories. On the Engine side, `runtime_state::capture_overrides` takes the mask and the attributes it protects before the setters of `modify_object`, and `runtime_state::apply_overrides`, the applier of batch 4, puts them back after: the configuration applies whole, the overrides come back on top, as `copy_*_runtime` does in the cache. On the database side, the upserts of `hosts`, `services` and `anomalydetections` write every protectable column as `col=IF(COALESCE(modified_attributes,0)&bit,col,VALUES(col))`: the row keeps its value under its bit, the configuration fills the rest (each upsert names only the columns it writes: `hosts` does not write `notification_period`, anomalydetections not `check_period`). `resources` has no mask: its four columns concerned (`notifications_enabled`, `active_checks_enabled`, `passive_checks_enabled`, `max_check_attempts`) are taken from the global cache entry when it carries the bit, from the configuration otherwise; the diff carries no overrides and the cache keeps its own, merged or not. A set bit never falls, `ENABLE_*` sets it like `DISABLE_*`: a resource toggled once ignores the configuration value of that attribute for good, as with `retention.dat`. Tests: `CERS11` (notifications and check interval toggled on a service, active checks on a host, then an export changing the interval, `max_check_attempts` and the alias: gRPC, `hosts`, `services` and `resources` keep the overrides and take the rest), `CERS10` completed; unit tests `PbModifyKeepsOverrides` (service and host).
+
+The life of an override, across the five batches. In phase 2, `Engine` and the cache each protect the override on their own side, without exchange: the diff does not carry it, and the cache is what feeds `resources`, which has no mask.
+
+```mermaid
+sequenceDiagram
+    participant E as Engine
+    participant C as global cache
+    participant U as unified_sql
+    participant DB as hosts/services + resources
+
+    Note over E,DB: 1. The external command (batches 1 to 3)
+    E->>E: DISABLE_SVC_NOTIFICATIONS: notify=false, modified_attributes |= bit
+    E->>C: pb_adaptive_service(notify=false)
+    C->>C: notify=false, modified_attributes |= bit
+    E->>U: pb_adaptive_service
+    U->>DB: services.notify=0, modified_attributes |= bit; resources.notifications_enabled=0
+
+    Note over E,DB: 2. An export modifies the service (batch 5)
+    C-->>E: DiffState(diff, no snapshot: poller already served)
+    E->>E: capture_overrides → modify_object → apply_overrides
+    E-->>C: DiffStateAck
+    C->>C: apply(diff): copy_*_runtime keeps notify under its bit
+    U->>DB: services: notify=IF(modified_attributes&bit, notify, VALUES(notify))
+    U->>C: service(host_id, service_id) → notifications_enabled from the cache if the bit is set
+    U->>DB: resources.notifications_enabled
+
+    Note over E,DB: 3. Broker restarts (batch 3)
+    U->>DB: SELECT ... WHERE modified_attributes<>0
+    U->>C: copy_service_overrides (unless the cache already carries a mask)
+
+    Note over E,DB: 4. Engine restarts (batch 4)
+    C-->>E: DiffState(runtime_state: RuntimeOverrides under the mask)
+    E->>E: apply_overrides
+```
+
 **Step 4 — Engine.** In centralized configuration, Engine stops reading `retention.dat` as soon
 as a snapshot arrives, and keeps writing it as a safety net until validated. Scheduling and
 program block flags are not carried over. The fate of the `next_*_id` counters is still to be
