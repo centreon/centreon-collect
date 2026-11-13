@@ -19,10 +19,14 @@
 
 #include <sys/stat.h>
 
+#include <chrono>
+#include <future>
+
 #include <grpcpp/server_builder.h>
 
 #include "com/centreon/engine/host.hh"
 
+#include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
@@ -88,9 +92,21 @@ bool enginerpc::listening() const {
   return _server != nullptr;
 }
 
+/**
+ * @brief Stop the gRPC server. Called once the main loop has stopped, while
+ * the handlers of the calls in flight still wait for tasks only that loop
+ * executes: those tasks are run here until gRPC has finished its last call,
+ * otherwise a client calling the API during the shutdown blocks it forever.
+ */
 void enginerpc::shutdown() {
-  if (_server) {
-    _server->Shutdown();
+  if (!_server)
+    return;
+  std::future<void> stopped = std::async(std::launch::async, [this] {
+    _server->Shutdown(std::chrono::system_clock::now() +
+                      std::chrono::seconds(2));
     _server->Wait();
-  }
+  });
+  while (stopped.wait_for(std::chrono::milliseconds(10)) !=
+         std::future_status::ready)
+    command_manager::instance().execute();
 }
