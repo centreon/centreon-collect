@@ -900,8 +900,6 @@ version = "0.1.0"
 dependencies = [
  "hex",
  "regex",
- "serde",
- "serde_json",
  "sha2 0.11.1",
  "shell-words",
  "tar",
