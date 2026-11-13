@@ -25,7 +25,8 @@ if getent hosts "${WEB_HOST}"; then
       -d '{"name":"'"$HOSTNAME"'","hostname":"'"$HOSTNAME"'","type":"poller","address":"'"$HOSTNAME"'","parent_address":"127.0.0.1"}' \
       "http://${WEB_HOST}/centreon/api/latest/platform/topology"
 
-  CENTRAL_IP_ADDRESS=$(getent hosts "${WEB_HOST}" | awk '{print $1;}')
+  # Where the poller sends its events: the central broker.
+  CENTRAL_IP_ADDRESS=${BROKER_HOST:-${WEB_HOST}}
   curl -s -X POST -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
       -d "{\"linked_remote_master\":\"\",\"linked_remote_slaves\":[],\"open_broker_flow\":false,\"centreon_central_ip\":\"${CENTRAL_IP_ADDRESS}\",\"server_ip\":\"$HOSTNAME\",\"server_name\":\"$HOSTNAME\",\"server_type\":\"poller\"}" \
       "http://${WEB_HOST}/centreon/api/index.php?object=centreon_configuration_remote&action=linkCentreonRemoteServer"

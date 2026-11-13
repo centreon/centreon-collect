@@ -1,0 +1,46 @@
+# Agent of the "Central" poller of the bench: a sidecar of its engine
+# container. Node 1 is the id centreon-web gives to that poller.
+node_id = "1"
+server_url = "http://gorgone-server:5556"
+# Bench value: gorgone-server enrols nodes automatically here.
+token = "integration-test"
+
+[commands]
+allowlist = []
+
+[engine]
+# The engine is another container, reached through the socket of a volume
+# shared with it.
+grpc_url = "unix:/var/lib/centreon-engine/rw/engine.sock"
+allowed_commands = [
+  'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
+  'ACKNOWLEDGE_(HOST|SVC)_PROBLEM',
+  'REMOVE_(HOST|SVC)_ACKNOWLEDGEMENT',
+  'SCHEDULE_(HOST|SVC)_DOWNTIME',
+  'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
+  '(ENABLE|DISABLE)_NOTIFICATIONS',
+]
+
+[targets.engine]
+path = "/etc/centreon-engine"
+prune = false
+# Checked by the engine container, through its API, before it is applied.
+engine_main_file = "centengine.cfg"
+
+# Shared with the two broker containers, which read their file from it.
+[targets.broker]
+path = "/etc/centreon-broker"
+prune = false
+
+[targets.vmware]
+path = "/etc/centreon"
+prune = false
+
+[services.engine]
+reload = "grpc:reload"
+# The engine exits and its container restart policy starts it again.
+restart = "grpc:shutdown"
+
+[services.broker]
+# The broker image exposes a small control API on its private network.
+reload = "http-post:http://broker:8080/reload http://broker-rrd:8080/reload"

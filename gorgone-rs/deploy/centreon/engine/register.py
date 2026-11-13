@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Registers the engine container as a poller of the bench.
+"""Provisioning steps of the bench, run in one-shot containers.
+
+secrets:  copies the key centreon-web encrypts credentials with to the
+          containers that decrypt them (brokers, engines), as a poller
+          registration does.
 
 register: declares the poller in centreon-web and writes the configuration of
           its gorgone-agent sidecar (the node id is the id web gave it).
@@ -117,7 +121,7 @@ def register() -> None:
             WEB + "/centreon/api/index.php?object=centreon_configuration_remote"
             "&action=linkCentreonRemoteServer",
             {"linked_remote_master": "", "linked_remote_slaves": [], "open_broker_flow": False,
-             "centreon_central_ip": os.environ.get("WEB_HOST", "web"), "server_ip": POLLER,
+             "centreon_central_ip": os.environ.get("BROKER_HOST", "broker"), "server_ip": POLLER,
              "server_name": POLLER, "server_type": "poller"},
             {"centreon-auth-token": token},
         )
@@ -133,6 +137,37 @@ def register() -> None:
     print("poller {} registered with id {}".format(POLLER, node_id))
 
 
+def secrets() -> None:
+    """Writes engine-context.json into every directory of SECRET_DIRS."""
+    token = login()
+    content = json.dumps(
+        call(WEB + "/centreon/api/latest/administration/engine/secrets",
+             headers={"X-AUTH-TOKEN": token})
+    )
+    for directory in os.environ["SECRET_DIRS"].split():
+        path = os.path.join(directory, "engine-context.json")
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o640)
+        with os.fdopen(descriptor, "w") as file:
+            file.write(content)
+        # Read by the engine user (901) or the broker group (902).
+        os.chown(path, 901, 902)
+        os.chmod(path, 0o640)
+    print("engine context written")
+
+
+def wait_for_urls() -> None:
+    """Waits until every URL of WAIT_FOR_URLS answers, when the variable is set."""
+    for url in os.environ.get("WAIT_FOR_URLS", "").split():
+        for _ in range(180):
+            try:
+                urllib.request.urlopen(url, timeout=5).close()
+                break
+            except OSError:
+                time.sleep(1)
+        else:
+            sys.exit("no answer from " + url)
+
+
 def deploy() -> None:
     token = login()
     node_id = str(poller_id(token))
@@ -146,6 +181,8 @@ def deploy() -> None:
     else:
         sys.exit("gorgone-server never saw the agent of node " + node_id)
     for action in ("POLLERGENERATE", "CFGMOVE", "POLLERRESTART"):
+        if action == "POLLERRESTART":
+            wait_for_urls()
         answer = call(
             WEB + "/centreon/api/index.php?action=action&object=centreon_clapi",
             {"action": action, "values": POLLER},
@@ -155,4 +192,4 @@ def deploy() -> None:
 
 
 if __name__ == "__main__":
-    {"register": register, "deploy": deploy}[sys.argv[1]]()
+    {"register": register, "deploy": deploy, "secrets": secrets}[sys.argv[1]]()
