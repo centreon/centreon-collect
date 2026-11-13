@@ -25,12 +25,16 @@
 # minor keeps the packages working on hosts that have not upgraded yet.
 #
 # For each .github/docker/Dockerfile.packaging-centreon-collect-alma<major>:
-#   - the FROM line is set to the newest dated tag almalinux:<major>.<minor>-YYYYMMDD
-#     published at least MIN_AGE_DAYS ago, pinned by digest;
-#   - when that minor is archived on vault.almalinux.org, dnf is pointed at the
-#     vault for that minor: the default mirrors serve the latest minor, and
-#     installing the -devel packages would pull its libraries into the image. When
-#     the minor is still current (no vault), the default mirrors are kept.
+#   - the newest dated tag almalinux:<major>.<minor>-YYYYMMDD published at least
+#     MIN_AGE_DAYS ago gives the minor to build on;
+#   - when that minor is archived on vault.almalinux.org, the FROM line is set to
+#     that tag, pinned by digest, and dnf is pointed at the vault for that minor:
+#     the default mirrors serve the latest minor, and installing the -devel
+#     packages would pull its libraries into the image;
+#   - when the minor is still current (no vault), dnf installs its latest
+#     packages whatever the base image, so pinning would only age the image: the
+#     FROM line is set to the floating almalinux:<major> tag and the default
+#     mirrors are kept.
 #
 # The result is meant to be reviewed and committed: the packaging image tag is
 # a hash of the Dockerfile, so a committed change is what triggers the rebuild.
@@ -130,11 +134,11 @@ ${BLOCK_END}
 BLOCK
 }
 
-# Writes to <output> the Dockerfile of <major> pinned on the newest tag dated on or before
-# <cutoff>. The Dockerfile itself is left untouched: the caller replaces it once every major
-# succeeded.
+# Writes to <output> the Dockerfile of <major> pinned on the minor of the newest tag dated on or
+# before <cutoff>. The Dockerfile itself is left untouched: the caller replaces it once every
+# major succeeded.
 pin_dockerfile() {
-  local major=$1 cutoff=$2 output=$3 dockerfile tags tag="" digest="" minor state
+  local major=$1 cutoff=$2 output=$3 dockerfile tags tag="" digest="" minor state from_image
   dockerfile="${DOCKERFILE_PREFIX}${major}"
   if [[ ! -f "$dockerfile" ]]; then
     echo "error: ${dockerfile} not found" >&2
@@ -158,12 +162,17 @@ pin_dockerfile() {
   if ! state=$(vault_state "$minor"); then
     return 1
   fi
+  if [[ "$state" == archived ]]; then
+    from_image="almalinux:${tag}@${digest}"
+  else
+    from_image="almalinux:${major}"
+  fi
 
   # Rewrites the FROM line of the first stage, drops the previous managed block with the blank
   # line that follows it, and inserts a fresh block before the anchor when the minor is archived.
   # The block goes through the environment: awk -v would interpret its backslashes. awk fails
   # rather than truncate the file when a marker or an anchor is missing.
-  if ! FROM_IMAGE="almalinux:${tag}@${digest}" BLOCK_BEGIN="$BLOCK_BEGIN" BLOCK_END="$BLOCK_END" \
+  if ! FROM_IMAGE="$from_image" BLOCK_BEGIN="$BLOCK_BEGIN" BLOCK_END="$BLOCK_END" \
     VAULT_BLOCK="$([[ "$state" == archived ]] && vault_block "$minor")" awk '
       /^FROM \$\{REGISTRY_URL\}\/almalinux:[^ ]+ AS centreon_collect_packaging$/ && !from {
         print "FROM ${REGISTRY_URL}/" ENVIRON["FROM_IMAGE"] " AS centreon_collect_packaging"
@@ -191,7 +200,7 @@ pin_dockerfile() {
   if [[ "$state" == archived ]]; then
     echo "alma${major}: almalinux:${tag} (${digest}), dnf pinned on ${VAULT_URL}/${minor}"
   else
-    echo "alma${major}: almalinux:${tag} (${digest}), ${minor} is the current minor: default mirrors kept"
+    echo "alma${major}: ${minor} is the current minor: floating almalinux:${major} and default mirrors kept"
   fi
 }
 

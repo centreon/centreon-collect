@@ -21,14 +21,15 @@ Building on an older minor fixes this: a binary built on 9.6 runs on 9.6, 9.7 an
 For each AlmaLinux packaging Dockerfile, the script:
 
 1. Looks up on Docker Hub the newest dated tag `almalinux:<major>.<minor>-YYYYMMDD` published at least N days ago
-   (365 by default), and the digest of that tag.
-2. Rewrites the `FROM` line of the first stage with that tag, pinned by digest:
+   (365 by default), and the digest of that tag. Its minor is the one to build on.
+2. When that minor is archived on `vault.almalinux.org`, rewrites the `FROM` line of the first stage with that tag,
+   pinned by digest:
 
    ```dockerfile
    FROM ${REGISTRY_URL}/almalinux:9.6-20250909@sha256:375aa0df... AS centreon_collect_packaging
    ```
 
-3. Keeps dnf on that minor, when it is archived on `vault.almalinux.org`.
+3. And keeps dnf on that minor.
 
    Setting the base image is not enough. The dnf repositories of an AlmaLinux image always point to the latest
    minor, so installing `gcc` and the `-devel` packages would bring the libraries of the latest minor into the
@@ -45,8 +46,11 @@ For each AlmaLinux packaging Dockerfile, the script:
    # END pinned AlmaLinux vault
    ```
 
-   When the minor is still the current one, it is not on the vault yet. The script then keeps the default mirrors
-   and removes a block left by a previous run. This is the case of AlmaLinux 8, whose last minor is 8.10.
+When the minor is still the current one, it is not on the vault yet, and dnf installs its latest packages whatever
+the base image: the `-devel` packages require the exact version of their library, so a pinned base would end up with
+the same libraries, only with an older base and a digest to maintain. The script then sets the floating
+`almalinux:<major>` tag, keeps the default mirrors, and removes a block left by a previous run. This is the case of
+AlmaLinux 8, whose last minor is 8.10.
 
 `${REGISTRY_URL}` is left as it is: in CI it is set to the Docker Hub proxy, which serves the same images with the
 same digests.
@@ -80,7 +84,7 @@ Output, one line per Dockerfile:
 
 ```text
 alma10: almalinux:10.0-20250909 (sha256:a81adef1...), dnf pinned on https://vault.almalinux.org/10.0
-alma8: almalinux:8.10-20250909 (sha256:bebdf5cf...), 8.10 is the current minor: default mirrors kept
+alma8: 8.10 is the current minor: floating almalinux:8 and default mirrors kept
 alma9: almalinux:9.6-20250909 (sha256:375aa0df...), dnf pinned on https://vault.almalinux.org/9.6
 ```
 
