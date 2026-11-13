@@ -103,6 +103,21 @@ class BrokerStateRound : public ::testing::Test {
     ASSERT_TRUE(st.SerializeToOstream(&f));
   }
 
+  /**
+   * @brief Leave an acknowledged difference, the way an acknowledgement does:
+   * `diff-<N>.prot`, waiting for the round to close.
+   */
+  void leave_acknowledged_diff(uint64_t poller_id,
+                               const std::string& from,
+                               const std::string& to) {
+    com::centreon::engine::configuration::DiffState diff;
+    diff.set_from_version(from);
+    diff.set_config_version(to);
+    std::ofstream f(_dir / fmt::format("diff-{}.prot", poller_id),
+                    std::ios::binary);
+    ASSERT_TRUE(diff.SerializeToOstream(&f));
+  }
+
   /** @brief The version a stored protobuf State names. */
   std::string version_of(const std::string& name) {
     com::centreon::engine::configuration::State st;
@@ -751,6 +766,51 @@ TEST_F(BrokerStateRound, DisconnectionResetsThePollerConfiguration) {
   EXPECT_FALSE(p1->conf.last_rejection());
   EXPECT_TRUE(p1->conf.conf_in_flight().empty());
   EXPECT_TRUE(p1->conf.available_conf().empty());
+}
+
+/**
+ * Scenario: Broker stopped between an acknowledgement and the end of the
+ * round, while another poller was still to be served.
+ * Given diff-1.prot, the difference poller 1 acknowledged
+ * And new-2.prot, a configuration prepared for poller 2, not connected
+ * When Broker loads the stored configurations
+ * Then nothing is published -- no multiplexing engine is loaded here, a
+ * publication would crash -- and diff-1.prot is still there
+ * And poller 1 waits for the database, as it shows once connected
+ * And that mark alone would close the round, poller 2 being owed nothing
+ * before it connects: this is why the load does not try when a new-<ID>.prot
+ * exists.
+ */
+TEST_F(BrokerStateRound, AcknowledgedDiffFoundAtStartWaitsForTheOpenRound) {
+  leave_acknowledged_diff(1, "v0", "v1");
+  leave_prepared_conf(2, "v1");
+
+  _state->load_pollers_config_in_cache();
+
+  EXPECT_TRUE(std::filesystem::exists(_dir / "diff-1.prot"));
+  connect(1);
+  auto pollers = _state->connected_pollers();
+  auto p1 = absl::c_find_if(
+      pollers, [](const auto& p) { return p.peer.poller_id == 1; });
+  ASSERT_NE(p1, pollers.end());
+  EXPECT_EQ(p1->conf.db_status(),
+            config::applier::poller_conf::db_state::pending);
+  EXPECT_TRUE(_state->try_close_conf_round());
+}
+
+/**
+ * Scenario: without an acknowledged difference left behind, the load marks
+ * nobody.
+ * Given new-2.prot alone, a configuration prepared for poller 2, not connected
+ * When Broker loads the stored configurations
+ * Then there is no round to close.
+ */
+TEST_F(BrokerStateRound, NoRoundAtStartWithoutAnAcknowledgedDiff) {
+  leave_prepared_conf(2, "v1");
+
+  _state->load_pollers_config_in_cache();
+
+  EXPECT_FALSE(_state->try_close_conf_round());
 }
 
 /**

@@ -350,7 +350,7 @@ class broker_state : public state {
       const com::centreon::broker::config::state& s) override;
   void _resolve_pollers_config_dir(
       const com::centreon::broker::config::state& s) override;
-  void load_pollers_config_in_cache();
+  void load_pollers_config_in_cache() ABSL_LOCKS_EXCLUDED(_conf_handover_m);
   void apply_poller_diff_in_cache(uint64_t poller_id);
   std::optional<uint64_t> poller_id_by_name(const std::string& name);
   bool remove_poller(uint64_t poller_id) ABSL_LOCKS_EXCLUDED(_conf_handover_m);

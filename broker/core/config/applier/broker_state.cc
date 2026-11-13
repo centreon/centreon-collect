@@ -699,7 +699,27 @@ void broker_state::_migrate_diff_to_send(uint64_t poller_id) {
 }
 
 /**
- * @brief Fill the global cache with every poller configuration Broker stores.
+ * @brief Fill the global cache with every poller configuration Broker stores,
+ * and take up the round Broker was in when it stopped.
+ *
+ * A `diff-<ID>.prot` found here is a difference its poller acknowledged, that
+ * the database never received: cbd stopped between the acknowledgement and the
+ * end of the round. The cache gets it through `<ID>.prot`, already the
+ * acknowledged version; the database only gets it from a global diff. The
+ * poller is marked as waiting for the database, and the rule of the round is
+ * played again:
+ * - no `new-<ID>.prot` in the directory: every poller had answered, the round
+ *   was over but for its publication. It is closed now, and the global diff is
+ *   published. The multiplexing engine is not started yet: the event waits in
+ *   its queue, and goes out once the outputs are ready.
+ * - at least one `new-<ID>.prot`: a poller is still to be served, and the
+ *   round is still open. Such a poller is not owed anything yet -- it becomes
+ *   so at its connection -- so try_close_conf_round() would not see it, and
+ *   the database would get a host moved from one poller to another in two
+ *   pieces. The differences wait for its acknowledgement, or its rejection.
+ *
+ * _conf_handover_m is taken for the publication, as everywhere else. Nothing
+ * else runs at that time.
  */
 void broker_state::load_pollers_config_in_cache() {
   if (!pollers_config_dir_usable() ||
@@ -707,13 +727,17 @@ void broker_state::load_pollers_config_in_cache() {
     return;
 
   const auto started_at = std::chrono::steady_clock::now();
-  /* The pollers are named, not counted. A configuration is stored for as long
-   * as Broker holds its file, and nothing removes that file when a poller
-   * leaves the platform by any other route than the RemovePoller command --
-   * someone deleting it from the interface without it, say. Naming them is what
-   * lets an unexpected id be spotted at a glance instead of by walking the
-   * directory. Sorted so two starts read the same way. */
+  /* The pollers are listed by id, not counted. Only the RemovePoller command
+   * removes the file of a poller. A poller deleted from the interface without
+   * that command keeps its file, and is loaded at every start. Listing the ids
+   * is what lets an unexpected one be spotted at a glance instead of by walking
+   * the directory. Sorted so two starts read the same way. */
   std::vector<uint64_t> pollers;
+  /* The pollers with a diff-<ID>.prot. They are looked at after the loop:
+   * the directory is browsed in no particular order, and the migration of a
+   * new-<ID>.prot met later may rename the file. */
+  std::vector<uint64_t> with_diff;
+  bool round_open = false;
   std::error_code ec;
   for (const auto& entry :
        std::filesystem::directory_iterator(pollers_config_dir(), ec)) {
@@ -723,6 +747,11 @@ void broker_state::load_pollers_config_in_cache() {
       /* A new-<ID>.prot file is available */
       _declare_poller_conf(id);
       _migrate_diff_to_send(id);
+      round_open = true;
+      continue;
+    }
+    if (const uint64_t id = poller_conf_paths::diff_id(entry.path())) {
+      with_diff.push_back(id);
       continue;
     }
     const uint64_t id = poller_conf_paths::stored_id(entry.path());
@@ -751,6 +780,35 @@ void broker_state::load_pollers_config_in_cache() {
             std::chrono::steady_clock::now() - started_at)
             .count(),
         cache().host_ids().size(), cache().service_ids().size());
+
+  std::sort(with_diff.begin(), with_diff.end());
+  std::vector<uint64_t> pending;
+  for (const uint64_t id : with_diff) {
+    std::error_code exists_ec;
+    if (!std::filesystem::exists(poller_paths(id).diff_path(), exists_ec))
+      continue;
+    _declare_poller_conf(id);
+    absl::MutexLock lck(&_poller_confs_m);
+    _poller_confs.at(id).on_pending_diff_loaded();
+    pending.push_back(id);
+  }
+  if (pending.empty())
+    return;
+  if (round_open) {
+    _logger->info(
+        "The acknowledged difference(s) of poller(s) {} did not reach the "
+        "database before Broker stopped. A configuration is still to be "
+        "delivered: they wait for the end of the round",
+        fmt::join(pending, ", "));
+    return;
+  }
+  _logger->info(
+      "The acknowledged difference(s) of poller(s) {} did not reach the "
+      "database before Broker stopped, and no configuration is left to "
+      "deliver: the round is closed now",
+      fmt::join(pending, ", "));
+  absl::MutexLock handover_lck(&_conf_handover_m);
+  _close_conf_round_if_over();
 }
 
 /**

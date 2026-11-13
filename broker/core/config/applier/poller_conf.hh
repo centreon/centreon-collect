@@ -202,6 +202,7 @@ class poller_conf {
   bool on_rejected(const std::string& running_version,
                    const std::string& failed_version,
                    const std::string& error);
+  void on_pending_diff_loaded() noexcept;
   void leave_round() noexcept;
 };
 }  // namespace com::centreon::broker::config::applier

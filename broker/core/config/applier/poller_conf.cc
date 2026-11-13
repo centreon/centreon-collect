@@ -238,10 +238,17 @@ void poller_conf::_settle() {
  * version, in particular, is tried again (transition 19), and a version in
  * flight is acknowledged by the announcement or owed again (13, 15).
  *
+ * The database automaton is not concerned: it tells whether a
+ * `diff-<ID>.prot` waits for the round to close, which no connection changes.
+ * A difference found at the start of Broker, in particular, still waits once
+ * its poller is back.
+ *
  * @param engine_conf The configuration version the poller runs, if known.
  */
 void poller_conf::on_connected(std::string engine_conf) {
+  const db_state db = _db;
   *this = poller_conf{_poller_id, _logger, std::move(engine_conf)};
+  _db = db;
   _registration = registration::connected;
 }
 
@@ -251,9 +258,14 @@ void poller_conf::on_connected(std::string engine_conf) {
  *
  * The plan keeps in_flight across a disconnection (transition 12); for now the
  * reconnection decides from the files, which gives the same outcome.
+ *
+ * The database automaton stays as it is: the difference the poller
+ * acknowledged before leaving still waits for the round to close.
  */
 void poller_conf::on_disconnected() {
+  const db_state db = _db;
   *this = poller_conf{_poller_id, _logger};
+  _db = db;
 }
 
 /**
@@ -501,6 +513,16 @@ bool poller_conf::owes_conf() const noexcept {
  */
 bool poller_conf::needs_update() const noexcept {
   return _delivery == delivery_state::owed;
+}
+
+/**
+ * @brief An acknowledged `diff-<ID>.prot` was found at the start of Broker: it
+ * stopped between the acknowledgement and the end of the round. `<ID>.prot` is
+ * already the acknowledged version and the cache gets it at loading, but the
+ * database does not hold it yet. The delivery automaton is not concerned.
+ */
+void poller_conf::on_pending_diff_loaded() noexcept {
+  _db = db_state::pending;
 }
 
 /**

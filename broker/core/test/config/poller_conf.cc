@@ -372,6 +372,29 @@ TEST_F(PollerConfDelivery, ConnectionRegisters) {
 }
 
 /**
+ * Scenario: a difference found at the start of Broker still waits for the
+ * database once its poller is back, and after it left again.
+ * Given a poller_conf whose diff-<ID>.prot was found at loading
+ * Then the database automaton is pending, the delivery one untouched
+ * When the poller connects, then disconnects
+ * Then the database automaton is still pending: only the end of the round
+ * changes it.
+ */
+TEST_F(PollerConfDelivery, PendingDiffLoadedSurvivesTheConnection) {
+  poller_conf conf{1, _logger};
+  const delivery before = conf.delivery_status();
+  conf.on_pending_diff_loaded();
+  EXPECT_EQ(conf.db_status(), db::pending);
+  EXPECT_EQ(conf.delivery_status(), before);
+  conf.on_connected("v1");
+  EXPECT_EQ(conf.db_status(), db::pending);
+  conf.on_disconnected();
+  EXPECT_EQ(conf.db_status(), db::pending);
+  conf.leave_round();
+  EXPECT_EQ(conf.db_status(), db::up_to_date);
+}
+
+/**
  * Scenario: a poller listed in topology.cache is expected.
  * Given a poller_conf owed v1
  * When topology.cache says the poller is expected
