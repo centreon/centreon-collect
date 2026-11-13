@@ -1,7 +1,7 @@
 //! Agent gateway: control sessions and blob transfer.
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, PoisonError};
 use std::time::Duration;
 
 use futures_util::{FutureExt, StreamExt};
@@ -11,7 +11,7 @@ use gorgone_proto::agent::agent_frame::Frame as AgentFrameKind;
 use gorgone_proto::agent::agent_gateway_server::AgentGateway;
 use gorgone_proto::agent::server_frame::Frame;
 use gorgone_proto::agent::{
-    AgentFrame, BlobChunk, EventAck, FetchBlobRequest, JobEvent, ServerFrame, Welcome,
+    AgentFrame, BlobChunk, EventAck, FetchBlobRequest, Heartbeat, JobEvent, ServerFrame, Welcome,
 };
 use prost::Message;
 use tokio::sync::{Semaphore, mpsc};
@@ -43,6 +43,9 @@ pub(crate) const MAX_EVENT_BYTES: usize = 1 << 20;
 /// Events committed together, and their cumulated encoded size.
 const MAX_BATCH_EVENTS: usize = 256;
 const MAX_BATCH_BYTES: usize = 4 << 20;
+/// Targets kept from one heartbeat, and bytes kept of each reported text.
+const MAX_APPLIED_TARGETS: usize = 64;
+const MAX_STATE_TEXT: usize = 191;
 
 /// Why a session ended when the server closed it.
 const CLOSED_BY_SERVER: &str = "closed by the server";
@@ -90,6 +93,37 @@ fn node_id_metadata<T>(request: &Request<T>) -> Result<String, Status> {
 /// Comparison that does not stop at the first difference.
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+/// Cuts a text reported by an agent to [`MAX_STATE_TEXT`] bytes.
+fn bounded(text: &str) -> &str {
+    let mut end = text.len().min(MAX_STATE_TEXT);
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    &text[..end]
+}
+
+/// Stored form of what a heartbeat reports of its node:
+/// `{"applied": {target: digest}, "engine": {"reachable", "version"} | null}`.
+/// Keys are sorted, so that the same state always gives the same text.
+pub(crate) fn node_state(heartbeat: &Heartbeat) -> String {
+    let applied: serde_json::Map<String, serde_json::Value> = heartbeat
+        .applied
+        .iter()
+        .filter(|applied| !applied.target.is_empty())
+        .take(MAX_APPLIED_TARGETS)
+        .map(|applied| {
+            (
+                bounded(&applied.target).to_owned(),
+                bounded(&applied.digest).into(),
+            )
+        })
+        .collect();
+    let engine = heartbeat.engine.as_ref().map(|engine| {
+        serde_json::json!({ "reachable": engine.reachable, "version": bounded(&engine.version) })
+    });
+    serde_json::json!({ "applied": applied, "engine": engine }).to_string()
 }
 
 /// What was done with an agent event. Both are acknowledged.
@@ -243,8 +277,14 @@ impl Gateway {
             touched.insert(job_id, true);
         }
         // Right after the commit: local waiters do not wait for any poll.
+        let mut finished = false;
         for (job_id, terminal) in touched {
             self.hub.notify_job(job_id, terminal);
+            finished |= terminal;
+        }
+        // A job of the node ended: what waited for it may go, or must fail.
+        if finished && self.hub.blocked(node_id) {
+            self.dispatcher.trigger(node_id, false);
         }
         Ok(verdicts)
     }
@@ -303,16 +343,38 @@ impl Gateway {
     }
 
     /// Records a heartbeat. `Err` carries the reason to close the session.
-    async fn heartbeat(&self, node_id: &str, handle: &SessionHandle) -> Result<(), &'static str> {
+    async fn heartbeat(
+        &self,
+        node_id: &str,
+        handle: &SessionHandle,
+        heartbeat: &Heartbeat,
+    ) -> Result<(), &'static str> {
         match self.store.touch_session(node_id, &handle.session_id).await {
-            Ok(true) => Ok(()),
+            Ok(true) => {}
             // The node reconnected elsewhere, or we were declared dead.
-            Ok(false) => Err("session replaced"),
+            Ok(false) => return Err("session replaced"),
             Err(err) => {
                 warn!(node = node_id, error = %err, "heartbeat not recorded");
-                Ok(())
+                return Ok(());
             }
         }
+        // Written on change only: most heartbeats repeat the previous one.
+        let state = node_state(heartbeat);
+        let reported = || {
+            handle
+                .reported
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+        };
+        if reported().as_deref() == Some(state.as_str()) {
+            return Ok(());
+        }
+        match self.store.set_node_state(node_id, &state).await {
+            Ok(()) => *reported() = Some(state),
+            // Not remembered: the next heartbeat writes it.
+            Err(err) => warn!(node = node_id, error = %err, "node state not recorded"),
+        }
+        Ok(())
     }
 
     /// Reads the session until it ends, then unregisters it.
@@ -345,13 +407,13 @@ impl Gateway {
             while let Some(current) = frame.take() {
                 let event = match current {
                     AgentFrameKind::Event(event) => event,
-                    AgentFrameKind::Heartbeat(_) => {
+                    AgentFrameKind::Heartbeat(heartbeat) => {
                         // Raced against the closing of the session, like every
                         // store call below: a slow store must not keep a
                         // replaced session alive.
                         let recorded = tokio::select! {
                             () = handle.closed.cancelled() => Err(CLOSED_BY_SERVER),
-                            recorded = self.heartbeat(&node_id, &handle) => recorded,
+                            recorded = self.heartbeat(&node_id, &handle, &heartbeat) => recorded,
                         };
                         if let Err(reason) = recorded {
                             break 'session reason;
@@ -607,8 +669,8 @@ mod tests {
             for id in ids {
                 store.queue(id, node, 60_000).await;
             }
-            let (won, _) = store.claim_jobs(node, session, 10).await.unwrap();
-            assert_eq!(won.len(), ids.len());
+            let claim = store.claim_jobs(node, session, 10).await.unwrap();
+            assert_eq!(claim.jobs.len(), ids.len());
         }
         (node, jobs, foreign)
     }

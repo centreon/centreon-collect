@@ -6,6 +6,7 @@ pub mod config;
 mod engine_api;
 mod executor;
 mod journal;
+mod node_state;
 mod process;
 mod scheduler;
 mod session;
@@ -26,6 +27,7 @@ use crate::executor::{
     ServiceControlExecutor,
 };
 use crate::journal::Journal;
+use crate::node_state::NodeState;
 use crate::scheduler::{Executors, Scheduler};
 use crate::session::{Backoff, Session};
 
@@ -59,8 +61,8 @@ pub enum AgentError {
     /// Another agent already runs with the same `state_dir`.
     #[error("{0} is locked by another gorgone-agent: one state_dir per agent")]
     StateDirLocked(PathBuf),
-    /// The session task stopped on its own, which is a bug.
-    #[error("session task stopped unexpectedly: {0}")]
+    /// A task of the agent stopped on its own, which is a bug.
+    #[error("agent task stopped unexpectedly: {0}")]
     SessionTask(#[from] tokio::task::JoinError),
 }
 
@@ -75,6 +77,19 @@ pub async fn run(
 ) -> Result<(), AgentError> {
     let client = client::connect(&config)?;
     let engine = EngineApi::connect(&config.engine)?;
+    let state = {
+        let targets = config.targets.clone();
+        let engine_api = engine.is_some();
+        tokio::task::spawn_blocking(move || NodeState::load(&targets, engine_api)).await?
+    };
+    let state = Arc::new(state);
+    // Cancelled on every way out, so that no background task outlives `run`.
+    let stop = CancellationToken::new();
+    let _stop_guard = stop.clone().drop_guard();
+    if let Some(engine) = engine.clone() {
+        let (state, stop) = (state.clone(), stop.clone());
+        tokio::spawn(async move { state.watch_engine(engine, stop).await });
+    }
     let engine_transport = match &engine {
         Some(engine) => EngineTransport::Grpc(engine.clone()),
         None => EngineTransport::Pipe(config.engine.command_file.clone()),
@@ -98,6 +113,7 @@ pub async fn run(
             fetcher: client::GrpcBlobFetcher {
                 client: client.clone(),
             },
+            state: state.clone(),
         },
         service_control: ServiceControlExecutor {
             services: config.services.clone(),
@@ -139,6 +155,7 @@ pub async fn run(
         node_id: config.node_id.clone(),
         journal: journal.clone(),
         scheduler: scheduler.clone(),
+        state,
         backoff: Backoff::new(
             Duration::from_millis(config.reconnect.min_ms),
             Duration::from_millis(config.reconnect.max_ms),
@@ -146,7 +163,6 @@ pub async fn run(
     };
 
     tracing::info!(node_id = %config.node_id, server_url = %config.server_url, "agent started");
-    let stop = CancellationToken::new();
     let mut session = tokio::spawn(session.run(stop.clone()));
     tokio::pin!(shutdown);
     tokio::select! {

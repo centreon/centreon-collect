@@ -14,6 +14,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::client::GatewayClient;
 use crate::journal::Journal;
+use crate::node_state::NodeState;
 use crate::scheduler::Scheduler;
 
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(30);
@@ -80,6 +81,7 @@ pub(crate) struct Session {
     pub node_id: String,
     pub journal: Arc<Journal>,
     pub scheduler: Arc<Scheduler>,
+    pub state: Arc<NodeState>,
     pub backoff: Backoff,
 }
 
@@ -165,6 +167,7 @@ impl Session {
             0 => DEFAULT_HEARTBEAT,
             seconds => Duration::from_secs(u64::from(seconds)),
         };
+        self.state.set_heartbeat_period(period);
         let mut heartbeat = tokio::time::interval(period);
         heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
@@ -187,7 +190,12 @@ impl Session {
                 },
                 _ = heartbeat.tick() => {
                     let running_jobs = u32::try_from(self.journal.unfinished()).unwrap_or(u32::MAX);
-                    let beat = frame(agent_frame::Frame::Heartbeat(Heartbeat { running_jobs }));
+                    // Both read from memory: a beat waits for no disk and no engine.
+                    let beat = frame(agent_frame::Frame::Heartbeat(Heartbeat {
+                        running_jobs,
+                        applied: self.state.applied(),
+                        engine: self.state.engine(),
+                    }));
                     // A full buffer means events are flowing: the beat can be skipped.
                     if let Err(mpsc::error::TrySendError::Closed(_)) = outbound.try_send(beat) {
                         return Err(SessionError::Closed);

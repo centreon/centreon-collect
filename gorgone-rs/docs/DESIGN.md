@@ -95,6 +95,17 @@ dispatched to the node.
 submit transaction. Jobs of a node are claimed and sent in that order, one
 drain at a time per node.
 
+**Prerequisites.** A job can name jobs of the same node that must have
+succeeded (`requires`), or ask for the latest configuration push of each
+target (`requires_latest_config`). The server holds it, and everything after it
+for that node, until they finish, and ends it as `failed` without sending it if
+one did not succeed. A restart therefore never runs on top of a failed
+configuration push.
+
+**Retries.** A client may give the job id. Submitting the same id again
+returns the existing job, so a request replayed after a timeout creates
+nothing.
+
 **Time.** Stored timestamps, liveness cut-offs, leases and deadlines use the
 database clock (each replica tracks its offset to it), never a comparison of
 two hosts' clocks. A job carries the time left (`ttl_ms`) when dispatched and
@@ -138,6 +149,13 @@ concurrently.
 
 `FetchBlob {digest}` streams the blob in chunks (≤ 1 MiB). Same authentication.
 
+## Node state
+
+Each heartbeat reports what the node really runs: the digest applied for every
+configuration target, and whether the engine answers on its API, with its
+version. The server stores it when it changes and serves it with the node, so
+that a pushed configuration can be told from an applied one.
+
 ## Multi-replica operation
 
 - Tables: `replicas` (id, peer address, last seen), `sessions` (node →
@@ -178,16 +196,16 @@ meta        (name PK, value)   -- stable server id, shared by all replicas
 
 ### Native (`/v1`)
 
-| Method           | Path                               | Purpose                                                                                                                      |
-| ---------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `POST`           | `/v1/nodes/{node}/jobs`            | submit a job (JSON action); returns `{id}`                                                                                   |
-| `GET`            | `/v1/jobs/{id}`                    | job with state and events; `?wait=<seconds>` long-polls until terminal                                                       |
-| `GET`            | `/v1/jobs/{id}/events`             | server-sent events, closes on the terminal event                                                                             |
-| `DELETE`         | `/v1/jobs/{id}`                    | cancel: immediate when queued, `Cancel` frame through the owner replica otherwise                                            |
-| `PUT`            | `/v1/nodes/{node}/config/{target}` | body is a `tar.zst` bundle, or a plain tar with `Content-Type: application/x-tar`; stores the blob and submits `ApplyConfig` |
-| `GET`            | `/v1/nodes`                        | nodes with connection status                                                                                                 |
-| `PUT` / `DELETE` | `/v1/nodes/{node}`                 | enrol (returns the token once) / remove a node                                                                               |
-| `GET`            | `/healthz`, `/readyz`, `/metrics`  | probes and Prometheus metrics                                                                                                |
+| Method           | Path                               | Purpose                                                                                                                                                        |
+| ---------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`           | `/v1/nodes/{node}/jobs`            | submit a job (JSON action, optional `id`, `requires`, `requires_latest_config`); returns `{id}`                                                                |
+| `GET`            | `/v1/jobs/{id}`                    | job with state and events; `?wait=<seconds>` long-polls until terminal                                                                                         |
+| `GET`            | `/v1/jobs/{id}/events`             | server-sent events, closes on the terminal event                                                                                                               |
+| `DELETE`         | `/v1/jobs/{id}`                    | cancel: immediate when queued, `Cancel` frame through the owner replica otherwise                                                                              |
+| `PUT`            | `/v1/nodes/{node}/config/{target}` | body is a `tar.zst` bundle, or a plain tar with `Content-Type: application/x-tar`; stores the blob and submits `ApplyConfig`; optional `?id=` and `?requires=` |
+| `GET`            | `/v1/nodes`, `/v1/nodes/{node}`    | nodes with connection status, applied configuration digests and engine state                                                                                   |
+| `PUT` / `DELETE` | `/v1/nodes/{node}`                 | enrol (returns the token once) / remove a node                                                                                                                 |
+| `GET`            | `/healthz`, `/readyz`, `/metrics`  | probes and Prometheus metrics                                                                                                                                  |
 
 JSON action shape: `{"run_commands": {"commands": [{"command": "...", "timeout_s": 30}]}}`,
 `{"engine_commands": {"commands": ["..."]}}`,
@@ -237,6 +255,9 @@ writers call the API.
 - Bundles: digest verified before any write, no absolute path, no `..`, no
   link or device entries, no write through a linked directory, file modes
   reduced to 0644/0755.
+- The agent reaches the engine API through a Unix socket shared with it when
+  they are separate containers: that API has no authentication, so it is not
+  put on the network.
 - The server fails closed: it does not start without REST credentials, binds
   loopback by default, and refuses a plaintext non-loopback listener unless
   told so explicitly.

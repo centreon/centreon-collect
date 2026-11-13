@@ -306,6 +306,21 @@ impl SessionHandle {
         }
     }
 
+    /// Reads heartbeats until one satisfies `wanted`, and returns it.
+    pub async fn heartbeat_where(&mut self, wanted: impl Fn(&Heartbeat) -> bool) -> Heartbeat {
+        let deadline = tokio::time::Instant::now() + PATIENCE;
+        loop {
+            let heartbeat = self.next_heartbeat().await;
+            if wanted(&heartbeat) {
+                return heartbeat;
+            }
+            assert!(
+                tokio::time::Instant::now() < deadline,
+                "last heartbeat: {heartbeat:?}"
+            );
+        }
+    }
+
     /// Asserts that no job event arrives for `quiet`.
     pub async fn expect_no_event(&mut self, quiet: Duration) {
         let deadline = tokio::time::Instant::now() + quiet;
@@ -426,6 +441,7 @@ pub fn job(id: &str, kind: action::Kind) -> Job {
         deadline_unix_ms: 0,
         ttl_ms: 0,
         action: Some(Action { kind: Some(kind) }),
+        requires: Vec::new(),
     }
 }
 

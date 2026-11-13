@@ -47,6 +47,8 @@ const SUBMIT_BYTES: usize = 4 << 20;
 const SUBMIT_QUEUE: usize = 1024;
 /// Rows handled per statement by the batched maintenance work.
 const BATCH: i64 = 500;
+/// Prerequisites one job may have.
+pub(crate) const MAX_REQUIRES: usize = 16;
 /// Attempts of a transaction hit by a deadlock or a busy database.
 const RETRIES: u32 = 6;
 
@@ -59,6 +61,9 @@ pub(crate) mod state {
     pub(crate) const FAILED: &str = "failed";
     pub(crate) const EXPIRED: &str = "expired";
     pub(crate) const CANCELLED: &str = "cancelled";
+
+    /// Shown for a prerequisite that no longer exists; never stored.
+    pub(crate) const PURGED: &str = "purged";
 
     /// States a job can still leave.
     pub(crate) const ACTIVE: [&str; 3] = [QUEUED, DISPATCHED, RUNNING];
@@ -94,6 +99,10 @@ pub(crate) struct NodeRow {
     pub(crate) id: String,
     pub(crate) name: String,
     pub(crate) created_at: i64,
+    /// JSON document of what the agent last reported, when it ever did.
+    pub(crate) state: Option<String>,
+    /// When the reported state last changed.
+    pub(crate) state_at: Option<i64>,
 }
 
 /// Agent session held by a replica.
@@ -124,6 +133,8 @@ pub(crate) struct JobRow {
     pub(crate) cancel_requested: bool,
     /// Submission order within the node, assigned by the store.
     pub(crate) seq: i64,
+    /// Jobs of the node that must succeed before this one is dispatched.
+    pub(crate) requires: Vec<String>,
 }
 
 /// Job to commit.
@@ -141,6 +152,13 @@ pub(crate) struct NewJob<'a> {
     pub(crate) accepted_data: &'a str,
     /// The id was chosen by the caller and may already exist: look first.
     pub(crate) may_exist: bool,
+    /// Prerequisite job ids, already validated.
+    pub(crate) requires: &'a [String],
+    /// Also require the latest `ApplyConfig` job of each target of the node,
+    /// resolved inside the submit transaction.
+    pub(crate) latest_config: bool,
+    /// Target of an `ApplyConfig` job, which becomes the latest one for it.
+    pub(crate) config_target: Option<&'a str>,
 }
 
 /// Owned copy of a [`NewJob`], waiting for the group commit.
@@ -153,6 +171,8 @@ struct QueuedJob {
     ttl_ms: i64,
     blob_digest: Option<String>,
     accepted_data: String,
+    requires: Vec<String>,
+    config_target: Option<String>,
 }
 
 impl QueuedJob {
@@ -166,6 +186,9 @@ impl QueuedJob {
             blob_digest: self.blob_digest.as_deref(),
             accepted_data: &self.accepted_data,
             may_exist: false,
+            requires: &self.requires,
+            latest_config: false,
+            config_target: self.config_target.as_deref(),
         }
     }
 }
@@ -175,6 +198,30 @@ impl QueuedJob {
 struct QueuedSubmit {
     job: QueuedJob,
     reply: oneshot::Sender<Result<bool, Error>>,
+}
+
+/// Queued job that will never run: one of its prerequisites did not succeed.
+#[derive(Debug, Clone)]
+pub(crate) struct Unmet {
+    pub(crate) job_id: String,
+    pub(crate) prerequisite: String,
+    /// Final state of the prerequisite, or [`state::PURGED`].
+    pub(crate) state: String,
+}
+
+/// Outcome of one [`Store::claim_jobs`].
+#[derive(Debug, Default)]
+pub(crate) struct Claim {
+    /// Jobs won by the session, in submission order.
+    pub(crate) jobs: Vec<JobRow>,
+    /// Queued jobs read; a full batch means more may follow.
+    pub(crate) listed: usize,
+    /// Jobs the claim statement was asked for.
+    pub(crate) tried: usize,
+    /// Jobs to fail instead of dispatching them.
+    pub(crate) unmet: Vec<Unmet>,
+    /// The head of the queue waits for a prerequisite still in progress.
+    pub(crate) blocked: bool,
 }
 
 /// What an agent event needs to know about its job.
@@ -246,7 +293,9 @@ pub(crate) struct Store {
 }
 
 const JOB_COLUMNS: &str = "id, node_id, kind, action, state, attempts, created_at, updated_at, \
-     deadline_at, cancel_requested, seq";
+     deadline_at, cancel_requested, seq, requires";
+
+const NODE_COLUMNS: &str = "id, name, created_at, state, state_at";
 
 const SESSION_COLUMNS: &str =
     "node_id, session_id, replica_id, agent_version, connected_at, last_seen";
@@ -266,7 +315,46 @@ fn text(row: &AnyRow, column: &str) -> Result<String, sqlx::Error> {
     }
 }
 
+/// Same as [`text`] for a nullable column.
+fn opt_text(row: &AnyRow, column: &str) -> Result<Option<String>, sqlx::Error> {
+    match row.try_get::<Option<String>, _>(column) {
+        Ok(value) => Ok(value),
+        Err(_) => {
+            let bytes: Option<Vec<u8>> = row.try_get(column)?;
+            bytes
+                .map(String::from_utf8)
+                .transpose()
+                .map_err(|err| sqlx::Error::ColumnDecode {
+                    index: column.to_owned(),
+                    source: Box::new(err),
+                })
+        }
+    }
+}
+
+/// Stored form of a prerequisite list: a JSON array, `NULL` when empty.
+fn encode_requires(requires: &[String]) -> Option<String> {
+    (!requires.is_empty()).then(|| serde_json::Value::from(requires).to_string())
+}
+
+fn node_from_row(row: &AnyRow) -> Result<NodeRow, sqlx::Error> {
+    Ok(NodeRow {
+        id: row.try_get("id")?,
+        name: row.try_get("name")?,
+        created_at: row.try_get("created_at")?,
+        state: opt_text(row, "state")?,
+        state_at: row.try_get("state_at")?,
+    })
+}
+
 fn job_from_row(row: &AnyRow) -> Result<JobRow, sqlx::Error> {
+    let requires = match opt_text(row, "requires")? {
+        Some(json) => serde_json::from_str(&json).map_err(|err| sqlx::Error::ColumnDecode {
+            index: "requires".to_owned(),
+            source: Box::new(err),
+        })?,
+        None => Vec::new(),
+    };
     Ok(JobRow {
         id: row.try_get("id")?,
         node_id: row.try_get("node_id")?,
@@ -279,6 +367,7 @@ fn job_from_row(row: &AnyRow) -> Result<JobRow, sqlx::Error> {
         deadline_at: row.try_get("deadline_at")?,
         cancel_requested: row.try_get::<i64, _>("cancel_requested")? != 0,
         seq: row.try_get("seq")?,
+        requires,
     })
 }
 
@@ -426,12 +515,15 @@ impl Store {
             Dialect::MySql => ("LONGTEXT", "MEDIUMBLOB"),
         };
         let tables = [
-            "CREATE TABLE IF NOT EXISTS nodes (
+            format!(
+                "CREATE TABLE IF NOT EXISTS nodes (
                 id VARCHAR(191) NOT NULL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 token_hash VARCHAR(64) NOT NULL,
-                created_at BIGINT NOT NULL)"
-                .to_owned(),
+                created_at BIGINT NOT NULL,
+                state {text} NULL,
+                state_at BIGINT NULL)"
+            ),
             "CREATE TABLE IF NOT EXISTS replicas (
                 id VARCHAR(191) NOT NULL PRIMARY KEY,
                 peer_addr VARCHAR(255) NOT NULL,
@@ -460,7 +552,8 @@ impl Store {
                 cancel_requested BIGINT NOT NULL DEFAULT 0,
                 seq BIGINT NOT NULL DEFAULT 0,
                 blob_digest VARCHAR(64) NULL,
-                cancel_sent_session VARCHAR(191) NULL)"
+                cancel_sent_session VARCHAR(191) NULL,
+                requires {text} NULL)"
             ),
             format!(
                 "CREATE TABLE IF NOT EXISTS job_events (
@@ -497,22 +590,33 @@ impl Store {
                 node_id VARCHAR(191) NOT NULL PRIMARY KEY,
                 next_seq BIGINT NOT NULL)"
                 .to_owned(),
+            // Latest `ApplyConfig` job of each target of a node.
+            "CREATE TABLE IF NOT EXISTS node_config (
+                node_id VARCHAR(191) NOT NULL,
+                target VARCHAR(191) NOT NULL,
+                job_id VARCHAR(191) NOT NULL,
+                PRIMARY KEY (node_id, target))"
+                .to_owned(),
         ];
         for statement in &tables {
             sqlx::query(statement).execute(&self.pool).await?;
         }
         // Columns added after the first schema: stores created before lack them.
-        for (column, definition) in [
-            ("cancel_requested", "BIGINT NOT NULL DEFAULT 0"),
-            ("seq", "BIGINT NOT NULL DEFAULT 0"),
-            ("blob_digest", "VARCHAR(64) NULL"),
-            ("cancel_sent_session", "VARCHAR(191) NULL"),
+        let nullable_text = format!("{text} NULL");
+        for (table, column, definition) in [
+            ("jobs", "cancel_requested", "BIGINT NOT NULL DEFAULT 0"),
+            ("jobs", "seq", "BIGINT NOT NULL DEFAULT 0"),
+            ("jobs", "blob_digest", "VARCHAR(64) NULL"),
+            ("jobs", "cancel_sent_session", "VARCHAR(191) NULL"),
+            ("jobs", "requires", nullable_text.as_str()),
+            ("nodes", "state", nullable_text.as_str()),
+            ("nodes", "state_at", "BIGINT NULL"),
         ] {
-            let probe = format!("SELECT {column} FROM jobs LIMIT 1");
+            let probe = format!("SELECT {column} FROM {table} LIMIT 1");
             if sqlx::query(&probe).fetch_optional(&self.pool).await.is_ok() {
                 continue;
             }
-            let alter = format!("ALTER TABLE jobs ADD COLUMN {column} {definition}");
+            let alter = format!("ALTER TABLE {table} ADD COLUMN {column} {definition}");
             if let Err(err) = sqlx::query(&alter).execute(&self.pool).await {
                 // Another replica starting at the same time may have added
                 // it: only a column still missing is an error.
@@ -661,10 +765,10 @@ impl Store {
 
     /// Removes a node and its session. False when it did not exist.
     pub(crate) async fn delete_node(&self, id: &str) -> Result<bool, Error> {
-        sqlx::query("DELETE FROM sessions WHERE node_id = ?")
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
+        for table in ["sessions", "node_config"] {
+            let sql = format!("DELETE FROM {table} WHERE node_id = ?");
+            sqlx::query(&sql).bind(id).execute(&self.pool).await?;
+        }
         let done = sqlx::query("DELETE FROM nodes WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
@@ -674,19 +778,31 @@ impl Store {
 
     /// All enrolled nodes.
     pub(crate) async fn list_nodes(&self) -> Result<Vec<NodeRow>, Error> {
-        let rows = sqlx::query("SELECT id, name, created_at FROM nodes ORDER BY id")
-            .fetch_all(&self.pool)
+        let sql = format!("SELECT {NODE_COLUMNS} FROM nodes ORDER BY id");
+        let rows = sqlx::query(&sql).fetch_all(&self.pool).await?;
+        Ok(rows.iter().map(node_from_row).collect::<Result<_, _>>()?)
+    }
+
+    /// One enrolled node.
+    pub(crate) async fn node(&self, id: &str) -> Result<Option<NodeRow>, Error> {
+        let sql = format!("SELECT {NODE_COLUMNS} FROM nodes WHERE id = ?");
+        let row = sqlx::query(&sql)
+            .bind(id)
+            .fetch_optional(&self.pool)
             .await?;
-        rows.iter()
-            .map(|row| {
-                Ok(NodeRow {
-                    id: row.try_get("id")?,
-                    name: row.try_get("name")?,
-                    created_at: row.try_get("created_at")?,
-                })
-            })
-            .collect::<Result<_, sqlx::Error>>()
-            .map_err(Error::from)
+        Ok(row.as_ref().map(node_from_row).transpose()?)
+    }
+
+    /// Records what the agent of a node reports (JSON document). Called on
+    /// change only, by the replica holding the session.
+    pub(crate) async fn set_node_state(&self, id: &str, state: &str) -> Result<(), Error> {
+        sqlx::query("UPDATE nodes SET state = ?, state_at = ? WHERE id = ?")
+            .bind(state)
+            .bind(self.now_ms())
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 
     // ---- replicas ----
@@ -851,7 +967,9 @@ impl Store {
     /// nothing waits for more submits, the transaction just takes those that
     /// queued up while the previous one was committing.
     pub(crate) async fn insert_job(&self, job: NewJob<'_>) -> Result<bool, Error> {
-        let Some(submits) = self.submits.as_ref().filter(|_| !job.may_exist) else {
+        // Prerequisites resolved in the transaction need one of their own.
+        let alone = job.may_exist || job.latest_config;
+        let Some(submits) = self.submits.as_ref().filter(|_| !alone) else {
             return self.insert_job_alone(job).await;
         };
         let (reply, committed) = oneshot::channel();
@@ -864,6 +982,8 @@ impl Store {
                 ttl_ms: job.ttl_ms,
                 blob_digest: job.blob_digest.map(str::to_owned),
                 accepted_data: job.accepted_data.to_owned(),
+                requires: job.requires.to_vec(),
+                config_target: job.config_target.map(str::to_owned),
             },
             reply,
         };
@@ -941,7 +1061,10 @@ impl Store {
         }
         self.ensure_counters(&[job.node_id]).await?;
         match with_retry(|| self.insert_job_tx(job)).await {
-            Ok(()) => Ok(true),
+            Ok(true) => Ok(true),
+            Ok(false) => Err(Error::Invalid(format!(
+                "more than {MAX_REQUIRES} prerequisites"
+            ))),
             // Lost a race against the same id: it exists, which is the goal.
             Err(sqlx::Error::Database(err)) if job.may_exist && err.is_unique_violation() => {
                 Ok(false)
@@ -993,11 +1116,11 @@ impl Store {
             let (chunk, tail) = rest.split_at(take);
             rest = tail;
             let row = "(?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, 0, \
-                       (SELECT next_seq FROM node_seq WHERE node_id = ?) - ?, ?)";
+                       (SELECT next_seq FROM node_seq WHERE node_id = ?) - ?, ?, ?)";
             let sql = format!(
                 "INSERT INTO jobs
                  (id, node_id, kind, action, state, attempts, session_id, created_at, updated_at,
-                  deadline_at, cancel_requested, seq, blob_digest)
+                  deadline_at, cancel_requested, seq, blob_digest, requires)
                  VALUES {}",
                 vec![row; chunk.len()].join(", ")
             );
@@ -1018,9 +1141,16 @@ impl Store {
                     .bind(now.saturating_add(job.ttl_ms))
                     .bind(job.node_id)
                     .bind(following)
-                    .bind(job.blob_digest);
+                    .bind(job.blob_digest)
+                    .bind(encode_requires(job.requires));
             }
             insert.execute(&mut *tx).await?;
+            // In batch order: the last push of a target is the latest one.
+            for job in chunk {
+                if let Some(target) = job.config_target {
+                    Self::set_latest_config(&mut tx, job.node_id, target, job.id).await?;
+                }
+            }
 
             let sql = format!(
                 "INSERT INTO job_events (job_id, seq, time_ms, code, data) VALUES {}",
@@ -1039,7 +1169,26 @@ impl Store {
         tx.commit().await
     }
 
-    async fn insert_job_tx(&self, job: NewJob<'_>) -> Result<(), sqlx::Error> {
+    /// Makes `job_id` the latest `ApplyConfig` job of `target` on the node.
+    /// The caller holds the counter row of the node, which orders the pushes.
+    async fn set_latest_config(
+        tx: &mut sqlx::Transaction<'_, sqlx::Any>,
+        node_id: &str,
+        target: &str,
+        job_id: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("REPLACE INTO node_config (node_id, target, job_id) VALUES (?, ?, ?)")
+            .bind(node_id)
+            .bind(target)
+            .bind(job_id)
+            .execute(&mut **tx)
+            .await?;
+        Ok(())
+    }
+
+    /// False, committing nothing, when the prerequisites resolved here make
+    /// the job exceed [`MAX_REQUIRES`].
+    async fn insert_job_tx(&self, job: NewJob<'_>) -> Result<bool, sqlx::Error> {
         let now = self.now_ms();
         let mut tx = self.pool.begin().await?;
         // The counter row lock orders the submits of a node: the rank order
@@ -1048,12 +1197,35 @@ impl Store {
             .bind(job.node_id)
             .execute(&mut *tx)
             .await?;
+        let mut requires = encode_requires(job.requires);
+        if job.latest_config {
+            // Under the counter lock: no push of the node commits meanwhile.
+            // A purged push is not required: it cannot be judged any more.
+            let rows = sqlx::query(
+                "SELECT c.job_id FROM node_config c
+                 JOIN jobs j ON j.id = c.job_id AND j.node_id = c.node_id
+                 WHERE c.node_id = ? ORDER BY c.target",
+            )
+            .bind(job.node_id)
+            .fetch_all(&mut *tx)
+            .await?;
+            let mut all = job.requires.to_vec();
+            for id in strings(&rows, "job_id")? {
+                if !all.contains(&id) {
+                    all.push(id);
+                }
+            }
+            if all.len() > MAX_REQUIRES {
+                return Ok(false);
+            }
+            requires = encode_requires(&all);
+        }
         sqlx::query(
             "INSERT INTO jobs
              (id, node_id, kind, action, state, attempts, session_id, created_at, updated_at,
-              deadline_at, cancel_requested, seq, blob_digest)
+              deadline_at, cancel_requested, seq, blob_digest, requires)
              VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, 0,
-                     (SELECT next_seq FROM node_seq WHERE node_id = ?), ?)",
+                     (SELECT next_seq FROM node_seq WHERE node_id = ?), ?, ?)",
         )
         .bind(job.id)
         .bind(job.node_id)
@@ -1066,8 +1238,12 @@ impl Store {
         // Read in the statement itself: one round trip less.
         .bind(job.node_id)
         .bind(job.blob_digest)
+        .bind(requires)
         .execute(&mut *tx)
         .await?;
+        if let Some(target) = job.config_target {
+            Self::set_latest_config(&mut tx, job.node_id, target, job.id).await?;
+        }
         sqlx::query(
             "INSERT INTO job_events (job_id, seq, time_ms, code, data) VALUES (?, 0, ?, ?, ?)",
         )
@@ -1077,7 +1253,8 @@ impl Store {
         .bind(job.accepted_data)
         .execute(&mut *tx)
         .await?;
-        tx.commit().await
+        tx.commit().await?;
+        Ok(true)
     }
 
     /// True when the node is enrolled.
@@ -1173,27 +1350,91 @@ impl Store {
         Ok(done.rows_affected() == 1)
     }
 
+    /// Splits queued jobs, in submission order, on their prerequisites:
+    /// those to claim, those to fail, and whether the walk stopped at a job
+    /// whose prerequisite is still in progress (nothing after it may go).
+    async fn ready(&self, jobs: Vec<JobRow>) -> Result<(Vec<JobRow>, Vec<Unmet>, bool), Error> {
+        // Common case: no prerequisite, no extra read.
+        if jobs.iter().all(|job| job.requires.is_empty()) {
+            return Ok((jobs, Vec::new(), false));
+        }
+        let mut required: Vec<&str> = jobs
+            .iter()
+            .flat_map(|job| job.requires.iter().map(String::as_str))
+            .collect();
+        required.sort_unstable();
+        required.dedup();
+        // Read before the claim: `succeeded` is final, so it still holds then.
+        let mut states: HashMap<String, String> = self
+            .job_heads(&required)
+            .await?
+            .into_iter()
+            .map(|(id, head)| (id, head.state))
+            .collect();
+        let mut ready = Vec::with_capacity(jobs.len());
+        let mut unmet = Vec::new();
+        for job in jobs {
+            let mut failure = None;
+            let mut waiting = false;
+            for prerequisite in &job.requires {
+                match states.get(prerequisite).map(String::as_str) {
+                    Some(state::SUCCEEDED) => {}
+                    Some(state) if state::is_terminal(state) => {
+                        failure.get_or_insert((prerequisite, state));
+                    }
+                    Some(_) => waiting = true,
+                    None => {
+                        failure.get_or_insert((prerequisite, state::PURGED));
+                    }
+                }
+            }
+            if let Some((prerequisite, state)) = failure {
+                unmet.push(Unmet {
+                    job_id: job.id.clone(),
+                    prerequisite: prerequisite.clone(),
+                    state: state.to_owned(),
+                });
+                // Jobs of this batch requiring it fail in the same walk.
+                states.insert(job.id, state::FAILED.to_owned());
+            } else if waiting {
+                return Ok((ready, unmet, true));
+            } else {
+                ready.push(job);
+            }
+        }
+        Ok((ready, unmet, false))
+    }
+
     /// Claims, in one statement, up to `limit` queued jobs of the node in
     /// submission order for `session_id`, which must still be the session
-    /// of the node. Returns the jobs won, in order, and how many were listed:
-    /// jobs listed but not won were taken or cancelled meanwhile, or the
-    /// session is not current any more.
+    /// of the node. Jobs tried but not won were taken or cancelled meanwhile,
+    /// or the session is not current any more. A job is only claimed once
+    /// its prerequisites succeeded; see [`Claim`] for the other cases.
     pub(crate) async fn claim_jobs(
         &self,
         node_id: &str,
         session_id: &str,
         limit: i64,
-    ) -> Result<(Vec<JobRow>, usize), Error> {
-        let mut jobs = self.queued_jobs(node_id, limit).await?;
-        let listed = jobs.len();
+    ) -> Result<Claim, Error> {
+        let queued = self.queued_jobs(node_id, limit).await?;
+        let listed = queued.len();
+        let (mut jobs, unmet, blocked) = self.ready(queued).await?;
+        let tried = jobs.len();
+        let mut claim = Claim {
+            jobs: Vec::new(),
+            listed,
+            tried,
+            unmet,
+            blocked,
+        };
         if jobs.is_empty() {
-            return Ok((jobs, 0));
+            return Ok(claim);
         }
         let sql = format!(
             "UPDATE jobs SET state = ?, session_id = ?, attempts = attempts + 1, updated_at = ?
              WHERE id IN ({}) AND state = ? AND cancel_requested = 0
                AND EXISTS (SELECT 1 FROM sessions WHERE node_id = ? AND session_id = ?)",
-            placeholders(listed)
+            placeholders(tried)
         );
         let done = with_retry(|| {
             let mut update = sqlx::query(&sql)
@@ -1210,11 +1451,11 @@ impl Store {
                 .execute(&self.pool)
         })
         .await?;
-        if done.rows_affected() as usize != listed {
+        if done.rows_affected() as usize != tried {
             // Rare: keep only what this session really got.
             let sql = format!(
                 "SELECT id FROM jobs WHERE id IN ({}) AND state = ? AND session_id = ?",
-                placeholders(listed)
+                placeholders(tried)
             );
             let mut select = sqlx::query(&sql);
             for job in &jobs {
@@ -1228,7 +1469,8 @@ impl Store {
             let won: HashSet<String> = strings(&rows, "id")?.into_iter().collect();
             jobs.retain(|job| won.contains(&job.id));
         }
-        Ok((jobs, listed))
+        claim.jobs = jobs;
+        Ok(claim)
     }
 
     /// Node, state and attempts of the given jobs, without their payload.
@@ -1962,6 +2204,9 @@ pub(crate) mod testing {
                 blob_digest: None,
                 accepted_data: "{}",
                 may_exist: false,
+                requires: &[],
+                latest_config: false,
+                config_target: None,
             };
             assert!(self.insert_job(job).await.unwrap());
         }
@@ -2034,6 +2279,9 @@ mod tests {
             blob_digest: None,
             accepted_data: "{}",
             may_exist: true,
+            requires: &[],
+            latest_config: false,
+            config_target: None,
         };
         assert!(!store.insert_job(again).await.unwrap());
         assert_eq!(store.jobs_of_node(&node).await.unwrap().len(), 25);
@@ -2062,6 +2310,9 @@ mod tests {
                 blob_digest: None,
                 accepted_data: "{}",
                 may_exist: false,
+                requires: &[],
+                latest_config: false,
+                config_target: None,
             })
             .collect();
         store.insert_jobs(&jobs).await.unwrap();
@@ -2113,15 +2364,16 @@ mod tests {
         }
 
         // No session, then a former session: listed, nothing won.
-        let (won, listed) = store.claim_jobs(&node, "s0", 3).await.unwrap();
-        assert_eq!((won.len(), listed), (0, 3));
+        let claim = store.claim_jobs(&node, "s0", 3).await.unwrap();
+        assert_eq!((claim.jobs.len(), claim.tried), (0, 3));
         store.open_session(&node, "s1").await;
-        let (won, listed) = store.claim_jobs(&node, "s0", 3).await.unwrap();
-        assert_eq!((won.len(), listed), (0, 3));
+        let claim = store.claim_jobs(&node, "s0", 3).await.unwrap();
+        assert_eq!((claim.jobs.len(), claim.tried), (0, 3));
 
         // The current session takes the first three, in submission order.
-        let (won, listed) = store.claim_jobs(&node, "s1", 3).await.unwrap();
-        assert_eq!(listed, 3);
+        let claim = store.claim_jobs(&node, "s1", 3).await.unwrap();
+        assert_eq!((claim.listed, claim.tried), (3, 3));
+        let won = claim.jobs;
         assert_eq!(
             won.iter().map(|job| job.id.as_str()).collect::<Vec<_>>(),
             ids[..3].iter().map(String::as_str).collect::<Vec<_>>()
@@ -2133,11 +2385,11 @@ mod tests {
 
         // A cancelled job is neither listed nor claimed.
         assert!(store.cancel_queued(&ids[3], "{}").await.unwrap());
-        let (won, listed) = store.claim_jobs(&node, "s1", 10).await.unwrap();
-        assert_eq!((won.len(), listed), (1, 1));
-        assert_eq!(won[0].id, ids[4]);
-        let (won, listed) = store.claim_jobs(&node, "s1", 10).await.unwrap();
-        assert_eq!((won.len(), listed), (0, 0));
+        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        assert_eq!((claim.jobs.len(), claim.listed), (1, 1));
+        assert_eq!(claim.jobs[0].id, ids[4]);
+        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        assert_eq!((claim.jobs.len(), claim.listed), (0, 0));
     }
 
     #[tokio::test]
@@ -2149,7 +2401,8 @@ mod tests {
         for id in [&first, &second] {
             store.queue(id, &node, 60_000).await;
         }
-        assert_eq!(store.claim_jobs(&node, "s1", 10).await.unwrap().0.len(), 2);
+        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        assert_eq!(claim.jobs.len(), 2);
         let heads = store
             .job_heads(&[&first, &second, "missing"])
             .await
@@ -2371,6 +2624,9 @@ mod tests {
             blob_digest: Some(&needed),
             accepted_data: "{}",
             may_exist: false,
+            requires: &[],
+            latest_config: false,
+            config_target: None,
         };
         assert!(store.insert_job(job).await.unwrap());
         assert!(store.blob_needed(Some(&node), &needed).await.unwrap());
@@ -2430,6 +2686,236 @@ mod tests {
             1,
             "startup cleanup removes the sessions of a replica id"
         );
+    }
+
+    /// Queues a job with prerequisites, a configuration target, or both.
+    async fn queue_with(
+        store: &Store,
+        id: &str,
+        node: &str,
+        requires: &[String],
+        latest_config: bool,
+        config_target: Option<&str>,
+    ) -> Result<bool, Error> {
+        let job = NewJob {
+            id,
+            node_id: node,
+            kind: "run_commands",
+            action: b"x",
+            ttl_ms: 60_000,
+            blob_digest: None,
+            accepted_data: "{}",
+            may_exist: false,
+            requires,
+            latest_config,
+            config_target,
+        };
+        store.insert_job(job).await
+    }
+
+    fn ids(jobs: &[JobRow]) -> Vec<&str> {
+        jobs.iter().map(|job| job.id.as_str()).collect()
+    }
+
+    #[tokio::test]
+    async fn claim_waits_for_prerequisites_and_keeps_the_order() {
+        let (store, _dir) = store().await;
+        let node = unique("node");
+        let [a, b, c] = [unique("a"), unique("b"), unique("c")];
+        store.open_session(&node, "s1").await;
+        store.queue(&a, &node, 60_000).await;
+        assert!(
+            queue_with(&store, &b, &node, std::slice::from_ref(&a), false, None)
+                .await
+                .unwrap()
+        );
+        store.queue(&c, &node, 60_000).await;
+        assert_eq!(store.job(&b).await.unwrap().unwrap().requires, [a.as_str()]);
+
+        // `b` waits for `a`, and `c` for its turn behind `b`.
+        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        assert_eq!(ids(&claim.jobs), [a.as_str()]);
+        assert_eq!((claim.listed, claim.tried, claim.blocked), (3, 1, true));
+        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        assert!(claim.jobs.is_empty() && claim.unmet.is_empty() && claim.blocked);
+        assert_eq!((claim.listed, claim.tried), (2, 0));
+
+        assert!(store.finish_job(&a, state::SUCCEEDED).await.unwrap());
+        // Still bound to the current session.
+        let claim = store.claim_jobs(&node, "s0", 10).await.unwrap();
+        assert_eq!((claim.jobs.len(), claim.tried), (0, 2));
+        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        assert_eq!(ids(&claim.jobs), [b.as_str(), c.as_str()]);
+        assert!(!claim.blocked && claim.unmet.is_empty());
+    }
+
+    #[tokio::test]
+    async fn claim_reports_jobs_whose_prerequisite_did_not_succeed() {
+        let (store, _dir) = store().await;
+        let node = unique("node");
+        let [d, e, f, g, h] = [
+            unique("d"),
+            unique("e"),
+            unique("f"),
+            unique("g"),
+            unique("h"),
+        ];
+        let gone = unique("gone");
+        store.open_session(&node, "s1").await;
+        store.queue(&d, &node, 60_000).await;
+        for (id, requires) in [(&e, &d), (&f, &e), (&h, &gone)] {
+            let requires = std::slice::from_ref(requires);
+            assert!(
+                queue_with(&store, id, &node, requires, false, None)
+                    .await
+                    .unwrap()
+            );
+        }
+        store.queue(&g, &node, 60_000).await;
+        assert!(store.cancel_queued(&d, "{}").await.unwrap());
+
+        // `e` fails on `d`, `f` on `e` in the same walk, `h` on a job that
+        // no longer exists; `g` goes on.
+        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        assert_eq!(ids(&claim.jobs), [g.as_str()]);
+        assert!(!claim.blocked);
+        let unmet: Vec<(&str, &str, &str)> = claim
+            .unmet
+            .iter()
+            .map(|u| (u.job_id.as_str(), u.prerequisite.as_str(), u.state.as_str()))
+            .collect();
+        assert_eq!(
+            unmet,
+            [
+                (e.as_str(), d.as_str(), state::CANCELLED),
+                (f.as_str(), e.as_str(), state::FAILED),
+                (h.as_str(), gone.as_str(), state::PURGED),
+            ]
+        );
+        // Reported, not changed: failing them is up to the caller.
+        assert_eq!(store.job(&e).await.unwrap().unwrap().state, state::QUEUED);
+    }
+
+    #[tokio::test]
+    async fn latest_configuration_pushes_are_resolved_in_the_submit() {
+        let (store, _dir) = store().await;
+        let node = unique("node");
+        let job = |name: &str| unique(name);
+        let (old, engine, broker) = (job("old"), job("engine"), job("broker"));
+        // Nothing pushed yet: nothing required.
+        let first = job("first");
+        assert!(
+            queue_with(&store, &first, &node, &[], true, None)
+                .await
+                .unwrap()
+        );
+        assert!(
+            store
+                .job(&first)
+                .await
+                .unwrap()
+                .unwrap()
+                .requires
+                .is_empty()
+        );
+
+        for (id, target) in [(&old, "engine"), (&engine, "engine"), (&broker, "broker")] {
+            assert!(
+                queue_with(&store, id, &node, &[], false, Some(target))
+                    .await
+                    .unwrap()
+            );
+        }
+        // The latest push of each target, after the explicit ones, once each.
+        let restart = job("restart");
+        let explicit = [first.clone(), engine.clone()];
+        assert!(
+            queue_with(&store, &restart, &node, &explicit, true, None)
+                .await
+                .unwrap()
+        );
+        assert_eq!(
+            store.job(&restart).await.unwrap().unwrap().requires,
+            [first.clone(), engine.clone(), broker.clone()]
+        );
+        // Another node has its own pushes.
+        let other = job("other");
+        assert!(
+            queue_with(&store, &other, &unique("node"), &[], true, None)
+                .await
+                .unwrap()
+        );
+        assert!(
+            store
+                .job(&other)
+                .await
+                .unwrap()
+                .unwrap()
+                .requires
+                .is_empty()
+        );
+
+        // Over the cap once resolved: refused, nothing committed.
+        let many: Vec<String> = (0..MAX_REQUIRES - 1).map(|i| format!("x{i}")).collect();
+        let over = job("over");
+        let refused = queue_with(&store, &over, &node, &many, true, None).await;
+        assert!(matches!(refused, Err(Error::Invalid(_))), "{refused:?}");
+        assert!(store.job(&over).await.unwrap().is_none());
+        assert_eq!(store.jobs_of_node(&node).await.unwrap().len(), 5);
+    }
+
+    #[tokio::test]
+    async fn node_state_is_stored_with_the_node() {
+        let (store, _dir) = store().await;
+        let node = unique("node");
+        assert!(store.node(&node).await.unwrap().is_none());
+        store.ensure_node(&node).await.unwrap();
+        let row = store.node(&node).await.unwrap().unwrap();
+        assert_eq!((row.state, row.state_at), (None, None));
+
+        store.set_node_state(&node, "{\"a\":1}").await.unwrap();
+        let row = store.node(&node).await.unwrap().unwrap();
+        assert_eq!(row.state.as_deref(), Some("{\"a\":1}"));
+        assert!(row.state_at.is_some());
+        let listed = store.list_nodes().await.unwrap();
+        let listed = listed.iter().find(|n| n.id == node).unwrap();
+        assert_eq!(listed.state.as_deref(), Some("{\"a\":1}"));
+    }
+
+    #[tokio::test]
+    async fn store_created_before_the_new_columns_is_migrated() {
+        // Needs a database of its own; the shared one is already migrated.
+        if std::env::var("GORGONE_TEST_DATABASE_URL").is_ok() {
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let url = format!("sqlite://{}/old.db?mode=rwc", dir.path().display());
+        sqlx::any::install_default_drivers();
+        let pool = AnyPoolOptions::new().connect(&url).await.unwrap();
+        for statement in [
+            "CREATE TABLE nodes (id VARCHAR(191) NOT NULL PRIMARY KEY, name VARCHAR(255) NOT NULL,
+             token_hash VARCHAR(64) NOT NULL, created_at BIGINT NOT NULL)",
+            "CREATE TABLE jobs (id VARCHAR(191) NOT NULL PRIMARY KEY,
+             node_id VARCHAR(191) NOT NULL, kind VARCHAR(32) NOT NULL, action BLOB NOT NULL,
+             state VARCHAR(16) NOT NULL, attempts BIGINT NOT NULL, session_id VARCHAR(191) NULL,
+             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, deadline_at BIGINT NOT NULL)",
+            "INSERT INTO nodes VALUES ('n', 'n', '', 1)",
+            "INSERT INTO jobs VALUES ('j', 'n', 'run_commands', x'78', 'queued', 0, NULL, 1, 1, 2)",
+        ] {
+            sqlx::query(statement).execute(&pool).await.unwrap();
+        }
+        pool.close().await;
+
+        let store = Store::connect(&url).await.unwrap();
+        assert!(store.job("j").await.unwrap().unwrap().requires.is_empty());
+        assert_eq!(store.node("n").await.unwrap().unwrap().state, None);
+        store.set_node_state("n", "{}").await.unwrap();
+        assert!(
+            queue_with(&store, "k", "n", &["j".to_owned()], true, Some("engine"))
+                .await
+                .unwrap()
+        );
+        assert_eq!(store.job("k").await.unwrap().unwrap().requires, ["j"]);
     }
 
     #[tokio::test]

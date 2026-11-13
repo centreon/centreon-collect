@@ -265,8 +265,9 @@ pub struct EngineConfig {
     /// Path of the external command FIFO of centengine; unused with `grpc_url`.
     #[serde(default = "default_command_file", deserialize_with = "lenient::path")]
     pub command_file: PathBuf,
-    /// URL of the engine gRPC API, `http://host:port`. When set, external
-    /// commands go through it instead of `command_file`.
+    /// URL of the engine gRPC API: `unix:/absolute/path` of its socket, or
+    /// `http://host:port`. When set, external commands go through it instead
+    /// of `command_file`.
     #[serde(default, deserialize_with = "lenient::option")]
     pub grpc_url: Option<String>,
     /// Time given to the engine API to accept a connection, and to answer one
@@ -305,6 +306,17 @@ impl EngineConfig {
         })
     }
 
+    /// Socket path when `grpc_url` is a `unix:` URL.
+    #[must_use]
+    pub fn grpc_socket(&self) -> Option<&Path> {
+        let url = self.grpc_url.as_deref()?;
+        // Same reading as tonic, which dials the URL.
+        let path = url
+            .strip_prefix("unix://")
+            .or_else(|| url.strip_prefix("unix:"))?;
+        Some(Path::new(path))
+    }
+
     pub(crate) fn grpc_timeout(&self) -> Duration {
         Duration::from_millis(self.grpc_timeout_ms)
     }
@@ -317,12 +329,22 @@ impl EngineConfig {
         let Some(url) = &self.grpc_url else {
             return Ok(());
         };
+        if let Some(socket) = self.grpc_socket() {
+            // A relative path would depend on the directory the agent starts in.
+            if socket.is_absolute() && !url.ends_with('/') {
+                return Ok(());
+            }
+            return invalid(
+                "engine.grpc_url: unix: must be followed by the absolute path of the engine \
+                 socket, as in unix:/var/lib/centreon-engine/rw/engine.sock",
+            );
+        }
         match url.parse::<Uri>() {
             Ok(uri) if uri.scheme_str() == Some("http") && uri.host().is_some() => Ok(()),
             Ok(uri) if uri.scheme_str() == Some("https") => {
                 invalid("engine.grpc_url: TLS is not supported on this channel, use http://")
             }
-            _ => invalid("engine.grpc_url must be http://host:port"),
+            _ => invalid("engine.grpc_url must be unix:/absolute/path or http://host:port"),
         }
     }
 }
@@ -782,6 +804,31 @@ mod tests {
         ] {
             let config = with(&format!("[engine]\ngrpc_url = \"{url}\"")).unwrap();
             assert_eq!(config.engine.grpc_is_loopback(), loopback, "{url}");
+        }
+        for url in ["unix:/run/engine.sock", "unix:///run/engine.sock"] {
+            let config = with(&format!("[engine]\ngrpc_url = \"{url}\"")).unwrap();
+            assert_eq!(
+                config.engine.grpc_socket(),
+                Some(Path::new("/run/engine.sock"))
+            );
+            assert!(!config.engine.grpc_is_loopback());
+        }
+        for (url, needle) in [
+            ("unix:", "absolute path"),
+            ("unix:engine.sock", "absolute path"),
+            ("unix:./engine.sock", "absolute path"),
+            ("unix://run/engine.sock", "absolute path"),
+            ("unix:/run/", "absolute path"),
+            ("unix:///", "absolute path"),
+            (
+                "UNIX:/run/engine.sock",
+                "unix:/absolute/path or http://host:port",
+            ),
+        ] {
+            let message = with(&format!("[engine]\ngrpc_url = \"{url}\""))
+                .unwrap_err()
+                .to_string();
+            assert!(message.contains(needle), "{url}: {message}");
         }
         for (tail, needle) in [
             ("[engine]\ngrpc_url = \"https://engine:50155\"", "TLS"),

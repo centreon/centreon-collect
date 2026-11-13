@@ -42,6 +42,24 @@ message Welcome {
 
 message Heartbeat {
   uint32 running_jobs = 1;
+  // What the node really runs, so that the central can tell a pushed
+  // configuration from an applied one.
+  repeated AppliedConfig applied = 2;
+  // Absent when the agent does not reach the engine through its API.
+  EngineState engine = 3;
+}
+
+message AppliedConfig {
+  // Target name, as in ApplyConfig.
+  string target = 1;
+  // Digest of the last bundle applied to it.
+  string digest = 2;
+}
+
+message EngineState {
+  bool reachable = 1;
+  // "major.minor.patch", empty when not reachable.
+  string version = 2;
 }
 
 message Dispatch {
@@ -65,6 +83,9 @@ message Job {
   // Time left when the job was dispatched; 0 means no deadline. The agent
   // counts from reception, so clocks need not agree.
   uint64 ttl_ms = 4;
+  // Jobs of the same node that had to succeed first. Enforced by the server,
+  // which only dispatches the job once they did; informative for the agent.
+  repeated string requires = 5;
 }
 
 message Action {

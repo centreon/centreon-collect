@@ -26,6 +26,9 @@ pub(crate) struct SessionHandle {
     /// Set once the work owed to a new session (jobs of the former one,
     /// pending cancellations) was done.
     pub(crate) primed: Arc<AtomicBool>,
+    /// Node state last written to the store for this session: heartbeats
+    /// repeating it cost no write.
+    pub(crate) reported: Arc<Mutex<Option<String>>>,
 }
 
 impl SessionHandle {
@@ -35,6 +38,7 @@ impl SessionHandle {
             tx,
             closed: CancellationToken::new(),
             primed: Arc::default(),
+            reported: Arc::default(),
         }
     }
 }
@@ -54,6 +58,23 @@ pub(crate) struct NodeState {
     phase: AtomicU8,
     /// The next pass must also look at cancellations and stale dispatches.
     full: AtomicBool,
+    /// The head of the queue waits for a prerequisite: a job of the node
+    /// reaching a final state asks for a pass.
+    blocked: AtomicBool,
+}
+
+impl NodeState {
+    /// Records that the drain stopped on a prerequisite. False the first
+    /// time: the caller must look once more, a prerequisite may have
+    /// finished before the mark was visible to whoever committed it.
+    pub(crate) fn block(&self) -> bool {
+        self.blocked.swap(true, Ordering::SeqCst)
+    }
+
+    /// The queue does not wait for a prerequisite any more.
+    pub(crate) fn unblock(&self) {
+        self.blocked.store(false, Ordering::SeqCst);
+    }
 }
 
 /// Change of a job, told to the local waiters.
@@ -159,9 +180,18 @@ impl Hub {
         let mut nodes = lock(&self.nodes);
         // Bounded by the nodes seen; drop the entries nobody uses.
         if nodes.len() > 4096 {
-            nodes.retain(|_, state| Arc::strong_count(state) > 1);
+            nodes.retain(|_, state| {
+                Arc::strong_count(state) > 1 || state.blocked.load(Ordering::SeqCst)
+            });
         }
         Arc::clone(nodes.entry(node_id.to_owned()).or_default())
+    }
+
+    /// True when the drain of the node waits for a prerequisite.
+    pub(crate) fn blocked(&self, node_id: &str) -> bool {
+        lock(&self.nodes)
+            .get(node_id)
+            .is_some_and(|state| state.blocked.load(Ordering::SeqCst))
     }
 
     /// Queues `frame` for the agent. A session that does not take it within

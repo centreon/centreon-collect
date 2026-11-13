@@ -20,7 +20,7 @@ use crate::events;
 use crate::hub::{DrainRole, Hub, SessionHandle, job_notified};
 use crate::metrics;
 use crate::peer::PeerClients;
-use crate::store::{JobRow, NewJob, Store, state};
+use crate::store::{FAILED_SEQ, JobRow, MAX_REQUIRES, NewJob, Store, Termination, Unmet, state};
 
 /// Jobs claimed by one statement while draining a node.
 const DRAIN_BATCH: i64 = 128;
@@ -61,6 +61,19 @@ pub(crate) struct DispatcherConfig {
     pub(crate) retention: Duration,
     /// Accept jobs for nodes that are not enrolled (development).
     pub(crate) auto_enroll: bool,
+}
+
+/// Optional parts of a submission.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct SubmitOptions<'a> {
+    /// Caller-chosen id: submitting it again does nothing.
+    pub(crate) id: Option<&'a str>,
+    /// Jobs of the node that must succeed before this one is dispatched.
+    pub(crate) requires: &'a [String],
+    /// Also require the latest `ApplyConfig` job of each target of the node.
+    pub(crate) latest_config: bool,
+    /// Time the job may live; the server default when absent.
+    pub(crate) deadline: Option<Duration>,
 }
 
 /// Result of a cancellation request.
@@ -109,6 +122,10 @@ fn kind_name(action: &Action) -> Result<&'static str, Error> {
                     "apply_config needs target and digest".into(),
                 ));
             }
+            // Stored as a key of the latest push per target.
+            if apply.target.len() > 191 {
+                return Err(Error::Invalid("apply_config target is too long".into()));
+            }
             Ok(kind::APPLY_CONFIG)
         }
         Some(Kind::ServiceControl(control)) => {
@@ -151,9 +168,11 @@ impl Dispatcher {
         action: Action,
         deadline: Option<Duration>,
     ) -> Result<String, Error> {
-        let id = crate::random_id()?;
-        self.commit(&id, false, node_id, action, deadline).await?;
-        Ok(id)
+        let options = SubmitOptions {
+            deadline,
+            ..SubmitOptions::default()
+        };
+        Ok(self.submit_job(node_id, action, options).await?.0)
     }
 
     /// Same as [`Self::submit`] with a caller-chosen id: submitting the same
@@ -165,17 +184,24 @@ impl Dispatcher {
         action: Action,
         deadline: Option<Duration>,
     ) -> Result<bool, Error> {
-        self.commit(id, true, node_id, action, deadline).await
+        let options = SubmitOptions {
+            id: Some(id),
+            deadline,
+            ..SubmitOptions::default()
+        };
+        Ok(self.submit_job(node_id, action, options).await?.1)
     }
 
-    async fn commit(
+    /// Commits a job for `node_id`, then pushes it if a session is reachable.
+    /// Returns the job id and whether the job was created: false means a
+    /// job with the id given in `options` already existed, of any node, and
+    /// nothing was changed.
+    pub(crate) async fn submit_job(
         self: &Arc<Self>,
-        id: &str,
-        may_exist: bool,
         node_id: &str,
         action: Action,
-        deadline: Option<Duration>,
-    ) -> Result<bool, Error> {
+        options: SubmitOptions<'_>,
+    ) -> Result<(String, bool), Error> {
         if node_id.is_empty() || node_id.len() > 191 {
             return Err(Error::Invalid("invalid node id".into()));
         }
@@ -183,31 +209,79 @@ impl Dispatcher {
         if !self.accepts_node(node_id).await? {
             return Err(Error::UnknownNode(node_id.to_owned()));
         }
-        let blob_digest = match &action.kind {
-            Some(Kind::ApplyConfig(apply)) => Some(apply.digest.as_str()),
-            _ => None,
+        let id = match options.id {
+            // Before the prerequisites are checked: a retry must get the
+            // same answer even when one of them was purged since.
+            Some(id) if self.store.job(id).await?.is_some() => return Ok((id.to_owned(), false)),
+            Some(id) => id.to_owned(),
+            None => crate::random_id()?,
+        };
+        let requires = self.checked_requires(node_id, options.requires).await?;
+        let (blob_digest, config_target) = match &action.kind {
+            Some(Kind::ApplyConfig(apply)) => {
+                (Some(apply.digest.as_str()), Some(apply.target.as_str()))
+            }
+            _ => (None, None),
         };
         let created = self
             .store
             .insert_job(NewJob {
-                id,
+                id: &id,
                 node_id,
                 kind,
                 action: &action.encode_to_vec(),
-                ttl_ms: millis(deadline.unwrap_or(self.config.default_deadline)),
+                ttl_ms: millis(options.deadline.unwrap_or(self.config.default_deadline)),
                 blob_digest,
                 accepted_data: &events::accepted().to_string(),
-                may_exist,
+                may_exist: options.id.is_some(),
+                requires: &requires,
+                latest_config: options.latest_config,
+                config_target,
             })
             .await?;
         if created {
             metrics::JOBS_SUBMITTED.add(kind, 1);
-            debug!(job = id, node = node_id, kind, "job queued");
+            debug!(job = %id, node = node_id, kind, "job queued");
             // The job is committed: delivery happens aside, so that a slow
             // agent never delays the submitter.
             self.trigger(node_id, false);
         }
-        Ok(created)
+        Ok((id, created))
+    }
+
+    /// The prerequisites without repetition, once each is known to be a job
+    /// of the node.
+    async fn checked_requires(
+        &self,
+        node_id: &str,
+        requires: &[String],
+    ) -> Result<Vec<String>, Error> {
+        let mut unique: Vec<String> = Vec::with_capacity(requires.len());
+        for id in requires {
+            if !unique.contains(id) {
+                unique.push(id.clone());
+            }
+        }
+        if unique.len() > MAX_REQUIRES {
+            return Err(Error::Invalid(format!(
+                "more than {MAX_REQUIRES} prerequisites"
+            )));
+        }
+        if unique.is_empty() {
+            return Ok(unique);
+        }
+        let ids: Vec<&str> = unique.iter().map(String::as_str).collect();
+        let heads = self.store.job_heads(&ids).await?;
+        // One answer for a missing job and for a job of another node.
+        match ids
+            .iter()
+            .find(|id| heads.get(**id).is_none_or(|head| head.node_id != node_id))
+        {
+            Some(id) => Err(Error::Invalid(format!(
+                "prerequisite {id} is not a job of this node"
+            ))),
+            None => Ok(unique),
+        }
     }
 
     /// True when jobs may be submitted for `node_id`.
@@ -342,26 +416,34 @@ impl Dispatcher {
             }
             self.send_cancels(node_id, &session).await;
         }
+        let waiting = self.hub.node_state(node_id);
         loop {
             if session.closed.is_cancelled() {
                 return;
             }
             // One statement claims the whole batch, in order.
-            let (jobs, listed) = match self
+            let claim = match self
                 .store
                 .claim_jobs(node_id, &session.session_id, DRAIN_BATCH)
                 .await
             {
-                Ok(claimed) => claimed,
+                Ok(claim) => claim,
                 Err(err) => {
                     warn!(node = node_id, error = %err, "claiming queued jobs failed");
                     return;
                 }
             };
-            if listed > 0 && jobs.is_empty() && !self.still_current(node_id, &session).await {
+            for unmet in &claim.unmet {
+                self.fail_unmet(node_id, unmet).await;
+            }
+            if claim.tried > 0
+                && claim.jobs.is_empty()
+                && !self.still_current(node_id, &session).await
+            {
                 return;
             }
-            let mut jobs = jobs.into_iter();
+            let (listed, blocked) = (claim.listed, claim.blocked);
+            let mut jobs = claim.jobs.into_iter();
             while let Some(job) = jobs.next() {
                 match self.send_job(node_id, &session, &job).await {
                     Ok(true) => {}
@@ -381,10 +463,53 @@ impl Dispatcher {
                     }
                 }
             }
+            if blocked {
+                // Nothing goes before the job at the head of the queue. The
+                // event commit asks for a pass once the mark is set; look
+                // once more in case the prerequisite finished just before.
+                if waiting.block() {
+                    return;
+                }
+                continue;
+            }
+            waiting.unblock();
             // A short batch emptied the queue: later submits ask for a pass.
             if (listed as i64) < DRAIN_BATCH {
                 return;
             }
+        }
+    }
+
+    /// Ends as `failed`, without sending it, a queued job one of whose
+    /// prerequisites did not succeed.
+    async fn fail_unmet(&self, node_id: &str, unmet: &Unmet) {
+        let failure = Termination {
+            to: state::FAILED,
+            seq: FAILED_SEQ,
+            code: gorgone_core::legacy::ACTION_FINISH_KO,
+            data: &events::prerequisite_failed(&unmet.prerequisite, &unmet.state).to_string(),
+        };
+        match self
+            .store
+            .terminate(&unmet.job_id, &[state::QUEUED], failure)
+            .await
+        {
+            Ok(true) => {
+                info!(
+                    job = %unmet.job_id,
+                    node = node_id,
+                    prerequisite = %unmet.prerequisite,
+                    state = %unmet.state,
+                    "job failed: prerequisite did not succeed"
+                );
+                metrics::JOBS_PREREQUISITE_FAILED.inc(1);
+                metrics::JOBS_FINISHED.add(state::FAILED, 1);
+                self.hub.notify_job(&unmet.job_id, true);
+            }
+            // Cancelled or expired meanwhile: it is not sent either.
+            Ok(false) => {}
+            // Still queued: the next pass tries again.
+            Err(err) => warn!(job = %unmet.job_id, error = %err, "job not failed"),
         }
     }
 
@@ -458,6 +583,8 @@ impl Dispatcher {
         {
             metrics::JOBS_FINISHED.add(state::CANCELLED, 1);
             self.hub.notify_job(id, true);
+            // Jobs requiring it are now to be failed.
+            self.trigger(&job.node_id, false);
             return Ok(CancelOutcome::Cancelled);
         }
         if self.store.request_cancel(id).await? {
@@ -493,6 +620,7 @@ impl Dispatcher {
                     deadline_unix_ms: job.deadline_at,
                     action: Some(action),
                     ttl_ms: u64::try_from(ttl_ms).unwrap_or(1),
+                    requires: job.requires.clone(),
                 }),
             })),
         };

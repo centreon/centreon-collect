@@ -65,6 +65,10 @@ impl ApiError {
     fn not_found(message: impl Into<String>) -> Self {
         Self::new(StatusCode::NOT_FOUND, "not_found", message)
     }
+
+    fn conflict(message: impl Into<String>) -> Self {
+        Self::new(StatusCode::CONFLICT, "conflict", message)
+    }
 }
 
 impl From<Error> for ApiError {
@@ -117,7 +121,9 @@ pub(crate) fn router(state: Shared) -> Router {
         .route("/v1/nodes", get(native::list_nodes))
         .route(
             "/v1/nodes/{node}",
-            put(native::enrol_node).delete(native::delete_node),
+            get(native::get_node)
+                .put(native::enrol_node)
+                .delete(native::delete_node),
         )
         .route("/v1/nodes/{node}/jobs", post(native::submit_job))
         .route(

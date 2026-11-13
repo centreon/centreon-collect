@@ -75,6 +75,26 @@ async fn allowlisted_command_runs_and_stdout_is_captured() {
 }
 
 #[tokio::test]
+async fn prerequisites_of_a_job_are_left_to_the_server() {
+    let mut server = FakeServer::start().await;
+    let config = format!(
+        "{}[commands]\nallowlist = ['/bin/echo .*']\n",
+        clear_text(&server)
+    );
+    let agent = Agent::start(&config);
+    let mut session = server.next_session().await;
+
+    // Jobs this agent never saw: the server dispatched, so they succeeded.
+    let mut job = run_commands("after", vec![command("/bin/echo done")]);
+    job.requires = vec!["never-seen".to_owned(), "after".to_owned()];
+    session.dispatch(job).await;
+    let (results, _, finished) = dissect(&session.job_events("after").await);
+    assert_eq!(outcome(&finished), Outcome::Ok, "{finished:?}");
+    assert_eq!(results[0].stdout, "done\n");
+    agent.stop().await.unwrap();
+}
+
+#[tokio::test]
 async fn command_outside_allowlist_is_rejected_and_nothing_runs() {
     let dir = tempfile::tempdir().unwrap();
     let allowed = dir.path().join("allowed");

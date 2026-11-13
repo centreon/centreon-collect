@@ -494,7 +494,10 @@ async fn legacy_submit_runs_on_the_agent_and_logs_keep_the_perl_shape() {
     assert!(run.commands[0].continue_on_error);
 
     agent
-        .send(AgentFrameKind::Heartbeat(Heartbeat { running_jobs: 1 }))
+        .send(AgentFrameKind::Heartbeat(Heartbeat {
+            running_jobs: 1,
+            ..Heartbeat::default()
+        }))
         .await;
     agent.event(&token, 1, Body::Started(JobStarted {})).await;
     let (_, running) = rest.get(&format!("/v1/jobs/{token}")).await;
@@ -1739,7 +1742,10 @@ async fn re_enrolment_ends_the_session_held_by_another_replica() {
     assert_ne!(rotated["token"], token.as_str());
     assert!(!connected(&Rest::new(&other), &node).await);
     agent
-        .send(AgentFrameKind::Heartbeat(Heartbeat { running_jobs: 0 }))
+        .send(AgentFrameKind::Heartbeat(Heartbeat {
+            running_jobs: 0,
+            ..Heartbeat::default()
+        }))
         .await;
     let ended = async { while agent.inbound.message().await.is_ok_and(|f| f.is_some()) {} };
     tokio::time::timeout(STEP, ended)
@@ -2024,4 +2030,482 @@ async fn pipelined_events_are_acknowledged_in_order_after_their_commit() {
     }
 
     server.shutdown().await;
+}
+
+/// A small valid bundle whose content, hence digest, depends on `content`.
+fn small_bundle(content: &str) -> Vec<u8> {
+    let src = tempfile::tempdir().unwrap();
+    std::fs::write(src.path().join("centengine.cfg"), content).unwrap();
+    gorgone_core::bundle::pack(src.path()).unwrap()
+}
+
+/// `PUT /v1/nodes/{node}/config/{target}{query}` of a small bundle.
+async fn push_config(
+    rest: &Rest,
+    node: &str,
+    target: &str,
+    query: &str,
+    content: &str,
+) -> (u16, Value) {
+    let path = format!("/v1/nodes/{node}/config/{target}{query}");
+    Rest::json(rest.request("PUT", &path).body(small_bundle(content))).await
+}
+
+/// Pushes a configuration and returns the id of its job.
+async fn push(rest: &Rest, node: &str, target: &str) -> String {
+    let (status, body) = push_config(rest, node, target, "", &unique_node()).await;
+    assert_eq!(status, 202, "{body}");
+    body["id"].as_str().unwrap().to_owned()
+}
+
+/// Engine restart, with extra top-level members of the submission.
+fn restart(extra: Value) -> Value {
+    let mut body = json!({ "service_control": { "service": "engine", "operation": "restart" } });
+    for (key, value) in extra.as_object().unwrap() {
+        body[key] = value.clone();
+    }
+    body
+}
+
+/// The job once it is terminal.
+async fn finished_job(rest: &Rest, id: &str) -> Value {
+    let (status, job) = rest.get(&format!("/v1/jobs/{id}?wait=10")).await;
+    assert_eq!(status, 200, "{job}");
+    job
+}
+
+/// Checks that the job was failed by the server on `prerequisite`.
+async fn assert_failed_on(rest: &Rest, id: &str, prerequisite: &str, state: &str) {
+    let job = finished_job(rest, id).await;
+    assert_eq!(job["state"], "failed", "{job}");
+    assert_eq!(job["attempts"], 0, "never dispatched: {job}");
+    let events = job["events"].as_array().unwrap();
+    assert_eq!(events.len(), 2, "{job}");
+    assert_eq!(events[1]["code"], 1);
+    assert_eq!(
+        events[1]["data"],
+        json!({ "message": format!("prerequisite {prerequisite} did not succeed ({state})") })
+    );
+}
+
+async fn assert_nothing_received(agent: &mut FakeAgent) {
+    let frame = agent.next_frame(Duration::from_millis(400)).await;
+    assert!(frame.is_none(), "unexpected frame: {frame:?}");
+}
+
+#[tokio::test]
+async fn job_is_dispatched_once_its_prerequisites_succeeded_and_order_is_kept() {
+    let db = TestDb::new();
+    // Slow sweep: only the commit of the prerequisites can resume the drain.
+    let server = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+
+    let engine = push(&rest, &node, "engine").await;
+    let broker = push(&rest, &node, "broker").await;
+    let restarted = submit(
+        &rest,
+        &node,
+        &restart(json!({ "requires": [engine, broker] })),
+    )
+    .await;
+    let later = submit(&rest, &node, &run_commands("echo later")).await;
+
+    assert_eq!(agent.next_dispatch().await.id, engine);
+    assert_eq!(agent.next_dispatch().await.id, broker);
+    // The restart waits for both pushes, and what follows waits behind it.
+    assert_nothing_received(&mut agent).await;
+    agent.event(&engine, 1, finished(Outcome::Ok, "")).await;
+    assert_nothing_received(&mut agent).await;
+    let (_, job) = rest.get(&format!("/v1/jobs/{restarted}")).await;
+    assert_eq!(job["state"], "queued");
+    assert_eq!(job["requires"], json!([engine, broker]));
+    let (_, job) = rest.get(&format!("/v1/jobs/{later}")).await;
+    assert_eq!(
+        (&job["state"], &job["requires"]),
+        (&json!("queued"), &json!([]))
+    );
+
+    let resumed = Instant::now();
+    agent.event(&broker, 1, finished(Outcome::Ok, "")).await;
+    let job = agent.next_dispatch().await;
+    assert_eq!(job.id, restarted);
+    assert_eq!(job.requires, [engine.clone(), broker.clone()]);
+    assert_eq!(agent.next_dispatch().await.id, later);
+    assert!(
+        resumed.elapsed() < Duration::from_secs(2),
+        "resumed by the sweep, not by the commit: {:?}",
+        resumed.elapsed()
+    );
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn job_whose_prerequisite_failed_is_failed_without_being_sent() {
+    let db = TestDb::new();
+    let server = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+
+    let pushed = push(&rest, &node, "engine").await;
+    let restarted = submit(&rest, &node, &restart(json!({ "requires": [pushed] }))).await;
+    // Requires the restart: fails with it.
+    let dependent = submit(&rest, &node, &restart(json!({ "requires": [restarted] }))).await;
+    let later = submit(&rest, &node, &run_commands("echo later")).await;
+
+    assert_eq!(agent.next_dispatch().await.id, pushed);
+    agent
+        .event(&pushed, 1, finished(Outcome::Failed, "bad bundle"))
+        .await;
+    // Later jobs still flow; the two restarts are never sent.
+    assert_eq!(agent.next_dispatch().await.id, later);
+    assert_failed_on(&rest, &restarted, &pushed, "failed").await;
+    assert_failed_on(&rest, &dependent, &restarted, "failed").await;
+    let (_, log) = rest.get(&format!("/api/log/{restarted}")).await;
+    assert_eq!(codes(&log), [0, 1]);
+    assert_nothing_received(&mut agent).await;
+    let (_, metrics) = rest.get_plain("/metrics").await.unwrap();
+    let failed: u64 = metrics
+        .lines()
+        .find_map(|line| line.strip_prefix("gorgone_jobs_prerequisite_failed_total "))
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert!(failed >= 2, "{failed}");
+
+    // A cancelled prerequisite counts as not succeeded, node away or not.
+    let away = unique_node();
+    let first = submit(&rest, &away, &run_commands("echo first")).await;
+    let second = submit(&rest, &away, &restart(json!({ "requires": [first] }))).await;
+    let (status, _) = delete(&rest, &format!("/v1/jobs/{first}")).await;
+    assert_eq!(status, 200);
+    let mut agent = FakeAgent::connect(server.agent_addr, &away, None)
+        .await
+        .unwrap();
+    assert_failed_on(&rest, &second, &first, "cancelled").await;
+    assert_nothing_received(&mut agent).await;
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn prerequisites_must_be_jobs_of_the_same_node() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let (node, other) = (unique_node(), unique_node());
+    let foreign = submit(&rest, &other, &run_commands("echo other")).await;
+    let own = submit(&rest, &node, &run_commands("echo own")).await;
+    let jobs = format!("/v1/nodes/{node}/jobs");
+
+    for requires in [
+        json!(["no-such-job"]),
+        json!([foreign]),
+        json!([own, foreign]),
+        json!((0..17).map(|i| format!("job-{i}")).collect::<Vec<_>>()),
+    ] {
+        let (status, body) = rest
+            .post(&jobs, &restart(json!({ "requires": requires })))
+            .await;
+        assert_eq!(status, 400, "{requires}: {body}");
+        assert_eq!(body["error"], "bad_request");
+    }
+    let (status, body) = rest.post(&jobs, &restart(json!({ "requires": "x" }))).await;
+    assert!((400..500).contains(&status), "{body}");
+    let query = format!("?requires={own},{foreign}");
+    let (status, body) = push_config(&rest, &node, "engine", &query, "a=1\n").await;
+    assert_eq!(status, 400, "{body}");
+
+    // Accepted on the configuration route too, repeated ids counting once.
+    let query = format!("?requires={own},{own}");
+    let (status, body) = push_config(&rest, &node, "engine", &query, "a=1\n").await;
+    assert_eq!(status, 202, "{body}");
+    let (_, job) = rest
+        .get(&format!("/v1/jobs/{}", body["id"].as_str().unwrap()))
+        .await;
+    assert_eq!(job["requires"], json!([own]));
+    // Nothing was submitted by the refused requests.
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    assert_eq!(agent.next_dispatch().await.id, own);
+    assert_nothing_received(&mut agent).await;
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn prerequisite_is_enforced_for_a_job_submitted_on_another_replica() {
+    let db = TestDb::new();
+    let owner = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let other = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(owner.agent_addr, &node, None)
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    let rest = Rest::new(&other);
+    let pushed = push(&rest, &node, "engine").await;
+    let restarted = submit(&rest, &node, &restart(json!({ "requires": [pushed] }))).await;
+    let later = submit(&rest, &node, &run_commands("echo later")).await;
+    assert_eq!(agent.next_dispatch().await.id, pushed);
+    assert_nothing_received(&mut agent).await;
+
+    // The owner commits the result and resumes its drain by itself.
+    let resumed = Instant::now();
+    agent.event(&pushed, 1, finished(Outcome::Ok, "")).await;
+    let job = agent.next_dispatch().await;
+    assert_eq!(
+        (job.id.as_str(), &job.requires),
+        (restarted.as_str(), &vec![pushed])
+    );
+    assert_eq!(agent.next_dispatch().await.id, later);
+    assert!(resumed.elapsed() < Duration::from_secs(2));
+
+    owner.shutdown().await;
+    other.shutdown().await;
+}
+
+#[tokio::test]
+async fn resubmission_with_the_same_id_creates_nothing() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let (node, other) = (unique_node(), unique_node());
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let jobs = format!("/v1/nodes/{node}/jobs");
+    let id = format!("restart_{node}");
+
+    let (status, body) = rest.post(&jobs, &restart(json!({ "id": id }))).await;
+    assert_eq!((status, &body), (202, &json!({ "id": id })));
+    // The retry gets the same answer, whatever it carries.
+    let again = json!({ "run_commands": { "commands": [{ "command": "echo no" }] }, "id": id });
+    let (status, body) = rest.post(&jobs, &again).await;
+    assert_eq!((status, &body), (202, &json!({ "id": id })));
+    assert_eq!(agent.next_dispatch().await.id, id);
+    assert_nothing_received(&mut agent).await;
+    let (_, job) = rest.get(&format!("/v1/jobs/{id}")).await;
+    assert_eq!(job["kind"], "service_control");
+    assert_eq!(job["events"].as_array().unwrap().len(), 1);
+
+    // The id belongs to its node.
+    let (status, body) = rest
+        .post(
+            &format!("/v1/nodes/{other}/jobs"),
+            &restart(json!({ "id": id })),
+        )
+        .await;
+    assert_eq!(status, 409, "{body}");
+    assert_eq!(body["error"], "conflict");
+    let query = format!("?id={id}");
+    let (status, body) = push_config(&rest, &other, "engine", &query, "a=1\n").await;
+    assert_eq!(status, 409, "{body}");
+
+    let too_long = "a".repeat(65);
+    for bad in ["", "with space", "a/b", "a.b", too_long.as_str()] {
+        let (status, body) = rest.post(&jobs, &restart(json!({ "id": bad }))).await;
+        assert_eq!(status, 400, "{bad}: {body}");
+    }
+    let (status, _) = push_config(&rest, &node, "engine", "?id=a.b", "a=1\n").await;
+    assert_eq!(status, 400);
+
+    // Configuration push: the retry is told what the first one submitted.
+    let query = format!("?id=push-{node}");
+    let (status, first) = push_config(&rest, &node, "engine", &query, "a=1\n").await;
+    assert_eq!(status, 202, "{first}");
+    assert_eq!(first["id"], format!("push-{node}"));
+    let (status, second) = push_config(&rest, &node, "engine", &query, "a=2\n").await;
+    assert_eq!((status, &second), (202, &first));
+    assert_eq!(agent.next_dispatch().await.id, format!("push-{node}"));
+    assert_nothing_received(&mut agent).await;
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn restart_requiring_the_latest_configuration_follows_the_last_push() {
+    let db = TestDb::new();
+    let server = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let latest = || restart(json!({ "requires_latest_config": true }));
+    let requires = |id: String| {
+        let rest = &rest;
+        async move { rest.get(&format!("/v1/jobs/{id}")).await.1["requires"].clone() }
+    };
+
+    // No push at all: nothing to wait for.
+    let first = submit(&rest, &node, &latest()).await;
+    assert_eq!(agent.next_dispatch().await.id, first);
+    assert_eq!(requires(first.clone()).await, json!([]));
+    agent.event(&first, 1, finished(Outcome::Ok, "")).await;
+
+    // The last push failed: the restart is failed without being sent.
+    let failed_push = push(&rest, &node, "engine").await;
+    assert_eq!(agent.next_dispatch().await.id, failed_push);
+    agent
+        .event(&failed_push, 1, finished(Outcome::Failed, "bad bundle"))
+        .await;
+    let refused = submit(&rest, &node, &latest()).await;
+    assert_eq!(requires(refused.clone()).await, json!([failed_push]));
+    assert_failed_on(&rest, &refused, &failed_push, "failed").await;
+    assert_nothing_received(&mut agent).await;
+
+    // A newer push supersedes it; the restart is held until it succeeded.
+    let good_push = push(&rest, &node, "engine").await;
+    let held = submit(&rest, &node, &latest()).await;
+    assert_eq!(requires(held.clone()).await, json!([good_push]));
+    assert_eq!(agent.next_dispatch().await.id, good_push);
+    assert_nothing_received(&mut agent).await;
+    agent.event(&good_push, 1, finished(Outcome::Ok, "")).await;
+    let job = agent.next_dispatch().await;
+    assert_eq!(
+        (job.id.as_str(), &job.requires),
+        (held.as_str(), &vec![good_push.clone()])
+    );
+    agent.event(&held, 1, finished(Outcome::Ok, "")).await;
+
+    // One push per target, joined to the explicit list without repetition.
+    let broker_push = push(&rest, &node, "broker").await;
+    assert_eq!(agent.next_dispatch().await.id, broker_push);
+    agent
+        .event(&broker_push, 1, finished(Outcome::Ok, ""))
+        .await;
+    let both = submit(
+        &rest,
+        &node,
+        &restart(json!({ "requires_latest_config": true, "requires": [good_push, first] })),
+    )
+    .await;
+    assert_eq!(
+        requires(both.clone()).await,
+        json!([good_push, first, broker_push])
+    );
+    assert_eq!(agent.next_dispatch().await.id, both);
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn node_state_reported_in_heartbeats_is_exposed_by_every_replica() {
+    use gorgone_proto::agent::{AppliedConfig, EngineState};
+
+    let db = TestDb::new();
+    let (owner, other) = (start(&db, |_| {}).await, start(&db, |_| {}).await);
+    let rest = Rest::new(&other);
+    let node = unique_node();
+    let path = format!("/v1/nodes/{node}");
+    let (status, body) = rest.get(&path).await;
+    assert_eq!(status, 404, "{body}");
+
+    let agent = FakeAgent::connect(owner.agent_addr, &node, None)
+        .await
+        .unwrap();
+    // Reads the node until `ready` holds.
+    let node_when = |ready: fn(&Value) -> bool| {
+        let (rest, path) = (&rest, &path);
+        async move {
+            let until = Instant::now() + STEP;
+            loop {
+                let (status, body) = rest.get(path).await;
+                assert_eq!(status, 200, "{body}");
+                if ready(&body) {
+                    return body;
+                }
+                assert!(Instant::now() < until, "node state not updated: {body}");
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        }
+    };
+    let seen = node_when(|node| node["connected"] == true).await;
+    assert_eq!(seen["applied"], json!({}));
+    assert_eq!(seen["engine"], Value::Null);
+    assert_eq!(seen["session"]["agent_version"], "fake-1.0");
+
+    let digest = |seed: &str| seed.repeat(64);
+    let heartbeat = |engine: Option<EngineState>| {
+        AgentFrameKind::Heartbeat(Heartbeat {
+            running_jobs: 0,
+            applied: vec![
+                AppliedConfig {
+                    target: "engine".into(),
+                    digest: digest("a"),
+                },
+                AppliedConfig {
+                    target: "broker".into(),
+                    digest: digest("b"),
+                },
+            ],
+            engine,
+        })
+    };
+    let running = Some(EngineState {
+        reachable: true,
+        version: "27.1.0".into(),
+    });
+    agent.send(heartbeat(running.clone())).await;
+    let seen = node_when(|node| node["engine"] != Value::Null).await;
+    assert_eq!(
+        seen["applied"],
+        json!({ "broker": digest("b"), "engine": digest("a") })
+    );
+    assert_eq!(
+        seen["engine"],
+        json!({ "reachable": true, "version": "27.1.0" })
+    );
+    assert_eq!(seen["id"], node.as_str());
+    let changed_at = seen["state_changed_at"].as_i64().unwrap();
+
+    // Same view in the list, on the replica holding the session too.
+    for rest in [&rest, &Rest::new(&owner)] {
+        let (_, nodes) = rest.get("/v1/nodes").await;
+        let listed = nodes["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|n| n["id"] == node.as_str())
+            .unwrap();
+        assert_eq!(listed["applied"], seen["applied"]);
+        assert_eq!(listed["engine"], seen["engine"]);
+        assert_eq!(listed["connected"], true);
+    }
+
+    // The same state again is not written; a change is.
+    tokio::time::sleep(Duration::from_millis(20)).await;
+    agent.send(heartbeat(running)).await;
+    agent.send(heartbeat(None)).await;
+    let seen = node_when(|node| node["engine"] == Value::Null).await;
+    assert_eq!(seen["applied"]["engine"], digest("a"));
+    let cleared_at = seen["state_changed_at"].as_i64().unwrap();
+    assert!(cleared_at > changed_at);
+    agent
+        .send(heartbeat(Some(EngineState {
+            reachable: false,
+            version: String::new(),
+        })))
+        .await;
+    let seen = node_when(|node| node["engine"] != Value::Null).await;
+    assert_eq!(seen["engine"], json!({ "reachable": false, "version": "" }));
+
+    // The last report is kept when the node goes away.
+    drop(agent);
+    let seen = node_when(|node| node["connected"] == false).await;
+    assert_eq!(seen["session"], Value::Null);
+    assert_eq!(seen["applied"]["broker"], digest("b"));
+
+    owner.shutdown().await;
+    other.shutdown().await;
 }

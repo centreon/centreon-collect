@@ -1,10 +1,11 @@
 //! Client of the Centreon Engine gRPC API: external commands, configuration
-//! reload and shutdown, for an agent that shares neither the command pipe nor
-//! the service manager of the engine (sidecar container).
+//! reload, shutdown and version, for an agent that does not share the service
+//! manager of the engine (sidecar container). Over TCP or a Unix socket.
 
 use std::future::Future;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use gorgone_proto::agent::EngineState;
 use gorgone_proto::engine::engine_client::EngineClient;
 use gorgone_proto::engine::engine_signal_process::Process;
 use gorgone_proto::engine::{EngineSignalProcess, ExternalCommand};
@@ -30,7 +31,8 @@ impl EngineApi {
         let Some(url) = &config.grpc_url else {
             return Ok(None);
         };
-        if !config.grpc_is_loopback() {
+        // A Unix socket never leaves the host: its file permissions guard it.
+        if config.grpc_socket().is_none() && !config.grpc_is_loopback() {
             tracing::warn!(
                 grpc_url = %url,
                 "engine.grpc_url is not a loopback address: engine commands travel in clear \
@@ -38,6 +40,8 @@ impl EngineApi {
             );
         }
         let timeout = config.grpc_timeout();
+        // tonic dials `unix:` URLs itself, and again after the engine
+        // restarted and created a new socket file.
         let endpoint = Endpoint::from_shared(url.clone())?.connect_timeout(timeout);
         Ok(Some(Self {
             client: EngineClient::new(endpoint.connect_lazy()),
@@ -73,6 +77,29 @@ impl EngineApi {
             }
             Ok(Err(status)) => Err(format!("{:?}: {}", status.code(), status.message())),
             Err(_) => Err(silent()),
+        }
+    }
+
+    /// Asks the engine its version, within `limit` and the configured timeout.
+    pub(crate) async fn probe(&self, limit: Duration) -> EngineState {
+        let mut client = self.client.clone();
+        let timeout = self.timeout.min(limit);
+        let mut request = Request::new(());
+        request.set_timeout(timeout);
+        match tokio::time::timeout(timeout, client.get_version(request)).await {
+            Ok(Ok(version)) => {
+                let version = version.into_inner();
+                EngineState {
+                    reachable: true,
+                    version: format!("{}.{}.{}", version.major, version.minor, version.patch),
+                }
+            }
+            // An engine that does not know the call still answered.
+            Ok(Err(status)) if status.code() == Code::Unimplemented => EngineState {
+                reachable: true,
+                version: String::new(),
+            },
+            Ok(Err(_)) | Err(_) => EngineState::default(),
         }
     }
 

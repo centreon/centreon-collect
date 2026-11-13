@@ -134,18 +134,32 @@ shell = false
 # External command pipe of centengine (EngineCommands jobs). Must be a FIFO
 # with a reader, that is a running engine. Unused when `grpc_url` is set.
 command_file = "/var/lib/centreon-engine/rw/centengine.cmd"
-# gRPC API of centengine (`grpc_port` and `rpc_listen_address` of its
-# configuration), as `http://host:port`. Unset by default. When set, the lines
-# of an EngineCommands job are sent with `ProcessExternalCommand` instead of
-# being written to `command_file`: one call per line, in order, stopping at
-# the first line the engine refuses; the job result tells how many were
-# accepted and the error of the failing one. It also enables the `grpc:`
-# service operations (see `[services.engine]`). For an agent running as a
-# sidecar container that shares no volume with the engine.
-# The engine API has no authentication and this channel has no TLS settings
-# (out of scope for now; `https://` is refused): keep it on loopback or on a
-# network private to the two containers. A host that is not loopback is
-# accepted and logs a warning at start.
+# gRPC API of centengine. Unset by default. When set, the lines of an
+# EngineCommands job are sent with `ProcessExternalCommand` instead of being
+# written to `command_file`: one call per line, in order, stopping at the
+# first line the engine refuses; the job result tells how many were accepted
+# and the error of the failing one. It also enables the `grpc:` service
+# operations (see `[services.engine]`), and every heartbeat then tells the
+# central whether the engine answers and its version. For an agent running as
+# a sidecar container of the engine. Two forms:
+#
+#   "unix:/absolute/path"  Unix socket of the engine (`rpc_listen_address =
+#                          unix:/absolute/path` in its configuration), on a
+#                          volume shared by the two containers. Preferred: the
+#                          engine API has no authentication, and a socket is
+#                          not exposed on any network; the permissions of its
+#                          file decide who may call the engine, so the agent
+#                          runs with the user or the group of the engine.
+#   "http://host:port"     TCP (`rpc_listen_address` and `grpc_port` of the
+#                          engine). This channel has no TLS settings
+#                          (`https://` is refused): keep it on loopback or on
+#                          a network private to the two containers. A host
+#                          that is not loopback is accepted and logs a warning
+#                          at start.
+#
+# Either way the agent connects at the first call and again after the engine
+# restarted, including when the engine created a new socket file.
+# grpc_url = "unix:/var/lib/centreon-engine/rw/engine.sock"
 # grpc_url = "http://127.0.0.1:50155"
 # Time given to the engine API to accept a connection, and to answer one
 # call, in milliseconds. Past it the job fails: a stopped engine never hangs

@@ -3,6 +3,7 @@
 
 use std::collections::BTreeMap;
 use std::future::Future;
+use std::sync::Arc;
 
 use gorgone_core::bundle::{self, ApplyOptions, ApplyReport};
 use gorgone_proto::agent::job_finished::Outcome;
@@ -10,6 +11,7 @@ use gorgone_proto::agent::{ApplyConfig, JobFinished};
 
 use super::{Executor, JobContext, finished};
 use crate::config::TargetConfig;
+use crate::node_state::{NodeState, marker_name};
 
 /// Blob download failures.
 #[derive(Debug, thiserror::Error)]
@@ -35,6 +37,8 @@ pub(crate) struct ApplyConfigExecutor<F> {
     pub max_bundle_bytes: u64,
     pub max_unpacked_bytes: u64,
     pub fetcher: F,
+    /// Told what each job leaves applied, for the heartbeat.
+    pub state: Arc<NodeState>,
 }
 
 fn is_sha256_hex(digest: &str) -> bool {
@@ -67,7 +71,7 @@ impl<F: BlobFetcher> Executor for ApplyConfigExecutor<F> {
             return finished(Outcome::Failed, "digest is not a SHA-256 in hexadecimal");
         }
         let digest = action.digest.to_ascii_lowercase();
-        let marker = format!(".gorgone-{target_name}.digest");
+        let marker = marker_name(&target_name);
 
         if bundle::applied_digest(&target.path, &marker).as_deref() == Some(digest.as_str()) {
             let unchanged = ApplyReport {
@@ -75,6 +79,7 @@ impl<F: BlobFetcher> Executor for ApplyConfigExecutor<F> {
                 pruned: 0,
                 unchanged: true,
             };
+            self.state.set_applied(&target_name, Some(digest));
             let message = summary(&target_name, unchanged);
             ctx.progress(message.clone());
             return finished(Outcome::Ok, message);
@@ -124,9 +129,15 @@ impl<F: BlobFetcher> Executor for ApplyConfigExecutor<F> {
                 prune,
                 max_unpacked,
             };
-            bundle::apply(&blob, &digest, &dest, &options)
+            let report = bundle::apply(&blob, &digest, &dest, &options);
+            // Read back rather than assumed: a failed apply may leave either.
+            (report, bundle::applied_digest(&dest, &marker))
         })
         .await;
+        let applied = applied.map(|(report, now_applied)| {
+            self.state.set_applied(&target_name, now_applied);
+            report
+        });
         match applied {
             Ok(Ok(report)) => {
                 let message = summary(&target_name, report);
@@ -191,6 +202,7 @@ mod tests {
             max_bundle_bytes: 1 << 20,
             max_unpacked_bytes: 1 << 20,
             fetcher,
+            state: Arc::new(NodeState::load(&BTreeMap::new(), false)),
         }
     }
 
@@ -224,6 +236,10 @@ mod tests {
         );
         assert!(!dest.path().join("stale.cfg").exists());
         assert!(dest.path().join(".gorgone-engine.digest").exists());
+        let applied = exec.state.applied();
+        assert_eq!(applied.len(), 1);
+        assert_eq!(applied[0].target, "engine");
+        assert_eq!(applied[0].digest, digest);
 
         let (done, _) = run(&exec, action(&digest.to_uppercase(), size)).await;
         assert_eq!(done.outcome(), Outcome::Ok);
@@ -269,6 +285,7 @@ mod tests {
             assert!(done.message.contains(needle), "{}", done.message);
         }
         assert!(!dest.path().join("a.cfg").exists());
+        assert!(exec.state.applied().is_empty());
 
         // Unannounced size: only the cap applies.
         let (done, _) = run(&exec, action(&digest, 0)).await;

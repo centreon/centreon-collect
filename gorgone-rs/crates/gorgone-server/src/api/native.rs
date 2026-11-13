@@ -24,10 +24,10 @@ use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 
-use super::{ApiError, Shared};
-use crate::dispatcher::CancelOutcome;
+use super::{ApiError, ApiState, Shared};
+use crate::dispatcher::{CancelOutcome, SubmitOptions};
 use crate::hub::job_notified;
-use crate::store::{EventRow, JobRow, state};
+use crate::store::{EventRow, JobRow, NodeRow, SessionRow, state};
 
 /// Longest long-poll accepted by `GET /v1/jobs/{id}?wait=`.
 const MAX_WAIT: Duration = Duration::from_secs(60);
@@ -171,6 +171,8 @@ fn job_json(job: &JobRow, events: &[EventRow]) -> Value {
         "cancel_requested": job.cancel_requested,
         // Rank in the node's submission order, which is the dispatch order.
         "seq": job.seq,
+        // Jobs that had to succeed before this one was dispatched.
+        "requires": job.requires,
         "action": action_json(&job.action),
         "events": events.iter().map(event_json).collect::<Vec<_>>(),
     })
@@ -182,6 +184,43 @@ pub(super) struct SubmitBody {
     action: ActionJson,
     /// Seconds before the job expires; server default when absent.
     deadline_s: Option<u64>,
+    /// Caller-chosen job id, making a retry of the request harmless.
+    id: Option<String>,
+    /// Jobs of the node that must succeed before this one is dispatched.
+    #[serde(default)]
+    requires: Vec<String>,
+    /// Also require the latest configuration push of each target of the node.
+    #[serde(default)]
+    requires_latest_config: bool,
+}
+
+/// True for `[A-Za-z0-9_-]{1,64}`, the form of a caller-chosen job id.
+fn valid_job_id(id: &str) -> bool {
+    (1..=64).contains(&id.len())
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+}
+
+/// Submits a job. `Ok(Some(job))` is the job a former request created with
+/// the same caller-chosen id: the answer must then be the one it got.
+async fn submit(
+    state: &ApiState,
+    node: &str,
+    action: Action,
+    options: SubmitOptions<'_>,
+) -> Result<(String, Option<JobRow>), ApiError> {
+    if options.id.is_some_and(|id| !valid_job_id(id)) {
+        return Err(ApiError::bad_request("id must match [A-Za-z0-9_-]{1,64}"));
+    }
+    let (id, created) = state.dispatcher.submit_job(node, action, options).await?;
+    if created {
+        return Ok((id, None));
+    }
+    match state.store.job(&id).await? {
+        Some(job) if job.node_id == node => Ok((id, Some(job))),
+        _ => Err(ApiError::conflict("job id already used by another node")),
+    }
 }
 
 /// `POST /v1/nodes/{node}/jobs`
@@ -199,11 +238,13 @@ pub(super) async fn submit_job(
     {
         return Err(ApiError::bad_request("unknown blob digest"));
     }
-    let deadline = body.deadline_s.map(Duration::from_secs);
-    let id = state
-        .dispatcher
-        .submit(&node, body.action.into(), deadline)
-        .await?;
+    let options = SubmitOptions {
+        id: body.id.as_deref(),
+        requires: &body.requires,
+        latest_config: body.requires_latest_config,
+        deadline: body.deadline_s.map(Duration::from_secs),
+    };
+    let (id, _) = submit(&state, &node, body.action.into(), options).await?;
     Ok((StatusCode::ACCEPTED, Json(json!({ "id": id }))))
 }
 
@@ -325,6 +366,17 @@ pub(super) async fn put_config(
         .map(|v| v.parse::<u64>().map(Duration::from_secs))
         .transpose()
         .map_err(|_| ApiError::bad_request("deadline_s must be an integer"))?;
+    // `?requires=id1,id2`
+    let requires: Vec<String> = query
+        .get("requires")
+        .map(|ids| {
+            ids.split(',')
+                .filter(|id| !id.is_empty())
+                .map(str::to_owned)
+        })
+        .into_iter()
+        .flatten()
+        .collect();
     // (De)compression is CPU bound: keep it off the async workers.
     let body = tokio::task::spawn_blocking(move || {
         if plain_tar {
@@ -344,14 +396,56 @@ pub(super) async fn put_config(
             size: u64::try_from(size).unwrap_or_default(),
         })),
     };
-    let id = state.dispatcher.submit(&node, action, deadline).await?;
+    let options = SubmitOptions {
+        id: query.get("id").map(String::as_str),
+        requires: &requires,
+        latest_config: false,
+        deadline,
+    };
+    let (id, existing) = submit(&state, &node, action, options).await?;
+    // A retry is told what the first request submitted.
+    let pushed = existing.and_then(
+        |job| match Action::decode(job.action.as_slice()).ok()?.kind {
+            Some(Kind::ApplyConfig(apply)) => Some((apply.digest, json!(apply.size))),
+            _ => None,
+        },
+    );
+    let (digest, size) = pushed.unwrap_or((digest, json!(size)));
     Ok((
         StatusCode::ACCEPTED,
         Json(json!({ "id": id, "digest": digest, "size": size })),
     ))
 }
 
-/// `GET /v1/nodes`: enrolled nodes with their connection status.
+/// JSON view of a node: connection status, and what its agent last
+/// reported (kept when the node disconnects).
+fn node_json(node: &NodeRow, session: Option<&SessionRow>) -> Value {
+    let reported: Value = node
+        .state
+        .as_deref()
+        .and_then(|state| serde_json::from_str(state).ok())
+        .unwrap_or_default();
+    json!({
+        "id": node.id,
+        "name": node.name,
+        "created_at": node.created_at,
+        "connected": session.is_some(),
+        "session": session.map(|s| json!({
+            "session_id": s.session_id,
+            "replica_id": s.replica_id,
+            "agent_version": s.agent_version,
+            "connected_at": s.connected_at,
+            "last_seen": s.last_seen,
+        })),
+        // Digest of the bundle applied to each target.
+        "applied": reported.get("applied").cloned().unwrap_or_else(|| json!({})),
+        // `null` when the agent does not reach the engine through its API.
+        "engine": reported.get("engine").cloned().unwrap_or_default(),
+        "state_changed_at": node.state_at,
+    })
+}
+
+/// `GET /v1/nodes`: enrolled nodes with their connection status and state.
 pub(super) async fn list_nodes(State(state): State<Shared>) -> Result<Json<Value>, ApiError> {
     let nodes = state.store.list_nodes().await?;
     let sessions: HashMap<String, _> = state
@@ -363,24 +457,23 @@ pub(super) async fn list_nodes(State(state): State<Shared>) -> Result<Json<Value
         .collect();
     let nodes: Vec<Value> = nodes
         .iter()
-        .map(|node| {
-            let session = sessions.get(&node.id);
-            json!({
-                "id": node.id,
-                "name": node.name,
-                "created_at": node.created_at,
-                "connected": session.is_some(),
-                "session": session.map(|s| json!({
-                    "session_id": s.session_id,
-                    "replica_id": s.replica_id,
-                    "agent_version": s.agent_version,
-                    "connected_at": s.connected_at,
-                    "last_seen": s.last_seen,
-                })),
-            })
-        })
+        .map(|node| node_json(node, sessions.get(&node.id)))
         .collect();
     Ok(Json(json!({ "nodes": nodes })))
+}
+
+/// `GET /v1/nodes/{node}`: one node, as in the list.
+pub(super) async fn get_node(
+    State(state): State<Shared>,
+    Path(node): Path<String>,
+) -> Result<Json<Value>, ApiError> {
+    let row = state
+        .store
+        .node(&node)
+        .await?
+        .ok_or_else(|| ApiError::not_found("unknown node"))?;
+    let session = state.store.session(&node).await?;
+    Ok(Json(node_json(&row, session.as_ref())))
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -438,6 +531,7 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(body.deadline_s, Some(5));
+        assert!(body.id.is_none() && body.requires.is_empty() && !body.requires_latest_config);
         let action: Action = body.action.into();
         assert_eq!(
             action_json(&action.encode_to_vec()),
@@ -445,6 +539,21 @@ mod tests {
                 { "command": "echo ok", "timeout_s": 30, "continue_on_error": false }
             ] } })
         );
+
+        let body: SubmitBody = serde_json::from_value(json!({
+            "service_control": { "service": "engine", "operation": "restart" },
+            "id": "restart-1",
+            "requires": ["a", "b"],
+            "requires_latest_config": true,
+        }))
+        .unwrap();
+        assert_eq!(body.id.as_deref(), Some("restart-1"));
+        assert_eq!(body.requires, ["a", "b"]);
+        assert!(body.requires_latest_config);
+        assert!(valid_job_id("Abc_09-z") && valid_job_id(&"a".repeat(64)));
+        for bad in ["", "a b", "a/b", "é", &"a".repeat(65)] {
+            assert!(!valid_job_id(bad), "{bad}");
+        }
 
         let control: ActionJson = serde_json::from_value(
             json!({ "service_control": { "service": "engine", "operation": "reload" } }),

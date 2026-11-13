@@ -48,6 +48,11 @@ pub(crate) fn too_many_events(max: i64) -> Value {
     json!({ "message": format!("job failed: more than {max} events"), "outcome": "failed" })
 }
 
+/// Payload of the event failing a job whose prerequisite ended in `state`.
+pub(crate) fn prerequisite_failed(prerequisite: &str, state: &str) -> Value {
+    json!({ "message": format!("prerequisite {prerequisite} did not succeed ({state})") })
+}
+
 /// Payload replacing an event whose JSON is still `size` bytes after the
 /// truncation of its fields.
 pub(crate) fn oversized(size: usize) -> Value {

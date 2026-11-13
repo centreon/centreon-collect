@@ -148,6 +148,9 @@ pub(crate) static JOBS_FINISHED: Family<4> = Family::labelled(
         state::CANCELLED,
     ],
 );
+/// Jobs failed by the server, never sent: a prerequisite did not succeed.
+pub(crate) static JOBS_PREREQUISITE_FAILED: Family<1> =
+    Family::counter("gorgone_jobs_prerequisite_failed_total");
 pub(crate) static JOB_EVENTS: Family<1> = Family::counter("gorgone_job_events_total");
 pub(crate) static JOB_EVENTS_DROPPED: Family<1> =
     Family::counter("gorgone_job_events_dropped_total");
@@ -181,6 +184,7 @@ pub(crate) fn render() -> String {
     JOBS_SUBMITTED.render(&mut out);
     JOBS_DISPATCHED.render(&mut out);
     JOBS_FINISHED.render(&mut out);
+    JOBS_PREREQUISITE_FAILED.render(&mut out);
     JOB_EVENTS.render(&mut out);
     JOB_EVENTS_DROPPED.render(&mut out);
     EVENT_BATCH_SIZE.render(&mut out);
@@ -248,6 +252,7 @@ mod tests {
             "gorgone_agent_sessions ",
             "gorgone_jobs_submitted_total{kind=\"run_commands\"}",
             "gorgone_jobs_finished_total{state=\"expired\"}",
+            "gorgone_jobs_prerequisite_failed_total ",
             "gorgone_centcore_dropped_total{reason=\"unsafe_source\"}",
             "gorgone_submit_batch_size_count",
         ] {
