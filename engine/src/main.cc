@@ -419,10 +419,6 @@ int main(int argc, char* argv[]) {
 
           const std::string& listen_address = new_config.rpc_listen_address();
 
-          SPDLOG_LOGGER_INFO(external_command_logger,
-                             "Start of grpc server on {}:{}", listen_address,
-                             port);
-
           std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
               new enginerpc(listen_address, port), [](enginerpc* rpc) {
                 rpc->shutdown();
@@ -454,6 +450,16 @@ int main(int argc, char* argv[]) {
           // Load broker modules.
           configuration::applier::state::instance().apply_log_config(
               new_config);
+
+          // Logged once the configured log levels and output apply.
+          if (rpc->listening())
+            SPDLOG_LOGGER_INFO(
+                process_logger, "gRPC API listening on {}",
+                enginerpc::listening_address(listen_address, port));
+          else
+            SPDLOG_LOGGER_ERROR(
+                process_logger, "gRPC API failed to listen on {}",
+                enginerpc::listening_address(listen_address, port));
 
           neb_init_callback_list();
 

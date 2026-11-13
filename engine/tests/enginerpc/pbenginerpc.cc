@@ -19,8 +19,12 @@
 
 #include <gtest/gtest.h>
 
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
 #include <chrono>
 
+#include <grpcpp/create_channel.h>
 #include <fstream>
 #include <thread>
 
@@ -47,6 +51,7 @@
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/engine/version.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
+#include "engine.grpc.pb.h"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -1916,4 +1921,96 @@ TEST_F(EngineRpc, NewThresholdsFile) {
   ASSERT_EQ(output.front(), "NewThresholdsFile: 0");
   command_manager::instance().execute();
   ASSERT_EQ(_ad->get_thresholds_file(), "/tmp/thresholds_file.json");
+}
+
+TEST(enginerpc_test, tcp_address_gets_the_port) {
+  ASSERT_FALSE(enginerpc::is_unix_socket("localhost"));
+  ASSERT_EQ(enginerpc::listening_address("localhost", 50155),
+            "localhost:50155");
+  ASSERT_EQ(enginerpc::listening_address("0.0.0.0", 40001), "0.0.0.0:40001");
+}
+
+TEST(enginerpc_test, unix_socket_address_is_used_as_is) {
+  ASSERT_TRUE(enginerpc::is_unix_socket("unix:/run/engine.sock"));
+  ASSERT_EQ(enginerpc::listening_address("unix:/run/engine.sock", 50155),
+            "unix:/run/engine.sock");
+}
+
+TEST(enginerpc_test, host_name_starting_with_unix_is_tcp) {
+  ASSERT_FALSE(enginerpc::is_unix_socket("unix"));
+  ASSERT_EQ(enginerpc::listening_address("unixhost", 50155), "unixhost:50155");
+}
+
+/* GetVersion through the Unix domain socket of the server. */
+static grpc::Status get_version_on(const std::string& address) {
+  auto stub = com::centreon::engine::Engine::NewStub(
+      grpc::CreateChannel(address, grpc::InsecureChannelCredentials()));
+  grpc::ClientContext context;
+  context.set_deadline(std::chrono::system_clock::now() +
+                       std::chrono::seconds(10));
+  const ::google::protobuf::Empty e;
+  com::centreon::engine::Version version;
+  return stub->GetVersion(&context, e, &version);
+}
+
+TEST_F(EngineRpc, UnixSocketAnswersWithOwnerAndGroupMode) {
+  const std::string path =
+      fmt::format("/tmp/ut_engine_rpc_mode_{}.sock", getpid());
+  const std::string address = "unix:" + path;
+  unlink(path.c_str());
+  mode_t mask = umask(022);
+  {
+    enginerpc erpc(address, 40001);
+    ASSERT_TRUE(erpc.listening());
+    struct stat st;
+    ASSERT_EQ(stat(path.c_str(), &st), 0);
+    ASSERT_TRUE(S_ISSOCK(st.st_mode));
+    ASSERT_EQ(st.st_mode & 07777, 0660u);
+    grpc::Status status = get_version_on(address);
+    ASSERT_TRUE(status.ok()) << status.error_message();
+    erpc.shutdown();
+  }
+  // The umask of the process is restored once the server is started.
+  ASSERT_EQ(umask(mask), 022u);
+  unlink(path.c_str());
+}
+
+TEST_F(EngineRpc, UnixSocketReplacesStaleSocket) {
+  const std::string path =
+      fmt::format("/tmp/ut_engine_rpc_stale_{}.sock", getpid());
+  const std::string address = "unix:" + path;
+  unlink(path.c_str());
+  // A socket file nobody listens on, as a killed Engine leaves it.
+  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  ASSERT_GE(fd, 0);
+  struct sockaddr_un addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
+  ASSERT_EQ(bind(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)),
+            0);
+  close(fd);
+  struct stat st;
+  ASSERT_EQ(stat(path.c_str(), &st), 0);
+
+  enginerpc erpc(address, 40001);
+  ASSERT_TRUE(erpc.listening());
+  grpc::Status status = get_version_on(address);
+  ASSERT_TRUE(status.ok()) << status.error_message();
+  erpc.shutdown();
+  unlink(path.c_str());
+}
+
+TEST_F(EngineRpc, UnixSocketDoesNotReplaceRegularFile) {
+  const std::string path =
+      fmt::format("/tmp/ut_engine_rpc_file_{}.sock", getpid());
+  CreateFile(path, "not a socket");
+
+  enginerpc erpc("unix:" + path, 40001);
+  ASSERT_FALSE(erpc.listening());
+  struct stat st;
+  ASSERT_EQ(stat(path.c_str(), &st), 0);
+  ASSERT_TRUE(S_ISREG(st.st_mode));
+  erpc.shutdown();
+  unlink(path.c_str());
 }

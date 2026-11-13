@@ -14,6 +14,10 @@ class enginerpc final {
   enginerpc() = delete;
   enginerpc(const enginerpc&) = delete;
   ~enginerpc() = default;
+  static bool is_unix_socket(const std::string& address);
+  static std::string listening_address(const std::string& address,
+                                       uint16_t port);
+  bool listening() const;
   void shutdown();
 };
 
