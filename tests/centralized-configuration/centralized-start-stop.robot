@@ -237,6 +237,54 @@ BECSS5
     ...    Run Process    pkill    -CONT    centengine
     ...    AND    Ctn Stop Engine Broker And Save Logs
 
+BECSS6
+    [Documentation]    Scenario: an Engine that lost its state.prot is sent the stored configuration again
+    ...    Given one poller running the configuration Broker pushed to it
+    ...    When Engine is stopped and its state.prot removed
+    ...    And Engine is started again, with no new export
+    ...    Then Engine announces no version, and Broker stores one for it with nothing newer
+    ...    And Broker sends it the stored configuration, whole
+    ...    And Engine acknowledges it and writes its state.prot again
+    ...    And no file was prepared for that in the pollers configuration directory.
+    [Tags]    broker    engine    config    centralized    start-stop
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Logs
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    VAR    ${dir}    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    VAR    ${state_prot}    ${VarRoot}/lib/centreon-engine/config0/state.prot
+    File Should Exist    ${dir}/1.prot
+    File Should Exist    ${state_prot}
+
+    Ctn Stop Engine
+    Remove File    ${state_prot}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+
+    ${content}    Create List
+    ...    it is owed the stored one, whole
+    ...    poller 1 does not run the stored configuration
+    ...    sending DiffState to poller 1
+    ...    received diff state ack from poller 1
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not send the stored configuration to the Engine that lost its state.prot
+    Wait Until Created    ${state_prot}    30s
+    File Should Exist    ${dir}/1.prot
+    File Should Not Exist    ${dir}/new-1.prot
+    File Should Not Exist    ${dir}/new-diff-1.prot
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
 BECSS_GRPC1
     [Documentation]     Scenario: Broker sends configuration to engine in new generation
     ...    Given an engine configuration is provided to the broker
