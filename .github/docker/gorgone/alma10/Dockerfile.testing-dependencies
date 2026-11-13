@@ -8,8 +8,8 @@ ARG PNPM_VERSION=10.24.0
 
 COPY .github/docker/gorgone/package.json .github/docker/gorgone/pnpm-lock.yaml /usr/local/src/
 
-RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
-    --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
+RUN --mount=type=secret,id=PULP_INTERNAL_REPO_USERNAME \
+    --mount=type=secret,id=PULP_INTERNAL_REPO_PASSWORD \
     bash -e <<EOF
 
 echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
@@ -20,8 +20,8 @@ dnf install -y dnf-plugins-core zstd mariadb iproute epel-release procps lsof
 dnf config-manager --set-enabled crb
 
 if [[ "${IS_CLOUD}" == "true" ]]; then
-  dnf config-manager --add-repo https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el10/centreon-${VERSION}-internal.repo
-  sed -i "s#packages.centreon.com/rpm-standard-internal#$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal#" /etc/yum.repos.d/centreon-${VERSION}-internal.repo
+  dnf config-manager --add-repo https://$(cat /run/secrets/PULP_INTERNAL_REPO_USERNAME):$(cat /run/secrets/PULP_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el10/centreon-${VERSION}-internal.repo
+  sed -i "s#packages.centreon.com/rpm-standard-internal#$(cat /run/secrets/PULP_INTERNAL_REPO_USERNAME):$(cat /run/secrets/PULP_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal#" /etc/yum.repos.d/centreon-${VERSION}-internal.repo
 else
   dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el10/centreon-${VERSION}.repo
 fi
