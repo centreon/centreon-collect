@@ -168,7 +168,9 @@ The next export starts from `X.prot` again, which the poller does run. A reconne
 
 * **an `X.lck` announcement**: it has not been read yet, the poller goes through a full cycle;
 * **otherwise a `new-X.prot`**: the configuration is ready, `_prepare_diff_from_new_prot_file()` computes the difference with `X.prot` without reading the sources again;
-* **neither**: there is nothing to hand over. If `Broker` has no `X.prot` either, it asks the poller for its configuration (`DiffState{unknown=true}`, see [Implementation](03-configuration-validation-en.md#implementation-1)).
+* **neither**: nothing newer than `X.prot`. If the poller announces the version of `X.prot`, there is nothing to hand over. If it announces another one, or none (a poller restored from a backup, or one that lost its `state.prot`), `X.prot` itself is owed to it: it is sent as a full configuration, with no intermediate file, since the database and the cache already hold it (`poller_conf::on_stored_conf_owed()`, robot test `BECSS6`). If `Broker` has no `X.prot` either, it asks the poller for its configuration (`DiffState{unknown=true}`, see [Implementation](03-configuration-validation-en.md#implementation-1)).
+
+These rules hold for both routes: a direct connection (`add_peer()`) and the `ConfigRequest` of a relay (`register_poller_via_relay()`) go through the same function, `_feed_cache_and_wake_up_resources()`, and the sending through the same `_serve_poller()`.
 
 The order follows from the handover: the cycle removes the announcement as soon as it has written `new-X.prot`, so an announcement still present is necessarily about a push later than the `new-X.prot` lying next to it.
 

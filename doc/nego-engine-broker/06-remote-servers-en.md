@@ -102,10 +102,14 @@ message ConfigRequest {
 // No ConfigResponse: the central replies with a standard DiffState.
 ```
 
-The central compares `config_version` with its own version for this poller and responds:
-- `config_version` empty **or** central does not know N → `DiffState{unknown=true}`
-- versions identical → empty `DiffState` (no changes, nothing to do)
-- central has a newer version → `DiffState{diff}`
+The central handles this `ConfigRequest` as the direct connection of a poller: `register_poller_via_relay()` registers the poller behind its relay, then calls the same trunk as `add_peer()`, `_feed_cache_and_wake_up_resources()`. What the poller must receive is then sent by `_serve_poller()`, the function that also serves a direct poller; the stream of the relay calls it for each poller of its route. There is therefore no answer specific to the relay any more:
+- the central has neither `N.prot` nor an announcement for N → `DiffState{unknown=true}`, sent once when the `ConfigRequest` is received;
+- an announcement `N.lck` has not been read yet → nothing for now: the cycle is woken up, and the configuration follows as soon as it has prepared it;
+- `new-N.prot` exists → the difference is computed; if the poller already announces that version, its announcement counts as the acknowledgement;
+- the poller announces the version of `N.prot` → `DiffState{runtime_only}`, which only carries the runtime snapshot and opens no round;
+- the poller announces another version than `N.prot`, or none → `N.prot` is sent to it as a full configuration (transition 20), with no intermediate file.
+
+In the diagrams of this chapter, "`DiffState{empty}`" stands for this `DiffState{runtime_only}`.
 
 The remote handles this `DiffState` the same way a direct Engine would: whether received in response to a `ConfigRequest` or pushed by the central (scenario 2), the behaviour is identical. This is the same mechanism as the direct Engine↔central negotiation (the `engine_conf` field in `Welcome`), proxied one level through the remote.
 

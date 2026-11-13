@@ -102,10 +102,14 @@ message ConfigRequest {
 // Le central répond avec un DiffState standard.
 ```
 
-Le central compare `config_version` avec sa propre version pour ce poller et répond :
-- `config_version` vide **ou** central ne connaît pas N → `DiffState{unknown=true}`
-- versions identiques → `DiffState` vide (aucun changement, rien à faire)
-- central a une version plus récente → `DiffState{diff}`
+Le central traite ce `ConfigRequest` comme la connexion directe d'un poller : `register_poller_via_relay()` enregistre le poller derrière son relais, puis appelle le même tronc que `add_peer()`, `_feed_cache_and_wake_up_resources()`. Ce que le poller doit recevoir est ensuite envoyé par `_serve_poller()`, la fonction qui sert aussi un poller direct ; le stream du relais l'appelle pour chaque poller de sa route. Il n'y a donc plus de réponse propre au relais :
+- le central n'a ni `N.prot` ni annonce pour N → `DiffState{unknown=true}`, envoyé une fois à la réception du `ConfigRequest` ;
+- une annonce `N.lck` n'a pas encore été lue → rien pour l'instant : le cycle est réveillé, et la configuration suit dès qu'il l'a préparée ;
+- `new-N.prot` existe → la différence est calculée ; si le poller annonce déjà cette version, son annonce vaut acquittement ;
+- le poller annonce la version de `N.prot` → `DiffState{runtime_only}`, qui ne porte que le snapshot d'exécution et n'ouvre pas de tour ;
+- le poller annonce une autre version que `N.prot`, ou aucune → `N.prot` lui est envoyé en configuration complète (transition 20), sans fichier intermédiaire.
+
+Dans les diagrammes de ce chapitre, « `DiffState{vide}` » désigne ce `DiffState{runtime_only}`.
 
 Le remote traite ce `DiffState` de la même façon qu'un Engine direct : qu'il soit reçu en réponse à un `ConfigRequest` ou en push depuis le central (scénario 2), le comportement est identique. C'est le même mécanisme que la négociation directe Engine↔central (champ `engine_conf` du `Welcome`), déporté d'un niveau via le remote.
 

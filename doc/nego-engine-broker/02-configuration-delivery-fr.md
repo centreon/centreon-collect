@@ -184,7 +184,9 @@ Le prochain export repart de `X.prot`, que le poller fait bien tourner. Une reco
 
 * **une annonce `X.lck`** : elle n'a pas encore été lue, le poller passe par un cycle complet ;
 * **sinon un `new-X.prot`** : la configuration est prête, `_prepare_diff_from_new_prot_file()` calcule la différence avec `X.prot` sans relire les sources ;
-* **ni l'un ni l'autre** : il n'y a rien à livrer. Si `Broker` n'a pas non plus `X.prot`, il demande sa configuration au poller (`DiffState{unknown=true}`, voir [Mise en pratique](03-configuration-validation-fr.md#mise-en-pratique)).
+* **ni l'un ni l'autre** : rien de plus récent que `X.prot`. Si le poller annonce la version de `X.prot`, il n'y a rien à livrer. S'il en annonce une autre, ou aucune (un poller restauré d'une sauvegarde, ou qui a perdu son `state.prot`), c'est `X.prot` lui-même qui lui est dû : il lui est envoyé en configuration complète, sans fichier intermédiaire, puisque la base et le cache le portent déjà (`poller_conf::on_stored_conf_owed()`, test robot `BECSS6`). Si `Broker` n'a pas non plus `X.prot`, il demande sa configuration au poller (`DiffState{unknown=true}`, voir [Mise en pratique](03-configuration-validation-fr.md#mise-en-pratique)).
+
+Ces règles valent pour les deux routes : une connexion directe (`add_peer()`) et le `ConfigRequest` d'un relais (`register_poller_via_relay()`) passent par la même fonction, `_feed_cache_and_wake_up_resources()`, et l'envoi par le même `_serve_poller()`.
 
 L'ordre découle du passage de témoin : le cycle supprime l'annonce dès qu'il a écrit `new-X.prot`, donc une annonce encore présente porte forcément sur une poussée postérieure au `new-X.prot` posé à côté d'elle.
 
