@@ -4274,3 +4274,65 @@ grpc::Status engine_impl::SendBench(
   broker_bench(request->id(), client_ts);
   return grpc::Status::OK;
 }
+
+/**
+ * @brief Process an external command line, as if it had been read from the
+ * command file. The command is executed by the main loop.
+ *
+ * @param context gRPC context
+ * @param request The command line: "[<timestamp>] <COMMAND_NAME>;<args>"
+ * @param response Command answer
+ *
+ * @return Status::OK once the command has been processed,
+ * Status::INVALID_ARGUMENT when the line is malformed or the command unknown,
+ * Status::UNKNOWN when the command threw.
+ */
+grpc::Status engine_impl::ProcessExternalCommand(
+    grpc::ServerContext* context [[maybe_unused]],
+    const com::centreon::engine::ExternalCommand* request,
+    com::centreon::engine::CommandSuccess* response) {
+  const std::string& command = request->command();
+  if (command.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "command must not be empty");
+
+  // One request is one line: the command file reader splits on newlines.
+  // Tabulations stay allowed, plugin outputs may carry some.
+  if (std::any_of(command.begin(), command.end(), [](unsigned char c) {
+        return (c < 0x20 && c != '\t') || c == 0x7f;
+      }))
+    return grpc::Status(
+        grpc::StatusCode::INVALID_ARGUMENT,
+        "command must be a single line without control characters");
+
+  std::string err;
+  auto fn = std::packaged_task<int32_t(void)>([&command, &err]() -> int32_t {
+    try {
+      return commands::processing::execute(command) ? 0 : 1;
+    } catch (const std::exception& e) {
+      // The line may carry a plugin output or a comment: only its length is
+      // logged here, processing::execute logs the accepted commands.
+      SPDLOG_LOGGER_ERROR(
+          external_command_logger,
+          "ProcessExternalCommand: external command of {} bytes failed: {}",
+          command.size(), e.what());
+      err = e.what();
+      return 2;
+    }
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  switch (result.get()) {
+    case 0:
+      response->set_value(true);
+      return grpc::Status::OK;
+    case 1:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "command is malformed or unknown, expected format: "
+                          "\"[<timestamp>] <COMMAND_NAME>;<arguments>\"");
+    default:
+      return grpc::Status(grpc::StatusCode::UNKNOWN, "command failed: " + err);
+  }
+}

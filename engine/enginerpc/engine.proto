@@ -157,6 +157,23 @@ service Engine {
    * @return nothing.
    */
   rpc SendBench(BenchParam) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Process an external command, as if its line had been written to
+   * the command file.
+   *
+   * @param The command line.
+   *
+   * @return OK once the command has been processed, INVALID_ARGUMENT when the
+   * line is malformed or the command unknown.
+   */
+  rpc ProcessExternalCommand(ExternalCommand) returns (CommandSuccess) {}
+}
+
+message ExternalCommand {
+  /* One command line, without trailing newline:
+   * "[<timestamp>] <COMMAND_NAME>;<arg1>;<arg2>..." */
+  string command = 1;
 }
 
 message GenericString {

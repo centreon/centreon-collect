@@ -1795,6 +1795,110 @@ TEST_F(EngineRpc, ProcessHostCheckResultBadHost) {
   erpc.shutdown();
 }
 
+TEST_F(EngineRpc, ProcessExternalCommand) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  _host->set_checks_enabled(true);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  auto output =
+      execute(fmt::format("ProcessExternalCommand '[1700000000] "
+                          "DISABLE_HOST_CHECK;{}'",
+                          _host->name()));
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(output.size(), 1u);
+  ASSERT_EQ(output.front(), "ProcessExternalCommand: 0");
+  ASSERT_FALSE(_host->active_checks_enabled());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ProcessExternalCommandEmpty) {
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("ProcessExternalCommand ''");
+  ASSERT_EQ(output.size(), 2u);
+  ASSERT_EQ(output.front(),
+            "ProcessExternalCommand failed: 3 command must not be empty");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ProcessExternalCommandSeveralLines) {
+  enginerpc erpc("0.0.0.0", 40001);
+  _host->set_checks_enabled(true);
+  auto output = execute(fmt::format(
+      "ProcessExternalCommand '[1700000000] DISABLE_HOST_CHECK;{0}\n"
+      "[1700000000] DISABLE_HOST_CHECK;{0}'",
+      _host->name()));
+  ASSERT_EQ(output.size(), 2u);
+  ASSERT_EQ(output.front(),
+            "ProcessExternalCommand failed: 3 command must be a single line "
+            "without control characters");
+  command_manager::instance().execute();
+  ASSERT_TRUE(_host->active_checks_enabled());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ProcessExternalCommandMalformed) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  _host->set_checks_enabled(true);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  // No "[<timestamp>] " prefix.
+  auto output = execute(fmt::format(
+      "ProcessExternalCommand 'DISABLE_HOST_CHECK;{}'", _host->name()));
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(output.size(), 2u);
+  ASSERT_EQ(output.front(),
+            "ProcessExternalCommand failed: 3 command is malformed or "
+            "unknown, expected format: \"[<timestamp>] "
+            "<COMMAND_NAME>;<arguments>\"");
+  ASSERT_TRUE(_host->active_checks_enabled());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ProcessExternalCommandUnknown) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  auto output = execute(fmt::format(
+      "ProcessExternalCommand '[1700000000] NOT_A_COMMAND;{}'", _host->name()));
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(output.size(), 2u);
+  ASSERT_EQ(output.front(),
+            "ProcessExternalCommand failed: 3 command is malformed or "
+            "unknown, expected format: \"[<timestamp>] "
+            "<COMMAND_NAME>;<arguments>\"");
+  erpc.shutdown();
+}
+
 TEST_F(EngineRpc, NewThresholdsFile) {
   CreateFile(
       "/tmp/thresholds_file.json",
