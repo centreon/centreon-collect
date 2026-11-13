@@ -1362,6 +1362,40 @@ class EngineRPCClient {
     }
     return true;
   }
+
+  bool ProcessExternalCommand(const std::string& command) {
+    ExternalCommand request;
+    grpc::ClientContext context;
+    CommandSuccess response;
+    request.set_command(command);
+    grpc::Status status =
+        _stub->ProcessExternalCommand(&context, request, &response);
+    if (!status.ok()) {
+      std::cout << fmt::format("ProcessExternalCommand failed: {} {}",
+                               static_cast<int>(status.error_code()),
+                               status.error_message())
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool VerifyConfiguration(const std::string& path,
+                           ConfigurationVerification* response) {
+    ConfigurationFile request;
+    grpc::ClientContext context;
+    request.set_path(path);
+    grpc::Status status =
+        _stub->VerifyConfiguration(&context, request, response);
+    if (!status.ok()) {
+      std::cout << fmt::format("VerifyConfiguration failed: {} {}",
+                               static_cast<int>(status.error_code()),
+                               status.error_message())
+                << std::endl;
+      return false;
+    }
+    return true;
+  }
 };
 
 int main(int argc, char** argv) {
@@ -1401,6 +1435,28 @@ int main(int argc, char** argv) {
     hc.set_output("Test external command");
     status = client.ProcessHostCheckResult(hc) ? 0 : 4;
     std::cout << "ProcessHostCheckResult: " << status << std::endl;
+  } else if (strcmp(argv[1], "ProcessExternalCommand") == 0) {
+    if (argc != 3) {
+      std::cout << "ProcessExternalCommand require arguments : "
+                   "ProcessExternalCommand [command line]"
+                << std::endl;
+      return 1;
+    }
+    status = client.ProcessExternalCommand(argv[2]) ? 0 : 1;
+    std::cout << "ProcessExternalCommand: " << status << std::endl;
+  } else if (strcmp(argv[1], "VerifyConfiguration") == 0) {
+    if (argc != 3) {
+      std::cout << "VerifyConfiguration require arguments : "
+                   "VerifyConfiguration [main configuration file]"
+                << std::endl;
+      return 1;
+    }
+    ConfigurationVerification verification;
+    status = client.VerifyConfiguration(argv[2], &verification) ? 0 : 1;
+    // First line: the exit code of the verification; then its output.
+    if (status == 0)
+      std::cout << "VerifyConfiguration: " << verification.exit_code() << '\n'
+                << verification.output() << std::endl;
   } else if (strcmp(argv[1], "NewThresholdsFile") == 0) {
     ThresholdsFile tf;
     tf.set_filename(argv[2]);

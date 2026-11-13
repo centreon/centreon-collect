@@ -1,0 +1,173 @@
+name: gorgone-rs
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/gorgone-rs.yml"
+      - "gorgone-rs/**"
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
+      - 'release-[2-9][0-9].[0-9][0-9]-next'
+      - 'hotfix-[2-9][0-9].[0-9][0-9]-next'
+    paths:
+      - ".github/workflows/gorgone-rs.yml"
+      - "gorgone-rs/**"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: gorgone-rs
+    shell: bash
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    name: lint
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        # Version and components come from gorgone-rs/rust-toolchain.toml.
+        run: rustup toolchain install
+
+      - name: Cache cargo registry and target
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            gorgone-rs/target
+          key: gorgone-rs-lint-${{ runner.os }}-${{ hashFiles('gorgone-rs/Cargo.lock') }}
+          restore-keys: gorgone-rs-lint-${{ runner.os }}-
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Check that the generated gRPC code is up to date
+        run: |
+          cargo run --locked --manifest-path tools/protogen/Cargo.toml
+          git diff --exit-code -- crates/gorgone-proto/src/generated
+
+  test-sqlite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    name: test sqlite
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        # Version and components come from gorgone-rs/rust-toolchain.toml.
+        run: rustup toolchain install
+
+      - name: Cache cargo registry and target
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            gorgone-rs/target
+          key: gorgone-rs-test-${{ runner.os }}-${{ hashFiles('gorgone-rs/Cargo.lock') }}
+          restore-keys: gorgone-rs-test-${{ runner.os }}-
+
+      - name: Run tests
+        run: cargo test --workspace --locked
+
+  test-mariadb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    name: test mariadb
+
+    services:
+      mariadb:
+        image: mariadb:11.4
+        ports:
+          - 3306
+        # Throwaway values, only valid inside this job's service container.
+        env:
+          MARIADB_DATABASE: gorgone
+          MARIADB_USER: gorgone
+          MARIADB_PASSWORD: gorgone
+          MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        # Version and components come from gorgone-rs/rust-toolchain.toml.
+        run: rustup toolchain install
+
+      - name: Cache cargo registry and target
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            gorgone-rs/target
+          key: gorgone-rs-test-mariadb-${{ runner.os }}-${{ hashFiles('gorgone-rs/Cargo.lock') }}
+          restore-keys: gorgone-rs-test-mariadb-${{ runner.os }}-
+
+      - name: Run server tests on MariaDB
+        env:
+          MARIADB_PORT: ${{ job.services.mariadb.ports['3306'] }}
+        run: |
+          export GORGONE_TEST_DATABASE_URL="mysql://gorgone:gorgone@127.0.0.1:${MARIADB_PORT}/gorgone"
+          cargo test -p gorgone-server --locked
+
+  build-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    name: build image ${{ matrix.target }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [server, agent]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build image
+        env:
+          TARGET: ${{ matrix.target }}
+        run: docker build -f deploy/Dockerfile --target "$TARGET" -t "gorgone-rs-$TARGET:ci" .

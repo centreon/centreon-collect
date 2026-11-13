@@ -287,6 +287,24 @@ class engine_impl final : public Engine::Service {
   grpc::Status SendBench(grpc::ServerContext* context,
                          const com::centreon::engine::BenchParam* request,
                          google::protobuf::Empty* response) override;
+
+  grpc::Status ProcessExternalCommand(
+      grpc::ServerContext* context,
+      const com::centreon::engine::ExternalCommand* request,
+      com::centreon::engine::CommandSuccess* response) override;
+
+  grpc::Status VerifyConfiguration(
+      grpc::ServerContext* context,
+      const com::centreon::engine::ConfigurationFile* request,
+      com::centreon::engine::ConfigurationVerification* response) override;
+
+ public:
+  /**
+   * @brief Set the executable VerifyConfiguration runs with `-v`. It is the
+   * engine itself by default; the unit tests, which are not centengine, set
+   * the path of the one they built.
+   */
+  static void set_verify_executable(const std::string_view& path);
 };
 
 }  // namespace com::centreon::engine

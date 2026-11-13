@@ -1,0 +1,200 @@
+syntax = "proto3";
+
+package gorgone.agent.v1;
+
+// Gateway exposed by gorgone-server to the agents running on pollers.
+service AgentGateway {
+  // Long-lived control stream, opened by the agent.
+  rpc Session(stream AgentFrame) returns (stream ServerFrame);
+  // Bulk data (configuration bundles), addressed by content digest.
+  rpc FetchBlob(FetchBlobRequest) returns (stream BlobChunk);
+}
+
+message AgentFrame {
+  oneof frame {
+    Hello hello = 1;
+    Heartbeat heartbeat = 2;
+    JobEvent event = 3;
+  }
+}
+
+message ServerFrame {
+  oneof frame {
+    Welcome welcome = 1;
+    Dispatch dispatch = 2;
+    EventAck ack = 3;
+    Cancel cancel = 4;
+  }
+}
+
+message Hello {
+  string node_id = 1;
+  string agent_version = 2;
+  // Action kinds the agent accepts: run_commands, engine_commands, ...
+  repeated string capabilities = 3;
+}
+
+message Welcome {
+  string session_id = 1;
+  uint32 heartbeat_interval_s = 2;
+  string server_version = 3;
+}
+
+message Heartbeat {
+  uint32 running_jobs = 1;
+  // What the node really runs, so that the central can tell a pushed
+  // configuration from an applied one.
+  repeated AppliedConfig applied = 2;
+  // Absent when the agent does not reach the engine through its API.
+  EngineState engine = 3;
+}
+
+message AppliedConfig {
+  // Target name, as in ApplyConfig.
+  string target = 1;
+  // Digest of the last bundle applied to it.
+  string digest = 2;
+}
+
+message EngineState {
+  bool reachable = 1;
+  // "major.minor.patch", empty when not reachable.
+  string version = 2;
+}
+
+message Dispatch {
+  Job job = 1;
+}
+
+message Cancel {
+  string job_id = 1;
+}
+
+message EventAck {
+  string job_id = 1;
+  uint64 seq = 2;
+}
+
+message Job {
+  string id = 1;
+  // Unix milliseconds on the server clock; informative only.
+  int64 deadline_unix_ms = 2;
+  Action action = 3;
+  // Time left when the job was dispatched; 0 means no deadline. The agent
+  // counts from reception, so clocks need not agree.
+  uint64 ttl_ms = 4;
+  // Jobs of the same node that had to succeed first. Enforced by the server,
+  // which only dispatches the job once they did; informative for the agent.
+  repeated string requires = 5;
+}
+
+message Action {
+  oneof kind {
+    RunCommands run_commands = 1;
+    EngineCommands engine_commands = 2;
+    ApplyConfig apply_config = 3;
+    ServiceControl service_control = 4;
+    ValidateConfig validate_config = 5;
+  }
+}
+
+message RunCommands {
+  repeated Command commands = 1;
+}
+
+message Command {
+  string command = 1;
+  // 0 means the agent default.
+  uint32 timeout_s = 2;
+  bool continue_on_error = 3;
+}
+
+message EngineCommands {
+  // External command lines, without the leading timestamp bracket handling:
+  // sent as is to the engine command pipe.
+  repeated string commands = 1;
+}
+
+message ApplyConfig {
+  // Logical destination resolved by the agent: engine, broker, vmware...
+  string target = 1;
+  // Lowercase hex SHA-256 of the bundle.
+  string digest = 2;
+  uint64 size = 3;
+}
+
+// Checks a configuration bundle without applying it: the agent unpacks it
+// aside and has it verified by the program that would load it. Reported
+// with one CommandResult (exit_code 0 when valid, stdout holds the
+// checker output) before the terminal event.
+message ValidateConfig {
+  string target = 1;
+  // Lowercase hex SHA-256 of the bundle.
+  string digest = 2;
+  uint64 size = 3;
+}
+
+message ServiceControl {
+  enum Operation {
+    OPERATION_UNSPECIFIED = 0;
+    OPERATION_START = 1;
+    OPERATION_STOP = 2;
+    OPERATION_RELOAD = 3;
+    OPERATION_RESTART = 4;
+  }
+  // Logical service resolved by the agent: engine, broker, centreontrapd...
+  string service = 1;
+  Operation operation = 2;
+}
+
+message JobEvent {
+  string job_id = 1;
+  // Starts at 1, increases by one per job.
+  uint64 seq = 2;
+  int64 time_unix_ms = 3;
+  oneof body {
+    JobStarted started = 10;
+    CommandResult command_result = 11;
+    JobProgress progress = 12;
+    // Terminal event.
+    JobFinished finished = 13;
+  }
+}
+
+message JobStarted {}
+
+message CommandResult {
+  uint32 index = 1;
+  string command = 2;
+  int32 exit_code = 3;
+  string stdout = 4;
+  string stderr = 5;
+  uint64 duration_ms = 6;
+  bool timed_out = 7;
+}
+
+message JobProgress {
+  string message = 1;
+}
+
+message JobFinished {
+  enum Outcome {
+    OUTCOME_UNSPECIFIED = 0;
+    OUTCOME_OK = 1;
+    OUTCOME_FAILED = 2;
+    // Refused by the agent policy (allowlist, unknown target or service).
+    OUTCOME_REJECTED = 3;
+    OUTCOME_TIMEOUT = 4;
+    OUTCOME_CANCELLED = 5;
+  }
+  Outcome outcome = 1;
+  string message = 2;
+}
+
+message FetchBlobRequest {
+  string digest = 1;
+}
+
+message BlobChunk {
+  bytes data = 1;
+}

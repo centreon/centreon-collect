@@ -1,0 +1,338 @@
+# gorgone-agent configuration example. Every key is listed; the value shown
+# is the default unless the comment says otherwise.
+#
+# Every key can be overridden by environment, with the prefix GORGONE_AGENT__
+# and `__` between nesting levels, so a container needs no file at all:
+#   GORGONE_AGENT__NODE_ID=7
+#   GORGONE_AGENT__TLS__CA_FILE=/etc/centreon-gorgone/ca.pem
+#   GORGONE_AGENT__SERVICES__ENGINE__RELOAD="sudo systemctl reload centengine"
+#   GORGONE_AGENT__COMMANDS__ALLOWLIST='["/usr/lib/centreon/plugins/\\S+( .*)?"]'
+# A value is taken as written, with two exceptions: a valid TOML list or
+# inline table is read as such (the allowlist is written `["a", "b"]`), and
+# the double quotes of a TOML string are removed. To keep such a text as
+# written, wrap it in double quotes inside the variable: TOKEN='"[1]"'.
+
+# Required. Identifier of this poller on the central (the `nagios_server.id`
+# of Centreon).
+node_id = "1"
+
+# Required. gRPC gateway of gorgone-server. `http://` disables TLS: tests only.
+server_url = "https://central.example.com:5556"
+
+# Enrolment token returned once by `PUT /v1/nodes/{node}` on the central.
+# Required unless a client certificate is configured. No default.
+# Keep it out of this file: point to a file readable by the agent user only
+# (`token_file`), or set GORGONE_AGENT__TOKEN from a secret store. `token`
+# wins when both are set.
+# token = "..."
+token_file = "/etc/centreon-gorgone/agent.token"
+
+# Directory where the job journal survives a restart. Unset by default: the
+# journal then lives in memory only and a restart forgets it. When set, after
+# a restart the agent resends the events the server did not acknowledge,
+# answers a repeated dispatch of a finished job with its recorded events
+# instead of running it again, and closes a job that was running when the
+# agent died as failed ("agent restarted during execution"). The directory
+# must be writable by the agent user and private to one agent; it holds
+# command outputs.
+state_dir = "/var/lib/centreon-gorgone-agent"
+
+# RunCommands jobs executed at the same time. ApplyConfig, ValidateConfig,
+# ServiceControl and EngineCommands jobs always run one at a time, in dispatch
+# order, and do not count against this limit.
+max_concurrent_jobs = 4
+
+# Timeout of a command that does not carry its own, and of every service
+# control command, in seconds.
+default_command_timeout_s = 30
+
+# When a command is stopped (timeout, cancellation, job deadline) its whole
+# process group receives SIGTERM, then SIGKILL after this delay, in
+# milliseconds. 0 kills at once.
+kill_grace_ms = 2000
+
+# Cap on the captured stdout, and on the captured stderr, of one command, in
+# bytes. What exceeds it is dropped and the output is marked as truncated.
+max_output_bytes = 65536
+
+# Time given to running jobs when the agent stops, in seconds. Past it they
+# are cancelled. Jobs that did not start are left to the server.
+shutdown_grace_s = 30
+
+# Largest configuration bundle accepted, as downloaded, in bytes.
+max_bundle_bytes = 268435456
+
+# Cap on the size of a configuration bundle once unpacked, in bytes.
+max_unpacked_bytes = 1073741824
+
+# Number of recent jobs remembered: a repeated dispatch of one of them is
+# ignored (still running) or answered with its recorded events (finished).
+# The oldest finished jobs are forgotten first, in memory and in `state_dir`.
+job_history = 1024
+
+# Cap on the size of the remembered events, in bytes; same eviction order.
+max_buffered_event_bytes = 67108864
+
+# Time given to each URL of an `http-post:` service operation (see
+# `[services.engine]`) to accept the connection and answer, in milliseconds.
+# Past it the call fails and the next URL is tried: a stopped service never
+# hangs the agent. It is a top-level key because every table under
+# `[services]` is a service.
+http_post_timeout_ms = 5000
+
+[tls]
+# PEM file of the authorities signing the server certificate. Required with
+# an `https://` server_url, no default: the system trust store is only read
+# as a fallback by an agent built with the cargo feature `native-roots`.
+ca_file = "/etc/centreon-gorgone/ca.pem"
+# PEM client certificate and private key, for mTLS; set both or none. The
+# certificate CN must equal `node_id`. Unset by default.
+# cert_file = "/etc/centreon-gorgone/agent.crt"
+# key_file = "/etc/centreon-gorgone/agent.key"
+# Name expected in the server certificate when it differs from the host of
+# `server_url`. Unset by default.
+# server_name = "gorgone.example.com"
+
+[reconnect]
+# Delay before reconnecting to the server, in milliseconds: starts at
+# `min_ms`, doubles after each failure up to `max_ms`, with random jitter,
+# and returns to `min_ms` once a session is established.
+min_ms = 500
+max_ms = 30000
+
+[commands]
+# A RunCommands command runs only when one of these regular expressions
+# matches it entirely. Empty by default: every command is refused.
+#
+# On top of the match, with `shell = false`: a command holding a control
+# character (newline, NUL...) is refused, and a program given with a path must
+# be absolute, without `.` or `..` components, so `/dir/../../bin/sh` cannot
+# pass a `/dir/\S+` expression.
+#
+# Write expressions as narrow as the need:
+# - pin the program: full path, and a file name limited to plain characters
+#   (`[A-Za-z0-9_.-]+`) rather than `\S+`;
+# - spell out the arguments the central may choose. A trailing `( .*)?` hands
+#   EVERY option of that program to the central, including options that make
+#   the program itself execute commands or read and write arbitrary files.
+#   centreon_plugins.pl has such options: giving it `( .*)?` is giving a
+#   shell. The same goes for interpreters and for tools such as `find`,
+#   `tar`, `ssh`, `sudo`, `env` or `xargs`.
+# The expressions below are examples of the narrow form.
+allowlist = [
+  # One plugin, one mode, three thresholds chosen by the central.
+  '/usr/lib/centreon/plugins/centreon_linux_local\.pl --plugin=os::linux::local::plugin --mode=(cpu|memory|load) --warning=[0-9:.,@~]* --critical=[0-9:.,@~]*',
+  # Any plugin of the directory, without argument.
+  '/usr/lib64/nagios/plugins/[A-Za-z0-9_.-]+',
+  # The engine configuration check, on the file the agent itself deployed.
+  '/usr/sbin/centengine -v /etc/centreon-engine/centengine\.cfg',
+]
+# false: the command is split into arguments and executed directly, so shell
+# syntax (pipes, redirections, `;`, `$(...)`) has no effect.
+# true: the command is given to `sh -c`. This weakens the policy: the
+# allowlist only sees text, and an expression that pins the beginning of a
+# command cannot constrain what the shell does with the rest (`;`, `&&`,
+# `$(...)`, backquotes, redirections all run). The program path checks above
+# do not apply either; only control characters are still refused. Keep it
+# false unless every expression is a complete, literal command.
+shell = false
+
+[engine]
+# External command pipe of centengine (EngineCommands jobs). Must be a FIFO
+# with a reader, that is a running engine. Unused when `grpc_url` is set.
+command_file = "/var/lib/centreon-engine/rw/centengine.cmd"
+# gRPC API of centengine. Unset by default. When set, the lines of an
+# EngineCommands job are sent with `ProcessExternalCommand` instead of being
+# written to `command_file`: one call per line, in order, stopping at the
+# first line the engine refuses; the job result tells how many were accepted
+# and the error of the failing one. It also enables the `grpc:` service
+# operations (see `[services.engine]`), and every heartbeat then tells the
+# central whether the engine answers and its version. For an agent running as
+# a sidecar container of the engine. Two forms:
+#
+#   "unix:/absolute/path"  Unix socket of the engine (`rpc_listen_address =
+#                          unix:/absolute/path` in its configuration), on a
+#                          volume shared by the two containers. Preferred: the
+#                          engine API has no authentication, and a socket is
+#                          not exposed on any network; the permissions of its
+#                          file decide who may call the engine, so the agent
+#                          runs with the user or the group of the engine.
+#   "http://host:port"     TCP (`rpc_listen_address` and `grpc_port` of the
+#                          engine). This channel has no TLS settings
+#                          (`https://` is refused): keep it on loopback or on
+#                          a network private to the two containers. A host
+#                          that is not loopback is accepted and logs a warning
+#                          at start.
+#
+# Either way the agent connects at the first call and again after the engine
+# restarted, including when the engine created a new socket file.
+# grpc_url = "unix:/var/lib/centreon-engine/rw/engine.sock"
+# grpc_url = "http://127.0.0.1:50155"
+# Time given to the engine API to accept a connection, and to answer one
+# call, in milliseconds. Past it the job fails: a stopped engine never hangs
+# the agent.
+grpc_timeout_ms = 5000
+# How a configuration is checked for the targets having `engine_main_file`
+# (see `[targets.engine]`). With `grpc_url` the engine does it itself
+# (`VerifyConfiguration`: it runs `centengine -v` on the files it is shown)
+# and `verify_command` is unused. Without `grpc_url` the agent runs this
+# command line: split into arguments and executed without a shell, `{config}`
+# replaced by the path of the main file to check, as one argument; it exits
+# with 0 when the configuration is valid, with anything else otherwise, and
+# it gets `default_command_timeout_s`. Unset by default; shown here for an agent
+# installed next to the engine. The agent user must be allowed to run it and
+# to read what the configuration names.
+verify_command = "/usr/sbin/centengine -v {config}"
+# Time given to the engine API to check a configuration, in milliseconds. The
+# engine itself stops its check after 60 seconds.
+verify_timeout_ms = 70000
+# An external command reaches the engine (pipe or gRPC) only when one of these regular
+# expressions matches its NAME entirely: the word between the optional
+# `[timestamp] ` prefix and the first `;`. Empty by default: every command is
+# refused. A job is refused as a whole, and nothing is sent, when one of
+# its lines is not allowed, has no recognisable name, or holds a line break
+# or a NUL character.
+# The list below covers what the Centreon web interface sends: checks,
+# acknowledgements, downtimes, comments, passive results, notifications and
+# check toggles. Keep out the commands that change what the engine executes
+# or make it read files: PROCESS_FILE, CHANGE_*_CHECK_COMMAND,
+# CHANGE_*_EVENT_HANDLER, CHANGE_GLOBAL_*_EVENT_HANDLER, CHANGE_CUSTOM_*_VAR.
+allowed_commands = [
+  'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
+  'SCHEDULE_(FORCED_)?HOST_SVC_CHECKS',
+  'ACKNOWLEDGE_(HOST|SVC)_PROBLEM',
+  'REMOVE_(HOST|SVC)_ACKNOWLEDGEMENT',
+  'SCHEDULE_(HOST|SVC)_DOWNTIME',
+  'SCHEDULE_HOST_SVC_DOWNTIME',
+  'DEL_(HOST|SVC)_DOWNTIME',
+  'ADD_(HOST|SVC)_COMMENT',
+  'DEL_(HOST|SVC)_COMMENT',
+  'DEL_ALL_(HOST|SVC)_COMMENTS',
+  'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
+  'SEND_CUSTOM_(HOST|SVC)_NOTIFICATION',
+  '(ENABLE|DISABLE)_(HOST|SVC)_NOTIFICATIONS',
+  '(ENABLE|DISABLE)_HOST_SVC_NOTIFICATIONS',
+  '(ENABLE|DISABLE)_(HOST|SVC)_CHECK',
+  '(ENABLE|DISABLE)_HOST_SVC_CHECKS',
+  '(ENABLE|DISABLE)_PASSIVE_(HOST|SVC)_CHECKS',
+  '(ENABLE|DISABLE)_(HOST|SVC)_EVENT_HANDLER',
+  '(ENABLE|DISABLE)_(HOST|SVC)_FLAP_DETECTION',
+  '(ENABLE|DISABLE)_ALL_NOTIFICATIONS_BEYOND_HOST',
+  # Poller-wide switches of the centreon-web "Pollers" pages.
+  '(ENABLE|DISABLE)_(NOTIFICATIONS|FLAP_DETECTION|EVENT_HANDLERS|PERFORMANCE_DATA)',
+  '(START|STOP)_(EXECUTING|ACCEPTING_PASSIVE)_(HOST|SVC)_CHECKS',
+  '(START|STOP)_OBSESSING_OVER_(HOST|SVC)(_CHECKS)?',
+  '(SAVE|READ)_STATE_INFORMATION',
+  '(RESTART|SHUTDOWN)_PROGRAM',
+]
+
+# Destinations of the configuration bundles (ApplyConfig jobs), one table per
+# target. None by default: the central only names a target, and a target
+# missing here is refused.
+#   path:  required, directory the bundle is synchronised into.
+#   prune: remove the files of `path` that are not in the bundle (default false).
+#   engine_main_file: main file of an engine configuration, relative to
+#          `path`. Unset by default: the bundle is applied without check.
+#
+# With `engine_main_file` a bundle is checked by the engine of this node
+# before any live file is written, so the central never has to run
+# `centengine -v` itself, and a push to a disconnected poller is safe: it is
+# checked when it is applied, by the engine that will load it. A rejected
+# bundle fails the ApplyConfig job with the output of the check and leaves
+# the directory as it was. A ValidateConfig job runs the same check alone.
+# It requires `engine.grpc_url` or `engine.verify_command`.
+#
+# The bundle is unpacked in `<path>/.gorgone-staging-<random>`, removed after
+# the check and never pruned, so the agent must be able to create a directory
+# in `path` and the engine to read it: an engine in another container sees it
+# through the volume holding `path`, mounted at the same place. The engine is
+# given a copy of the main file in which every `cfg_file`, `cfg_dir` and
+# `resource_file` under `path` points to the unpacked files. A path outside
+# `path` is checked as it is deployed on the node, and the job result names
+# it; relative paths follow the main file.
+#
+# Declaring the `engine` target lets the central define the commands the
+# engine runs: check commands, event handlers and notification commands are
+# part of the engine configuration. This is inherent to configuration push
+# and no allowlist above limits it. Declare it only on nodes the central is
+# meant to configure. The same reasoning applies to any target whose files
+# are executed or interpreted by a local service.
+[targets.engine]
+path = "/etc/centreon-engine"
+prune = true
+engine_main_file = "centengine.cfg"
+
+[targets.broker]
+path = "/etc/centreon-broker"
+prune = false
+
+[targets.vmware]
+path = "/etc/centreon"
+prune = false
+
+# Command lines of the ServiceControl jobs, one table per service, with the
+# optional keys `start`, `stop`, `reload` and `restart`. None by default: the
+# central only names a service and an operation, and a missing service or
+# operation is refused. Commands are split into arguments and executed
+# without a shell. The agent runs unprivileged: grant these exact commands to
+# its user in sudoers.
+#
+# Instead of a command line, an operation can be mapped to a call of the
+# engine gRPC API, which requires `engine.grpc_url` (whatever the name of the
+# service table, the call goes to that engine):
+#   "grpc:reload"    SignalProcess(RESTART): the engine reloads its
+#                    configuration without stopping, exactly as on SIGHUP.
+#   "grpc:shutdown"  ShutdownProgram: the engine process ends. It comes back,
+#                    with the new configuration, only if something restarts
+#                    it: map `restart` to it when the engine container has a
+#                    restart policy of `always` (the engine ends with status 0).
+# The engine API cannot start a stopped engine, nor restart its process by
+# itself. In a container, where the agent cannot run systemctl:
+#   [services.engine]
+#   reload = "grpc:reload"
+#   restart = "grpc:shutdown"
+#
+# An operation can also be mapped to HTTP calls, for a service whose container
+# exposes a control API (the Centreon Broker image: `POST /reload` and
+# `POST /restart` on port 8080). The value is `http-post:` followed by one or
+# several URLs separated by spaces; a value starting with anything else is a
+# command line.
+#   [services.broker]
+#   reload = "http-post:http://broker:8080/reload http://broker-rrd:8080/reload"
+#   restart = "http-post:http://broker:8080/restart http://broker-rrd:8080/restart"
+# Each URL is `http://host[:port][/path]` (port 80 and path `/` by default,
+# IPv6 hosts in brackets); anything else is refused when the agent starts, as
+# are credentials in the URL and an empty list. The agent sends `POST` without
+# a body to every URL, in order, and goes on after a failure, so that one
+# broker being down never keeps the others from reloading. A call is accepted
+# when the answer is a 2xx status; a redirect is not followed and counts as a
+# failure, as do a refused connection and no answer within
+# `http_post_timeout_ms`. The job succeeds only when every call was accepted;
+# its result holds one entry per URL (`POST <url>`, exit code 0 or 1, the
+# status line received or the error) and a summary.
+# These calls are plain HTTP without authentication, because the target API
+# has neither: `https://` is refused (TLS is out of scope for this action),
+# and anyone reaching that port can reload or restart the service. Keep it on
+# a network private to the containers, never published on the host.
+[services.engine]
+start = "sudo systemctl start centengine"
+stop = "sudo systemctl stop centengine"
+reload = "sudo systemctl reload centengine"
+restart = "sudo systemctl restart centengine"
+
+[services.broker]
+start = "sudo systemctl start cbd"
+stop = "sudo systemctl stop cbd"
+reload = "sudo systemctl reload cbd"
+restart = "sudo systemctl restart cbd"
+
+[services.centreontrapd]
+start = "sudo systemctl start centreontrapd"
+stop = "sudo systemctl stop centreontrapd"
+reload = "sudo systemctl reload centreontrapd"
+restart = "sudo systemctl restart centreontrapd"
+
+[services.vmware]
+start = "sudo systemctl start centreon_vmware"
+stop = "sudo systemctl stop centreon_vmware"
+restart = "sudo systemctl restart centreon_vmware"

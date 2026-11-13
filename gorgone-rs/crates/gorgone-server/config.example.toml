@@ -1,0 +1,159 @@
+# gorgone-server configuration.
+#
+# Every key is optional; the values below are the defaults unless a comment
+# says otherwise. Each key can also be set by environment, with the prefix
+# GORGONE_SERVER__ and "__" between nesting levels, for instance:
+#   GORGONE_SERVER__DATABASE_URL=mysql://gorgone:...@db/gorgone
+#   GORGONE_SERVER__REST__TOKEN=...
+#   GORGONE_SERVER__CENTCORE__ENABLED=true
+# A value is read as TOML (true, 42, ["10.0.0.0/8"]) and taken as text
+# otherwise; quote a text that looks like a number: REPLICA_ID='"1"'.
+# Check a file without starting the server: gorgone-server --config FILE --check
+#
+# The defaults fail closed: as is, this file is refused until a REST
+# credential is set ([rest] below), and every listener is on the loopback.
+
+# ---- Listeners ----
+# REST API (legacy /api and native /v1, probes, metrics).
+rest_listen = "127.0.0.1:8085"
+# Agent gateway (gRPC): the pollers connect here.
+agent_listen = "127.0.0.1:5556"
+# Peer service (gRPC): wake-up hints between replicas.
+peer_listen = "127.0.0.1:5557"
+# A listener on a non-loopback address needs its TLS section (see below).
+# Set this to accept plaintext there, for instance behind a TLS-terminating
+# proxy or a service mesh.
+allow_plaintext = false
+
+# ---- Store ----
+# sqlite://PATH?mode=rwc for a single replica, mysql://USER:PASSWORD@HOST/DB
+# (MariaDB) as soon as there are several. Prefer the environment variable for
+# a URL holding a password. Never logged.
+database_url = "sqlite:///var/lib/centreon-gorgone/gorgone.db?mode=rwc"
+# Size of the connection pool. Default: 4 with SQLite (it has one writer
+# anyway), 16 with MariaDB. Every replica may open that many: keep the sum
+# under the MariaDB max_connections (151 by default), or the store calls
+# fail with "Too many connections". 32 gives more throughput with many nodes.
+# db_max_connections = 16
+# SQLite only (the journal is always WAL). "full" syncs the log to disk at
+# every commit: a job or an event that was acknowledged survives a power
+# loss. "normal" syncs at checkpoints only: several times more jobs per
+# second on a single node, but the last commits can be lost if the machine
+# (not just gorgone-server) stops abruptly; the database stays consistent.
+sqlite_synchronous = "full"
+
+# ---- Replica ----
+# Identifier of this replica in the store. Default: random at each start.
+# replica_id = "central-1"
+# URL the other replicas use to reach peer_listen. Default: the bound address
+# (127.0.0.1 for a wildcard bind), so it must be set with several hosts.
+# peer_advertise_addr = "https://central-1.example.org:5557"
+# Shared secret the replicas present to each other. Required when peer_listen
+# is not a loopback address. Default: none.
+# peer_token = "..."
+# CA bundle used to verify the peer certificate of the other replicas;
+# required with [peer_tls].
+# peer_ca = "/etc/centreon-gorgone/tls/ca.pem"
+
+# ---- Jobs ----
+# Heartbeat interval announced to the agents, in seconds. A session silent
+# for three intervals is closed.
+heartbeat_interval_s = 10
+# Deadline of a job submitted without one, in seconds.
+job_default_deadline_s = 300
+# Deadline of a configuration validation
+# (POST /v1/nodes/{node}/config/{target}/validation) submitted without one, in
+# seconds. Short on purpose: someone waits for the answer, and a poller that
+# reconnects later validates again when the configuration is applied.
+validation_deadline_s = 120
+# How long finished jobs and configuration blobs are kept, in seconds.
+retention_s = 604800
+# Period of the background sweep (dispatch retry, expiry, lost sessions), in
+# milliseconds.
+sweep_interval_ms = 2000
+# Largest configuration bundle accepted by PUT /v1/nodes/{node}/config/{target}
+# and by its validation route, in bytes. Every other route is limited to 1 MiB.
+body_limit_bytes = 268435456
+# How long a frame may wait for an agent that does not read its session
+# before the session is closed, in milliseconds.
+session_send_timeout_ms = 5000
+
+# ---- Agents ----
+# Development only: accept unknown nodes without an enrolment token, and
+# jobs for nodes that are not enrolled.
+auto_enroll = false
+
+# ---- Legacy ----
+# Value answered by /api/internal/thumbprint. Default: an identifier created
+# once in the store and shared by all replicas.
+# thumbprint = "..."
+
+# ---- Logs and metrics ----
+# JSON lines instead of text. The level comes from RUST_LOG: trace, debug,
+# info (default), warn, error or off.
+log_json = false
+# Serve /metrics without credentials (it is behind [rest] otherwise).
+metrics_public = false
+
+# ---- REST access control ----
+# Run the REST API without any credential. Without this, a token or basic
+# credentials are required to start.
+insecure_no_auth = false
+
+[rest]
+# Bearer token. Default: none.
+# token = "..."
+# Basic authentication; both keys go together. Without them, the token is
+# accepted as the password of any user.
+# basic_username = "centreon"
+# basic_password = "..."
+# Client networks allowed to call /api and /v1; empty allows every address.
+# The probes (/healthz, /readyz) are always reachable.
+allowed_cidrs = []
+# allowed_cidrs = ["127.0.0.0/8", "::1/128", "10.0.0.0/8"]
+
+# ---- TLS (each section is optional; absent means plaintext) ----
+# REST listener.
+# [rest_tls]
+# cert = "/etc/centreon-gorgone/tls/server.pem"
+# key = "/etc/centreon-gorgone/tls/server.key"
+# # Require a client certificate signed by this CA.
+# client_ca = "/etc/centreon-gorgone/tls/ca.pem"
+
+# Agent gateway. With client_ca, agents must present a certificate signed by
+# that CA. It only proves the agent is trusted: the node is still identified
+# by its enrolment token, whatever the certificate names.
+# [agent_tls]
+# cert = "/etc/centreon-gorgone/tls/server.pem"
+# key = "/etc/centreon-gorgone/tls/server.key"
+# client_ca = "/etc/centreon-gorgone/tls/ca.pem"
+
+# Peer service. Needs peer_ca; with client_ca the replicas authenticate each
+# other with this same certificate.
+# [peer_tls]
+# cert = "/etc/centreon-gorgone/tls/server.pem"
+# key = "/etc/centreon-gorgone/tls/server.key"
+# client_ca = "/etc/centreon-gorgone/tls/ca.pem"
+
+# ---- Legacy centcore.cmd intake ----
+# Reads the command files still written by centreon-web and submits the
+# equivalent jobs. Only the replica holding the "centcore" lease reads them,
+# so the files must be on a volume that replica can reach.
+[centcore]
+enabled = false
+cmd_file = "/var/lib/centreon/centcore.cmd"
+cmd_dir = "/var/lib/centreon/centcore"
+# Holds config/{engine,broker,vmware}/<node id>, sources of SENDCFGFILE.
+cache_dir = "/var/cache/centreon"
+# Holds <node id>/centreontrapd.sdb, source of SYNCTRAP.
+cache_dir_trap = "/etc/snmp/centreon_traps"
+poll_interval_ms = 5000
+# Characters removed from external commands (the Centreon option
+# "gorgone_illegal_characters").
+illegal_characters = ""
+# External commands sent per job for one node.
+bulk_external_cmd = 50
+# Users whose command files are read (numeric ids); links and files of other
+# owners are refused. Empty: the user running gorgone-server, and root.
+allowed_uids = []
+# allowed_uids = [48, 997]

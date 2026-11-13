@@ -1,0 +1,14 @@
+# Regenerates crates/gorgone-proto/src/generated from proto/.
+# A separate workspace on purpose: the code generator and the vendored protoc
+# stay out of the dependency tree and of the lock file of the product.
+[package]
+name = "protogen"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+protoc-bin-vendored = "3.3.0"
+tonic-prost-build = "0.14.9"

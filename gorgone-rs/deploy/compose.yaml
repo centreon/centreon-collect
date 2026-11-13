@@ -1,0 +1,69 @@
+# Local demo only: MariaDB, two server replicas and one agent connected to the
+# first replica. Requests sent to the second replica reach the agent through
+# the peer hint. Plaintext listeners and automatic enrolment are enabled here
+# on purpose and must not be used outside a workstation.
+#
+#   export GORGONE_DB_PASSWORD=… GORGONE_PEER_TOKEN=… GORGONE_REST_TOKEN=… GORGONE_AGENT_TOKEN=…
+#   docker compose -f deploy/compose.yaml up --build
+#   curl -H "Authorization: Bearer $GORGONE_REST_TOKEN" localhost:8086/v1/nodes
+#   curl -H "Authorization: Bearer $GORGONE_REST_TOKEN" -X PUT \
+#        --data-binary @bundle.tar.zst localhost:8086/v1/nodes/1/config/engine
+
+x-server: &server
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile
+    target: server
+  depends_on:
+    mariadb:
+      condition: service_healthy
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: gorgone
+      MARIADB_USER: gorgone
+      MARIADB_PASSWORD: ${GORGONE_DB_PASSWORD:?set GORGONE_DB_PASSWORD}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      retries: 20
+
+  server-1:
+    <<: *server
+    environment: &server-env
+      GORGONE_SERVER__DATABASE_URL: mysql://gorgone:${GORGONE_DB_PASSWORD}@mariadb/gorgone
+      GORGONE_SERVER__REST_LISTEN: 0.0.0.0:8085
+      GORGONE_SERVER__AGENT_LISTEN: 0.0.0.0:5556
+      GORGONE_SERVER__PEER_LISTEN: 0.0.0.0:5557
+      GORGONE_SERVER__ALLOW_PLAINTEXT: "true"
+      GORGONE_SERVER__REST__TOKEN: ${GORGONE_REST_TOKEN:?set GORGONE_REST_TOKEN}
+      GORGONE_SERVER__PEER_TOKEN: ${GORGONE_PEER_TOKEN:?set GORGONE_PEER_TOKEN}
+      GORGONE_SERVER__PEER_ADVERTISE_ADDR: http://server-1:5557
+      GORGONE_SERVER__AUTO_ENROLL: "true"
+    ports: ["127.0.0.1:8085:8085"]
+
+  server-2:
+    <<: *server
+    environment:
+      <<: *server-env
+      GORGONE_SERVER__PEER_ADVERTISE_ADDR: http://server-2:5557
+    ports: ["127.0.0.1:8086:8085"]
+
+  agent:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: agent
+    depends_on: [server-1]
+    environment:
+      GORGONE_AGENT__NODE_ID: "1"
+      GORGONE_AGENT__SERVER_URL: http://server-1:5556
+      GORGONE_AGENT__TOKEN: ${GORGONE_AGENT_TOKEN:?set GORGONE_AGENT_TOKEN}
+      GORGONE_AGENT__TARGETS__ENGINE__PATH: /etc/centreon-engine
+      GORGONE_AGENT__TARGETS__ENGINE__PRUNE: "true"
+    # The image runs as the distroless "nonroot" user.
+    tmpfs:
+      - /etc/centreon-engine:uid=65532,gid=65532

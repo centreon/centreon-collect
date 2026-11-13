@@ -30,8 +30,10 @@ namespace asio = boost::asio;
 #include <spdlog/fmt/ranges.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
+#include "com/centreon/common/process/process.hh"
 #include "com/centreon/common/process_stat.hh"
 #include "com/centreon/common/time.hh"
+#include "com/centreon/common/utf8.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
@@ -4272,5 +4274,221 @@ grpc::Status engine_impl::SendBench(
   }
 
   broker_bench(request->id(), client_ts);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Process an external command line, as if it had been read from the
+ * command file. The command is executed by the main loop.
+ *
+ * @param context gRPC context
+ * @param request The command line: "[<timestamp>] <COMMAND_NAME>;<args>"
+ * @param response Command answer
+ *
+ * @return Status::OK once the command has been processed,
+ * Status::INVALID_ARGUMENT when the line is malformed or the command unknown,
+ * Status::UNKNOWN when the command threw.
+ */
+grpc::Status engine_impl::ProcessExternalCommand(
+    grpc::ServerContext* context [[maybe_unused]],
+    const com::centreon::engine::ExternalCommand* request,
+    com::centreon::engine::CommandSuccess* response) {
+  const std::string& command = request->command();
+  if (command.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "command must not be empty");
+
+  // One request is one line: the command file reader splits on newlines.
+  // Tabulations stay allowed, plugin outputs may carry some.
+  if (std::any_of(command.begin(), command.end(), [](unsigned char c) {
+        return (c < 0x20 && c != '\t') || c == 0x7f;
+      }))
+    return grpc::Status(
+        grpc::StatusCode::INVALID_ARGUMENT,
+        "command must be a single line without control characters");
+
+  std::string err;
+  auto fn = std::packaged_task<int32_t(void)>([&command, &err]() -> int32_t {
+    try {
+      return commands::processing::execute(command) ? 0 : 1;
+    } catch (const std::exception& e) {
+      // The line may carry a plugin output or a comment: only its length is
+      // logged here, processing::execute logs the accepted commands.
+      SPDLOG_LOGGER_ERROR(
+          external_command_logger,
+          "ProcessExternalCommand: external command of {} bytes failed: {}",
+          command.size(), e.what());
+      err = e.what();
+      return 2;
+    }
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  switch (result.get()) {
+    case 0:
+      response->set_value(true);
+      return grpc::Status::OK;
+    case 1:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "command is malformed or unknown, expected format: "
+                          "\"[<timestamp>] <COMMAND_NAME>;<arguments>\"");
+    default:
+      return grpc::Status(grpc::StatusCode::UNKNOWN, "command failed: " + err);
+  }
+}
+
+namespace {
+/* The engine itself: /proc/self/exe is resolved by the child, still an image
+ * of this process when it calls exec, so it works even once the file of the
+ * binary has been replaced on disk. */
+std::string verify_executable = "/proc/self/exe";
+std::mutex verify_executable_m;
+
+constexpr std::chrono::seconds verify_timeout{60};
+constexpr size_t verify_max_output = 1024 * 1024;
+
+/**
+ * @brief What one verification shares between the gRPC thread, which waits,
+ * and the handlers of its child process, called by g_io_context threads.
+ */
+struct verification {
+  std::mutex output_m;
+  std::string output;
+  bool truncated = false;
+  std::promise<std::pair<int, com::centreon::common::e_exit_status>> done;
+
+  void append(const std::string_view& received) {
+    std::lock_guard<std::mutex> l(output_m);
+    size_t kept = std::min(received.size(), verify_max_output - output.size());
+    output.append(received.substr(0, kept));
+    if (kept < received.size())
+      truncated = true;
+  }
+};
+}  // namespace
+
+void engine_impl::set_verify_executable(const std::string_view& path) {
+  std::lock_guard<std::mutex> l(verify_executable_m);
+  verify_executable = path;
+}
+
+/**
+ * @brief Verify a configuration as `centengine -v <path>` does. The
+ * verification applies the configuration to global objects, so it runs in a
+ * child process, the engine executable itself: the running engine keeps its
+ * configuration and each request has its own child.
+ *
+ * @param context gRPC context
+ * @param request The main configuration file, as an absolute path
+ * @param response Exit code of the child and its output (stdout and stderr,
+ * at most 1 MiB)
+ *
+ * @return Status::OK once the child has exited, whatever its exit code,
+ * Status::INVALID_ARGUMENT when the path is not an absolute path to a regular
+ * file, Status::DEADLINE_EXCEEDED when the child has been killed after 60
+ * seconds, Status::UNKNOWN when it could not be run.
+ */
+grpc::Status engine_impl::VerifyConfiguration(
+    grpc::ServerContext* context [[maybe_unused]],
+    const com::centreon::engine::ConfigurationFile* request,
+    com::centreon::engine::ConfigurationVerification* response) {
+  const std::string& path = request->path();
+  if (path.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "path must not be empty");
+  if (path[0] != '/')
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "path must be absolute");
+  if (std::any_of(path.begin(), path.end(),
+                  [](unsigned char c) { return c < 0x20 || c == 0x7f; }))
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "path must not contain control characters");
+  std::error_code ec;
+  if (!std::filesystem::is_regular_file(path, ec))
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "path must be an existing regular file");
+
+  std::string executable;
+  {
+    std::lock_guard<std::mutex> l(verify_executable_m);
+    executable = verify_executable;
+  }
+
+  auto verif = std::make_shared<verification>();
+  std::future<std::pair<int, common::e_exit_status>> done =
+      verif->done.get_future();
+  auto reader = [verif](const boost::system::error_code&,
+                        const std::string_view& received) {
+    verif->append(received);
+  };
+
+  /* Its own process group: a signal sent to the group of the engine does not
+   * reach it. No stdin: the child reads an end of file. */
+  auto child = std::make_shared<common::process<true>>(
+      g_io_context, config_logger, executable, true, false,
+      std::initializer_list<std::string>{"-v", path}, nullptr);
+  try {
+    child->start_process(
+        [verif](const common::process<true>&, int exit_code,
+                common::e_exit_status exit_status, const std::string&,
+                const std::string&) {
+          verif->done.set_value({exit_code, exit_status});
+        },
+        reader, reader, verify_timeout);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(config_logger,
+                        "VerifyConfiguration: cannot verify '{}': {}", path,
+                        e.what());
+    return grpc::Status(grpc::StatusCode::UNKNOWN,
+                        fmt::format("verification not started: {}", e.what()));
+  }
+
+  /* The child is killed by its own timer; the margin only frees this thread
+   * if g_io_context stops running the handlers (engine shutdown). */
+  if (done.wait_for(verify_timeout + std::chrono::seconds(10)) !=
+      std::future_status::ready) {
+    child->kill();
+    SPDLOG_LOGGER_ERROR(config_logger,
+                        "VerifyConfiguration: no end of verification of '{}'",
+                        path);
+    return grpc::Status(grpc::StatusCode::DEADLINE_EXCEEDED,
+                        "verification did not complete");
+  }
+
+  auto [exit_code, exit_status] = done.get();
+  if (exit_status == common::e_exit_status::timeout) {
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
+        "VerifyConfiguration: verification of '{}' killed after {} seconds",
+        path, verify_timeout.count());
+    return grpc::Status(grpc::StatusCode::DEADLINE_EXCEEDED,
+                        fmt::format("verification killed after {} seconds",
+                                    verify_timeout.count()));
+  }
+  if (exit_status != common::e_exit_status::normal) {
+    SPDLOG_LOGGER_ERROR(
+        config_logger,
+        "VerifyConfiguration: verification of '{}' did not exit normally",
+        path);
+    return grpc::Status(grpc::StatusCode::UNKNOWN,
+                        "verification process did not exit normally");
+  }
+
+  SPDLOG_LOGGER_DEBUG(config_logger,
+                      "VerifyConfiguration: '{}' verified, exit code {}", path,
+                      exit_code);
+  response->set_exit_code(exit_code);
+  {
+    std::lock_guard<std::mutex> l(verif->output_m);
+    /* Configuration files are not always UTF-8 and the cut may split a
+     * character, whereas a protobuf string must be valid UTF-8. */
+    std::string output = common::check_string_utf8(verif->output);
+    if (verif->truncated)
+      output += fmt::format("\n[output truncated at {} bytes]\n",
+                            verify_max_output);
+    response->set_output(std::move(output));
+  }
   return grpc::Status::OK;
 }
