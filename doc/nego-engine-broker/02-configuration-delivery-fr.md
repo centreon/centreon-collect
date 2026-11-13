@@ -57,7 +57,7 @@ Cette section suit une configuration depuis son écriture par PHP jusqu'à son a
 
 ### Le parcours d'une configuration
 
-Cinq fichiers jalonnent ce parcours, et chacun ne dit qu'une chose :
+Six fichiers jalonnent ce parcours, et chacun ne dit qu'une chose :
 
 | Fichier | Répertoire | Ce qu'il dit | Écrit par | Disparaît |
 |---|---|---|---|---|
@@ -66,11 +66,12 @@ Cinq fichiers jalonnent ce parcours, et chacun ne dit qu'une chose :
 | `new-diff-X.prot` | `pollers-configuration` | la différence entre `X.prot` et `new-X.prot`, ou la configuration complète s'il n'y a pas de `X.prot` ; elle accompagne `new-X.prot` | le cycle de `Broker` | renommé en `diff-X.prot` à l'acquittement, ou fusionné dedans |
 | `diff-X.prot` | `pollers-configuration` | la différence acquittée par le poller X, déjà appliquée au cache, qui attend la fermeture du tour | `Broker`, par renommage ou fusion | supprimé à son intégration dans le diff global |
 | `X.prot` | `pollers-configuration` | la dernière configuration acquittée par le poller X | `Broker`, par renommage | remplacé au renommage suivant |
+| `next-X.prot` | `pollers-configuration` | une configuration exportée pendant que `new-X.prot` était en vol, entière, sans différence | le cycle de `Broker` | renommé en `new-X.prot` à la réponse du poller, ou remplacé par l'export suivant |
 
 Les étapes :
 
 1. **L'annonce.** PHP écrit la configuration du poller X dans le répertoire `X/`, puis crée `X.lck`, ou un `pollers.lck` qui nomme tous les pollers de l'export.
-2. **La préparation.** `Broker` lit et valide la configuration, écrit `new-X.prot` puis `new-diff-X.prot`, et supprime l'annonce.
+2. **La préparation.** `Broker` lit et valide la configuration, écrit `new-X.prot` puis `new-diff-X.prot`, et supprime l'annonce. Si `new-X.prot` est en vol, il écrit `next-X.prot` à la place, et la différence attend la réponse du poller.
 3. **La livraison.** Le stream BBDO du poller X lui envoie un `DiffState` lu dans `new-diff-X.prot`, ou dans `new-X.prot` si `Engine` ne peut pas appliquer la différence.
 4. **L'acquittement.** `Engine` applique la configuration et répond par un `pb_diff_state_ack`. `Broker` renomme `new-X.prot` en `X.prot`, applique `new-diff-X.prot` au cache, puis le renomme en `diff-X.prot`, ou l'y fusionne si une différence précédente attend encore le tour.
 5. **La fermeture du tour.** Quand tous les pollers servis ont acquitté, `Broker` fusionne les `diff-*.prot` en un diff global, le publie vers `unified_sql` et le cache, puis supprime les `diff-*.prot`.
@@ -155,7 +156,7 @@ Le stream BBDO du poller X vérifie à chaque lecture si une configuration lui e
 * qu'une configuration soit préparée pour lui (`available_conf`), différente de celle qu'il fait tourner (`engine_conf`), et pas encore remise ;
 * qu'aucune autre configuration ne soit en cours pour lui, c'est-à-dire remise et pas encore acquittée (`conf_in_flight`).
 
-La seconde condition vient de ce qu'`Engine` applique les `DiffState` dans l'ordre où il les reçoit, sans vérifier la version dont ils partent. Tant que C1 n'est pas acquitté, `X.prot` vaut encore C0 : une configuration C2 préparée entre-temps est une différence C0→C2, qu'`Engine` appliquerait par-dessus C1. L'attente n'est pas bornée dans le temps : `Engine` répond toujours, que la configuration ait été appliquée ou non (voir l'échec plus bas), et un poller qui meurt en route se déconnecte, ce qui oublie la configuration en cours.
+La seconde condition vient de ce qu'`Engine` applique les `DiffState` dans l'ordre où il les reçoit, sans vérifier la version dont ils partent. Tant que C1 n'est pas acquitté, `X.prot` vaut encore C0 : une configuration C2 calculée entre-temps serait une différence C0→C2, qu'`Engine` appliquerait par-dessus C1. C'est pourquoi C2 n'est pas préparée pendant le vol : elle attend entière dans `next-X.prot` (voir [Un export qui arrive pendant un tour ouvert](#un-export-qui-arrive-pendant-un-tour-ouvert)). L'attente n'est pas bornée dans le temps : `Engine` répond toujours, que la configuration ait été appliquée ou non (voir l'échec plus bas), et un poller qui meurt en route se déconnecte, ce qui oublie la configuration en cours.
 
 **Différence ou configuration complète.** Le stream lit `new-diff-X.prot`. Si `Engine` ne tourne pas avec la version dont part la différence (`from_version`), il ne peut pas l'appliquer : le stream lit alors `new-X.prot` et envoie la configuration complète. Le choix se fait à l'envoi et non à la préparation, parce qu'`Engine` a pu se reconnecter avec une autre version entre-temps.
 
@@ -166,19 +167,18 @@ Côté `Engine`, le `DiffState` est stocké par `cbmod` et appliqué dans la bou
 1. `new-X.prot` est renommé en `X.prot` ;
 2. `new-diff-X.prot` est appliqué au cache ;
 3. `new-diff-X.prot` est renommé en `diff-X.prot`, où il attend la fermeture du tour. Si un `diff-X.prot` est déjà là, le poller a acquitté un export précédent dont le tour n'est pas fermé : les deux différences sont fusionnées en une seule (`_settle_acknowledged_diff()`, voir [Un export qui arrive pendant un tour ouvert](#un-export-qui-arrive-pendant-un-tour-ouvert)) ;
-4. si c'était le dernier acquittement attendu, le [tour](#le-tour-de-configuration) est fermé.
+4. si un `next-X.prot` attendait, il devient `new-X.prot` et sa différence est calculée depuis la version qui vient d'être installée (`_promote_next_conf()`) ;
+5. si c'était le dernier acquittement attendu, le [tour](#le-tour-de-configuration) est fermé.
 
-Si c'est une version dépassée, parce qu'une configuration plus récente a été préparée entre-temps, rien n'est renommé ni appliqué : `new-X.prot` et `new-diff-X.prot` contiennent déjà la suivante, qui part à la lecture suivante du stream.
+Une version qui n'est pas celle préparée, parce que le poller annonce à sa reconnexion une version plus ancienne, ne renomme rien : la version en vol n'a jamais été appliquée, elle est due de nouveau, ou abandonnée au profit de `next-X.prot` s'il existe.
 
 **L'échec** (`on_poller_conf_rejected()`). La version que le poller fait toujours tourner devient `engine_conf`, et la configuration en cours est libérée. Si la version refusée est la version préparée :
 
-1. `new-X.prot` et `new-diff-X.prot` sont supprimés : ils décrivent une configuration que le poller ne fera pas tourner. Un `diff-X.prot` n'est pas touché : c'est une différence que le poller a bien appliquée, qui attend la base ;
+1. `new-X.prot` et `new-diff-X.prot` sont supprimés : ils décrivent une configuration que le poller ne fera pas tourner. Un `diff-X.prot` n'est pas touché : c'est une différence que le poller a bien appliquée, qui attend la base. Un `next-X.prot` qui attendait prend leur place, sa différence calculée depuis `X.prot` que le poller fait toujours tourner ;
 2. le poller sort du tour, qui peut alors se fermer pour les autres ;
 3. la version refusée et la raison sont gardées (`poller_conf::last_rejection()`, champ `rejection` de `Peer`), journalisées en erreur et visibles par la RPC `GetPollers`. Cette version n'est plus renvoyée, elle échouerait de la même façon.
 
 Le prochain export repart de `X.prot`, que le poller fait bien tourner. Une reconnexion du poller, qui recrée son entrée, retente aussi la version refusée : l'erreur pouvait venir de la machine plutôt que de la configuration.
-
-Si la version refusée est dépassée, rien n'est supprimé : `new-X.prot` et `new-diff-X.prot` contiennent déjà la suivante, qui part aussitôt.
 
 **La livraison à la connexion d'un poller.** Quand un poller absent lors du lot se connecte, `add_peer()` regarde ce qui l'attend, dans cet ordre :
 
@@ -207,16 +207,22 @@ Quatre règles tiennent ce mécanisme :
 
 #### Un export qui arrive pendant un tour ouvert
 
-Un export C2 peut arriver alors que le tour de l'export C1 n'est pas fermé : certains pollers ont acquitté C1, d'autres non. Pour un poller qui a acquitté, `X.prot` vaut déjà C1, et `diff-X.prot`, la différence C0→C1, attend la fermeture du tour pour entrer dans le diff global. Préparer C2 calcule la différence depuis `X.prot`, soit C1→C2, et l'écrit dans `new-diff-X.prot` : `diff-X.prot` n'est pas touché, une préparation ne l'écrit jamais. C'est ce que garantit la séparation des deux fichiers : avant elle, un seul `diff-X.prot` portait les deux rôles, et la préparation de C2 écrasait C0→C1, que la base ne recevait jamais.
+Un export C2 peut arriver alors que le tour de l'export C1 n'est pas fermé : certains pollers ont acquitté C1, d'autres non. Les deux situations sont traitées séparément, et chacune par ses fichiers.
+
+**Pour un poller qui a acquitté C1**, `X.prot` vaut déjà C1, et `diff-X.prot`, la différence C0→C1, attend la fermeture du tour pour entrer dans le diff global. Préparer C2 calcule la différence depuis `X.prot`, soit C1→C2, et l'écrit dans `new-diff-X.prot` : `diff-X.prot` n'est pas touché, une préparation ne l'écrit jamais. C'est ce que garantit la séparation des deux fichiers : avant elle, un seul `diff-X.prot` portait les deux rôles, et la préparation de C2 écrasait C0→C1, que la base ne recevait jamais.
 
 À l'acquittement de C2, `new-diff-X.prot` trouve un `diff-X.prot` qui attend encore : les deux différences sont fusionnées en une seule, C0→C2 (`_settle_acknowledged_diff()`). La fusion est celle de deux différences successives du même poller (`indexed_diff_state::add_diff_state_from_same_poller()`), et non l'union des différences de plusieurs pollers qu'opère le diff global : un objet ajouté par C1 et supprimé par C2 n'y figure pas, un objet ajouté par C1 et modifié par C2 y est ajouté avec sa dernière définition, un objet modifié puis supprimé y est supprimé. La base reçoit alors C0→C2 d'un coup, à la fermeture du tour, comme si C1 n'avait jamais existé pour elle.
+
+**Pour un poller qui a C1 en vol**, rien ne lui est envoyé tant qu'il n'a pas répondu, et `new-X.prot` n'est pas touché non plus : il contient C1, qu'`Engine` est en train d'appliquer. Le cycle écrit C2 entière dans `next-X.prot` (`_write_next_conf()`), sans calculer de différence, parce que sa base n'est pas connue : C1 si elle est acquittée, C0 si elle est refusée. À la réponse du poller, `_promote_next_conf()` fait de `next-X.prot` le nouveau `new-X.prot` et calcule sa différence depuis `X.prot`, tel qu'il est alors ; C2 part en différence, C1→C2 après un acquittement, C0→C2 après un échec. Une C3 exportée avant la réponse remplace simplement `next-X.prot` : C2 n'est jamais partie, personne ne la fait tourner.
+
+Avant `next-X.prot`, la préparation de C2 écrasait `new-X.prot` pendant le vol de C1 : l'acquittement de C1 arrivait pour une version que `Broker` ne connaissait plus, rien n'était renommé ni porté au cache, et C2 partait en configuration complète, `Engine` tournant C1 alors que la différence partait de C0. Le cache et la base restaient en C0 jusqu'à l'acquittement de C2.
 
 ```mermaid
 sequenceDiagram
     participant PHP
     participant B as Broker
     participant E1 as Engine 1 (C1 acquitté)
-    participant E3 as Engine 3 (C1 en cours)
+    participant E3 as Engine 3 (C1 en vol)
     participant DB as unified_sql et cache
 
     PHP ->> B: export C1
@@ -225,22 +231,22 @@ sequenceDiagram
     E1 -->> B: ack C1
     Note over B: 1.prot = C1<br/>diff-1.prot = C0→C1 attend la fermeture du tour
     PHP ->> B: export C2
-    Note over B: new-diff-1.prot = C1→C2<br/>new-diff-3.prot = C0→C2<br/>diff-1.prot intact
+    Note over B: new-diff-1.prot = C1→C2, diff-1.prot intact<br/>next-3.prot = C2, new-3.prot = C1 intact
     B ->> E1: DiffState C1→C2
-    Note over B,E3: rien n'est envoyé à 3 tant que C1 est en cours
-    E3 -->> B: ack C1, plus la version préparée
-    Note over B: engine_conf(3) = C1<br/>ni renommage, ni cache
-    B ->> E3: C2 en entier (C1 ≠ from_version C0)
+    Note over B,E3: rien n'est envoyé à 3 tant que C1 est en vol
+    E3 -->> B: ack C1
+    Note over B: 3.prot = C1, diff-3.prot = C0→C1<br/>next-3.prot devient new-3.prot, new-diff-3.prot = C1→C2
+    B ->> E3: DiffState C1→C2
     E1 -->> B: ack C2
     Note over B: diff-1.prot = C0→C1 fusionné avec C1→C2 = C0→C2
     E3 -->> B: ack C2
-    Note over B: diff-3.prot = C0→C2
+    Note over B: diff-3.prot = C0→C1 fusionné avec C1→C2 = C0→C2
     B ->> DB: diff global, C0→C2 pour les pollers 1 et 3
 ```
 
-Les pollers qui n'ont pas encore acquitté C1 suivent les règles de [La livraison](#la-livraison) : rien ne leur est envoyé tant que C1 est en cours, et leur acquittement de C1, qui n'est plus la version préparée, ne renomme rien. Ils reçoivent ensuite C2 en entier, puisqu'ils tournent C1 alors que `new-diff-X.prot` part de C0.
+L'invariant qui en résulte : `Engine` fait tourner la version de `X.prot`, ou celle de `new-X.prot` tant qu'elle est en vol, et `Broker` sait laquelle. La seule exception est un `Engine` qui a perdu son `state.prot`, déjà traitée par l'envoi de la configuration complète. Un poller qui se reconnecte en annonçant une autre version que celle en vol ne l'a jamais appliquée : `new-X.prot` est abandonné, et `next-X.prot` prend sa place s'il existe (transition 15 de l'automate, `on_relay_request()` pour un relais).
 
-L'export reste atomique pour la base : elle ne reçoit rien tant que le tour n'est pas fermé, et ce qu'elle reçoit alors décrit pour chaque poller le passage de ce qu'elle avait à la dernière version acquittée.
+L'export reste atomique pour la base : elle ne reçoit rien tant que le tour n'est pas fermé, et ce qu'elle reçoit alors décrit pour chaque poller le passage de ce qu'elle avait à la dernière version acquittée. Le test robot `BECSV1` joue le poller 3 avec un `Engine` gelé le temps que C2 arrive.
 
 Toutes les opérations sur les fichiers d'un poller se font sous un même verrou, `_conf_handover_m` : le stockage et la préparation par le cycle, l'acquittement, la préparation à la connexion, la réponse à un relais et le retrait d'un poller. Ce verrou ne couvre ni la lecture ni la validation des sources, qui restent la partie coûteuse du cycle.
 
