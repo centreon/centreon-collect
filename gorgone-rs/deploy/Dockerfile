@@ -4,11 +4,9 @@
 #   docker build -f deploy/Dockerfile --target agent  -t gorgone-agent  .
 
 FROM rust:1.97-alpine AS build
-RUN apk add --no-cache musl-dev protobuf-dev protoc
-ENV PROTOC=/usr/bin/protoc
+RUN apk add --no-cache musl-dev
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
-COPY proto proto
 COPY crates crates
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \

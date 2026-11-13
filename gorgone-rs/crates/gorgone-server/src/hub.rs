@@ -14,6 +14,8 @@ use tokio_util::sync::CancellationToken;
 use tonic::Status;
 use tracing::warn;
 
+use crate::metrics;
+
 /// Sending side of one agent session.
 #[derive(Debug, Clone)]
 pub(crate) struct SessionHandle {
@@ -97,7 +99,7 @@ impl Hub {
     }
 
     fn publish_gauge(sessions: &HashMap<String, SessionHandle>) {
-        metrics::gauge!("gorgone_agent_sessions").set(sessions.len() as f64);
+        metrics::AGENT_SESSIONS.set(sessions.len() as u64);
     }
 
     /// Makes `handle` the session of `node_id`; a previous one is closed.
@@ -185,7 +187,7 @@ impl Hub {
             Ok(Err(_)) => false,
             Err(_) => {
                 warn!(node = node_id, session = %session.session_id, "agent does not read its session, closing it");
-                metrics::counter!("gorgone_agent_sessions_stalled_total").increment(1);
+                metrics::AGENT_SESSIONS_STALLED.inc(1);
                 self.kick_session(node_id, session);
                 false
             }

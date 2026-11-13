@@ -71,7 +71,11 @@ pub(crate) fn connect(config: &AgentConfig) -> Result<GatewayClient, AgentError>
         let mut tls = ClientTlsConfig::new();
         tls = match &config.tls.ca_file {
             Some(ca_file) => tls.ca_certificate(Certificate::from_pem(read(ca_file)?)),
+            #[cfg(feature = "native-roots")]
             None => tls.with_native_roots(),
+            // Refused by the configuration check: no authority is trusted.
+            #[cfg(not(feature = "native-roots"))]
+            None => tls,
         };
         if let (Some(cert_file), Some(key_file)) = (&config.tls.cert_file, &config.tls.key_file) {
             tls = tls.identity(Identity::from_pem(read(cert_file)?, read(key_file)?));

@@ -10,28 +10,31 @@ description = "Poller-side executor of Gorgone: runs typed jobs received from go
 name = "gorgone-agent"
 path = "src/main.rs"
 
+[features]
+# Trust the certificate authorities of the system when `tls.ca_file` is unset.
+native-roots = ["tonic/tls-native-roots"]
+
 [dependencies]
 anyhow = "1.0.104"
-clap = { version = "4.6.7", features = ["derive", "env"] }
-fastrand = "2.5.0"
-figment = { version = "0.10.19", features = ["toml", "env"] }
 gorgone-core = { version = "0.1.0", path = "../gorgone-core" }
 gorgone-proto = { version = "0.1.0", path = "../gorgone-proto" }
-nix = { version = "0.31.3", features = ["signal", "fs"] }
+nix = { version = "0.31.3", default-features = false, features = ["signal"] }
 prost = "0.14"
 serde = { version = "1.0.229", features = ["derive"] }
 shell-words = "1.1.1"
 thiserror = "2.0.21"
-tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "process", "fs", "signal", "time", "sync", "io-util"] }
-tokio-stream = "0.1.19"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "process", "signal", "time", "sync", "io-util"] }
+tokio-stream = { version = "0.1.19", default-features = false }
 tokio-util = "0.7.20"
-tonic = { version = "0.14", default-features = false, features = ["channel", "codegen", "tls-ring", "tls-native-roots"] }
+toml = { version = "1.2.1", default-features = false, features = ["std", "parse", "serde"] }
+tonic = { version = "0.14", default-features = false, features = ["channel", "tls-ring"] }
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt"] }
 
 [dev-dependencies]
-figment = { version = "0.10.19", features = ["test"] }
-rcgen = "0.14.10"
+nix = { version = "0.31.3", default-features = false, features = ["fs"] }
+rcgen = { version = "0.14.10", default-features = false, features = ["ring"] }
 tempfile = "3.27.0"
-tokio-stream = { version = "0.1.19", features = ["net"] }
-tonic = { version = "0.14", features = ["transport", "router", "tls-ring"] }
+tokio = { version = "1.54.1", features = ["net"] }
+tokio-stream = { version = "0.1.19", default-features = false, features = ["net"] }
+tonic = { version = "0.14", default-features = false, features = ["transport", "router", "tls-ring"] }

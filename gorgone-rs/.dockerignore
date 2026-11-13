@@ -2,3 +2,5 @@ target
 **/*.db
 deploy
 docs
+tools
+proto

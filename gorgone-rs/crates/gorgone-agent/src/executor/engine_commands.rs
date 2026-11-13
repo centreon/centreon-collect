@@ -11,7 +11,7 @@ use gorgone_core::allowlist::Allowlist;
 use gorgone_proto::agent::job_finished::Outcome;
 use gorgone_proto::agent::{EngineCommands, JobFinished};
 use nix::errno::Errno;
-use nix::fcntl::OFlag;
+use nix::libc::O_NONBLOCK;
 
 use super::{Executor, JobContext, finished};
 
@@ -49,7 +49,7 @@ fn open_pipe(path: &Path) -> Result<File, PipeError> {
     // Non-blocking: opening a FIFO nobody reads fails instead of hanging.
     let pipe = OpenOptions::new()
         .write(true)
-        .custom_flags(OFlag::O_NONBLOCK.bits())
+        .custom_flags(O_NONBLOCK)
         .open(path)
         .map_err(|e| match e.raw_os_error() {
             Some(code) if code == Errno::ENXIO as i32 => PipeError::NoReader(path.to_path_buf()),

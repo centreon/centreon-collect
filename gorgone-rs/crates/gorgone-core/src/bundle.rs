@@ -2,10 +2,12 @@
 //! SHA-256, applied file by file with atomic renames.
 
 use std::collections::BTreeSet;
+use std::fmt;
 use std::fs;
 use std::io::{self, Read, Write};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use sha2::{Digest, Sha256};
 
@@ -13,10 +15,9 @@ use sha2::{Digest, Sha256};
 pub const DEFAULT_MAX_UNPACKED: u64 = 1 << 30;
 
 /// Bundle errors.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum BundleError {
     /// I/O failure, with the path involved.
-    #[error("{path}: {source}")]
     Io {
         /// Path being read or written.
         path: PathBuf,
@@ -24,13 +25,10 @@ pub enum BundleError {
         source: io::Error,
     },
     /// Archive could not be decoded.
-    #[error("invalid bundle: {0}")]
     Invalid(io::Error),
     /// Entry that must never be unpacked (link, device, absolute or `..` path).
-    #[error("unsafe bundle entry: {0}")]
     UnsafeEntry(String),
     /// Bundle bytes do not match the announced digest.
-    #[error("digest mismatch: expected {expected}, got {actual}")]
     DigestMismatch {
         /// Digest announced by the server.
         expected: String,
@@ -38,8 +36,30 @@ pub enum BundleError {
         actual: String,
     },
     /// Unpacked size above the configured cap.
-    #[error("bundle larger than {0} bytes once unpacked")]
     TooLarge(u64),
+}
+
+impl fmt::Display for BundleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io { path, source } => write!(f, "{}: {source}", path.display()),
+            Self::Invalid(source) => write!(f, "invalid bundle: {source}"),
+            Self::UnsafeEntry(entry) => write!(f, "unsafe bundle entry: {entry}"),
+            Self::DigestMismatch { expected, actual } => {
+                write!(f, "digest mismatch: expected {expected}, got {actual}")
+            }
+            Self::TooLarge(max) => write!(f, "bundle larger than {max} bytes once unpacked"),
+        }
+    }
+}
+
+impl std::error::Error for BundleError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Io { source, .. } | Self::Invalid(source) => Some(source),
+            _ => None,
+        }
+    }
 }
 
 fn io_err(path: &Path) -> impl FnOnce(io::Error) -> BundleError + '_ {
@@ -52,7 +72,50 @@ fn io_err(path: &Path) -> impl FnOnce(io::Error) -> BundleError + '_ {
 /// Lowercase hex SHA-256 of `bytes`.
 #[must_use]
 pub fn digest(bytes: &[u8]) -> String {
-    hex::encode(Sha256::digest(bytes))
+    use fmt::Write as _;
+    Sha256::digest(bytes)
+        .iter()
+        .fold(String::with_capacity(64), |mut hex, byte| {
+            // Writing to a String cannot fail.
+            let _ = write!(hex, "{byte:02x}");
+            hex
+        })
+}
+
+/// Writes `target` through a sibling temporary file renamed over it, so a
+/// reader never sees a partial file.
+fn write_atomic<T>(
+    target: &Path,
+    mode: u32,
+    fill: impl FnOnce(&mut fs::File) -> Result<T, BundleError>,
+) -> Result<T, BundleError> {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let parent = target.parent().unwrap_or(Path::new("."));
+    let tmp = parent.join(format!(
+        ".gorgone-tmp-{}-{}",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    // Left over by a crashed run with the same pid.
+    let _ = fs::remove_file(&tmp);
+    // `create_new` never follows a link nor reuses an existing file.
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(mode)
+        .open(&tmp)
+        .map_err(io_err(&tmp))?;
+    let result = fill(&mut file).and_then(|value| {
+        // The mode given at creation is reduced by the umask.
+        file.set_permissions(fs::Permissions::from_mode(mode))
+            .and_then(|()| fs::rename(&tmp, target))
+            .map_err(io_err(target))?;
+        Ok(value)
+    });
+    if result.is_err() {
+        let _ = fs::remove_file(&tmp);
+    }
+    result
 }
 
 /// Packs the regular files under `src` (a directory, or a single file) into a
@@ -221,20 +284,17 @@ pub fn apply(
         let target = dest.join(&rel);
         let parent = target.parent().unwrap_or(dest);
         fs::create_dir_all(parent).map_err(io_err(parent))?;
-        let mut tmp = tempfile::NamedTempFile::new_in(parent).map_err(io_err(parent))?;
-        let copied =
-            io::copy(&mut (&mut entry).take(budget + 1), &mut tmp).map_err(io_err(&target))?;
-        if copied > budget {
-            return Err(BundleError::TooLarge(options.max_unpacked));
-        }
-        budget -= copied;
         // Only the executable bit is taken from the bundle.
         let executable = entry.header().mode().unwrap_or(0) & 0o111 != 0;
         let mode = if executable { 0o755 } else { 0o644 };
-        tmp.as_file()
-            .set_permissions(fs::Permissions::from_mode(mode))
-            .map_err(io_err(&target))?;
-        tmp.persist(&target).map_err(|e| io_err(&target)(e.error))?;
+        budget -= write_atomic(&target, mode, |file| {
+            let copied =
+                io::copy(&mut (&mut entry).take(budget + 1), file).map_err(io_err(&target))?;
+            if copied > budget {
+                return Err(BundleError::TooLarge(options.max_unpacked));
+            }
+            Ok(copied)
+        })?;
         kept.insert(rel);
     }
 
@@ -244,18 +304,9 @@ pub fn apply(
         0
     };
 
-    let mut marker = tempfile::NamedTempFile::new_in(dest).map_err(io_err(dest))?;
-    marker
-        .write_all(actual.as_bytes())
-        .and_then(|()| {
-            marker
-                .as_file()
-                .set_permissions(fs::Permissions::from_mode(0o644))
-        })
-        .map_err(io_err(dest))?;
-    marker
-        .persist(dest.join(options.marker))
-        .map_err(|e| io_err(dest)(e.error))?;
+    write_atomic(&dest.join(options.marker), 0o644, |file| {
+        file.write_all(actual.as_bytes()).map_err(io_err(dest))
+    })?;
 
     Ok(ApplyReport {
         written: kept.len(),

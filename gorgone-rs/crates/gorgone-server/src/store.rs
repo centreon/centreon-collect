@@ -23,6 +23,7 @@ use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, warn};
 
 use crate::error::Error;
+use crate::metrics;
 
 /// Size of one stored blob chunk, also the size of a `FetchBlob` frame.
 pub(crate) const CHUNK_SIZE: usize = 1 << 20;
@@ -78,7 +79,7 @@ fn local_now_ms() -> i64 {
 
 /// Lowercase hex SHA-256 of an enrolment token.
 pub(crate) fn hash_token(token: &str) -> String {
-    hex::encode(Sha256::digest(token.as_bytes()))
+    crate::hex(&Sha256::digest(token.as_bytes()))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -365,6 +366,15 @@ impl Store {
                 "database_url must start with sqlite:, mysql: or mariadb:".into(),
             ));
         };
+        let built_in = match dialect {
+            Dialect::Sqlite => cfg!(feature = "sqlite"),
+            Dialect::MySql => cfg!(feature = "mysql"),
+        };
+        if !built_in {
+            return Err(Error::Invalid(
+                "this build has no driver for the database named by database_url".into(),
+            ));
+        }
         let mut options = AnyPoolOptions::new().acquire_timeout(Duration::from_secs(15));
         options = match dialect {
             // Few connections: SQLite has a single writer anyway.
@@ -594,7 +604,7 @@ impl Store {
         // Concurrent replicas: the first insert wins, all read the same row.
         sqlx::query(&sql)
             .bind("server_id")
-            .bind(uuid::Uuid::new_v4().simple().to_string())
+            .bind(crate::random_id()?)
             .execute(&self.pool)
             .await?;
         let row = sqlx::query("SELECT value FROM meta WHERE name = ?")
@@ -610,7 +620,7 @@ impl Store {
     /// Its session row is removed so that a session opened with a former
     /// token dies on whichever replica holds it.
     pub(crate) async fn enrol_node(&self, id: &str, name: &str) -> Result<String, Error> {
-        let token = hex::encode(rand::random::<[u8; 32]>());
+        let token = crate::random_hex::<32>()?;
         sqlx::query("REPLACE INTO nodes (id, name, token_hash, created_at) VALUES (?, ?, ?, ?)")
             .bind(id)
             .bind(name)
@@ -875,7 +885,7 @@ impl Store {
                 bytes += next.job.action.len();
                 batch.push(next);
             }
-            metrics::histogram!("gorgone_submit_batch_size").record(batch.len() as f64);
+            metrics::SUBMIT_BATCH_SIZE.record(batch.len() as u64);
             if batch.len() > 1 {
                 let jobs: Vec<NewJob<'_>> = batch.iter().map(|q| q.job.as_new()).collect();
                 match self.insert_jobs(&jobs).await {
@@ -1908,7 +1918,7 @@ pub(crate) mod testing {
     }
 
     pub(crate) fn unique(prefix: &str) -> String {
-        format!("{prefix}-{}", uuid::Uuid::now_v7().simple())
+        format!("{prefix}-{}", crate::random_id().unwrap())
     }
 
     impl Store {

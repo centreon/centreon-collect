@@ -5,7 +5,7 @@
 pub enum Error {
     /// Configuration could not be loaded or is inconsistent.
     #[error("configuration: {0}")]
-    Config(#[from] Box<figment::Error>),
+    Config(String),
     /// Database failure.
     #[error("store: {0}")]
     Store(#[from] sqlx::Error),

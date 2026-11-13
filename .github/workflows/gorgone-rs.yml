@@ -67,6 +67,11 @@ jobs:
       - name: Run clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
+      - name: Check that the generated gRPC code is up to date
+        run: |
+          cargo run --locked --manifest-path tools/protogen/Cargo.toml
+          git diff --exit-code -- crates/gorgone-proto/src/generated
+
   test-sqlite:
     runs-on: ubuntu-24.04
     timeout-minutes: 45

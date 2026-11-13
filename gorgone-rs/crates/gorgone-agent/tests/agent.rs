@@ -690,26 +690,58 @@ async fn invalid_settings_are_fatal() {
     assert!(matches!(error, gorgone_agent::AgentError::Allowlist(_)));
 }
 
+/// PEM armour of a DER document, so that `rcgen` needs no PEM encoder.
+fn pem(label: &str, der: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut base64 = String::new();
+    for chunk in der.chunks(3) {
+        let bits = chunk
+            .iter()
+            .fold(0u32, |bits, byte| bits << 8 | u32::from(*byte))
+            << (8 * (3 - chunk.len()));
+        for index in 0..4 {
+            if index <= chunk.len() {
+                let sextet = (bits >> (18 - 6 * index)) & 0x3f;
+                base64.push(char::from(ALPHABET[sextet as usize]));
+            } else {
+                base64.push('=');
+            }
+        }
+    }
+    format!("-----BEGIN {label}-----\n{base64}\n-----END {label}-----\n")
+}
+
+#[test]
+fn pem_armour_matches_the_reference_vectors() {
+    // RFC 4648, section 10.
+    for (plain, encoded) in [("f", "Zg=="), ("fo", "Zm8="), ("foobar", "Zm9vYmFy")] {
+        let expected = format!("-----BEGIN X-----\n{encoded}\n-----END X-----\n");
+        assert_eq!(pem("X", plain.as_bytes()), expected);
+    }
+}
+
 #[tokio::test]
 async fn tls_with_private_authority_and_client_certificate() {
     let dir = tempfile::tempdir().unwrap();
     let server_cert = rcgen::generate_simple_self_signed(vec!["gorgone.test".to_owned()]).unwrap();
     let client_cert = rcgen::generate_simple_self_signed(vec!["7".to_owned()]).unwrap();
+    let cert_pem = |cert: &rcgen::Certificate| pem("CERTIFICATE", cert.der());
+    let key_pem = |key: &rcgen::KeyPair| pem("PRIVATE KEY", &key.serialize_der());
     let write = |name: &str, pem: String| {
         let path = dir.path().join(name);
         std::fs::write(&path, pem).unwrap();
         path
     };
-    let ca_file = write("ca.pem", server_cert.cert.pem());
-    let cert_file = write("agent.crt", client_cert.cert.pem());
-    let key_file = write("agent.key", client_cert.signing_key.serialize_pem());
+    let ca_file = write("ca.pem", cert_pem(&server_cert.cert));
+    let cert_file = write("agent.crt", cert_pem(&client_cert.cert));
+    let key_file = write("agent.key", key_pem(&client_cert.signing_key));
 
     let tls = ServerTlsConfig::new()
         .identity(Identity::from_pem(
-            server_cert.cert.pem(),
-            server_cert.signing_key.serialize_pem(),
+            cert_pem(&server_cert.cert),
+            key_pem(&server_cert.signing_key),
         ))
-        .client_ca_root(Certificate::from_pem(client_cert.cert.pem()));
+        .client_ca_root(Certificate::from_pem(cert_pem(&client_cert.cert)));
     let mut server = FakeServer::start_with(Some(tls)).await;
 
     let config = format!(

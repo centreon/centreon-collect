@@ -1,13 +1,21 @@
 //! TLS material loading for the gRPC and REST listeners.
 
+use std::io;
+use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 
 use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use rustls::server::WebPkiClientVerifier;
 use rustls::{RootCertStore, ServerConfig};
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::mpsc;
+use tokio_rustls::TlsAcceptor;
+use tokio_rustls::server::TlsStream;
 use tonic::transport::{Certificate, ClientTlsConfig, Identity, ServerTlsConfig};
+use tracing::{debug, warn};
 
 use crate::config::TlsConfig;
 use crate::error::Error;
@@ -70,4 +78,88 @@ pub(crate) fn rest(config: &TlsConfig) -> Result<Arc<ServerConfig>, Error> {
         .map_err(|err| Error::Tls(err.to_string()))?;
     server.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
     Ok(Arc::new(server))
+}
+
+/// Time left to a client to complete its TLS handshake.
+const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
+/// Established connections waiting to be served.
+const READY_BACKLOG: usize = 64;
+
+/// TCP listener handing out connections once their TLS handshake is done.
+/// Each handshake runs in its own task: a slow client delays nobody.
+pub(crate) struct TlsListener {
+    local: SocketAddr,
+    ready: mpsc::Receiver<(TlsStream<TcpStream>, SocketAddr)>,
+}
+
+impl TlsListener {
+    /// Starts accepting on `listener`; stops when the value is dropped.
+    pub(crate) fn new(listener: TcpListener, config: Arc<ServerConfig>) -> io::Result<Self> {
+        let local = listener.local_addr()?;
+        let (tx, ready) = mpsc::channel(READY_BACKLOG);
+        tokio::spawn(accept_loop(listener, TlsAcceptor::from(config), tx));
+        Ok(Self { local, ready })
+    }
+}
+
+async fn accept_loop(
+    listener: TcpListener,
+    acceptor: TlsAcceptor,
+    ready: mpsc::Sender<(TlsStream<TcpStream>, SocketAddr)>,
+) {
+    loop {
+        let accepted = tokio::select! {
+            () = ready.closed() => return,
+            accepted = listener.accept() => accepted,
+        };
+        let (stream, client) = match accepted {
+            Ok(accepted) => accepted,
+            // The client gave up before being accepted.
+            Err(err)
+                if matches!(
+                    err.kind(),
+                    io::ErrorKind::ConnectionRefused
+                        | io::ErrorKind::ConnectionAborted
+                        | io::ErrorKind::ConnectionReset
+                ) =>
+            {
+                continue;
+            }
+            Err(err) => {
+                // Most likely out of descriptors: leave time to free some.
+                warn!(error = %err, "REST accept failed");
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                continue;
+            }
+        };
+        let acceptor = acceptor.clone();
+        let ready = ready.clone();
+        tokio::spawn(async move {
+            match tokio::time::timeout(HANDSHAKE_TIMEOUT, acceptor.accept(stream)).await {
+                Ok(Ok(stream)) => {
+                    // An error means the listener is gone: the stream is dropped.
+                    let _ = ready.send((stream, client)).await;
+                }
+                Ok(Err(err)) => debug!(%client, error = %err, "TLS handshake failed"),
+                Err(_) => debug!(%client, "TLS handshake timed out"),
+            }
+        });
+    }
+}
+
+impl axum::serve::Listener for TlsListener {
+    type Io = TlsStream<TcpStream>;
+    type Addr = SocketAddr;
+
+    async fn accept(&mut self) -> (Self::Io, Self::Addr) {
+        match self.ready.recv().await {
+            Some(connection) => connection,
+            // The accept loop only ends once this listener is dropped.
+            None => std::future::pending().await,
+        }
+    }
+
+    fn local_addr(&self) -> io::Result<Self::Addr> {
+        Ok(self.local)
+    }
 }

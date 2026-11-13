@@ -5,10 +5,10 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use figment::Figment;
-use figment::providers::{Env, Format, Serialized, Toml};
 use serde::{Deserialize, Serialize};
+use toml::{Table, Value};
 
+pub use crate::cidr::Cidr;
 use crate::error::Error;
 
 /// Prefix of the environment overrides; `__` separates nested keys.
@@ -43,7 +43,7 @@ pub struct RestAuthConfig {
     /// Basic-auth password.
     pub basic_password: Option<String>,
     /// Client networks allowed to call the API; empty allows every address.
-    pub allowed_cidrs: Vec<ipnet::IpNet>,
+    pub allowed_cidrs: Vec<Cidr>,
 }
 
 impl fmt::Debug for RestAuthConfig {
@@ -254,18 +254,83 @@ impl Default for Config {
     }
 }
 
+/// Value of an environment override: any TOML value (`true`, `42`,
+/// `["a", "b"]`, `"quoted"`), else the text itself.
+fn env_value(raw: &str) -> Value {
+    format!("value = {raw}")
+        .parse::<Table>()
+        .ok()
+        // One value and nothing else; a date stays the text it was.
+        .filter(|table| table.len() == 1)
+        .and_then(|mut table| table.remove("value"))
+        .filter(|value| !value.is_datetime())
+        .unwrap_or_else(|| Value::String(raw.to_owned()))
+}
+
+/// Sets the key `a.b` of `table` for every `<prefix>A__B=value` of `vars`.
+/// The prefix and the keys are matched whatever their case.
+fn overlay_env(table: &mut Table, prefix: &str, vars: impl IntoIterator<Item = (String, String)>) {
+    // Sorted, so that `A` and `A__B` always combine the same way.
+    let mut vars: Vec<(String, String)> = vars
+        .into_iter()
+        .filter_map(|(name, value)| {
+            let head = name.get(..prefix.len())?;
+            head.eq_ignore_ascii_case(prefix)
+                .then(|| (name[prefix.len()..].to_lowercase(), value))
+        })
+        .collect();
+    vars.sort();
+    for (path, raw) in vars {
+        let mut keys: Vec<&str> = path.split("__").collect();
+        let Some(last) = keys.pop().filter(|last| !last.is_empty()) else {
+            continue;
+        };
+        let mut current = &mut *table;
+        for key in keys {
+            let entry = current
+                .entry(key)
+                .or_insert_with(|| Value::Table(Table::new()));
+            // A scalar gives way to the table the variable asks for.
+            if !entry.is_table() {
+                *entry = Value::Table(Table::new());
+            }
+            let Value::Table(next) = entry else {
+                return;
+            };
+            current = next;
+        }
+        current.insert(last.to_owned(), env_value(&raw));
+    }
+}
+
 impl Config {
     /// Loads defaults, then the TOML `file` if given, then `GORGONE_SERVER__…`
     /// environment variables.
     pub fn load(file: Option<&Path>) -> Result<Self, Error> {
-        let mut figment = Figment::from(Serialized::defaults(Self::default()));
+        // A variable that is not Unicode is ignored.
+        let vars = std::env::vars_os().filter_map(|(name, value)| {
+            Some((name.into_string().ok()?, value.into_string().ok()?))
+        });
+        Self::load_with(file, vars)
+    }
+
+    fn load_with(
+        file: Option<&Path>,
+        vars: impl IntoIterator<Item = (String, String)>,
+    ) -> Result<Self, Error> {
+        let mut table = Table::new();
         if let Some(file) = file {
-            figment = figment.merge(Toml::file_exact(file));
+            let text =
+                std::fs::read_to_string(file).map_err(Error::io(file.display().to_string()))?;
+            table = text
+                .parse()
+                .map_err(|err| Error::Config(format!("{}: {err}", file.display())))?;
         }
-        let config: Self = figment
-            .merge(Env::prefixed(ENV_PREFIX).split("__"))
-            .extract()
-            .map_err(Box::new)?;
+        overlay_env(&mut table, ENV_PREFIX, vars);
+        // Keys left out take the defaults (`serde(default)`).
+        let config: Self = table
+            .try_into()
+            .map_err(|err: toml::de::Error| Error::Config(err.to_string()))?;
         config.validate_deployment()?;
         Ok(config)
     }
@@ -355,17 +420,14 @@ mod tests {
     #[test]
     fn example_file_documents_the_defaults() {
         let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("config.example.toml");
-        let loaded: Config = Figment::from(Serialized::defaults(Config::default()))
-            .merge(Toml::file_exact(&example))
-            .extract()
-            .unwrap();
+        let text = std::fs::read_to_string(&example).unwrap();
+        let loaded: Config = toml::from_str(&text).unwrap();
         loaded.validate().unwrap();
         // Every uncommented key of the example is the default value.
         let as_json = |config: &Config| serde_json::to_value(config).unwrap();
         assert_eq!(as_json(&loaded), as_json(&Config::default()));
 
         // And every key of the configuration appears in the example.
-        let text = std::fs::read_to_string(&example).unwrap();
         let defaults = as_json(&Config::default());
         let mut keys: Vec<String> = defaults.as_object().unwrap().keys().cloned().collect();
         for section in ["rest", "centcore"] {
@@ -433,9 +495,130 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("gorgone.toml");
         std::fs::write(&file, "sweep_interval_ms = 1000\n").unwrap();
-        assert!(Config::load(Some(&file)).is_err());
+        assert!(Config::load_with(Some(&file), env(&[])).is_err());
         std::fs::write(&file, "sweep_interval_ms = 1000\n[rest]\ntoken = \"t\"\n").unwrap();
-        assert_eq!(Config::load(Some(&file)).unwrap().sweep_interval_ms, 1000);
+        let loaded = Config::load_with(Some(&file), env(&[])).unwrap();
+        assert_eq!(loaded.sweep_interval_ms, 1000);
+        // What the file leaves out keeps its default.
+        assert_eq!(loaded.retention_s, Config::default().retention_s);
+        assert_eq!(loaded.centcore.bulk_external_cmd, 50);
+
+        // A missing or malformed file is an error, not an empty configuration.
+        let missing = dir.path().join("missing.toml");
+        assert!(matches!(
+            Config::load_with(Some(&missing), env(&[])),
+            Err(Error::Io { .. })
+        ));
+        std::fs::write(&file, "sweep_interval_ms = \n").unwrap();
+        assert!(matches!(
+            Config::load_with(Some(&file), env(&[])),
+            Err(Error::Config(_))
+        ));
+    }
+
+    fn env(vars: &[(&str, &str)]) -> Vec<(String, String)> {
+        vars.iter()
+            .map(|(name, value)| ((*name).to_owned(), (*value).to_owned()))
+            .collect()
+    }
+
+    #[test]
+    fn environment_overrides_the_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("gorgone.toml");
+        std::fs::write(
+            &file,
+            "sweep_interval_ms = 1000\nretention_s = 60\n[rest]\ntoken = \"file\"\n\
+             [centcore]\nenabled = false\nbulk_external_cmd = 7\n",
+        )
+        .unwrap();
+        let vars = env(&[
+            ("GORGONE_SERVER__SWEEP_INTERVAL_MS", "250"),
+            ("GORGONE_SERVER__REST_LISTEN", "0.0.0.0:8085"),
+            ("GORGONE_SERVER__ALLOW_PLAINTEXT", "true"),
+            ("GORGONE_SERVER__DATABASE_URL", "mysql://u:p@db/gorgone"),
+            ("GORGONE_SERVER__REST__TOKEN", "from-env"),
+            (
+                "GORGONE_SERVER__REST__ALLOWED_CIDRS",
+                r#"["10.0.0.0/8", "::1/128"]"#,
+            ),
+            ("GORGONE_SERVER__CENTCORE__ENABLED", "true"),
+            ("GORGONE_SERVER__SQLITE_SYNCHRONOUS", "normal"),
+            ("GORGONE_SERVER__PEER_TOKEN", "\"quoted\""),
+            ("gorgone_server__thumbprint", "abc"),
+            // Not ours: another prefix, and the variable naming the file.
+            ("GORGONE_SERVER_CONFIG", "/nowhere"),
+            ("GORGONE_AGENT__RETENTION_S", "1"),
+            ("OTHER", "x"),
+        ]);
+        let config = Config::load_with(Some(&file), vars.clone()).unwrap();
+        assert_eq!(config.sweep_interval_ms, 250);
+        assert_eq!(config.rest_listen, "0.0.0.0:8085".parse().unwrap());
+        assert!(config.allow_plaintext);
+        assert_eq!(config.database_url, "mysql://u:p@db/gorgone");
+        assert_eq!(config.rest.token.as_deref(), Some("from-env"));
+        assert_eq!(config.rest.allowed_cidrs.len(), 2);
+        assert!(config.centcore.enabled);
+        assert_eq!(config.sqlite_synchronous, SqliteSynchronous::Normal);
+        assert_eq!(config.peer_token.as_deref(), Some("quoted"));
+        assert_eq!(config.thumbprint.as_deref(), Some("abc"));
+        // Untouched by the environment: the file, then the defaults.
+        assert_eq!(config.retention_s, 60);
+        assert_eq!(config.centcore.bulk_external_cmd, 7);
+        assert_eq!(config.heartbeat_interval_s, 10);
+
+        // Without a file the environment is enough.
+        let config = Config::load_with(None, vars).unwrap();
+        assert_eq!(config.rest.token.as_deref(), Some("from-env"));
+        assert_eq!(config.retention_s, Config::default().retention_s);
+
+        // A value of the wrong type is refused, with the key in the message.
+        let refused = Config::load_with(None, env(&[("GORGONE_SERVER__RETENTION_S", "soon")]))
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("retention_s"), "{refused}");
+    }
+
+    #[test]
+    fn environment_values_are_toml_or_text() {
+        assert_eq!(env_value("true"), Value::Boolean(true));
+        assert_eq!(env_value("42"), Value::Integer(42));
+        assert_eq!(env_value("1.5"), Value::Float(1.5));
+        assert_eq!(env_value("\"42\""), Value::String("42".into()));
+        assert_eq!(env_value("plain text"), Value::String("plain text".into()));
+        assert_eq!(env_value(""), Value::String(String::new()));
+        assert_eq!(
+            env_value("0.0.0.0:8085"),
+            Value::String("0.0.0.0:8085".into())
+        );
+        assert_eq!(
+            env_value("mysql://u:p@db/gorgone # not a comment"),
+            Value::String("mysql://u:p@db/gorgone # not a comment".into())
+        );
+        assert_eq!(
+            env_value("[1, 2]"),
+            Value::Array(vec![Value::Integer(1), Value::Integer(2)])
+        );
+        // Nothing but one value: no way to smuggle another key.
+        assert_eq!(
+            env_value("1\nother = 2"),
+            Value::String("1\nother = 2".into())
+        );
+
+        // Nested keys, and a scalar giving way to a table.
+        let mut table: Table = "a = 1\n[b]\nc = 1\n".parse().unwrap();
+        overlay_env(
+            &mut table,
+            "P__",
+            env(&[
+                ("P__A__X", "2"),
+                ("P__B__D", "3"),
+                ("P__", "9"),
+                ("Q__B__C", "5"),
+            ]),
+        );
+        let expected: Table = "[a]\nx = 2\n[b]\nc = 1\nd = 3\n".parse().unwrap();
+        assert_eq!(table, expected);
     }
 
     #[test]

@@ -5,7 +5,7 @@
 //! | payload`. A record that is incomplete or does not match its checksum
 //! ends the file: it is the tail a crash left behind.
 
-use std::fs::{self, DirBuilder, File, OpenOptions};
+use std::fs::{self, DirBuilder, File, OpenOptions, TryLockError};
 use std::io::{self, Write};
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
@@ -13,8 +13,6 @@ use std::sync::mpsc;
 
 use gorgone_proto::agent::JobEvent;
 use gorgone_proto::agent::job_event::Body;
-use nix::errno::Errno;
-use nix::fcntl::{Flock, FlockArg};
 use prost::Message;
 
 const LOCK_FILE: &str = "agent.lock";
@@ -46,7 +44,7 @@ pub(crate) struct Store {
 /// Takes the exclusive lock of a state directory, creating the directory if
 /// needed. `None` when another process holds it. Dropping the result, or
 /// dying, releases the lock.
-pub(crate) fn lock_state_dir(dir: &Path) -> io::Result<Option<Flock<File>>> {
+pub(crate) fn lock_state_dir(dir: &Path) -> io::Result<Option<File>> {
     DirBuilder::new().recursive(true).mode(0o700).create(dir)?;
     let file = OpenOptions::new()
         .write(true)
@@ -54,10 +52,10 @@ pub(crate) fn lock_state_dir(dir: &Path) -> io::Result<Option<Flock<File>>> {
         .truncate(false)
         .mode(0o600)
         .open(dir.join(LOCK_FILE))?;
-    match Flock::lock(file, FlockArg::LockExclusiveNonblock) {
-        Ok(lock) => Ok(Some(lock)),
-        Err((_, Errno::EWOULDBLOCK)) => Ok(None),
-        Err((_, errno)) => Err(errno.into()),
+    match file.try_lock() {
+        Ok(()) => Ok(Some(file)),
+        Err(TryLockError::WouldBlock) => Ok(None),
+        Err(TryLockError::Error(error)) => Err(error),
     }
 }
 

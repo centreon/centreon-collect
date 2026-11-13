@@ -19,13 +19,13 @@ use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::WaitForCancellationFutureOwned;
 use tonic::{Request, Response, Status, Streaming};
 use tracing::{debug, info, warn};
-use uuid::Uuid;
 
 use crate::bearer_token;
 use crate::dispatcher::Dispatcher;
 use crate::error::Error;
 use crate::events;
 use crate::hub::{Hub, SessionHandle};
+use crate::metrics;
 use crate::store::{
     FAILED_SEQ, NewEvent, SERVER_SEQ_FLOOR, Store, Termination, Transition, hash_token, state,
 };
@@ -87,23 +87,6 @@ fn node_id_metadata<T>(request: &Request<T>) -> Result<String, Status> {
         .ok_or_else(|| Status::unauthenticated("missing node id metadata"))
 }
 
-/// Common name of the client certificate: `None` without mTLS,
-/// `Some(None)` when the certificate has no readable CN.
-fn peer_common_name<T>(request: &Request<T>) -> Option<Option<String>> {
-    let certs = request.peer_certs()?;
-    let leaf = certs.first()?;
-    let name = x509_parser::parse_x509_certificate(leaf.as_ref())
-        .ok()
-        .and_then(|(_, cert)| {
-            cert.subject()
-                .iter_common_name()
-                .next()
-                .and_then(|cn| cn.as_str().ok())
-                .map(str::to_owned)
-        });
-    Some(name)
-}
-
 /// Comparison that does not stop at the first difference.
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
@@ -120,28 +103,18 @@ pub(crate) enum Verdict {
 
 impl Gateway {
     /// Checks, from the request metadata alone, that the caller is the agent
-    /// of `node_id`. Nothing of the request body is read before this.
+    /// of `node_id`. Nothing of the request body is read before this. A
+    /// client certificate (mTLS) only proves the CA trusts the agent: the
+    /// enrolment token is what identifies the node.
     async fn authenticate<T>(&self, request: &Request<T>) -> Result<String, Status> {
         let node_id = node_id_metadata(request)?;
         let token = bearer_token(request.metadata());
-        // With mTLS a certificate issued for this node replaces the token.
-        let certified = match peer_common_name(request) {
-            Some(cn) if cn.as_deref() == Some(node_id.as_str()) => true,
-            Some(_) => {
-                return Err(Status::permission_denied(
-                    "certificate common name does not match the node id",
-                ));
-            }
-            None => false,
-        };
         let stored = self
             .store
             .node_token_hash(&node_id)
             .await
             .map_err(internal)?;
         match stored.as_deref() {
-            // The node must be enrolled: a certificate never creates it.
-            Some(_) if certified => Ok(node_id),
             Some(hash) if !hash.is_empty() => {
                 let given = token.as_deref().map(hash_token).unwrap_or_default();
                 if constant_time_eq(given.as_bytes(), hash.as_bytes()) {
@@ -244,12 +217,11 @@ impl Gateway {
 
         if !inserts.is_empty() {
             let applied = self.store.commit_events(&inserts, &transitions).await?;
-            metrics::counter!("gorgone_job_events_total").increment(inserts.len() as u64);
-            metrics::histogram!("gorgone_event_batch_size").record(inserts.len() as f64);
+            metrics::JOB_EVENTS.inc(inserts.len() as u64);
+            metrics::EVENT_BATCH_SIZE.record(inserts.len() as u64);
             for (to, changed) in applied {
                 if to != state::RUNNING && changed > 0 {
-                    metrics::counter!("gorgone_jobs_finished_total", "state" => to)
-                        .increment(changed);
+                    metrics::JOBS_FINISHED.add(to, changed);
                 }
             }
         }
@@ -266,8 +238,7 @@ impl Gateway {
                 .await?
             {
                 warn!(job = job_id, node = node_id, "job failed: too many events");
-                metrics::counter!("gorgone_jobs_finished_total", "state" => state::FAILED)
-                    .increment(1);
+                metrics::JOBS_FINISHED.add(state::FAILED, 1);
             }
             touched.insert(job_id, true);
         }
@@ -313,7 +284,7 @@ impl Gateway {
         for (event, verdict) in batch.iter().zip(verdicts) {
             if let Verdict::Dropped(reason) = verdict {
                 warn!(node = node_id, job = %event.job_id, seq = event.seq, reason, "agent event dropped");
-                metrics::counter!("gorgone_job_events_dropped_total").increment(1);
+                metrics::JOB_EVENTS_DROPPED.inc(1);
             }
             let ack = ServerFrame {
                 frame: Some(Frame::Ack(EventAck {
@@ -478,7 +449,7 @@ impl AgentGateway for GatewayService {
         drop(opening);
 
         let (tx, rx) = mpsc::channel(SESSION_BUFFER);
-        let handle = SessionHandle::new(Uuid::now_v7().to_string(), tx);
+        let handle = SessionHandle::new(crate::random_id().map_err(internal)?, tx);
         let welcome = ServerFrame {
             frame: Some(Frame::Welcome(Welcome {
                 session_id: handle.session_id.clone(),

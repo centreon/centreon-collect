@@ -1,6 +1,8 @@
 //! Control stream with the server: handshake, heartbeat, dispatch intake,
 //! event delivery, reconnection.
 
+use std::collections::hash_map::RandomState;
+use std::hash::{BuildHasher, Hasher};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -37,6 +39,13 @@ impl From<tonic::Status> for SessionError {
     }
 }
 
+/// Number in `[0, 1)`, good enough to spread reconnections: every
+/// `RandomState` hashes with its own keys, seeded by the system.
+fn jitter() -> f64 {
+    let bits = RandomState::new().build_hasher().finish();
+    (bits >> 11) as f64 / (1u64 << 53) as f64
+}
+
 /// Jittered exponential backoff.
 pub(crate) struct Backoff {
     min: Duration,
@@ -61,7 +70,7 @@ impl Backoff {
     pub(crate) fn next_delay(&mut self) -> Duration {
         let ceiling = self.current;
         self.current = ceiling.saturating_mul(2).min(self.max);
-        ceiling.mul_f64(0.5 + fastrand::f64() / 2.0)
+        ceiling.mul_f64(0.5 + jitter() / 2.0)
     }
 }
 
@@ -204,6 +213,13 @@ fn frame(frame: agent_frame::Frame) -> AgentFrame {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn jitter_varies_within_its_range() {
+        let draws: Vec<f64> = (0..64).map(|_| jitter()).collect();
+        assert!(draws.iter().all(|draw| (0.0..1.0).contains(draw)));
+        assert!(draws.iter().any(|draw| *draw < 0.5) && draws.iter().any(|draw| *draw >= 0.5));
+    }
 
     #[test]
     fn backoff_grows_to_max_and_resets() {

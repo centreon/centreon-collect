@@ -6,11 +6,11 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-hex = "0.4.3"
-regex = "1.13.1"
-sha2 = "0.11.1"
+regex-lite = "0.1.9"
+sha2 = "0.10"
 shell-words = "1.1.1"
-tar = "0.4.46"
-tempfile = "3.27.0"
-thiserror = "2.0.21"
+tar = { version = "0.4.46", default-features = false }
 zstd = "0.14.4"
+
+[dev-dependencies]
+tempfile = "3.27.0"

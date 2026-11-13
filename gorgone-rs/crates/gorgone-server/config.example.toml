@@ -6,6 +6,8 @@
 #   GORGONE_SERVER__DATABASE_URL=mysql://gorgone:...@db/gorgone
 #   GORGONE_SERVER__REST__TOKEN=...
 #   GORGONE_SERVER__CENTCORE__ENABLED=true
+# A value is read as TOML (true, 42, ["10.0.0.0/8"]) and taken as text
+# otherwise; quote a text that looks like a number: REPLICA_ID='"1"'.
 # Check a file without starting the server: gorgone-server --config FILE --check
 #
 # The defaults fail closed: as is, this file is refused until a REST
@@ -82,7 +84,8 @@ auto_enroll = false
 # thumbprint = "..."
 
 # ---- Logs and metrics ----
-# JSON lines instead of text. The level comes from RUST_LOG (default: info).
+# JSON lines instead of text. The level comes from RUST_LOG: trace, debug,
+# info (default), warn, error or off.
 log_json = false
 # Serve /metrics without credentials (it is behind [rest] otherwise).
 metrics_public = false
@@ -112,9 +115,9 @@ allowed_cidrs = []
 # # Require a client certificate signed by this CA.
 # client_ca = "/etc/centreon-gorgone/tls/ca.pem"
 
-# Agent gateway. With client_ca, agents must present a certificate whose
-# common name is their node id; the enrolment token is then optional, but the
-# node must be enrolled.
+# Agent gateway. With client_ca, agents must present a certificate signed by
+# that CA. It only proves the agent is trusted: the node is still identified
+# by its enrolment token, whatever the certificate names.
 # [agent_tls]
 # cert = "/etc/centreon-gorgone/tls/server.pem"
 # key = "/etc/centreon-gorgone/tls/server.key"

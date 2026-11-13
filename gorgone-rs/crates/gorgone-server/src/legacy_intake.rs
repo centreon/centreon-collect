@@ -31,6 +31,7 @@ use tracing::{debug, info, warn};
 use crate::config::CentcoreConfig;
 use crate::dispatcher::Dispatcher;
 use crate::error::Error;
+use crate::metrics;
 use crate::store::Store;
 
 /// Name of the lease guarding the intake.
@@ -117,7 +118,7 @@ fn job_id(nonce: &str, offset: u64, tag: &str) -> String {
     hasher.update(nonce.as_bytes());
     hasher.update(offset.to_be_bytes());
     hasher.update(tag.as_bytes());
-    format!("cc-{}", hex::encode(&hasher.finalize()[..16]))
+    format!("cc-{}", crate::hex(&hasher.finalize()[..16]))
 }
 
 /// A command file ready to be read, and the nonce naming its jobs.
@@ -139,7 +140,13 @@ fn claim(path: &Path) -> Option<Claimed> {
     }
     // A plain file, or a leftover of the Perl daemon (`<name>_read`).
     let base = name.strip_suffix(READ_SUFFIX).unwrap_or(name);
-    let nonce = uuid::Uuid::new_v4().simple().to_string();
+    let nonce = match crate::random_id() {
+        Ok(nonce) => nonce,
+        Err(err) => {
+            warn!(file = %path.display(), error = %err, "command file not claimed");
+            return None;
+        }
+    };
     let reading = path.with_file_name(format!("{base}.{nonce}{READ_SUFFIX}"));
     // `rename` never follows a link: a planted one is moved, not its target.
     match fs::rename(path, &reading) {
@@ -446,7 +453,7 @@ impl Pass<'_> {
             Ok(opened) => opened,
             Err(reason) => {
                 warn!(file = %path.display(), reason, "command file refused, set aside");
-                metrics::counter!("gorgone_centcore_files_refused_total").increment(1);
+                metrics::CENTCORE_FILES_REFUSED.inc(1);
                 set_aside(path);
                 return Ok(());
             }
@@ -491,7 +498,7 @@ impl Pass<'_> {
 
     fn dropped(text: &str, reason: &'static str) {
         warn!(line = text, reason, "centcore command dropped");
-        metrics::counter!("gorgone_centcore_dropped_total", "reason" => reason).increment(1);
+        metrics::CENTCORE_DROPPED.add(reason, 1);
     }
 
     /// False, after logging, when jobs for `node` would be refused.
@@ -585,11 +592,7 @@ impl Pass<'_> {
                     line = text,
                     "unsupported centcore command dropped"
                 );
-                metrics::counter!(
-                    "gorgone_centcore_unsupported_total",
-                    "command" => line.command.to_owned()
-                )
-                .increment(1);
+                metrics::CENTCORE_UNSUPPORTED.add(line.command, 1);
             }
             command => match service_control(command) {
                 Some((service, operation)) => {
@@ -673,8 +676,7 @@ impl Pass<'_> {
         let linked = fs::symlink_metadata(source).map_or(true, |meta| meta.is_symlink());
         if !inside || linked {
             warn!(line = text, source = %source.display(), "configuration source is outside its directory, nothing sent");
-            metrics::counter!("gorgone_centcore_dropped_total", "reason" => "unsafe_source")
-                .increment(1);
+            metrics::CENTCORE_DROPPED.add("unsafe_source", 1);
             return Ok(());
         }
         let bytes = match bundle::pack(source) {
@@ -714,7 +716,7 @@ impl Pass<'_> {
         match submitted {
             Ok(true) => {
                 debug!(job = id, node, "centcore command submitted");
-                metrics::counter!("gorgone_centcore_jobs_total").increment(1);
+                metrics::CENTCORE_JOBS.inc(1);
                 self.stats.jobs += 1;
                 Ok(())
             }
@@ -1086,7 +1088,7 @@ mod tests {
         fs::create_dir_all(&config).unwrap();
         fs::write(config.join("module.json"), "{}").unwrap();
         // A file a previous run was reading: it already has its nonce.
-        let nonce = uuid::Uuid::new_v4().simple().to_string();
+        let nonce = crate::random_id().unwrap();
         let reading = fixture
             .dir
             .path()

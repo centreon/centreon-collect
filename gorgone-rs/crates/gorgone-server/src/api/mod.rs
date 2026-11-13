@@ -4,15 +4,14 @@ mod auth;
 mod legacy;
 mod native;
 
+use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
-use std::sync::{Arc, OnceLock};
 
 use axum::extract::{DefaultBodyLimit, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post, put};
 use axum::{Json, Router};
-use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
 use serde_json::json;
 use tracing::warn;
 
@@ -93,26 +92,6 @@ impl IntoResponse for ApiError {
     }
 }
 
-/// Process-wide Prometheus recorder; a second server in the same process
-/// (tests) reuses it.
-fn prometheus() -> Option<&'static PrometheusHandle> {
-    static HANDLE: OnceLock<Option<PrometheusHandle>> = OnceLock::new();
-    HANDLE
-        .get_or_init(|| match PrometheusBuilder::new().install_recorder() {
-            Ok(handle) => Some(handle),
-            Err(err) => {
-                warn!(error = %err, "metrics recorder not installed");
-                None
-            }
-        })
-        .as_ref()
-}
-
-/// Installs the metrics recorder early so that no counter is lost.
-pub(crate) fn init_metrics() {
-    let _ = prometheus();
-}
-
 async fn healthz() -> &'static str {
     "ok"
 }
@@ -128,9 +107,7 @@ async fn readyz(State(state): State<Shared>) -> Response {
 }
 
 async fn metrics() -> String {
-    prometheus()
-        .map(PrometheusHandle::render)
-        .unwrap_or_default()
+    crate::metrics::render()
 }
 
 /// Builds the whole REST router.

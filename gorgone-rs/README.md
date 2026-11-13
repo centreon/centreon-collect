@@ -25,7 +25,14 @@ cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 ```
 
-No system `protoc` is needed. The server tests run on SQLite; set
+The gRPC code is checked in: building needs neither `protoc` nor a code
+generator. After changing a file under `proto/`, regenerate it with
+`cargo run --manifest-path tools/protogen/Cargo.toml`.
+
+Dependencies are kept to what the stack needs (async runtime, HTTP/2, TLS,
+SQL client); think twice before adding one.
+
+The server tests run on SQLite; set
 `GORGONE_TEST_DATABASE_URL=mysql://…` to run them on MariaDB.
 
 ## Run
@@ -57,14 +64,15 @@ cargo test --release -p gorgone-e2e --test bench -- --ignored --nocapture
 ```
 
 Each job is one command going through REST submit, the store, the agent and
-back to a waiting REST client. On a developer laptop (8 cores, WSL2), one
-replica, SQLite with full synchronisation:
+back to a waiting REST client. One replica, SQLite with full synchronisation,
+on a developer laptop (8 cores, WSL2). Throughput follows the cost of a disk
+sync, which varied between runs on that machine:
 
-| Agents | Clients | Throughput  | Median latency |
-| ------ | ------- | ----------- | -------------- |
-| 1      | 1       | 262 jobs/s  | 3.4 ms         |
-| 1      | 64      | 1115 jobs/s | 57 ms          |
-| 32     | 256     | 985 jobs/s  | 256 ms         |
+| Agents | Clients | Throughput         | Median latency |
+| ------ | ------- | ------------------ | -------------- |
+| 1      | 1       | 140 to 260 jobs/s  | 3 to 7 ms      |
+| 1      | 64      | 650 to 1100 jobs/s | 55 to 95 ms    |
+| 32     | 256     | 600 to 1000 jobs/s | 250 to 400 ms  |
 
 Set `GORGONE_TEST_DATABASE_URL` to measure on MariaDB.
 

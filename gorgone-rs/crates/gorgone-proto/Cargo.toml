@@ -7,9 +7,5 @@ rust-version.workspace = true
 
 [dependencies]
 prost = "0.14.5"
-tonic = "0.14.9"
+tonic = { version = "0.14.9", default-features = false, features = ["codegen", "channel"] }
 tonic-prost = "0.14.9"
-
-[build-dependencies]
-protoc-bin-vendored = "3.3.0"
-tonic-prost-build = "0.14.9"

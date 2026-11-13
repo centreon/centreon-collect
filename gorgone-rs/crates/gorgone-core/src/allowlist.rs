@@ -1,36 +1,55 @@
 //! Command allowlist enforced by the agent.
 
+use std::fmt;
 use std::path::{Component, Path};
 
-use regex::RegexSet;
+use regex_lite::Regex;
 
 /// Error building an [`Allowlist`].
-#[derive(Debug, thiserror::Error)]
-#[error("invalid allowlist pattern: {0}")]
-pub struct AllowlistError(#[from] regex::Error);
+#[derive(Debug)]
+pub struct AllowlistError(regex_lite::Error);
+
+impl fmt::Display for AllowlistError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid allowlist pattern: {}", self.0)
+    }
+}
+
+impl std::error::Error for AllowlistError {}
 
 /// Why a command was refused.
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Denied {
     /// No pattern matches the command.
-    #[error("command does not match the allowlist")]
     NotListed,
     /// Control character (newline, NUL...) in the command.
-    #[error("command contains a control character")]
     ControlCharacter,
     /// Unbalanced quotes or empty command.
-    #[error("command cannot be parsed")]
     Unparsable,
     /// Program given with a relative path, or with `.` / `..` components.
-    #[error("program path must be absolute, without '.' or '..'")]
     ProgramPath,
 }
 
+impl fmt::Display for Denied {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::NotListed => "command does not match the allowlist",
+            Self::ControlCharacter => "command contains a control character",
+            Self::Unparsable => "command cannot be parsed",
+            Self::ProgramPath => "program path must be absolute, without '.' or '..'",
+        })
+    }
+}
+
+impl std::error::Error for Denied {}
+
 /// Set of regular expressions; a command is allowed when one of them matches
 /// it entirely. An empty allowlist allows nothing.
+///
+/// Patterns use the `regex-lite` syntax: `\d`, `\s` and `\w` are ASCII only.
 #[derive(Debug, Clone)]
 pub struct Allowlist {
-    set: RegexSet,
+    patterns: Vec<Regex>,
 }
 
 impl Allowlist {
@@ -40,19 +59,19 @@ impl Allowlist {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let anchored = patterns
+        let patterns = patterns
             .into_iter()
-            .map(|p| format!("^(?:{})$", p.as_ref()));
-        Ok(Self {
-            set: RegexSet::new(anchored)?,
-        })
+            .map(|p| Regex::new(&format!("^(?:{})$", p.as_ref())))
+            .collect::<Result<_, _>>()
+            .map_err(AllowlistError)?;
+        Ok(Self { patterns })
     }
 
     /// True when `command` matches one pattern entirely. Only checks the
     /// text: use [`Allowlist::authorize`] before running without a shell.
     #[must_use]
     pub fn is_allowed(&self, command: &str) -> bool {
-        self.set.is_match(command)
+        self.patterns.iter().any(|p| p.is_match(command))
     }
 
     /// Checks `command` and returns the argument vector to execute.

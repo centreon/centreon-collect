@@ -1,10 +1,13 @@
 //! Two server replicas on one database and a real agent connected to the
 //! first one; every request goes through the second one.
 
+mod common;
+
 use std::net::SocketAddr;
 use std::path::Path;
 use std::time::Duration;
 
+use common::Http;
 use gorgone_agent::AgentConfig;
 use gorgone_server::{Config, Server, ServerHandle};
 use serde_json::{Value, json};
@@ -58,43 +61,16 @@ reload = "touch {dir}/engine-reloaded"
     AgentConfig::from_toml(&toml).expect("agent config")
 }
 
-struct Api {
-    http: reqwest::Client,
-    base: String,
+async fn submit(http: Http, action: Value) -> String {
+    let reply = http
+        .json("POST", &format!("/v1/nodes/{NODE}/jobs"), Some(&action))
+        .await;
+    reply["id"].as_str().expect("job id").to_owned()
 }
 
-impl Api {
-    fn new(server: &ServerHandle) -> Self {
-        Self {
-            http: reqwest::Client::new(),
-            base: format!("http://{}", server.rest_addr),
-        }
-    }
-
-    async fn submit(&self, action: Value) -> String {
-        let reply: Value = self
-            .http
-            .post(format!("{}/v1/nodes/{NODE}/jobs", self.base))
-            .json(&action)
-            .send()
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap();
-        reply["id"].as_str().expect("job id").to_owned()
-    }
-
-    async fn wait(&self, id: &str) -> Value {
-        self.http
-            .get(format!("{}/v1/jobs/{id}?wait=10", self.base))
-            .send()
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap()
-    }
+async fn wait(http: Http, id: &str) -> Value {
+    http.json("GET", &format!("/v1/jobs/{id}?wait=10"), None)
+        .await
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -103,23 +79,26 @@ async fn commands_config_and_services_across_replicas() {
     let database_url = format!("sqlite://{}/gorgone.db?mode=rwc", dir.path().display());
     let first = replica(&database_url).await;
     let second = replica(&database_url).await;
-    let api = Api::new(&second);
+    let http = Http {
+        addr: second.rest_addr,
+    };
 
     // Enrol the node, then start the agent against the first replica.
-    let enrolled: Value = api
-        .http
-        .put(format!("{}/v1/nodes/{NODE}", api.base))
-        .json(&json!({ "name": "poller" }))
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
+    let enrolled = http
+        .json(
+            "PUT",
+            &format!("/v1/nodes/{NODE}"),
+            Some(&json!({ "name": "poller" })),
+        )
+        .await;
     let token = enrolled["token"].as_str().expect("token returned once");
 
     let fifo = dir.path().join("centengine.cmd");
-    nix::unistd::mkfifo(&fifo, nix::sys::stat::Mode::from_bits_truncate(0o600)).unwrap();
+    let made = std::process::Command::new("mkfifo")
+        .arg(&fifo)
+        .status()
+        .unwrap();
+    assert!(made.success());
     let (stop, stopped) = oneshot::channel::<()>();
     let agent = tokio::spawn(gorgone_agent::run(
         agent_config(&first, token, dir.path()),
@@ -129,28 +108,23 @@ async fn commands_config_and_services_across_replicas() {
     ));
 
     // Legacy route, as centreon-web calls it.
-    let reply: Value = api
-        .http
-        .post(format!("{}/api/nodes/{NODE}/core/action/command", api.base))
-        .json(&json!([{ "command": "echo hello", "timeout": 10 }]))
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
+    let reply = http
+        .json(
+            "POST",
+            &format!("/api/nodes/{NODE}/core/action/command"),
+            Some(&json!([{ "command": "echo hello", "timeout": 10 }])),
+        )
+        .await;
     let legacy_token = reply["token"].as_str().expect("legacy token").to_owned();
-    let job = api.wait(&legacy_token).await;
+    let job = wait(http, &legacy_token).await;
     assert_eq!(job["state"], "succeeded", "{job}");
-    let logs: Value = api
-        .http
-        .get(format!("{}/api/nodes/{NODE}/log/{legacy_token}", api.base))
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
+    let logs = http
+        .json(
+            "GET",
+            &format!("/api/nodes/{NODE}/log/{legacy_token}"),
+            None,
+        )
+        .await;
     assert_eq!(logs["message"], "Logs found");
     let codes: Vec<i64> = logs["data"]
         .as_array()
@@ -162,10 +136,12 @@ async fn commands_config_and_services_across_replicas() {
     assert!(logs.to_string().contains("hello"));
 
     // The agent allowlist wins over the central.
-    let id = api
-        .submit(json!({ "run_commands": { "commands": [{ "command": "cat /etc/shadow" }] } }))
-        .await;
-    assert_eq!(api.wait(&id).await["state"], "failed");
+    let id = submit(
+        http,
+        json!({ "run_commands": { "commands": [{ "command": "cat /etc/shadow" }] } }),
+    )
+    .await;
+    assert_eq!(wait(http, &id).await["state"], "failed");
 
     // Configuration push followed by a reload: order is kept.
     let source = dir.path().join("generated");
@@ -174,24 +150,26 @@ async fn commands_config_and_services_across_replicas() {
         .await
         .unwrap();
     let bundle = gorgone_core::bundle::pack(&source).unwrap();
-    let pushed: Value = api
-        .http
-        .put(format!("{}/v1/nodes/{NODE}/config/engine", api.base))
-        .body(bundle)
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-    let reload = api
-        .submit(json!({ "service_control": { "service": "engine", "operation": "reload" } }))
+    let (status, pushed) = http
+        .request(
+            "PUT",
+            &format!("/v1/nodes/{NODE}/config/engine"),
+            "application/octet-stream",
+            &bundle,
+        )
         .await;
+    assert!((200..300).contains(&status), "{status}");
+    let pushed: Value = serde_json::from_slice(&pushed).unwrap();
+    let reload = submit(
+        http,
+        json!({ "service_control": { "service": "engine", "operation": "reload" } }),
+    )
+    .await;
     assert_eq!(
-        api.wait(pushed["id"].as_str().unwrap()).await["state"],
+        wait(http, pushed["id"].as_str().unwrap()).await["state"],
         "succeeded"
     );
-    assert_eq!(api.wait(&reload).await["state"], "succeeded");
+    assert_eq!(wait(http, &reload).await["state"], "succeeded");
     assert_eq!(
         tokio::fs::read_to_string(dir.path().join("etc-engine/centengine.cfg"))
             .await
@@ -212,22 +190,16 @@ async fn commands_config_and_services_across_replicas() {
     });
     tokio::time::sleep(Duration::from_millis(200)).await;
     let command = "[1700000000] SCHEDULE_FORCED_HOST_CHECK;host;1700000000";
-    let id = api
-        .submit(json!({ "engine_commands": { "commands": [command] } }))
-        .await;
-    assert_eq!(api.wait(&id).await["state"], "succeeded");
+    let id = submit(
+        http,
+        json!({ "engine_commands": { "commands": [command] } }),
+    )
+    .await;
+    assert_eq!(wait(http, &id).await["state"], "succeeded");
     assert_eq!(reader.await.unwrap(), format!("{command}\n"));
 
     // Connection status as the monitoring plugin reads it.
-    let status: Value = api
-        .http
-        .get(format!("{}/api/internal/constatus", api.base))
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
+    let status = http.json("GET", "/api/internal/constatus", None).await;
     assert!(status["data"][NODE].is_object(), "{status}");
 
     stop.send(()).ok();

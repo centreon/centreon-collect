@@ -7,12 +7,10 @@
 #   GORGONE_AGENT__TLS__CA_FILE=/etc/centreon-gorgone/ca.pem
 #   GORGONE_AGENT__SERVICES__ENGINE__RELOAD="sudo systemctl reload centengine"
 #   GORGONE_AGENT__COMMANDS__ALLOWLIST='["/usr/lib/centreon/plugins/\\S+( .*)?"]'
-# Environment values are typed before they are read: `7` is a number and
-# `true` a boolean. Text keys accept them anyway (`NODE_ID=7` gives "7").
-# Two limits: a decimal number is normalised (`1.50` gives "1.5"), and a value
-# starting with `[` or `{` is read as a list or a table. Wrap such a value in
-# double quotes inside the variable to keep it as written: TOKEN='"1.50"'.
-# A list (the allowlist) is written `["a", "b"]`, with double quotes.
+# A value is taken as written, with two exceptions: a valid TOML list or
+# inline table is read as such (the allowlist is written `["a", "b"]`), and
+# the double quotes of a TOML string are removed. To keep such a text as
+# written, wrap it in double quotes inside the variable: TOKEN='"[1]"'.
 
 # Required. Identifier of this poller on the central (the `nagios_server.id`
 # of Centreon).
@@ -76,8 +74,9 @@ job_history = 1024
 max_buffered_event_bytes = 67108864
 
 [tls]
-# PEM file of the authorities signing the server certificate. Unset by
-# default: the system trust store is used.
+# PEM file of the authorities signing the server certificate. Required with
+# an `https://` server_url, no default: the system trust store is only read
+# as a fallback by an agent built with the cargo feature `native-roots`.
 ca_file = "/etc/centreon-gorgone/ca.pem"
 # PEM client certificate and private key, for mTLS; set both or none. The
 # certificate CN must equal `node_id`. Unset by default.

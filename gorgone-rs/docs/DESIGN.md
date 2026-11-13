@@ -112,8 +112,9 @@ event written by the server.
 `Session` is a bidirectional stream:
 
 1. Agent sends `Hello {node_id, agent_version, capabilities}`. The enrolment
-   token travels in the `authorization: Bearer` metadata. With mTLS, a client
-   certificate whose CN equals `node_id` is enough and the token is optional.
+   token travels in the `authorization: Bearer` metadata and always identifies
+   the node. With mTLS, the client certificate additionally proves the agent
+   is trusted by the CA; it is not read for identity.
 2. Server answers `Welcome {session_id, heartbeat_interval_s}` and registers
    the session in the store (`node_id → replica`). A newer session for the same
    node replaces the older one.

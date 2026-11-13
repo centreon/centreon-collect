@@ -14,11 +14,11 @@ use prost::Message;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
-use uuid::Uuid;
 
 use crate::error::Error;
 use crate::events;
 use crate::hub::{DrainRole, Hub, SessionHandle, job_notified};
+use crate::metrics;
 use crate::peer::PeerClients;
 use crate::store::{JobRow, NewJob, Store, state};
 
@@ -151,7 +151,7 @@ impl Dispatcher {
         action: Action,
         deadline: Option<Duration>,
     ) -> Result<String, Error> {
-        let id = Uuid::now_v7().to_string();
+        let id = crate::random_id()?;
         self.commit(&id, false, node_id, action, deadline).await?;
         Ok(id)
     }
@@ -201,7 +201,7 @@ impl Dispatcher {
             })
             .await?;
         if created {
-            metrics::counter!("gorgone_jobs_submitted_total", "kind" => kind).increment(1);
+            metrics::JOBS_SUBMITTED.add(kind, 1);
             debug!(job = id, node = node_id, kind, "job queued");
             // The job is committed: delivery happens aside, so that a slow
             // agent never delays the submitter.
@@ -456,8 +456,7 @@ impl Dispatcher {
             .cancel_queued(id, &events::cancelled().to_string())
             .await?
         {
-            metrics::counter!("gorgone_jobs_finished_total", "state" => state::CANCELLED)
-                .increment(1);
+            metrics::JOBS_FINISHED.add(state::CANCELLED, 1);
             self.hub.notify_job(id, true);
             return Ok(CancelOutcome::Cancelled);
         }
@@ -500,7 +499,7 @@ impl Dispatcher {
         if !self.hub.send(node_id, session, frame).await {
             return Ok(false);
         }
-        metrics::counter!("gorgone_jobs_dispatched_total").increment(1);
+        metrics::JOBS_DISPATCHED.inc(1);
         debug!(job = %job.id, session = %session.session_id, "job dispatched");
         Ok(true)
     }
@@ -621,8 +620,7 @@ impl Dispatcher {
             match ids {
                 Ok(ids) => {
                     for id in &ids {
-                        metrics::counter!("gorgone_jobs_finished_total", "state" => state)
-                            .increment(1);
+                        metrics::JOBS_FINISHED.add(state, 1);
                         self.hub.notify_job(id, true);
                     }
                 }

@@ -5,17 +5,23 @@
 //! cargo test --release -p gorgone-e2e --test bench -- --ignored --nocapture
 //! ```
 //!
-//! `GORGONE_BENCH_JOBS`, `GORGONE_BENCH_CONCURRENCY`, `GORGONE_BENCH_NODES` and
-//! `GORGONE_TEST_DATABASE_URL` (MariaDB) change the run.
+//! `GORGONE_BENCH_JOBS`, `GORGONE_BENCH_CONCURRENCY`, `GORGONE_BENCH_NODES`,
+//! `GORGONE_BENCH_SQLITE_SYNC=normal` and `GORGONE_TEST_DATABASE_URL` (MariaDB)
+//! change the run.
 
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
+mod common;
+
+use common::Conn;
 use gorgone_agent::AgentConfig;
+use gorgone_server::config::SqliteSynchronous;
 use gorgone_server::{Config, Server};
-use serde_json::{Value, json};
-use tokio::sync::{Semaphore, oneshot};
+use serde_json::json;
+use tokio::sync::oneshot;
 
 fn env_usize(name: &str, default: usize) -> usize {
     std::env::var(name)
@@ -40,6 +46,12 @@ async fn end_to_end_throughput() {
         peer_listen: any,
         database_url,
         auto_enroll: true,
+        sqlite_synchronous: if std::env::var("GORGONE_BENCH_SQLITE_SYNC").as_deref() == Ok("normal")
+        {
+            SqliteSynchronous::Normal
+        } else {
+            SqliteSynchronous::Full
+        },
         ..Config::default()
     })
     .await
@@ -69,42 +81,43 @@ allowlist = ['true']
     }
     tokio::time::sleep(Duration::from_millis(500)).await;
 
-    let http = reqwest::Client::new();
-    let base = format!("http://{}", server.rest_addr);
-    let permits = Arc::new(Semaphore::new(concurrency));
+    // One persistent connection per client, as a real API client would do.
+    let addr = server.rest_addr;
+    let next = Arc::new(AtomicUsize::new(0));
     let started = Instant::now();
-    let mut tasks = Vec::with_capacity(jobs);
-    for job in 0..jobs {
-        let node = job % nodes;
-        let (http, base, permits) = (http.clone(), base.clone(), permits.clone());
-        tasks.push(tokio::spawn(async move {
-            let _permit = permits.acquire_owned().await.unwrap();
-            let begin = Instant::now();
-            let reply: Value = http
-                .post(format!("{base}/v1/nodes/bench{node}/jobs"))
-                .json(&json!({ "run_commands": { "commands": [{ "command": "true" }] } }))
-                .send()
-                .await
-                .unwrap()
-                .json()
-                .await
-                .unwrap();
-            let id = reply["id"].as_str().unwrap().to_owned();
-            let job: Value = http
-                .get(format!("{base}/v1/jobs/{id}?wait=30"))
-                .send()
-                .await
-                .unwrap()
-                .json()
-                .await
-                .unwrap();
-            assert_eq!(job["state"], "succeeded", "{job}");
-            begin.elapsed()
+    let mut clients = Vec::with_capacity(concurrency);
+    for _ in 0..concurrency {
+        let next = next.clone();
+        clients.push(tokio::spawn(async move {
+            let mut conn = Conn::open(addr).await;
+            let mut latencies = Vec::new();
+            loop {
+                let job = next.fetch_add(1, Ordering::Relaxed);
+                if job >= jobs {
+                    return latencies;
+                }
+                let node = job % nodes;
+                let begin = Instant::now();
+                let action = json!({ "run_commands": { "commands": [{ "command": "true" }] } });
+                let reply = conn
+                    .json(
+                        "POST",
+                        &format!("/v1/nodes/bench{node}/jobs"),
+                        Some(&action),
+                    )
+                    .await;
+                let id = reply["id"].as_str().unwrap().to_owned();
+                let job = conn
+                    .json("GET", &format!("/v1/jobs/{id}?wait=30"), None)
+                    .await;
+                assert_eq!(job["state"], "succeeded", "{job}");
+                latencies.push(begin.elapsed());
+            }
         }));
     }
     let mut latencies = Vec::with_capacity(jobs);
-    for task in tasks {
-        latencies.push(task.await.unwrap());
+    for client in clients {
+        latencies.extend(client.await.unwrap());
     }
     let elapsed = started.elapsed();
     latencies.sort();

@@ -1,7 +1,11 @@
 //! Gorgone central control plane: REST API, agent gateway, job store and
 //! dispatcher. Replicas are identical and share one SQL store.
 
+#[cfg(not(any(feature = "sqlite", feature = "mysql")))]
+compile_error!("enable at least one store backend: feature `sqlite` or `mysql`");
+
 mod api;
+mod cidr;
 pub mod config;
 mod dispatcher;
 mod error;
@@ -9,6 +13,7 @@ mod events;
 mod gateway;
 mod hub;
 mod legacy_intake;
+mod metrics;
 mod peer;
 mod store;
 mod tls;
@@ -28,7 +33,6 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tonic::transport::server::TcpIncoming;
 use tracing::{info, warn};
-use uuid::Uuid;
 
 pub use crate::config::Config;
 pub use crate::error::Error;
@@ -52,6 +56,29 @@ pub(crate) fn secrets_match(given: &str, expected: &str) -> bool {
         .zip(expected.iter())
         .fold(0u8, |acc, (a, b)| acc | (a ^ b))
         == 0
+}
+
+/// Lowercase hexadecimal form of `bytes`.
+pub(crate) fn hex(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    bytes.iter().fold(String::new(), |mut out, byte| {
+        let _ = write!(out, "{byte:02x}");
+        out
+    })
+}
+
+/// `N` bytes from the operating system generator, in hexadecimal.
+pub(crate) fn random_hex<const N: usize>() -> Result<String, Error> {
+    let mut bytes = [0u8; N];
+    getrandom::getrandom(&mut bytes)
+        .map_err(|err| std::io::Error::other(err.to_string()))
+        .map_err(Error::io("system random generator"))?;
+    Ok(hex(&bytes))
+}
+
+/// Random identifier (128 bits) of a job, a session or a replica.
+pub(crate) fn random_id() -> Result<String, Error> {
+    random_hex::<16>()
 }
 
 /// Bearer token of a gRPC request, if any.
@@ -113,6 +140,12 @@ fn no_delay(listener: TcpListener) -> TcpIncoming {
     TcpIncoming::from(listener).with_nodelay(Some(true))
 }
 
+fn rest_no_delay(stream: &mut tokio::net::TcpStream) {
+    if let Err(err) = stream.set_nodelay(true) {
+        warn!(error = %err, "cannot disable Nagle's algorithm on a REST connection");
+    }
+}
+
 async fn serve_rest(
     listener: TcpListener,
     app: axum::Router,
@@ -120,31 +153,25 @@ async fn serve_rest(
     shutdown: CancellationToken,
 ) -> Result<(), Error> {
     let service = app.into_make_service_with_connect_info::<SocketAddr>();
-    let Some(tls) = tls else {
-        let listener = listener.tap_io(|stream| {
-            if let Err(err) = stream.set_nodelay(true) {
-                warn!(error = %err, "cannot disable Nagle's algorithm on a REST connection");
-            }
-        });
-        return axum::serve(listener, service)
-            .with_graceful_shutdown(shutdown.cancelled_owned())
-            .await
-            .map_err(Error::io("rest listener"));
+    let stopped = shutdown.cancelled_owned();
+    // Both stop accepting on shutdown and let the open connections finish;
+    // `ServerHandle::shutdown` bounds that wait.
+    let served = match tls {
+        None => {
+            axum::serve(listener.tap_io(rest_no_delay), service)
+                .with_graceful_shutdown(stopped)
+                .await
+        }
+        Some(tls) => {
+            let listener = tls::TlsListener::new(listener, tls)
+                .map_err(Error::io("rest listener"))?
+                .tap_io(|stream| rest_no_delay(stream.get_mut().0));
+            axum::serve(listener, service)
+                .with_graceful_shutdown(stopped)
+                .await
+        }
     };
-    let listener = listener.into_std().map_err(Error::io("rest listener"))?;
-    let handle = axum_server::Handle::new();
-    let stopper = handle.clone();
-    tokio::spawn(async move {
-        shutdown.cancelled().await;
-        stopper.graceful_shutdown(Some(SHUTDOWN_GRACE));
-    });
-    let config = axum_server::tls_rustls::RustlsConfig::from_config(tls);
-    axum_server::from_tcp_rustls(listener, config)
-        .map_err(Error::io("rest listener"))?
-        .handle(handle)
-        .serve(service)
-        .await
-        .map_err(Error::io("rest listener"))
+    served.map_err(Error::io("rest listener"))
 }
 
 impl Server {
@@ -160,7 +187,6 @@ impl Server {
         // Several TLS backends are linked in: pick one explicitly. An error
         // only means it is already installed.
         let _ = rustls::crypto::ring::default_provider().install_default();
-        api::init_metrics();
 
         let store = Store::connect_with(
             &config.database_url,
@@ -170,10 +196,10 @@ impl Server {
             },
         )
         .await?;
-        let replica_id = config
-            .replica_id
-            .clone()
-            .unwrap_or_else(|| Uuid::new_v4().to_string());
+        let replica_id = match &config.replica_id {
+            Some(replica_id) => replica_id.clone(),
+            None => random_id()?,
+        };
 
         let rest = bind(config.rest_listen).await?;
         let agent = bind(config.agent_listen).await?;
@@ -363,6 +389,16 @@ pub async fn run(config: Config, shutdown: impl Future<Output = ()>) -> Result<(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn random_identifiers() {
+        assert_eq!(hex(&[0x00, 0x0f, 0xa5, 0xff]), "000fa5ff");
+        let id = random_id().unwrap();
+        assert_eq!(id.len(), 32);
+        assert!(id.bytes().all(|b| b.is_ascii_hexdigit()));
+        assert_ne!(id, random_id().unwrap());
+        assert_eq!(random_hex::<32>().unwrap().len(), 64);
+    }
 
     #[test]
     fn secrets_comparison() {

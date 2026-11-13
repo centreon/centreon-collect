@@ -5,7 +5,8 @@
 //! `GORGONE_TEST_DATABASE_URL` (node ids are unique per test).
 
 use std::net::SocketAddr;
-use std::time::{Duration, Instant};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use gorgone_proto::NODE_ID_METADATA;
 use gorgone_proto::agent::action::Kind;
@@ -22,6 +23,8 @@ use gorgone_proto::peer::WakeRequest;
 use gorgone_proto::peer::peer_client::PeerClient;
 use gorgone_server::{Config, Server, ServerHandle};
 use serde_json::{Value, json};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
@@ -49,8 +52,15 @@ impl TestDb {
     }
 }
 
+/// Unique across tests, and across runs sharing one database.
 fn unique_node() -> String {
-    format!("node-{}", uuid::Uuid::now_v7())
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let rank = NEXT.fetch_add(1, Ordering::Relaxed);
+    format!("node-{nanos:x}-{:x}-{rank}", std::process::id())
 }
 
 async fn start(db: &TestDb, tweak: impl FnOnce(&mut Config)) -> ServerHandle {
@@ -282,42 +292,159 @@ fn finished(outcome: Outcome, message: &str) -> Body {
     })
 }
 
+/// One HTTP/1.1 request, sent on its own connection.
+struct Call {
+    addr: SocketAddr,
+    method: &'static str,
+    path: String,
+    headers: Vec<(&'static str, String)>,
+    body: Vec<u8>,
+}
+
+impl Call {
+    fn header(mut self, name: &'static str, value: impl Into<String>) -> Self {
+        self.headers.push((name, value.into()));
+        self
+    }
+
+    fn json(self, body: &Value) -> Self {
+        self.header("content-type", "application/json")
+            .body(body.to_string())
+    }
+
+    fn body(mut self, body: impl Into<Vec<u8>>) -> Self {
+        self.body = body.into();
+        self
+    }
+
+    /// Status and body of the answer.
+    async fn send(self) -> std::io::Result<(u16, String)> {
+        let stream = TcpStream::connect(self.addr).await?;
+        self.send_on(stream).await
+    }
+
+    /// Same on an established connection (TLS, for instance).
+    async fn send_on<S>(self, mut stream: S) -> std::io::Result<(u16, String)>
+    where
+        S: AsyncRead + AsyncWrite + Unpin,
+    {
+        let mut request = format!(
+            "{} {} HTTP/1.1\r\nhost: {}\r\nconnection: close\r\ncontent-length: {}\r\n",
+            self.method,
+            self.path,
+            self.addr,
+            self.body.len()
+        );
+        for (name, value) in &self.headers {
+            request.push_str(&format!("{name}: {value}\r\n"));
+        }
+        request.push_str("\r\n");
+        let mut bytes = request.into_bytes();
+        bytes.extend_from_slice(&self.body);
+        // A server refusing the body answers and closes before reading it
+        // all: the answer matters more than the failed write.
+        let written = stream.write_all(&bytes).await;
+        let mut raw = Vec::new();
+        let read = stream.read_to_end(&mut raw).await;
+        match parse_response(&raw) {
+            Some(response) => Ok(response),
+            None => Err(written
+                .and(read.map(|_| ()))
+                .err()
+                .unwrap_or_else(|| std::io::Error::other("malformed HTTP response"))),
+        }
+    }
+}
+
+/// Status and body of a complete HTTP/1.1 response; the body may be chunked
+/// (server-sent events are).
+fn parse_response(raw: &[u8]) -> Option<(u16, String)> {
+    let end = raw.windows(4).position(|window| window == b"\r\n\r\n")?;
+    let head = std::str::from_utf8(&raw[..end]).ok()?;
+    let mut lines = head.split("\r\n");
+    let status = lines.next()?.split(' ').nth(1)?.parse().ok()?;
+    let chunked = lines.any(|line| {
+        let line = line.to_ascii_lowercase();
+        line.starts_with("transfer-encoding:") && line.contains("chunked")
+    });
+    let mut rest = &raw[end + 4..];
+    if !chunked {
+        return Some((status, String::from_utf8_lossy(rest).into_owned()));
+    }
+    let mut body = Vec::new();
+    loop {
+        let line = rest.windows(2).position(|window| window == b"\r\n")?;
+        let size = std::str::from_utf8(&rest[..line]).ok()?;
+        let size = usize::from_str_radix(size.split(';').next()?.trim(), 16).ok()?;
+        if size == 0 {
+            return Some((status, String::from_utf8_lossy(&body).into_owned()));
+        }
+        let chunk = rest.get(line + 2..line + 2 + size)?;
+        body.extend_from_slice(chunk);
+        rest = rest.get(line + 2 + size + 2..)?;
+    }
+}
+
+#[test]
+fn test_client_parses_plain_and_chunked_responses() {
+    let plain = b"HTTP/1.1 404 Not Found\r\ncontent-length: 2\r\n\r\nno";
+    assert_eq!(parse_response(plain), Some((404, "no".into())));
+    let chunked =
+        b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nabc\r\n2;x=y\r\nde\r\n0\r\n\r\n";
+    assert_eq!(parse_response(chunked), Some((200, "abcde".into())));
+    // Cut short: no answer rather than half of one.
+    assert_eq!(parse_response(&chunked[..chunked.len() - 7]), None);
+    assert_eq!(parse_response(b"HTTP/1.1 200 OK\r\n"), None);
+}
+
 /// REST client of one replica.
 struct Rest {
-    base: String,
-    http: reqwest::Client,
+    addr: SocketAddr,
     bearer: Option<String>,
 }
 
 impl Rest {
     fn new(server: &ServerHandle) -> Self {
         Self {
-            base: format!("http://{}", server.rest_addr),
-            http: reqwest::Client::new(),
+            addr: server.rest_addr,
             bearer: None,
         }
     }
 
-    fn request(&self, method: reqwest::Method, path: &str) -> reqwest::RequestBuilder {
-        let builder = self.http.request(method, format!("{}{path}", self.base));
+    fn request(&self, method: &'static str, path: &str) -> Call {
+        let call = Call {
+            addr: self.addr,
+            method,
+            path: path.to_owned(),
+            headers: Vec::new(),
+            body: Vec::new(),
+        };
         match &self.bearer {
-            Some(token) => builder.bearer_auth(token),
-            None => builder,
+            Some(token) => call.header("authorization", format!("Bearer {token}")),
+            None => call,
         }
     }
 
     async fn get(&self, path: &str) -> (u16, Value) {
-        Self::json(self.request(reqwest::Method::GET, path)).await
+        Self::json(self.request("GET", path)).await
     }
 
     async fn post(&self, path: &str, body: &Value) -> (u16, Value) {
-        Self::json(self.request(reqwest::Method::POST, path).json(body)).await
+        Self::json(self.request("POST", path).json(body)).await
     }
 
-    async fn json(builder: reqwest::RequestBuilder) -> (u16, Value) {
-        let response = builder.send().await.unwrap();
-        let status = response.status().as_u16();
-        let text = response.text().await.unwrap();
+    /// Plaintext request, whatever the listener expects.
+    async fn get_plain(&self, path: &str) -> std::io::Result<(u16, String)> {
+        tokio::time::timeout(STEP, self.request("GET", path).send())
+            .await
+            .unwrap_or_else(|_| Err(std::io::ErrorKind::TimedOut.into()))
+    }
+
+    async fn json(call: Call) -> (u16, Value) {
+        Self::decode(call.send().await.unwrap())
+    }
+
+    fn decode((status, text): (u16, String)) -> (u16, Value) {
         (
             status,
             serde_json::from_str(&text).unwrap_or(Value::String(text)),
@@ -706,11 +833,8 @@ async fn bundle_upload_then_fetch_blob_round_trip() {
     let digest = gorgone_core::bundle::digest(&bundle);
 
     let (status, body) = Rest::json(
-        rest.request(
-            reqwest::Method::PUT,
-            &format!("/v1/nodes/{node}/config/engine"),
-        )
-        .body(bundle.clone()),
+        rest.request("PUT", &format!("/v1/nodes/{node}/config/engine"))
+            .body(bundle.clone()),
     )
     .await;
     assert_eq!(status, 202, "{body}");
@@ -750,11 +874,8 @@ async fn bundle_upload_then_fetch_blob_round_trip() {
 
     // Something that is not a bundle is refused and submits nothing.
     let (status, _) = Rest::json(
-        rest.request(
-            reqwest::Method::PUT,
-            &format!("/v1/nodes/{node}/config/engine"),
-        )
-        .body("not a bundle"),
+        rest.request("PUT", &format!("/v1/nodes/{node}/config/engine"))
+            .body("not a bundle"),
     )
     .await;
     assert_eq!(status, 400);
@@ -789,11 +910,15 @@ async fn agent_token_and_rest_bearer_are_enforced() {
     assert_eq!(rest.get("/api/internal/thumbprint").await.0, 401);
     rest.bearer = Some("wrong".into());
     assert_eq!(rest.get("/v1/nodes").await.0, 401);
-    let basic = rest
-        .http
-        .get(format!("{}/v1/nodes", rest.base))
-        .basic_auth("web", Some("rest-test-token"));
-    assert_eq!(Rest::json(basic).await.0, 200);
+    rest.bearer = None;
+    let basic = |pair: &str| {
+        use base64::Engine;
+        let encoded = base64::engine::general_purpose::STANDARD.encode(pair);
+        rest.request("GET", "/v1/nodes")
+            .header("authorization", format!("Basic {encoded}"))
+    };
+    assert_eq!(Rest::json(basic("web:rest-test-token")).await.0, 200);
+    assert_eq!(Rest::json(basic("web:wrong")).await.0, 401);
     rest.bearer = Some("rest-test-token".into());
     assert_eq!(rest.get("/v1/nodes").await.0, 200);
     assert_eq!(rest.get("/metrics").await.0, 200);
@@ -802,8 +927,7 @@ async fn agent_token_and_rest_bearer_are_enforced() {
     let refused = FakeAgent::connect(server.agent_addr, &node, None).await;
     assert_eq!(refused.err().unwrap().code(), Code::Unauthenticated);
 
-    let (status, enrolled) =
-        Rest::json(rest.request(reqwest::Method::PUT, &format!("/v1/nodes/{node}"))).await;
+    let (status, enrolled) = Rest::json(rest.request("PUT", &format!("/v1/nodes/{node}"))).await;
     assert_eq!(status, 200, "{enrolled}");
     let token = enrolled["token"].as_str().unwrap().to_owned();
     assert_eq!(token.len(), 64);
@@ -825,8 +949,7 @@ async fn agent_token_and_rest_bearer_are_enforced() {
     assert_eq!(unknown.code(), Code::NotFound);
 
     // Removing the node closes its session and forbids a new one.
-    let (status, _) =
-        Rest::json(rest.request(reqwest::Method::DELETE, &format!("/v1/nodes/{node}"))).await;
+    let (status, _) = Rest::json(rest.request("DELETE", &format!("/v1/nodes/{node}"))).await;
     assert_eq!(status, 204);
     agent.expect_closed(STEP).await;
     let refused = FakeAgent::connect(server.agent_addr, &node, agent.token.as_deref()).await;
@@ -875,7 +998,7 @@ async fn newer_session_replaces_the_older_one_and_lost_dispatch_is_requeued() {
 }
 
 async fn delete(rest: &Rest, path: &str) -> (u16, Value) {
-    Rest::json(rest.request(reqwest::Method::DELETE, path)).await
+    Rest::json(rest.request("DELETE", path)).await
 }
 
 #[tokio::test]
@@ -1127,6 +1250,30 @@ impl Pki {
         }
     }
 
+    /// TLS client settings trusting the test CA, with a client certificate
+    /// for `common_name` if any.
+    fn rustls_client(&self, common_name: Option<&str>) -> rustls::ClientConfig {
+        use rustls::pki_types::pem::PemObject;
+        use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+        let mut roots = rustls::RootCertStore::empty();
+        roots
+            .add(CertificateDer::from_pem_slice(self.ca.pem().as_bytes()).unwrap())
+            .unwrap();
+        let builder = rustls::ClientConfig::builder().with_root_certificates(roots);
+        match common_name {
+            Some(common_name) => {
+                let (cert, key) = self.issue(common_name, &[]);
+                builder
+                    .with_client_auth_cert(
+                        vec![CertificateDer::from_pem_slice(cert.as_bytes()).unwrap()],
+                        PrivateKeyDer::from_pem_slice(key.as_bytes()).unwrap(),
+                    )
+                    .unwrap()
+            }
+            None => builder.with_no_client_auth(),
+        }
+    }
+
     /// Opens a TLS channel, with the client certificate of `common_name` if any.
     async fn channel(
         &self,
@@ -1156,9 +1303,10 @@ impl Pki {
         addr: SocketAddr,
         common_name: Option<&str>,
         node_id: &str,
+        token: Option<&str>,
     ) -> Result<FakeAgent, String> {
         let channel = self.channel(addr, common_name).await?;
-        FakeAgent::connect_channel(channel, node_id, None)
+        FakeAgent::connect_channel(channel, node_id, token)
             .await
             .map_err(|status| format!("{:?}", status.code()))
     }
@@ -1172,7 +1320,10 @@ async fn agent_gateway_over_tls() {
     let rest = Rest::new(&server);
     let node = unique_node();
 
-    let mut agent = pki.session(server.agent_addr, None, &node).await.unwrap();
+    let mut agent = pki
+        .session(server.agent_addr, None, &node, None)
+        .await
+        .unwrap();
     let (_, body) = rest
         .post(
             &format!("/api/nodes/{node}/core/action/command"),
@@ -1204,10 +1355,9 @@ async fn agent_gateway_over_tls() {
 }
 
 #[tokio::test]
-async fn mtls_certificate_common_name_identifies_the_node() {
+async fn mtls_admits_trusted_agents_and_the_token_identifies_the_node() {
     let pki = Pki::new();
     let db = TestDb::new();
-    // No auto-enrolment: only the certificate can authenticate the agent.
     let server = start(&db, |c| {
         c.auto_enroll = false;
         c.agent_tls = Some(pki.server("agent", true));
@@ -1215,21 +1365,31 @@ async fn mtls_certificate_common_name_identifies_the_node() {
     .await;
     let rest = Rest::new(&server);
     let node = unique_node();
+    let (status, enrolled) = Rest::json(rest.request("PUT", &format!("/v1/nodes/{node}"))).await;
+    assert_eq!(status, 200);
+    let token = enrolled["token"].as_str().unwrap().to_owned();
 
-    // A certificate never creates a node: it must be enrolled first.
+    // A certificate alone identifies nobody, even named after the node.
+    for bad in [None, Some("wrong-token")] {
+        let refused = pki
+            .session(server.agent_addr, Some(&node), &node, bad)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(refused, "Unauthenticated");
+    }
+    // A certificate never creates a node either.
+    let ghost = unique_node();
     let refused = pki
-        .session(server.agent_addr, Some(&node), &node)
+        .session(server.agent_addr, Some(&ghost), &ghost, Some(&token))
         .await
         .err()
         .unwrap();
     assert_eq!(refused, "Unauthenticated");
-    let (status, _) =
-        Rest::json(rest.request(reqwest::Method::PUT, &format!("/v1/nodes/{node}"))).await;
-    assert_eq!(status, 200);
 
-    // CN = node id: accepted without any token.
+    // Trusted certificate (whatever its common name) and the node's token.
     let mut agent = pki
-        .session(server.agent_addr, Some(&node), &node)
+        .session(server.agent_addr, Some("any-poller"), &node, Some(&token))
         .await
         .unwrap();
     let (_, body) = rest
@@ -1242,24 +1402,77 @@ async fn mtls_certificate_common_name_identifies_the_node() {
     // The same identity covers FetchBlob.
     let unknown = agent.fetch_blob(&"0".repeat(64)).await.unwrap_err();
     assert_eq!(unknown.code(), Code::NotFound);
+    agent.token = None;
+    let refused = agent.fetch_blob(&"0".repeat(64)).await.unwrap_err();
+    assert_eq!(refused.code(), Code::Unauthenticated);
 
-    // CN ≠ node id: refused, whatever the certificate chain says.
-    let other = unique_node();
-    let refused = pki
-        .session(server.agent_addr, Some(&other), &node)
-        .await
-        .err()
-        .unwrap();
-    assert_eq!(refused, "PermissionDenied");
-
-    // No client certificate: the handshake itself fails.
-    let refused = tokio::time::timeout(STEP, pki.session(server.agent_addr, None, &node)).await;
+    // No client certificate: the handshake itself fails, token or not.
+    let refused = tokio::time::timeout(
+        STEP,
+        pki.session(server.agent_addr, None, &node, Some(&token)),
+    )
+    .await;
     assert!(
         !matches!(refused, Ok(Ok(_))),
         "a client certificate is required"
     );
 
     server.shutdown().await;
+}
+
+#[tokio::test]
+async fn rest_api_over_tls() {
+    let pki = Pki::new();
+    let db = TestDb::new();
+    let server = start(&db, |c| {
+        c.rest_tls = Some(pki.server("rest", false));
+        c.rest.token = Some("rest-test-token".into());
+        // The client address is known behind TLS too.
+        c.rest.allowed_cidrs = vec!["127.0.0.0/8".parse().unwrap()];
+    })
+    .await;
+    let mut rest = Rest::new(&server);
+    rest.bearer = Some("rest-test-token".into());
+    let connector = tokio_rustls::TlsConnector::from(std::sync::Arc::new(pki.rustls_client(None)));
+    let addr = server.rest_addr;
+    let tls = || async {
+        let stream = TcpStream::connect(addr).await?;
+        connector
+            .connect("localhost".try_into().unwrap(), stream)
+            .await
+    };
+
+    let healthz = rest.request("GET", "/healthz");
+    assert_eq!(healthz.send_on(tls().await.unwrap()).await.unwrap().0, 200);
+    let node = unique_node();
+    let submit = rest
+        .request("POST", &format!("/v1/nodes/{node}/jobs"))
+        .json(&run_commands("echo ok"));
+    let (status, body) = Rest::decode(submit.send_on(tls().await.unwrap()).await.unwrap());
+    assert_eq!(status, 202, "{body}");
+    let id = body["id"].as_str().unwrap();
+    let job = rest.request("GET", &format!("/v1/jobs/{id}"));
+    let (status, job) = Rest::decode(job.send_on(tls().await.unwrap()).await.unwrap());
+    assert_eq!(status, 200);
+    assert_eq!(job["state"], "queued");
+    rest.bearer = None;
+    let anonymous = rest.request("GET", "/v1/nodes");
+    assert_eq!(
+        anonymous.send_on(tls().await.unwrap()).await.unwrap().0,
+        401
+    );
+
+    // A client that never finishes its handshake does not hold the others.
+    let _stalled = TcpStream::connect(server.rest_addr).await.unwrap();
+    let healthz = rest.request("GET", "/healthz");
+    assert_eq!(healthz.send_on(tls().await.unwrap()).await.unwrap().0, 200);
+
+    // Plaintext on the TLS listener gets no HTTP answer.
+    assert!(rest.get_plain("/healthz").await.is_err());
+
+    // The listener stops with the server.
+    server.shutdown().await;
+    assert!(tls().await.is_err());
 }
 
 #[tokio::test]
@@ -1360,11 +1573,8 @@ async fn job_lost_with_its_session_is_delivered_before_later_jobs() {
     std::fs::write(src.path().join("centengine.cfg"), "a=1\n").unwrap();
     let bundle = gorgone_core::bundle::pack(src.path()).unwrap();
     let (status, body) = Rest::json(
-        rest.request(
-            reqwest::Method::PUT,
-            &format!("/v1/nodes/{node}/config/engine"),
-        )
-        .body(bundle),
+        rest.request("PUT", &format!("/v1/nodes/{node}/config/engine"))
+            .body(bundle),
     )
     .await;
     assert_eq!(status, 202, "{body}");
@@ -1513,7 +1723,7 @@ async fn re_enrolment_ends_the_session_held_by_another_replica() {
     let enrol = |server: &ServerHandle| {
         let rest = Rest::new(server);
         let path = format!("/v1/nodes/{node}");
-        async move { Rest::json(rest.request(reqwest::Method::PUT, &path)).await }
+        async move { Rest::json(rest.request("PUT", &path)).await }
     };
     let (_, enrolled) = enrol(&holder).await;
     let token = enrolled["token"].as_str().unwrap().to_owned();
@@ -1661,11 +1871,8 @@ async fn blob_is_served_only_to_the_node_whose_pending_job_needs_it() {
     std::fs::write(src.path().join("secret.cfg"), unique_node()).unwrap();
     let bundle = gorgone_core::bundle::pack(src.path()).unwrap();
     let (status, body) = Rest::json(
-        rest.request(
-            reqwest::Method::PUT,
-            &format!("/v1/nodes/{node}/config/engine"),
-        )
-        .body(bundle.clone()),
+        rest.request("PUT", &format!("/v1/nodes/{node}/config/engine"))
+            .body(bundle.clone()),
     )
     .await;
     assert_eq!(status, 202, "{body}");
@@ -1713,8 +1920,7 @@ async fn unknown_node_and_large_bodies_are_refused_on_rest() {
         )
         .await;
     assert_eq!(status, 404);
-    let (status, _) =
-        Rest::json(rest.request(reqwest::Method::PUT, &format!("/v1/nodes/{ghost}"))).await;
+    let (status, _) = Rest::json(rest.request("PUT", &format!("/v1/nodes/{ghost}"))).await;
     assert_eq!(status, 200);
     submit(&rest, &ghost, &run_commands("echo ok")).await;
 
@@ -1722,23 +1928,26 @@ async fn unknown_node_and_large_bodies_are_refused_on_rest() {
     // without reading it and closes: the client sees the status, or its
     // write cut short.
     let oversized = rest
-        .request(reqwest::Method::POST, &format!("/v1/nodes/{ghost}/jobs"))
+        .request("POST", &format!("/v1/nodes/{ghost}/jobs"))
         .json(&run_commands(&"x".repeat(2 << 20)))
         .send()
         .await;
     match oversized {
-        Ok(response) => assert_eq!(response.status(), 413),
-        Err(err) => assert!(err.is_request() || err.is_body(), "{err:?}"),
+        Ok((status, _)) => assert_eq!(status, 413),
+        Err(err) => assert!(
+            matches!(
+                err.kind(),
+                std::io::ErrorKind::BrokenPipe | std::io::ErrorKind::ConnectionReset
+            ),
+            "{err:?}"
+        ),
     }
     // A new client: the connection above is being closed by the server.
     let mut rest = Rest::new(&server);
     rest.bearer = Some("rest-test-token".into());
     let (status, _) = Rest::json(
-        rest.request(
-            reqwest::Method::PUT,
-            &format!("/v1/nodes/{ghost}/config/engine"),
-        )
-        .body(vec![0u8; 2 << 20]),
+        rest.request("PUT", &format!("/v1/nodes/{ghost}/config/engine"))
+            .body(vec![0u8; 2 << 20]),
     )
     .await;
     // Read in full, then refused for what it is: not a bundle.
