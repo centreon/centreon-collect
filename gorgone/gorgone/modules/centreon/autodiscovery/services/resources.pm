@@ -504,7 +504,13 @@ sub change_vars {
                 next;
             }
 
-            eval "\$options{discovery_svc}->{attributes}->{\$attr} =~ s{$change->{change_regexp}}{$change->{change_replace}}$change->{change_modifier}";
+            my $value = apply_change(
+                value              => $options{discovery_svc}->{attributes}->{$attr},
+                change             => $change,
+                logger             => $options{logger},
+                logger_pre_message => $options{logger_pre_message}
+            );
+            $options{discovery_svc}->{attributes}->{$attr} = $value if (defined($value));
         }
     }
 
@@ -520,9 +526,191 @@ sub change_vars {
             next if (!defined($change->{change_str}) || $change->{change_str} eq '' || 
                      !defined($change->{change_regexp}) || $change->{change_regexp} eq '' ||
                      $change->{change_str} !~ /\@SERVICENAME\@/);
-            eval "\$options{discovery_svc}->{service_name} =~ s{$change->{change_regexp}}{$change->{change_replace}}$change->{change_modifier}";
+            my $value = apply_change(
+                value              => $options{discovery_svc}->{service_name},
+                change             => $change,
+                logger             => $options{logger},
+                logger_pre_message => $options{logger_pre_message}
+            );
+            $options{discovery_svc}->{service_name} = $value if (defined($value));
         }
     }
+}
+
+=head3 apply_change(value => '/var/lib/docker', change => { change_regexp => '^/var/([a-z]+)', change_replace => 'VAR-$1', change_modifier => 'i' }, logger => $logger, logger_pre_message => '[autodiscovery] -servicediscovery- 3f2a9c1b:1 [OS-Linux-SNMP-Disks] [Poller-1] [srv-web-01]')
+
+Apply one rule transformation to a value.
+
+The regexp is compiled with qr// and the modifier is restricted to regexp flags.
+The replacement is literal text in which only capture group references are expanded.
+
+Parameters:
+
+=over 4
+
+=item * value: string to transform.
+
+=item * change: transformation hash ref, as read from the mod_auto_disco_change table:
+
+=over 4
+
+=item * change_regexp: regexp to search in the value.
+
+=item * change_replace: replacement text, undef to remove the match.
+
+=item * change_modifier: regexp flags among g, i, m, s and x, undef for none.
+
+=back
+
+=item * logger: gorgone logger.
+
+=item * logger_pre_message: prefix of the log messages.
+
+=back
+
+Output : String (the transformed value) or undef on error
+
+=cut
+sub apply_change {
+    my (%options) = @_;
+
+    my $change = $options{change};
+    my $modifier = defined($change->{change_modifier}) ? $change->{change_modifier} : '';
+    if ($modifier !~ /^[gimsx]*$/) {
+        $options{logger}->writeLogError(
+            "$options{logger_pre_message} -> change: invalid modifier '$modifier' (allowed flags: g, i, m, s, x)"
+        );
+        return undef;
+    }
+
+    my $global = ($modifier =~ s/g//g);
+    my $regexp;
+    eval {
+        # perl only warns about a sloppy but valid regexp (an unescaped brace for instance): keep it silent
+        no warnings qw(regexp deprecated);
+        if ($modifier ne '') {
+            $regexp = qr/(?$modifier)$change->{change_regexp}/;
+        } else {
+            $regexp = qr/$change->{change_regexp}/;
+        }
+    };
+    if (!defined($regexp)) {
+        my $error = $@;
+        $error =~ s/\s+$//;
+        $options{logger}->writeLogError(
+            "$options{logger_pre_message} -> change: invalid regexp '$change->{change_regexp}': $error"
+        );
+        return undef;
+    }
+
+    my $replace = defined($change->{change_replace}) ? $change->{change_replace} : '';
+    my $value = $options{value};
+    # expand_replacement is called for each match, so that it gets the capture groups of that match
+    if ($global) {
+        $value =~ s/$regexp/expand_replacement($replace, [ $&, @{^CAPTURE} ])/ge;
+    } else {
+        $value =~ s/$regexp/expand_replacement($replace, [ $&, @{^CAPTURE} ])/e;
+    }
+
+    return $value;
+}
+
+=head3 expand_replacement($template, $groups)
+
+Build the replacement text of one match.
+
+The template is read from left to right. Each reference to a group is replaced by that group:
+
+=over 4
+
+=item * '$1', '${1}' and '\1': the capture group 1 ('\1' to '\9' only, as in Perl).
+
+=item * '$&': the whole match.
+
+=back
+
+A backslash followed by any other character gives that character ('\$1' gives '$1').
+Anything else is kept as is.
+
+Parameters:
+
+=over 4
+
+=item * template: replacement text of the transformation.
+
+=item * groups: array ref holding the whole match, then the capture groups of the match.
+
+=back
+
+Output : String
+
+The replacement text.
+
+=cut
+sub expand_replacement {
+    my ($template, $groups) = @_;
+
+    # the three syntaxes of a capture group reference share the name 'group': %+ gives the one that matched
+    $template =~ s{
+          \\(?<group>[1-9])        # \1
+        | \$\{(?<group>\d+)\}      # ${1}
+        | \$(?<group>\d+)          # $1
+        | (?<whole_match>\$&)      # $&
+        | \\(?<escaped>.)          # any other escaped character
+    }{
+        reference_value(reference => { %+ }, groups => $groups)
+    }gsex;
+
+    return $template;
+}
+
+=head3 reference_value(reference => $reference, groups => $groups)
+
+Get the text that replaces one reference found in a replacement template.
+
+Parameters:
+
+=over 4
+
+=item * reference: named captures of the reference, one of:
+
+=over 4
+
+=item * group: number of the capture group.
+
+=item * whole_match: the reference is '$&'.
+
+=item * escaped: the character that follows a backslash.
+
+=back
+
+=item * groups: array ref holding the whole match, then the capture groups of the match.
+
+=back
+
+Output : String
+
+The escaped character, or the referenced group. An empty string if the group did not match or does not exist.
+
+=cut
+sub reference_value {
+    my (%options) = @_;
+
+    my $reference = $options{reference};
+    if (defined($reference->{escaped})) {
+        return $reference->{escaped};
+    }
+
+    my $index = 0;
+    if (defined($reference->{group})) {
+        $index = $reference->{group};
+    }
+
+    my $value = $options{groups}->[$index];
+    if (!defined($value)) {
+        return '';
+    }
+    return $value;
 }
 
 sub substitute_vars {
