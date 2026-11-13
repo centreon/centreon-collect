@@ -12,6 +12,8 @@ use serde::Deserialize;
 use toml::{Table, Value};
 use tonic::transport::Uri;
 
+use crate::http_post::HttpTarget;
+
 /// Prefix of the environment overrides; `__` separates nesting levels.
 pub const ENV_PREFIX: &str = "GORGONE_AGENT__";
 
@@ -190,6 +192,10 @@ pub struct AgentConfig {
     /// Cap on the job events kept in memory, in bytes.
     #[serde(default = "default_max_buffered_event_bytes")]
     pub max_buffered_event_bytes: usize,
+    /// Time given to each URL of an `http-post:` service action to accept the
+    /// connection and answer, in milliseconds.
+    #[serde(default = "default_http_post_timeout_ms")]
+    pub http_post_timeout_ms: u64,
     /// `RunCommands` policy.
     #[serde(default)]
     pub commands: CommandsConfig,
@@ -448,10 +454,15 @@ pub enum ServiceAction<'a> {
     Command(&'a str),
     /// Calls the engine gRPC API (`engine.grpc_url`).
     Engine(EngineRpc),
+    /// Sends a bodiless HTTP `POST` to each of these `http://` URLs, as
+    /// written: separated by white space, called in order.
+    HttpPost(&'a str),
 }
 
 /// Actions controlling one service; an unset operation is refused. A value is
-/// a command line, or `grpc:reload` / `grpc:shutdown` (see [`EngineRpc`]).
+/// a command line, `grpc:reload` / `grpc:shutdown` (see [`EngineRpc`]), or
+/// `http-post:` followed by one or several `http://` URLs separated by white
+/// space (see [`ServiceConfig::HTTP_POST_PREFIX`]).
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ServiceConfig {
@@ -470,8 +481,13 @@ pub struct ServiceConfig {
 }
 
 impl ServiceConfig {
+    /// Prefix telling a list of URLs to `POST` to from a command line. The
+    /// calls are plain HTTP, without authentication, and a job succeeds only
+    /// when every URL answered with a 2xx status.
+    pub const HTTP_POST_PREFIX: &'static str = "http-post:";
+
     /// Value mapped to `operation` as written, if the administrator set one;
-    /// [`ServiceConfig::action`] tells a command line from an engine call.
+    /// [`ServiceConfig::action`] tells a command line from the other kinds.
     #[must_use]
     pub fn command(&self, operation: Operation) -> Option<&str> {
         match operation {
@@ -488,10 +504,28 @@ impl ServiceConfig {
     #[must_use]
     pub fn action(&self, operation: Operation) -> Option<ServiceAction<'_>> {
         let value = self.command(operation)?;
+        if let Some(urls) = value.strip_prefix(Self::HTTP_POST_PREFIX) {
+            return Some(ServiceAction::HttpPost(urls));
+        }
         match value.strip_prefix(EngineRpc::PREFIX) {
             Some(name) => EngineRpc::parse(name).map(ServiceAction::Engine),
             None => Some(ServiceAction::Command(value)),
         }
+    }
+
+    /// URL lists of the `http-post:` operations, with the key holding each.
+    fn http_posts(&self) -> impl Iterator<Item = (&'static str, &str)> {
+        [
+            ("start", &self.start),
+            ("stop", &self.stop),
+            ("reload", &self.reload),
+            ("restart", &self.restart),
+        ]
+        .into_iter()
+        .filter_map(|(key, value)| {
+            let urls = value.as_deref()?.strip_prefix(Self::HTTP_POST_PREFIX)?;
+            Some((key, urls))
+        })
     }
 
     /// Names of the engine API calls the four operations are mapped to.
@@ -528,6 +562,9 @@ fn default_job_history() -> usize {
 }
 fn default_max_buffered_event_bytes() -> usize {
     64 * 1024 * 1024
+}
+fn default_http_post_timeout_ms() -> u64 {
+    5000
 }
 fn default_reconnect_min_ms() -> u64 {
     500
@@ -690,6 +727,9 @@ impl AgentConfig {
         if self.reconnect.min_ms == 0 || self.reconnect.min_ms > self.reconnect.max_ms {
             return invalid("reconnect.min_ms must be between 1 and reconnect.max_ms");
         }
+        if self.http_post_timeout_ms == 0 {
+            return invalid("http_post_timeout_ms must be at least 1");
+        }
         self.engine.validate()?;
         for (name, target) in &self.targets {
             let Some(main_file) = &target.engine_main_file else {
@@ -725,6 +765,14 @@ impl AgentConfig {
                     )));
                 }
             }
+            for (key, urls) in config.http_posts() {
+                HttpTarget::parse_list(urls).map_err(|reason| {
+                    ConfigError::Invalid(format!(
+                        "services.{service}.{key}: {}{reason}",
+                        ServiceConfig::HTTP_POST_PREFIX
+                    ))
+                })?;
+            }
         }
         Ok(())
     }
@@ -737,6 +785,10 @@ impl AgentConfig {
 
     pub(crate) fn default_command_timeout(&self) -> Duration {
         Duration::from_secs(self.default_command_timeout_s)
+    }
+
+    pub(crate) fn http_post_timeout(&self) -> Duration {
+        Duration::from_millis(self.http_post_timeout_ms)
     }
 
     pub(crate) fn kill_grace(&self) -> Duration {
@@ -1013,6 +1065,76 @@ mod tests {
         );
         assert_eq!(engine.action(Operation::Start), None);
         assert_eq!(engine.command(Operation::Reload), Some("grpc:reload"));
+    }
+
+    #[test]
+    fn service_operation_can_post_to_urls() {
+        let with = |tail: &str| AgentConfig::from_toml(&format!("{MINIMAL}{tail}"));
+        let config = with(
+            "http_post_timeout_ms = 250\n[services.broker]\n\
+             reload = \"http-post:http://broker:8080/reload http://broker-rrd:8080/reload\"\n\
+             restart = \"http-post: http://broker:8080/restart\"\n\
+             stop = \"curl -X POST http://broker:8080/stop\"",
+        )
+        .unwrap();
+        assert_eq!(config.http_post_timeout(), Duration::from_millis(250));
+        let broker = &config.services["broker"];
+        assert_eq!(
+            broker.action(Operation::Reload),
+            Some(ServiceAction::HttpPost(
+                "http://broker:8080/reload http://broker-rrd:8080/reload"
+            ))
+        );
+        assert_eq!(
+            broker.action(Operation::Restart),
+            Some(ServiceAction::HttpPost(" http://broker:8080/restart"))
+        );
+        // Only the prefix makes an HTTP call: a URL elsewhere is an argument.
+        assert_eq!(
+            broker.action(Operation::Stop),
+            Some(ServiceAction::Command(
+                "curl -X POST http://broker:8080/stop"
+            ))
+        );
+        let defaults = AgentConfig::from_toml(MINIMAL).unwrap();
+        assert_eq!(defaults.http_post_timeout_ms, 5000);
+
+        let reload = |value: &str| format!("[services.broker]\nreload = \"{value}\"");
+        for (tail, needle) in [
+            (
+                reload("http-post:https://broker:8080/reload"),
+                "services.broker.reload: http-post:https://broker:8080/reload: TLS is out of scope",
+            ),
+            (reload("http-post:"), "at least one http:// URL"),
+            (reload("http-post:   "), "at least one http:// URL"),
+            (
+                reload("http-post:broker:8080/reload"),
+                "expected http://host",
+            ),
+            (
+                reload("http-post:http://broker/reload http://:8080/reload"),
+                "http://:8080/reload: expected http://host",
+            ),
+            (
+                reload("http-post:http://admin:pw@broker/reload"),
+                "credentials",
+            ),
+            (
+                reload("http-post:http://broker/reload\\u0007"),
+                "control character",
+            ),
+            (
+                "[services.broker]\nstart = \"http-post:http://broker:0/start\"".to_owned(),
+                "services.broker.start",
+            ),
+            (
+                "http_post_timeout_ms = 0".to_owned(),
+                "http_post_timeout_ms",
+            ),
+        ] {
+            let message = with(&tail).unwrap_err().to_string();
+            assert!(message.contains(needle), "{tail}: {message}");
+        }
     }
 
     #[test]

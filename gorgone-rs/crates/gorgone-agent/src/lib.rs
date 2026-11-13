@@ -5,6 +5,7 @@ mod client;
 pub mod config;
 mod engine_api;
 mod executor;
+mod http_post;
 mod journal;
 mod node_state;
 mod process;
@@ -138,6 +139,7 @@ pub async fn run(
         service_control: ServiceControlExecutor {
             services: config.services.clone(),
             engine,
+            http_timeout: config.http_post_timeout(),
             timeout: config.default_command_timeout(),
             kill_grace: config.kill_grace(),
             max_output: config.max_output_bytes,
