@@ -7,7 +7,8 @@ use std::time::Duration;
 use axum::Json;
 use axum::body::Bytes;
 use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
+use axum::http::header::CONTENT_TYPE;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
 use gorgone_core::bundle::{self, DEFAULT_MAX_UNPACKED};
@@ -311,19 +312,30 @@ pub(super) async fn put_config(
     State(state): State<Shared>,
     Path((node, target)): Path<(String, String)>,
     Query(query): Query<HashMap<String, String>>,
+    headers: HeaderMap,
     body: Bytes,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
+    // A plain tar is accepted for clients without zstd, and repacked.
+    let plain_tar = headers
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.trim().eq_ignore_ascii_case("application/x-tar"));
     let deadline = query
         .get("deadline_s")
         .map(|v| v.parse::<u64>().map(Duration::from_secs))
         .transpose()
         .map_err(|_| ApiError::bad_request("deadline_s must be an integer"))?;
-    // Decompression is CPU bound: keep it off the async workers.
-    let checked = body.clone();
-    tokio::task::spawn_blocking(move || bundle::verify(&checked, DEFAULT_MAX_UNPACKED))
-        .await
-        .map_err(|_| ApiError::bad_request("bundle verification aborted"))?
-        .map_err(|err| ApiError::bad_request(err.to_string()))?;
+    // (De)compression is CPU bound: keep it off the async workers.
+    let body = tokio::task::spawn_blocking(move || {
+        if plain_tar {
+            bundle::from_tar(&body, DEFAULT_MAX_UNPACKED).map(Bytes::from)
+        } else {
+            bundle::verify(&body, DEFAULT_MAX_UNPACKED).map(|_| body)
+        }
+    })
+    .await
+    .map_err(|_| ApiError::bad_request("bundle verification aborted"))?
+    .map_err(|err| ApiError::bad_request(err.to_string()))?;
     let (digest, size) = state.store.put_blob(&body).await?;
     let action = Action {
         kind: Some(Kind::ApplyConfig(ApplyConfig {

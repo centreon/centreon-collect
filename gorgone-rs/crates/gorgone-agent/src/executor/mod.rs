@@ -13,7 +13,7 @@ use gorgone_proto::agent::{CommandResult, JobFinished, JobProgress};
 use tokio_util::sync::CancellationToken;
 
 pub(crate) use apply_config::{ApplyConfigExecutor, BlobFetcher, FetchError};
-pub(crate) use engine_commands::EngineCommandsExecutor;
+pub(crate) use engine_commands::{EngineCommandsExecutor, EngineTransport};
 pub(crate) use run_commands::RunCommandsExecutor;
 pub(crate) use service_control::ServiceControlExecutor;
 

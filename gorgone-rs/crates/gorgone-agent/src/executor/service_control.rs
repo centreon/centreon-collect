@@ -1,5 +1,6 @@
-//! `ServiceControl`: runs the command line the administrator mapped to a
-//! `(service, operation)` pair. Nothing of the command comes from the central.
+//! `ServiceControl`: runs the command line, or makes the engine API call, the
+//! administrator mapped to a `(service, operation)` pair. Nothing of it comes
+//! from the central.
 
 use std::collections::BTreeMap;
 use std::time::Duration;
@@ -10,11 +11,14 @@ use gorgone_proto::agent::service_control::Operation;
 use gorgone_proto::agent::{JobFinished, ServiceControl};
 
 use super::{Executor, JobContext, command_result, finished};
-use crate::config::ServiceConfig;
+use crate::config::{EngineRpc, ServiceAction, ServiceConfig};
+use crate::engine_api::EngineApi;
 use crate::process::{self, CommandSpec};
 
 pub(crate) struct ServiceControlExecutor {
     pub services: BTreeMap<String, ServiceConfig>,
+    /// Engine API of the `grpc:` operations; set when `engine.grpc_url` is.
+    pub engine: Option<EngineApi>,
     pub timeout: Duration,
     pub kill_grace: Duration,
     pub max_output: usize,
@@ -45,7 +49,7 @@ impl Executor for ServiceControlExecutor {
                 format!("service {service_name:?} is not configured on this agent"),
             );
         };
-        let Some(line) = service.command(operation) else {
+        let Some(mapped) = service.action(operation) else {
             return finished(
                 Outcome::Rejected,
                 format!(
@@ -57,6 +61,28 @@ impl Executor for ServiceControlExecutor {
             return finished(Outcome::Cancelled, "cancelled before start");
         }
 
+        let line = match mapped {
+            ServiceAction::Command(line) => line,
+            ServiceAction::Engine(rpc) => {
+                let asked = match rpc {
+                    EngineRpc::Reload => "configuration reload",
+                    EngineRpc::Shutdown => "shutdown",
+                };
+                let Some(engine) = &self.engine else {
+                    return finished(Outcome::Rejected, "engine.grpc_url is not configured");
+                };
+                return match engine.signal(rpc).await {
+                    Ok(()) => finished(
+                        Outcome::Ok,
+                        format!("{name} {service_name}: {asked} accepted by the engine API"),
+                    ),
+                    Err(error) => finished(
+                        Outcome::Failed,
+                        format!("{name} {service_name}: {asked} through the engine API: {error}"),
+                    ),
+                };
+            }
+        };
         let spec = CommandSpec {
             line,
             shell: false,
@@ -91,6 +117,7 @@ mod tests {
         };
         ServiceControlExecutor {
             services: BTreeMap::from([("engine".to_owned(), service)]),
+            engine: None,
             timeout: Duration::from_secs(10),
             kill_grace: Duration::from_secs(2),
             max_output: 1024,

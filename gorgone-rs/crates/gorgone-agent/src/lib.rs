@@ -3,6 +3,7 @@
 
 mod client;
 pub mod config;
+mod engine_api;
 mod executor;
 mod journal;
 mod process;
@@ -19,8 +20,10 @@ use gorgone_core::allowlist::{Allowlist, AllowlistError};
 use tokio_util::sync::CancellationToken;
 
 pub use crate::config::{AgentConfig, ConfigError};
+use crate::engine_api::EngineApi;
 use crate::executor::{
-    ApplyConfigExecutor, EngineCommandsExecutor, RunCommandsExecutor, ServiceControlExecutor,
+    ApplyConfigExecutor, EngineCommandsExecutor, EngineTransport, RunCommandsExecutor,
+    ServiceControlExecutor,
 };
 use crate::journal::Journal;
 use crate::scheduler::{Executors, Scheduler};
@@ -71,6 +74,11 @@ pub async fn run(
     shutdown: impl Future<Output = ()>,
 ) -> Result<(), AgentError> {
     let client = client::connect(&config)?;
+    let engine = EngineApi::connect(&config.engine)?;
+    let engine_transport = match &engine {
+        Some(engine) => EngineTransport::Grpc(engine.clone()),
+        None => EngineTransport::Pipe(config.engine.command_file.clone()),
+    };
     let executors = Executors {
         run_commands: RunCommandsExecutor {
             allowlist: Allowlist::new(&config.commands.allowlist)?,
@@ -80,7 +88,7 @@ pub async fn run(
             max_output: config.max_output_bytes,
         },
         engine_commands: EngineCommandsExecutor {
-            command_file: config.engine.command_file.clone(),
+            transport: engine_transport,
             allowed: Allowlist::new(&config.engine.allowed_commands)?,
         },
         apply_config: ApplyConfigExecutor {
@@ -93,6 +101,7 @@ pub async fn run(
         },
         service_control: ServiceControlExecutor {
             services: config.services.clone(),
+            engine,
             timeout: config.default_command_timeout(),
             kill_grace: config.kill_grace(),
             max_output: config.max_output_bytes,

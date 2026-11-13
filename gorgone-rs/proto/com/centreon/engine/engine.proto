@@ -1,0 +1,42 @@
+// Mirror of `engine/enginerpc/engine.proto` (centreon-collect), reduced to
+// what gorgone-agent calls. It must follow that file: same package, service
+// and method names, same message field numbers and types. Declare nothing
+// here that the agent does not call.
+
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package com.centreon.engine;
+
+service Engine {
+  // Schedules a configuration reload (RESTART) or the end of the process
+  // (SHUTDOWN) at `scheduled_time`.
+  rpc SignalProcess(EngineSignalProcess) returns (CommandSuccess) {}
+  // Same as SignalProcess with SHUTDOWN, now.
+  rpc ShutdownProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // Processes one external command, as if its line had been written to the
+  // command file. INVALID_ARGUMENT when the line is malformed or the command
+  // unknown.
+  rpc ProcessExternalCommand(ExternalCommand) returns (CommandSuccess) {}
+}
+
+message CommandSuccess {
+  bool value = 1;
+}
+
+message EngineSignalProcess {
+  enum Process {
+    RESTART = 0;
+    SHUTDOWN = 1;
+  }
+  Process process = 1;
+  // Unix time, in seconds.
+  uint32 scheduled_time = 2;
+}
+
+message ExternalCommand {
+  // One command line, without trailing newline:
+  // "[<timestamp>] <COMMAND_NAME>;<arg1>;<arg2>..."
+  string command = 1;
+}

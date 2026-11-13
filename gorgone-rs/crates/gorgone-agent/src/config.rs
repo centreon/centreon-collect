@@ -3,12 +3,14 @@
 
 use std::collections::BTreeMap;
 use std::fmt;
+use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use gorgone_proto::agent::service_control::Operation;
 use serde::Deserialize;
 use toml::{Table, Value};
+use tonic::transport::Uri;
 
 /// Prefix of the environment overrides; `__` separates nesting levels.
 pub const ENV_PREFIX: &str = "GORGONE_AGENT__";
@@ -255,13 +257,22 @@ pub struct CommandsConfig {
     pub shell: bool,
 }
 
-/// Engine command pipe.
+/// How the agent reaches the engine: its command pipe, or its gRPC API when
+/// `grpc_url` is set.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EngineConfig {
-    /// Path of the external command FIFO of centengine.
+    /// Path of the external command FIFO of centengine; unused with `grpc_url`.
     #[serde(default = "default_command_file", deserialize_with = "lenient::path")]
     pub command_file: PathBuf,
+    /// URL of the engine gRPC API, `http://host:port`. When set, external
+    /// commands go through it instead of `command_file`.
+    #[serde(default, deserialize_with = "lenient::option")]
+    pub grpc_url: Option<String>,
+    /// Time given to the engine API to accept a connection, and to answer one
+    /// call, in milliseconds.
+    #[serde(default = "default_grpc_timeout_ms")]
+    pub grpc_timeout_ms: u64,
     /// Regular expressions; an external command is written only when one
     /// matches its name entirely. Empty: every command is refused.
     #[serde(default, deserialize_with = "lenient::list")]
@@ -272,7 +283,46 @@ impl Default for EngineConfig {
     fn default() -> Self {
         Self {
             command_file: default_command_file(),
+            grpc_url: None,
+            grpc_timeout_ms: default_grpc_timeout_ms(),
             allowed_commands: Vec::new(),
+        }
+    }
+}
+
+impl EngineConfig {
+    /// True when `grpc_url` names this host: `localhost` or a loopback address.
+    #[must_use]
+    pub fn grpc_is_loopback(&self) -> bool {
+        let host = self.grpc_url.as_deref().and_then(|url| {
+            let uri = url.parse::<Uri>().ok()?;
+            Some(uri.host()?.to_owned())
+        });
+        host.is_some_and(|host| {
+            let address = host.trim_start_matches('[').trim_end_matches(']');
+            host.eq_ignore_ascii_case("localhost")
+                || address.parse::<IpAddr>().is_ok_and(|ip| ip.is_loopback())
+        })
+    }
+
+    pub(crate) fn grpc_timeout(&self) -> Duration {
+        Duration::from_millis(self.grpc_timeout_ms)
+    }
+
+    fn validate(&self) -> Result<(), ConfigError> {
+        let invalid = |message: &str| Err(ConfigError::Invalid(message.to_owned()));
+        if self.grpc_timeout_ms == 0 {
+            return invalid("engine.grpc_timeout_ms must be at least 1");
+        }
+        let Some(url) = &self.grpc_url else {
+            return Ok(());
+        };
+        match url.parse::<Uri>() {
+            Ok(uri) if uri.scheme_str() == Some("http") && uri.host().is_some() => Ok(()),
+            Ok(uri) if uri.scheme_str() == Some("https") => {
+                invalid("engine.grpc_url: TLS is not supported on this channel, use http://")
+            }
+            _ => invalid("engine.grpc_url must be http://host:port"),
         }
     }
 }
@@ -289,7 +339,40 @@ pub struct TargetConfig {
     pub prune: bool,
 }
 
-/// Command lines controlling one service; an unset operation is refused.
+/// Call of the engine gRPC API a service operation can be mapped to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EngineRpc {
+    /// `grpc:reload`: `SignalProcess(RESTART)`, the engine reloads its
+    /// configuration without stopping, as on SIGHUP.
+    Reload,
+    /// `grpc:shutdown`: `ShutdownProgram`, the engine process ends.
+    Shutdown,
+}
+
+impl EngineRpc {
+    /// Prefix telling a call of the engine API from a command line.
+    pub const PREFIX: &'static str = "grpc:";
+
+    fn parse(name: &str) -> Option<Self> {
+        match name {
+            "reload" => Some(Self::Reload),
+            "shutdown" => Some(Self::Shutdown),
+            _ => None,
+        }
+    }
+}
+
+/// What the agent does for one operation of a service.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ServiceAction<'a> {
+    /// Runs this command line, without a shell.
+    Command(&'a str),
+    /// Calls the engine gRPC API (`engine.grpc_url`).
+    Engine(EngineRpc),
+}
+
+/// Actions controlling one service; an unset operation is refused. A value is
+/// a command line, or `grpc:reload` / `grpc:shutdown` (see [`EngineRpc`]).
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ServiceConfig {
@@ -308,7 +391,8 @@ pub struct ServiceConfig {
 }
 
 impl ServiceConfig {
-    /// Command line mapped to `operation`, if the administrator set one.
+    /// Value mapped to `operation` as written, if the administrator set one;
+    /// [`ServiceConfig::action`] tells a command line from an engine call.
     #[must_use]
     pub fn command(&self, operation: Operation) -> Option<&str> {
         match operation {
@@ -318,6 +402,24 @@ impl ServiceConfig {
             Operation::Restart => self.restart.as_deref(),
             Operation::Unspecified => None,
         }
+    }
+
+    /// What `operation` does, if the administrator mapped it. `None` as well
+    /// for an unknown `grpc:` name, which the configuration check refuses.
+    #[must_use]
+    pub fn action(&self, operation: Operation) -> Option<ServiceAction<'_>> {
+        let value = self.command(operation)?;
+        match value.strip_prefix(EngineRpc::PREFIX) {
+            Some(name) => EngineRpc::parse(name).map(ServiceAction::Engine),
+            None => Some(ServiceAction::Command(value)),
+        }
+    }
+
+    /// Names of the engine API calls the four operations are mapped to.
+    fn engine_calls(&self) -> impl Iterator<Item = &str> {
+        [&self.start, &self.stop, &self.reload, &self.restart]
+            .into_iter()
+            .filter_map(|value| value.as_deref()?.strip_prefix(EngineRpc::PREFIX))
     }
 }
 
@@ -353,6 +455,9 @@ fn default_reconnect_min_ms() -> u64 {
 }
 fn default_reconnect_max_ms() -> u64 {
     30_000
+}
+fn default_grpc_timeout_ms() -> u64 {
+    5000
 }
 fn default_command_file() -> PathBuf {
     PathBuf::from("/var/lib/centreon-engine/rw/centengine.cmd")
@@ -503,6 +608,22 @@ impl AgentConfig {
         if self.reconnect.min_ms == 0 || self.reconnect.min_ms > self.reconnect.max_ms {
             return invalid("reconnect.min_ms must be between 1 and reconnect.max_ms");
         }
+        self.engine.validate()?;
+        for (service, config) in &self.services {
+            for name in config.engine_calls() {
+                if EngineRpc::parse(name).is_none() {
+                    return Err(ConfigError::Invalid(format!(
+                        "services.{service}: unknown engine call grpc:{name}, \
+                         expected grpc:reload or grpc:shutdown"
+                    )));
+                }
+                if self.engine.grpc_url.is_none() {
+                    return Err(ConfigError::Invalid(format!(
+                        "services.{service}: grpc:{name} requires engine.grpc_url"
+                    )));
+                }
+            }
+        }
         Ok(())
     }
 
@@ -642,6 +763,68 @@ mod tests {
             let message = AgentConfig::from_toml(toml).unwrap_err().to_string();
             assert!(message.contains(needle), "{message}");
         }
+    }
+
+    #[test]
+    fn engine_api_settings_are_checked() {
+        let config = AgentConfig::from_toml(MINIMAL).unwrap();
+        assert!(config.engine.grpc_url.is_none());
+        assert_eq!(config.engine.grpc_timeout_ms, 5000);
+        assert!(!config.engine.grpc_is_loopback());
+
+        let with = |tail: &str| AgentConfig::from_toml(&format!("{MINIMAL}{tail}"));
+        for (url, loopback) in [
+            ("http://127.0.0.1:50155", true),
+            ("http://localhost:50155", true),
+            ("http://[::1]:50155", true),
+            ("http://engine:50155", false),
+            ("http://10.0.0.7:50155", false),
+        ] {
+            let config = with(&format!("[engine]\ngrpc_url = \"{url}\"")).unwrap();
+            assert_eq!(config.engine.grpc_is_loopback(), loopback, "{url}");
+        }
+        for (tail, needle) in [
+            ("[engine]\ngrpc_url = \"https://engine:50155\"", "TLS"),
+            ("[engine]\ngrpc_url = \"engine:50155\"", "http://host:port"),
+            ("[engine]\ngrpc_url = \"\"", "http://host:port"),
+            ("[engine]\ngrpc_timeout_ms = 0", "grpc_timeout_ms"),
+            (
+                "[services.engine]\nrestart = \"grpc:shutdown\"",
+                "requires engine.grpc_url",
+            ),
+            (
+                "[engine]\ngrpc_url = \"http://e:1\"\n[services.engine]\nstart = \"grpc:start\"",
+                "unknown engine call grpc:start",
+            ),
+        ] {
+            let message = with(tail).unwrap_err().to_string();
+            assert!(message.contains(needle), "{message}");
+        }
+    }
+
+    #[test]
+    fn service_operation_is_a_command_or_an_engine_call() {
+        let config = AgentConfig::from_toml(&format!(
+            "{MINIMAL}[engine]\ngrpc_url = \"http://engine:50155\"\n\
+             [services.engine]\nreload = \"grpc:reload\"\nrestart = \"grpc:shutdown\"\n\
+             stop = \"sudo systemctl stop centengine\""
+        ))
+        .unwrap();
+        let engine = &config.services["engine"];
+        assert_eq!(
+            engine.action(Operation::Reload),
+            Some(ServiceAction::Engine(EngineRpc::Reload))
+        );
+        assert_eq!(
+            engine.action(Operation::Restart),
+            Some(ServiceAction::Engine(EngineRpc::Shutdown))
+        );
+        assert_eq!(
+            engine.action(Operation::Stop),
+            Some(ServiceAction::Command("sudo systemctl stop centengine"))
+        );
+        assert_eq!(engine.action(Operation::Start), None);
+        assert_eq!(engine.command(Operation::Reload), Some("grpc:reload"));
     }
 
     #[test]

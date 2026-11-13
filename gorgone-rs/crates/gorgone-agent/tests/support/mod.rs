@@ -4,6 +4,8 @@
 // Shared by several test binaries, none of which uses every helper.
 #![allow(dead_code)]
 
+pub mod engine;
+
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;

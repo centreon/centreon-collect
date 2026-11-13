@@ -136,22 +136,69 @@ pub fn pack(src: &Path) -> Result<Vec<u8>, BundleError> {
     } else {
         collect(src, Path::new(""), &mut files)?;
     }
-    files.sort();
+    let mut entries = Vec::with_capacity(files.len());
+    for (rel, abs) in files {
+        let data = fs::read(&abs).map_err(io_err(&abs))?;
+        let mode = fs::metadata(&abs)
+            .map_err(io_err(&abs))?
+            .permissions()
+            .mode();
+        entries.push((rel, mode, data));
+    }
+    build(entries)
+}
 
+/// Turns a plain `tar` archive, as an API client without `zstd` can produce,
+/// into a bundle. Only regular files are kept; anything unsafe is refused.
+pub fn from_tar(archive: &[u8], max_unpacked: u64) -> Result<Vec<u8>, BundleError> {
+    let mut entries = Vec::new();
+    let mut total = 0u64;
+    let mut tar = tar::Archive::new(archive);
+    for entry in tar.entries().map_err(BundleError::Invalid)? {
+        let mut entry = entry.map_err(BundleError::Invalid)?;
+        let path = entry.path().map_err(BundleError::Invalid)?.into_owned();
+        let kind = entry.header().entry_type();
+        if kind.is_dir() {
+            continue;
+        }
+        if !kind.is_file() || !is_safe(&path) || is_marker(&path) {
+            return Err(BundleError::UnsafeEntry(path.display().to_string()));
+        }
+        // `./name` and `name` are the same file.
+        let rel: PathBuf = path
+            .components()
+            .filter(|c| matches!(c, Component::Normal(_)))
+            .collect();
+        let mode = entry.header().mode().unwrap_or(0o644);
+        let mut data = Vec::new();
+        (&mut entry)
+            .take(max_unpacked - total + 1)
+            .read_to_end(&mut data)
+            .map_err(BundleError::Invalid)?;
+        total += data.len() as u64;
+        if total > max_unpacked {
+            return Err(BundleError::TooLarge(max_unpacked));
+        }
+        entries.push((rel, mode, data));
+    }
+    build(entries)
+}
+
+/// Writes the deterministic archive: sorted names, no time, no owner.
+fn build(mut entries: Vec<(PathBuf, u32, Vec<u8>)>) -> Result<Vec<u8>, BundleError> {
+    entries.sort();
     let encoder = zstd::Encoder::new(Vec::new(), 3).map_err(BundleError::Invalid)?;
     let mut tar = tar::Builder::new(encoder);
-    for (rel, abs) in &files {
-        let data = fs::read(abs).map_err(io_err(abs))?;
-        let mode = fs::metadata(abs).map_err(io_err(abs))?.permissions().mode() & 0o777;
+    for (rel, mode, data) in &entries {
         let mut header = tar::Header::new_gnu();
         header.set_entry_type(tar::EntryType::Regular);
         header.set_size(data.len() as u64);
-        header.set_mode(mode);
+        header.set_mode(mode & 0o777);
         header.set_mtime(0);
         header.set_uid(0);
         header.set_gid(0);
         tar.append_data(&mut header, rel, data.as_slice())
-            .map_err(io_err(abs))?;
+            .map_err(BundleError::Invalid)?;
     }
     tar.into_inner()
         .and_then(zstd::Encoder::finish)
@@ -480,6 +527,51 @@ mod tests {
                 & 0o777
         };
         assert_eq!((mode("hook.sh"), mode("centengine.cfg")), (0o755, 0o644));
+    }
+
+    #[test]
+    fn plain_tar_gives_the_same_bundle_as_the_directory() {
+        let src = tree();
+        let mut plain = tar::Builder::new(Vec::new());
+        // Reverse order and `./` prefixes: the result must not depend on them.
+        for name in ["objects/hosts.cfg", "centengine.cfg"] {
+            let data = fs::read(src.path().join(name)).unwrap();
+            let mut header = tar::Header::new_gnu();
+            header.set_size(data.len() as u64);
+            header.set_mode(
+                fs::metadata(src.path().join(name))
+                    .unwrap()
+                    .permissions()
+                    .mode(),
+            );
+            header.set_mtime(1_700_000_000);
+            header.set_cksum();
+            plain
+                .append_data(&mut header, format!("./{name}"), data.as_slice())
+                .unwrap();
+        }
+        let plain = plain.into_inner().unwrap();
+        assert_eq!(
+            digest(&from_tar(&plain, DEFAULT_MAX_UNPACKED).unwrap()),
+            digest(&pack(src.path()).unwrap())
+        );
+        assert!(matches!(from_tar(&plain, 3), Err(BundleError::TooLarge(3))));
+    }
+
+    #[test]
+    fn plain_tar_with_a_link_is_refused() {
+        let mut plain = tar::Builder::new(Vec::new());
+        let mut header = tar::Header::new_gnu();
+        header.set_entry_type(tar::EntryType::Symlink);
+        header.set_size(0);
+        plain
+            .append_link(&mut header, "passwd", "/etc/passwd")
+            .unwrap();
+        let plain = plain.into_inner().unwrap();
+        assert!(matches!(
+            from_tar(&plain, DEFAULT_MAX_UNPACKED),
+            Err(BundleError::UnsafeEntry(_))
+        ));
     }
 
     #[test]

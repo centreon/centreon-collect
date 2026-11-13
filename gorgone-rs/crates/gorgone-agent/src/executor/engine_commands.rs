@@ -1,5 +1,6 @@
 //! `EngineCommands`: external commands written to the engine command pipe,
-//! when their name is in the local `engine.allowed_commands` list.
+//! or sent to the engine gRPC API, when their name is in the local
+//! `engine.allowed_commands` list.
 
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
@@ -14,12 +15,21 @@ use nix::errno::Errno;
 use nix::libc::O_NONBLOCK;
 
 use super::{Executor, JobContext, finished};
+use crate::engine_api::EngineApi;
 
 /// Time given to the engine to make room in a full pipe.
 const WRITE_PATIENCE: Duration = Duration::from_secs(5);
 
+/// Where the accepted lines go.
+pub(crate) enum EngineTransport {
+    /// The external command FIFO of the engine.
+    Pipe(PathBuf),
+    /// `ProcessExternalCommand` of the engine API, one call per line.
+    Grpc(EngineApi),
+}
+
 pub(crate) struct EngineCommandsExecutor {
-    pub command_file: PathBuf,
+    pub transport: EngineTransport,
     /// External command names the central may send.
     pub allowed: Allowlist,
 }
@@ -125,7 +135,7 @@ fn command_name(line: &str) -> Option<&str> {
 }
 
 impl EngineCommandsExecutor {
-    /// Why `line` must not reach the pipe, if anything.
+    /// Why `line` must not reach the engine, if anything.
     fn refusal(&self, line: &str) -> Option<String> {
         // The engine reads line by line: a line break would smuggle a second
         // command past the check of the first.
@@ -153,7 +163,10 @@ impl Executor for EngineCommandsExecutor {
         if ctx.cancel.is_cancelled() {
             return finished(Outcome::Cancelled, "cancelled before start");
         }
-        let path = self.command_file.clone();
+        let path = match &self.transport {
+            EngineTransport::Pipe(path) => path.clone(),
+            EngineTransport::Grpc(engine) => return send_commands(engine, &action, ctx).await,
+        };
         let written =
             tokio::task::spawn_blocking(move || write_commands(&path, &action.commands)).await;
         match written {
@@ -167,6 +180,32 @@ impl Executor for EngineCommandsExecutor {
     }
 }
 
+/// Sends the lines in order and stops at the first one the engine refuses:
+/// what follows may depend on it.
+async fn send_commands(
+    engine: &EngineApi,
+    action: &EngineCommands,
+    ctx: &JobContext<'_>,
+) -> JobFinished {
+    let total = action.commands.len();
+    for (accepted, line) in action.commands.iter().enumerate() {
+        let progress = format!("{accepted} of {total} commands accepted by the engine API");
+        if ctx.cancel.is_cancelled() {
+            return finished(Outcome::Cancelled, format!("cancelled: {progress}"));
+        }
+        if let Err(error) = engine.external_command(line).await {
+            return finished(
+                Outcome::Failed,
+                format!("command {accepted}: {error}; {progress}"),
+            );
+        }
+    }
+    finished(
+        Outcome::Ok,
+        format!("{total} commands accepted by the engine API"),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::Read;
@@ -178,7 +217,7 @@ mod tests {
 
     fn executor(command_file: PathBuf) -> EngineCommandsExecutor {
         EngineCommandsExecutor {
-            command_file,
+            transport: EngineTransport::Pipe(command_file),
             allowed: Allowlist::new(["RESTART_PROGRAM", "SCHEDULE_FORCED_(HOST|SVC)_CHECK"])
                 .unwrap(),
         }
@@ -286,7 +325,7 @@ mod tests {
 
         // An empty list allows nothing.
         let closed = EngineCommandsExecutor {
-            command_file: path,
+            transport: EngineTransport::Pipe(path),
             allowed: Allowlist::new(Vec::<String>::new()).unwrap(),
         };
         let (done, _) = run(&closed, action(&["[1] RESTART_PROGRAM"])).await;
