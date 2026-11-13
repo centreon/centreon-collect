@@ -97,18 +97,28 @@ jobs:
           driver-opts: image=${{ vars.DOCKER_PROXY_REGISTRY_URL }}/moby/buildkit:buildx-stable-1
 
       # The tag is a hash of every file copied into the image: an existing tag needs no rebuild.
-      - name: Check if the image already exists
+      # Both images can be deleted independently from the registry: the pair is rebuilt if either is missing.
+      - name: Check if the images already exist
         id: image-exists
         env:
-          IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+          IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+          IMAGE_VCPKG: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
           FORCE: ${{ inputs.force || false }}
         run: |
-          if [ "$FORCE" != "true" ] && docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
-            echo "::notice::$IMAGE already exists, build skipped"
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+          exists=false
+          if [ "$FORCE" != "true" ]; then
+            exists=true
+            for image in "$IMAGE" "$IMAGE_VCPKG"; do
+              if ! docker buildx imagetools inspect "$image" > /dev/null 2>&1; then
+                echo "::notice::$image is missing, both images will be rebuilt"
+                exists=false
+              fi
+            done
           fi
+          if [ "$exists" = "true" ]; then
+            echo "::notice::$IMAGE and $IMAGE_VCPKG already exist, build skipped"
+          fi
+          echo "exists=$exists" >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Build image ${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
