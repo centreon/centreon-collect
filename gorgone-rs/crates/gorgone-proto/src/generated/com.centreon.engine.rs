@@ -10,6 +10,20 @@ pub struct Version {
     pub patch: i32,
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ConfigurationFile {
+    #[prost(string, tag = "1")]
+    pub path: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ConfigurationVerification {
+    #[prost(int32, tag = "1")]
+    pub exit_code: i32,
+    #[prost(string, tag = "2")]
+    pub output: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CommandSuccess {
     #[prost(bool, tag = "1")]
@@ -163,6 +177,32 @@ pub mod engine_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
+        pub async fn verify_configuration(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ConfigurationFile>,
+        ) -> std::result::Result<
+            tonic::Response<super::ConfigurationVerification>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/com.centreon.engine.Engine/VerifyConfiguration",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("com.centreon.engine.Engine", "VerifyConfiguration"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn get_version(
             &mut self,
             request: impl tonic::IntoRequest<()>,
@@ -275,6 +315,13 @@ pub mod engine_server {
     /// Generated trait containing gRPC methods that should be implemented for use with EngineServer.
     #[async_trait]
     pub trait Engine: std::marker::Send + std::marker::Sync + 'static {
+        async fn verify_configuration(
+            &self,
+            request: tonic::Request<super::ConfigurationFile>,
+        ) -> std::result::Result<
+            tonic::Response<super::ConfigurationVerification>,
+            tonic::Status,
+        >;
         async fn get_version(
             &self,
             request: tonic::Request<()>,
@@ -374,6 +421,49 @@ pub mod engine_server {
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             match req.uri().path() {
+                "/com.centreon.engine.Engine/VerifyConfiguration" => {
+                    #[allow(non_camel_case_types)]
+                    struct VerifyConfigurationSvc<T: Engine>(pub Arc<T>);
+                    impl<T: Engine> tonic::server::UnaryService<super::ConfigurationFile>
+                    for VerifyConfigurationSvc<T> {
+                        type Response = super::ConfigurationVerification;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ConfigurationFile>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Engine>::verify_configuration(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = VerifyConfigurationSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/com.centreon.engine.Engine/GetVersion" => {
                     #[allow(non_camel_case_types)]
                     struct GetVersionSvc<T: Engine>(pub Arc<T>);

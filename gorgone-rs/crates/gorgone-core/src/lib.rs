@@ -12,6 +12,8 @@ pub mod kind {
     pub const ENGINE_COMMANDS: &str = "engine_commands";
     /// Apply a configuration bundle.
     pub const APPLY_CONFIG: &str = "apply_config";
+    /// Check a configuration bundle without applying it.
+    pub const VALIDATE_CONFIG: &str = "validate_config";
     /// Start, stop, reload or restart a local service.
     pub const SERVICE_CONTROL: &str = "service_control";
 }

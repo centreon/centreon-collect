@@ -112,6 +112,45 @@ message = job["events"][-1]["data"].get("message", "")
 sys.exit(0 if job["state"] == "failed" and "prerequisite" in message else 1)'
 }
 
+# centreon-web has the configuration of a poller verified by that poller's
+# engine: the answer shown by CLAPI comes back through Gorgone.
+web_validates_on_the_poller() {
+  local token
+  token=$(web curl -s -X POST -H 'Content-Type: application/json' \
+    -d '{"security":{"credentials":{"login":"admin","password":"Centreon!2021"}}}' \
+    http://localhost/centreon/api/latest/login \
+    | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["security"]["token"])')
+  web curl -s -X POST -H 'Content-Type: application/json' -H "centreon-auth-token: ${token}" \
+    -d '{"action":"POLLERTEST","values":"engine"}' \
+    'http://localhost/centreon/api/index.php?action=action&object=centreon_clapi' \
+    | grep -q 'Total Errors'
+  [[ $(sql "SELECT COUNT(*) FROM gorgone.jobs WHERE kind = 'validate_config' AND state = 'succeeded'") -ge 1 ]]
+}
+
+# An invalid configuration must be refused by the poller, which keeps the
+# one it runs.
+invalid_config_is_not_applied() {
+  local node work before job
+  node=$(engine_node)
+  before=$(gorgone_api GET "/v1/nodes/${node}" \
+    | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["applied"]["engine"])')
+  work=$(mktemp -d)
+  "${COMPOSE[@]}" exec -T engine tar -cf - -C /etc/centreon-engine --exclude='.gorgone-*' . \
+    | tar -xf - -C "${work}"
+  echo 'define service { broken' >> "${work}/services.cfg"
+  job=$(tar -cf - -C "${work}" . \
+    | web curl -s -u "${GORGONE_AUTH}" -X PUT -H 'Content-Type: application/x-tar' \
+      --data-binary @- "http://gorgone-server:8085/v1/nodes/${node}/config/engine" \
+    | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+  rm -rf "${work}"
+  gorgone_api GET "/v1/jobs/${job}?wait=90" \
+    | python3 -I -c 'import json,sys; sys.exit(0 if json.load(sys.stdin)["state"] == "failed" else 1)'
+  sleep 12
+  [[ $(gorgone_api GET "/v1/nodes/${node}" \
+    | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["applied"]["engine"])') == "${before}" ]]
+  ! "${COMPOSE[@]}" exec -T engine grep -q 'define service { broken' /etc/centreon-engine/services.cfg
+}
+
 no_centcore_file() {
   local files
   files=$(web sh -c 'find /var/lib/centreon/centcore /var/lib/centreon/centcore.cmd -type f 2>/dev/null')
@@ -130,6 +169,8 @@ check "a command reaches the engine container over gRPC" grpc_command_reaches_en
 check "the engine API is not reachable over the network" engine_api_not_on_network
 check "gorgone-server knows what the engine container runs" node_state_is_reported
 check "a reload is refused after a failed configuration push" reload_refused_after_failed_push
+check "centreon-web has a configuration verified by the poller engine" web_validates_on_the_poller
+check "an invalid configuration is refused and the running one kept" invalid_config_is_not_applied
 check "centreon-web wrote no centcore command file" no_centcore_file
 
 echo

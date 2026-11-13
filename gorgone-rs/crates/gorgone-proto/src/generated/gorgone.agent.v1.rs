@@ -134,7 +134,7 @@ pub struct Job {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Action {
-    #[prost(oneof = "action::Kind", tags = "1, 2, 3, 4")]
+    #[prost(oneof = "action::Kind", tags = "1, 2, 3, 4, 5")]
     pub kind: ::core::option::Option<action::Kind>,
 }
 /// Nested message and enum types in `Action`.
@@ -150,6 +150,8 @@ pub mod action {
         ApplyConfig(super::ApplyConfig),
         #[prost(message, tag = "4")]
         ServiceControl(super::ServiceControl),
+        #[prost(message, tag = "5")]
+        ValidateConfig(super::ValidateConfig),
     }
 }
 #[allow(clippy::all)]
@@ -181,6 +183,21 @@ pub struct EngineCommands {
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ApplyConfig {
     /// Logical destination resolved by the agent: engine, broker, vmware...
+    #[prost(string, tag = "1")]
+    pub target: ::prost::alloc::string::String,
+    /// Lowercase hex SHA-256 of the bundle.
+    #[prost(string, tag = "2")]
+    pub digest: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub size: u64,
+}
+/// Checks a configuration bundle without applying it: the agent unpacks it
+/// aside and has it verified by the program that would load it. Reported
+/// with one CommandResult (exit_code 0 when valid, stdout holds the
+/// checker output) before the terminal event.
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ValidateConfig {
     #[prost(string, tag = "1")]
     pub target: ::prost::alloc::string::String,
     /// Lowercase hex SHA-256 of the bundle.

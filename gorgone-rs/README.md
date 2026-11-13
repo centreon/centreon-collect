@@ -85,8 +85,10 @@ restart; centreon-web reports the real outcome of each job. `verify.sh` then
 checks, among other things, that a forced check sent through the centreon-web
 API reaches the engine, that the engine container is driven over a Unix socket
 with nothing listening on the network, that `gorgone-server` knows what each
-node runs, and that a reload asked on top of a failed configuration push is
-not sent. The web UI is on <http://localhost:4000>.
+node runs, that a reload asked on top of a failed configuration push is not
+sent, that centreon-web has a configuration verified by the poller's own
+engine, and that an invalid configuration is refused while the running one is
+kept. The web UI is on <http://localhost:4000>.
 
 On a poller the broker module is reloaded with the engine, so the bench maps
 "broker reload" to an engine reload there.

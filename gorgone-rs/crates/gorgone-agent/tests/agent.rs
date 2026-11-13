@@ -43,6 +43,7 @@ async fn handshake_carries_identity_and_heartbeats_follow() {
             "run_commands",
             "engine_commands",
             "apply_config",
+            "validate_config",
             "service_control"
         ]
     );

@@ -21,7 +21,8 @@ use gorgone_proto::agent::service_control::Operation;
 use gorgone_proto::agent::{
     Action, AgentFrame, ApplyConfig, BlobChunk, Cancel, Command, CommandResult, Dispatch,
     EngineCommands, EventAck, FetchBlobRequest, Heartbeat, Hello, Job, JobEvent, JobFinished,
-    RunCommands, ServerFrame, ServiceControl, Welcome, action, agent_frame, server_frame,
+    RunCommands, ServerFrame, ServiceControl, ValidateConfig, Welcome, action, agent_frame,
+    server_frame,
 };
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
@@ -469,6 +470,17 @@ pub fn apply_config(id: &str, target: &str, digest: &str, size: usize) -> Job {
     job(
         id,
         action::Kind::ApplyConfig(ApplyConfig {
+            target: target.to_owned(),
+            digest: digest.to_owned(),
+            size: size as u64,
+        }),
+    )
+}
+
+pub fn validate_config(id: &str, target: &str, digest: &str, size: usize) -> Job {
+    job(
+        id,
+        action::Kind::ValidateConfig(ValidateConfig {
             target: target.to_owned(),
             digest: digest.to_owned(),
             size: size as u64,

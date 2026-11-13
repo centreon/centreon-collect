@@ -126,6 +126,7 @@ impl Session {
                 kind::RUN_COMMANDS,
                 kind::ENGINE_COMMANDS,
                 kind::APPLY_CONFIG,
+                kind::VALIDATE_CONFIG,
                 kind::SERVICE_CONTROL,
             ]
             .map(str::to_owned)

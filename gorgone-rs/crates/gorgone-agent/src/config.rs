@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 use std::net::IpAddr;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::time::Duration;
 
 use gorgone_proto::agent::service_control::Operation;
@@ -278,6 +278,14 @@ pub struct EngineConfig {
     /// matches its name entirely. Empty: every command is refused.
     #[serde(default, deserialize_with = "lenient::list")]
     pub allowed_commands: Vec<String>,
+    /// Command line checking an engine configuration when `grpc_url` is not
+    /// set; `{config}` stands for the main file to check. It exits with 0
+    /// when the configuration is valid.
+    #[serde(default, deserialize_with = "lenient::option")]
+    pub verify_command: Option<String>,
+    /// Time given to the engine API to check a configuration, in milliseconds.
+    #[serde(default = "default_verify_timeout_ms")]
+    pub verify_timeout_ms: u64,
 }
 
 impl Default for EngineConfig {
@@ -287,11 +295,16 @@ impl Default for EngineConfig {
             grpc_url: None,
             grpc_timeout_ms: default_grpc_timeout_ms(),
             allowed_commands: Vec::new(),
+            verify_command: None,
+            verify_timeout_ms: default_verify_timeout_ms(),
         }
     }
 }
 
 impl EngineConfig {
+    /// Placeholder of `verify_command` replaced by the file to check.
+    pub const VERIFY_PLACEHOLDER: &'static str = "{config}";
+
     /// True when `grpc_url` names this host: `localhost` or a loopback address.
     #[must_use]
     pub fn grpc_is_loopback(&self) -> bool {
@@ -321,11 +334,51 @@ impl EngineConfig {
         Duration::from_millis(self.grpc_timeout_ms)
     }
 
+    pub(crate) fn verify_timeout(&self) -> Duration {
+        Duration::from_millis(self.verify_timeout_ms)
+    }
+
+    /// Arguments of `verify_command`, placeholder included, if it is set.
+    pub(crate) fn verify_argv(&self) -> Result<Option<Vec<String>>, ConfigError> {
+        let Some(line) = &self.verify_command else {
+            return Ok(None);
+        };
+        let invalid = |reason: &str| {
+            Err(ConfigError::Invalid(format!(
+                "engine.verify_command: {reason}"
+            )))
+        };
+        let Ok(argv) = shell_words::split(line) else {
+            return invalid("unbalanced quotes");
+        };
+        // The program itself is never taken from the placeholder.
+        let Some((program, arguments)) = argv.split_first() else {
+            return invalid("must start with the program to run");
+        };
+        if program.is_empty() || program.contains(Self::VERIFY_PLACEHOLDER) {
+            return invalid("must start with the program to run");
+        }
+        if !arguments
+            .iter()
+            .any(|argument| argument.contains(Self::VERIFY_PLACEHOLDER))
+        {
+            return invalid(
+                "must hold {config}, replaced by the file to check, as in \
+                 /usr/sbin/centengine -v {config}",
+            );
+        }
+        Ok(Some(argv))
+    }
+
     fn validate(&self) -> Result<(), ConfigError> {
         let invalid = |message: &str| Err(ConfigError::Invalid(message.to_owned()));
         if self.grpc_timeout_ms == 0 {
             return invalid("engine.grpc_timeout_ms must be at least 1");
         }
+        if self.verify_timeout_ms == 0 {
+            return invalid("engine.verify_timeout_ms must be at least 1");
+        }
+        self.verify_argv()?;
         let Some(url) = &self.grpc_url else {
             return Ok(());
         };
@@ -359,6 +412,10 @@ pub struct TargetConfig {
     /// Remove the files of `path` that are not in the bundle.
     #[serde(default)]
     pub prune: bool,
+    /// Main file of an engine configuration, relative to `path`. When set, a
+    /// bundle is checked by the engine before it is applied.
+    #[serde(default, deserialize_with = "lenient::option_path")]
+    pub engine_main_file: Option<PathBuf>,
 }
 
 /// Call of the engine gRPC API a service operation can be mapped to.
@@ -480,6 +537,9 @@ fn default_reconnect_max_ms() -> u64 {
 }
 fn default_grpc_timeout_ms() -> u64 {
     5000
+}
+fn default_verify_timeout_ms() -> u64 {
+    70_000
 }
 fn default_command_file() -> PathBuf {
     PathBuf::from("/var/lib/centreon-engine/rw/centengine.cmd")
@@ -631,6 +691,26 @@ impl AgentConfig {
             return invalid("reconnect.min_ms must be between 1 and reconnect.max_ms");
         }
         self.engine.validate()?;
+        for (name, target) in &self.targets {
+            let Some(main_file) = &target.engine_main_file else {
+                continue;
+            };
+            let plain = main_file
+                .components()
+                .all(|component| matches!(component, Component::Normal(_)));
+            if !plain || main_file.as_os_str().is_empty() {
+                return Err(ConfigError::Invalid(format!(
+                    "targets.{name}.engine_main_file must be a path relative to the target \
+                     path, without `.` or `..`"
+                )));
+            }
+            if self.engine.grpc_url.is_none() && self.engine.verify_command.is_none() {
+                return Err(ConfigError::Invalid(format!(
+                    "targets.{name}.engine_main_file requires engine.grpc_url or \
+                     engine.verify_command to check the configuration"
+                )));
+            }
+        }
         for (service, config) in &self.services {
             for name in config.engine_calls() {
                 if EngineRpc::parse(name).is_none() {
@@ -704,6 +784,16 @@ mod tests {
         let config = AgentConfig::from_toml(&example).unwrap();
         assert_eq!(config.node_id, "1");
         assert!(config.targets["engine"].prune);
+        assert_eq!(
+            config.targets["engine"].engine_main_file,
+            Some(PathBuf::from("centengine.cfg"))
+        );
+        assert!(config.targets["broker"].engine_main_file.is_none());
+        assert_eq!(
+            config.engine.verify_argv().unwrap().unwrap(),
+            ["/usr/sbin/centengine", "-v", "{config}"]
+        );
+        assert_eq!(config.engine.verify_timeout_ms, 70_000);
         assert!(!config.targets["broker"].prune);
         assert_eq!(
             config.services["engine"].command(Operation::Reload),
@@ -845,6 +935,57 @@ mod tests {
             ),
         ] {
             let message = with(tail).unwrap_err().to_string();
+            assert!(message.contains(needle), "{message}");
+        }
+    }
+
+    #[test]
+    fn configuration_check_settings_are_checked() {
+        let with = |tail: &str| AgentConfig::from_toml(&format!("{MINIMAL}{tail}"));
+        let target = "[targets.engine]\npath = \"/etc/centreon-engine\"\n";
+        let config = with(target).unwrap();
+        assert!(config.targets["engine"].engine_main_file.is_none());
+        assert!(config.engine.verify_command.is_none());
+        assert_eq!(config.engine.verify_timeout_ms, 70_000);
+
+        let grpc = "[engine]\ngrpc_url = \"http://e:1\"\n";
+        let main_file = |value: &str| format!("{target}engine_main_file = \"{value}\"\n");
+        for engine in [
+            grpc,
+            "[engine]\nverify_command = \"/usr/sbin/centengine -v {config}\"\n",
+            "[engine]\nverify_command = \"sudo -u centreon-engine 'centengine' --check={config}\"\n",
+        ] {
+            let config = with(&format!("{engine}{}", main_file("conf/centengine.cfg"))).unwrap();
+            assert_eq!(
+                config.targets["engine"].engine_main_file,
+                Some(PathBuf::from("conf/centengine.cfg"))
+            );
+        }
+        let command = |line: &str| format!("[engine]\nverify_command = \"{line}\"");
+        for (tail, needle) in [
+            (main_file("centengine.cfg"), "requires engine.grpc_url or"),
+            (
+                format!("{grpc}{}", main_file("/etc/centengine.cfg")),
+                "relative to the target",
+            ),
+            (
+                format!("{grpc}{}", main_file("../centengine.cfg")),
+                "relative to the target",
+            ),
+            (format!("{grpc}{}", main_file("")), "relative to the target"),
+            (command("/usr/sbin/centengine -v"), "must hold {config}"),
+            (
+                command("{config} -v {config}"),
+                "must start with the program",
+            ),
+            (command(""), "must start with the program"),
+            (command("centengine -v '{config}"), "unbalanced quotes"),
+            (
+                "[engine]\nverify_timeout_ms = 0".to_owned(),
+                "verify_timeout_ms",
+            ),
+        ] {
+            let message = with(&tail).unwrap_err().to_string();
             assert!(message.contains(needle), "{message}");
         }
     }

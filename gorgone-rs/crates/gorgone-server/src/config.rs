@@ -140,6 +140,9 @@ pub struct Config {
     pub heartbeat_interval_s: u32,
     /// Deadline of a job submitted without one, in seconds.
     pub job_default_deadline_s: u64,
+    /// Deadline of a configuration validation submitted without one, in
+    /// seconds.
+    pub validation_deadline_s: u64,
     /// How long terminal jobs and blobs are kept, in seconds.
     pub retention_s: u64,
     /// Period of the background sweep, in milliseconds.
@@ -196,6 +199,7 @@ impl fmt::Debug for Config {
             .field("peer_advertise_addr", &self.peer_advertise_addr)
             .field("heartbeat_interval_s", &self.heartbeat_interval_s)
             .field("job_default_deadline_s", &self.job_default_deadline_s)
+            .field("validation_deadline_s", &self.validation_deadline_s)
             .field("retention_s", &self.retention_s)
             .field("sweep_interval_ms", &self.sweep_interval_ms)
             .field("body_limit_bytes", &self.body_limit_bytes)
@@ -231,6 +235,7 @@ impl Default for Config {
             peer_advertise_addr: None,
             heartbeat_interval_s: 10,
             job_default_deadline_s: 300,
+            validation_deadline_s: 120,
             retention_s: 7 * 24 * 3600,
             sweep_interval_ms: 2000,
             body_limit_bytes: 256 << 20,

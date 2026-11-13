@@ -158,7 +158,8 @@ pub(crate) struct NewJob<'a> {
     pub(crate) action: &'a [u8],
     /// How long the job may live, counted on the database clock.
     pub(crate) ttl_ms: i64,
-    /// Blob an `ApplyConfig` job needs, kept while the job is active.
+    /// Blob an `ApplyConfig` or `ValidateConfig` job needs, kept while the
+    /// job is active.
     pub(crate) blob_digest: Option<&'a str>,
     /// JSON payload of the "accepted" event.
     pub(crate) accepted_data: &'a str,
@@ -2070,6 +2071,17 @@ impl Store {
             .execute(&mut *tx)
             .await?;
         tx.commit().await
+    }
+
+    /// Size of a stored blob, after making it as young as a new upload: a
+    /// job about to reuse it must not lose it to the purge.
+    pub(crate) async fn touch_blob(&self, digest: &str) -> Result<Option<i64>, Error> {
+        sqlx::query("UPDATE blobs SET created_at = ? WHERE digest = ?")
+            .bind(self.now_ms())
+            .bind(digest)
+            .execute(&self.pool)
+            .await?;
+        self.blob_size(digest).await
     }
 
     /// Size of a complete blob.

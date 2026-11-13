@@ -16,7 +16,7 @@ use gorgone_core::legacy;
 use gorgone_proto::agent::action::Kind;
 use gorgone_proto::agent::service_control::Operation;
 use gorgone_proto::agent::{
-    Action, ApplyConfig, Command, EngineCommands, RunCommands, ServiceControl,
+    Action, ApplyConfig, Command, EngineCommands, RunCommands, ServiceControl, ValidateConfig,
 };
 use prost::Message;
 use serde::{Deserialize, Serialize};
@@ -53,6 +53,12 @@ pub(super) enum ActionJson {
     ServiceControl {
         service: String,
         operation: OperationJson,
+    },
+    ValidateConfig {
+        target: String,
+        digest: String,
+        #[serde(default)]
+        size: u64,
     },
 }
 
@@ -111,6 +117,15 @@ impl From<ActionJson> for Action {
                     operation: operation.into(),
                 })
             }
+            ActionJson::ValidateConfig {
+                target,
+                digest,
+                size,
+            } => Kind::ValidateConfig(ValidateConfig {
+                target,
+                digest: digest.to_ascii_lowercase(),
+                size,
+            }),
         };
         Self { kind: Some(kind) }
     }
@@ -143,6 +158,8 @@ fn action_json(encoded: &[u8]) -> Value {
             };
             json!({ "service_control": { "service": control.service, "operation": operation } })
         }
+        Some(Kind::ValidateConfig(validate)) => json!({ "validate_config": {
+            "target": validate.target, "digest": validate.digest, "size": validate.size } }),
         None => Value::Null,
     }
 }
@@ -253,7 +270,8 @@ pub(super) async fn submit_job(
     Path(node): Path<String>,
     Json(body): Json<SubmitBody>,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
-    if let ActionJson::ApplyConfig { digest, .. } = &body.action
+    if let ActionJson::ApplyConfig { digest, .. } | ActionJson::ValidateConfig { digest, .. } =
+        &body.action
         && state
             .store
             .blob_size(&digest.to_ascii_lowercase())
@@ -371,20 +389,65 @@ pub(super) async fn job_events(
         .into_response())
 }
 
-/// `PUT /v1/nodes/{node}/config/{target}`: stores the bundle and submits the
-/// matching `ApplyConfig` job.
-pub(super) async fn put_config(
-    State(state): State<Shared>,
-    Path((node, target)): Path<(String, String)>,
-    Query(query): Query<HashMap<String, String>>,
-    headers: HeaderMap,
+/// What a configuration upload submits once its blob is stored.
+#[derive(Debug, Clone, Copy)]
+enum ConfigJob {
+    Apply,
+    Validate,
+}
+
+/// True for the lowercase hex form of a SHA-256.
+fn valid_digest(digest: &str) -> bool {
+    digest.len() == 64
+        && digest
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+/// Checks an uploaded bundle (a plain tar is repacked) and stores it.
+/// Returns the digest and the size of the blob.
+async fn store_bundle(
+    state: &ApiState,
+    headers: &HeaderMap,
     body: Bytes,
-) -> Result<(StatusCode, Json<Value>), ApiError> {
+) -> Result<(String, i64), ApiError> {
     // A plain tar is accepted for clients without zstd, and repacked.
     let plain_tar = headers
         .get(CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())
         .is_some_and(|value| value.trim().eq_ignore_ascii_case("application/x-tar"));
+    // (De)compression is CPU bound: keep it off the async workers.
+    let body = tokio::task::spawn_blocking(move || {
+        if plain_tar {
+            bundle::from_tar(&body, DEFAULT_MAX_UNPACKED).map(Bytes::from)
+        } else {
+            bundle::verify(&body, DEFAULT_MAX_UNPACKED).map(|_| body)
+        }
+    })
+    .await
+    .map_err(|_| ApiError::bad_request("bundle verification aborted"))?
+    .map_err(|err| ApiError::bad_request(err.to_string()))?;
+    Ok(state.store.put_blob(&body).await?)
+}
+
+/// True when a job already has the caller-chosen id.
+async fn retried(state: &ApiState, id: Option<&String>) -> Result<bool, ApiError> {
+    Ok(match id {
+        Some(id) => state.store.job(id).await?.is_some(),
+        None => false,
+    })
+}
+
+/// Common part of the configuration routes: stores the bundle (a push may
+/// name a stored one with `?digest=` instead) and submits `job`.
+async fn submit_config(
+    state: &ApiState,
+    job: ConfigJob,
+    (node, target): (String, String),
+    query: &HashMap<String, String>,
+    headers: &HeaderMap,
+    body: Bytes,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
     let deadline = query
         .get("deadline_s")
         .map(|v| v.parse::<u64>().map(Duration::from_secs))
@@ -401,24 +464,51 @@ pub(super) async fn put_config(
         .into_iter()
         .flatten()
         .collect();
-    // (De)compression is CPU bound: keep it off the async workers.
-    let body = tokio::task::spawn_blocking(move || {
-        if plain_tar {
-            bundle::from_tar(&body, DEFAULT_MAX_UNPACKED).map(Bytes::from)
-        } else {
-            bundle::verify(&body, DEFAULT_MAX_UNPACKED).map(|_| body)
+    // Only a push may reuse a blob: it is how a validated bundle is applied
+    // without being uploaded twice.
+    let reused = match job {
+        ConfigJob::Apply => query.get("digest"),
+        ConfigJob::Validate => None,
+    };
+    let (digest, size) = match reused {
+        Some(_) if !body.is_empty() => {
+            return Err(ApiError::bad_request(
+                "digest names a stored bundle: the body must be empty",
+            ));
         }
-    })
-    .await
-    .map_err(|_| ApiError::bad_request("bundle verification aborted"))?
-    .map_err(|err| ApiError::bad_request(err.to_string()))?;
-    let (digest, size) = state.store.put_blob(&body).await?;
-    let action = Action {
-        kind: Some(Kind::ApplyConfig(ApplyConfig {
+        Some(digest) => {
+            let digest = digest.to_ascii_lowercase();
+            if !valid_digest(&digest) {
+                return Err(ApiError::bad_request("digest must be a hex SHA-256"));
+            }
+            let size = match state.store.touch_blob(&digest).await? {
+                Some(size) => size,
+                // A retry gets the answer of the first request even when
+                // the blob was purged since.
+                None if retried(state, query.get("id")).await? => 0,
+                None => {
+                    return Err(ApiError::not_found(
+                        "no stored bundle has this digest (never uploaded, or purged): \
+                         upload it again",
+                    ));
+                }
+            };
+            (digest, size)
+        }
+        None => store_bundle(state, headers, body).await?,
+    };
+    let unsigned_size = u64::try_from(size).unwrap_or_default();
+    let kind = match job {
+        ConfigJob::Apply => Kind::ApplyConfig(ApplyConfig {
             target,
             digest: digest.clone(),
-            size: u64::try_from(size).unwrap_or_default(),
-        })),
+            size: unsigned_size,
+        }),
+        ConfigJob::Validate => Kind::ValidateConfig(ValidateConfig {
+            target,
+            digest: digest.clone(),
+            size: unsigned_size,
+        }),
     };
     let options = SubmitOptions {
         id: query.get("id").map(String::as_str),
@@ -426,19 +516,50 @@ pub(super) async fn put_config(
         latest_config: LatestConfig::None,
         deadline,
     };
-    let (id, existing) = submit(&state, &node, action, options).await?;
+    let action = Action { kind: Some(kind) };
+    let (id, existing) = submit(state, &node, action, options).await?;
     // A retry is told what the first request submitted.
-    let pushed = existing.and_then(
-        |job| match Action::decode(job.action.as_slice()).ok()?.kind {
-            Some(Kind::ApplyConfig(apply)) => Some((apply.digest, json!(apply.size))),
-            _ => None,
-        },
-    );
-    let (digest, size) = pushed.unwrap_or((digest, json!(size)));
+    let submitted =
+        existing.and_then(
+            |job| match Action::decode(job.action.as_slice()).ok()?.kind {
+                Some(Kind::ApplyConfig(apply)) => Some((apply.digest, json!(apply.size))),
+                Some(Kind::ValidateConfig(validate)) => {
+                    Some((validate.digest, json!(validate.size)))
+                }
+                _ => None,
+            },
+        );
+    let (digest, size) = submitted.unwrap_or((digest, json!(size)));
     Ok((
         StatusCode::ACCEPTED,
         Json(json!({ "id": id, "digest": digest, "size": size })),
     ))
+}
+
+/// `PUT /v1/nodes/{node}/config/{target}`: stores the bundle and submits the
+/// matching `ApplyConfig` job. With `?digest=` and an empty body, the job
+/// reuses the bundle already stored under that digest.
+pub(super) async fn put_config(
+    State(state): State<Shared>,
+    Path(path): Path<(String, String)>,
+    Query(query): Query<HashMap<String, String>>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
+    submit_config(&state, ConfigJob::Apply, path, &query, &headers, body).await
+}
+
+/// `POST /v1/nodes/{node}/config/{target}/validation`: stores the bundle and
+/// submits a `ValidateConfig` job, which checks it on the node without
+/// applying it.
+pub(super) async fn validate_config(
+    State(state): State<Shared>,
+    Path(path): Path<(String, String)>,
+    Query(query): Query<HashMap<String, String>>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
+    submit_config(&state, ConfigJob::Validate, path, &query, &headers, body).await
 }
 
 /// JSON view of a node: connection status, and what its agent last
@@ -593,6 +714,26 @@ mod tests {
         assert!(valid_job_id("Abc_09-z") && valid_job_id(&"a".repeat(64)));
         for bad in ["", "a b", "a/b", "é", &"a".repeat(65)] {
             assert!(!valid_job_id(bad), "{bad}");
+        }
+
+        let validate: ActionJson = serde_json::from_value(
+            json!({ "validate_config": { "target": "engine", "digest": "AB12" } }),
+        )
+        .unwrap();
+        let action: Action = validate.into();
+        assert_eq!(
+            action_json(&action.encode_to_vec()),
+            json!({ "validate_config": { "target": "engine", "digest": "ab12", "size": 0 } })
+        );
+        assert!(valid_digest(&"0a".repeat(32)));
+        for bad in [
+            "",
+            "0a",
+            &"0A".repeat(32),
+            &"0g".repeat(32),
+            &"0".repeat(65),
+        ] {
+            assert!(!valid_digest(bad), "{bad}");
         }
 
         let control: ActionJson = serde_json::from_value(

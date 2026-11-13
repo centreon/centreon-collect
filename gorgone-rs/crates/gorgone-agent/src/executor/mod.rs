@@ -4,6 +4,7 @@ mod apply_config;
 mod engine_commands;
 mod run_commands;
 mod service_control;
+mod verify;
 
 use std::future::Future;
 
@@ -16,6 +17,7 @@ pub(crate) use apply_config::{ApplyConfigExecutor, BlobFetcher, FetchError};
 pub(crate) use engine_commands::{EngineCommandsExecutor, EngineTransport};
 pub(crate) use run_commands::RunCommandsExecutor;
 pub(crate) use service_control::ServiceControlExecutor;
+pub(crate) use verify::{ConfigChecker, remove_leftovers};
 
 use crate::process::{ProcessError, ProcessOutput};
 

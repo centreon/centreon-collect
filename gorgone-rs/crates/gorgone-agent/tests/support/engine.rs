@@ -6,7 +6,10 @@ use std::time::Duration;
 
 use gorgone_proto::engine::engine_server::{Engine, EngineServer};
 use gorgone_proto::engine::engine_signal_process::Process;
-use gorgone_proto::engine::{CommandSuccess, EngineSignalProcess, ExternalCommand, Version};
+use gorgone_proto::engine::{
+    CommandSuccess, ConfigurationFile, ConfigurationVerification, EngineSignalProcess,
+    ExternalCommand, Version,
+};
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::{TcpListenerStream, UnixListenerStream};
@@ -20,7 +23,12 @@ pub enum EngineCall {
     /// `SignalProcess` with its process and whether a schedule time was set.
     Signal(Process, bool),
     Shutdown,
+    /// `VerifyConfiguration`, with the main file it named.
+    Verify(String),
 }
+
+/// Word making the fake engine reject a configuration file holding it.
+pub const INVALID: &str = "invalid";
 
 /// Version the fake engine announces.
 pub const VERSION: &str = "25.10.3";
@@ -32,6 +40,12 @@ struct State {
     refused: Mutex<Option<String>>,
     /// Time every call takes to answer.
     delay: Mutex<Duration>,
+    /// Content of every main file given to `VerifyConfiguration`.
+    verified: Mutex<Vec<String>>,
+    /// Answer of `VerifyConfiguration` replacing the check of the files.
+    verdict: Mutex<Option<ConfigurationVerification>>,
+    /// Message of the DEADLINE_EXCEEDED status `VerifyConfiguration` answers.
+    refusal: Mutex<Option<String>>,
 }
 
 struct Api(Arc<State>);
@@ -74,6 +88,62 @@ impl Engine for Api {
     async fn shutdown_program(&self, _: Request<()>) -> Result<Response<()>, Status> {
         self.record(EngineCall::Shutdown).await;
         Ok(Response::new(()))
+    }
+
+    // As `centengine -v`: one error per `cfg_file` that cannot be read or
+    // holds [`INVALID`], counted on the last line; the exit code is 1 when
+    // there is any. A relative path is refused, as by the engine.
+    async fn verify_configuration(
+        &self,
+        request: Request<ConfigurationFile>,
+    ) -> Result<Response<ConfigurationVerification>, Status> {
+        let path = request.into_inner().path;
+        if !path.starts_with('/') {
+            return Err(Status::invalid_argument("the path must be absolute"));
+        }
+        let main = std::fs::read_to_string(&path);
+        self.0
+            .verified
+            .lock()
+            .unwrap()
+            .push(main.as_deref().unwrap_or_default().to_owned());
+        self.record(EngineCall::Verify(path.clone())).await;
+        if let Some(message) = self.0.refusal.lock().unwrap().clone() {
+            return Err(Status::deadline_exceeded(message));
+        }
+        if let Some(verdict) = self.0.verdict.lock().unwrap().clone() {
+            return Ok(Response::new(verdict));
+        }
+        let mut output = format!("Reading main configuration file {path}.\n");
+        let mut errors = 0;
+        let Ok(main) = main else {
+            output.push_str("Error: cannot read the main configuration file\n");
+            return Ok(Response::new(ConfigurationVerification {
+                exit_code: 1,
+                output,
+            }));
+        };
+        for file in main
+            .lines()
+            .filter_map(|line| line.strip_prefix("cfg_file="))
+        {
+            match std::fs::read_to_string(file) {
+                Ok(content) if !content.contains(INVALID) => {}
+                Ok(_) => {
+                    errors += 1;
+                    output.push_str(&format!("Error: invalid object in {file}\n"));
+                }
+                Err(_) => {
+                    errors += 1;
+                    output.push_str(&format!("Error: cannot read {file}\n"));
+                }
+            }
+        }
+        output.push_str(&format!("Total Warnings: 0\nTotal Errors:   {errors}\n"));
+        Ok(Response::new(ConfigurationVerification {
+            exit_code: i32::from(errors > 0),
+            output,
+        }))
     }
 
     async fn process_external_command(
@@ -188,6 +258,35 @@ impl FakeEngine {
                 _ => None,
             })
             .collect()
+    }
+
+    /// Main files `VerifyConfiguration` was asked to check, in arrival order.
+    pub fn verify_paths(&self) -> Vec<String> {
+        self.calls()
+            .into_iter()
+            .filter_map(|call| match call {
+                EngineCall::Verify(path) => Some(path),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// What each of those main files held when the call arrived.
+    pub fn verified(&self) -> Vec<String> {
+        self.state.verified.lock().unwrap().clone()
+    }
+
+    /// Makes `VerifyConfiguration` fail with this status message.
+    pub fn refuse_verification(&self, message: &str) {
+        *self.state.refusal.lock().unwrap() = Some(message.to_owned());
+    }
+
+    /// Makes `VerifyConfiguration` answer this whatever the files hold.
+    pub fn set_verdict(&self, exit_code: i32, output: &str) {
+        *self.state.verdict.lock().unwrap() = Some(ConfigurationVerification {
+            exit_code,
+            output: output.to_owned(),
+        });
     }
 
     pub fn refuse_commands_holding(&self, text: &str) {

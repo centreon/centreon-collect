@@ -11,6 +11,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use sha2::{Digest, Sha256};
 
+/// Name prefix of the directories where a bundle is unpacked aside to be
+/// checked before it is applied. Pruning never enters them.
+pub const STAGING_PREFIX: &str = ".gorgone-staging-";
+
 /// Default cap on the unpacked size of a bundle.
 pub const DEFAULT_MAX_UNPACKED: u64 = 1 << 30;
 
@@ -346,7 +350,7 @@ pub fn apply(
     }
 
     let pruned = if options.prune {
-        prune(dest, Path::new(""), &kept, options.marker)?
+        prune(dest, Path::new(""), &kept)?
     } else {
         0
     };
@@ -395,12 +399,7 @@ fn crosses_link(dest: &Path, rel: &Path) -> bool {
     })
 }
 
-fn prune(
-    dest: &Path,
-    rel: &Path,
-    kept: &BTreeSet<PathBuf>,
-    marker: &str,
-) -> Result<usize, BundleError> {
+fn prune(dest: &Path, rel: &Path, kept: &BTreeSet<PathBuf>) -> Result<usize, BundleError> {
     let dir = dest.join(rel);
     let mut removed = 0;
     for entry in fs::read_dir(&dir).map_err(io_err(&dir))? {
@@ -408,8 +407,15 @@ fn prune(
         let kind = entry.file_type().map_err(io_err(&dir))?;
         let child = rel.join(entry.file_name());
         if kind.is_dir() {
-            removed += prune(dest, &child, kept, marker)?;
-        } else if kind.is_file() && !kept.contains(&child) && child != Path::new(marker) {
+            // Another job may be checking a bundle in there.
+            let staging = entry
+                .file_name()
+                .to_str()
+                .is_some_and(|name| name.starts_with(STAGING_PREFIX));
+            if !staging {
+                removed += prune(dest, &child, kept)?;
+            }
+        } else if kind.is_file() && !kept.contains(&child) && !is_marker(&child) {
             let path = entry.path();
             fs::remove_file(&path).map_err(io_err(&path))?;
             removed += 1;
@@ -466,6 +472,23 @@ mod tests {
 
         let again = apply(&bundle, &sum, dest.path(), &OPTIONS).unwrap();
         assert!(again.unchanged);
+    }
+
+    #[test]
+    fn prune_spares_staging_directories_and_markers() {
+        let src = tree();
+        let bundle = pack(src.path()).unwrap();
+        let dest = tempfile::tempdir().unwrap();
+        let staging = dest.path().join(format!("{STAGING_PREFIX}abc"));
+        fs::create_dir(&staging).unwrap();
+        fs::write(staging.join("staged.cfg"), "x").unwrap();
+        fs::write(dest.path().join(".gorgone-other.digest"), "x").unwrap();
+        fs::write(dest.path().join("stale.cfg"), "x").unwrap();
+
+        let report = apply(&bundle, &digest(&bundle), dest.path(), &OPTIONS).unwrap();
+        assert_eq!(report.pruned, 1);
+        assert!(staging.join("staged.cfg").exists());
+        assert!(dest.path().join(".gorgone-other.digest").exists());
     }
 
     #[test]

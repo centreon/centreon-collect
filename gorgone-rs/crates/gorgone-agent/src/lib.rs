@@ -23,8 +23,8 @@ use tokio_util::sync::CancellationToken;
 pub use crate::config::{AgentConfig, ConfigError};
 use crate::engine_api::EngineApi;
 use crate::executor::{
-    ApplyConfigExecutor, EngineCommandsExecutor, EngineTransport, RunCommandsExecutor,
-    ServiceControlExecutor,
+    ApplyConfigExecutor, ConfigChecker, EngineCommandsExecutor, EngineTransport,
+    RunCommandsExecutor, ServiceControlExecutor, remove_leftovers,
 };
 use crate::journal::Journal;
 use crate::node_state::NodeState;
@@ -80,7 +80,14 @@ pub async fn run(
     let state = {
         let targets = config.targets.clone();
         let engine_api = engine.is_some();
-        tokio::task::spawn_blocking(move || NodeState::load(&targets, engine_api)).await?
+        tokio::task::spawn_blocking(move || {
+            // What an agent killed during a configuration check left behind.
+            for target in targets.values() {
+                remove_leftovers(&target.path);
+            }
+            NodeState::load(&targets, engine_api)
+        })
+        .await?
     };
     let state = Arc::new(state);
     // Cancelled on every way out, so that no background task outlives `run`.
@@ -93,6 +100,17 @@ pub async fn run(
     let engine_transport = match &engine {
         Some(engine) => EngineTransport::Grpc(engine.clone()),
         None => EngineTransport::Pipe(config.engine.command_file.clone()),
+    };
+    // The engine checks what it will load; a local command stands in for it
+    // when the agent does not reach its API.
+    let checker = match (&engine, config.engine.verify_argv()?) {
+        (Some(engine), _) => Some(ConfigChecker::Grpc(engine.clone())),
+        (None, Some(argv)) => Some(ConfigChecker::Command {
+            argv,
+            timeout: config.default_command_timeout(),
+            kill_grace: config.kill_grace(),
+        }),
+        (None, None) => None,
     };
     let executors = Executors {
         run_commands: RunCommandsExecutor {
@@ -114,6 +132,8 @@ pub async fn run(
                 client: client.clone(),
             },
             state: state.clone(),
+            checker,
+            max_output: config.max_output_bytes,
         },
         service_control: ServiceControlExecutor {
             services: config.services.clone(),

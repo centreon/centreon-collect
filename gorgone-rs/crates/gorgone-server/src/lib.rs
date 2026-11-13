@@ -239,6 +239,7 @@ impl Server {
                 replica_id: replica_id.clone(),
                 peer_addr: peer_advertise.clone(),
                 default_deadline: Duration::from_secs(config.job_default_deadline_s),
+                validation_deadline: Duration::from_secs(config.validation_deadline_s),
                 sweep_interval: config.sweep_interval(),
                 retention: Duration::from_secs(config.retention_s),
                 auto_enroll: config.auto_enroll,

@@ -18,7 +18,7 @@ use crate::executor::{
 };
 use crate::journal::{Admission, Journal};
 
-/// The executors of the four action kinds.
+/// The executors of the action kinds; `apply_config` also runs `ValidateConfig`.
 pub(crate) struct Executors {
     pub run_commands: RunCommandsExecutor,
     pub engine_commands: EngineCommandsExecutor,
@@ -132,6 +132,9 @@ impl Shared {
                 executors.engine_commands.execute(action, ctx).await
             }
             Some(Kind::ApplyConfig(action)) => executors.apply_config.execute(action, ctx).await,
+            Some(Kind::ValidateConfig(action)) => {
+                executors.apply_config.validate(action, ctx).await
+            }
             Some(Kind::ServiceControl(action)) => {
                 executors.service_control.execute(action, ctx).await
             }

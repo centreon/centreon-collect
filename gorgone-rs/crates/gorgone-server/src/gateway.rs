@@ -615,6 +615,7 @@ mod tests {
                 replica_id: "test-replica".into(),
                 peer_addr: "http://127.0.0.1:1".into(),
                 default_deadline: Duration::from_secs(60),
+                validation_deadline: Duration::from_secs(120),
                 sweep_interval: Duration::from_secs(1),
                 retention: Duration::from_secs(60),
                 auto_enroll: true,

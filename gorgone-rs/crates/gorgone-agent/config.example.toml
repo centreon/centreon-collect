@@ -37,9 +37,9 @@ token_file = "/etc/centreon-gorgone/agent.token"
 # command outputs.
 state_dir = "/var/lib/centreon-gorgone-agent"
 
-# RunCommands jobs executed at the same time. ApplyConfig, ServiceControl and
-# EngineCommands jobs always run one at a time, in dispatch order, and do not
-# count against this limit.
+# RunCommands jobs executed at the same time. ApplyConfig, ValidateConfig,
+# ServiceControl and EngineCommands jobs always run one at a time, in dispatch
+# order, and do not count against this limit.
 max_concurrent_jobs = 4
 
 # Timeout of a command that does not carry its own, and of every service
@@ -165,6 +165,20 @@ command_file = "/var/lib/centreon-engine/rw/centengine.cmd"
 # call, in milliseconds. Past it the job fails: a stopped engine never hangs
 # the agent.
 grpc_timeout_ms = 5000
+# How a configuration is checked for the targets having `engine_main_file`
+# (see `[targets.engine]`). With `grpc_url` the engine does it itself
+# (`VerifyConfiguration`: it runs `centengine -v` on the files it is shown)
+# and `verify_command` is unused. Without `grpc_url` the agent runs this
+# command line: split into arguments and executed without a shell, `{config}`
+# replaced by the path of the main file to check, as one argument; it exits
+# with 0 when the configuration is valid, with anything else otherwise, and
+# it gets `default_command_timeout_s`. Unset by default; shown here for an agent
+# installed next to the engine. The agent user must be allowed to run it and
+# to read what the configuration names.
+verify_command = "/usr/sbin/centengine -v {config}"
+# Time given to the engine API to check a configuration, in milliseconds. The
+# engine itself stops its check after 60 seconds.
+verify_timeout_ms = 70000
 # An external command reaches the engine (pipe or gRPC) only when one of these regular
 # expressions matches its NAME entirely: the word between the optional
 # `[timestamp] ` prefix and the first `;`. Empty by default: every command is
@@ -210,6 +224,25 @@ allowed_commands = [
 # missing here is refused.
 #   path:  required, directory the bundle is synchronised into.
 #   prune: remove the files of `path` that are not in the bundle (default false).
+#   engine_main_file: main file of an engine configuration, relative to
+#          `path`. Unset by default: the bundle is applied without check.
+#
+# With `engine_main_file` a bundle is checked by the engine of this node
+# before any live file is written, so the central never has to run
+# `centengine -v` itself, and a push to a disconnected poller is safe: it is
+# checked when it is applied, by the engine that will load it. A rejected
+# bundle fails the ApplyConfig job with the output of the check and leaves
+# the directory as it was. A ValidateConfig job runs the same check alone.
+# It requires `engine.grpc_url` or `engine.verify_command`.
+#
+# The bundle is unpacked in `<path>/.gorgone-staging-<random>`, removed after
+# the check and never pruned, so the agent must be able to create a directory
+# in `path` and the engine to read it: an engine in another container sees it
+# through the volume holding `path`, mounted at the same place. The engine is
+# given a copy of the main file in which every `cfg_file`, `cfg_dir` and
+# `resource_file` under `path` points to the unpacked files. A path outside
+# `path` is checked as it is deployed on the node, and the job result names
+# it; relative paths follow the main file.
 #
 # Declaring the `engine` target lets the central define the commands the
 # engine runs: check commands, event handlers and notification commands are
@@ -220,6 +253,7 @@ allowed_commands = [
 [targets.engine]
 path = "/etc/centreon-engine"
 prune = true
+engine_main_file = "centengine.cfg"
 
 [targets.broker]
 path = "/etc/centreon-broker"

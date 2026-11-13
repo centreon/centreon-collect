@@ -187,6 +187,20 @@ fn signal_group(group: Option<i32>, signal: Signal) {
     }
 }
 
+/// Cuts `text` to at most `max` bytes, on a character boundary, and marks it
+/// as a truncated command output is.
+pub(crate) fn truncate_output(mut text: String, max: usize) -> String {
+    if text.len() > max {
+        let mut end = max;
+        while !text.is_char_boundary(end) {
+            end -= 1;
+        }
+        text.truncate(end);
+        text.push_str(TRUNCATED_MARKER);
+    }
+    text
+}
+
 /// Reads a pipe to its end, keeping at most `max` bytes but draining the
 /// rest so that the child never blocks on a full pipe.
 async fn capture<R>(reader: Option<R>, max: usize, stop: CancellationToken) -> String

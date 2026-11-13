@@ -10,6 +10,8 @@ import "google/protobuf/empty.proto";
 package com.centreon.engine;
 
 service Engine {
+  rpc VerifyConfiguration(ConfigurationFile)
+      returns (ConfigurationVerification) {}
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   // Schedules a configuration reload (RESTART) or the end of the process
   // (SHUTDOWN) at `scheduled_time`.
@@ -26,6 +28,15 @@ message Version {
   int32 major = 1;
   int32 minor = 2;
   int32 patch = 3;
+}
+
+message ConfigurationFile {
+  string path = 1;
+}
+
+message ConfigurationVerification {
+  int32 exit_code = 1;
+  string output = 2;
 }
 
 message CommandSuccess {

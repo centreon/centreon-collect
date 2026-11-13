@@ -20,6 +20,8 @@ allowlist = []
 
 [engine]
 command_file = "/var/lib/centreon-engine/rw/centengine.cmd"
+# A configuration is checked by the local engine before it is applied.
+verify_command = "/usr/sbin/centengine -v {config}"
 allowed_commands = [
   'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
   'SCHEDULE_(FORCED_)?HOST_SVC_CHECKS',
@@ -38,6 +40,7 @@ allowed_commands = [
 [targets.engine]
 path = "/etc/centreon-engine"
 prune = false
+engine_main_file = "centengine.cfg"
 
 [targets.broker]
 path = "/etc/centreon-broker"

@@ -142,7 +142,12 @@ mod tests {
         let target = |name: &str| {
             let path = dir.path().join(name);
             std::fs::create_dir(&path).unwrap();
-            (name.to_owned(), TargetConfig { path, prune: false })
+            let target = TargetConfig {
+                path,
+                prune: false,
+                engine_main_file: None,
+            };
+            (name.to_owned(), target)
         };
         let targets = BTreeMap::from([target("engine"), target("broker")]);
         std::fs::write(targets["engine"].path.join(marker_name("engine")), "abc\n").unwrap();

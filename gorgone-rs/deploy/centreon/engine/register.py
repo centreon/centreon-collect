@@ -49,6 +49,8 @@ allowed_commands = [
 [targets.engine]
 path = "/etc/centreon-engine"
 prune = false
+# Checked by the engine container, through its API, before it is applied.
+engine_main_file = "centengine.cfg"
 
 [targets.broker]
 path = "/etc/centreon-broker"

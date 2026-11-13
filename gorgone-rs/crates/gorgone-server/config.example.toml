@@ -61,13 +61,18 @@ sqlite_synchronous = "full"
 heartbeat_interval_s = 10
 # Deadline of a job submitted without one, in seconds.
 job_default_deadline_s = 300
+# Deadline of a configuration validation
+# (POST /v1/nodes/{node}/config/{target}/validation) submitted without one, in
+# seconds. Short on purpose: someone waits for the answer, and a poller that
+# reconnects later validates again when the configuration is applied.
+validation_deadline_s = 120
 # How long finished jobs and configuration blobs are kept, in seconds.
 retention_s = 604800
 # Period of the background sweep (dispatch retry, expiry, lost sessions), in
 # milliseconds.
 sweep_interval_ms = 2000
-# Largest configuration bundle accepted by PUT /v1/nodes/{node}/config/{target},
-# in bytes. Every other route is limited to 1 MiB.
+# Largest configuration bundle accepted by PUT /v1/nodes/{node}/config/{target}
+# and by its validation route, in bytes. Every other route is limited to 1 MiB.
 body_limit_bytes = 268435456
 # How long a frame may wait for an agent that does not read its session
 # before the session is closed, in milliseconds.

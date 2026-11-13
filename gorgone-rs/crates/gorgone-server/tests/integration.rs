@@ -2575,3 +2575,478 @@ async fn node_state_reported_in_heartbeats_is_exposed_by_every_replica() {
     owner.shutdown().await;
     other.shutdown().await;
 }
+
+/// A plain tar (ustar) holding one regular file.
+fn plain_tar(name: &str, content: &[u8]) -> Vec<u8> {
+    let mut header = [0u8; 512];
+    header[..name.len()].copy_from_slice(name.as_bytes());
+    header[100..107].copy_from_slice(b"0000644");
+    header[108..115].copy_from_slice(b"0000000");
+    header[116..123].copy_from_slice(b"0000000");
+    header[124..135].copy_from_slice(format!("{:011o}", content.len()).as_bytes());
+    header[136..147].copy_from_slice(b"00000000000");
+    header[156] = b'0';
+    header[257..263].copy_from_slice(b"ustar\0");
+    header[263..265].copy_from_slice(b"00");
+    // The checksum is computed with its own field read as spaces.
+    header[148..156].fill(b' ');
+    let sum: u32 = header.iter().map(|b| u32::from(*b)).sum();
+    header[148..155].copy_from_slice(format!("{sum:06o}\0").as_bytes());
+    let mut tar = header.to_vec();
+    tar.extend_from_slice(content);
+    tar.resize(tar.len().div_ceil(512) * 512 + 1024, 0);
+    tar
+}
+
+/// `POST /v1/nodes/{node}/config/{target}/validation{query}` of a small bundle.
+async fn validate_config(
+    rest: &Rest,
+    node: &str,
+    target: &str,
+    query: &str,
+    content: &str,
+) -> (u16, Value) {
+    let path = format!("/v1/nodes/{node}/config/{target}/validation{query}");
+    Rest::json(rest.request("POST", &path).body(small_bundle(content))).await
+}
+
+/// Result of the configuration checker, as the agent reports it.
+fn checker_result(exit_code: i32, stdout: &str) -> Body {
+    Body::CommandResult(CommandResult {
+        index: 0,
+        command: "centengine -v".into(),
+        exit_code,
+        stdout: stdout.into(),
+        stderr: String::new(),
+        duration_ms: 40,
+        timed_out: false,
+    })
+}
+
+#[tokio::test]
+async fn configuration_is_validated_on_the_node_without_being_pushed() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let (node, other_node) = (unique_node(), unique_node());
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let mut other = FakeAgent::connect(server.agent_addr, &other_node, None)
+        .await
+        .unwrap();
+    let route = format!("/v1/nodes/{node}/config/engine/validation");
+
+    // Bundle body.
+    let bundle = small_bundle(&unique_node());
+    let (status, body) = Rest::json(rest.request("POST", &route).body(bundle.clone())).await;
+    assert_eq!(status, 202, "{body}");
+    let digest = gorgone_core::bundle::digest(&bundle);
+    let id = body["id"].as_str().unwrap().to_owned();
+    assert_eq!(
+        body,
+        json!({ "id": id, "digest": digest, "size": bundle.len() })
+    );
+
+    let job = agent.next_dispatch().await;
+    assert_eq!(job.id, id);
+    let Some(Kind::ValidateConfig(validate)) = job.action.unwrap().kind else {
+        panic!("expected ValidateConfig");
+    };
+    assert_eq!(
+        (validate.target.as_str(), validate.digest.as_str()),
+        ("engine", digest.as_str())
+    );
+    assert_eq!(validate.size, bundle.len() as u64);
+
+    // The blob goes to the node being validated, and to no other.
+    assert_eq!(agent.fetch_blob(&digest).await.unwrap().concat(), bundle);
+    let refused = other.fetch_blob(&digest).await.unwrap_err();
+    assert_eq!(refused.code(), Code::NotFound);
+
+    // Many lines, yet under the per-event cap: kept as is.
+    let output: String = (0..2000)
+        .map(|line| format!("Warning: service {line} has no contact\n"))
+        .collect::<String>()
+        + "Error: host 'srv-é' has no address\nTotal Errors:   1\n";
+    agent.event(&id, 1, Body::Started(JobStarted {})).await;
+    agent.event(&id, 2, checker_result(1, &output)).await;
+    agent
+        .event(
+            &id,
+            3,
+            finished(Outcome::Failed, "configuration is not valid"),
+        )
+        .await;
+
+    let job = finished_job(&rest, &id).await;
+    assert_eq!(job["kind"], "validate_config");
+    assert_eq!(job["state"], "failed");
+    assert_eq!(
+        job["action"],
+        json!({ "validate_config": { "target": "engine", "digest": digest, "size": bundle.len() } })
+    );
+    let events = job["events"].as_array().unwrap();
+    assert_eq!(events.len(), 4, "{job}");
+    assert_eq!(events[2]["code"], 100);
+    assert_eq!(events[2]["data"]["exit_code"], 1);
+    assert_eq!(events[2]["data"]["stdout"], output.as_str());
+    assert_eq!(events[2]["data"]["truncated"], false);
+    assert_eq!(events[3]["code"], 1);
+    assert_eq!(events[3]["data"]["message"], "configuration is not valid");
+
+    // Legacy log: same events, `data` being a JSON string in the Perl shape.
+    let (status, log) = rest.get(&format!("/api/log/{id}")).await;
+    assert_eq!(status, 200);
+    assert_eq!(codes(&log), [0, 4, 100, 1]);
+    let data: Value = serde_json::from_str(log["data"][2]["data"].as_str().unwrap()).unwrap();
+    assert_eq!(data["result"]["exit_code"], 1);
+    assert_eq!(data["result"]["stdout"], output.as_str());
+    assert_eq!(data["message"], "command execution issue");
+
+    // Finished: the blob is no longer handed out.
+    let refused = agent.fetch_blob(&digest).await.unwrap_err();
+    assert_eq!(refused.code(), Code::NotFound);
+
+    // Plain tar body, repacked by the server; a valid configuration.
+    let tar = plain_tar("centengine.cfg", unique_node().as_bytes());
+    let (status, body) = Rest::json(
+        rest.request("POST", &route)
+            .header("content-type", "application/x-tar")
+            .body(tar.clone()),
+    )
+    .await;
+    assert_eq!(status, 202, "{body}");
+    let (id, digest) = (
+        body["id"].as_str().unwrap().to_owned(),
+        body["digest"].as_str().unwrap().to_owned(),
+    );
+    let job = agent.next_dispatch().await;
+    assert!(matches!(
+        job.action.unwrap().kind,
+        Some(Kind::ValidateConfig(validate)) if validate.digest == digest
+    ));
+    let fetched = agent.fetch_blob(&digest).await.unwrap().concat();
+    assert_eq!(gorgone_core::bundle::digest(&fetched), digest);
+    assert_eq!(body["size"], fetched.len());
+    let dest = tempfile::tempdir().unwrap();
+    let options = gorgone_core::bundle::ApplyOptions {
+        marker: ".digest",
+        prune: true,
+        max_unpacked: gorgone_core::bundle::DEFAULT_MAX_UNPACKED,
+    };
+    let report = gorgone_core::bundle::apply(&fetched, &digest, dest.path(), &options).unwrap();
+    assert_eq!(report.written, 1);
+    agent
+        .event(&id, 1, checker_result(0, "Things look okay\n"))
+        .await;
+    agent.event(&id, 2, finished(Outcome::Ok, "")).await;
+    let job = finished_job(&rest, &id).await;
+    assert_eq!(job["state"], "succeeded");
+    assert_eq!(job["events"][1]["data"]["stdout"], "Things look okay\n");
+    let (_, log) = rest.get(&format!("/api/log/{id}")).await;
+    assert_eq!(codes(&log), [0, 100, 2]);
+
+    // Same refusals as a push: not a bundle, a tar sent as a bundle, a
+    // target too long to be stored.
+    let (status, _) = Rest::json(rest.request("POST", &route).body("not a bundle")).await;
+    assert_eq!(status, 400);
+    let (status, _) = Rest::json(rest.request("POST", &route).body(tar)).await;
+    assert_eq!(status, 400);
+    let long_target = format!("/v1/nodes/{node}/config/{}/validation", "t".repeat(192));
+    let (status, body) = Rest::json(rest.request("POST", &long_target).body(bundle)).await;
+    assert_eq!(status, 400, "{body}");
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn validation_is_not_the_latest_push_of_its_target() {
+    let db = TestDb::new();
+    let server = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let latest = || restart(json!({ "requires_latest_config": true }));
+    let requires = |id: String| {
+        let rest = &rest;
+        async move { rest.get(&format!("/v1/jobs/{id}")).await.1["requires"].clone() }
+    };
+
+    // A failed validation, alone: a restart has nothing to wait for.
+    let (status, body) = validate_config(&rest, &node, "engine", "", &unique_node()).await;
+    assert_eq!(status, 202, "{body}");
+    let rejected = body["id"].as_str().unwrap().to_owned();
+    assert_eq!(agent.next_dispatch().await.id, rejected);
+    agent
+        .event(&rejected, 1, checker_result(1, "Error\n"))
+        .await;
+    agent
+        .event(&rejected, 2, finished(Outcome::Failed, "not valid"))
+        .await;
+    let free = submit(&rest, &node, &latest()).await;
+    assert_eq!(requires(free.clone()).await, json!([]));
+    assert_eq!(agent.next_dispatch().await.id, free);
+    agent.event(&free, 1, finished(Outcome::Ok, "")).await;
+
+    // A real push is recorded, and a failed validation after it changes
+    // nothing: the restart still depends on the push alone.
+    let pushed = push(&rest, &node, "engine").await;
+    assert_eq!(agent.next_dispatch().await.id, pushed);
+    agent.event(&pushed, 1, finished(Outcome::Ok, "")).await;
+    let (status, body) = validate_config(&rest, &node, "engine", "", &unique_node()).await;
+    assert_eq!(status, 202, "{body}");
+    let rejected = body["id"].as_str().unwrap().to_owned();
+    assert_eq!(agent.next_dispatch().await.id, rejected);
+    agent
+        .event(&rejected, 1, finished(Outcome::Failed, "not valid"))
+        .await;
+    let restarted = submit(&rest, &node, &latest()).await;
+    assert_eq!(requires(restarted.clone()).await, json!([pushed]));
+    assert_eq!(agent.next_dispatch().await.id, restarted);
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn validation_expires_fast_and_its_id_makes_a_retry_harmless() {
+    let db = TestDb::new();
+    let server = start(&db, |c| c.validation_deadline_s = 1).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let deadline_of = |id: String| {
+        let rest = &rest;
+        async move {
+            let (_, job) = rest.get(&format!("/v1/jobs/{id}")).await;
+            job["deadline_at"].as_i64().unwrap() - job["created_at"].as_i64().unwrap()
+        }
+    };
+
+    // No agent: the default deadline of validations applies, not the one of
+    // the other jobs (300 s), and the explicit one wins.
+    let (status, body) = validate_config(&rest, &node, "engine", "", "a=1\n").await;
+    assert_eq!(status, 202, "{body}");
+    let short = body["id"].as_str().unwrap().to_owned();
+    assert_eq!(deadline_of(short.clone()).await, 1000);
+    let (status, body) = validate_config(&rest, &node, "engine", "?deadline_s=600", "a=1\n").await;
+    assert_eq!(status, 202, "{body}");
+    let long = body["id"].as_str().unwrap().to_owned();
+    assert_eq!(deadline_of(long.clone()).await, 600_000);
+    let (status, _) = validate_config(&rest, &node, "engine", "?deadline_s=soon", "a=1\n").await;
+    assert_eq!(status, 400);
+    // The same action through the generic route gets the same default.
+    let generic = submit(
+        &rest,
+        &node,
+        &json!({ "validate_config": { "target": "engine", "digest": body["digest"] } }),
+    )
+    .await;
+    assert_eq!(deadline_of(generic.clone()).await, 1000);
+    let pushed = push(&rest, &node, "engine").await;
+    assert_eq!(deadline_of(pushed.clone()).await, 300_000);
+
+    let job = finished_job(&rest, &short).await;
+    assert_eq!(job["state"], "expired", "{job}");
+    let (_, log) = rest.get(&format!("/api/log/{short}")).await;
+    assert_eq!(codes(&log), [0, 1]);
+    assert_eq!(finished_job(&rest, &generic).await["state"], "expired");
+    let (_, job) = rest.get(&format!("/v1/jobs/{long}")).await;
+    assert_eq!(job["state"], "queued");
+
+    // Client id: the retry creates nothing and gets the first answer.
+    let query = format!("?id=check-{node}&deadline_s=60");
+    let (status, first) = validate_config(&rest, &node, "engine", &query, "a=2\n").await;
+    assert_eq!(status, 202, "{first}");
+    assert_eq!(first["id"], format!("check-{node}"));
+    let (status, second) = validate_config(&rest, &node, "engine", &query, "a=3\n").await;
+    assert_eq!((status, &second), (202, &first));
+    let (status, body) = validate_config(&rest, &unique_node(), "engine", &query, "a=2\n").await;
+    assert_eq!(status, 409, "{body}");
+    let (status, _) = validate_config(&rest, &node, "engine", "?id=a.b", "a=2\n").await;
+    assert_eq!(status, 400);
+
+    // What is still queued reaches the agent once, in order; then
+    // `requires` holds a validation until the named job succeeded.
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let mut received = Vec::new();
+    for _ in 0..3 {
+        received.push(agent.next_dispatch().await.id);
+    }
+    assert_eq!(received, [long, pushed, format!("check-{node}")]);
+    let first_job = submit(&rest, &node, &run_commands("echo first")).await;
+    let query = format!("?requires={first_job}&deadline_s=60");
+    let (status, body) = validate_config(&rest, &node, "engine", &query, "a=4\n").await;
+    assert_eq!(status, 202, "{body}");
+    let held = body["id"].as_str().unwrap().to_owned();
+    assert_eq!(agent.next_dispatch().await.id, first_job);
+    assert_nothing_received(&mut agent).await;
+    agent.event(&first_job, 1, finished(Outcome::Ok, "")).await;
+    let job = agent.next_dispatch().await;
+    assert_eq!((job.id, job.requires), (held, vec![first_job]));
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn validated_bundle_is_pushed_by_its_digest_without_a_second_upload() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let put = |query: String, body: Vec<u8>| {
+        let rest = &rest;
+        let path = format!("/v1/nodes/{node}/config/engine{query}");
+        async move { Rest::json(rest.request("PUT", &path).body(body)).await }
+    };
+
+    let bundle = small_bundle(&unique_node());
+    let (status, validated) = Rest::json(
+        rest.request(
+            "POST",
+            &format!("/v1/nodes/{node}/config/engine/validation"),
+        )
+        .body(bundle.clone()),
+    )
+    .await;
+    assert_eq!(status, 202, "{validated}");
+    let digest = validated["digest"].as_str().unwrap().to_owned();
+    let validation = agent.next_dispatch().await.id;
+    agent.event(&validation, 1, checker_result(0, "ok\n")).await;
+    agent.event(&validation, 2, finished(Outcome::Ok, "")).await;
+
+    // Known digest, in any case: an ordinary push of the stored bundle.
+    let query = format!("?digest={}&id=apply-{node}", digest.to_uppercase());
+    let (status, pushed) = put(query.clone(), Vec::new()).await;
+    assert_eq!(status, 202, "{pushed}");
+    assert_eq!(
+        pushed,
+        json!({ "id": format!("apply-{node}"), "digest": digest, "size": bundle.len() })
+    );
+    let (status, again) = put(query, Vec::new()).await;
+    assert_eq!((status, &again), (202, &pushed));
+    let job = agent.next_dispatch().await;
+    assert_eq!(job.id, format!("apply-{node}"));
+    let Some(Kind::ApplyConfig(apply)) = job.action.unwrap().kind else {
+        panic!("expected ApplyConfig");
+    };
+    assert_eq!(
+        (apply.target.as_str(), apply.digest.as_str(), apply.size),
+        ("engine", digest.as_str(), bundle.len() as u64)
+    );
+    assert_eq!(agent.fetch_blob(&digest).await.unwrap().concat(), bundle);
+    assert_nothing_received(&mut agent).await;
+
+    // It is the latest push of the target. The agent validates again before
+    // applying: its refusal keeps the checker output in the events.
+    let restarted = submit(
+        &rest,
+        &node,
+        &restart(json!({ "requires_latest_config": true })),
+    )
+    .await;
+    agent
+        .event(&job.id, 1, checker_result(1, "Error: bad\n"))
+        .await;
+    agent
+        .event(
+            &job.id,
+            2,
+            finished(Outcome::Failed, "configuration is not valid"),
+        )
+        .await;
+    assert_failed_on(&rest, &restarted, &job.id, "failed").await;
+    let applied = finished_job(&rest, &job.id).await;
+    assert_eq!(applied["kind"], "apply_config");
+    assert_eq!(applied["state"], "failed");
+    assert_eq!(applied["events"][1]["code"], 100);
+    assert_eq!(applied["events"][1]["data"]["stdout"], "Error: bad\n");
+
+    // Unknown digest, malformed digest, digest with a body.
+    let (status, body) = put(format!("?digest={}", "0".repeat(64)), Vec::new()).await;
+    assert_eq!(status, 404, "{body}");
+    assert_eq!(body["error"], "not_found");
+    assert!(
+        body["message"].as_str().unwrap().contains("digest"),
+        "{body}"
+    );
+    let (status, body) = put("?digest=abc".into(), Vec::new()).await;
+    assert_eq!(status, 400, "{body}");
+    let (status, body) = put(format!("?digest={digest}"), bundle.clone()).await;
+    assert_eq!(status, 400, "{body}");
+    assert_eq!(body["error"], "bad_request");
+    // Without a digest an empty body is still not a bundle.
+    let (status, _) = put(String::new(), Vec::new()).await;
+    assert_eq!(status, 400);
+    assert_nothing_received(&mut agent).await;
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn validate_config_action_is_accepted_as_json() {
+    let db = TestDb::new();
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let jobs = format!("/v1/nodes/{node}/jobs");
+
+    // The blob must exist: here it comes from a push.
+    let (status, pushed) = push_config(&rest, &node, "engine", "", &unique_node()).await;
+    assert_eq!(status, 202, "{pushed}");
+    let push_id = agent.next_dispatch().await.id;
+    let digest = pushed["digest"].as_str().unwrap();
+
+    let action = json!({ "validate_config": {
+        "target": "engine", "digest": digest.to_uppercase(), "size": pushed["size"] } });
+    let id = submit(&rest, &node, &action).await;
+    let job = agent.next_dispatch().await;
+    assert_eq!(job.id, id);
+    assert!(matches!(
+        job.action.unwrap().kind,
+        Some(Kind::ValidateConfig(validate))
+            if validate.target == "engine" && validate.digest == digest
+    ));
+    let (_, job) = rest.get(&format!("/v1/jobs/{id}")).await;
+    assert_eq!(job["kind"], "validate_config");
+    assert_eq!(
+        job["action"],
+        json!({ "validate_config": {
+            "target": "engine", "digest": digest, "size": pushed["size"] } })
+    );
+    // Not a push: the latest one of the target is still the real one.
+    let restarted = submit(
+        &rest,
+        &node,
+        &restart(json!({ "requires_latest_config": ["engine"] })),
+    )
+    .await;
+    let (_, job) = rest.get(&format!("/v1/jobs/{restarted}")).await;
+    assert_eq!(job["requires"], json!([push_id]));
+
+    for bad in [
+        json!({ "validate_config": { "target": "engine", "digest": "0".repeat(64) } }),
+        json!({ "validate_config": { "target": "", "digest": digest } }),
+        json!({ "validate_config": { "digest": digest } }),
+    ] {
+        let (status, body) = rest.post(&jobs, &bad).await;
+        assert!(status == 400 || status == 422, "{bad}: {status} {body}");
+    }
+    let (status, text) = rest.get_plain("/metrics").await.unwrap();
+    assert_eq!(status, 200);
+    assert!(
+        text.contains("gorgone_jobs_submitted_total{kind=\"validate_config\"}"),
+        "{text}"
+    );
+
+    server.shutdown().await;
+}

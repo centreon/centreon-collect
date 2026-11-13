@@ -8,7 +8,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use gorgone_proto::agent::EngineState;
 use gorgone_proto::engine::engine_client::EngineClient;
 use gorgone_proto::engine::engine_signal_process::Process;
-use gorgone_proto::engine::{EngineSignalProcess, ExternalCommand};
+use gorgone_proto::engine::{
+    ConfigurationFile, ConfigurationVerification, EngineSignalProcess, ExternalCommand,
+};
 use tonic::transport::{Channel, Endpoint};
 use tonic::{Code, Request, Response, Status};
 
@@ -21,6 +23,8 @@ pub(crate) struct EngineApi {
     client: EngineClient<Channel>,
     /// Bound of one call, connection included.
     timeout: Duration,
+    /// Bound of a configuration check.
+    verify_timeout: Duration,
 }
 
 impl EngineApi {
@@ -46,6 +50,7 @@ impl EngineApi {
         Ok(Some(Self {
             client: EngineClient::new(endpoint.connect_lazy()),
             timeout,
+            verify_timeout: config.verify_timeout(),
         }))
     }
 
@@ -113,6 +118,30 @@ impl EngineApi {
             client.process_external_command(request).await
         })
         .await
+    }
+
+    /// Has the engine check the configuration whose main file is `path`, as
+    /// `centengine -v` does. The engine starts a child process for it, hence
+    /// a timeout of its own.
+    pub(crate) async fn verify_configuration(
+        &self,
+        path: &str,
+    ) -> Result<ConfigurationVerification, String> {
+        let mut client = self.client.clone();
+        let file = ConfigurationFile {
+            path: path.to_owned(),
+        };
+        // No deadline is sent: the engine bounds its check itself, and what
+        // it answers then is reported as it is.
+        let call = client.verify_configuration(Request::new(file));
+        match tokio::time::timeout(self.verify_timeout, call).await {
+            Ok(Ok(answer)) => Ok(answer.into_inner()),
+            Ok(Err(status)) => Err(format!("{:?}: {}", status.code(), status.message())),
+            Err(_) => Err(format!(
+                "no answer from the engine API within {} ms",
+                self.verify_timeout.as_millis()
+            )),
+        }
     }
 
     /// Asks the engine to reload its configuration or to stop.

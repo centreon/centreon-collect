@@ -94,6 +94,7 @@ message Action {
     EngineCommands engine_commands = 2;
     ApplyConfig apply_config = 3;
     ServiceControl service_control = 4;
+    ValidateConfig validate_config = 5;
   }
 }
 
@@ -116,6 +117,17 @@ message EngineCommands {
 
 message ApplyConfig {
   // Logical destination resolved by the agent: engine, broker, vmware...
+  string target = 1;
+  // Lowercase hex SHA-256 of the bundle.
+  string digest = 2;
+  uint64 size = 3;
+}
+
+// Checks a configuration bundle without applying it: the agent unpacks it
+// aside and has it verified by the program that would load it. Reported
+// with one CommandResult (exit_code 0 when valid, stdout holds the
+// checker output) before the terminal event.
+message ValidateConfig {
   string target = 1;
   // Lowercase hex SHA-256 of the bundle.
   string digest = 2;

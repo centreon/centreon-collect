@@ -59,6 +59,8 @@ pub(crate) struct DispatcherConfig {
     pub(crate) replica_id: String,
     pub(crate) peer_addr: String,
     pub(crate) default_deadline: Duration,
+    /// Deadline of a `ValidateConfig` job submitted without one.
+    pub(crate) validation_deadline: Duration,
     pub(crate) sweep_interval: Duration,
     pub(crate) retention: Duration,
     /// Accept jobs for nodes that are not enrolled (development).
@@ -129,6 +131,17 @@ fn kind_name(action: &Action) -> Result<&'static str, Error> {
                 return Err(Error::Invalid("apply_config target is too long".into()));
             }
             Ok(kind::APPLY_CONFIG)
+        }
+        Some(Kind::ValidateConfig(validate)) => {
+            if validate.target.is_empty() || validate.digest.is_empty() {
+                return Err(Error::Invalid(
+                    "validate_config needs target and digest".into(),
+                ));
+            }
+            if validate.target.len() > 191 {
+                return Err(Error::Invalid("validate_config target is too long".into()));
+            }
+            Ok(kind::VALIDATE_CONFIG)
         }
         Some(Kind::ServiceControl(control)) => {
             if control.service.is_empty() || control.operation == 0 {
@@ -230,7 +243,17 @@ impl Dispatcher {
             Some(Kind::ApplyConfig(apply)) => {
                 (Some(apply.digest.as_str()), Some(apply.target.as_str()))
             }
+            // Needs the blob, but is not a push: the latest push of the
+            // target stays what it was.
+            Some(Kind::ValidateConfig(validate)) => (Some(validate.digest.as_str()), None),
             _ => (None, None),
+        };
+        // Someone waits for a validation: it expires fast rather than run
+        // long after the node reconnects.
+        let default_deadline = if kind == kind::VALIDATE_CONFIG {
+            self.config.validation_deadline
+        } else {
+            self.config.default_deadline
         };
         let created = self
             .store
@@ -239,7 +262,7 @@ impl Dispatcher {
                 node_id,
                 kind,
                 action: &action.encode_to_vec(),
-                ttl_ms: millis(options.deadline.unwrap_or(self.config.default_deadline)),
+                ttl_ms: millis(options.deadline.unwrap_or(default_deadline)),
                 blob_digest,
                 accepted_data: &events::accepted().to_string(),
                 may_exist: options.id.is_some(),

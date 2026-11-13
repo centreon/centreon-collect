@@ -133,6 +133,10 @@ pub(crate) fn router(state: Shared) -> Router {
             put(native::put_config).layer(DefaultBodyLimit::max(state.body_limit)),
         )
         .route(
+            "/v1/nodes/{node}/config/{target}/validation",
+            post(native::validate_config).layer(DefaultBodyLimit::max(state.body_limit)),
+        )
+        .route(
             "/v1/jobs/{id}",
             get(native::get_job).delete(native::cancel_job),
         )
