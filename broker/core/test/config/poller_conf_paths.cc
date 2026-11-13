@@ -27,9 +27,10 @@ using com::centreon::broker::config::applier::poller_conf_paths;
  * Then its acknowledged configuration is /d/12.prot
  * And the one prepared for it is /d/new-12.prot
  * And the difference to send it is /d/new-diff-12.prot
- * And the acknowledged difference waiting for the database is /d/diff-12.prot.
+ * And the acknowledged difference waiting for the database is /d/diff-12.prot
+ * And the one exported while another is in flight is /d/next-12.prot.
  */
-TEST(PollerConfPaths, NamesTheFourFiles) {
+TEST(PollerConfPaths, NamesTheFiveFiles) {
   const std::filesystem::path dir{"/d"};
   const poller_conf_paths paths{dir, 12};
   EXPECT_EQ(paths.stored_path(), std::filesystem::path{"/d/12.prot"});
@@ -37,11 +38,12 @@ TEST(PollerConfPaths, NamesTheFourFiles) {
   EXPECT_EQ(paths.new_diff_path(),
             std::filesystem::path{"/d/new-diff-12.prot"});
   EXPECT_EQ(paths.diff_path(), std::filesystem::path{"/d/diff-12.prot"});
+  EXPECT_EQ(paths.next_path(), std::filesystem::path{"/d/next-12.prot"});
 }
 
 /**
  * Scenario: a file name tells which poller it belongs to, and what it is.
- * Given the four files of poller 12
+ * Given the five files of poller 12
  * Then each one is recognized by its own parser only
  * And the parsers give back 12.
  */
@@ -52,6 +54,7 @@ TEST(PollerConfPaths, EachFileHasItsOwnParser) {
   EXPECT_EQ(poller_conf_paths::stored_id(paths.new_path()), 0u);
   EXPECT_EQ(poller_conf_paths::stored_id(paths.new_diff_path()), 0u);
   EXPECT_EQ(poller_conf_paths::stored_id(paths.diff_path()), 0u);
+  EXPECT_EQ(poller_conf_paths::stored_id(paths.next_path()), 0u);
 
   EXPECT_EQ(poller_conf_paths::new_id(paths.stored_path()), 0u);
   EXPECT_EQ(poller_conf_paths::new_id(paths.new_path()), 12u);
@@ -67,6 +70,13 @@ TEST(PollerConfPaths, EachFileHasItsOwnParser) {
   EXPECT_EQ(poller_conf_paths::diff_id(paths.new_path()), 0u);
   EXPECT_EQ(poller_conf_paths::diff_id(paths.new_diff_path()), 0u);
   EXPECT_EQ(poller_conf_paths::diff_id(paths.diff_path()), 12u);
+  EXPECT_EQ(poller_conf_paths::diff_id(paths.next_path()), 0u);
+
+  EXPECT_EQ(poller_conf_paths::next_id(paths.stored_path()), 0u);
+  EXPECT_EQ(poller_conf_paths::next_id(paths.new_path()), 0u);
+  EXPECT_EQ(poller_conf_paths::next_id(paths.new_diff_path()), 0u);
+  EXPECT_EQ(poller_conf_paths::next_id(paths.diff_path()), 0u);
+  EXPECT_EQ(poller_conf_paths::next_id(paths.next_path()), 12u);
 }
 
 /**
@@ -77,11 +87,12 @@ TEST(PollerConfPaths, EachFileHasItsOwnParser) {
 TEST(PollerConfPaths, OtherFilesBelongToNoPoller) {
   for (const char* name :
        {"/d/topology.cache", "/d/12.lck", "/d/abc.prot", "/d/new-abc.prot",
-        "/d/diff-.prot", "/d/new-diff-.prot", "/d/old-12.prot",
+        "/d/diff-.prot", "/d/new-diff-.prot", "/d/next-.prot", "/d/old-12.prot",
         "/d/12.prot.tmp"}) {
     EXPECT_EQ(poller_conf_paths::stored_id(name), 0u) << name;
     EXPECT_EQ(poller_conf_paths::new_id(name), 0u) << name;
     EXPECT_EQ(poller_conf_paths::new_diff_id(name), 0u) << name;
     EXPECT_EQ(poller_conf_paths::diff_id(name), 0u) << name;
+    EXPECT_EQ(poller_conf_paths::next_id(name), 0u) << name;
   }
 }

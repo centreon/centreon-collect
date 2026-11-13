@@ -36,7 +36,9 @@ namespace com::centreon::broker::config::applier {
  *  - `new-diff-<ID>.prot`: the difference from `<ID>.prot` to `new-<ID>.prot`,
  *    the one to send; it goes with `new-<ID>.prot`;
  *  - `diff-<ID>.prot`: the difference the poller acknowledged, already in the
- *    cache, until the global diff carries it to the database.
+ *    cache, until the global diff carries it to the database;
+ *  - `next-<ID>.prot`: a configuration exported while `new-<ID>.prot` was in
+ *    flight, whole, waiting for the poller to answer about that one.
  *
  * It only names them: reading and writing go through common/proto_file.
  *
@@ -56,11 +58,13 @@ class poller_conf_paths {
   std::filesystem::path new_path() const;
   std::filesystem::path new_diff_path() const;
   std::filesystem::path diff_path() const;
+  std::filesystem::path next_path() const;
 
   static uint64_t stored_id(const std::filesystem::path& p);
   static uint64_t new_id(const std::filesystem::path& p);
   static uint64_t new_diff_id(const std::filesystem::path& p);
   static uint64_t diff_id(const std::filesystem::path& p);
+  static uint64_t next_id(const std::filesystem::path& p);
 };
 
 /**
@@ -130,9 +134,9 @@ class poller_conf {
   std::string _engine_conf;
   /* In in_flight, the version handed over to the poller. Engine applies the
    * DiffStates it receives in order, so a second one sent meanwhile would be
-   * applied on top of a configuration it was not computed from. It may be
-   * older than _available_conf: a newer export arrived after it left
-   * (transition 11), and is sent once the poller answers. */
+   * applied on top of a configuration it was not computed from. A newer
+   * export arriving after it left waits in next-<ID>.prot (transition 11),
+   * and is prepared once the poller answers. */
   std::string _conf_in_flight;
   /* The last version this poller could not apply, and why; none in the usual
    * case. Kept after the poller leaves rejected, so that GetPollers still

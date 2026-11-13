@@ -604,11 +604,12 @@ std::optional<uint64_t> broker_state::poller_id_by_name(
  * A connected poller is not removed: it is still monitoring, and its next
  * events would bring it back half known.
  *
- * The four files a poller can have in the configuration directory go together:
+ * The five files a poller can have in the configuration directory go together:
  * `<ID>.prot` is the configuration it acknowledged, `new-<ID>.prot` one waiting
  * to be acknowledged, `new-diff-<ID>.prot` the difference waiting to be
  * delivered, `diff-<ID>.prot` the one it acknowledged, waiting for the
- * database. None of them means anything once the poller is gone.
+ * database, `next-<ID>.prot` a configuration waiting behind one in flight.
+ * None of them means anything once the poller is gone.
  *
  * Leaving them behind is not harmless. The startup load turns every stored
  * configuration into cache entries, so a leftover file would keep describing
@@ -637,8 +638,9 @@ bool broker_state::remove_poller(uint64_t poller_id) {
 
   if (pollers_config_dir_usable()) {
     const poller_conf_paths paths = poller_paths(poller_id);
-    for (const auto& path : {paths.stored_path(), paths.new_path(),
-                             paths.new_diff_path(), paths.diff_path()}) {
+    for (const auto& path :
+         {paths.stored_path(), paths.new_path(), paths.new_diff_path(),
+          paths.diff_path(), paths.next_path()}) {
       std::error_code ec;
       if (std::filesystem::remove(path, ec))
         _logger->info("Removed '{}': poller {} is no longer on the platform",
@@ -1696,18 +1698,18 @@ std::unique_ptr<engine::configuration::State> broker_state::_read_poller_conf(
 }
 
 /**
- * @brief Write the validated configuration of a poller to `new-<ID>.prot`, and
- * consume the announcement that brought it.
+ * @brief Write a configuration of a poller to one of its files, whole or not at
+ * all.
  *
- * Every path out of here that is not a success keeps the announcement, and
- * hands nothing to the poller: a state that is not on disk cannot be
- * acknowledged, since the acknowledgement renames the very file that was not
- * written.
+ * @param poller_id The poller, named in the logs.
+ * @param path Where to write it.
+ * @param state The configuration.
  *
- * @return True when the state is on disk and the announcement consumed.
+ * @return True when the state is on disk.
  */
-bool broker_state::_write_new_conf(uint32_t poller_id,
-                                   const engine::configuration::State& state) {
+bool broker_state::_write_conf_file(uint32_t poller_id,
+                                    const std::filesystem::path& path,
+                                    const engine::configuration::State& state) {
   if (!pollers_config_dir_usable()) {
     _logger->error(
         "No pollers configuration directory: refusing to write the "
@@ -1727,20 +1729,50 @@ bool broker_state::_write_new_conf(uint32_t poller_id,
       return false;
     }
   }
-  const std::filesystem::path last_prot_conf =
-      poller_paths(poller_id).new_path();
   /* Whole or not at all: the stream may read it to send the full configuration
    * while a newer one replaces it. */
-  common::write_proto_file(last_prot_conf, state, false, ec);
+  common::write_proto_file(path, state, false, ec);
   if (ec) {
     _logger->error(
         "Cannot write the new Engine protobuf configuration '{}': {}. Keeping "
         "the announcement of poller {}",
-        last_prot_conf.string(), ec.message(), poller_id);
+        path.string(), ec.message(), poller_id);
     return false;
   }
+  return true;
+}
+
+/**
+ * @brief Write the validated configuration of a poller to `new-<ID>.prot`, and
+ * consume the announcement that brought it.
+ *
+ * Every path out of here that is not a success keeps the announcement, and
+ * hands nothing to the poller: a state that is not on disk cannot be
+ * acknowledged, since the acknowledgement renames the very file that was not
+ * written.
+ *
+ * A `next-<ID>.prot` left by an earlier export is removed: it waited behind a
+ * configuration that is no longer in flight, and this one supersedes it
+ * before it was ever sent (transition 8).
+ *
+ * @return True when the state is on disk and the announcement consumed.
+ */
+bool broker_state::_write_new_conf(uint32_t poller_id,
+                                   const engine::configuration::State& state) {
+  const poller_conf_paths paths = poller_paths(poller_id);
+  if (!_write_conf_file(poller_id, paths.new_path(), state))
+    return false;
   _logger->info("New Engine configuration for poller {} stored, version '{}'",
                 poller_id, state.config_version());
+  std::error_code ec;
+  if (std::filesystem::remove(paths.next_path(), ec))
+    _logger->info(
+        "Removed '{}': the configuration it held was never sent to poller {}, "
+        "and '{}' replaces it",
+        paths.next_path().string(), poller_id, state.config_version());
+  else if (ec)
+    _logger->error("Cannot remove '{}': {}", paths.next_path().string(),
+                   ec.message());
   /* The announcement has been read and what it announced is now on disk, so it
    * has nothing left to say: from here on it is `new-<ID>.prot` that says a
    * delivery is pending, whether the poller is connected or not. Removed only
@@ -1748,6 +1780,115 @@ bool broker_state::_write_new_conf(uint32_t poller_id,
    * no instant is there neither. */
   _remove_lck_file(poller_id);
   return true;
+}
+
+/**
+ * @brief Write the validated configuration of a poller to `next-<ID>.prot`,
+ * because the one in `new-<ID>.prot` is in flight (transition 11), and
+ * consume the announcement that brought it.
+ *
+ * A configuration in flight is never touched: Engine applies the DiffStates
+ * it receives in order, and the one it is applying was computed from what
+ * Broker stores. This one waits, whole, for the poller to answer: it is then
+ * prepared from the configuration the poller actually runs (see
+ * _promote_next_conf()). A `next-<ID>.prot` already there is replaced: it was
+ * never sent.
+ *
+ * @return True when the state is on disk and the announcement consumed.
+ */
+bool broker_state::_write_next_conf(uint32_t poller_id,
+                                    const engine::configuration::State& state) {
+  const poller_conf_paths paths = poller_paths(poller_id);
+  if (!_write_conf_file(poller_id, paths.next_path(), state))
+    return false;
+  _logger->info(
+      "New Engine configuration for poller {} stored, version '{}': it waits "
+      "in '{}' for the poller to answer about the configuration in flight",
+      poller_id, state.config_version(), paths.next_path().string());
+  _remove_lck_file(poller_id);
+  return true;
+}
+
+/**
+ * @brief Check if a configuration was handed over to a poller and not answered
+ * yet: `new-<ID>.prot` is then in flight, and an export arriving now waits in
+ * `next-<ID>.prot` (see _write_next_conf()).
+ *
+ * A poller with no poller_conf has nothing in flight.
+ *
+ * @param poller_id The poller to check.
+ *
+ * @return true when the poller still owes an answer about its configuration.
+ */
+bool broker_state::_poller_conf_in_flight(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(&_poller_confs_m);
+  const poller_conf* conf = _known_poller_conf(poller_id);
+  return conf && conf->awaits_acknowledgement();
+}
+
+/**
+ * @brief Make the configuration waiting in `next-<ID>.prot` the one prepared:
+ * it becomes `new-<ID>.prot`.
+ *
+ * Called once the configuration that was in flight is settled, so whatever
+ * `new-<ID>.prot` still holds is of no use: either the poller answered about
+ * it (acknowledged, it was renamed to `<ID>.prot`; refused, it was removed),
+ * or the poller came back announcing another version, so it never applied it.
+ * In every case `next-<ID>.prot` supersedes it, and `new-diff-<ID>.prot`,
+ * computed from it, goes with it.
+ *
+ * Only the files move here; the difference of the adopted configuration is
+ * computed by whoever reads `new-<ID>.prot` next (see _promote_next_conf()).
+ *
+ * @param paths The files of the poller.
+ *
+ * @return True when a configuration was adopted.
+ */
+bool broker_state::_adopt_next_conf(const poller_conf_paths& paths) {
+  std::error_code ec;
+  if (!std::filesystem::exists(paths.next_path(), ec))
+    return false;
+  for (const auto& path : {paths.new_path(), paths.new_diff_path()}) {
+    if (!std::filesystem::remove(path, ec) && ec)
+      _logger->error("Cannot remove '{}': {}", path.string(), ec.message());
+  }
+  std::filesystem::rename(paths.next_path(), paths.new_path(), ec);
+  if (ec) {
+    _logger->error("Cannot rename '{}' to '{}': {}", paths.next_path().string(),
+                   paths.new_path().string(), ec.message());
+    return false;
+  }
+  _logger->info(
+      "The configuration waiting in '{}' is now the one prepared for poller {}",
+      paths.next_path().string(), paths.poller_id());
+  return true;
+}
+
+/**
+ * @brief Once the poller answered about the configuration in flight, prepare
+ * the one that waited behind it, if any (transitions 14 and 17).
+ *
+ * The difference is computed now and not before, because its base depends on
+ * the answer: the version just acknowledged, or the one the poller still runs
+ * after a failure.
+ *
+ * @param poller_id The poller ID.
+ *
+ * @return True when a configuration is now owed to the poller.
+ */
+bool broker_state::_promote_next_conf(uint64_t poller_id) {
+  const poller_conf_paths paths = poller_paths(poller_id);
+  if (!_adopt_next_conf(paths))
+    return false;
+  auto state = std::make_unique<engine::configuration::State>();
+  std::error_code ec;
+  common::read_proto_file(paths.new_path(), *state, ec);
+  if (ec) {
+    _logger->error("Cannot read '{}' for poller {}: {}",
+                   paths.new_path().string(), poller_id, ec.message());
+    return false;
+  }
+  return _prepare_diff_for_poller(poller_id, std::move(state));
 }
 
 /**
@@ -1796,6 +1937,13 @@ void broker_state::_run_config_cycle(
     /* Reading took the time, handing over takes the lock: an acknowledgement
      * must not slip between the two files written below. */
     absl::MutexLock handover_lck(&_conf_handover_m);
+    if (_poller_conf_in_flight(poller_id)) {
+      /* The poller is applying a configuration: this one waits for its
+       * answer, and no difference is computed yet, its base is not known. */
+      if (_write_next_conf(poller_id, *state))
+        ++conf_ready;
+      continue;
+    }
     if (!_write_new_conf(poller_id, *state))
       continue;
 
@@ -2076,16 +2224,29 @@ bool broker_state::_prepare_diff_for_poller(
      * connection broke, in between. Its announcement is that acknowledgement.
      * Stopping here would leave `new-<ID>.prot` unrenamed, and the cache and
      * the database on the previous version until the next export. */
-    const bool already_runs = engine_conf == state->config_version();
+    std::string new_version = state->config_version();
+    const bool already_runs = engine_conf == new_version;
+    const poller_conf_paths paths = poller_paths(poller_id);
+    if (!already_runs && _adopt_next_conf(paths)) {
+      /* The poller does not run the configuration prepared for it, and a newer
+       * one waited behind it: the first was never applied, nobody runs it, and
+       * the newer one supersedes it (transition 15). */
+      std::error_code ec;
+      common::read_proto_file(paths.new_path(), *state, ec);
+      if (ec) {
+        _logger->error("Cannot read '{}' for poller {}: {}",
+                       paths.new_path().string(), poller_id, ec.message());
+        return false;
+      }
+      new_version = state->config_version();
+    }
     if (!already_runs)
       _logger->debug(
           "Poller '{}' with id {} has a new configuration available "
           "(old: '{}', new: '{}')",
-          peer->poller_name, poller_id, engine_conf, state->config_version());
-    const poller_conf_paths paths = poller_paths(poller_id);
+          peer->poller_name, poller_id, engine_conf, new_version);
     const std::filesystem::path previous_prot_conf = paths.stored_path();
     auto diff_state = std::make_unique<engine::configuration::DiffState>();
-    std::string new_version = state->config_version();
     auto previous_state = std::make_unique<engine::configuration::State>();
     std::error_code read_ec;
     common::read_proto_file(previous_prot_conf, *previous_state, read_ec);
@@ -2105,7 +2266,8 @@ bool broker_state::_prepare_diff_for_poller(
         if (!std::filesystem::remove(new_prot_conf, rm_ec) && rm_ec)
           _logger->error("Cannot remove '{}': {}", new_prot_conf.string(),
                          rm_ec.message());
-        return false;
+        /* A configuration that waited behind it is newer, though. */
+        return _promote_next_conf(poller_id);
       }
       /* The cache and the database hold <ID>.prot: they need the difference
        * from it, whatever the poller runs. A full configuration would make them
@@ -2161,19 +2323,13 @@ bool broker_state::_prepare_diff_for_poller(
       conf->on_announced(new_version);
   }
   _install_acknowledged_conf(poller_id);
+  /* Nothing to send of this one, the poller runs it already; a configuration
+   * that waited behind it is prepared now (transition 14). */
+  const bool next_prepared = _promote_next_conf(poller_id);
   _close_conf_round_if_over();
-  /* Nothing to send: the poller runs it already. */
-  return false;
+  return next_prepared;
 }
 
-/**
- * @brief Check if the poller engine peer needs an update. This function is
- * called from Broker.
- *
- * @param poller_id The poller ID.
- *
- * @return A boolean indicating if the poller engine peer needs an update.
- */
 /**
  * @brief Whether a configuration is prepared for a peer and still owes it a
  * delivery.
@@ -2244,6 +2400,7 @@ void broker_state::on_poller_conf_acknowledged(uint64_t poller_id,
   if (!pollers_config_dir_usable())
     return;
   _install_acknowledged_conf(poller_id);
+  _promote_next_conf(poller_id);
   _close_conf_round_if_over();
 }
 
@@ -2406,6 +2563,9 @@ void broker_state::on_poller_conf_rejected(uint64_t poller_id,
       if (ec)
         _logger->error("Cannot remove '{}': {}", path.string(), ec.message());
     }
+    /* A configuration that waited behind the failed one is prepared now, from
+     * what the poller still runs (transition 17). */
+    _promote_next_conf(poller_id);
   }
 
   _close_conf_round_if_over();
@@ -2653,8 +2813,15 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
     return std::nullopt;
   }
   const auto new_file = poller_paths(poller_id).new_path();
+  absl::MutexLock lck(&_conf_handover_m);
   auto state = std::make_unique<engine::configuration::State>();
   std::error_code ec;
+  if (!std::filesystem::exists(new_file, ec)) {
+    /* A next-<ID>.prot without its new-<ID>.prot: Broker stopped between the
+     * removal of the second and the adoption of the first. It is adopted
+     * now. */
+    _adopt_next_conf(poller_paths(poller_id));
+  }
   common::read_proto_file(new_file, *state, ec);
   if (ec) {
     if (ec != std::errc::no_such_file_or_directory)
@@ -2662,7 +2829,6 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
                      poller_id, ec.message());
     return std::nullopt;
   }
-  absl::MutexLock lck(&_conf_handover_m);
   return _prepare_diff_for_poller(poller_id, std::move(state));
 }
 
@@ -2726,8 +2892,10 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
         engine_id);
   }
 
-  /* 1. */
-  if (std::filesystem::exists(diff_file))
+  /* 1. A difference ready, unless a newer configuration waits behind it: the
+   * poller then goes through 2., which settles which one it is owed. */
+  if (std::filesystem::exists(diff_file) &&
+      !std::filesystem::exists(paths.next_path()))
     return relay_config_response::diff_ready;
 
   /* 2. */

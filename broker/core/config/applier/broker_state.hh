@@ -152,8 +152,8 @@ class broker_state : public state {
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
   /* Serializes every move of a configuration between `new-<ID>.prot`,
-   * `new-diff-<ID>.prot`, `diff-<ID>.prot` and `<ID>.prot` (cycle,
-   * acknowledgement, recovery,
+   * `new-diff-<ID>.prot`, `diff-<ID>.prot`, `next-<ID>.prot` and `<ID>.prot`
+   * (cycle, acknowledgement, recovery,
    * removal) and the round built on them, up to the global diff. Otherwise an
    * acknowledgement could rename a `new-<ID>.prot` written for a newer
    * configuration.
@@ -237,8 +237,21 @@ class broker_state : public state {
       uint32_t poller_id,
       const com::centreon::engine::configuration::foreign_objects& foreign,
       bool& refused) ABSL_LOCKS_EXCLUDED(_conf_handover_m);
+  bool _write_conf_file(uint32_t poller_id,
+                        const std::filesystem::path& path,
+                        const engine::configuration::State& state)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   bool _write_new_conf(uint32_t poller_id,
                        const engine::configuration::State& state)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  bool _write_next_conf(uint32_t poller_id,
+                        const engine::configuration::State& state)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  bool _poller_conf_in_flight(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  bool _adopt_next_conf(const poller_conf_paths& paths)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
+  bool _promote_next_conf(uint64_t poller_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set)
       ABSL_LOCKS_EXCLUDED(_conf_handover_m);

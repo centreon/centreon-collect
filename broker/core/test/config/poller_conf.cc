@@ -178,15 +178,15 @@ TEST_F(PollerConfDelivery, T10_AnnouncementAcknowledges) {
  * Scenario: transition 11, an export while a version is in flight.
  * Given a poller sent v1
  * When v2 is prepared
- * Then it stays in flight: nothing is sent before it answers
- * And v2 is owed, which keeps the round open.
+ * Then nothing changes: v1 stays in flight and awaited, v1 is still the
+ * version prepared, and v2 waits its turn outside of here.
  */
 TEST_F(PollerConfDelivery, T11_ExportWhileInFlight) {
   poller_conf conf = in_flight();
   conf.prepare("v2");
   EXPECT_EQ(conf.delivery_status(), delivery::in_flight);
-  EXPECT_FALSE(conf.awaits_acknowledgement());
-  EXPECT_TRUE(conf.owes_conf());
+  EXPECT_TRUE(conf.awaits_acknowledgement());
+  EXPECT_EQ(conf.available_conf(), "v1");
   EXPECT_FALSE(conf.needs_update());
 }
 
@@ -219,18 +219,19 @@ TEST_F(PollerConfDelivery, T13_Acknowledged) {
 }
 
 /**
- * Scenario: transition 14, the acknowledgement of an overtaken version.
- * Given a poller sent v1, and owed v2 since
- * When it acknowledges v1
- * Then that does not count for the round
+ * Scenario: transition 14, the acknowledgement with a newer export waiting.
+ * Given a poller sent v1, with v2 exported since and waiting its turn
+ * When it acknowledges v1, and v2 is prepared right after
+ * Then the acknowledgement counts for the round, its difference waiting for
+ * the database
  * And v2 is owed, and can be sent now.
  */
 TEST_F(PollerConfDelivery, T14_AcknowledgedWithANewerExport) {
   poller_conf conf = in_flight();
+  EXPECT_TRUE(conf.on_acknowledged("v1"));
   conf.prepare("v2");
-  EXPECT_FALSE(conf.on_acknowledged("v1"));
   EXPECT_EQ(conf.delivery_status(), delivery::owed);
-  EXPECT_EQ(conf.db_status(), db::up_to_date);
+  EXPECT_EQ(conf.db_status(), db::pending);
   EXPECT_EQ(conf.engine_conf(), "v1");
   EXPECT_TRUE(conf.needs_update());
 }
@@ -251,17 +252,20 @@ TEST_F(PollerConfDelivery, T16_Rejected) {
 }
 
 /**
- * Scenario: transition 17, the failure of an overtaken version.
- * Given a poller sent v1, and owed v2 since
- * When it reports it could not apply v1
- * Then v2 is owed, and can be sent now.
+ * Scenario: transition 17, the failure with a newer export waiting.
+ * Given a poller sent v1, with v2 exported since and waiting its turn
+ * When it reports it could not apply v1, and v2 is prepared right after
+ * Then v2 is owed, and can be sent now: the failure of v1 does not hold it
+ * back, and is still told.
  */
 TEST_F(PollerConfDelivery, T17_RejectedWithANewerExport) {
   poller_conf conf = in_flight();
+  EXPECT_TRUE(conf.on_rejected("v0", "v1", "boom"));
   conf.prepare("v2");
-  EXPECT_FALSE(conf.on_rejected("v0", "v1", "boom"));
   EXPECT_EQ(conf.delivery_status(), delivery::owed);
-  EXPECT_FALSE(conf.last_rejection());
+  EXPECT_TRUE(conf.needs_update());
+  ASSERT_TRUE(conf.last_rejection());
+  EXPECT_EQ(conf.last_rejection()->version, "v1");
 }
 
 /**
@@ -310,31 +314,33 @@ TEST_F(PollerConfDelivery, RoundClosed) {
 }
 
 /**
- * Scenario: a relay asks for the configuration of a poller sent the version
- * prepared for it.
+ * Scenario: a relay asks for the configuration of a poller announcing the
+ * version in flight.
  * Given a poller behind a relay, sent v1
- * When the relay asks for its configuration
- * Then v1 is still awaited: the answer sends it again.
+ * When the relay asks for its configuration, saying the poller runs v1
+ * Then v1 is still in flight and awaited: its announcement is its
+ * acknowledgement, which whoever answers the request records.
  */
-TEST_F(PollerConfDelivery, RelayRequestKeepsThePreparedVersionInFlight) {
+TEST_F(PollerConfDelivery, RelayRequestAnnouncingTheFlightVersionKeepsIt) {
   poller_conf conf = in_flight();
-  conf.on_relay_request("v0");
+  conf.on_relay_request("v1");
   EXPECT_EQ(conf.delivery_status(), delivery::in_flight);
   EXPECT_TRUE(conf.awaits_acknowledgement());
 }
 
 /**
- * Scenario: a relay asks for the configuration of a poller sent an overtaken
- * version.
- * Given a poller behind a relay, sent v1, and owed v2 since
+ * Scenario: transition 15, a relay asks for the configuration of a poller
+ * announcing another version than the one in flight.
+ * Given a poller behind a relay, sent v1
  * When the relay asks for its configuration, saying the poller runs v0
- * Then v1 will not be acknowledged through this exchange: v2 is owed now.
+ * Then v1 was never applied: the flight is over, and v1 is owed again, unless
+ * the files say a newer version waited behind it.
  */
-TEST_F(PollerConfDelivery, RelayRequestDropsAnOvertakenVersion) {
+TEST_F(PollerConfDelivery, RelayRequestAnnouncingAnotherVersionEndsTheFlight) {
   poller_conf conf = in_flight();
-  conf.prepare("v2");
   conf.on_relay_request("v0");
   EXPECT_EQ(conf.delivery_status(), delivery::owed);
+  EXPECT_TRUE(conf.conf_in_flight().empty());
   EXPECT_TRUE(conf.needs_update());
 }
 

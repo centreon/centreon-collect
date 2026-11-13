@@ -29,8 +29,8 @@ namespace {
  * carries after @p prefix.
  *
  * @param p The path of the file.
- * @param prefix What comes before the ID: empty, "new-", "new-diff-" or
- * "diff-".
+ * @param prefix What comes before the ID: empty, "new-", "new-diff-",
+ * "diff-" or "next-".
  *
  * @return The poller ID, or 0 if @p p is not `<prefix><ID>.prot`.
  */
@@ -106,11 +106,20 @@ std::filesystem::path poller_conf_paths::diff_path() const {
 }
 
 /**
+ * @brief A configuration exported while `new-<ID>.prot` was in flight:
+ * `next-<ID>.prot`.
+ */
+std::filesystem::path poller_conf_paths::next_path() const {
+  return _dir / fmt::format("next-{}.prot", _poller_id);
+}
+
+/**
  * @brief The poller ID a stored configuration file name carries.
  *
  * Only `<ID>.prot` is a stored configuration. `new-<ID>.prot`,
- * `new-diff-<ID>.prot` and `diff-<ID>.prot` are work files of the push in
- * progress and must not be read as the configuration of a poller.
+ * `new-diff-<ID>.prot`, `diff-<ID>.prot` and `next-<ID>.prot` are work files
+ * of the push in progress and must not be read as the configuration of a
+ * poller.
  *
  * @param p The path of a file of the pollers configuration directory.
  *
@@ -153,6 +162,18 @@ uint64_t poller_conf_paths::new_diff_id(const std::filesystem::path& p) {
  */
 uint64_t poller_conf_paths::diff_id(const std::filesystem::path& p) {
   return poller_id_after_prefix(p, "diff-");
+}
+
+/**
+ * @brief The poller a configuration waiting behind one in flight belongs to,
+ * from its file name.
+ *
+ * @param p The path of a file of the pollers configuration directory.
+ *
+ * @return The poller ID if @p p is a `next-<ID>.prot`, 0 otherwise.
+ */
+uint64_t poller_conf_paths::next_id(const std::filesystem::path& p) {
+  return poller_id_after_prefix(p, "next-");
 }
 
 /**
@@ -259,9 +280,12 @@ void poller_conf::on_expected() noexcept {
  * version it knows.
  *
  * The request opens a new exchange: a version handed over before will not be
- * acknowledged through it, so what was in flight is dropped -- unless it is
- * the version prepared for the poller, which the answer to the request sends
- * again, and whose acknowledgement still counts for the round.
+ * acknowledged through it. What the poller announces settles it: the version
+ * in flight, and its announcement is its acknowledgement (transition 13,
+ * made by whoever answers the request); any other, and the version in flight
+ * was never applied, nobody runs it (transition 15): the flight is over, and
+ * what is owed is what the files say, that version again or the one that
+ * waited behind it.
  *
  * Reaching Broker through a relay is a connection: a poller expected from
  * topology.cache is connected from now on. The relay asks because the Engine
@@ -275,7 +299,7 @@ void poller_conf::on_relay_request(const std::string& engine_conf) {
   _runtime_state_owed = true;
   if (!engine_conf.empty())
     _engine_conf = engine_conf;
-  if (!awaits_acknowledgement())
+  if (engine_conf != _conf_in_flight)
     _conf_in_flight.clear();
   _settle();
 }
@@ -300,8 +324,13 @@ void poller_conf::on_conf_recovered() {
 }
 
 /**
- * @brief A configuration was prepared for the poller (transitions 4, 7, 8, 11
- * and 18).
+ * @brief A configuration was prepared for the poller (transitions 4, 7, 8 and
+ * 18).
+ *
+ * Nothing is prepared while a configuration is in flight (transition 11): the
+ * export then waits in `next-<ID>.prot`, whole, and is prepared once the poller
+ * answered, from the configuration it actually runs. A call that arrives
+ * anyway changes nothing.
  *
  * Preparing again the version already prepared changes nothing: two
  * announcements for one export, which PHP is free to make, would otherwise
@@ -317,6 +346,12 @@ void poller_conf::on_conf_recovered() {
 void poller_conf::prepare(const std::string& version) {
   if (_available_conf == version)
     return;
+  if (!_conf_in_flight.empty()) {
+    _logger->debug(
+        "Configuration '{}' of poller {} not prepared: '{}' is in flight",
+        version, _poller_id, _conf_in_flight);
+    return;
+  }
   _available_conf = version;
   _settle();
 }
@@ -342,10 +377,8 @@ void poller_conf::on_announced(const std::string& version) {
  * (transition 9).
  *
  * What is sent is decided without the lock of the poller configurations (the
- * diff file is read, or the relay is found up to date, before this call). A
- * newer configuration can therefore be prepared in between: the poller is then
- * in flight with an older version, and the newer one stays owed, sent once the
- * poller answers.
+ * diff file is read, or the relay is found up to date, before this call), and
+ * is the version prepared: nothing replaces it before the poller answers.
  *
  * With no configuration prepared at all, the version still left: nothing else
  * is sent until the poller says which version it runs.
@@ -363,13 +396,6 @@ bool poller_conf::on_sent(std::string_view version) {
         "Configuration '{}' sent to poller {}, which has none prepared: "
         "nothing to mark",
         version, _poller_id);
-    return false;
-  }
-  if (_available_conf != version) {
-    _logger->info(
-        "Configuration '{}' sent to poller {} is no longer the latest one "
-        "('{}'): the latest stays owed",
-        version, _poller_id, _available_conf);
     return false;
   }
   _logger->debug("New configuration sent to poller {}", _poller_id);

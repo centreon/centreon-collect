@@ -91,6 +91,47 @@ class BrokerStateRound : public ::testing::Test {
   }
 
   /**
+   * @brief Leave a configuration exported while another one is in flight, the
+   * way a cycle does: `next-<N>.prot`, whole, with no difference computed.
+   */
+  void leave_next_conf(uint64_t poller_id, const std::string& version) {
+    com::centreon::engine::configuration::State st;
+    st.set_poller_id(poller_id);
+    st.set_config_version(version);
+    std::ofstream f(_dir / fmt::format("next-{}.prot", poller_id),
+                    std::ios::binary);
+    ASSERT_TRUE(st.SerializeToOstream(&f));
+  }
+
+  /** @brief The version a stored protobuf State names. */
+  std::string version_of(const std::string& name) {
+    com::centreon::engine::configuration::State st;
+    std::ifstream f(_dir / name, std::ios::binary);
+    EXPECT_TRUE(f) << name;
+    EXPECT_TRUE(st.ParseFromIstream(&f)) << name;
+    return st.config_version();
+  }
+
+  /** @brief Whether a stored difference is a full configuration. */
+  bool diff_is_full(const std::string& name) {
+    com::centreon::engine::configuration::DiffState diff;
+    std::ifstream f(_dir / name, std::ios::binary);
+    EXPECT_TRUE(f) << name;
+    EXPECT_TRUE(diff.ParseFromIstream(&f)) << name;
+    return diff.has_state();
+  }
+
+  /** @brief The versions a stored difference goes from and to. */
+  std::pair<std::string, std::string> versions_of_diff(
+      const std::string& name) {
+    com::centreon::engine::configuration::DiffState diff;
+    std::ifstream f(_dir / name, std::ios::binary);
+    EXPECT_TRUE(f) << name;
+    EXPECT_TRUE(diff.ParseFromIstream(&f)) << name;
+    return {diff.from_version(), diff.config_version()};
+  }
+
+  /**
    * @brief Connect an Engine peer announcing that it runs no configuration.
    *
    * With a new-<N>.prot left beforehand, this is the real path of a poller
@@ -187,58 +228,69 @@ TEST_F(BrokerStateRound, OverWhenTheOnlyServedPeerAcknowledged) {
 }
 
 /**
- * Scenario: the configuration sent is overtaken by a newer one.
- * Given a connected poller whose prepared configuration is v2
- * When the stream reports it sent v1, read from the diff file just before v2
- * replaced it
- * Then the poller is not marked as served
- * And v2 waits for the poller to say which version it runs
+ * Scenario: a version exported while another one is in flight waits its turn.
+ * Given a connected poller that was sent v1 and has not acknowledged it
+ * And v2 exported since, left in next-<N>.prot by the cycle
+ * Then nothing is owed to the poller: v1 is in flight, and v2 is not even
+ * prepared, new-<N>.prot still holding v1
+ * And the round is not over
  * When the poller acknowledges v1
- * Then that acknowledgement does not count as its part of the round
- * And v2 is owed to it
- * And once v2 is sent, the poller is marked as served.
+ * Then v1 is installed: <N>.prot holds v1, diff-<N>.prot the difference to it
+ * And v2 takes its place: new-<N>.prot holds v2, new-diff-<N>.prot the
+ * difference from v1 to v2, next-<N>.prot is gone
+ * And v2 is owed to the poller, which keeps the round open.
  */
-TEST_F(BrokerStateRound, SentVersionMustBeTheLatestToCount) {
-  leave_prepared_conf(1, "v2");
+TEST_F(BrokerStateRound, VersionExportedDuringAFlightWaitsInNext) {
+  _state->initialize_cache();
+  leave_prepared_conf(1, "v1");
   connect(1);
-  ASSERT_TRUE(_state->poller_needs_update(1));
+  ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
+  leave_next_conf(1, "v2");
 
-  EXPECT_FALSE(_state->set_poller_conf_sent(1, "v1"));
   EXPECT_FALSE(_state->poller_needs_update(1));
+  EXPECT_EQ(version_of("new-1.prot"), "v1");
+  EXPECT_FALSE(_state->try_close_conf_round());
 
-  EXPECT_FALSE(_state->acknowledge_poller_conf(1, "v1"));
+  _state->on_poller_conf_acknowledged(1, "v1");
+
+  EXPECT_EQ(version_of("1.prot"), "v1");
+  EXPECT_TRUE(diff_is_full("diff-1.prot"));
+  EXPECT_EQ(version_of("new-1.prot"), "v2");
+  EXPECT_EQ(versions_of_diff("new-diff-1.prot"),
+            (std::pair<std::string, std::string>{"v1", "v2"}));
+  EXPECT_FALSE(std::filesystem::exists(_dir / "next-1.prot"));
   EXPECT_TRUE(_state->poller_needs_update(1));
-
-  EXPECT_TRUE(_state->set_poller_conf_sent(1, "v2"));
-  EXPECT_FALSE(_state->poller_needs_update(1));
+  EXPECT_FALSE(_state->try_close_conf_round());
 }
 
 /**
- * Scenario: a new export arrives while the poller applies the previous one.
+ * Scenario: a new export arrives while the poller behind a relay applies the
+ * previous one.
  * Given a poller behind a relay that was sent v1 and has not acknowledged it
- * When v2 is prepared for it
- * Then v2 is not sent: Engine would apply it on top of v1, while it was
- * computed from what Broker stores
- * And the round is not over, v2 being owed
+ * And v2 exported since, left in next-<N>.prot by the cycle
+ * Then the relay has nothing to send: v1 is in flight
+ * And the round is not over
  * When the poller acknowledges v1
- * Then that acknowledgement does not count as its part of the round
- * And the poller is known to run v1, so v2 can be sent
+ * Then that acknowledgement is its part of the round for v1
+ * And v2 is now prepared, and owed through the relay
  * When v2 is sent and acknowledged
  * Then the round is over.
  */
 TEST_F(BrokerStateRound, NothingSentWhileAConfigurationIsInFlight) {
+  _state->initialize_cache();
   _state->register_poller_via_relay(1, "Poller1", 10, "");
   prepare_via_relay(1, "v1");
   ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
 
-  prepare_via_relay(1, "v2");
+  leave_next_conf(1, "v2");
   EXPECT_TRUE(_state->pollers_via_relay_needing_update(10).empty());
   EXPECT_FALSE(_state->try_close_conf_round());
 
-  EXPECT_FALSE(_state->acknowledge_poller_conf(1, "v1"));
+  _state->on_poller_conf_acknowledged(1, "v1");
   EXPECT_EQ(_state->poller_engine_conf(1), "v1");
   EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
             std::vector<uint64_t>{1});
+  EXPECT_EQ(version_of("new-1.prot"), "v2");
 
   ASSERT_TRUE(_state->set_poller_conf_sent(1, "v2"));
   EXPECT_TRUE(_state->acknowledge_poller_conf(1, "v2"));
@@ -246,25 +298,63 @@ TEST_F(BrokerStateRound, NothingSentWhileAConfigurationIsInFlight) {
 }
 
 /**
- * Scenario: the acknowledgement of an overtaken configuration touches no file.
- * Given a poller behind a relay that was sent v1
- * And v2 prepared for it since, in new-<N>.prot and new-diff-<N>.prot
- * When the poller acknowledges v1
- * Then new-<N>.prot is not renamed: it holds v2, which the poller does not run
- * And new-diff-<N>.prot is still there to be sent.
+ * Scenario: a version exported while another one is in flight is replaced by
+ * the next export before it leaves.
+ * Given a connected poller that was sent v1 and has not acknowledged it
+ * And v2 exported since, waiting in next-<N>.prot
+ * When the poller disconnects, and comes back announcing v1
+ * Then its announcement installs v1, and v2 takes its place: new-<N>.prot
+ * holds v2, owed to it
+ * And next-<N>.prot is gone.
  */
-TEST_F(BrokerStateRound, OvertakenAcknowledgementKeepsTheNewerFiles) {
-  _state->register_poller_via_relay(1, "Poller1", 10, "");
-  prepare_via_relay(1, "v1");
+TEST_F(BrokerStateRound, ReconnectionAnnouncingTheFlightVersionPromotesNext) {
+  _state->initialize_cache();
+  leave_prepared_conf(1, "v1");
+  connect(1);
   ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
-  prepare_via_relay(1, "v2");
+  leave_next_conf(1, "v2");
+  _state->remove_peer(1, "Poller1", "central");
 
-  _state->on_poller_conf_acknowledged(1, "v1");
+  /* Behind a relay, which announces with the version its Engine runs. */
+  _state->register_poller_via_relay(1, "Poller1", 10, "v1");
+  EXPECT_EQ(_state->prepare_relay_config_response(1, "v1"),
+            broker_state::relay_config_response::diff_ready);
 
-  EXPECT_TRUE(std::filesystem::exists(_dir / "new-1.prot"));
+  EXPECT_EQ(version_of("1.prot"), "v1");
+  EXPECT_EQ(version_of("new-1.prot"), "v2");
+  EXPECT_EQ(versions_of_diff("new-diff-1.prot"),
+            (std::pair<std::string, std::string>{"v1", "v2"}));
+  EXPECT_FALSE(std::filesystem::exists(_dir / "next-1.prot"));
+  EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
+            std::vector<uint64_t>{1});
+}
+
+/**
+ * Scenario: the version in flight was never applied, and a newer one waits.
+ * Given a connected poller that was sent v1 and has not acknowledged it
+ * And v2 exported since, waiting in next-<N>.prot
+ * When the poller disconnects, and comes back announcing the version before v1
+ * Then v1 is dropped: nobody runs it, and v2 supersedes it
+ * And v2 is prepared from what the poller runs, and owed to it
+ * And next-<N>.prot is gone.
+ */
+TEST_F(BrokerStateRound, ReconnectionAnnouncingTheOldVersionSkipsTheFlight) {
+  leave_prepared_conf(1, "v1");
+  connect(1);
+  ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
+  leave_next_conf(1, "v2");
+  _state->remove_peer(1, "Poller1", "central");
+
+  _state->register_poller_via_relay(1, "Poller1", 10, "");
+  EXPECT_EQ(_state->prepare_relay_config_response(1, ""),
+            broker_state::relay_config_response::diff_ready);
+
   EXPECT_FALSE(std::filesystem::exists(_dir / "1.prot"));
-  EXPECT_TRUE(std::filesystem::exists(_dir / "new-diff-1.prot"));
-  EXPECT_FALSE(std::filesystem::exists(_dir / "diff-1.prot"));
+  EXPECT_EQ(version_of("new-1.prot"), "v2");
+  EXPECT_TRUE(diff_is_full("new-diff-1.prot"));
+  EXPECT_FALSE(std::filesystem::exists(_dir / "next-1.prot"));
+  EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
+            std::vector<uint64_t>{1});
 }
 
 /**
@@ -387,23 +477,26 @@ TEST_F(BrokerStateRound, NewExportIsSentAfterARejection) {
 }
 
 /**
- * Scenario: the failure of an overtaken configuration touches no file.
+ * Scenario: the version in flight fails, and a newer one waits.
  * Given a poller behind a relay that was sent v1
- * And v2 prepared for it since, in new-<N>.prot and new-diff-<N>.prot
+ * And v2 exported since, waiting in next-<N>.prot
  * When the poller reports it could not apply v1
- * Then new-<N>.prot and new-diff-<N>.prot are kept: they hold v2
- * And v2 is owed to it, computed from what the poller still runs.
+ * Then v1 is dropped, and v2 takes its place: new-<N>.prot holds v2, and
+ * new-diff-<N>.prot the difference from what the poller still runs
+ * And v2 is owed to it: the failure of v1 does not hold it back
+ * And next-<N>.prot is gone.
  */
-TEST_F(BrokerStateRound, OvertakenRejectionKeepsTheNewerFiles) {
+TEST_F(BrokerStateRound, RejectionOfTheFlightVersionPromotesNext) {
   _state->register_poller_via_relay(1, "Poller1", 10, "");
   prepare_via_relay(1, "v1");
   ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
-  prepare_via_relay(1, "v2");
+  leave_next_conf(1, "v2");
 
   _state->on_poller_conf_rejected(1, "", "v1", "boom");
 
-  EXPECT_TRUE(std::filesystem::exists(_dir / "new-1.prot"));
-  EXPECT_TRUE(std::filesystem::exists(_dir / "new-diff-1.prot"));
+  EXPECT_EQ(version_of("new-1.prot"), "v2");
+  EXPECT_TRUE(diff_is_full("new-diff-1.prot"));
+  EXPECT_FALSE(std::filesystem::exists(_dir / "next-1.prot"));
   EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
             std::vector<uint64_t>{1});
 }
@@ -708,9 +801,11 @@ class BrokerStateRemovePoller : public BrokerStateRound {
 TEST_F(BrokerStateRemovePoller, ExpectedPollerIsForgottenWithItsRelay) {
   restore_poller_behind_relay();
   leave_prepared_conf(5, "v1");
+  leave_next_conf(5, "v2");
 
   EXPECT_TRUE(_state->remove_poller(5));
   EXPECT_FALSE(std::filesystem::exists(_dir / "new-5.prot"));
+  EXPECT_FALSE(std::filesystem::exists(_dir / "next-5.prot"));
   EXPECT_EQ(written_topology().entries_size(), 0);
 }
 
