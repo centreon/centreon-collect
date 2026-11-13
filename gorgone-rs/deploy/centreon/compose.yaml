@@ -81,6 +81,9 @@ services:
       MYSQL_USER: centreon
       MYSQL_PASSWORD: centreon
       CENTREON_DATASET: "1"
+      # The legacy pages call the internal API: without this they reuse the
+      # port published on the host, which nothing listens on in the container.
+      CENTREON_INTERNAL_API_BASE_URL: 127.0.0.1:80
       GORGONE_API_ADDRESS: gorgone-server
     healthcheck:
       test: ["CMD-SHELL", "[ -f /tmp/docker.ready ] && curl --fail http://localhost/centreon/api/latest/platform/versions"]
