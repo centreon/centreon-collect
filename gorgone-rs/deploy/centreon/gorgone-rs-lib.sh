@@ -5,7 +5,7 @@
 GORGONE_RS_ETC=/etc/centreon-gorgone/rs
 GORGONE_RS_LOG=/var/log/centreon-gorgone
 
-# write_agent_config <node id> <server url>
+# write_agent_config <node id> <server url> <broker reload command>
 write_agent_config() {
   install -d -o centreon-gorgone -g centreon-gorgone "$GORGONE_RS_ETC" /var/lib/centreon-gorgone/agent
   cat > "$GORGONE_RS_ETC/agent.toml" <<EOF
@@ -43,6 +43,10 @@ prune = false
 path = "/etc/centreon-broker"
 prune = false
 
+[targets.vmware]
+path = "/etc/centreon"
+prune = false
+
 [services.engine]
 start = "sudo systemctl start centengine"
 stop = "sudo systemctl stop centengine"
@@ -50,7 +54,7 @@ reload = "sudo systemctl reload centengine"
 restart = "sudo systemctl restart centengine"
 
 [services.broker]
-reload = "sudo systemctl reload cbd"
+reload = "$3"
 EOF
   chown centreon-gorgone: "$GORGONE_RS_ETC/agent.toml"
 }

@@ -4,6 +4,7 @@
 
 . /usr/share/centreon/gorgone-rs-lib.sh
 
-write_agent_config 1 "http://${GORGONE_API_ADDRESS}:${GORGONE_AGENT_PORT:-5556}"
+write_agent_config 1 "http://${GORGONE_API_ADDRESS}:${GORGONE_AGENT_PORT:-5556}" \
+  "sudo systemctl reload cbd"
 echo "Starting gorgone-agent for the central poller..."
 start_as_gorgone /usr/bin/gorgone-agent "$GORGONE_RS_ETC/agent.toml"

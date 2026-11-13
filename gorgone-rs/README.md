@@ -81,18 +81,15 @@ docker compose -f deploy/centreon/compose.yaml down -v
 ```
 
 Both pollers register themselves, then ask centreon-web to generate, push and
-restart. `verify.sh` also sends a forced check through the centreon-web API
-and an external command to the engine container over gRPC. The web UI is on
-<http://localhost:4000>.
+restart; centreon-web reports the real outcome of each job. `verify.sh` then
+checks, among other things, that a forced check sent through the centreon-web
+API reaches the engine, that the engine container is driven over a Unix socket
+with nothing listening on the network, that `gorgone-server` knows what each
+node runs, and that a reload asked on top of a failed configuration push is
+not sent. The web UI is on <http://localhost:4000>.
 
-Known gaps seen on this bench:
-
-- The `vmware` target is not configured on the test agents, so that part of a
-  configuration push is rejected.
-- A broker reload on a poller without `cbd` is refused or fails, as with the
-  Perl daemon.
-- The central poller still gets its files and restarts from centreon-web
-  itself, as before.
+On a poller the broker module is reloaded with the engine, so the bench maps
+"broker reload" to an engine reload there.
 
 ## Benchmark
 

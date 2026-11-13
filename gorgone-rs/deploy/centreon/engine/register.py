@@ -34,8 +34,9 @@ token = "integration-test"
 allowlist = []
 
 [engine]
-# No command pipe and no systemctl: the engine is another container.
-grpc_url = "http://{engine_host}:50155"
+# No command pipe and no systemctl: the engine is another container, reached
+# through the socket of a volume shared with it.
+grpc_url = "unix:/var/lib/centreon-engine/rw/engine.sock"
 allowed_commands = [
   'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
   'ACKNOWLEDGE_(HOST|SVC)_PROBLEM',
@@ -53,10 +54,18 @@ prune = false
 path = "/etc/centreon-broker"
 prune = false
 
+[targets.vmware]
+path = "/etc/centreon"
+prune = false
+
 [services.engine]
 reload = "grpc:reload"
 # The engine exits and its container restart policy starts it again.
 restart = "grpc:shutdown"
+
+[services.broker]
+# No cbd here: the broker module is reloaded with the engine.
+reload = "grpc:reload"
 """
 
 
@@ -118,7 +127,6 @@ def register() -> None:
             node_id=node_id,
             gorgone_host=os.environ.get("GORGONE_HOST", "gorgone-server"),
             agent_port=os.environ.get("GORGONE_AGENT_PORT", "5556"),
-            engine_host=os.environ.get("ENGINE_HOST", "engine"),
         ))
     print("poller {} registered with id {}".format(POLLER, node_id))
 

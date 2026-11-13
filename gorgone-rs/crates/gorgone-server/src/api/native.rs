@@ -27,7 +27,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use super::{ApiError, ApiState, Shared};
 use crate::dispatcher::{CancelOutcome, SubmitOptions};
 use crate::hub::job_notified;
-use crate::store::{EventRow, JobRow, NodeRow, SessionRow, state};
+use crate::store::{EventRow, JobRow, LatestConfig, NodeRow, SessionRow, state};
 
 /// Longest long-poll accepted by `GET /v1/jobs/{id}?wait=`.
 const MAX_WAIT: Duration = Duration::from_secs(60);
@@ -189,9 +189,33 @@ pub(super) struct SubmitBody {
     /// Jobs of the node that must succeed before this one is dispatched.
     #[serde(default)]
     requires: Vec<String>,
-    /// Also require the latest configuration push of each target of the node.
+    /// Also require the latest configuration push of the node: of every
+    /// target (`true`), or of the targets named.
     #[serde(default)]
-    requires_latest_config: bool,
+    requires_latest_config: LatestConfigJson,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub(super) enum LatestConfigJson {
+    Every(bool),
+    Targets(Vec<String>),
+}
+
+impl Default for LatestConfigJson {
+    fn default() -> Self {
+        Self::Every(false)
+    }
+}
+
+impl LatestConfigJson {
+    fn as_store(&self) -> LatestConfig<'_> {
+        match self {
+            Self::Every(false) => LatestConfig::None,
+            Self::Every(true) => LatestConfig::All,
+            Self::Targets(targets) => LatestConfig::Targets(targets),
+        }
+    }
 }
 
 /// True for `[A-Za-z0-9_-]{1,64}`, the form of a caller-chosen job id.
@@ -241,7 +265,7 @@ pub(super) async fn submit_job(
     let options = SubmitOptions {
         id: body.id.as_deref(),
         requires: &body.requires,
-        latest_config: body.requires_latest_config,
+        latest_config: body.requires_latest_config.as_store(),
         deadline: body.deadline_s.map(Duration::from_secs),
     };
     let (id, _) = submit(&state, &node, body.action.into(), options).await?;
@@ -399,7 +423,7 @@ pub(super) async fn put_config(
     let options = SubmitOptions {
         id: query.get("id").map(String::as_str),
         requires: &requires,
-        latest_config: false,
+        latest_config: LatestConfig::None,
         deadline,
     };
     let (id, existing) = submit(&state, &node, action, options).await?;
@@ -531,7 +555,11 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(body.deadline_s, Some(5));
-        assert!(body.id.is_none() && body.requires.is_empty() && !body.requires_latest_config);
+        assert!(body.id.is_none() && body.requires.is_empty());
+        assert!(matches!(
+            body.requires_latest_config.as_store(),
+            LatestConfig::None
+        ));
         let action: Action = body.action.into();
         assert_eq!(
             action_json(&action.encode_to_vec()),
@@ -549,7 +577,19 @@ mod tests {
         .unwrap();
         assert_eq!(body.id.as_deref(), Some("restart-1"));
         assert_eq!(body.requires, ["a", "b"]);
-        assert!(body.requires_latest_config);
+        assert!(matches!(
+            body.requires_latest_config.as_store(),
+            LatestConfig::All
+        ));
+        let body: SubmitBody = serde_json::from_value(json!({
+            "service_control": { "service": "engine", "operation": "restart" },
+            "requires_latest_config": ["engine", "broker"],
+        }))
+        .unwrap();
+        assert!(matches!(
+            body.requires_latest_config.as_store(),
+            LatestConfig::Targets([engine, broker]) if engine == "engine" && broker == "broker"
+        ));
         assert!(valid_job_id("Abc_09-z") && valid_job_id(&"a".repeat(64)));
         for bad in ["", "a b", "a/b", "é", &"a".repeat(65)] {
             assert!(!valid_job_id(bad), "{bad}");

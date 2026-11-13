@@ -137,6 +137,18 @@ pub(crate) struct JobRow {
     pub(crate) requires: Vec<String>,
 }
 
+/// Which configuration pushes of its node a new job also requires.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) enum LatestConfig<'a> {
+    /// None.
+    #[default]
+    None,
+    /// The latest push of every target.
+    All,
+    /// The latest push of each of these targets, when there is one.
+    Targets(&'a [String]),
+}
+
 /// Job to commit.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct NewJob<'a> {
@@ -154,9 +166,9 @@ pub(crate) struct NewJob<'a> {
     pub(crate) may_exist: bool,
     /// Prerequisite job ids, already validated.
     pub(crate) requires: &'a [String],
-    /// Also require the latest `ApplyConfig` job of each target of the node,
-    /// resolved inside the submit transaction.
-    pub(crate) latest_config: bool,
+    /// Latest `ApplyConfig` jobs of the node to require as well, resolved
+    /// inside the submit transaction.
+    pub(crate) latest_config: LatestConfig<'a>,
     /// Target of an `ApplyConfig` job, which becomes the latest one for it.
     pub(crate) config_target: Option<&'a str>,
 }
@@ -187,7 +199,7 @@ impl QueuedJob {
             accepted_data: &self.accepted_data,
             may_exist: false,
             requires: &self.requires,
-            latest_config: false,
+            latest_config: LatestConfig::None,
             config_target: self.config_target.as_deref(),
         }
     }
@@ -968,7 +980,7 @@ impl Store {
     /// queued up while the previous one was committing.
     pub(crate) async fn insert_job(&self, job: NewJob<'_>) -> Result<bool, Error> {
         // Prerequisites resolved in the transaction need one of their own.
-        let alone = job.may_exist || job.latest_config;
+        let alone = job.may_exist || !matches!(job.latest_config, LatestConfig::None);
         let Some(submits) = self.submits.as_ref().filter(|_| !alone) else {
             return self.insert_job_alone(job).await;
         };
@@ -1198,17 +1210,29 @@ impl Store {
             .execute(&mut *tx)
             .await?;
         let mut requires = encode_requires(job.requires);
-        if job.latest_config {
+        let targets = match job.latest_config {
+            LatestConfig::None | LatestConfig::Targets([]) => None,
+            LatestConfig::All => Some(&[][..]),
+            LatestConfig::Targets(targets) => Some(targets),
+        };
+        if let Some(targets) = targets {
             // Under the counter lock: no push of the node commits meanwhile.
             // A purged push is not required: it cannot be judged any more.
-            let rows = sqlx::query(
+            let only = if targets.is_empty() {
+                String::new()
+            } else {
+                format!(" AND c.target IN ({})", placeholders(targets.len()))
+            };
+            let sql = format!(
                 "SELECT c.job_id FROM node_config c
                  JOIN jobs j ON j.id = c.job_id AND j.node_id = c.node_id
-                 WHERE c.node_id = ? ORDER BY c.target",
-            )
-            .bind(job.node_id)
-            .fetch_all(&mut *tx)
-            .await?;
+                 WHERE c.node_id = ?{only} ORDER BY c.target"
+            );
+            let mut select = sqlx::query(&sql).bind(job.node_id);
+            for target in targets {
+                select = select.bind(target);
+            }
+            let rows = select.fetch_all(&mut *tx).await?;
             let mut all = job.requires.to_vec();
             for id in strings(&rows, "job_id")? {
                 if !all.contains(&id) {
@@ -2205,7 +2229,7 @@ pub(crate) mod testing {
                 accepted_data: "{}",
                 may_exist: false,
                 requires: &[],
-                latest_config: false,
+                latest_config: LatestConfig::None,
                 config_target: None,
             };
             assert!(self.insert_job(job).await.unwrap());
@@ -2280,7 +2304,7 @@ mod tests {
             accepted_data: "{}",
             may_exist: true,
             requires: &[],
-            latest_config: false,
+            latest_config: LatestConfig::None,
             config_target: None,
         };
         assert!(!store.insert_job(again).await.unwrap());
@@ -2311,7 +2335,7 @@ mod tests {
                 accepted_data: "{}",
                 may_exist: false,
                 requires: &[],
-                latest_config: false,
+                latest_config: LatestConfig::None,
                 config_target: None,
             })
             .collect();
@@ -2625,7 +2649,7 @@ mod tests {
             accepted_data: "{}",
             may_exist: false,
             requires: &[],
-            latest_config: false,
+            latest_config: LatestConfig::None,
             config_target: None,
         };
         assert!(store.insert_job(job).await.unwrap());
@@ -2694,7 +2718,7 @@ mod tests {
         id: &str,
         node: &str,
         requires: &[String],
-        latest_config: bool,
+        latest_config: LatestConfig<'_>,
         config_target: Option<&str>,
     ) -> Result<bool, Error> {
         let job = NewJob {
@@ -2725,9 +2749,16 @@ mod tests {
         store.open_session(&node, "s1").await;
         store.queue(&a, &node, 60_000).await;
         assert!(
-            queue_with(&store, &b, &node, std::slice::from_ref(&a), false, None)
-                .await
-                .unwrap()
+            queue_with(
+                &store,
+                &b,
+                &node,
+                std::slice::from_ref(&a),
+                LatestConfig::None,
+                None
+            )
+            .await
+            .unwrap()
         );
         store.queue(&c, &node, 60_000).await;
         assert_eq!(store.job(&b).await.unwrap().unwrap().requires, [a.as_str()]);
@@ -2766,7 +2797,7 @@ mod tests {
         for (id, requires) in [(&e, &d), (&f, &e), (&h, &gone)] {
             let requires = std::slice::from_ref(requires);
             assert!(
-                queue_with(&store, id, &node, requires, false, None)
+                queue_with(&store, id, &node, requires, LatestConfig::None, None)
                     .await
                     .unwrap()
             );
@@ -2805,7 +2836,7 @@ mod tests {
         // Nothing pushed yet: nothing required.
         let first = job("first");
         assert!(
-            queue_with(&store, &first, &node, &[], true, None)
+            queue_with(&store, &first, &node, &[], LatestConfig::All, None)
                 .await
                 .unwrap()
         );
@@ -2821,7 +2852,7 @@ mod tests {
 
         for (id, target) in [(&old, "engine"), (&engine, "engine"), (&broker, "broker")] {
             assert!(
-                queue_with(&store, id, &node, &[], false, Some(target))
+                queue_with(&store, id, &node, &[], LatestConfig::None, Some(target))
                     .await
                     .unwrap()
             );
@@ -2830,7 +2861,7 @@ mod tests {
         let restart = job("restart");
         let explicit = [first.clone(), engine.clone()];
         assert!(
-            queue_with(&store, &restart, &node, &explicit, true, None)
+            queue_with(&store, &restart, &node, &explicit, LatestConfig::All, None)
                 .await
                 .unwrap()
         );
@@ -2838,12 +2869,39 @@ mod tests {
             store.job(&restart).await.unwrap().unwrap().requires,
             [first.clone(), engine.clone(), broker.clone()]
         );
+        // Only the targets named, those never pushed adding nothing.
+        for (targets, expected) in [
+            (&["broker", "vmware"][..], vec![broker.clone()]),
+            (&["vmware"][..], vec![]),
+            (&[][..], vec![]),
+            (
+                &["engine", "broker", "engine"][..],
+                vec![broker.clone(), engine.clone()],
+            ),
+        ] {
+            let targets: Vec<String> = targets.iter().map(|t| (*t).to_owned()).collect();
+            let id = job("some");
+            let latest = LatestConfig::Targets(&targets);
+            assert!(
+                queue_with(&store, &id, &node, &[], latest, None)
+                    .await
+                    .unwrap()
+            );
+            assert_eq!(store.job(&id).await.unwrap().unwrap().requires, expected);
+        }
         // Another node has its own pushes.
         let other = job("other");
         assert!(
-            queue_with(&store, &other, &unique("node"), &[], true, None)
-                .await
-                .unwrap()
+            queue_with(
+                &store,
+                &other,
+                &unique("node"),
+                &[],
+                LatestConfig::All,
+                None
+            )
+            .await
+            .unwrap()
         );
         assert!(
             store
@@ -2858,10 +2916,10 @@ mod tests {
         // Over the cap once resolved: refused, nothing committed.
         let many: Vec<String> = (0..MAX_REQUIRES - 1).map(|i| format!("x{i}")).collect();
         let over = job("over");
-        let refused = queue_with(&store, &over, &node, &many, true, None).await;
+        let refused = queue_with(&store, &over, &node, &many, LatestConfig::All, None).await;
         assert!(matches!(refused, Err(Error::Invalid(_))), "{refused:?}");
         assert!(store.job(&over).await.unwrap().is_none());
-        assert_eq!(store.jobs_of_node(&node).await.unwrap().len(), 5);
+        assert_eq!(store.jobs_of_node(&node).await.unwrap().len(), 9);
     }
 
     #[tokio::test]
@@ -2911,9 +2969,16 @@ mod tests {
         assert_eq!(store.node("n").await.unwrap().unwrap().state, None);
         store.set_node_state("n", "{}").await.unwrap();
         assert!(
-            queue_with(&store, "k", "n", &["j".to_owned()], true, Some("engine"))
-                .await
-                .unwrap()
+            queue_with(
+                &store,
+                "k",
+                "n",
+                &["j".to_owned()],
+                LatestConfig::All,
+                Some("engine")
+            )
+            .await
+            .unwrap()
         );
         assert_eq!(store.job("k").await.unwrap().unwrap().requires, ["j"]);
     }

@@ -40,7 +40,9 @@ if getent hosts "${WEB_HOST}"; then
   fi
   echo "Poller $HOSTNAME has id $POLLER_ID"
 
-  write_agent_config "$POLLER_ID" "http://${GORGONE_HOST}:${GORGONE_AGENT_PORT}"
+  # A poller has no cbd: its broker module is reloaded with the engine.
+  write_agent_config "$POLLER_ID" "http://${GORGONE_HOST}:${GORGONE_AGENT_PORT}" \
+    "sudo systemctl reload centengine"
   start_as_gorgone /usr/bin/gorgone-agent "$GORGONE_RS_ETC/agent.toml"
 
   retry_count=0

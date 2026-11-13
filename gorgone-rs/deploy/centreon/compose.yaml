@@ -108,15 +108,20 @@ services:
 
   # A poller made of containers only: the engine image built from this branch
   # (see engine/README.md), driven over its gRPC API by a gorgone-agent
-  # sidecar. No command pipe, no systemctl, no SSH.
+  # sidecar. No command pipe, no systemctl, no SSH. The API is served on a
+  # Unix socket in a volume shared with the sidecar only: nothing listens on
+  # the network.
   engine:
     image: ${ENGINE_IMAGE:-centreon-engine-trixie:gorgone-poc}
     hostname: engine
     # "restart" is: the agent asks the engine to exit, docker starts it again.
     restart: always
+    environment:
+      ENGINE_RPC_LISTEN_ADDRESS: unix:/var/lib/centreon-engine/rw/engine.sock
     volumes:
       - engine-etc:/etc/centreon-engine
       - broker-etc:/etc/centreon-broker
+      - engine-rw:/var/lib/centreon-engine/rw
 
   engine-register:
     image: ${ENGINE_IMAGE:-centreon-engine-trixie:gorgone-poc}
@@ -139,6 +144,9 @@ services:
     # Same user as the engine, which owns the configuration volumes.
     user: "901:901"
     restart: on-failure
+    # Destination of the vmware target, which this poller does not use.
+    tmpfs:
+      - /etc/centreon:uid=901,gid=901
     depends_on:
       engine-register:
         condition: service_completed_successfully
@@ -146,6 +154,7 @@ services:
       - agent-config:/agent:ro
       - engine-etc:/etc/centreon-engine
       - broker-etc:/etc/centreon-broker
+      - engine-rw:/var/lib/centreon-engine/rw
 
   engine-deploy:
     image: ${ENGINE_IMAGE:-centreon-engine-trixie:gorgone-poc}
@@ -159,6 +168,7 @@ services:
       - ./engine/register.py:/register.py:ro
 
 volumes:
+  engine-rw:
   engine-etc:
   broker-etc:
   agent-config:

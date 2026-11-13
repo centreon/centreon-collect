@@ -2400,6 +2400,72 @@ async fn restart_requiring_the_latest_configuration_follows_the_last_push() {
 }
 
 #[tokio::test]
+async fn restart_may_name_the_configuration_targets_it_depends_on() {
+    let db = TestDb::new();
+    let server = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let jobs = format!("/v1/nodes/{node}/jobs");
+    let latest = |targets: Value| restart(json!({ "requires_latest_config": targets }));
+
+    let mut pushes = Vec::new();
+    for (target, outcome) in [
+        ("engine", Outcome::Ok),
+        ("broker", Outcome::Ok),
+        ("vmware", Outcome::Rejected),
+    ] {
+        let id = push(&rest, &node, target).await;
+        assert_eq!(agent.next_dispatch().await.id, id);
+        agent.event(&id, 1, finished(outcome, "")).await;
+        pushes.push(id);
+    }
+    let [engine, broker, vmware] = [&pushes[0], &pushes[1], &pushes[2]];
+
+    // The rejected vmware push does not concern an engine restart.
+    let named = submit(
+        &rest,
+        &node,
+        &latest(json!(["engine", "broker", "never-pushed"])),
+    )
+    .await;
+    let job = agent.next_dispatch().await;
+    assert_eq!(job.id, named);
+    assert_eq!(job.requires, [broker.clone(), engine.clone()]);
+    // Every target: it does.
+    let every = submit(&rest, &node, &latest(json!(true))).await;
+    assert_failed_on(&rest, &every, vmware, "failed").await;
+    // No target, either way of saying it.
+    for none in [json!([]), json!(false)] {
+        let id = submit(&rest, &node, &latest(none)).await;
+        let job = agent.next_dispatch().await;
+        assert_eq!((job.id, job.requires.len()), (id, 0));
+    }
+
+    // A failed engine push blocks the restart that lists it.
+    let failed = push(&rest, &node, "engine").await;
+    assert_eq!(agent.next_dispatch().await.id, failed);
+    agent.event(&failed, 1, finished(Outcome::Failed, "")).await;
+    let refused = submit(&rest, &node, &latest(json!(["engine", "broker"]))).await;
+    assert_failed_on(&rest, &refused, &failed, "failed").await;
+    assert_nothing_received(&mut agent).await;
+
+    for bad in [
+        json!((0..17).map(|i| format!("t{i}")).collect::<Vec<_>>()),
+        json!(["x".repeat(192)]),
+    ] {
+        let (status, body) = rest.post(&jobs, &latest(bad)).await;
+        assert_eq!(status, 400, "{body}");
+    }
+    let (status, body) = rest.post(&jobs, &latest(json!("engine"))).await;
+    assert!((400..500).contains(&status), "{body}");
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
 async fn node_state_reported_in_heartbeats_is_exposed_by_every_replica() {
     use gorgone_proto::agent::{AppliedConfig, EngineState};
 

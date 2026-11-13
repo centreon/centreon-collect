@@ -20,7 +20,9 @@ use crate::events;
 use crate::hub::{DrainRole, Hub, SessionHandle, job_notified};
 use crate::metrics;
 use crate::peer::PeerClients;
-use crate::store::{FAILED_SEQ, JobRow, MAX_REQUIRES, NewJob, Store, Termination, Unmet, state};
+use crate::store::{
+    FAILED_SEQ, JobRow, LatestConfig, MAX_REQUIRES, NewJob, Store, Termination, Unmet, state,
+};
 
 /// Jobs claimed by one statement while draining a node.
 const DRAIN_BATCH: i64 = 128;
@@ -70,8 +72,8 @@ pub(crate) struct SubmitOptions<'a> {
     pub(crate) id: Option<&'a str>,
     /// Jobs of the node that must succeed before this one is dispatched.
     pub(crate) requires: &'a [String],
-    /// Also require the latest `ApplyConfig` job of each target of the node.
-    pub(crate) latest_config: bool,
+    /// Latest `ApplyConfig` jobs of the node to require as well.
+    pub(crate) latest_config: LatestConfig<'a>,
     /// Time the job may live; the server default when absent.
     pub(crate) deadline: Option<Duration>,
 }
@@ -216,6 +218,13 @@ impl Dispatcher {
             Some(id) => id.to_owned(),
             None => crate::random_id()?,
         };
+        if let LatestConfig::Targets(targets) = options.latest_config
+            && (targets.len() > MAX_REQUIRES || targets.iter().any(|t| t.len() > 191))
+        {
+            return Err(Error::Invalid(format!(
+                "requires_latest_config takes at most {MAX_REQUIRES} targets of at most 191 bytes"
+            )));
+        }
         let requires = self.checked_requires(node_id, options.requires).await?;
         let (blob_digest, config_target) = match &action.kind {
             Some(Kind::ApplyConfig(apply)) => {

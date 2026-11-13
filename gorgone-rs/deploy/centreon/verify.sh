@@ -59,11 +59,57 @@ web_command_reaches_engine() {
 # API of its engine: there is no command pipe to write to.
 grpc_command_reaches_engine() {
   local node
-  node=$(sql "SELECT id FROM centreon.nagios_server WHERE name = 'engine'")
+  node=$(engine_node)
   gorgone_api POST "/v1/nodes/${node}/jobs" -H 'Content-Type: application/json' \
     -d "{\"engine_commands\":{\"commands\":[\"[$(date +%s)] DISABLE_NOTIFICATIONS\"]}}"
   sleep 3
   "${COMPOSE[@]}" logs engine | grep -q 'EXTERNAL COMMAND: DISABLE_NOTIFICATIONS'
+}
+
+engine_node() {
+  sql "SELECT id FROM centreon.nagios_server WHERE name = 'engine'"
+}
+
+# The engine API must only be reachable through the socket shared with the
+# sidecar.
+engine_api_not_on_network() {
+  "${COMPOSE[@]}" exec -T engine python3 -c '
+import socket, sys
+try:
+    socket.create_connection(("127.0.0.1", 50155), timeout=2)
+except OSError:
+    sys.exit(0)
+sys.exit(1)'
+}
+
+# What the agent reports must match what was pushed: applied configuration
+# and a reachable engine, as served by gorgone-server.
+node_state_is_reported() {
+  gorgone_api GET "/v1/nodes/$(engine_node)" | python3 -I -c '
+import json, sys
+node = json.load(sys.stdin)
+ok = node["connected"] and node["applied"].get("engine") and node["engine"]["reachable"]
+sys.exit(0 if ok else 1)'
+}
+
+# A reload asked on top of a failed configuration push must not be sent.
+reload_refused_after_failed_push() {
+  local node archive job
+  node=$(engine_node)
+  archive=$(mktemp)
+  tar -cf "${archive}" -C "$(dirname "$0")" verify.sh
+  # No agent has this target: the push is rejected.
+  web curl -s -u "${GORGONE_AUTH}" -X PUT -H 'Content-Type: application/x-tar' \
+    --data-binary @- "http://gorgone-server:8085/v1/nodes/${node}/config/bench-missing" < "${archive}"
+  rm -f "${archive}"
+  job=$(gorgone_api POST "/v1/nodes/${node}/jobs" -H 'Content-Type: application/json' \
+    -d '{"service_control":{"service":"engine","operation":"reload"},"requires_latest_config":["bench-missing"]}' \
+    | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+  gorgone_api GET "/v1/jobs/${job}?wait=20" | python3 -I -c '
+import json, sys
+job = json.load(sys.stdin)
+message = job["events"][-1]["data"].get("message", "")
+sys.exit(0 if job["state"] == "failed" and "prerequisite" in message else 1)'
 }
 
 no_centcore_file() {
@@ -81,6 +127,9 @@ check "the central sees the poller's engine running" instance_running poller
 check "the central sees the engine container running" instance_running engine
 check "a command from the centreon-web API reaches the central engine" web_command_reaches_engine
 check "a command reaches the engine container over gRPC" grpc_command_reaches_engine
+check "the engine API is not reachable over the network" engine_api_not_on_network
+check "gorgone-server knows what the engine container runs" node_state_is_reported
+check "a reload is refused after a failed configuration push" reload_refused_after_failed_push
 check "centreon-web wrote no centcore command file" no_centcore_file
 
 echo
