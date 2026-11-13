@@ -232,7 +232,20 @@ The resulting invariant: `Engine` runs the version of `X.prot`, or the one of `n
 
 The export stays atomic for the database: it receives nothing until the round closes, and what it receives then describes, for each poller, the way from what it had to the last version acknowledged. The robot test `BECSV1` plays poller 3 with an `Engine` frozen for as long as C2 takes to arrive.
 
-Every operation on a poller's files happens under the same lock, `_conf_handover_m`: storing and preparing by the cycle, acknowledgement, preparing on connection, answering a relay, and removing a poller. This lock covers neither reading nor validating the sources, which remain the costly part of the cycle.
+#### A round interrupted by a stop of `Broker`
+
+If `Broker` stops between an acknowledgement and the end of the round, it leaves a `diff-X.prot` behind: `X.prot` is already the acknowledged version, the cache gets it at loading, but the database does not have it. At startup, `load_pollers_config_in_cache()` marks these pollers as waiting for the database (`poller_conf::on_pending_diff_loaded()`), then plays the rule of the round again:
+
+* **no `new-X.prot` in the directory**: every poller had answered, only the publication was missing. The round is closed at once and the global diff published. The multiplexing engine is not started yet: the event waits in its queue and leaves once the outputs are ready, behind the readiness barrier.
+* **at least one `new-X.prot`**: a poller is still to be served, the round is still open. That poller is owed nothing until it connects, so `try_close_conf_round()` would not see it: closing now would hand the database a host moved from one poller to another in two pieces. The differences wait for its acknowledgement or its rejection.
+
+```
+The acknowledged difference(s) of poller(s) 1 did not reach the database before Broker stopped, and no configuration is left to deliver: the round is closed now
+```
+
+In the second case, if the expected poller never comes back, the differences wait for the next round to close, the one of a new export; `RemovePoller` removes its `new-X.prot`, but does not close the round by itself. The robot test `BECSS5` plays the first case: `Engine` frozen, the files renamed the way an acknowledgement does, and the database checked after `Broker` restarted, with no new export.
+
+Every operation on a poller's files happens under the same lock, `_conf_handover_m`: storing and preparing by the cycle, acknowledgement, preparing on connection, answering a relay, removing a poller, and closing a round found at startup. This lock covers neither reading nor validating the sources, which remain the costly part of the cycle.
 
 ## Some more technical points
 

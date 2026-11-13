@@ -248,7 +248,20 @@ L'invariant qui en résulte : `Engine` fait tourner la version de `X.prot`, ou c
 
 L'export reste atomique pour la base : elle ne reçoit rien tant que le tour n'est pas fermé, et ce qu'elle reçoit alors décrit pour chaque poller le passage de ce qu'elle avait à la dernière version acquittée. Le test robot `BECSV1` joue le poller 3 avec un `Engine` gelé le temps que C2 arrive.
 
-Toutes les opérations sur les fichiers d'un poller se font sous un même verrou, `_conf_handover_m` : le stockage et la préparation par le cycle, l'acquittement, la préparation à la connexion, la réponse à un relais et le retrait d'un poller. Ce verrou ne couvre ni la lecture ni la validation des sources, qui restent la partie coûteuse du cycle.
+#### Un tour interrompu par l'arrêt de `Broker`
+
+Si `Broker` s'arrête entre un acquittement et la fermeture du tour, il laisse un `diff-X.prot` : `X.prot` est déjà la version acquittée, le cache la reçoit au chargement, mais la base ne l'a pas. Au démarrage, `load_pollers_config_in_cache()` marque ces pollers en attente de la base (`poller_conf::on_pending_diff_loaded()`), puis rejoue la règle du tour :
+
+* **aucun `new-X.prot` dans le répertoire** : tous les pollers avaient répondu, il ne manquait que la publication. Le tour est fermé aussitôt et le diff global publié. Le moteur de multiplexage n'est pas encore démarré : l'événement attend dans sa file et part une fois les sorties prêtes, derrière la barrière de disponibilité.
+* **au moins un `new-X.prot`** : un poller reste à servir, le tour est encore ouvert. Ce poller ne doit rien tant qu'il n'est pas connecté, donc `try_close_conf_round()` ne le verrait pas : fermer maintenant donnerait à la base un hôte déplacé d'un poller à l'autre en deux morceaux. Les différences attendent son acquittement ou son refus.
+
+```
+The acknowledged difference(s) of poller(s) 1 did not reach the database before Broker stopped, and no configuration is left to deliver: the round is closed now
+```
+
+Dans le second cas, si le poller attendu ne revient jamais, les différences attendent la prochaine fermeture de tour, celle d'un nouvel export ; `RemovePoller` supprime son `new-X.prot`, mais ne ferme pas le tour à lui seul. Le test robot `BECSS5` joue le premier cas : `Engine` gelé, les fichiers renommés comme le fait un acquittement, et la base vérifiée après le redémarrage de `Broker`, sans nouvel export.
+
+Toutes les opérations sur les fichiers d'un poller se font sous un même verrou, `_conf_handover_m` : le stockage et la préparation par le cycle, l'acquittement, la préparation à la connexion, la réponse à un relais, le retrait d'un poller et la fermeture d'un tour retrouvé au démarrage. Ce verrou ne couvre ni la lecture ni la validation des sources, qui restent la partie coûteuse du cycle.
 
 ## Quelques points plus techniques
 
