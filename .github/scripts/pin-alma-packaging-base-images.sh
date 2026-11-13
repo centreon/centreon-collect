@@ -19,16 +19,17 @@
 
 # Pin the AlmaLinux packaging images on a base image at least MIN_AGE_DAYS old.
 #
-# Binaries are linked against the glibc of the build image, and a binary only
-# runs on a glibc at least as recent. Building on an older AlmaLinux minor
-# keeps the packages installable on hosts that have not upgraded yet.
+# Binaries are linked against system libraries of the build image (glibc,
+# libstdc++, OpenSSL: the openssl vcpkg overlay is empty), and only run on a
+# host whose libraries are at least as recent. Building on an older AlmaLinux
+# minor keeps the packages working on hosts that have not upgraded yet.
 #
 # For each .github/docker/Dockerfile.packaging-centreon-collect-alma<major>:
 #   - the FROM line is set to the newest dated tag almalinux:<major>.<minor>-YYYYMMDD
 #     published at least MIN_AGE_DAYS ago, pinned by digest;
 #   - when that minor is archived on vault.almalinux.org, dnf is pointed at the
 #     vault for that minor: the default mirrors serve the latest minor, and
-#     installing the -devel packages would pull its glibc into the image. When
+#     installing the -devel packages would pull its libraries into the image. When
 #     the minor is still current (no vault), the default mirrors are kept.
 #
 # The result is meant to be reviewed and committed: the packaging image tag is
@@ -61,40 +62,58 @@ almalinux image published at least DAYS ago, and keep dnf on that minor.
 HELP
 }
 
-# Prints "<tag> <digest>" for the newest dated tag of <major> published on or before <cutoff>
-# (YYYYMMDD), or nothing when there is none.
+
+# Prints every dated tag of <major> as "<tag> <digest>" lines, or fails if a page cannot be
+# fetched: a partial list would silently select the wrong tag.
 #
-# 1. The Docker Hub API returns the tags 100 per page; ".next" holds the URL of the next page,
-#    null on the last one. Its "name" filter is a substring match: "9." also returns 8.9-* tags.
-# 2. jq keeps only the dated tags, <major>.<minor>-YYYYMMDD: the floating tags (9, 9.5, latest)
-#    and the variants (9.5-minimal-20250411) are dropped. It prints one "<tag> <digest>" per line:
-#      9.5-20250411 sha256:6308a739192c0d3d4cf69fd7b226441ceb876ed5321264accfe852be7f71670f
-#      9.5-20250307 sha256:787a2698464bf554d02aeeba4e0b022384b21d1419511bfb033a2d440d9f230c
-#    The digest is the one of the multi-architecture index, valid for every architecture.
-# 3. awk splits the tag on "." and "-" into major, minor and date, drops the other majors
-#    (the 8.9-* tags above) and the tags dated after the cutoff, and prefixes each line with
-#    its date for sorting:
-#      20250411 9.5-20250411 sha256:6308a739...
-# 4. sort orders on that date, tail keeps the newest, cut removes the date prefix.
-#    The date sorts across minors too: 9.6-20250520 comes after 9.5-20250411.
-resolve_tag() {
-  local major=$1 cutoff=$2 url page
+# The Docker Hub API returns the tags 100 per page; ".next" holds the URL of the next page,
+# null on the last one. Its "name" filter is a substring match: "9." also returns 8.9-* tags.
+# jq keeps only the dated tags, <major>.<minor>-YYYYMMDD: the floating tags (9, 9.5, latest)
+# and the variants (9.5-minimal-20250411) are dropped. It prints one "<tag> <digest>" per line:
+#   9.5-20250411 sha256:6308a739192c0d3d4cf69fd7b226441ceb876ed5321264accfe852be7f71670f
+#   9.5-20250307 sha256:787a2698464bf554d02aeeba4e0b022384b21d1419511bfb033a2d440d9f230c
+# The digest is the one of the multi-architecture index, valid for every architecture.
+list_dated_tags() {
+  local major=$1 url page
   url="${HUB_TAGS_URL}?page_size=100&name=${major}."
   while [[ -n "$url" && "$url" != "null" ]]; do
-    page=$(curl -fsS --retry 3 "$url")
-    jq -r '.results[] | select(.name | test("^[0-9]+\\.[0-9]+-[0-9]{8}$")) | "\(.name) \(.digest)"' <<<"$page"
-    url=$(jq -r '.next' <<<"$page")
-  done | awk -v major="$major" -v cutoff="$cutoff" '
+    page=$(curl -fsS --retry 3 "$url") || return 1
+    jq -r '.results[] | select(.name | test("^[0-9]+\\.[0-9]+-[0-9]{8}$")) | "\(.name) \(.digest)"' \
+      <<<"$page" || return 1
+    url=$(jq -r '.next' <<<"$page") || return 1
+  done
+}
+
+# Prints "<tag> <digest>" for the newest of the "<tag> <digest>" lines on stdin that belongs to
+# <major> and is dated on or before <cutoff> (YYYYMMDD), or nothing when there is none.
+#
+# awk splits the tag on "." and "-" into major, minor and date, drops the other majors (the
+# 8.9-* tags returned for "9.") and the tags dated after the cutoff, and prefixes each line with
+# its date for sorting:
+#   20250411 9.5-20250411 sha256:6308a739...
+# sort orders on that date, tail keeps the newest, cut removes the date prefix.
+# The date sorts across minors too: 9.6-20250520 comes after 9.5-20250411.
+select_tag() {
+  local major=$1 cutoff=$2
+  awk -v major="$major" -v cutoff="$cutoff" '
     { split($1, v, "[.-]"); if (v[1] == major && v[3] <= cutoff) print v[3], $0 }
   ' | sort -k1,1n | tail -n 1 | cut -d' ' -f2-
 }
 
-# True when the minor is archived on the vault.
-in_vault() {
+# Prints "archived" when the minor is on the vault, "current" when it is not there yet, and
+# fails on any other answer: taking an outage for "current" would drop the vault pin.
+vault_state() {
   local minor=$1 code
   code=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 \
-    "${VAULT_URL}/${minor}/BaseOS/x86_64/os/repodata/repomd.xml")
-  [[ "$code" == "200" ]]
+    "${VAULT_URL}/${minor}/BaseOS/x86_64/os/repodata/repomd.xml") || true
+  case $code in
+    200) echo archived ;;
+    404) echo current ;;
+    *)
+      echo "error: ${VAULT_URL} answered '${code}' for AlmaLinux ${minor}" >&2
+      return 1
+      ;;
+  esac
 }
 
 # The block lands in the unquoted heredoc of a RUN instruction: it must hold no '$'.
@@ -108,57 +127,72 @@ sed -i -e 's|^mirrorlist=|#mirrorlist=|' \\
        -e 's|^# *baseurl=https://repo.almalinux.org/almalinux|baseurl=${VAULT_URL}|' \\
        /etc/yum.repos.d/almalinux*.repo
 ${BLOCK_END}
-
 BLOCK
 }
 
+# Writes to <output> the Dockerfile of <major> pinned on the newest tag dated on or before
+# <cutoff>. The Dockerfile itself is left untouched: the caller replaces it once every major
+# succeeded.
 pin_dockerfile() {
-  local major=$1 cutoff=$2 dockerfile tag="" digest="" minor
+  local major=$1 cutoff=$2 output=$3 dockerfile tags tag="" digest="" minor state
   dockerfile="${DOCKERFILE_PREFIX}${major}"
   if [[ ! -f "$dockerfile" ]]; then
     echo "error: ${dockerfile} not found" >&2
     return 1
   fi
 
-  read -r tag digest < <(resolve_tag "$major" "$cutoff") || true
-  if [[ -z "$tag" || -z "$digest" ]]; then
+  if ! tags=$(list_dated_tags "$major"); then
+    echo "error: cannot list the almalinux tags on Docker Hub" >&2
+    return 1
+  fi
+  read -r tag digest < <(select_tag "$major" "$cutoff" <<<"$tags") || true
+  if [[ -z "$tag" ]]; then
     echo "error: no almalinux:${major}.x dated tag published on or before ${cutoff}" >&2
     return 1
   fi
+  if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+    echo "error: unexpected digest '${digest}' for almalinux:${tag}" >&2
+    return 1
+  fi
   minor=${tag%%-*}
-
-  # FROM line of the first stage.
-  sed -i -E \
-    "s|^(FROM \\\$\\{REGISTRY_URL\\}/almalinux):[^ ]+( AS centreon_collect_packaging)\$|\\1:${tag}@${digest}\\2|" \
-    "$dockerfile"
-  if ! grep -qF "almalinux:${tag}@${digest} AS centreon_collect_packaging" "$dockerfile"; then
-    echo "error: no 'FROM \${REGISTRY_URL}/almalinux:... AS centreon_collect_packaging' line in ${dockerfile}" >&2
+  if ! state=$(vault_state "$minor"); then
     return 1
   fi
 
-  # Drop the previous managed block, then insert a fresh one if the minor is archived.
-  # The blank line that follows the block goes with it, so that a rerun leaves the file unchanged.
-  BLOCK_BEGIN="$BLOCK_BEGIN" BLOCK_END="$BLOCK_END" awk '
-    $0 == ENVIRON["BLOCK_BEGIN"] { skip = 1 }
-    skip { if ($0 == ENVIRON["BLOCK_END"]) { skip = 0; eat_blank = 1 } next }
-    eat_blank { eat_blank = 0; if ($0 == "") next }
-    { print }
-  ' "$dockerfile" >"${dockerfile}.tmp"
-  mv "${dockerfile}.tmp" "$dockerfile"
-  if ! in_vault "$minor"; then
+  # Rewrites the FROM line of the first stage, drops the previous managed block with the blank
+  # line that follows it, and inserts a fresh block before the anchor when the minor is archived.
+  # The block goes through the environment: awk -v would interpret its backslashes. awk fails
+  # rather than truncate the file when a marker or an anchor is missing.
+  if ! FROM_IMAGE="almalinux:${tag}@${digest}" BLOCK_BEGIN="$BLOCK_BEGIN" BLOCK_END="$BLOCK_END" \
+    VAULT_BLOCK="$([[ "$state" == archived ]] && vault_block "$minor")" awk '
+      /^FROM \$\{REGISTRY_URL\}\/almalinux:[^ ]+ AS centreon_collect_packaging$/ && !from {
+        print "FROM ${REGISTRY_URL}/" ENVIRON["FROM_IMAGE"] " AS centreon_collect_packaging"
+        from = 1
+        next
+      }
+      $0 == ENVIRON["BLOCK_BEGIN"] { skip = 1 }
+      skip { if ($0 == ENVIRON["BLOCK_END"]) { skip = 0; eat_blank = 1 } next }
+      eat_blank { eat_blank = 0; if ($0 == "") next }
+      /^# Base dnf configuration$/ && !anchor {
+        anchor = 1
+        if (ENVIRON["VAULT_BLOCK"] != "") { print ENVIRON["VAULT_BLOCK"]; print "" }
+      }
+      { print }
+      END {
+        if (!from) { print "no FROM ${REGISTRY_URL}/almalinux:... AS centreon_collect_packaging line" > "/dev/stderr"; exit 1 }
+        if (skip) { print "no \"" ENVIRON["BLOCK_END"] "\" line after the begin marker" > "/dev/stderr"; exit 1 }
+        if (!anchor) { print "no \"# Base dnf configuration\" line to anchor the vault block" > "/dev/stderr"; exit 1 }
+      }
+    ' "$dockerfile" >"$output"; then
+    echo "error: ${dockerfile} left unchanged" >&2
+    return 1
+  fi
+
+  if [[ "$state" == archived ]]; then
+    echo "alma${major}: almalinux:${tag} (${digest}), dnf pinned on ${VAULT_URL}/${minor}"
+  else
     echo "alma${major}: almalinux:${tag} (${digest}), ${minor} is the current minor: default mirrors kept"
-    return 0
   fi
-  if ! grep -q '^# Base dnf configuration$' "$dockerfile"; then
-    echo "error: no '# Base dnf configuration' line in ${dockerfile} to anchor the vault block" >&2
-    return 1
-  fi
-  # Passed through the environment: awk -v would interpret the backslashes of the block.
-  VAULT_BLOCK="$(vault_block "$minor")" awk \
-    '/^# Base dnf configuration$/ && !done { print ENVIRON["VAULT_BLOCK"]; print ""; done = 1 } { print }' \
-    "$dockerfile" >"${dockerfile}.tmp"
-  mv "${dockerfile}.tmp" "$dockerfile"
-  echo "alma${major}: almalinux:${tag} (${digest}), dnf pinned on ${VAULT_URL}/${minor}"
 }
 
 min_age_days=365
@@ -191,12 +225,30 @@ if [[ ! "$min_age_days" =~ ^[0-9]+$ ]]; then
 fi
 
 if ((${#majors[@]} == 0)); then
+  # Only numeric suffixes: a leftover or a variant file is not an AlmaLinux major.
   for f in "${DOCKERFILE_PREFIX}"*; do
-    majors+=("${f#"${DOCKERFILE_PREFIX}"}")
+    suffix=${f#"${DOCKERFILE_PREFIX}"}
+    if [[ "$suffix" =~ ^[0-9]+$ ]]; then
+      majors+=("$suffix")
+    fi
   done
 fi
+for major in "${majors[@]}"; do
+  if [[ ! "$major" =~ ^[0-9]+$ ]]; then
+    echo "error: MAJOR must be a number, got '${major}'" >&2
+    exit 1
+  fi
+done
+
+# Every Dockerfile is rewritten in a work directory and replaced only once all of them succeeded,
+# so that a failure leaves the tree as it was.
+work_dir=$(mktemp -d)
+trap 'rm -rf "$work_dir"' EXIT
 
 cutoff=$(date -u -d "-${min_age_days} days" +%Y%m%d)
 for major in "${majors[@]}"; do
-  pin_dockerfile "$major" "$cutoff"
+  pin_dockerfile "$major" "$cutoff" "${work_dir}/alma${major}"
+done
+for major in "${majors[@]}"; do
+  cat "${work_dir}/alma${major}" >"${DOCKERFILE_PREFIX}${major}"
 done

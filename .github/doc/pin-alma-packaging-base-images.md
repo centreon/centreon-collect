@@ -5,11 +5,14 @@ Script: [`.github/scripts/pin-alma-packaging-base-images.sh`](../scripts/pin-alm
 ## Why
 
 The RPM packages are built in the packaging images `.github/docker/Dockerfile.packaging-centreon-collect-alma<major>`.
-A binary is linked against the glibc of the image that built it, and only runs on a glibc at least as recent.
+Most dependencies come from vcpkg and are linked statically, but some are the system libraries of the image: glibc,
+libstdc++, and OpenSSL (the `overlays/openssl` port is empty, so the build uses `openssl-devel`). A binary only runs
+on a host whose system libraries are at least as recent as the ones it was built against.
 
-AlmaLinux and RHEL ship rebuilt glibc packages in each minor release (9.6, 9.7, 9.8...). With a floating base image
-such as `almalinux:9`, the images follow the latest minor, and the packages can stop working on hosts that stay on
-an older minor, for example a customer who cannot upgrade from RHEL 9.6.
+AlmaLinux and RHEL update these libraries in minor releases. OpenSSL is the clearest case: RHEL 9.6 ships OpenSSL
+3.2, RHEL 9.8 ships OpenSSL 3.5. With a floating base image such as `almalinux:9`, the images follow the latest
+minor, and the packages can stop working on hosts that stay on an older minor, for example a customer who cannot
+upgrade from RHEL 9.6.
 
 Building on an older minor fixes this: a binary built on 9.6 runs on 9.6, 9.7 and 9.8.
 
@@ -28,7 +31,8 @@ For each AlmaLinux packaging Dockerfile, the script:
 3. Keeps dnf on that minor, when it is archived on `vault.almalinux.org`.
 
    Setting the base image is not enough. The dnf repositories of an AlmaLinux image always point to the latest
-   minor, so installing `gcc` and the `-devel` packages would upgrade glibc in the image. The script inserts this
+   minor, so installing `gcc` and the `-devel` packages would bring the libraries of the latest minor into the
+   image (`openssl-devel` 3.5 on 9.8, for example). The script inserts this
    block before `# Base dnf configuration`, so that every `dnf install` uses the repositories of that minor:
 
    ```bash
@@ -56,7 +60,7 @@ same digests.
 | Argument                   | Default                                                  | Meaning                                  |
 | -------------------------- | -------------------------------------------------------- | ---------------------------------------- |
 | `-a`, `--min-age-days DAYS` | `365`                                                    | Minimum age of the base image, in days   |
-| `MAJOR...`                 | Every `Dockerfile.packaging-centreon-collect-alma<MAJOR>` | AlmaLinux major versions to pin          |
+| `MAJOR...`                 | Every `Dockerfile.packaging-centreon-collect-alma<MAJOR>`, `<MAJOR>` numeric | AlmaLinux major versions to pin |
 | `-h`, `--help`             |                                                          | Show the help                            |
 
 Requirements: `bash`, `curl`, `jq`, GNU `date`, GNU `sed`, `awk`, and access to `hub.docker.com` and
@@ -80,9 +84,17 @@ alma8: almalinux:8.10-20250909 (sha256:bebdf5cf...), 8.10 is the current minor: 
 alma9: almalinux:9.6-20250909 (sha256:375aa0df...), dnf pinned on https://vault.almalinux.org/9.6
 ```
 
-The script stops with an error if no tag matches, if a Dockerfile is missing, or if a Dockerfile does not have the
-`FROM ${REGISTRY_URL}/almalinux:... AS centreon_collect_packaging` line or the `# Base dnf configuration` line it
-relies on. Running it twice with the same arguments leaves the files unchanged.
+The script stops with an error, and leaves every Dockerfile unchanged, when:
+
+- Docker Hub or the vault cannot be reached, or answers with an error: a partial tag list or an unknown vault state
+  would select the wrong image or drop the vault pin;
+- no tag matches, or its digest is not a `sha256:` digest;
+- a Dockerfile is missing, or lacks a line the script relies on: the
+  `FROM ${REGISTRY_URL}/almalinux:... AS centreon_collect_packaging` line, the `# Base dnf configuration` line, or the
+  `# END pinned AlmaLinux vault` line of a managed block.
+
+The Dockerfiles are only replaced once all of them were rewritten. Running the script twice with the same arguments
+leaves the files unchanged.
 
 ## Workflow
 
@@ -93,7 +105,7 @@ relies on. Running it twice with the same arguments leaves the files unchanged.
 
 The script is not run by CI. This is deliberate: the tag of a packaging image is a hash of the files copied into
 it, so a base image chosen during the build would not trigger a rebuild, and two builds of the same commit could
-link against different glibc versions. A committed change to the Dockerfile is reviewed, and its new hash makes
+link against different system libraries. A committed change to the Dockerfile is reviewed, and its new hash makes
 `docker-packaging.yml` rebuild the image.
 
 ## Testing locally
@@ -105,22 +117,27 @@ docker buildx build --load --build-arg REGISTRY_URL=docker.io/library \
   --target centreon_collect_packaging \
   -f .github/docker/Dockerfile.packaging-centreon-collect-alma9 -t test-alma9 .
 
-# glibc of the image, and the repositories dnf uses
-docker run --rm test-alma9 bash -c 'rpm -q glibc; dnf -q repolist'
+# System libraries of the image, and the repositories dnf uses
+docker run --rm test-alma9 bash -c 'rpm -q glibc openssl-libs; dnf -q repolist'
 
-# Packages of the vcpkg stage: glibc must not appear in the list, which means it is not upgraded
+# Packages of the vcpkg stage: the versions resolved must be those of the pinned minor (el9_6 or older on 9.6),
+# and glibc must not appear in the list, which means it is not upgraded
 docker run --rm test-alma9 dnf install --assumeno gcc gcc-c++ libstdc++-static openssl-devel libcurl-devel
 ```
 
 Use `docker buildx`: the Dockerfiles use heredocs in `RUN` instructions, which older `podman build` versions
 reject.
 
-To check a built binary, the highest glibc symbol version it requires must not exceed the glibc of the oldest target
-(`GLIBC_2.34` for RHEL 9):
+To check a built binary, list the highest symbol version it requires from each system library. None must exceed
+what the oldest target minor provides: `GLIBC_2.34` for RHEL 9, `OPENSSL_3.2.0` for RHEL 9.6.
 
 ```bash
-objdump -T centengine | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
+objdump -T centengine | grep -oE '(GLIBC|GLIBCXX|CXXABI|OPENSSL)_[0-9.]+' | sort -uV \
+  | awk -F_ '{ last[$1] = $0 } END { for (l in last) print last[l] }'
 ```
+
+The definitive test is on a host of the target minor: `ldd centengine` must not report `not found` or a missing
+version, and the binary must start.
 
 ## Limits
 
@@ -130,5 +147,6 @@ objdump -T centengine | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
   installed on customer hosts.
 - The script checks the vault for `x86_64` only. The AlmaLinux images are only built for amd64 today; the digest is
   the one of the multi-architecture index and the vault block uses `$basearch`, so arm64 images would work too.
-- The age of the image is a proxy for the minor version, which is what decides the glibc. Choose `--min-age-days`
+- The age of the image is a proxy for the minor version, which is what decides the system libraries. Choose
+  `--min-age-days`
   so that the selected minor is the oldest one still in use by customers.

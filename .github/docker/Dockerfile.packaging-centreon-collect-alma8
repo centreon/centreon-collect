@@ -1,6 +1,6 @@
 ARG REGISTRY_URL
 
-FROM ${REGISTRY_URL}/almalinux:8.10-20250909@sha256:bebdf5cf9050ac466068f4873c618295a07764e9c4bf4bfc52236a0375f39ed7 AS centreon_collect_packaging
+FROM ${REGISTRY_URL}/almalinux:8 AS centreon_collect_packaging
 
 RUN bash -e <<EOF
 
