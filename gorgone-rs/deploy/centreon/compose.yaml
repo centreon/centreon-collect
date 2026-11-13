@@ -1,7 +1,14 @@
-# Integration bench: a real centreon-web (central) and a real poller from the
-# Centreon test images, with the Perl gorgoned replaced by gorgone-server and
-# gorgone-agent. Local test use only (plaintext, no API credentials).
+# Integration bench with real Centreon components, each in its own container:
 #
+#   db              MariaDB (Centreon databases and the gorgone-server store)
+#   gorgone-server  the Rust control plane, alone in a distroless image
+#   web             centreon-web sending its commands to the Gorgone REST API
+#                   (no centcore.cmd), with an agent for the central poller
+#   poller          a poller driven by gorgone-agent
+#
+# Local test use only: plaintext listeners, throwaway credentials.
+#
+#   export CENTREON_SRC=/path/to/centreon   # checkout of the gorgone API branch
 #   docker compose -f deploy/centreon/compose.yaml up --build -d
 #   deploy/centreon/verify.sh
 #   docker compose -f deploy/centreon/compose.yaml down -v
@@ -11,30 +18,12 @@
 
 name: gorgone-rs-centreon
 
-services:
-  web:
-    build:
-      context: ../..
-      dockerfile: deploy/centreon/Dockerfile
-      target: web
-      args:
-        WEB_IMAGE: ${WEB_IMAGE:-docker.centreon.com/centreon/centreon-web-alma9:develop}
-    ports: ["127.0.0.1:4000:80", "127.0.0.1:8085:8085"]
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      MYSQL_HOST: db
-      MYSQL_ROOT_PASSWORD: centreon
-      MYSQL_USER: centreon
-      MYSQL_PASSWORD: centreon
-      CENTREON_DATASET: "1"
-    healthcheck:
-      test: ["CMD-SHELL", "[ -f /tmp/docker.ready ] && curl --fail http://localhost/centreon/api/latest/platform/versions"]
-      interval: 2s
-      retries: 150
-      timeout: 5s
+x-gorgone-api: &gorgone-api
+  GORGONE_API_USERNAME: centreon-web
+  # Throwaway value shared by the containers of this bench.
+  GORGONE_API_PASSWORD: bench-only
 
+services:
   db:
     image: ${MYSQL_IMAGE:-bitnamilegacy/mariadb:11.8}
     environment:
@@ -42,6 +31,7 @@ services:
       MARIADB_ROOT_PASSWORD: centreon
       MARIADB_USER: centreon
       MARIADB_PASSWORD: centreon
+      MARIADB_DATABASE: gorgone
       MARIADB_EXTRA_FLAGS: "--skip-name-resolve --innodb-flush-method=nosync --innodb-log-file-size=32M --secure-file-priv= --skip-ssl"
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/3306 && sleep 3 && </dev/tcp/127.0.0.1/3306'"]
@@ -49,11 +39,62 @@ services:
       timeout: 15s
       retries: 40
 
+  gorgone-server:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile
+      target: server
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+    environment:
+      GORGONE_SERVER__DATABASE_URL: mysql://centreon:centreon@db/gorgone
+      GORGONE_SERVER__REST_LISTEN: 0.0.0.0:8085
+      GORGONE_SERVER__AGENT_LISTEN: 0.0.0.0:5556
+      GORGONE_SERVER__ALLOW_PLAINTEXT: "true"
+      GORGONE_SERVER__REST__BASIC_USERNAME: centreon-web
+      GORGONE_SERVER__REST__BASIC_PASSWORD: bench-only
+      # Bench only: agents are accepted without enrolment.
+      GORGONE_SERVER__AUTO_ENROLL: "true"
+    ports: ["127.0.0.1:8085:8085"]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/centreon/Dockerfile
+      target: web
+      additional_contexts:
+        centreon-src: ${CENTREON_SRC:?set CENTREON_SRC to a checkout of centreon/centreon with the Gorgone API branch}
+      args:
+        WEB_IMAGE: ${WEB_IMAGE:-docker.centreon.com/centreon/centreon-web-alma9:develop}
+    ports: ["127.0.0.1:4000:80"]
+    depends_on:
+      db:
+        condition: service_healthy
+      gorgone-server:
+        condition: service_started
+    environment:
+      <<: *gorgone-api
+      MYSQL_HOST: db
+      MYSQL_ROOT_PASSWORD: centreon
+      MYSQL_USER: centreon
+      MYSQL_PASSWORD: centreon
+      CENTREON_DATASET: "1"
+      GORGONE_API_ADDRESS: gorgone-server
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /tmp/docker.ready ] && curl --fail http://localhost/centreon/api/latest/platform/versions"]
+      interval: 2s
+      retries: 150
+      timeout: 5s
+
   poller:
     build:
       context: ../..
       dockerfile: deploy/centreon/Dockerfile
       target: poller
+      additional_contexts:
+        centreon-src: ${CENTREON_SRC:?set CENTREON_SRC}
       args:
         POLLER_IMAGE: ${POLLER_IMAGE:-docker.centreon.com/centreon/centreon-poller-alma9:develop}
     hostname: poller
@@ -61,4 +102,63 @@ services:
       web:
         condition: service_healthy
     environment:
+      <<: *gorgone-api
       WEB_HOST: web
+      GORGONE_HOST: gorgone-server
+
+  # A poller made of containers only: the engine image built from this branch
+  # (see engine/README.md), driven over its gRPC API by a gorgone-agent
+  # sidecar. No command pipe, no systemctl, no SSH.
+  engine:
+    image: ${ENGINE_IMAGE:-centreon-engine-trixie:gorgone-poc}
+    hostname: engine
+    # "restart" is: the agent asks the engine to exit, docker starts it again.
+    restart: always
+    volumes:
+      - engine-etc:/etc/centreon-engine
+      - broker-etc:/etc/centreon-broker
+
+  engine-register:
+    image: ${ENGINE_IMAGE:-centreon-engine-trixie:gorgone-poc}
+    entrypoint: ["python3", "/register.py", "register"]
+    # Writes the agent configuration into a fresh, root-owned volume.
+    user: root
+    depends_on:
+      web:
+        condition: service_healthy
+    volumes:
+      - ./engine/register.py:/register.py:ro
+      - agent-config:/agent
+
+  engine-agent:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile
+      target: agent
+    command: ["--config", "/agent/agent.toml"]
+    # Same user as the engine, which owns the configuration volumes.
+    user: "901:901"
+    restart: on-failure
+    depends_on:
+      engine-register:
+        condition: service_completed_successfully
+    volumes:
+      - agent-config:/agent:ro
+      - engine-etc:/etc/centreon-engine
+      - broker-etc:/etc/centreon-broker
+
+  engine-deploy:
+    image: ${ENGINE_IMAGE:-centreon-engine-trixie:gorgone-poc}
+    entrypoint: ["python3", "/register.py", "deploy"]
+    depends_on:
+      engine-agent:
+        condition: service_started
+    environment:
+      <<: *gorgone-api
+    volumes:
+      - ./engine/register.py:/register.py:ro
+
+volumes:
+  engine-etc:
+  broker-etc:
+  agent-config:

@@ -59,26 +59,40 @@ curl -H "Authorization: Bearer $TOKEN" -X PUT --data-binary @bundle.tar.zst \
 
 ## Test with a real Centreon
 
-`deploy/centreon/` derives the Centreon test images (central and poller) with
-the Perl `gorgoned` moved away and the Rust binaries started in its place:
+`deploy/centreon/` runs real Centreon components, each in its own container,
+with no Perl Gorgone and no command file:
+
+| Container        | Content                                                                     |
+| ---------------- | --------------------------------------------------------------------------- |
+| `gorgone-server` | the control plane alone, store in MariaDB                                   |
+| `web`            | centreon-web calling the Gorgone REST API instead of writing `centcore.cmd` |
+| `poller`         | the Centreon poller test image, driven by `gorgone-agent`                   |
+| `engine`         | the engine image of this branch, driven over its gRPC API by a sidecar      |
+
+It needs a checkout of the centreon-web branch that sends its commands to the
+Gorgone API, and the engine image built from this branch
+([deploy/centreon/engine/README.md](deploy/centreon/engine/README.md)):
 
 ```bash
+export CENTREON_SRC=/path/to/centreon
 docker compose -f deploy/centreon/compose.yaml up --build -d
 deploy/centreon/verify.sh
 docker compose -f deploy/centreon/compose.yaml down -v
 ```
 
-The poller registers itself, then asks centreon-web to generate, push and
-restart: the configuration travels through `centcore.cmd`, `gorgone-server`
-and the poller's `gorgone-agent`. The web UI is on <http://localhost:4000>.
+Both pollers register themselves, then ask centreon-web to generate, push and
+restart. `verify.sh` also sends a forced check through the centreon-web API
+and an external command to the engine container over gRPC. The web UI is on
+<http://localhost:4000>.
 
 Known gaps seen on this bench:
 
-- centreon-web names the poller by its `uid` in external commands, which the
-  `centcore.cmd` intake does not resolve to a node yet: those jobs stay queued.
-- The `vmware` target is not configured on the test agents, so that part of
-  a configuration push is rejected.
-- A broker reload on a poller without `cbd` fails, as with the Perl daemon.
+- The `vmware` target is not configured on the test agents, so that part of a
+  configuration push is rejected.
+- A broker reload on a poller without `cbd` is refused or fails, as with the
+  Perl daemon.
+- The central poller still gets its files and restarts from centreon-web
+  itself, as before.
 
 ## Benchmark
 

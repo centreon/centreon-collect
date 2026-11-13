@@ -6,8 +6,9 @@
 . /usr/share/centreon/gorgone-rs-lib.sh
 
 WEB_HOST=${WEB_HOST:-web}
-WEB_GORGONE_PORT=${WEB_GORGONE_PORT:-8085}
-WEB_AGENT_PORT=${WEB_AGENT_PORT:-5556}
+GORGONE_HOST=${GORGONE_HOST:-gorgone-server}
+GORGONE_API_PORT=${GORGONE_API_PORT:-8085}
+GORGONE_AGENT_PORT=${GORGONE_AGENT_PORT:-5556}
 WEB_API_USERNAME=${WEB_API_USERNAME:-admin}
 WEB_API_PASSWORD=${WEB_API_PASSWORD:-Centreon\!2021}
 
@@ -39,18 +40,19 @@ if getent hosts "${WEB_HOST}"; then
   fi
   echo "Poller $HOSTNAME has id $POLLER_ID"
 
-  write_agent_config "$POLLER_ID" "http://${WEB_HOST}:${WEB_AGENT_PORT}"
+  write_agent_config "$POLLER_ID" "http://${GORGONE_HOST}:${GORGONE_AGENT_PORT}"
   start_as_gorgone /usr/bin/gorgone-agent "$GORGONE_RS_ETC/agent.toml"
 
   retry_count=0
   until [ "$CONNECTED" = "True" ] || [ $retry_count -ge 120 ]; do
     sleep 1
-    CONNECTED=$(curl -s "http://${WEB_HOST}:${WEB_GORGONE_PORT}/v1/nodes" \
+    CONNECTED=$(curl -s -u "${GORGONE_API_USERNAME}:${GORGONE_API_PASSWORD}" \
+        "http://${GORGONE_HOST}:${GORGONE_API_PORT}/v1/nodes" \
         | json "[n['connected'] for n in d['nodes'] if n['id'] == '$POLLER_ID'][0]")
     retry_count=$((retry_count + 1))
   done
   if [ "$CONNECTED" != "True" ]; then
-    echo "The central never saw the agent of poller $POLLER_ID"
+    echo "gorgone-server never saw the agent of poller $POLLER_ID"
     exit 1
   fi
 

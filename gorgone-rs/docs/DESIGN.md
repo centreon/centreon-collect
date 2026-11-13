@@ -67,9 +67,9 @@ pollers (ZMQ, SSH, pull, pullwss are dropped), and being a broker module
 | Action           | Payload                                                        | Agent behaviour                                                                                                                                                                                                 |
 | ---------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `RunCommands`    | list of `{command, timeout_s, continue_on_error}`              | each command must match the agent allowlist entirely, hold no control character, and name its program with an absolute path free of `.`/`..`; executed without a shell unless the agent is configured otherwise |
-| `EngineCommands` | list of external command lines                                 | each command name must match the agent's list of allowed external commands; written to the engine command pipe configured on the agent                                                                          |
+| `EngineCommands` | list of external command lines                                 | each command name must match the agent's list of allowed external commands; sent to the engine gRPC API when the agent has its address, else written to the engine command pipe                                 |
 | `ApplyConfig`    | `target` (e.g. `engine`, `broker`, `vmware`), `digest`, `size` | fetch blob, verify digest, sync into the directory the agent maps to `target`; no-op when the digest is already applied                                                                                         |
-| `ServiceControl` | `service`, `operation` (start, stop, reload, restart)          | runs the command the agent maps to `(service, operation)`                                                                                                                                                       |
+| `ServiceControl` | `service`, `operation` (start, stop, reload, restart)          | runs what the agent maps to `(service, operation)`: a local command, or an engine gRPC call (reload, shutdown) when the engine is another container                                                             |
 
 ### Job state machine
 
@@ -178,16 +178,16 @@ meta        (name PK, value)   -- stable server id, shared by all replicas
 
 ### Native (`/v1`)
 
-| Method           | Path                               | Purpose                                                                           |
-| ---------------- | ---------------------------------- | --------------------------------------------------------------------------------- |
-| `POST`           | `/v1/nodes/{node}/jobs`            | submit a job (JSON action); returns `{id}`                                        |
-| `GET`            | `/v1/jobs/{id}`                    | job with state and events; `?wait=<seconds>` long-polls until terminal            |
-| `GET`            | `/v1/jobs/{id}/events`             | server-sent events, closes on the terminal event                                  |
-| `DELETE`         | `/v1/jobs/{id}`                    | cancel: immediate when queued, `Cancel` frame through the owner replica otherwise |
-| `PUT`            | `/v1/nodes/{node}/config/{target}` | body is a `tar.zst` bundle; stores the blob and submits `ApplyConfig`             |
-| `GET`            | `/v1/nodes`                        | nodes with connection status                                                      |
-| `PUT` / `DELETE` | `/v1/nodes/{node}`                 | enrol (returns the token once) / remove a node                                    |
-| `GET`            | `/healthz`, `/readyz`, `/metrics`  | probes and Prometheus metrics                                                     |
+| Method           | Path                               | Purpose                                                                                                                      |
+| ---------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `POST`           | `/v1/nodes/{node}/jobs`            | submit a job (JSON action); returns `{id}`                                                                                   |
+| `GET`            | `/v1/jobs/{id}`                    | job with state and events; `?wait=<seconds>` long-polls until terminal                                                       |
+| `GET`            | `/v1/jobs/{id}/events`             | server-sent events, closes on the terminal event                                                                             |
+| `DELETE`         | `/v1/jobs/{id}`                    | cancel: immediate when queued, `Cancel` frame through the owner replica otherwise                                            |
+| `PUT`            | `/v1/nodes/{node}/config/{target}` | body is a `tar.zst` bundle, or a plain tar with `Content-Type: application/x-tar`; stores the blob and submits `ApplyConfig` |
+| `GET`            | `/v1/nodes`                        | nodes with connection status                                                                                                 |
+| `PUT` / `DELETE` | `/v1/nodes/{node}`                 | enrol (returns the token once) / remove a node                                                                               |
+| `GET`            | `/healthz`, `/readyz`, `/metrics`  | probes and Prometheus metrics                                                                                                |
 
 JSON action shape: `{"run_commands": {"commands": [{"command": "...", "timeout_s": 30}]}}`,
 `{"engine_commands": {"commands": ["..."]}}`,
