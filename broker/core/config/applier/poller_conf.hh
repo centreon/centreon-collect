@@ -193,6 +193,8 @@ class poller_conf {
   void on_disconnected();
   void on_expected() noexcept;
   void on_relay_request(const std::string& engine_conf);
+  void on_stored_conf_owed(const std::string& stored_version,
+                           const std::string& announced);
   void on_conf_unknown();
   void on_conf_recovered();
   void prepare(const std::string& version);

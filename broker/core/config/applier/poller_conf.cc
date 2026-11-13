@@ -317,6 +317,29 @@ void poller_conf::on_relay_request(const std::string& engine_conf) {
 }
 
 /**
+ * @brief The poller connected, directly or through a relay, announcing another
+ * version than the one Broker stores for it, and nothing newer is prepared:
+ * what it is owed is `<ID>.prot` itself (transition 20). A poller restored
+ * from a backup, or one that lost its state.prot and announces no version.
+ *
+ * Nothing is in flight any more, whatever was before: the poller said what it
+ * runs. A version it refused is tried again, as after any reconnection (19).
+ * The database automaton is not concerned: the database and the cache already
+ * hold `<ID>.prot`.
+ *
+ * @param stored_version The version of `<ID>.prot`.
+ * @param announced The version the poller announced, empty if none.
+ */
+void poller_conf::on_stored_conf_owed(const std::string& stored_version,
+                                      const std::string& announced) {
+  _engine_conf = announced;
+  _conf_in_flight.clear();
+  _rejection.reset();
+  _available_conf = stored_version;
+  _settle();
+}
+
+/**
  * @brief Broker has no configuration stored for this poller and no
  * announcement of one: it asks the poller for its own (transition 2).
  */

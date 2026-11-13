@@ -1029,8 +1029,12 @@ void broker_state::add_peer(uint64_t poller_id,
       _start_watching();
     }
 
-    /* Feeding the cache and waking up resources in the database */
-    _feed_cache_and_wake_up_resources(poller_id);
+    /* Feeding the cache and waking up resources in the database. Only an
+     * Engine announces a configuration version. */
+    if (peer_type == common::ENGINE)
+      _feed_cache_and_wake_up_resources(poller_id, engine_conf_known);
+    else
+      _feed_cache_and_wake_up_resources(poller_id);
   }
 }
 
@@ -1041,10 +1045,20 @@ void broker_state::add_peer(uint64_t poller_id,
  * poller configuration is considered lost and Broker will request it from
  * Engine via a DiffState{unknown=true} at the next negotiation.
  *
+ * This is what a poller connecting finds, whichever route it comes by: a
+ * direct connection (add_peer()) or the ConfigRequest of a relay
+ * (register_poller_via_relay()). What is owed to it is worked out here, from
+ * the files, and sent afterwards by the stream serving its route.
+ *
  * @param poller_id The poller ID.
+ * @param announced The configuration version the poller announced at its
+ * connection, empty if it announced none; std::nullopt when the call does not
+ * come from a connection.
  * @return true if the configuration was found, false if it is lost/unknown.
  */
-bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
+bool broker_state::_feed_cache_and_wake_up_resources(
+    uint64_t poller_id,
+    const std::optional<std::string>& announced) {
   bool retval = true;
   if (!pollers_config_dir_usable()) {
     /* Nothing to feed the cache from, and no relative path to stumble into:
@@ -1123,6 +1137,23 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
         "handing it over without reading its sources again",
         poller_id);
     poller_conf_lost = false;
+  } else if (announced && !ec && supports_centralized_conf()) {
+    /* Nothing newer than <ID>.prot, announced or prepared. A poller that does
+     * not run it is owed it, whole (transition 20): it was restored from a
+     * backup, or lost its state.prot and announces no version. No file is
+     * written for that: the database and the cache already hold <ID>.prot,
+     * and the stream sends it as it is (see
+     * broker_stream::_send_diff_state_for_poller()). */
+    const std::string& stored_version = engine_state->obj().config_version();
+    if (!stored_version.empty() && stored_version != *announced) {
+      _logger->info(
+          "Poller {} announces configuration '{}' and Broker stores '{}' for "
+          "it, with nothing newer: it is owed the stored one, whole",
+          poller_id, *announced, stored_version);
+      absl::MutexLock lck(&_poller_confs_m);
+      if (poller_conf* conf = _known_poller_conf(poller_id))
+        conf->on_stored_conf_owed(stored_version, *announced);
+    }
   }
   if (poller_conf_lost) {
     /* Broker is unable to update the cache concerning this poller because
@@ -1166,6 +1197,20 @@ std::string broker_state::poller_engine_conf(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_poller_confs_m);
   const poller_conf* conf = _known_poller_conf(poller_id);
   return conf ? conf->engine_conf() : std::string{};
+}
+
+/**
+ * @brief The latest configuration version prepared for an Engine peer.
+ *
+ * @param poller_id The poller.
+ *
+ * @return That version, empty if the poller is unknown or nothing was
+ * prepared.
+ */
+std::string broker_state::poller_available_conf(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(&_poller_confs_m);
+  const poller_conf* conf = _known_poller_conf(poller_id);
+  return conf ? conf->available_conf() : std::string{};
 }
 
 /**
@@ -2809,8 +2854,9 @@ std::vector<std::shared_ptr<io::data>> broker_state::pop_pending_for_poller(
 /**
  * @brief Register a poller that is reachable via a relay.  Called at the
  * central when it receives a ConfigRequest from relay R for poller N.
- * Records the peer in the registry with via_remote = relay_poller_id, and
- * queues a ConfigRevoke for the relay it left when it migrated.
+ * Records the peer in the registry with via_remote = relay_poller_id,
+ * queues a ConfigRevoke for the relay it left when it migrated, and works out
+ * what the poller is owed, as add_peer() does for a direct connection.
  *
  * @param poller_id       Poller ID of the poller behind the relay.
  * @param relay_poller_id Poller ID of the relay that sent the ConfigRequest.
@@ -2846,6 +2892,20 @@ void broker_state::register_poller_via_relay(
     _logger->info("Engine peer {} reachable via relay {}: config version '{}'",
                   poller_id, relay_poller_id, config_version);
   }
+  /* From here on, a poller behind a relay is a poller that connected: what it
+   * is owed is worked out as for a direct one. */
+  _feed_cache_and_wake_up_resources(poller_id, config_version);
+}
+
+/**
+ * @brief The Engine peers reached through a relay: those its stream serves.
+ *
+ * @param relay_id The poller ID of the relay.
+ *
+ * @return Their poller IDs.
+ */
+std::vector<uint64_t> broker_state::pollers_via_relay(uint64_t relay_id) const {
+  return _peers.pollers_via_relay(relay_id);
 }
 
 /**

@@ -395,6 +395,29 @@ TEST_F(PollerConfDelivery, PendingDiffLoadedSurvivesTheConnection) {
 }
 
 /**
+ * Scenario: a poller connects announcing another version than the stored one
+ * (transition 20).
+ * Given a poller_conf connected, that announced v0
+ * When Broker stores v1 for it, with nothing newer prepared
+ * Then it is owed v1
+ * When v1 is sent, then acknowledged
+ * Then it is up to date and runs v1.
+ */
+TEST_F(PollerConfDelivery, T20StoredConfOwedToAPollerRunningAnother) {
+  poller_conf conf{1, _logger};
+  conf.on_connected("v0");
+  conf.on_stored_conf_owed("v1", "v0");
+  EXPECT_EQ(conf.delivery_status(), delivery::owed);
+  EXPECT_EQ(conf.available_conf(), "v1");
+  EXPECT_EQ(conf.engine_conf(), "v0");
+  EXPECT_TRUE(conf.on_sent("v1"));
+  EXPECT_EQ(conf.delivery_status(), delivery::in_flight);
+  EXPECT_TRUE(conf.on_acknowledged("v1"));
+  EXPECT_EQ(conf.delivery_status(), delivery::up_to_date);
+  EXPECT_EQ(conf.engine_conf(), "v1");
+}
+
+/**
  * Scenario: a poller listed in topology.cache is expected.
  * Given a poller_conf owed v1
  * When topology.cache says the poller is expected

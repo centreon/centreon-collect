@@ -24,6 +24,7 @@
 #include <filesystem>
 #include <fstream>
 
+#include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "common/engine_conf/host_helper.hh"
 
@@ -53,6 +54,9 @@ class BrokerStateRound : public ::testing::Test {
   void SetUp() override {
     config::applier::state::load<broker_state>("unittest");
     _state = static_cast<broker_state*>(&config::applier::state::instance());
+    /* Never started: what a connection or the end of a round publishes waits
+     * in its queue, and goes away with it. */
+    multiplexing::engine::load();
     _dir = std::filesystem::temp_directory_path() / "ut_broker_state_round";
     _cache_dir =
         std::filesystem::temp_directory_path() / "ut_broker_state_round_cache";
@@ -68,6 +72,7 @@ class BrokerStateRound : public ::testing::Test {
   }
 
   void TearDown() override {
+    multiplexing::engine::unload();
     config::applier::state::unload();
     std::filesystem::remove_all(_dir);
     std::filesystem::remove_all(_cache_dir);
@@ -100,6 +105,17 @@ class BrokerStateRound : public ::testing::Test {
     st.set_config_version(version);
     std::ofstream f(_dir / fmt::format("next-{}.prot", poller_id),
                     std::ios::binary);
+    ASSERT_TRUE(st.SerializeToOstream(&f));
+  }
+
+  /**
+   * @brief Leave the configuration a poller acknowledged: `<N>.prot`.
+   */
+  void leave_stored_conf(uint64_t poller_id, const std::string& version) {
+    com::centreon::engine::configuration::State st;
+    st.set_poller_id(poller_id);
+    st.set_config_version(version);
+    std::ofstream f(_dir / fmt::format("{}.prot", poller_id), std::ios::binary);
     ASSERT_TRUE(st.SerializeToOstream(&f));
   }
 
@@ -154,8 +170,7 @@ class BrokerStateRound : public ::testing::Test {
    * state over without reading the sources again, which is what sets
    * available_conf while nothing has been sent yet.
    *
-   * No <N>.prot is written, so the cache is not fed and nothing is published --
-   * this test needs no multiplexing engine.
+   * No <N>.prot is written, so the cache is not fed and nothing is published.
    */
   void connect(uint64_t poller_id) {
     _state->add_peer(poller_id, fmt::format("Poller{}", poller_id), "central",
@@ -712,7 +727,7 @@ TEST_F(BrokerStateNextDiff, SecondAcknowledgementMergesIntoTheWaitingDiff) {
  * When both connect
  * Then nothing is published for poller 1: unified_sql would take what was read
  * for its whole configuration, and disable in the database every object it
- * lacks. No multiplexing engine is loaded here, so a publication would crash.
+ * lacks.
  * And Broker still says it knows the configuration of poller 1: asking Engine
  * for it would not help, since 1.prot is only recreated when it does not exist
  * And it says it does not know the one of poller 2, which is asked for.
@@ -774,8 +789,8 @@ TEST_F(BrokerStateRound, DisconnectionResetsThePollerConfiguration) {
  * Given diff-1.prot, the difference poller 1 acknowledged
  * And new-2.prot, a configuration prepared for poller 2, not connected
  * When Broker loads the stored configurations
- * Then nothing is published -- no multiplexing engine is loaded here, a
- * publication would crash -- and diff-1.prot is still there
+ * Then nothing is published: diff-1.prot, which a publication removes, is
+ * still there
  * And poller 1 waits for the database, as it shows once connected
  * And that mark alone would close the round, poller 2 being owed nothing
  * before it connects: this is why the load does not try when a new-<ID>.prot
@@ -811,6 +826,62 @@ TEST_F(BrokerStateRound, NoRoundAtStartWithoutAnAcknowledgedDiff) {
   _state->load_pollers_config_in_cache();
 
   EXPECT_FALSE(_state->try_close_conf_round());
+}
+
+/**
+ * Scenario: a poller connects announcing another version than the one Broker
+ * stores for it, with nothing newer prepared (transition 20).
+ * Given 1.prot and 2.prot, both v1
+ * When poller 1 connects directly, announcing no version
+ * And poller 2 comes through a relay, announcing v0
+ * Then both are owed v1, the stored configuration itself
+ * And no file was written for that
+ * When poller 1 acknowledges v1
+ * Then it is owed nothing any more, and 1.prot is untouched.
+ */
+TEST_F(BrokerStateRound, PollerNotRunningTheStoredConfIsOwedIt) {
+  leave_stored_conf(1, "v1");
+  leave_stored_conf(2, "v1");
+
+  connect(1);
+  _state->register_poller_via_relay(2, "Poller2", 10, "v0");
+
+  for (uint64_t id = 1; id <= 2; ++id) {
+    EXPECT_TRUE(_state->poller_needs_update(id)) << id;
+    EXPECT_EQ(_state->poller_available_conf(id), "v1") << id;
+    EXPECT_TRUE(_state->broker_knows_poller_conf(id)) << id;
+    EXPECT_FALSE(
+        std::filesystem::exists(_dir / fmt::format("new-diff-{}.prot", id)));
+    EXPECT_FALSE(
+        std::filesystem::exists(_dir / fmt::format("new-{}.prot", id)));
+  }
+
+  ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
+  _state->on_poller_conf_acknowledged(1, "v1");
+  EXPECT_FALSE(_state->poller_needs_update(1));
+  EXPECT_EQ(_state->poller_engine_conf(1), "v1");
+  EXPECT_EQ(version_of("1.prot"), "v1");
+}
+
+/**
+ * Scenario: a poller that runs the stored configuration is owed nothing.
+ * Given 1.prot and 2.prot, both v1
+ * When poller 1 connects directly and poller 2 through a relay, both
+ * announcing v1
+ * Then neither is owed a configuration.
+ */
+TEST_F(BrokerStateRound, PollerRunningTheStoredConfIsOwedNothing) {
+  leave_stored_conf(1, "v1");
+  leave_stored_conf(2, "v1");
+
+  _state->add_peer(1, "Poller1", "central", com::centreon::common::ENGINE, true,
+                   "v1", "");
+  _state->register_poller_via_relay(2, "Poller2", 10, "v1");
+
+  for (uint64_t id = 1; id <= 2; ++id) {
+    EXPECT_FALSE(_state->poller_needs_update(id)) << id;
+    EXPECT_TRUE(_state->broker_knows_poller_conf(id)) << id;
+  }
 }
 
 /**

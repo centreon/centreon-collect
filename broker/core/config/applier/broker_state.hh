@@ -255,7 +255,9 @@ class broker_state : public state {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set)
       ABSL_LOCKS_EXCLUDED(_conf_handover_m);
-  bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
+  bool _feed_cache_and_wake_up_resources(
+      uint64_t poller_id,
+      const std::optional<std::string>& announced = std::nullopt);
 
  public:
   broker_state(const std::shared_ptr<spdlog::logger>& logger)
@@ -276,6 +278,8 @@ class broker_state : public state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::string poller_timezone(uint64_t poller_id) const override;
   std::string poller_engine_conf(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_poller_confs_m);
+  std::string poller_available_conf(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_poller_confs_m);
   bool runtime_state_owed(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_poller_confs_m);
@@ -398,6 +402,10 @@ class broker_state : public state {
    * ENGINE-connected stream read(). */
   std::vector<std::shared_ptr<io::data>> pop_pending_for_poller(
       uint64_t poller_id) ABSL_LOCKS_EXCLUDED(_pending_for_pollers_m);
+
+  /* Central: the poller IDs of the Engine peers reached through relay_id,
+   * the ones its stream serves. */
+  std::vector<uint64_t> pollers_via_relay(uint64_t relay_id) const;
 
   /* Central: returns the poller IDs of engine peers reachable via relay_id
    * that have a pending configuration update not yet sent. */

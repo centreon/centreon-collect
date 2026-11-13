@@ -118,6 +118,10 @@ void broker_stream::_add_runtime_state(
  * diff is prepared, as the poller may have reconnected with another version in
  * between.
  *
+ * Without a diff file, what is owed may be `<ID>.prot` itself: the poller
+ * connected announcing another version, and nothing newer is prepared
+ * (transition 20). It is sent whole, read from `<ID>.prot`.
+ *
  * @param poller_id The ID of the poller for which to send the DiffState.
  */
 void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
@@ -128,11 +132,26 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
   std::error_code ec;
   common::read_proto_file(diff_name, obj, ec);
   if (ec == std::errc::no_such_file_or_directory) {
-    _logger->error("BBDO: failed to open diff file '{}' for poller {}",
-                   diff_name.string(), poller_id);
-    return;
-  }
-  if (ec) {
+    const std::filesystem::path stored_name =
+        _state.poller_paths(poller_id).stored_path();
+    auto stored =
+        std::make_unique<com::centreon::engine::configuration::State>();
+    std::error_code stored_ec;
+    common::read_proto_file(stored_name, *stored, stored_ec);
+    if (stored_ec ||
+        stored->config_version() != _state.poller_available_conf(poller_id)) {
+      _logger->error("BBDO: failed to open diff file '{}' for poller {}",
+                     diff_name.string(), poller_id);
+      return;
+    }
+    SPDLOG_LOGGER_INFO(_logger,
+                       "BBDO: poller {} does not run the stored configuration "
+                       "'{}': sending it whole",
+                       poller_id, stored->config_version());
+    obj.Clear();
+    obj.set_poller_id(static_cast<uint32_t>(poller_id));
+    obj.set_allocated_state(stored.release());
+  } else if (ec) {
     _logger->error(
         "BBDO: cannot read diff file '{}' for poller {}: {}. Not sent, it "
         "stays owed",
@@ -331,6 +350,10 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       }
     } break;
     case pb_config_request::static_type(): {
+      /* The request a relay sends to the central on behalf of a poller that
+       * connected to it. The central does not see that poller's Welcome,
+       * which stops at the relay: this message stands for it, and tells the
+       * poller, the relay it is behind and the version it runs. */
       auto req = std::static_pointer_cast<pb_config_request>(d);
       const uint64_t engine_id = req->obj().poller_id();
       const std::string& engine_name = req->obj().poller_name();
@@ -343,39 +366,19 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       _state.register_poller_via_relay(engine_id, engine_name, poller_id(),
                                        version);
 
-      using response_t = config::applier::broker_state::relay_config_response;
-      switch (_state.prepare_relay_config_response(engine_id, version)) {
-        case response_t::unknown: {
-          SPDLOG_LOGGER_INFO(
-              _logger,
-              "BBDO: central has no config for relay poller {} — sending "
-              "unknown DiffState",
-              engine_id);
-          auto diff_state = std::make_shared<pb_diff_state>();
-          diff_state->mut_obj().set_unknown(true);
-          diff_state->mut_obj().set_poller_id(static_cast<uint32_t>(engine_id));
-          _write(diff_state);
-          break;
-        }
-        case response_t::diff_ready:
-          _send_diff_state_for_poller(engine_id);
-          break;
-        case response_t::up_to_date: {
-          // Engine already has the latest config. Per protocol, send an empty
-          // DiffState so Engine can complete the handshake with DiffStateAck.
-          SPDLOG_LOGGER_INFO(
-              _logger,
-              "BBDO: relay already has latest config for poller {} — sending "
-              "empty DiffState for handshake",
-              engine_id);
-          auto diff_state = std::make_shared<pb_diff_state>();
-          diff_state->mut_obj().set_poller_id(static_cast<uint32_t>(engine_id));
-          _add_runtime_state(diff_state->mut_obj());
-          _write(diff_state);
-          _state.set_poller_conf_sent(static_cast<uint32_t>(engine_id),
-                                      version);
-          break;
-        }
+      /* The poller is now registered, and what it is owed worked out, as for
+       * a direct connection: _serve_broker_peer() sends it, at this read and
+       * at the next ones. Only the request for a configuration Broker does
+       * not have is made here, once, as stream::negotiate() makes it for a
+       * direct poller. */
+      if (_state.supports_centralized_conf() &&
+          !_state.broker_knows_poller_conf(engine_id)) {
+        SPDLOG_LOGGER_INFO(
+            _logger,
+            "BBDO: central has no config for relay poller {} — sending "
+            "unknown DiffState",
+            engine_id);
+        _send_unknown_diff_state(engine_id);
       }
     } break;
     case pb_config_revoke::static_type(): {
@@ -410,29 +413,54 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 }
 
 /**
+ * @brief Ask a poller for its configuration: Broker has none stored for it,
+ * and none announced. A DiffState flagged unknown, naming the poller so that a
+ * relay knows whom to forward it to.
+ *
+ * @param poller_id The poller asked.
+ */
+void broker_stream::_send_unknown_diff_state(uint64_t poller_id) {
+  auto diff_state = std::make_shared<pb_diff_state>();
+  diff_state->mut_obj().set_unknown(true);
+  diff_state->mut_obj().set_poller_id(static_cast<uint32_t>(poller_id));
+  _write(diff_state);
+}
+
+/**
+ * @brief Send a poller the configuration it is owed, whichever route this
+ * stream is: the poller itself, or the relay it is behind.
+ *
+ * The runtime snapshot is owed to the poller from its connection on, and
+ * again once Broker rebuilt a configuration it had lost. It travels with the
+ * configuration diff when there is one, alone otherwise.
+ *
+ * @param poller_id The poller to serve.
+ */
+void broker_stream::_serve_poller(uint64_t poller_id) {
+  if (_state.poller_needs_update(poller_id)) {
+    _logger->debug(
+        "BBDO: We should send the Engine configuration to the poller {}",
+        poller_id);
+    _send_diff_state_for_poller(poller_id);
+  } else if (_state.runtime_state_owed(poller_id) && extended_negotiation() &&
+             _state.supports_centralized_conf() &&
+             _state.broker_knows_poller_conf(poller_id) &&
+             _state.cache().has_instance(poller_id)) {
+    /* has_instance: a configuration just rebuilt from the poller reaches the
+     * cache later, through the reference output, which sets the flag again
+     * once there is something to describe. */
+    _send_runtime_state_alone(poller_id);
+  }
+}
+
+/**
  * @brief What an Engine peer is owed: its configuration when a new one is
  * ready, the runtime snapshot of its resources once per connection, the
  * events queued for it on the downward channel, and, on a relay, the
  * DiffState forwarded by the central.
  */
 void broker_stream::_serve_engine_peer() {
-  /* The runtime snapshot is owed to the poller from its connection on, and
-   * again once Broker rebuilt a configuration it had lost. It travels with
-   * the configuration diff when there is one, alone otherwise. */
-  if (_state.poller_needs_update(poller_id())) {
-    _logger->debug(
-        "BBDO: We should send the Engine configuration to the poller {}",
-        poller_id());
-    _send_diff_state_for_poller(poller_id());
-  } else if (_state.runtime_state_owed(poller_id()) && extended_negotiation() &&
-             _state.supports_centralized_conf() &&
-             _state.broker_knows_poller_conf(poller_id()) &&
-             _state.cache().has_instance(poller_id())) {
-    /* has_instance: a configuration just rebuilt from the poller reaches the
-     * cache later, through the reference output, which sets the flag again
-     * once there is something to describe. */
-    _send_runtime_state_alone();
-  }
+  _serve_poller(poller_id());
 
   /* Downward channel: deliver the events queued for the poller this stream
    * supervises (notification executions, external commands). */
@@ -461,18 +489,21 @@ void broker_stream::_serve_engine_peer() {
  * runtime_only, with the version the poller already runs so that its
  * acknowledgement changes nothing. Not a configuration round: nothing is
  * marked as sent, the acknowledgement only confirms the version.
+ *
+ * @param poller_id The poller, this stream's own or one behind the relay it
+ * serves.
  */
-void broker_stream::_send_runtime_state_alone() {
+void broker_stream::_send_runtime_state_alone(uint64_t poller_id) {
   auto diff_state = std::make_shared<pb_diff_state>();
   auto& obj = diff_state->mut_obj();
-  obj.set_poller_id(static_cast<uint32_t>(poller_id()));
-  obj.set_config_version(_state.poller_engine_conf(poller_id()));
+  obj.set_poller_id(static_cast<uint32_t>(poller_id));
+  obj.set_config_version(_state.poller_engine_conf(poller_id));
   obj.set_runtime_only(true);
   _add_runtime_state(obj);
   SPDLOG_LOGGER_INFO(
       _logger,
       "BBDO: poller {} is up to date, sending it its runtime state alone",
-      poller_id());
+      poller_id);
   _write(diff_state);
 }
 
@@ -492,9 +523,8 @@ void broker_stream::_serve_broker_peer() {
                          engine_id);
       _write(rev);
     }
-    for (uint64_t engine_id :
-         _state.pollers_via_relay_needing_update(poller_id()))
-      _send_diff_state_for_poller(engine_id);
+    for (uint64_t engine_id : _state.pollers_via_relay(poller_id()))
+      _serve_poller(engine_id);
   } else {
     for (auto& [pid, poller_name, version] :
          _state.pop_pending_config_requests()) {
