@@ -20,6 +20,7 @@
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
+#include "com/centreon/broker/sql/mysql_tls_probe.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -91,6 +92,61 @@ void mysql_connection::_prepare_connection() {
     mysql_autocommit(_conn, 0);
   else
     mysql_autocommit(_conn, 1);
+}
+
+/**
+ * @brief When TLS is enabled without certificate verification, libmariadb
+ * silently falls back to plaintext if the server does not support TLS, and the
+ * login exchange is sent unencrypted. So the server greeting is read first to
+ * refuse such a server before any credential is sent. With certificate
+ * verification, libmariadb refuses it by itself. Unix socket connections are
+ * not checked since nothing goes on the network.
+ *
+ * The greeting is waited for at most as long as MYSQL_OPT_CONNECT_TIMEOUT, so
+ * an unreachable server does not hold the stream longer than
+ * mysql_real_connect() would.
+ *
+ * @return false if the connection must be refused.
+ */
+bool mysql_connection::_check_tls_before_connect() {
+  // libmariadb uses the unix socket for an empty host or "localhost".
+  if (!_ssl_enabled || _ssl_verify_cert || _host.empty() ||
+      _host == "localhost")
+    return true;
+  if (database::server_advertises_tls(
+          _host, static_cast<uint16_t>(_port ? _port : MYSQL_PORT),
+          std::chrono::seconds(10), _logger)
+          .value_or(true))
+    return true;
+
+  std::string msg = fmt::format(
+      "mysql_connection: TLS is enabled but the database server {}:{} does "
+      "not support it, connection refused before sending credentials.",
+      _host, _port);
+  SPDLOG_LOGGER_ERROR(_logger, msg);
+  set_error_message(msg);
+  return false;
+}
+
+/**
+ * @brief When TLS is enabled, check that the established connection is really
+ * encrypted. This is the safety net of _check_tls_before_connect() for unix
+ * sockets and for a server that changed between the two checks.
+ *
+ * @return true if TLS is disabled or if the connection is encrypted.
+ */
+bool mysql_connection::_check_tls_after_connect() {
+  if (!_ssl_enabled || mysql_get_ssl_cipher(_conn))
+    return true;
+
+  SPDLOG_LOGGER_ERROR(_logger,
+                      "mysql_connection: TLS is enabled but the database "
+                      "server does not support it, unencrypted connection "
+                      "refused.");
+  set_error_message(
+      "mysql_connection: TLS is enabled but the database server does not "
+      "support it, unencrypted connection refused.");
+  return false;
 }
 
 /**
@@ -219,6 +275,9 @@ bool mysql_connection::_try_to_reconnect() {
         _ssl_verify_cert);
   }
 
+  if (!_check_tls_before_connect())
+    return false;
+
   if (!mysql_real_connect(_conn, _host.c_str(), _user.c_str(), _pwd.c_str(),
                           _name.c_str(), _port,
                           (_socket == "" ? nullptr : _socket.c_str()),
@@ -230,6 +289,8 @@ bool mysql_connection::_try_to_reconnect() {
         "mysql_connection: The mysql/mariadb database seems not started.");
     return false;
   }
+  if (!_check_tls_after_connect())
+    return false;
   _last_access = std::time(nullptr);
 
   _prepare_connection();
@@ -894,6 +955,17 @@ void mysql_connection::_run() {
           _ssl_verify_cert);
     }
 
+    auto abort_start = [this] {
+      _state = finished;
+      _start_condition.notify_all();
+      _clear_connection();
+    };
+
+    if (config::applier::mode != config::applier::finished &&
+        !_check_tls_before_connect()) {
+      abort_start();
+      return;
+    }
     while (config::applier::mode != config::applier::finished &&
            !mysql_real_connect(_conn, _host.c_str(), _user.c_str(),
                                _pwd.c_str(), _name.c_str(), _port,
@@ -903,9 +975,12 @@ void mysql_connection::_run() {
           "mysql_connection: The mysql/mariadb database seems not started. "
           "Waiting before attempt to connect again: {}",
           ::mysql_error(_conn)));
-      _state = finished;
-      _start_condition.notify_all();
-      _clear_connection();
+      abort_start();
+      return;
+    }
+    if (config::applier::mode != config::applier::finished &&
+        !_check_tls_after_connect()) {
+      abort_start();
       return;
     }
     _last_access = std::time(nullptr);
