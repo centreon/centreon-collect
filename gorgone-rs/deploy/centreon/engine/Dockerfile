@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
 
 # centreon-engine image with a centengine built from this branch, for the
-# gorgone-rs proof of concept: it adds the ProcessExternalCommand RPC and the
-# gRPC API on a Unix domain socket (rpc_listen_address=unix:/path).
+# gorgone-rs proof of concept: it adds the ProcessExternalCommand and
+# VerifyConfiguration RPCs and the gRPC API on a Unix domain socket
+# (rpc_listen_address=unix:/path).
 # The build context holds two files (see README.md): `centengine`, built with
 # the packaging image of the same distribution, and `05-engine-config.sh`,
 # the entrypoint script of this branch that reads ENGINE_RPC_LISTEN_ADDRESS.

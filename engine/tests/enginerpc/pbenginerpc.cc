@@ -24,6 +24,7 @@
 #include <sys/un.h>
 #include <chrono>
 
+#include <absl/strings/str_join.h>
 #include <grpcpp/create_channel.h>
 #include <fstream>
 #include <thread>
@@ -47,6 +48,7 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/engine/version.hh"
@@ -1902,6 +1904,173 @@ TEST_F(EngineRpc, ProcessExternalCommandUnknown) {
             "unknown, expected format: \"[<timestamp>] "
             "<COMMAND_NAME>;<arguments>\"");
   erpc.shutdown();
+}
+
+/**
+ * @brief A configuration of one host and one service in a directory of its
+ * own, for the VerifyConfiguration tests. ut_engine is not centengine: the
+ * RPC is told to run the one of the build tree (tests run from build/).
+ */
+class verify_configuration_dir {
+  const std::filesystem::path _dir;
+
+  void _write(const std::string& name, const std::string& content) const {
+    std::ofstream f(_dir / name);
+    f << content;
+  }
+
+ public:
+  /**
+   * @param name Name of the test, the directory is unique to it.
+   * @param check_command Check command of the service; only "cmd" exists.
+   */
+  verify_configuration_dir(const std::string& name,
+                           const std::string& check_command)
+      : _dir(fmt::format("/tmp/ut_engine_verify_{}_{}", getpid(), name)) {
+    std::filesystem::remove_all(_dir);
+    std::filesystem::create_directories(_dir);
+    _write("centengine.cfg",
+           fmt::format("cfg_file={0}/objects.cfg\n"
+                       "resource_file={0}/resource.cfg\n",
+                       _dir.string()));
+    _write("resource.cfg", "$USER1$=/usr/lib64/nagios/plugins\n");
+    _write("objects.cfg",
+           fmt::format("define command {{\n"
+                       "    command_name    cmd\n"
+                       "    command_line    /bin/true\n"
+                       "}}\n"
+                       "define host {{\n"
+                       "    host_name            verified_host\n"
+                       "    address              127.0.0.1\n"
+                       "    check_command        cmd\n"
+                       "    max_check_attempts   3\n"
+                       "    _HOST_ID             1\n"
+                       "}}\n"
+                       "define service {{\n"
+                       "    host_name            verified_host\n"
+                       "    service_description  verified_service\n"
+                       "    check_command        {}\n"
+                       "    max_check_attempts   3\n"
+                       "    _SERVICE_ID          1\n"
+                       "}}\n",
+                       check_command));
+    engine_impl::set_verify_executable(
+        std::filesystem::absolute("engine/centengine").string());
+  }
+
+  ~verify_configuration_dir() {
+    engine_impl::set_verify_executable("/proc/self/exe");
+    std::error_code ec;
+    std::filesystem::remove_all(_dir, ec);
+  }
+
+  std::string main_file() const { return (_dir / "centengine.cfg").string(); }
+  std::string dir() const { return _dir.string(); }
+};
+
+static bool contains_line(const std::list<std::string>& lines,
+                          const std::string& expected) {
+  return std::any_of(lines.begin(), lines.end(),
+                     [&expected](const std::string& line) {
+                       return line.find(expected) != std::string::npos;
+                     });
+}
+
+TEST_F(EngineRpc, VerifyConfigurationValid) {
+  verify_configuration_dir conf("valid", "cmd");
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration " + conf.main_file());
+  erpc.shutdown();
+
+  ASSERT_FALSE(output.empty());
+  ASSERT_EQ(output.front(), "VerifyConfiguration: 0")
+      << absl::StrJoin(output, "\n");
+  ASSERT_TRUE(contains_line(output, "Checked 1 hosts."));
+  ASSERT_TRUE(contains_line(output, "Checked 1 services."));
+  ASSERT_TRUE(contains_line(output, "Total Errors:   0"));
+  // The verified configuration is not the one of this process.
+  ASSERT_EQ(engine::host::hosts.count("verified_host"), 0u);
+}
+
+TEST_F(EngineRpc, VerifyConfigurationBroken) {
+  verify_configuration_dir conf("broken", "missing_cmd");
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration " + conf.main_file());
+  erpc.shutdown();
+
+  ASSERT_FALSE(output.empty());
+  ASSERT_EQ(output.front(), "VerifyConfiguration: 1")
+      << absl::StrJoin(output, "\n");
+  ASSERT_TRUE(contains_line(output, "missing_cmd"))
+      << absl::StrJoin(output, "\n");
+}
+
+TEST_F(EngineRpc, VerifyConfigurationConcurrent) {
+  verify_configuration_dir valid("concurrent_valid", "cmd");
+  verify_configuration_dir broken("concurrent_broken", "missing_cmd");
+  // The destructor of `broken` runs first and restores the default too.
+  enginerpc erpc("0.0.0.0", 40001);
+  std::list<std::string> valid_output, broken_output;
+  std::thread valid_th([&] {
+    valid_output = execute("VerifyConfiguration " + valid.main_file());
+  });
+  std::thread broken_th([&] {
+    broken_output = execute("VerifyConfiguration " + broken.main_file());
+  });
+  valid_th.join();
+  broken_th.join();
+  erpc.shutdown();
+
+  ASSERT_FALSE(valid_output.empty());
+  ASSERT_EQ(valid_output.front(), "VerifyConfiguration: 0");
+  ASSERT_TRUE(contains_line(valid_output, "Total Errors:   0"));
+  ASSERT_FALSE(contains_line(valid_output, "missing_cmd"));
+  ASSERT_FALSE(broken_output.empty());
+  ASSERT_EQ(broken_output.front(), "VerifyConfiguration: 1");
+  ASSERT_TRUE(contains_line(broken_output, "missing_cmd"));
+}
+
+TEST_F(EngineRpc, VerifyConfigurationEmptyPath) {
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration ''");
+  erpc.shutdown();
+  ASSERT_EQ(output.size(), 1u);
+  ASSERT_EQ(output.front(),
+            "VerifyConfiguration failed: 3 path must not be empty");
+}
+
+TEST_F(EngineRpc, VerifyConfigurationRelativePath) {
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration engine/centengine.cfg");
+  erpc.shutdown();
+  ASSERT_EQ(output.size(), 1u);
+  ASSERT_EQ(output.front(),
+            "VerifyConfiguration failed: 3 path must be absolute");
+}
+
+TEST_F(EngineRpc, VerifyConfigurationControlCharacter) {
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration '/tmp/ut_engine_verify\tx.cfg'");
+  erpc.shutdown();
+  ASSERT_EQ(output.size(), 1u);
+  ASSERT_EQ(output.front(),
+            "VerifyConfiguration failed: 3 path must not contain control "
+            "characters");
+}
+
+TEST_F(EngineRpc, VerifyConfigurationMissingFile) {
+  verify_configuration_dir conf("missing", "cmd");
+  enginerpc erpc("0.0.0.0", 40001);
+  auto missing = execute("VerifyConfiguration " + conf.dir() + "/absent.cfg");
+  // A directory is not a regular file.
+  auto directory = execute("VerifyConfiguration " + conf.dir());
+  erpc.shutdown();
+  ASSERT_EQ(missing.size(), 1u);
+  ASSERT_EQ(missing.front(),
+            "VerifyConfiguration failed: 3 path must be an existing regular "
+            "file");
+  ASSERT_EQ(directory.size(), 1u);
+  ASSERT_EQ(directory.front(), missing.front());
 }
 
 TEST_F(EngineRpc, NewThresholdsFile) {

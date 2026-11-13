@@ -168,6 +168,33 @@ service Engine {
    * line is malformed or the command unknown.
    */
   rpc ProcessExternalCommand(ExternalCommand) returns (CommandSuccess) {}
+
+  /**
+   * @brief Verify a configuration as `centengine -v <path>` does, in a child
+   * process: the running configuration is neither read nor changed.
+   *
+   * @param The main configuration file to verify.
+   *
+   * @return OK with the exit code and the output of the verification,
+   * INVALID_ARGUMENT when the path is not an absolute path to an existing
+   * regular file, DEADLINE_EXCEEDED when the verification lasts more than
+   * 60 seconds.
+   */
+  rpc VerifyConfiguration(ConfigurationFile)
+      returns (ConfigurationVerification) {}
+}
+
+message ConfigurationFile {
+  /* Absolute path of the main configuration file, readable by Engine. */
+  string path = 1;
+}
+
+message ConfigurationVerification {
+  /* Exit code of the verification: 0 when the configuration is valid. */
+  int32 exit_code = 1;
+  /* Standard output and standard error of the verification, truncated
+   * beyond 1 MiB. */
+  string output = 2;
 }
 
 message ExternalCommand {
