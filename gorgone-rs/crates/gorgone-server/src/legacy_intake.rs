@@ -208,7 +208,9 @@ struct Pending {
 
 /// State of the file being read.
 struct Reading {
-    file: File,
+    /// `None` when the file is read-only for this process: centreon-web
+    /// writes its per-command files that way, and nothing is marked.
+    marks: Option<File>,
     nonce: String,
     pending: BTreeMap<String, Pending>,
 }
@@ -216,7 +218,11 @@ struct Reading {
 impl Reading {
     /// Overwrites the first byte of a handled line, like the Perl daemon.
     fn mark(&self, offset: u64) {
-        if let Err(err) = self.file.write_at(b"-", offset) {
+        let Some(file) = &self.marks else {
+            // Harmless: the replayed line gives the same job id.
+            return;
+        };
+        if let Err(err) = file.write_at(b"-", offset) {
             // Harmless: the replayed line gives the same job id.
             warn!(error = %err, "cannot mark a command line as handled");
         }
@@ -369,14 +375,23 @@ impl Intake {
     }
 
     /// Opens a claimed file without following links and checks it is a
-    /// regular file owned by an expected user. Returns it with its content.
-    fn open(&self, path: &Path) -> Result<(File, Vec<u8>), String> {
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
-            .open(path)
-            .map_err(|err| err.to_string())?;
+    /// regular file owned by an expected user. Returns its content, and the
+    /// file itself when lines can be marked in it.
+    fn open(&self, path: &Path) -> Result<(Option<File>, Vec<u8>), String> {
+        let open = |write: bool| {
+            OpenOptions::new()
+                .read(true)
+                .write(write)
+                .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+                .open(path)
+        };
+        let (mut file, writable) = match open(true) {
+            Ok(file) => (file, true),
+            Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+                (open(false).map_err(|err| err.to_string())?, false)
+            }
+            Err(err) => return Err(err.to_string()),
+        };
         // On the descriptor: what is checked is what is read.
         let meta = file.metadata().map_err(|err| err.to_string())?;
         if !meta.is_file() {
@@ -391,7 +406,7 @@ impl Intake {
         let mut content = Vec::new();
         file.read_to_end(&mut content)
             .map_err(|err| err.to_string())?;
-        Ok((file, content))
+        Ok((writable.then_some(file), content))
     }
 }
 
@@ -449,7 +464,7 @@ impl Pass<'_> {
 
     fn handle_file(&mut self, claimed: &Claimed) -> Result<(), Abort> {
         let path = &claimed.path;
-        let (file, content) = match self.intake.open(path) {
+        let (marks, content) = match self.intake.open(path) {
             Ok(opened) => opened,
             Err(reason) => {
                 warn!(file = %path.display(), reason, "command file refused, set aside");
@@ -460,7 +475,7 @@ impl Pass<'_> {
         };
         debug!(file = %path.display(), "processing command file");
         let mut reading = Reading {
-            file,
+            marks,
             nonce: claimed.nonce.clone(),
             pending: BTreeMap::new(),
         };
@@ -1077,6 +1092,27 @@ mod tests {
         let stats = fixture.tick(&intake).await.unwrap();
         assert_eq!(stats, PassStats::default());
         assert_eq!(fixture.jobs(&node).await.len(), 3);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn read_only_files_are_consumed() {
+        use std::os::unix::fs::PermissionsExt;
+
+        // centreon-web drops one file per command, not writable by the daemon.
+        let fixture = Fixture::new().await;
+        let node = node();
+        let intake = fixture.intake("a");
+        let file = fixture.config.cmd_dir.join("1-externalcommand.cmd");
+        fs::write(&file, format!("RESTART:{node}\n")).unwrap();
+        fs::set_permissions(&file, fs::Permissions::from_mode(0o444)).unwrap();
+
+        let stats = fixture.tick(&intake).await.unwrap();
+        assert_eq!(stats, PassStats { files: 1, jobs: 1 });
+        assert_eq!(
+            fixture.jobs(&node).await,
+            [control("engine", Operation::Restart)]
+        );
+        assert_eq!(fs::read_dir(&fixture.config.cmd_dir).unwrap().count(), 0);
     }
 
     #[tokio::test(flavor = "multi_thread")]

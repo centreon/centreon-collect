@@ -57,6 +57,29 @@ curl -H "Authorization: Bearer $TOKEN" -X PUT --data-binary @bundle.tar.zst \
      https://central:8085/v1/nodes/1/config/engine
 ```
 
+## Test with a real Centreon
+
+`deploy/centreon/` derives the Centreon test images (central and poller) with
+the Perl `gorgoned` moved away and the Rust binaries started in its place:
+
+```bash
+docker compose -f deploy/centreon/compose.yaml up --build -d
+deploy/centreon/verify.sh
+docker compose -f deploy/centreon/compose.yaml down -v
+```
+
+The poller registers itself, then asks centreon-web to generate, push and
+restart: the configuration travels through `centcore.cmd`, `gorgone-server`
+and the poller's `gorgone-agent`. The web UI is on <http://localhost:4000>.
+
+Known gaps seen on this bench:
+
+- centreon-web names the poller by its `uid` in external commands, which the
+  `centcore.cmd` intake does not resolve to a node yet: those jobs stay queued.
+- The `vmware` target is not configured on the test agents, so that part of
+  a configuration push is rejected.
+- A broker reload on a poller without `cbd` fails, as with the Perl daemon.
+
 ## Benchmark
 
 ```bash
