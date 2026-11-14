@@ -680,16 +680,9 @@ A directly connected poller that is away has no entry at all, so it has always
 returned early there, leaving its `new-<ID>.prot` on disk for when it shows up.
 The gate gives the relay-attached poller exactly that behaviour.
 
-The symmetrical gap was on the catch-up side: `prepare_relay_config_response()`
-looked at `diff-`, `new-` and `<ID>.prot`, but not at a pending `<ID>.lck` —
-a configuration announced by PHP that no cycle had read yet. Where the direct
-path nudges the debounce from `_feed_cache_and_wake_up_resources()`, the relay
-path waited for the five-minute safety net. It now performs the same lookup and
-the same nudge. It still answers with whatever is available rather than
-withholding the older state as the direct path does: a `ConfigRequest` is a
-request/response and leaving it unanswered would stall the handshake; the newer
-configuration follows through `pollers_via_relay_needing_update()` within
-the debounce.
+The symmetrical gap was on the catch-up side: the answer to the `ConfigRequest` looked at `diff-`, `new-` and `<ID>.prot`, but not at a pending `<ID>.lck` — a configuration announced by PHP that no cycle had read yet. Where the direct path nudges the debounce from `_feed_cache_and_wake_up_resources()`, the relay path waited for the five-minute safety net.
+
+That gap is gone, because the relay path is gone: the `ConfigRequest` goes through `_feed_cache_and_wake_up_resources()` as a direct connection does (`register_poller_via_relay()`), so it performs the same lookup and the same nudge, and withholds the older state as it does until the cycle has prepared the announced configuration. `prepare_relay_config_response()`, which held the answer specific to the relay, was removed.
 
 ## Required changes
 
@@ -743,12 +736,7 @@ the debounce.
   When PHP pushes a new `.lck` for a poller whose Engine is behind a relay, the central must
   route the resulting DiffState through the relay rather than looking for a direct ENGINE stream.
 
-  **Implementation**: `broker_state::pollers_via_relay_needing_update(relay_id)` collects
-  the pollers with `via_remote == relay_id` that `_peer_needs_update()` reports as still owed
-  a configuration — the same test as everywhere else, deliberately not rewritten here.  In `broker_stream::read()`, when `peer_type() == BROKER &&
-  !is_relay()`, the central iterates this list and pushes the `new-diff-N.prot` to the relay —
-  identical to the `ConfigRequest` diff_ready path, but triggered by the PHP push timer instead
-  of an incoming request.
+  **Implementation**: in `broker_stream::read()`, when `peer_type() == BROKER && !is_relay()`, the central goes through the pollers of this relay (`broker_state::pollers_via_relay(relay_id)`, those with `via_remote == relay_id`) and calls `_serve_poller()` for each, the function that also serves a direct poller: the `new-diff-N.prot` leaves for the relay if `poller_needs_update()` says the poller is owed a configuration — the same test as everywhere else, deliberately not rewritten here.
 
   → CCCRC4 (`centralized-relay-conf.robot`): Initial config established via relay (ack received).
   Then `Ctn Prepare Engine Config` adds 5 hosts + `Ctn Notify Broker Of Engine Config Change` →
