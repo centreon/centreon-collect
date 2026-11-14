@@ -184,17 +184,15 @@ class BrokerStateRound : public ::testing::Test {
   }
 
   /**
-   * @brief Prepare a configuration for a poller behind relay 10, the public
-   * way to have a connected poller served without publishing anything.
-   *
-   * A diff already prepared is removed first, as the cycle replaces it: the
-   * relay path only prepares when there is none.
+   * @brief Play an export arriving for a poller already connected: the cycle
+   * writes `new-<N>.prot` from the sources, then prepares its delivery. Only
+   * the sources are skipped here.
    */
-  void prepare_via_relay(uint64_t poller_id, const std::string& version) {
-    std::filesystem::remove(_dir / fmt::format("new-diff-{}.prot", poller_id));
+  void export_conf(uint64_t poller_id, const std::string& version) {
     leave_prepared_conf(poller_id, version);
-    ASSERT_EQ(_state->prepare_relay_config_response(poller_id, ""),
-              broker_state::relay_config_response::diff_ready);
+    const std::optional<bool> owed =
+        _state->_prepare_diff_from_new_prot_file(poller_id);
+    ASSERT_TRUE(owed && *owed);
   }
 };
 
@@ -309,17 +307,16 @@ TEST_F(BrokerStateRound, VersionExportedDuringAFlightWaitsInNext) {
 TEST_F(BrokerStateRound, NothingSentWhileAConfigurationIsInFlight) {
   _state->initialize_cache();
   _state->register_poller_via_relay(1, "Poller1", 10, "");
-  prepare_via_relay(1, "v1");
+  export_conf(1, "v1");
   ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
 
   leave_next_conf(1, "v2");
-  EXPECT_TRUE(_state->pollers_via_relay_needing_update(10).empty());
+  EXPECT_FALSE(_state->poller_needs_update(1));
   EXPECT_FALSE(_state->try_close_conf_round());
 
   _state->on_poller_conf_acknowledged(1, "v1");
   EXPECT_EQ(_state->poller_engine_conf(1), "v1");
-  EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
-            std::vector<uint64_t>{1});
+  EXPECT_TRUE(_state->poller_needs_update(1));
   EXPECT_EQ(version_of("new-1.prot"), "v2");
 
   ASSERT_TRUE(_state->set_poller_conf_sent(1, "v2"));
@@ -347,16 +344,13 @@ TEST_F(BrokerStateRound, ReconnectionAnnouncingTheFlightVersionPromotesNext) {
 
   /* Behind a relay, which announces with the version its Engine runs. */
   _state->register_poller_via_relay(1, "Poller1", 10, "v1");
-  EXPECT_EQ(_state->prepare_relay_config_response(1, "v1"),
-            broker_state::relay_config_response::diff_ready);
 
   EXPECT_EQ(version_of("1.prot"), "v1");
   EXPECT_EQ(version_of("new-1.prot"), "v2");
   EXPECT_EQ(versions_of_diff("new-diff-1.prot"),
             (std::pair<std::string, std::string>{"v1", "v2"}));
   EXPECT_FALSE(std::filesystem::exists(_dir / "next-1.prot"));
-  EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
-            std::vector<uint64_t>{1});
+  EXPECT_TRUE(_state->poller_needs_update(1));
 }
 
 /**
@@ -376,15 +370,12 @@ TEST_F(BrokerStateRound, ReconnectionAnnouncingTheOldVersionSkipsTheFlight) {
   _state->remove_peer(1, "Poller1", "central");
 
   _state->register_poller_via_relay(1, "Poller1", 10, "");
-  EXPECT_EQ(_state->prepare_relay_config_response(1, ""),
-            broker_state::relay_config_response::diff_ready);
 
   EXPECT_FALSE(std::filesystem::exists(_dir / "1.prot"));
   EXPECT_EQ(version_of("new-1.prot"), "v2");
   EXPECT_TRUE(diff_is_full("new-diff-1.prot"));
   EXPECT_FALSE(std::filesystem::exists(_dir / "next-1.prot"));
-  EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
-            std::vector<uint64_t>{1});
+  EXPECT_TRUE(_state->poller_needs_update(1));
 }
 
 /**
@@ -429,12 +420,9 @@ TEST_F(BrokerStateRound, DiffStartsFromStoredConfEvenIfPollerRunsAnother) {
     std::ofstream f(_dir / name, std::ios::binary);
     ASSERT_TRUE(st.SerializeToOstream(&f));
   }
-  /* Behind a relay: the public way to have a connected poller whose
-   * configuration is prepared without publishing anything. */
+  /* Its relay asks for it, announcing no version. */
   _state->register_poller_via_relay(1, "Poller1", 10, "");
-
-  ASSERT_EQ(_state->prepare_relay_config_response(1, ""),
-            broker_state::relay_config_response::diff_ready);
+  ASSERT_TRUE(_state->poller_needs_update(1));
 
   com::centreon::engine::configuration::DiffState diff;
   std::ifstream f(_dir / "new-diff-1.prot", std::ios::binary);
@@ -459,7 +447,7 @@ TEST_F(BrokerStateRound, DiffStartsFromStoredConfEvenIfPollerRunsAnother) {
 TEST_F(BrokerStateRound, RejectedConfigurationLeavesTheRound) {
   for (uint64_t id = 1; id <= 2; ++id) {
     _state->register_poller_via_relay(id, fmt::format("Poller{}", id), 10, "");
-    prepare_via_relay(id, "v1");
+    export_conf(id, "v1");
     ASSERT_TRUE(_state->set_poller_conf_sent(id, "v1"));
   }
 
@@ -469,7 +457,10 @@ TEST_F(BrokerStateRound, RejectedConfigurationLeavesTheRound) {
   EXPECT_FALSE(std::filesystem::exists(_dir / "new-diff-1.prot"));
   EXPECT_TRUE(std::filesystem::exists(_dir / "new-diff-2.prot"));
   EXPECT_EQ(_state->poller_engine_conf(1), "");
-  EXPECT_TRUE(_state->pollers_via_relay_needing_update(10).empty());
+  /* Nothing to send: v1 was refused by the first, and is in flight for the
+   * second. */
+  EXPECT_FALSE(_state->poller_needs_update(1));
+  EXPECT_FALSE(_state->poller_needs_update(2));
   auto pollers = _state->connected_pollers();
   auto p1 = absl::c_find_if(
       pollers, [](const auto& p) { return p.peer.poller_id == 1; });
@@ -491,13 +482,12 @@ TEST_F(BrokerStateRound, RejectedConfigurationLeavesTheRound) {
  */
 TEST_F(BrokerStateRound, NewExportIsSentAfterARejection) {
   _state->register_poller_via_relay(1, "Poller1", 10, "");
-  prepare_via_relay(1, "v1");
+  export_conf(1, "v1");
   ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
   _state->on_poller_conf_rejected(1, "", "v1", "boom");
 
-  prepare_via_relay(1, "v2");
-  EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
-            std::vector<uint64_t>{1});
+  export_conf(1, "v2");
+  EXPECT_TRUE(_state->poller_needs_update(1));
 
   ASSERT_TRUE(_state->set_poller_conf_sent(1, "v2"));
   EXPECT_TRUE(_state->acknowledge_poller_conf(1, "v2"));
@@ -518,7 +508,7 @@ TEST_F(BrokerStateRound, NewExportIsSentAfterARejection) {
  */
 TEST_F(BrokerStateRound, RejectionOfTheFlightVersionPromotesNext) {
   _state->register_poller_via_relay(1, "Poller1", 10, "");
-  prepare_via_relay(1, "v1");
+  export_conf(1, "v1");
   ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
   leave_next_conf(1, "v2");
 
@@ -527,8 +517,7 @@ TEST_F(BrokerStateRound, RejectionOfTheFlightVersionPromotesNext) {
   EXPECT_EQ(version_of("new-1.prot"), "v2");
   EXPECT_TRUE(diff_is_full("new-diff-1.prot"));
   EXPECT_FALSE(std::filesystem::exists(_dir / "next-1.prot"));
-  EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
-            std::vector<uint64_t>{1});
+  EXPECT_TRUE(_state->poller_needs_update(1));
 }
 
 /**
@@ -562,12 +551,8 @@ TEST_F(BrokerStateRound, AnnouncementOfThePreparedVersionAcknowledgesIt) {
   connect(2);
   ASSERT_TRUE(_state->poller_needs_update(2));
 
-  /* Behind a relay, as <N>.prot would otherwise be published at the
-   * connection of a direct poller: the relay asks with the version its Engine
-   * announced. */
+  /* Behind a relay, which asks with the version its Engine announced. */
   _state->register_poller_via_relay(1, "Poller1", 10, "v2");
-  EXPECT_EQ(_state->prepare_relay_config_response(1, "v2"),
-            broker_state::relay_config_response::up_to_date);
 
   EXPECT_FALSE(std::filesystem::exists(_dir / "new-1.prot"));
   com::centreon::engine::configuration::State st;
@@ -587,7 +572,6 @@ TEST_F(BrokerStateRound, AnnouncementOfThePreparedVersionAcknowledgesIt) {
   EXPECT_EQ(diff.config_version(), "v2");
   EXPECT_FALSE(std::filesystem::exists(_dir / "new-diff-1.prot"));
   EXPECT_FALSE(_state->poller_needs_update(1));
-  EXPECT_TRUE(_state->pollers_via_relay_needing_update(10).empty());
 
   EXPECT_FALSE(_state->try_close_conf_round());
   deliver_and_acknowledge(2, "v1");
@@ -647,16 +631,15 @@ class BrokerStateNextDiff : public BrokerStateRound {
     connect(2);
     /* Announcing the prepared version is acknowledging it. */
     _state->register_poller_via_relay(1, "Poller1", 10, "v2");
-    ASSERT_EQ(_state->prepare_relay_config_response(1, "v2"),
-              broker_state::relay_config_response::up_to_date);
     ASSERT_TRUE(std::filesystem::exists(_dir / "diff-1.prot"));
   }
 
   /** @brief v3 is exported for poller 1: v2 without host 2. */
   void prepare_v3() {
     write("new-1.prot", conf("v3", {1}));
-    ASSERT_EQ(_state->prepare_relay_config_response(1, "v2"),
-              broker_state::relay_config_response::diff_ready);
+    const std::optional<bool> owed =
+        _state->_prepare_diff_from_new_prot_file(1);
+    ASSERT_TRUE(owed && *owed);
   }
 };
 
@@ -680,8 +663,7 @@ TEST_F(BrokerStateNextDiff, AcknowledgedDiffWaitsForTheRoundWhileV3IsPrepared) {
   const DiffState to_send = read_diff("new-diff-1.prot");
   EXPECT_EQ(to_send.from_version(), "v2");
   EXPECT_EQ(to_send.config_version(), "v3");
-  EXPECT_EQ(_state->pollers_via_relay_needing_update(10),
-            std::vector<uint64_t>{1});
+  EXPECT_TRUE(_state->poller_needs_update(1));
   EXPECT_FALSE(_state->try_close_conf_round());
 }
 
@@ -761,7 +743,7 @@ TEST_F(BrokerStateRound, UnreadableStoredConfigurationIsNotPublished) {
 TEST_F(BrokerStateRound, DisconnectionResetsThePollerConfiguration) {
   for (uint64_t id = 1; id <= 2; ++id) {
     _state->register_poller_via_relay(id, fmt::format("Poller{}", id), 10, "");
-    prepare_via_relay(id, "v1");
+    export_conf(id, "v1");
     ASSERT_TRUE(_state->set_poller_conf_sent(id, "v1"));
   }
   _state->on_poller_conf_rejected(1, "", "v1", "boom");

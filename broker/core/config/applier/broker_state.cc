@@ -2909,14 +2909,21 @@ std::vector<uint64_t> broker_state::pollers_via_relay(uint64_t relay_id) const {
 }
 
 /**
- * @brief Load new-{N}.prot and call _prepare_diff_for_poller so that
- * new-diff-{N}.prot is written (if the relay does not already have the latest
- * version).
+ * @brief Prepare the delivery of the configuration waiting in `new-<N>.prot`:
+ * read it and hand it to _prepare_diff_for_poller(), which writes
+ * `new-diff-<N>.prot` and makes the version owed to the poller.
  *
- * @return std::nullopt if new-{N}.prot was absent or unreadable (caller should
- *         continue to the next lookup step); true if it was found and a diff
- *         was written; false if it was found but no diff was needed (relay
- *         already has the latest version).
+ * Called when a poller connects, by either route, and finds a configuration
+ * prepared while it was away. It takes _conf_handover_m itself. The unit tests
+ * call it too, to play an export arriving for a poller already connected,
+ * which the cycle does from the sources.
+ *
+ * @param poller_id The poller.
+ *
+ * @return std::nullopt if `new-<N>.prot` is absent or unreadable: nothing was
+ * prepared for this poller. Otherwise what _prepare_diff_for_poller()
+ * returned: true if a configuration is now owed to the poller, false if none
+ * is (it already runs that version, or it is not connected).
  */
 std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
     uint64_t poller_id) {
@@ -2951,119 +2958,6 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
 }
 
 /**
- * @brief Determine what DiffState to send to a relay in response to a
- * ConfigRequest for engine poller @p engine_id, and write new-diff-{N}.prot
- * if it does not exist yet.
- *
- * A pending `<ID>.lck` is looked at first, for the same reason the direct path
- * does it in _feed_cache_and_wake_up_resources(): it means PHP announced a
- * configuration that no cycle has read yet, so whatever sits on disk next to it
- * is older. Unlike the direct path we do not withhold that older state -- a
- * ConfigRequest is a request/response and leaving it unanswered would stall the
- * handshake -- we only make sure the cycle runs now instead of waiting for the
- * five-minute safety net. The newer configuration follows through
- * pollers_via_relay_needing_update() within the debounce.
- *
- * Lookup order:
- * 1. new-diff-{N}.prot already exists → diff_ready
- * 2. new-{N}.prot exists → delegate to _prepare_diff_for_poller via
- *    _prepare_diff_from_new_prot_file; if new-diff-{N}.prot was written →
- *    diff_ready, otherwise → up_to_date (relay already has latest version)
- * 3. {N}.prot exists (last acknowledged state):
- *    - version matches relay → up_to_date
- *    - relay is behind → write full state to new-diff-{N}.prot → diff_ready
- * 4. No file → unknown
- *
- * @param engine_id            Poller ID of the Engine behind the relay.
- * @param relay_config_version Config version currently known by the relay.
- */
-broker_state::relay_config_response broker_state::prepare_relay_config_response(
-    uint64_t engine_id,
-    const std::string& relay_config_version) {
-  if (!pollers_config_dir_usable()) {
-    /* A relay has no pollers configuration directory, and this is the central's
-     * side of the exchange: without one there is nothing stored to answer with.
-     */
-    _logger->error(
-        "No pollers configuration directory: cannot answer the configuration "
-        "request for poller {}",
-        engine_id);
-    return relay_config_response::unknown;
-  }
-  const poller_conf_paths paths = poller_paths(engine_id);
-  const auto diff_file = paths.new_diff_path();
-  const auto prev_file = paths.stored_path();
-
-  /* 0. */
-  if (uint32_t existing_lck = _lck_file_for_poller(engine_id)) {
-    {
-      absl::MutexLock lck(&_lck_set_m);
-      _lck_set.insert(existing_lck);
-    }
-    /* Nothing in the directory changed, so inotify has nothing to say and would
-     * never wake the watcher up for this poller. */
-    if (_watch_strand)
-      boost::asio::post(*_watch_strand, [this] { _arm_debounce(); });
-    _logger->info(
-        "Poller {} behind a relay has a configuration announced but not read "
-        "yet: waking the configuration cycle up for it",
-        engine_id);
-  }
-
-  /* 1. A difference ready, unless a newer configuration waits behind it: the
-   * poller then goes through 2., which settles which one it is owed. */
-  if (std::filesystem::exists(diff_file) &&
-      !std::filesystem::exists(paths.next_path()))
-    return relay_config_response::diff_ready;
-
-  /* 2. */
-  if (auto r = _prepare_diff_from_new_prot_file(engine_id))
-    return *r ? relay_config_response::diff_ready
-              : relay_config_response::up_to_date;
-
-  /* 3. */
-  {
-    /* new-diff-<ID>.prot is written below, which only the handover may do. */
-    absl::MutexLock handover_lck(&_conf_handover_m);
-    auto state = std::make_unique<engine::configuration::State>();
-    std::error_code read_ec;
-    common::read_proto_file(prev_file, *state, read_ec);
-    if (read_ec && read_ec != std::errc::no_such_file_or_directory) {
-      _logger->error("Cannot read '{}' for relay poller {}: {}",
-                     prev_file.string(), engine_id, read_ec.message());
-      return relay_config_response::unknown;
-    }
-    if (!read_ec) {
-      if (state->config_version() == relay_config_version)
-        return relay_config_response::up_to_date;
-
-      /* Relay is behind the last acknowledged state: send it as full state. */
-      const std::string version = state->config_version();
-      engine::configuration::DiffState diff;
-      diff.set_allocated_state(state.release());
-      std::error_code ec;
-      common::write_proto_file(diff_file, diff, false, ec);
-      if (ec) {
-        _logger->error("Cannot write '{}' for relay poller {}: {}",
-                       diff_file.string(), engine_id, ec.message());
-        return relay_config_response::unknown;
-      }
-      {
-        absl::MutexLock lck(&_poller_confs_m);
-        if (poller_conf* conf = _known_poller_conf(engine_id))
-          conf->prepare(version);
-      }
-      return relay_config_response::diff_ready;
-    }
-  }
-
-  /* 4. */
-  _logger->debug("Relay config response for poller {}: unknown (no prot file)",
-                 engine_id);
-  return relay_config_response::unknown;
-}
-
-/**
  * @brief Drain and return all ConfigRevoke poller IDs destined for relay_id.
  * Called from the BROKER-connected stream's read() to send ConfigRevoke
  * messages to the relay when a poller has migrated away from it.
@@ -3093,34 +2987,6 @@ void broker_state::clear_pending_for_poller(uint64_t poller_id) {
   absl::WriterMutexLock lck(&_connected_peers_m);
   _pending_diff_states.erase(poller_id);
   _pending_config_requests.erase(poller_id);
-}
-
-/**
- * @brief Returns the poller IDs of engine peers that are reachable via the
- * given relay and have a pending configuration update (available_conf differs
- * from engine_conf and has not yet been sent to the relay).
- *
- * Called from the BROKER-connected stream's read() on the central to push
- * new DiffStates to the relay after a PHP configuration push.
- *
- * @param relay_id The poller ID of the relay.
- * @return Vector of engine poller IDs needing an update via this relay.
- */
-std::vector<uint64_t> broker_state::pollers_via_relay_needing_update(
-    uint64_t relay_id) const {
-  /* The test is poller_conf::needs_update() and nothing else, as for a direct
-   * poller in poller_needs_update(): writing the same conditions a second time
-   * here is what let the two drift apart once, and a poller left out of one of
-   * them loses its configuration. */
-  std::vector<uint64_t> result;
-  const std::vector<uint64_t> behind_relay = _peers.pollers_via_relay(relay_id);
-  absl::ReaderMutexLock lck(&_poller_confs_m);
-  for (uint64_t id : behind_relay) {
-    auto it = _poller_confs.find(id);
-    if (it != _poller_confs.end() && it->second.needs_update())
-      result.push_back(id);
-  }
-  return result;
 }
 
 /**

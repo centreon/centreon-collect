@@ -188,8 +188,6 @@ class broker_state : public state {
       uint64_t poller_id,
       std::unique_ptr<engine::configuration::State>&& state)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
-  std::optional<bool> _prepare_diff_from_new_prot_file(uint64_t poller_id)
-      ABSL_LOCKS_EXCLUDED(_conf_handover_m);
   void _publish_global_diff() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   void _install_acknowledged_conf(uint64_t poller_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
@@ -363,16 +361,13 @@ class broker_state : public state {
   com::centreon::engine::configuration::foreign_objects load_foreign_objects()
       const;
 
-  enum class relay_config_response { unknown, up_to_date, diff_ready };
   void register_poller_via_relay(uint64_t poller_id,
                                  const std::string& poller_name,
                                  uint64_t relay_poller_id,
                                  const std::string& config_version)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  relay_config_response prepare_relay_config_response(
-      uint64_t engine_id,
-      const std::string& relay_config_version)
-      ABSL_LOCKS_EXCLUDED(_lck_set_m, _conf_handover_m);
+  std::optional<bool> _prepare_diff_from_new_prot_file(uint64_t poller_id)
+      ABSL_LOCKS_EXCLUDED(_conf_handover_m);
 
   /* Relay: queue a DiffState for forwarding to the Engine stream of poller N.
    * Called on the BROKER-connected stream when it receives a DiffState from
@@ -406,11 +401,6 @@ class broker_state : public state {
   /* Central: the poller IDs of the Engine peers reached through relay_id,
    * the ones its stream serves. */
   std::vector<uint64_t> pollers_via_relay(uint64_t relay_id) const;
-
-  /* Central: returns the poller IDs of engine peers reachable via relay_id
-   * that have a pending configuration update not yet sent. */
-  std::vector<uint64_t> pollers_via_relay_needing_update(
-      uint64_t relay_id) const ABSL_LOCKS_EXCLUDED(_poller_confs_m);
 
   /* Central: drain and return all ConfigRevoke poller IDs destined for
    * relay_id.  Called from the BROKER-connected stream's read(). */
