@@ -60,6 +60,16 @@ files_type(centreon_var_lib_t)
 type centreon_spool_t;
 files_type(centreon_spool_t)
 
+# ports labelled by the centreon-common-selinux postinstall (semanage port)
+type centreon_broker_port_t;
+corenet_port(centreon_broker_port_t)
+
+type centreon_otel_port_t;
+corenet_port(centreon_otel_port_t)
+
+type centreon_gorgoned_port_t;
+corenet_port(centreon_gorgoned_port_t)
+
 ########################################
 #
 # Centreon local policy

@@ -8,6 +8,7 @@ require {
 	type centreon_var_lib_t;
 	type centreon_engine_t;
 	type centreon_etc_t;
+	type centreon_otel_port_t;
 	type unconfined_t;
 	type unconfined_service_t;
 	type setroubleshootd_t;
@@ -59,6 +60,7 @@ allow centreon_engine_t sysctl_net_t:dir search;
 allow centreon_engine_t sysctl_net_t:file { open read getattr };
 allow centreon_engine_t cert_t:dir search;
 allow centreon_engine_t node_t:tcp_socket node_bind;
+allow centreon_engine_t centreon_otel_port_t:tcp_socket name_bind;
 allow centreon_engine_t nagios_unconfined_plugin_exec_t:file { open read execute execute_no_trans };
 allow centreon_engine_t var_log_t:dir { write add_name remove_name };
 allow centreon_engine_t var_log_t:file { create open write read setattr unlink };

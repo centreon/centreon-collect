@@ -5,6 +5,7 @@ policy_module(centreon-gorgoned, @VERSION@)
 # Declarations
 #
 require {
+	type centreon_gorgoned_port_t;
 	type unconfined_t;
 	type unconfined_service_t;
 	type useradd_t;
@@ -27,6 +28,7 @@ init_daemon_domain(centreon_gorgoned_t, centreon_gorgoned_exec_t)
 
 allow centreon_gorgoned_t self:process { setpgid signal_perms };
 allow centreon_gorgoned_t self:tcp_socket { accept listen };
+allow centreon_gorgoned_t centreon_gorgoned_port_t:tcp_socket name_bind;
 allow centreon_gorgoned_t self:file { read open write getattr read_file_perms relabelto };
 allow centreon_gorgoned_t fs_t:filesystem associate;
 allow rpm_script_t centreon_gorgoned_t:dir { getattr search };

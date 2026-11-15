@@ -31,3 +31,38 @@ centreon_selinux_unload() {
     || semodule -r "$1" > /dev/null 2>&1 \
     || echo "ERROR: could not remove the $1 SELinux module" >&2
 }
+
+# tcp ports that already have a local (semanage) mapping, one per line
+centreon_selinux_local_ports() {
+  semanage port -l -C -n 2>/dev/null \
+    | awk '$2 == "tcp" { for (i = 3; i <= NF; i++) { f = $i; sub(/,$/, "", f); print f } }'
+}
+
+# centreon_selinux_label_ports <type:port>...: one semanage transaction for all ports
+centreon_selinux_label_ports() {
+  existing=$(centreon_selinux_local_ports)
+  cmds=""
+  for spec in "$@"; do
+    action="-a"
+    if printf '%s\n' "$existing" | grep -qx "${spec##*:}"; then
+      action="-m"
+    fi
+    cmds="${cmds}port $action -t ${spec%%:*} -p tcp ${spec##*:}
+"
+  done
+  printf '%s' "$cmds" | semanage import || echo "ERROR: could not label the Centreon tcp ports" >&2
+}
+
+# centreon_selinux_unlabel_ports <type:port>...: only the mappings still set to our types
+centreon_selinux_unlabel_ports() {
+  current=$(semanage port -l -C -n 2>/dev/null)
+  cmds=""
+  for spec in "$@"; do
+    if printf '%s\n' "$current" | awk -v t="${spec%%:*}" -v p="${spec##*:}" \
+      '$1 == t && $2 == "tcp" { for (i = 3; i <= NF; i++) { f = $i; sub(/,$/, "", f); if (f == p) found = 1 } } END { exit !found }'; then
+      cmds="${cmds}port -d -p tcp ${spec##*:}
+"
+    fi
+  done
+  [ -z "$cmds" ] || printf '%s' "$cmds" | semanage import || echo "ERROR: could not remove the Centreon tcp port labels" >&2
+}

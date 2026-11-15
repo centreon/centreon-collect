@@ -25,7 +25,7 @@ require {
 	type node_t;
 	type var_log_t;
 	type var_lib_t;
-	type unreserved_port_t;
+	type centreon_broker_port_t;
 	type setfiles_t;
 	type cluster_t;
 	type mysqld_db_t;
@@ -63,7 +63,7 @@ allow centreon_broker_t ld_so_cache_t:file execute;
 allow centreon_broker_t sysctl_net_t:dir search;
 allow centreon_broker_t sysctl_net_t:file { open read getattr };
 allow centreon_broker_t sysfs_t:dir read;
-allow centreon_broker_t unreserved_port_t:tcp_socket { create accept listen setopt bind node_bind connect getopt getattr shutdown name_bind };
+allow centreon_broker_t centreon_broker_port_t:tcp_socket name_bind;
 allow rpm_script_t centreon_broker_t:dir { getattr setattr search open read };
 allow rpm_script_t centreon_broker_t:file { getattr setattr };
 allow centreon_broker_t centreon_var_lib_t:dir { search getattr write add_name remove_name };
