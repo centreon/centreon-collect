@@ -8,7 +8,7 @@ CENTREON_PORTS="centreon_broker_port_t:5669 centreon_broker_port_t:5670 centreon
 
 load() {
   # paths: keep in sync with the module .fc file
-  centreon_selinux_load centreon-common /etc/centreon /var/log/centreon /var/cache/centreon \
+  centreon_selinux_load centreon-common /etc/centreon /etc/centreon-engine /etc/centreon-broker /var/log/centreon /var/cache/centreon \
     /var/spool/centreon /var/spool/centreontrapd || return
   # shellcheck disable=SC2086
   centreon_selinux_label_ports $CENTREON_PORTS
