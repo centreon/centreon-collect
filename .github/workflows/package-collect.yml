@@ -117,6 +117,8 @@ jobs:
             MODULES=("centreon-engine" "centreon-broker")
           fi
 
+          SELINUX_POLICY_VERSION=$(rpm -q --qf '%{VERSION}' selinux-policy-devel | cut -d. -f1,2)
+          sed -i "s/@SELINUX_POLICY_VERSION@/$SELINUX_POLICY_VERSION/g" packaging/centreon-*/*-selinux.yaml
           cd selinux
           for MODULE in "${MODULES[@]}"; do
             cd $MODULE

@@ -16,12 +16,16 @@ license: "Apache-2.0"
 
 depends:
   - policycoreutils
-  - selinux-policy
+  - selinux-policy >= @SELINUX_POLICY_VERSION@
   - selinux-policy-targeted
 
 contents:
   - src: "../../selinux/centreon-common/centreon-common.pp"
     dst: "/usr/share/selinux/packages/centreon/centreon-common.pp"
+    file_info:
+      mode: 0644
+  - src: "./scripts/centreon-selinux-functions.sh"
+    dst: "/usr/share/selinux/packages/centreon/centreon-selinux-functions.sh"
     file_info:
       mode: 0644
 

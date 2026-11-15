@@ -15,6 +15,7 @@ license: "Apache-2.0"
 
 depends:
   - policycoreutils
+  - selinux-policy >= @SELINUX_POLICY_VERSION@
   - centreon-common-selinux
 replaces:
   - centreon-engine-selinux-debuginfo

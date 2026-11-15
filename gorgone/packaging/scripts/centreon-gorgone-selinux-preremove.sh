@@ -1,5 +1,7 @@
-#!/bin/bash
+#!/bin/sh
+
+. /usr/share/selinux/packages/centreon/centreon-selinux-functions.sh
 
 if [ "$1" -lt "1" ]; then
-  semodule -r centreon-gorgoned > /dev/null 2>&1 || :
+  centreon_selinux_unload centreon-gorgoned
 fi
