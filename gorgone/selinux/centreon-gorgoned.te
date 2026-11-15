@@ -21,6 +21,13 @@ type centreon_gorgoned_t;
 type centreon_gorgoned_exec_t;
 init_daemon_domain(centreon_gorgoned_t, centreon_gorgoned_exec_t)
 
+type centreon_gorgoned_var_lib_t;
+files_type(centreon_gorgoned_var_lib_t)
+manage_dirs_pattern(centreon_gorgoned_t, centreon_gorgoned_var_lib_t, centreon_gorgoned_var_lib_t)
+manage_files_pattern(centreon_gorgoned_t, centreon_gorgoned_var_lib_t, centreon_gorgoned_var_lib_t)
+# upgrade: files used to carry the process type, let restorecon move them away from it
+allow { setfiles_t rpm_script_t unconfined_t } centreon_gorgoned_t:{ dir file fifo_file lnk_file sock_file } { getattr relabelfrom };
+
 ########################################
 #
 # Centreon local policy
@@ -29,47 +36,24 @@ init_daemon_domain(centreon_gorgoned_t, centreon_gorgoned_exec_t)
 allow centreon_gorgoned_t self:process { setpgid signal_perms };
 allow centreon_gorgoned_t self:tcp_socket { accept listen };
 allow centreon_gorgoned_t centreon_gorgoned_port_t:tcp_socket name_bind;
-allow centreon_gorgoned_t self:file { read open write getattr read_file_perms relabelto };
+allow centreon_gorgoned_t centreon_gorgoned_var_lib_t:file { read open write getattr read_file_perms relabelto };
 allow centreon_gorgoned_t fs_t:filesystem associate;
-allow rpm_script_t centreon_gorgoned_t:dir { getattr search };
 
 #============= setroubleshootd_t ==============
-allow setroubleshootd_t centreon_gorgoned_t:dir { getattr search };
-allow setroubleshootd_t centreon_gorgoned_t:file getattr;
 
 #============= unconfined_t ==============
-allow unconfined_t centreon_gorgoned_t:dir { getattr setattr relabelfrom relabelto };
-allow unconfined_t centreon_gorgoned_t:file { getattr setattr relabelto rename };
 
 #============= unconfined_service_t ==============
-allow unconfined_service_t centreon_gorgoned_t:file { create read open write rename getattr setattr ioctl lock unlink };
-allow unconfined_service_t centreon_gorgoned_t:dir { getattr setattr search create write add_name remove_name };
 
 #============= useradd_t ==============
-allow useradd_t centreon_gorgoned_t:dir { getattr search setattr create write add_name remove_name };
-allow useradd_t centreon_gorgoned_t:file { open write read unlink create setattr getattr ioctl lock };
+allow useradd_t centreon_gorgoned_var_lib_t:dir { getattr search setattr create write add_name remove_name };
+allow useradd_t centreon_gorgoned_var_lib_t:file { open write read unlink create setattr getattr ioctl lock };
 
 #============= setfiles_t ==============
-allow setfiles_t centreon_gorgoned_t:dir relabelto;
-allow setfiles_t centreon_gorgoned_t:file relabelto;
 
 #============= kernel_t ==============
-allow kernel_t centreon_gorgoned_t:dir { getattr search setattr create write add_name remove_name };
-allow kernel_t centreon_gorgoned_t:file { open write read unlink create setattr getattr ioctl lock };
 
 #============= cluster ===============
-allow daemon initrc_transition_domain:fifo_file { ioctl read write getattr lock append };                                        
-allow domain unconfined_domain_type:association recvfrom; 
-allow domain domain:key { search link }; 
-allow domain unconfined_domain_type:tcp_socket recvfrom; 
-allow centreon_gorgoned_t domain:lnk_file { read getattr }; 
-allow daemon initrc_domain:fd use; 
-allow centreon_gorgoned_t domain:file { ioctl read getattr lock open }; 
-allow daemon initrc_domain:process sigchld; 
-allow domain unconfined_domain_type:peer recv; 
-allow centreon_gorgoned_t domain:dir { ioctl read getattr lock search open }; 
-allow daemon initrc_transition_domain:fd use; 
-allow daemon initrc_domain:fifo_file { ioctl read write getattr lock append }; 
 
 mysql_stream_connect(centreon_gorgoned_t)
 mysql_tcp_connect(centreon_gorgoned_t)
@@ -83,7 +67,6 @@ kernel_request_load_module(centreon_gorgoned_t)
 corecmd_exec_bin(centreon_gorgoned_t)
 corecmd_exec_shell(centreon_gorgoned_t)
 
-corenet_port(centreon_gorgoned_t)
 corenet_all_recvfrom_unlabeled(centreon_gorgoned_t)
 corenet_all_recvfrom_netlabel(centreon_gorgoned_t)
 corenet_tcp_sendrecv_generic_if(centreon_gorgoned_t)

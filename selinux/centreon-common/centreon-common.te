@@ -102,50 +102,6 @@ allow httpd_t snmpd_var_lib_t:file write;
 allow httpd_t systemd_logind_sessions_t:fifo_file write;
 allow httpd_t systemd_systemctl_exec_t:file { execute getattr };
 
-#============= unconfined_t ==============
-allow unconfined_t kernel_t:service start;
-
-#============= system_dbusd_t ==============
-allow system_dbusd_t setroubleshootd_t:process { noatsecure rlimitinh siginh };
-
-#============= systemd_tmpfiles_t ==============
-allow systemd_tmpfiles_t self:capability net_admin;
-
-#============= NetworkManager_t ==============
-allow NetworkManager_t initrc_t:process { noatsecure rlimitinh siginh };
-
-#============= systemd_logind_t ==============
-allow systemd_logind_t snmpd_t:dbus send_msg;
-
-#============= snmpd_t ==============
-allow snmpd_t fixed_disk_device_t:blk_file { read ioctl };
-allow snmpd_t security_t:security compute_av;
-allow snmpd_t self:capability audit_write;
-allow snmpd_t self:passwd passwd;
-allow snmpd_t self:netlink_audit_socket { read write create nlmsg_relay };
-allow snmpd_t self:netlink_selinux_socket { bind create };
-allow snmpd_t system_dbusd_t:dbus send_msg;
-allow snmpd_t systemd_logind_t:dbus send_msg;
-allow snmpd_t system_dbusd_t:unix_stream_socket connectto;
-allow snmpd_t var_spool_t:dir { add_name write };
-allow snmpd_t var_spool_t:file { create setattr write };
-allow snmpd_t faillog_t:file { open read getattr };
-allow snmpd_t hwdata_t:file { getattr open read };
-allow snmpd_t lastlog_t:file { open read write getattr };
-
-#============= sshd_t ==============
-allow sshd_t chkpwd_t:process { noatsecure rlimitinh siginh };
-allow sshd_t centreon_spool_t:file { getattr open read };
-
-#============= sshd_net_t ==============
-allow sshd_net_t kernel_t:fifo_file write;
-allow sshd_net_t kernel_t:process sigchld;
-
-#============= postfix_master_t ==============
-allow postfix_master_t postfix_pickup_t:process { noatsecure rlimitinh siginh };
-
 #============= domain ================
 #allow domain pidfile:sock_file { write getattr append open };
 
-#============= audisp_t ==============
-allow audisp_t unlabeled_t:file { getattr open read };
