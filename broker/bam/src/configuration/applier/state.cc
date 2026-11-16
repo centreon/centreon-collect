@@ -305,7 +305,8 @@ void applier::state::save_to_cache(
       fmt::format("{}.cache.{}", state.cache_dir(), name);
 
   std::error_code ec;
-  com::centreon::common::write_proto_file(cache_file, cache, false, ec);
+  com::centreon::common::write_proto_file(cache_file, cache,
+                                          state.cache_compression(), ec);
   if (ec)
     _logger->error("BAM: could not save BAM states to cache file '{}': {}",
                    cache_file.string(), ec.message());

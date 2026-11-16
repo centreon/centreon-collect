@@ -395,7 +395,7 @@ void broker_state::save_topology_cache() const {
   TopologyCache cache = _peers.topology_cache();
   const auto path = _pollers_config_dir / "topology.cache";
   std::error_code ec;
-  common::write_proto_file(path, cache, false, ec);
+  common::write_proto_file(path, cache, cache_compression(), ec);
   if (ec)
     _logger->error("Cannot write the topology cache '{}': {}", path.string(),
                    ec.message());
@@ -963,7 +963,7 @@ void broker_state::recover_stored_conf(
     }
 
     std::error_code ec;
-    common::write_proto_file(prot_file, conf, false, ec);
+    common::write_proto_file(prot_file, conf, cache_compression(), ec);
     if (ec) {
       _logger->error("Unable to create '{}': {}", prot_file.string(),
                      ec.message());
@@ -1837,7 +1837,7 @@ bool broker_state::_write_conf_file(uint32_t poller_id,
   }
   /* Whole or not at all: the stream may read it to send the full configuration
    * while a newer one replaces it. */
-  common::write_proto_file(path, state, false, ec);
+  common::write_proto_file(path, state, cache_compression(), ec);
   if (ec) {
     _logger->error(
         "Cannot write the new Engine protobuf configuration '{}': {}. Keeping "
@@ -2403,7 +2403,8 @@ bool broker_state::_prepare_diff_for_poller(
      * which an export must not touch. */
     const std::filesystem::path diff_prot_conf = paths.new_diff_path();
     std::error_code ec;
-    common::write_proto_file(diff_prot_conf, *diff_state, false, ec);
+    common::write_proto_file(diff_prot_conf, *diff_state, cache_compression(),
+                             ec);
     if (ec) {
       _logger->error(
           "Cannot write the diff Engine protobuf configuration '{}': {}",
@@ -2606,7 +2607,7 @@ void broker_state::_settle_acknowledged_diff(const poller_conf_paths& paths) {
   index.add_diff_state(previous, _logger);
   index.add_diff_state_from_same_poller(next, _logger);
   index.release_diff_state(merged);
-  common::write_proto_file(waiting, merged, false, ec);
+  common::write_proto_file(waiting, merged, cache_compression(), ec);
   if (ec) {
     _logger->error(
         "Cannot write the merged difference '{}': {}. Both differences are "

@@ -116,6 +116,7 @@ target_link_libraries(
     brokerrpc
     centreon_common
     centreon_grpc
+    proto_file
     stdc++fs
     nlohmann_json::nlohmann_json
     multiplexing
