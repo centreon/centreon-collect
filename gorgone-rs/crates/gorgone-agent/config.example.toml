@@ -310,9 +310,9 @@ prune = false
 #
 # The key centreon-web encrypts credentials with (`engine-context.json`),
 # written next to the engine configuration, readable by its group only, and,
-# on the central poller, also sent to its broker container. Pruning only
-# spares the digest markers: `prune = true` on `[targets.engine]`, which
-# shares this directory, removes the key at every engine push.
+# on the central poller, also sent to its broker container. It shares its
+# directory with `[targets.engine]`: pruning one target never removes the
+# files another target wrote (each one lists them in `.gorgone-<target>.files`).
 [targets.engine_context]
 path = "/etc/centreon-engine"
 file_mode = "0640"

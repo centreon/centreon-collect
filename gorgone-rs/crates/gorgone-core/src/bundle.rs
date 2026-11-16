@@ -411,12 +411,26 @@ pub fn apply_with_file_mode(
         kept.insert(rel);
     }
 
+    let manifest = manifest_name(options.marker);
     let pruned = if options.prune {
-        prune(dest, Path::new(""), &kept)?
+        let mut protected = kept.clone();
+        protected.extend(files_of_other_targets(dest, &manifest)?);
+        prune(dest, Path::new(""), &protected)?
     } else {
         0
     };
 
+    // Written before the marker: a target counts as applied only once the
+    // other targets of the directory can see which files are its own.
+    write_atomic(&dest.join(&manifest), 0o644, |file| {
+        for rel in &kept {
+            let line = rel
+                .to_str()
+                .ok_or_else(|| BundleError::UnsafeEntry(rel.display().to_string()))?;
+            writeln!(file, "{line}").map_err(io_err(dest))?;
+        }
+        Ok(())
+    })?;
     write_atomic(&dest.join(options.marker), 0o644, |file| {
         file.write_all(actual.as_bytes()).map_err(io_err(dest))
     })?;
@@ -440,11 +454,54 @@ fn is_safe(rel: &Path) -> bool {
     any
 }
 
-/// True for names reserved to the applied-digest markers.
+/// True for names reserved to the bookkeeping of the targets: the
+/// applied-digest markers and the file manifests.
 fn is_marker(rel: &Path) -> bool {
     rel.file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.starts_with(".gorgone-") && name.ends_with(".digest"))
+        .is_some_and(|name| {
+            name.starts_with(".gorgone-") && (name.ends_with(".digest") || name.ends_with(".files"))
+        })
+}
+
+/// Name of the manifest listing the files a target wrote, next to its marker.
+fn manifest_name(marker: &str) -> String {
+    match marker.strip_suffix(".digest") {
+        Some(stem) => format!("{stem}.files"),
+        None => format!("{marker}.files"),
+    }
+}
+
+/// Files that the other targets applied to `dest` wrote, from their
+/// manifests: pruning one target must never remove them.
+fn files_of_other_targets(dest: &Path, own: &str) -> Result<BTreeSet<PathBuf>, BundleError> {
+    let mut files = BTreeSet::new();
+    for entry in fs::read_dir(dest).map_err(io_err(dest))? {
+        let entry = entry.map_err(io_err(dest))?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        if name == own || !name.starts_with(".gorgone-") || !name.ends_with(".files") {
+            continue;
+        }
+        if !entry.file_type().map_err(io_err(dest))?.is_file() {
+            continue;
+        }
+        let path = entry.path();
+        let list = fs::read_to_string(&path).map_err(io_err(&path))?;
+        files.extend(list.lines().filter(|l| !l.is_empty()).map(PathBuf::from));
+    }
+    Ok(files)
+}
+
+/// True when `dir` is the root of a target, other than the one being pruned.
+fn holds_another_target(dir: &Path) -> Result<bool, BundleError> {
+    for entry in fs::read_dir(dir).map_err(io_err(dir))? {
+        let entry = entry.map_err(io_err(dir))?;
+        if is_marker(Path::new(&entry.file_name())) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 /// True when an existing parent directory of `dest/rel` is a symbolic link,
@@ -474,7 +531,7 @@ fn prune(dest: &Path, rel: &Path, kept: &BTreeSet<PathBuf>) -> Result<usize, Bun
                 .file_name()
                 .to_str()
                 .is_some_and(|name| name.starts_with(STAGING_PREFIX));
-            if !staging {
+            if !staging && !holds_another_target(&entry.path())? {
                 removed += prune(dest, &child, kept)?;
             }
         } else if kind.is_file() && !kept.contains(&child) && !is_marker(&child) {
@@ -534,6 +591,65 @@ mod tests {
 
         let again = apply(&bundle, &sum, dest.path(), &OPTIONS).unwrap();
         assert!(again.unchanged);
+    }
+
+    #[test]
+    fn prune_spares_files_of_other_targets() {
+        // The key of the engine_context target sits in the engine directory.
+        let dest = tempfile::tempdir().unwrap();
+        let key_dir = tempfile::tempdir().unwrap();
+        fs::write(key_dir.path().join("engine-context.json"), "{}").unwrap();
+        let key = pack(key_dir.path()).unwrap();
+        let key_options = ApplyOptions {
+            marker: ".gorgone-engine_context.digest",
+            prune: false,
+            ..OPTIONS
+        };
+        apply(&key, &digest(&key), dest.path(), &key_options).unwrap();
+        assert_eq!(
+            fs::read_to_string(dest.path().join(".gorgone-engine_context.files")).unwrap(),
+            "engine-context.json\n"
+        );
+
+        // A pruning engine push keeps the key and removes a stale file.
+        fs::write(dest.path().join("stale.cfg"), "old").unwrap();
+        let engine = pack(tree().path()).unwrap();
+        let report = apply(&engine, &digest(&engine), dest.path(), &OPTIONS).unwrap();
+        assert_eq!(report.pruned, 1);
+        assert!(dest.path().join("engine-context.json").exists());
+        assert!(!dest.path().join("stale.cfg").exists());
+        assert!(dest.path().join(".gorgone-engine_context.files").exists());
+
+        // A file the engine target wrote before and no longer ships goes away.
+        let smaller_dir = tempfile::tempdir().unwrap();
+        fs::write(smaller_dir.path().join("centengine.cfg"), "a=2\n").unwrap();
+        let smaller = pack(smaller_dir.path()).unwrap();
+        let report = apply(&smaller, &digest(&smaller), dest.path(), &OPTIONS).unwrap();
+        assert_eq!(report.pruned, 1);
+        assert!(!dest.path().join("objects/hosts.cfg").exists());
+        assert!(dest.path().join("engine-context.json").exists());
+    }
+
+    #[test]
+    fn prune_skips_the_directory_of_another_target() {
+        let dest = tempfile::tempdir().unwrap();
+        let nested = dest.path().join("vmware");
+        fs::create_dir(&nested).unwrap();
+        fs::write(nested.join("centreon_vmware.json"), "{}").unwrap();
+        fs::write(nested.join(".gorgone-vmware.digest"), "x").unwrap();
+        let bundle = pack(tree().path()).unwrap();
+        apply(&bundle, &digest(&bundle), dest.path(), &OPTIONS).unwrap();
+        assert!(nested.join("centreon_vmware.json").exists());
+    }
+
+    #[test]
+    fn bundle_cannot_carry_a_manifest() {
+        let src = tree();
+        fs::write(src.path().join(".gorgone-engine_context.files"), "x").unwrap();
+        let bundle = pack(src.path()).unwrap();
+        let dest = tempfile::tempdir().unwrap();
+        let err = apply(&bundle, &digest(&bundle), dest.path(), &OPTIONS).unwrap_err();
+        assert!(matches!(err, BundleError::UnsafeEntry(_)));
     }
 
     #[test]

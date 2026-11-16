@@ -274,6 +274,9 @@ writers call the API.
 - Bundles: digest verified before any write, no absolute path, no `..`, no
   link or device entries, no write through a linked directory, file modes
   reduced to 0644/0755.
+- Targets may share a directory: each one lists the files it wrote
+  (`.gorgone-<target>.files`) and pruning a target never removes another
+  target's files, nor enters a directory holding another target.
 - The agent reaches the engine API through a Unix socket shared with it when
   they are separate containers: that API has no authentication, so it is not
   put on the network.

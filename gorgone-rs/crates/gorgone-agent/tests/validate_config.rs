@@ -17,6 +17,7 @@ use support::{
 };
 
 const MARKER: &str = ".gorgone-engine.digest";
+const MANIFEST: &str = ".gorgone-engine.files";
 
 /// An engine target holding a live configuration.
 struct Target {
@@ -288,7 +289,10 @@ async fn apply_config_writes_nothing_unless_the_engine_agrees() {
             .count(),
         1
     );
-    assert_eq!(target.names(), [MARKER, "centengine.cfg", "hosts.cfg"]);
+    assert_eq!(
+        target.names(),
+        [MARKER, MANIFEST, "centengine.cfg", "hosts.cfg"]
+    );
     // The live main file is the one of the bundle, paths unchanged.
     assert_eq!(
         target.main_file(),
@@ -462,7 +466,10 @@ async fn local_command_checks_when_the_engine_api_is_not_used() {
     let (results, _, finished) = dissect(&session.job_events("push-good").await);
     assert_eq!(outcome(&finished), Outcome::Ok, "{finished:?}");
     assert_eq!(results.len(), 1);
-    assert_eq!(target.names(), [MARKER, "centengine.cfg", "hosts.cfg"]);
+    assert_eq!(
+        target.names(),
+        [MARKER, MANIFEST, "centengine.cfg", "hosts.cfg"]
+    );
 
     // A target without `engine_main_file`: applied unchecked, as before, and
     // nothing to validate. An unknown target is refused as well.

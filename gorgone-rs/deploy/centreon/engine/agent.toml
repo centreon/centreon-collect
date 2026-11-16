@@ -31,7 +31,8 @@ file_mode = "0640"
 
 [targets.engine]
 path = "/etc/centreon-engine"
-prune = false
+# Removes stale configuration files, never the key of engine_context.
+prune = true
 # Checked by the engine of this container before it is applied.
 engine_main_file = "centengine.cfg"
 

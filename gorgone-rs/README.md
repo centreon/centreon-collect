@@ -109,9 +109,9 @@ graph, with no RRD file anywhere. The data model is in
 UI is on <http://localhost:4000>.
 
 On the `poller` test image the broker module is reloaded with the engine, so
-the bench maps "broker reload" to an engine reload there. An `engine` target
-must keep `prune = false`: pruning would delete the key file the
-`engine_context` target writes in the same directory.
+the bench maps "broker reload" to an engine reload there. Targets may share a
+directory, such as `engine` and `engine_context`: pruning one never removes
+what another one wrote.
 
 ## Benchmark
 

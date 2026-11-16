@@ -989,7 +989,12 @@ echo "Total Errors:   $errors"
         // The live main file is the one of the bundle, not the derived one.
         assert_eq!(
             node.live(),
-            [".gorgone-engine.digest", "centengine.cfg", "hosts.cfg"]
+            [
+                ".gorgone-engine.digest",
+                ".gorgone-engine.files",
+                "centengine.cfg",
+                "hosts.cfg"
+            ]
         );
         assert_eq!(
             node.live_main(),
@@ -1093,7 +1098,12 @@ echo "Total Errors:   $errors"
         assert_eq!(done.outcome(), Outcome::Ok, "{}", done.message);
         assert_eq!(
             node.live(),
-            [".gorgone-engine.digest", "centengine.cfg", "hosts.cfg"]
+            [
+                ".gorgone-engine.digest",
+                ".gorgone-engine.files",
+                "centengine.cfg",
+                "hosts.cfg"
+            ]
         );
     }
 

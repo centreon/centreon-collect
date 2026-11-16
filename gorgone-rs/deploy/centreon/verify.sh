@@ -212,6 +212,16 @@ no_rrd_file() {
   [[ -z "${found}" ]]
 }
 
+# The engine target prunes stale files; the key of the engine_context target,
+# in the same directory, must survive a push that prunes.
+key_survives_pruning_push() {
+  "${COMPOSE[@]}" exec -T engine sh -c 'echo old > /etc/centreon-engine/stale.cfg'
+  clapi POLLERGENERATE engine > /dev/null
+  clapi CFGMOVE engine | grep -q 'engine: done'
+  ! "${COMPOSE[@]}" exec -T engine test -e /etc/centreon-engine/stale.cfg
+  "${COMPOSE[@]}" exec -T engine test -s /etc/centreon-engine/engine-context.json
+}
+
 no_centcore_file() {
   local files
   files=$("${COMPOSE[@]}" exec -T web sh -c \
@@ -238,6 +248,7 @@ check "an invalid configuration is refused and the running one kept" invalid_con
 check "performance data reaches VictoriaMetrics through the broker" metrics_reach_victoria
 check "centreon-web draws a graph from VictoriaMetrics" web_graph_from_victoria
 check "no RRD file is written nor read" no_rrd_file
+check "the key survives the pruning engine pushes" key_survives_pruning_push
 check "centreon-web wrote no centcore command file" no_centcore_file
 
 echo
