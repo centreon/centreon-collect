@@ -587,8 +587,8 @@ jobs:
           tags: |
             ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ steps.compute-tag.outputs.tag }}
           secrets: |
-            "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
-            "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
+            "PULP_INTERNAL_REPO_USERNAME=${{ secrets.PULP_INTERNAL_REPO_USERNAME }}"
+            "PULP_INTERNAL_REPO_PASSWORD=${{ secrets.PULP_INTERNAL_REPO_PASSWORD }}"
 
       - name: Attest build provenance (deterministic candidate only)
         # Only for builds with a version_tag (real promotion candidates).
