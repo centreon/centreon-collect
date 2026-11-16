@@ -175,7 +175,7 @@ Une version qui n'est pas celle préparée, parce que le poller annonce à sa re
 **L'échec** (`on_poller_conf_rejected()`). La version que le poller fait toujours tourner devient `engine_conf`, et la configuration en cours est libérée. Si la version refusée est la version préparée :
 
 1. `new-X.prot` et `new-diff-X.prot` sont supprimés : ils décrivent une configuration que le poller ne fera pas tourner. Un `diff-X.prot` n'est pas touché : c'est une différence que le poller a bien appliquée, qui attend la base. Un `next-X.prot` qui attendait prend leur place, sa différence calculée depuis `X.prot` que le poller fait toujours tourner ;
-2. le poller sort du tour, qui peut alors se fermer pour les autres ;
+2. le tour n'attend plus ce poller et peut alors se fermer. Si un `diff-X.prot` acquitté plus tôt attendait, le poller y compte comme acquitté : cette différence part à la base à la fermeture, même si c'est l'échec de ce poller qui la déclenche ;
 3. la version refusée et la raison sont gardées (`poller_conf::last_rejection()`, champ `rejection` de `Peer`), journalisées en erreur et visibles par la RPC `GetPollers`. Cette version n'est plus renvoyée, elle échouerait de la même façon.
 
 Le prochain export repart de `X.prot`, que le poller fait bien tourner. Une reconnexion du poller, qui recrée son entrée, retente aussi la version refusée : l'erreur pouvait venir de la machine plutôt que de la configuration.
@@ -267,39 +267,31 @@ Toutes les opérations sur les fichiers d'un poller se font sous un même verrou
 
 ## Quelques points plus techniques
 
-Lors de la connexion d'un Engine au Broker, la méthode `config::applier::add_peer()` est appelée. Elle fonctionne
-de la façon suivante :
+Lors de la connexion d'un pair au Broker, `Engine` ou `Broker`, la méthode `config::applier::add_peer()` est appelée. Elle fonctionne de la façon suivante :
 
 ```mermaid
 stateDiagram-v2
-    [*] --> config/applier/add_peer()
-    config/applier/add_peer() --> peer_already_known?
-    state if_state <<choice>>
-    peer_already_known? --> if_state
-    if_state --> peer_is_updated:True
-    if_state --> peer_is_added:False
-    state extended_nego <<choice>>
-    peer_is_updated --> extended_nego
-    peer_is_added --> extended_nego
-    extended_nego --> [*]: !extended_negotiation || peer is not a Broker
-    state if_watch_engine_timer_started <<choice>>
-    extended_nego --> if_watch_engine_timer_started: extended_negotiation && peer is a Broker
-    if_watch_engine_timer_started --> start_watch_engine_conf_timer(): engine conf timer not started
-    start_watch_engine_conf_timer() --> prot_file_created_from_state
-    if_watch_engine_timer_started --> prot_file_created_from_state: engine conf timer already started
-
-    state if_existing_lck_file_for_current_poller_id <<choice>>
-    prot_file_created_from_state --> if_existing_lck_file_for_current_poller_id
-    if_existing_lck_file_for_current_poller_id --> keep_lck_file_in_memory: Un fichier lck existe pour ce poller ID
-    if_existing_lck_file_for_current_poller_id --> [*]: Aucun fichier lck pour ce poller ID
-    keep_lck_file_in_memory: Ajout de l'ID dans la liste à traiter
-    keep_lck_file_in_memory --> [*]
+    [*] --> add_peer()
+    add_peer() --> registre : pair inscrit dans peer_registry
+    state type_conf <<choice>>
+    registre --> type_conf
+    type_conf --> on_connected() : pair Engine
+    type_conf --> nego : autre pair
+    on_connected() --> nego
+    state nego <<choice>>
+    nego --> [*] : négociation non étendue
+    nego --> surveillance : négociation étendue
+    surveillance : surveillance des annonces démarrée si besoin
+    state type_feed <<choice>>
+    surveillance --> type_feed
+    type_feed --> [*] : pair Broker ou autre
+    type_feed --> feed : pair Engine
+    feed : _feed_cache_and_wake_up_resources()
+    feed : publie X.prot, puis X.lck, new-X.prot ou X.prot dû
+    feed --> [*]
 ```
 
-Cette méthode mémorise le poller dans sa liste de peers. Elle démarre le timer de surveillance de la configuration
-`Engine` si la négociation est étendue et que le peer est un `Engine`. Et elle vérifie aussi s'il existe déjà un
-fichier `.lck` pour le poller ID car `inotify` ne remonte pas les fichiers existant avant son démarrage. Si un tel
-fichier est trouvé, l'ID du poller est ajouté à la liste à traiter pour le prochain tick du timer.
+Cette méthode inscrit le pair dans `peer_registry`. Avec une négociation étendue, elle démarre la surveillance des annonces si ce n'est pas déjà fait. Seul un pair `Engine` est un poller : c'est pour lui seul que `<ID>.prot` est publié (cache et réveil des objets en base) et que l'on regarde ce qui l'attend (`X.lck`, `new-X.prot`, voir [la livraison à la connexion d'un poller](#la-livraison)). Un pair `Broker` peut porter l'id d'un poller : le cbd rrd du central porte celui du poller central. Publier `<ID>.prot` à sa connexion réactiverait en base les objets d'un poller peut-être arrêté. Un poller derrière un relais est traité quand le relais demande sa configuration (`register_poller_via_relay()`).
 
 Par la suite, c'est `inotify` qui signale l'arrivée d'une annonce ; la liste des
 pollers à traiter est enrichie puis traitée en tâche de fond, après un regroupement

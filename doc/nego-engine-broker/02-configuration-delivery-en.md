@@ -159,7 +159,7 @@ A version that is not the one prepared, because the poller announces an older on
 **Failure** (`on_poller_conf_rejected()`). The version the poller still runs becomes `engine_conf`, and the configuration in flight is released. If the rejected version is the one prepared:
 
 1. `new-X.prot` and `new-diff-X.prot` are removed: they describe a configuration the poller will not run. A `diff-X.prot` is not touched: it is a difference the poller did apply, waiting for the database. A `next-X.prot` that was waiting takes their place, its difference computed from `X.prot`, which the poller still runs;
-2. the poller leaves the round, which can then close for the others;
+2. the round stops waiting for this poller and can then close. If a `diff-X.prot` acknowledged earlier was waiting, the poller counts in it as acknowledged: that difference goes to the database when the round closes, even when the failure of this poller is what closes it;
 3. the rejected version and the reason are kept (`poller_conf::last_rejection()`, `rejection` field of `Peer`), logged as an error and visible through the `GetPollers` RPC. That version is not sent again, it would fail the same way.
 
 The next export starts from `X.prot` again, which the poller does run. A reconnection of the poller, which recreates its entry, also tries the rejected version again: the error may have come from the machine rather than from the configuration.
@@ -251,35 +251,31 @@ Every operation on a poller's files happens under the same lock, `_conf_handover
 
 ## Some more technical points
 
-When an Engine connects to Broker, the `config::applier::add_peer()` method is called. It works as follows:
+When a peer connects to Broker, `Engine` or `Broker`, the `config::applier::add_peer()` method is called. It works as follows:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> config/applier/add_peer()
-    config/applier/add_peer() --> peer_already_known?
-    state if_state <<choice>>
-    peer_already_known? --> if_state
-    if_state --> peer_is_updated:True
-    if_state --> peer_is_added:False
-    state extended_nego <<choice>>
-    peer_is_updated --> extended_nego
-    peer_is_added --> extended_nego
-    extended_nego --> [*]: !extended_negotiation || peer is not a Broker
-    state if_watch_engine_timer_started <<choice>>
-    extended_nego --> if_watch_engine_timer_started: extended_negotiation && peer is a Broker
-    if_watch_engine_timer_started --> start_watch_engine_conf_timer(): engine conf timer not started
-    start_watch_engine_conf_timer() --> prot_file_created_from_state
-    if_watch_engine_timer_started --> prot_file_created_from_state: engine conf timer already started
-
-    state if_existing_lck_file_for_current_poller_id <<choice>>
-    prot_file_created_from_state --> if_existing_lck_file_for_current_poller_id
-    if_existing_lck_file_for_current_poller_id --> keep_lck_file_in_memory: A .lck file exists for this poller ID
-    if_existing_lck_file_for_current_poller_id --> [*]: No .lck file exists for this poller ID
-    keep_lck_file_in_memory: Addition of the ID to the list to process
-    keep_lck_file_in_memory --> [*]
+    [*] --> add_peer()
+    add_peer() --> registry : peer registered in peer_registry
+    state type_conf <<choice>>
+    registry --> type_conf
+    type_conf --> on_connected() : Engine peer
+    type_conf --> nego : other peer
+    on_connected() --> nego
+    state nego <<choice>>
+    nego --> [*] : negotiation not extended
+    nego --> watching : extended negotiation
+    watching : announcement watching started if needed
+    state type_feed <<choice>>
+    watching --> type_feed
+    type_feed --> [*] : Broker or other peer
+    type_feed --> feed : Engine peer
+    feed : _feed_cache_and_wake_up_resources()
+    feed : publishes X.prot, then X.lck, new-X.prot or X.prot owed
+    feed --> [*]
 ```
 
-This method memorizes the poller in its peers list. It starts the `Engine` configuration monitoring timer if negotiation is extended and the peer is an `Engine`. And it also checks if a `.lck` file already exists for the poller ID because `inotify` doesn't report files existing before it starts. If such a file is found, the poller ID is added to the list to process on the next timer tick.
+This method registers the peer in `peer_registry`. With an extended negotiation, it starts watching the announcements if that is not done yet. Only an `Engine` peer is a poller: it is for it alone that `<ID>.prot` is published (cache, and objects woken up in the database) and that what waits for it is looked at (`X.lck`, `new-X.prot`, see [handing over when a poller connects](#delivery)). A `Broker` peer may carry the id of a poller: the rrd cbd of the central carries the one of the central poller. Publishing `<ID>.prot` at its connection would enable again in the database the objects of a poller that may be stopped. A poller behind a relay is handled when the relay asks for its configuration (`register_poller_via_relay()`).
 
 Subsequently, `inotify` is what reports an announcement arriving; the list of pollers
 to handle is enriched then processed as a background task, after 500 ms of coalescing
