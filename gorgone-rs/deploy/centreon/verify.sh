@@ -155,17 +155,47 @@ invalid_config_is_not_applied() {
   ! "${COMPOSE[@]}" exec -T engine grep -q 'define service { broken' /etc/centreon-engine/services.cfg
 }
 
-# The RRD broker container writes the graph files that web reads through a
-# shared volume.
-web_sees_rrd_files() {
-  local attempt
-  for _ in $(seq 1 36); do
-    if "${COMPOSE[@]}" exec -T web sh -c 'ls /var/lib/centreon/metrics/*.rrd' > /dev/null 2>&1; then
+# Performance data sent to the Central engine goes engine -> broker ->
+# VictoriaMetrics, with the labels the web reads by.
+metrics_reach_victoria() {
+  local now
+  for _ in 1 2 3; do
+    now=$(date +%s)
+    gorgone_api POST "/v1/nodes/$(node_of Central)/jobs" -H 'Content-Type: application/json' \
+      -d "{\"engine_commands\":{\"commands\":[\"[${now}] PROCESS_SERVICE_CHECK_RESULT;Centreon-Server;Ping;0;OK - rta 12ms|rta=1${now: -1}ms;200;400;0 pl=0%;20;50;0;100\"]}}"
+    sleep 20
+  done
+  for _ in $(seq 1 30); do
+    if curl -s -G http://127.0.0.1:8428/api/v1/series \
+      --data-urlencode 'match[]=metric_val{name="rta",host_id="14"}' \
+      | python3 -I -c 'import json,sys; sys.exit(0 if json.load(sys.stdin)["data"] else 1)'; then
       return 0
     fi
     sleep 5
   done
   return 1
+}
+
+# The API v2 graph of that service is drawn from VictoriaMetrics.
+web_graph_from_victoria() {
+  local start end
+  start=$(date -u -d '-1 hour' +%Y-%m-%dT%H:%M:%SZ)
+  end=$(date -u -d '+5 minutes' +%Y-%m-%dT%H:%M:%SZ)
+  curl -s -f -H "X-AUTH-TOKEN: $(web_token)" \
+    "${WEB_URL}/api/latest/monitoring/hosts/14/services/26/metrics/start/${start}/end/${end}" \
+    | python3 -I -c '
+import json, sys
+graph = json.load(sys.stdin)
+values = [v for m in graph["metrics"] if m["metric"] == "rta" for v in m["data"] if v is not None]
+sys.exit(0 if values else 1)'
+}
+
+# Nothing writes or reads RRD files any more.
+no_rrd_file() {
+  local found
+  found=$("${COMPOSE[@]}" exec -T broker sh -c "find / -xdev -name '*.rrd' 2>/dev/null | head -1")
+  found+=$("${COMPOSE[@]}" exec -T web sh -c "find / -xdev -name '*.rrd' 2>/dev/null | head -1")
+  [[ -z "${found}" ]]
 }
 
 no_centcore_file() {
@@ -189,7 +219,9 @@ check "gorgone-server knows what the engine container runs" node_state_is_report
 check "a reload is refused after a failed configuration push" reload_refused_after_failed_push
 check "centreon-web has a configuration verified by the poller engine" web_validates_on_the_poller
 check "an invalid configuration is refused and the running one kept" invalid_config_is_not_applied
-check "centreon-web reads the RRD files written by the broker container" web_sees_rrd_files
+check "performance data reaches VictoriaMetrics through the broker" metrics_reach_victoria
+check "centreon-web draws a graph from VictoriaMetrics" web_graph_from_victoria
+check "no RRD file is written nor read" no_rrd_file
 check "centreon-web wrote no centcore command file" no_centcore_file
 
 echo

@@ -67,13 +67,14 @@ Perl or Python package next to it, and no command file anywhere.
 | ---------------------------------- | -------------------------------------------------------------------------- |
 | `gorgone-server`                   | the control plane alone, store in MariaDB                                  |
 | `web`                              | the slim centreon-web image (PHP and Apache), calling the Gorgone REST API |
-| `broker`, `broker-rrd`             | the central and RRD brokers; the RRD files are shared with `web`           |
+| `broker`                           | the central broker: SQL and VictoriaMetrics outputs                        |
+| `victoria-metrics`                 | the time series store; centreon-web reads its graphs from it               |
 | `central-engine` + `central-agent` | the engine of the "Central" poller and its `gorgone-agent` sidecar         |
 | `engine` + `engine-agent`          | a second container-only poller                                             |
 | `poller`                           | the Centreon poller test image, driven by `gorgone-agent`                  |
 
 The sidecars drive their engine over its gRPC API on a Unix socket, and the
-brokers over their HTTP control API. One-shot containers prepare the bench:
+broker over its HTTP control API. One-shot containers prepare the bench:
 `central-setup` points the broker flows at the broker containers, `secrets`
 copies the encryption key of centreon-web to the brokers and engines, and the
 `*-deploy` steps register the pollers and ask centreon-web to generate, push
@@ -97,7 +98,9 @@ sees every engine running, that a forced check sent through the centreon-web
 API reaches the engine, that the engine API is not reachable over the network,
 that a reload asked on top of a failed configuration push is not sent, that a
 configuration is verified by the poller's own engine and refused when invalid,
-and that centreon-web reads the RRD files written by the broker container. The
+and that performance data goes engine, broker, VictoriaMetrics and back to an
+API v2 graph, with no RRD file anywhere. The data model is in
+[docs/victoria-metrics-contract.md](docs/victoria-metrics-contract.md). The
 web UI is on <http://localhost:4000>.
 
 On the `poller` test image the broker module is reloaded with the engine, so

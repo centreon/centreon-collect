@@ -27,7 +27,7 @@ prune = false
 # Checked by the engine container, through its API, before it is applied.
 engine_main_file = "centengine.cfg"
 
-# Shared with the two broker containers, which read their file from it.
+# Shared with the broker container, which reads its file from it.
 [targets.broker]
 path = "/etc/centreon-broker"
 prune = false
@@ -43,4 +43,4 @@ restart = "grpc:shutdown"
 
 [services.broker]
 # The broker image exposes a small control API on its private network.
-reload = "http-post:http://broker:8080/reload http://broker-rrd:8080/reload"
+reload = "http-post:http://broker:8080/reload"

@@ -41,8 +41,8 @@ only place both sides take the data model from. Change it first, then both.
   period, and never less than the check interval.
 - Virtual metrics are computed by centreon-web on the fetched series.
 - The data source type of a metric (`metrics.data_source_type`) decides
-  the query: GAUGE is averaged as above; COUNTER and DERIVE are turned into
-  a per-second rate (`rate(metric_val{id="<metric_id>"}[<step>s])`;
-  DERIVE may be negative, COUNTER may not); ABSOLUTE is the value divided
-  by the interval between points. This is what RRD does on the write side.
+  the query, as RRD does on the write side: GAUGE is averaged as above;
+  COUNTER is a per-second rate (`rate(...)`, clamped at 0); DERIVE is
+  `delta(...)/step`, because `rate()` treats any decrease as a counter
+  reset and DERIVE may be negative; ABSOLUTE is `sum_over_time(...)/step`.
 - Same authentication options as the write side.
