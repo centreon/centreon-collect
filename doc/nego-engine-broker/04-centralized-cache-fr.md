@@ -56,10 +56,29 @@ objets. Elle arrive sous deux formes :
   jour. La différence est la seule forme qui dise ce qu'un export a retiré, d'où
   son emploi plutôt qu'un `pb_engine_state`.
 
+Une configuration complète ne dit que ce qui existe. Appliquée telle quelle, elle
+ajouterait et remplacerait, et ce que le poller ne définit plus resterait dans
+le cache. Avant de l'appliquer, le cache retire donc ce que le poller y possède
+et qu'elle ne définit plus (`_remove_stale_entries_of_poller()`) : ses hosts
+(ceux dont l'instance est le poller), les services et détections d'anomalie de
+ces hosts, et sa contribution à chaque groupe de hosts et de services, que la
+configuration complète redonne avec ses membres. Les membres d'un groupe
+partagé qui viennent d'un autre poller restent. Cela vaut pour `merge()` et pour
+un diff global qui porte la configuration complète d'un poller
+(`full_conf_poller_id`), ce qui arrive quand `Broker` n'avait pas de
+`<ID>.prot` pour calculer une différence. C'est le pendant, côté cache, du
+`clean_tables(full_configuration)` d'unified_sql, qui désactive les ressources
+du poller avant de les rajouter. Un host conservé n'est pas retiré puis remis :
+il garde son état d'exécution. Un host qui passe à un autre poller dans le même
+diff global non plus. Tests unitaires
+`BrokerCacheTest.FullConfigurationRemovesWhatThePollerNoLongerDefines` et
+`BrokerCacheTest.MergeRemovesWhatThePollerNoLongerDefines`.
+
 `merge()` comme `apply()` recréent l'entrée d'un host ou d'un service à partir
-de la configuration (`_fill_host`). L'état de check qu'elle portait est perdu à
-ce moment-là, jusqu'au prochain status ; voir
-[Ce qui n'est pas persisté](#ce-qui-nest-pas-persisté).
+de la configuration (`_fill_host`), mais en reprennent l'état d'exécution
+(`_keep_host_runtime()`, `_keep_service_runtime()`) : un host ou un service que
+la configuration redéfinit garde son état de check, son acquittement et ses
+overrides (test unitaire `BrokerCacheTest.ConfigRebuildKeepsRuntimeState`).
 
 **2. Les événements, via le multiplexeur.** Après avoir distribué un lot aux
 muxers, le moteur de multiplexing appelle `cache().publish(lot)`. Le cache
@@ -244,9 +263,9 @@ d'unified_sql ne lit que `instances`, `index_data`, `metrics`, les ids de
 * **L'état de check des ressources** (état, `state_type`, tentative,
   `last_check`, sortie, perfdata, historique de flapping…). Le cache le tient
   en mémoire via `update_host(pb_host_status)`, mais en configuration
-  centralisée il n'est jamais écrit, et il est **perdu à chaque `merge()`**
-  puisque `_fill_host` recrée l'entrée depuis la configuration. Il ne survit que
-  dans la base et dans le `retention.dat` local du poller.
+  centralisée il n'est jamais écrit. Une reconstruction de l'entrée par
+  `merge()` ou `apply()` le garde, mais un redémarrage de `Broker` le perd : il
+  ne survit que dans la base.
 * **Les downtimes futurs**, dont la fenêtre n'a pas commencé : ils ne sont ni
   dans le cache ni relus depuis la base. Après un redémarrage de Broker, seule la
   table `downtimes` en garde trace.
