@@ -970,6 +970,16 @@ void stream::negotiate(stream::negotiation_type neg) {
         SPDLOG_LOGGER_INFO(_logger, "BBDO: extension '{}' already configured",
                            ext->name());
     } else {
+      /* TLS set to 'yes' is a security requirement: going on in clear would let
+       * any peer send its data without encryption nor certificate check. */
+      if (ext->is_mandatory() && ext->name() == "TLS") {
+        std::string msg = fmt::format(
+            "BBDO: connection refused: extension 'TLS' is set to 'yes' in the "
+            "configuration but peer {} does not support it",
+            _broker_name.empty() ? peer() : fmt::format("'{}'", _broker_name));
+        SPDLOG_LOGGER_ERROR(_logger, msg);
+        throw msg_fmt(msg);
+      }
       if (ext->is_mandatory()) {
         SPDLOG_LOGGER_ERROR(
             _logger,
