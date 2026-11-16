@@ -1219,8 +1219,14 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   // Host name.
   if (it == a.end())
     return ERROR;
-  if (!it->empty())
-    criterias.emplace_back("host", std::string(it->data(), it->size()));
+  if (!it->empty()) {
+    // downtime_finder compares names: use the real name of the host, since
+    // find_host() also resolves the BAM virtual host named after the other
+    // poller id (uid or poller_id).
+    std::shared_ptr<host> hst = host::find_host(*it);
+    criterias.emplace_back(
+        "host", hst ? hst->name() : std::string(it->data(), it->size()));
+  }
 
   ++it;
 
