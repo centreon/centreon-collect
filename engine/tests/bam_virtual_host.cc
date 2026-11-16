@@ -22,6 +22,7 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
+#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
@@ -55,6 +56,7 @@ class bam_virtual_host_test : public ::testing::Test {
       _cbm->poller_id_value = 1;
       _cbm->original_poller_id_value = 1;
     }
+    downtimes::downtime_manager::instance().clear_scheduled_downtimes();
     deinit_config_state();
     events::loop::instance().clear();
   }
@@ -89,6 +91,19 @@ class bam_virtual_host_test : public ::testing::Test {
     svc.set_check_command("cmd");
     svc_hlp.set_default_values();
     svc_aply.add_object(svc);
+  }
+
+  /* Schedules a downtime on the host 12, or on its service 25 when
+   * 'on_service' is set, starting in one hour. */
+  void schedule_bam_downtime(bool on_service) {
+    time_t now = time(nullptr);
+    uint64_t downtime_id;
+    ASSERT_EQ(downtimes::downtime_manager::instance().schedule_downtime(
+                  on_service ? downtimes::downtime::service_downtime
+                             : downtimes::downtime::host_downtime,
+                  12, on_service ? 25 : 0, now, "admin", "bam", now + 3600,
+                  now + 7200, true, 0, 3600, &downtime_id),
+              OK);
   }
 };
 
@@ -142,4 +157,46 @@ TEST_F(bam_virtual_host_test, no_cbmod_no_fallback) {
   ASSERT_FALSE(hst);
   ASSERT_FALSE(svc);
   ASSERT_TRUE(exact_found);
+}
+
+TEST_F(bam_virtual_host_test, delete_service_downtime_by_uid_name) {
+  create_bam_host("_Module_BAM_1");
+  schedule_bam_downtime(true);
+  ASSERT_EQ(
+      downtimes::downtime_manager::instance().get_scheduled_downtimes().size(),
+      1u);
+  ASSERT_EQ(
+      downtimes::downtime_manager::instance()
+          .delete_downtime_by_hostname_service_description_start_time_comment(
+              "_Module_BAM_1001", "ba_1", {false, 0}, ""),
+      1);
+  ASSERT_TRUE(downtimes::downtime_manager::instance()
+                  .get_scheduled_downtimes()
+                  .empty());
+}
+
+TEST_F(bam_virtual_host_test, delete_host_downtime_by_poller_id_name) {
+  create_bam_host("_Module_BAM_1001");
+  schedule_bam_downtime(false);
+  ASSERT_EQ(
+      downtimes::downtime_manager::instance()
+          .delete_downtime_by_hostname_service_description_start_time_comment(
+              "_Module_BAM_1", "", {false, 0}, ""),
+      1);
+  ASSERT_TRUE(downtimes::downtime_manager::instance()
+                  .get_scheduled_downtimes()
+                  .empty());
+}
+
+TEST_F(bam_virtual_host_test, delete_downtime_other_name_keeps_it) {
+  create_bam_host("_Module_BAM_1");
+  schedule_bam_downtime(true);
+  ASSERT_EQ(
+      downtimes::downtime_manager::instance()
+          .delete_downtime_by_hostname_service_description_start_time_comment(
+              "_Module_BAM_7", "ba_1", {false, 0}, ""),
+      0);
+  ASSERT_EQ(
+      downtimes::downtime_manager::instance().get_scheduled_downtimes().size(),
+      1u);
 }

@@ -307,18 +307,10 @@ int downtime_manager::
       comment.empty())
     return deleted;
 
-  const std::string* hostname_bis = nullptr;
-  if (cbm && cbm->original_poller_id() != cbm->poller_id()) {
-    std::string bam_hostname_1 =
-        fmt::format("_Module_BAM_{}", cbm->poller_id());
-    std::string bam_hostname_2 =
-        fmt::format("_Module_BAM_{}", cbm->original_poller_id());
-    if (hostname == bam_hostname_1) {
-      hostname_bis = &bam_hostname_2;
-    } else if (hostname == bam_hostname_2) {
-      hostname_bis = &bam_hostname_1;
-    }
-  }
+  /* Downtimes are compared with the real host name: find_host() also resolves
+   * the BAM virtual host named after the other poller id (uid or poller_id). */
+  std::shared_ptr<host> hst = host::find_host(hostname);
+  const std::string& real_hostname = hst ? hst->name() : hostname;
 
   std::pair<std::multimap<time_t, std::shared_ptr<downtime>>::iterator,
             std::multimap<time_t, std::shared_ptr<downtime>>::iterator>
@@ -329,11 +321,6 @@ int downtime_manager::
   else
     range = {_scheduled_downtimes.begin(), _scheduled_downtimes.end()};
 
-  auto host_matches = [&hostname, hostname_bis](const std::string& name) {
-    return hostname.empty() || name == hostname ||
-           (hostname_bis && name == *hostname_bis);
-  };
-
   std::list<uint64_t> lst;
   for (auto it = range.first, end = range.second; it != end; ++it) {
     if (!comment.empty() && it->second->get_comment() != comment)
@@ -343,12 +330,12 @@ int downtime_manager::
       /* If service is specified, then do not delete the host downtime. */
       if (!service_description.empty())
         continue;
-      if (!host_matches(name))
+      if (!real_hostname.empty() && name != real_hostname)
         continue;
     } else if (downtime::service_downtime == it->second->get_type()) {
       service_downtime* sdt = static_cast<service_downtime*>(it->second.get());
       auto p = get_host_and_service_names(sdt->host_id(), sdt->service_id());
-      if (!host_matches(p.first))
+      if (!real_hostname.empty() && p.first != real_hostname)
         continue;
 
       if (p.second != service_description)

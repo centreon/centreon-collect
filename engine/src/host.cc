@@ -1175,8 +1175,8 @@ bool engine::host_exists(uint64_t host_id) noexcept {
  *  @return  The host id or 0.
  */
 uint64_t engine::get_host_id(const std::string& name) {
-  auto hst = host::find_host(name);
-  return hst ? hst->host_id() : 0u;
+  host_map::const_iterator found{host::hosts.find(name)};
+  return found != host::hosts.end() ? found->second->host_id() : 0u;
 }
 
 /**
