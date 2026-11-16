@@ -1836,10 +1836,8 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
-    auto it =
-        service::services.find({request->host_name(), request->service_desc()});
-    if (it != service::services.end())
-      temp_service = it->second;
+    temp_service =
+        service::find_service(request->host_name(), request->service_desc());
     if (temp_service == nullptr) {
       err = fmt::format("could not find service '{}', '{}'",
                         request->host_name(), request->service_desc());
@@ -1998,10 +1996,8 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
     uint64_t downtime_id(0);
     unsigned long duration;
     /* get the service */
-    auto it =
-        service::services.find({request->host_name(), request->service_desc()});
-    if (it != service::services.end())
-      temp_service = it->second;
+    temp_service =
+        service::find_service(request->host_name(), request->service_desc());
     if (temp_service == nullptr) {
       err = fmt::format("could not find service '{}', '{}'",
                         request->host_name(), request->service_desc());
@@ -3053,10 +3049,8 @@ grpc::Status engine_impl::ScheduleServiceCheck(
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::service> temp_service;
     /* get the service */
-    auto it =
-        service::services.find({request->host_name(), request->service_desc()});
-    if (it != service::services.end())
-      temp_service = it->second;
+    temp_service =
+        service::find_service(request->host_name(), request->service_desc());
     if (temp_service == nullptr) {
       err = fmt::format("could not find service '{}', '{}'",
                         request->host_name(), request->service_desc());
@@ -3203,10 +3197,8 @@ grpc::Status engine_impl::DelayServiceNotification(
     switch (request->identifier_case()) {
       case ServiceDelayIdentifier::kNames: {
         PairNamesIdentifier names = request->names();
-        auto it =
-            service::services.find({names.host_name(), names.service_name()});
-        if (it != service::services.end())
-          temp_service = it->second;
+        temp_service =
+            service::find_service(names.host_name(), names.service_name());
         if (temp_service == nullptr) {
           err = fmt::format("could not find service ('{}', '{}')",
                             names.host_name(), names.service_name());
@@ -3364,10 +3356,8 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
     std::shared_ptr<engine::service> temp_service;
     unsigned long attr = MODATTR_NONE;
 
-    auto it =
-        service::services.find({request->host_name(), request->service_desc()});
-    if (it != service::services.end())
-      temp_service = it->second;
+    temp_service =
+        service::find_service(request->host_name(), request->service_desc());
     if (temp_service == nullptr) {
       err = fmt::format("could not find service '{}', '{}'",
                         request->host_name(), request->service_desc());
@@ -3646,10 +3636,8 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
         request->mode() ==
             ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD) {
       /* verify that the service is valid */
-      auto it = service::services.find(
-          {request->host_name(), request->service_desc()});
-      if (it != service::services.end())
-        temp_service = it->second;
+      temp_service =
+          service::find_service(request->host_name(), request->service_desc());
       if (temp_service == nullptr) {
         err = fmt::format("could not find service ('{}', '{}')",
                           request->host_name(), request->service_desc());
@@ -3857,10 +3845,9 @@ grpc::Status engine_impl::ChangeServiceObjectCustomVar(
     std::string varname(request->varname());
 
     std::transform(varname.begin(), varname.end(), varname.begin(), ::toupper);
-    service_map::const_iterator it_s(service::services.find(
-        {request->host_name(), request->service_desc()}));
-    if (it_s != service::services.end())
-      temp_service = it_s->second.get();
+    temp_service =
+        service::find_service(request->host_name(), request->service_desc())
+            .get();
     if (temp_service == nullptr) {
       err = fmt::format("could not find service ('{}', '{}')",
                         request->host_name(), request->service_desc());
@@ -4130,10 +4117,9 @@ engine_impl::get_serv(
     case ServiceIdentifier::kNames: {
       const PairNamesIdentifier& names = serv_info.names();
       /* get the service */
-      auto itservicenames = service::services.find(
-          std::make_pair(names.host_name(), names.service_name()));
-      if (itservicenames != service::services.end())
-        return std::make_pair(itservicenames->second, err);
+      auto svc = service::find_service(names.host_name(), names.service_name());
+      if (svc)
+        return std::make_pair(svc, err);
       else {
         err = fmt::format("could not find service ('{}', '{}')",
                           names.host_name(), names.service_name());
