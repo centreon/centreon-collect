@@ -1029,12 +1029,15 @@ void broker_state::add_peer(uint64_t poller_id,
       _start_watching();
     }
 
-    /* Feeding the cache and waking up resources in the database. Only an
-     * Engine announces a configuration version. */
+    /* Feeding the cache and waking up resources in the database: only for a
+     * poller, that is an Engine. Another peer may share the id of a poller --
+     * the rrd cbd of the central carries the id of the central poller -- and
+     * publishing <ID>.prot at its connection would enable again in the
+     * database the objects of a poller that may be stopped. A poller behind a
+     * relay is fed when the relay asks for its configuration
+     * (register_poller_via_relay()). */
     if (peer_type == common::ENGINE)
       _feed_cache_and_wake_up_resources(poller_id, engine_conf_known);
-    else
-      _feed_cache_and_wake_up_resources(poller_id);
   }
 }
 

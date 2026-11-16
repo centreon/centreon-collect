@@ -269,6 +269,27 @@ TEST_F(PollerConfDelivery, T17_RejectedWithANewerExport) {
 }
 
 /**
+ * Scenario: a failure does not take back an acknowledged difference.
+ * Given a poller that acknowledged v1, its difference waiting for the database
+ * And v2 prepared and sent since
+ * When it reports it could not apply v2
+ * Then it is rejected, still running v1
+ * And the difference to v1 still waits for the database.
+ */
+TEST_F(PollerConfDelivery, RejectionKeepsTheAcknowledgedDiffPending) {
+  poller_conf conf = in_flight();
+  ASSERT_TRUE(conf.on_acknowledged("v1"));
+  conf.prepare("v2");
+  ASSERT_TRUE(conf.on_sent("v2"));
+
+  EXPECT_TRUE(conf.on_rejected("v1", "v2", "boom"));
+
+  EXPECT_EQ(conf.delivery_status(), delivery::rejected);
+  EXPECT_EQ(conf.engine_conf(), "v1");
+  EXPECT_EQ(conf.db_status(), db::pending);
+}
+
+/**
  * Scenario: transition 18, an export after a failure.
  * Given a poller that could not apply v1
  * When v2 is prepared

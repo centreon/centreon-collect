@@ -477,8 +477,11 @@ bool poller_conf::on_acknowledged(const std::string& version) {
  *
  * The poller still runs @p running_version, and nothing is in flight any more.
  * When @p failed_version is the configuration prepared for it, the poller
- * becomes rejected and leaves the round, since it will not acknowledge it:
- * sending it again would fail the same way. A new export (18), or a
+ * becomes rejected and the round stops waiting for it, since it will not
+ * acknowledge it: sending it again would fail the same way. The database
+ * automaton is not concerned: a `diff-<ID>.prot` acknowledged before is a
+ * difference the poller did apply, the failure does not remove it, and it
+ * still goes to the database when the round closes. A new export (18), or a
  * reconnection of the poller (19), tries again. An older version only says
  * what the poller runs, as with on_acknowledged(): the newer one stays owed and
  * is sent now (17).
@@ -500,10 +503,8 @@ bool poller_conf::on_rejected(const std::string& running_version,
   _engine_conf = running_version;
   _conf_in_flight.clear();
   const bool prepared = _available_conf == failed_version;
-  if (prepared) {
+  if (prepared)
     _rejection = rejection{failed_version, error};
-    _db = db_state::up_to_date;
-  }
   _settle();
   return prepared;
 }

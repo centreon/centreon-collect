@@ -23,9 +23,13 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <thread>
 
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "common/engine_conf/host_helper.hh"
 
 using namespace com::centreon::broker;
@@ -288,6 +292,38 @@ TEST_F(BrokerStateRound, VersionExportedDuringAFlightWaitsInNext) {
             (std::pair<std::string, std::string>{"v1", "v2"}));
   EXPECT_FALSE(std::filesystem::exists(_dir / "next-1.prot"));
   EXPECT_TRUE(_state->poller_needs_update(1));
+  EXPECT_FALSE(_state->try_close_conf_round());
+}
+
+/**
+ * Scenario: the failure of a version closes the round that the poller held
+ * open, and the version it acknowledged before goes to the database.
+ * Given a connected poller that was sent v1, with v2 exported since
+ * And the poller acknowledged v1: diff-<N>.prot waits for the database, and v2
+ * is owed, which keeps the round open
+ * When v2 is sent and the poller reports it could not apply it
+ * Then new-<N>.prot and new-diff-<N>.prot are gone, <N>.prot still holds v1
+ * And the round is closed: diff-<N>.prot, which the publication removes, is
+ * gone
+ * And there is no round left to close.
+ */
+TEST_F(BrokerStateRound, RejectionClosesTheRoundWithTheAcknowledgedDiff) {
+  _state->initialize_cache();
+  leave_prepared_conf(1, "v1");
+  connect(1);
+  ASSERT_TRUE(_state->set_poller_conf_sent(1, "v1"));
+  leave_next_conf(1, "v2");
+  _state->on_poller_conf_acknowledged(1, "v1");
+  ASSERT_TRUE(std::filesystem::exists(_dir / "diff-1.prot"));
+  ASSERT_TRUE(_state->poller_needs_update(1));
+
+  ASSERT_TRUE(_state->set_poller_conf_sent(1, "v2"));
+  _state->on_poller_conf_rejected(1, "v1", "v2", "boom");
+
+  EXPECT_FALSE(std::filesystem::exists(_dir / "new-1.prot"));
+  EXPECT_FALSE(std::filesystem::exists(_dir / "new-diff-1.prot"));
+  EXPECT_EQ(version_of("1.prot"), "v1");
+  EXPECT_FALSE(std::filesystem::exists(_dir / "diff-1.prot"));
   EXPECT_FALSE(_state->try_close_conf_round());
 }
 
@@ -699,6 +735,45 @@ TEST_F(BrokerStateNextDiff, SecondAcknowledgementMergesIntoTheWaitingDiff) {
   }
   EXPECT_EQ(stored.config_version(), "v3");
   EXPECT_FALSE(_state->try_close_conf_round());
+}
+
+/**
+ * Scenario: a Broker peer that shares the id of a poller is not that poller.
+ * Given 1.prot, the stored configuration of poller 1
+ * When a Broker peer with the id 1 connects, as the rrd cbd of the central does
+ * And then the Engine of poller 1 connects
+ * Then 1.prot is published once, for the Engine: published for the Broker peer,
+ * it would make unified_sql enable again in the database the objects of a
+ * poller that may be stopped.
+ */
+TEST_F(BrokerStateRound, BrokerPeerSharingAPollerIdPublishesNothing) {
+  leave_stored_conf(1, "v1");
+  /* The muxer opens a queue file, which goes through the disk accessor. */
+  file::disk_accessor::load(0);
+  multiplexing::muxer_filter filter{neb::pb_engine_state::static_type()};
+  std::shared_ptr<multiplexing::muxer> mux = multiplexing::muxer::create(
+      "ut_broker_state_round_engine_state",
+      multiplexing::engine::instance_ptr(), filter, filter);
+
+  /* The rrd cbd of the central carries the id of the central poller. */
+  _state->add_peer(1, "Central", "central-rrd-master",
+                   com::centreon::common::BROKER, true, "", "");
+  connect(1);
+  multiplexing::engine::instance_ptr()->start();
+
+  int published = 0;
+  for (int i = 0; i < 50; ++i) {
+    std::shared_ptr<io::data> d;
+    if (mux->read(d, 0) && d &&
+        d->type() == neb::pb_engine_state::static_type())
+      ++published;
+    else
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  EXPECT_EQ(published, 1);
+  multiplexing::engine::instance_ptr()->stop();
+  mux.reset();
+  file::disk_accessor::unload();
 }
 
 /**
