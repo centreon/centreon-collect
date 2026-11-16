@@ -203,7 +203,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
   }
 
   h->set_name(new_name);
-  h->set_display_name(std::move(new_display_name));
+  h->set_display_name(new_display_name);
   if (!new_obj.alias().empty())
     h->set_alias(new_obj.alias());
   else
@@ -359,7 +359,6 @@ void applier::host::modify_object(configuration::Host* old_obj,
 
   if (tags_changed) {
     h->mut_tags().clear();
-    old_obj->mutable_tags()->CopyFrom(new_obj.tags());
     for (auto& t : new_obj.tags()) {
       tag_map::iterator it_tag =
           engine::tag::tags.find({t.first(), t.second()});
@@ -412,6 +411,13 @@ void applier::host::modify_object(configuration::Host* old_obj,
     h->set_severity(sv->second);
   } else
     h->set_severity(nullptr);
+
+  /* Last, once everything above has compared the two: the configuration
+   * index, which state.prot is written from, now holds the new definition,
+   * with the names converted as add_object() stores them. */
+  old_obj->CopyFrom(new_obj);
+  old_obj->set_host_name(new_name);
+  old_obj->set_display_name(new_display_name);
 
   // Notify event broker.
   broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE,
