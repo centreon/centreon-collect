@@ -1,2 +1,3 @@
-/usr/sbin/centengine    --	gen_context(system_u:object_r:centreon_engine_exec_t,s0)
+# EL10 looks /usr/sbin paths up as /usr/bin (file_contexts.subs_dist): match both
+/usr/s?bin/centengine    --	gen_context(system_u:object_r:centreon_engine_exec_t,s0)
 /var/lib/centreon-engine(/.*)?  gen_context(system_u:object_r:centreon_engine_var_lib_t,s0)

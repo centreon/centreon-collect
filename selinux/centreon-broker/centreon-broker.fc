@@ -1,4 +1,5 @@
-/usr/sbin/cbwd	--	gen_context(system_u:object_r:centreon_broker_exec_t,s0)
-/usr/sbin/cbd	--	gen_context(system_u:object_r:centreon_broker_exec_t,s0)
+# EL10 looks /usr/sbin paths up as /usr/bin (file_contexts.subs_dist): match both
+/usr/s?bin/cbwd	--	gen_context(system_u:object_r:centreon_broker_exec_t,s0)
+/usr/s?bin/cbd	--	gen_context(system_u:object_r:centreon_broker_exec_t,s0)
 
 /var/lib/centreon-broker(/.*)?  gen_context(system_u:object_r:centreon_broker_var_lib_t,s0)
