@@ -33,6 +33,9 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::logging;
 
+// Seconds between two runs of the recurring downtimes.
+static constexpr unsigned long recurring_downtime_interval = 60;
+
 /**
  *  Apply new configuration.
  *
@@ -233,6 +236,7 @@ void applier::scheduler::clear() {
   _evt_command_check = nullptr;
   _evt_hfreshness_check = nullptr;
   _evt_orphan_check = nullptr;
+  _evt_recurring_downtime = nullptr;
   _evt_retention_save = nullptr;
   _evt_sfreshness_check = nullptr;
   _evt_status_save = nullptr;
@@ -285,6 +289,7 @@ applier::scheduler::scheduler()
       _evt_command_check(nullptr),
       _evt_hfreshness_check(nullptr),
       _evt_orphan_check(nullptr),
+      _evt_recurring_downtime(nullptr),
       _evt_retention_save(nullptr),
       _evt_sfreshness_check(nullptr),
       _evt_status_save(nullptr),
@@ -360,6 +365,14 @@ void applier::scheduler::_apply_misc_event() {
           timed_event::EVENT_ORPHAN_CHECK, now + DEFAULT_ORPHAN_CHECK_INTERVAL,
           DEFAULT_ORPHAN_CHECK_INTERVAL);
   }
+
+  // Recurring downtimes: a run on the next loop iteration, so right after each
+  // apply, then every minute.
+  _remove_misc_event(_evt_recurring_downtime);
+  if (!_pb_config->recurringdowntimes().empty())
+    _evt_recurring_downtime =
+        _create_misc_event(timed_event::EVENT_RECURRING_DOWNTIME, now,
+                           recurring_downtime_interval);
 
   // Remove and add a retention data save event if needed.
   if ((!_evt_retention_save && _pb_config->retain_state_information()) ||

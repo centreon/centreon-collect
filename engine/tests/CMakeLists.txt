@@ -101,12 +101,14 @@ if(WITH_TESTING)
       ${TESTS_DIR}/configuration/applier/applier-pbhostescalation.cc
       ${TESTS_DIR}/configuration/applier/applier-pbhostdependency.cc
       ${TESTS_DIR}/configuration/applier/applier-pbhostgroup.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbrecurringdowntime.cc
       ${TESTS_DIR}/configuration/applier/applier-pbservice.cc
       ${TESTS_DIR}/configuration/applier/applier-pbserviceescalation.cc
       ${TESTS_DIR}/configuration/applier/applier-pbservicegroup.cc
       ${TESTS_DIR}/configuration/applier/applier-pbstate.cc
       ${TESTS_DIR}/configuration/pbcontact.cc
       ${TESTS_DIR}/configuration/pbhost.cc
+      ${TESTS_DIR}/configuration/pbrecurringdowntime.cc
       ${TESTS_DIR}/configuration/pbservice.cc
       ${TESTS_DIR}/configuration/pbseverity.cc
       ${TESTS_DIR}/configuration/pbtag.cc
@@ -117,6 +119,7 @@ if(WITH_TESTING)
       ${TESTS_DIR}/custom_vars/pbextcmd.cc
       ${TESTS_DIR}/downtimes/pbdowntime.cc
       ${TESTS_DIR}/downtimes/pbdowntime_finder.cc
+      ${TESTS_DIR}/downtimes/pbrecurring_downtime.cc
       ${TESTS_DIR}/enginerpc/pbenginerpc.cc
       ${TESTS_DIR}/helper.cc
       ${TESTS_DIR}/macros/pbmacro.cc

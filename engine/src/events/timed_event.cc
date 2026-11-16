@@ -24,6 +24,7 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "com/centreon/engine/downtimes/recurring_downtime.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -136,6 +137,21 @@ void timed_event::_exec_event_enginerpc_check() {
 
   // send data to event broker.
   command_manager::instance().execute();
+}
+
+/**
+ * @brief Schedule the occurrences of the recurring downtimes that are about to
+ * start.
+ */
+void timed_event::_exec_event_recurring_downtime() {
+  events_logger->trace("** Recurring Downtime Event");
+  try {
+    recurring_downtime::schedule_all(time(nullptr));
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(downtimes_logger,
+                        "Recurring downtimes could not be scheduled: {}",
+                        e.what());
+  }
 }
 
 /**
@@ -396,7 +412,7 @@ time_t adjust_timestamp_for_time_change(int64_t time_difference, time_t ts) {
  */
 int timed_event::handle_timed_event() {
   typedef void (timed_event::*exec_event)();
-  static std::array<exec_event, 18> tab_exec_event{
+  static std::array<exec_event, 19> tab_exec_event{
       &timed_event::_exec_event_service_check,
       &timed_event::_exec_event_command_check,
       &timed_event::_exec_event_log_rotation,
@@ -414,7 +430,8 @@ int timed_event::handle_timed_event() {
       &timed_event::_exec_event_expire_comment,
       &timed_event::_exec_event_expire_host_ack,
       &timed_event::_exec_event_expire_service_ack,
-      &timed_event::_exec_event_enginerpc_check};
+      &timed_event::_exec_event_enginerpc_check,
+      &timed_event::_exec_event_recurring_downtime};
 
   engine_logger(dbg_functions, basic) << "handle_timed_event()";
   functions_logger->trace("handle_timed_event()");
@@ -444,6 +461,8 @@ std::string const& timed_event::name() const noexcept {
   static std::string const event_unknown("\"unknown\"");
   static std::string const event_sleep("EVENT_SLEEP");
   static std::string const event_user_function("EVENT_USER_FUNCTION");
+  static std::string const event_recurring_downtime(
+      "EVENT_RECURRING_DOWNTIME");
   static std::string const event_names[] = {
       "EVENT_SERVICE_CHECK",     "EVENT_COMMAND_CHECK",
       "EVENT_LOG_ROTATION",      "EVENT_PROGRAM_SHUTDOWN",
@@ -457,6 +476,8 @@ std::string const& timed_event::name() const noexcept {
 
   if (this->event_type < sizeof(event_names) / sizeof(event_names[0]))
     return event_names[this->event_type];
+  if (this->event_type == timed_event::EVENT_RECURRING_DOWNTIME)
+    return event_recurring_downtime;
   if (this->event_type == timed_event::EVENT_SLEEP)
     return event_sleep;
   if (this->event_type == timed_event::EVENT_USER_FUNCTION)

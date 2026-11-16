@@ -39,9 +39,12 @@ web_token() {
     | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["security"]["token"])'
 }
 
+# clapi <action> <values> [object]
 clapi() {
+  local object=""
+  [[ -n "${3:-}" ]] && object="\"object\":\"$3\","
   curl -s -m 120 -X POST -H 'Content-Type: application/json' -H "centreon-auth-token: $(web_token)" \
-    -d "{\"action\":\"$1\",\"values\":\"$2\"}" \
+    -d "{\"action\":\"$1\",${object}\"values\":\"$2\"}" \
     "${WEB_URL}/api/index.php?action=action&object=centreon_clapi"
 }
 
@@ -231,6 +234,48 @@ key_survives_pruning_push() {
   "${COMPOSE[@]}" exec -T engine test -s /etc/centreon-engine/engine-context.json
 }
 
+# A recurring downtime is scheduled by the engine of its host. The period
+# starts in two minutes (UTC, the zone of the containers).
+recurring_downtime_scheduled_by_engine() {
+  local name start end id
+  name="bench-recurring-$(date +%s)"
+  start=$(date -u -d '+2 minutes' +%H:%M)
+  end=$(date -u -d '+30 minutes' +%H:%M)
+  [[ "${end}" > "${start}" ]] || return 0 # too close to midnight for a same-day period
+  clapi ADD "${name};set by verify.sh" DOWNTIME > /dev/null
+  clapi ADDWEEKLYPERIOD "${name};${start};${end};1;;1,2,3,4,5,6,7" DOWNTIME > /dev/null
+  clapi ADDHOST "${name};Centreon-Server" DOWNTIME > /dev/null
+  id=$(sql "SELECT dt_id FROM centreon.downtime WHERE dt_name = '${name}'")
+  clapi POLLERGENERATE Central > /dev/null
+  clapi CFGMOVE Central > /dev/null
+  clapi POLLERRELOAD Central > /dev/null
+  for _ in $(seq 60); do
+    if [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.downtimes WHERE host_id = 14 AND COALESCE(service_id, 0) = 0 AND comment_data = '[Downtime cycle #${id}]' AND deletion_time IS NULL")" == 1 ]]; then
+      "${COMPOSE[@]}" logs central-engine | grep -q "Recurring downtime #${id}: host downtime"
+      return
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+# An operator cancels the host downtime: the next run (every 60 s) leaves it out.
+cancelled_recurring_downtime_stays_cancelled() {
+  local where="host_id = 14 AND COALESCE(service_id, 0) = 0 AND comment_data LIKE '[Downtime cycle #%' AND deletion_time IS NULL"
+  local internal_id
+  internal_id=$(sql "SELECT internal_id FROM centreon_storage.downtimes WHERE ${where} LIMIT 1")
+  [[ -n "${internal_id}" ]] || return 1
+  gorgone_api POST "/v1/nodes/1/jobs" -H 'Content-Type: application/json' \
+    -d "{\"engine_commands\":{\"commands\":[\"[$(date +%s)] DEL_HOST_DOWNTIME;${internal_id}\"]}}"
+  sleep 75 # one run of the recurring downtime event, every 60 s
+  [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.downtimes WHERE ${where}")" == 0 ]]
+}
+
+web_cron_leaves_recurring_downtimes_to_engine() {
+  "${COMPOSE[@]}" exec -T web-cron /usr/local/bin/frankenphp php-cli /usr/share/centreon/cron/downtimeManager.php |
+    grep -q 'scheduled by Centreon Engine'
+}
+
 no_centcore_file() {
   local files
   files=$(web_files_matching '^var/lib/centreon/centcore(\.cmd$|/.+[^/]$)')
@@ -257,6 +302,9 @@ check "performance data reaches VictoriaMetrics through the broker" metrics_reac
 check "centreon-web draws a graph from VictoriaMetrics" web_graph_from_victoria
 check "no RRD file is written nor read" no_rrd_file
 check "the key survives the pruning engine pushes" key_survives_pruning_push
+check "a recurring downtime is scheduled by the engine" recurring_downtime_scheduled_by_engine
+check "a cancelled recurring downtime is not scheduled again" cancelled_recurring_downtime_stays_cancelled
+check "the web cron leaves recurring downtimes to the engine" web_cron_leaves_recurring_downtimes_to_engine
 check "centreon-web wrote no centcore command file" no_centcore_file
 
 echo

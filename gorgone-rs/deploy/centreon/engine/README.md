@@ -1,6 +1,8 @@
 # centreon-engine image for the gorgone-rs proof of concept
 
-`centreon-engine-trixie:develop` with `/usr/sbin/centengine` replaced by a build of this branch, which adds the `ProcessExternalCommand` and `VerifyConfiguration` RPCs to the Engine gRPC API (`engine/enginerpc/engine.proto`) and lets that API listen on a Unix domain socket, and with the entrypoint script `05-engine-config.sh` of this branch, which reads `ENGINE_RPC_LISTEN_ADDRESS`. Nothing else changes: enginerpc is linked statically into `centengine`, and the binary keeps loading the shared objects of the image packages (`cbmod.so`, `libcentreon_clib.so`, `libcentreon_engine_conf.so`), so the branch must not diverge from `develop` in `common/`, `clib/`, `bbdo/` or `broker/neb/`.
+`centreon-engine-trixie:develop` with `/usr/sbin/centengine` replaced by a build of this branch, which adds the `ProcessExternalCommand` and `VerifyConfiguration` RPCs to the Engine gRPC API (`engine/enginerpc/engine.proto`), lets that API listen on a Unix domain socket and adds the `recurringdowntime` configuration object (recurring downtimes scheduled by Engine), and with the entrypoint script `05-engine-config.sh` of this branch, which reads `ENGINE_RPC_LISTEN_ADDRESS`.
+
+`recurringdowntime` adds messages to `common/engine_conf/state.proto`, so the image also replaces the configuration library `libcentreon_engine_conf.so` (`/usr/lib`) and the two modules compiled against its classes, `externalcmd.so` and `libopentelemetry.so` (`/usr/lib64/centreon-engine/`). `cbmod.so` and `libcentreon_clib.so` still come from the image packages (`cbmod.so` does not use the configuration classes), so the branch must not diverge from `develop` in `clib/`, `bbdo/` or `broker/neb/`. A Broker that parses the Engine configuration (`unified_sql`) needs the same `libcentreon_engine_conf.so` to read a configuration that contains `recurringdowntime` objects.
 
 ## Build
 
@@ -27,18 +29,23 @@ docker run --rm -v "$PWD":/src:ro -v collect-poc-build-trixie:/build -w /src "$P
     -DWITH_PREFIX_CONF_ENGINE=/etc/centreon-engine -DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine \
     -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_RW_DIR=/var/lib/centreon-engine/rw \
     -DWITH_VAR_DIR=/var/log/centreon-engine -DWITH_MODULE_SIMU=On -DLEGACY_ENGINE=OFF -DONLY_ROBOT_CMA=OFF
-  ninja -C /build -j "$(nproc)" centengine ut_engine rpc_client_engine bin_connector_test_run externalcmd'
+  ninja -C /build -j "$(nproc)" centengine centreon_engine_conf externalcmd opentelemetry \
+    ut_engine rpc_client_engine bin_connector_test_run'
 
-# 2. Unit tests of the gRPC API. The VerifyConfiguration tests run the
-#    engine/centengine built by step 1.
+# 2. Unit tests of the gRPC API and of the recurring downtimes. The
+#    VerifyConfiguration tests run the engine/centengine built by step 1.
 docker run --rm -v "$PWD":/src:ro -v collect-poc-build-trixie:/build -w /build "$PACKAGING" \
-  tests/ut_engine --gtest_filter='EngineRpc.*:enginerpc_test.*:ApplierGlobal.*'
+  tests/ut_engine --gtest_filter='EngineRpc.*:enginerpc_test.*:ApplierGlobal.*:recurring*'
 
-# 3. Build context, outside the working tree: the stripped binary and the
-#    entrypoint script of this branch.
+# 3. Build context, outside the working tree: the stripped binary, library and
+#    modules, and the entrypoint script of this branch.
 CTX=$(mktemp -d)
-docker run --rm -v collect-poc-build-trixie:/build:ro -v "$CTX":/out "$PACKAGING" \
-  sh -c 'strip -o /out/centengine /build/engine/centengine && chmod 755 /out/centengine'
+docker run --rm -v collect-poc-build-trixie:/build:ro -v "$CTX":/out "$PACKAGING" sh -ec '
+  strip -o /out/centengine /build/engine/centengine
+  strip -o /out/libcentreon_engine_conf.so /build/common/engine_conf/libcentreon_engine_conf.so
+  strip -o /out/externalcmd.so /build/engine/modules/external_commands/externalcmd.so
+  strip -o /out/libopentelemetry.so /build/engine/modules/opentelemetry/libopentelemetry.so
+  chmod 755 /out/*'
 cp .github/docker/centreon-engine/trixie/entrypoint/container.d/05-engine-config.sh "$CTX/"
 
 # 4. Image.

@@ -84,6 +84,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     message_helper.hh
     parser.cc
     parser.hh
+    recurringdowntime_helper.cc
+    recurringdowntime_helper.hh
     service_helper.cc
     service_helper.hh
     servicedependency_helper.cc

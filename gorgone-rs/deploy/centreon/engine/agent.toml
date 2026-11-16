@@ -14,12 +14,20 @@ allowlist = []
 [engine]
 # The engine runs in this container: its API socket is local.
 grpc_url = "unix:/var/lib/centreon-engine/rw/engine.sock"
+# Same list as the poller (gorgone-rs-lib.sh), plus the global notification switch.
 allowed_commands = [
   'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
+  'SCHEDULE_(FORCED_)?HOST_SVC_CHECKS',
   'ACKNOWLEDGE_(HOST|SVC)_PROBLEM',
   'REMOVE_(HOST|SVC)_ACKNOWLEDGEMENT',
   'SCHEDULE_(HOST|SVC)_DOWNTIME',
+  'SCHEDULE_HOST_SVC_DOWNTIME',
+  'DEL_(HOST|SVC)_DOWNTIME',
+  'ADD_(HOST|SVC)_COMMENT',
+  'DEL_(HOST|SVC)_COMMENT',
   'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
+  '(ENABLE|DISABLE)_(HOST|SVC)_NOTIFICATIONS',
+  '(ENABLE|DISABLE)_(HOST|SVC)_CHECK',
   '(ENABLE|DISABLE)_NOTIFICATIONS',
 ]
 

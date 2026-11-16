@@ -32,6 +32,7 @@ set(
   "${SRC_DIR}/host_downtime.cc"
   "${SRC_DIR}/service_downtime.cc"
   "${SRC_DIR}/downtime_finder.cc"
+  "${SRC_DIR}/recurring_downtime.cc"
 
   # Headers.
   "${INC_DIR}/downtime.hh"
@@ -39,6 +40,7 @@ set(
   "${INC_DIR}/host_downtime.hh"
   "${INC_DIR}/service_downtime.hh"
   "${INC_DIR}/downtime_finder.hh"
+  "${INC_DIR}/recurring_downtime.hh"
 
   PARENT_SCOPE
 )

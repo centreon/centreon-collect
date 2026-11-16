@@ -76,6 +76,8 @@ x-web: &web
     CENTREON_INTERNAL_API_BASE_URL: 127.0.0.1:80
     GORGONE_API_ADDRESS: gorgone-server
     VICTORIA_METRICS_URL: http://victoria-metrics:8428
+    # The engines schedule recurring downtimes; the web cron no longer does.
+    CENTREON_FEATURE_FLAGS: engine_recurring_downtimes
 
 services:
   db:

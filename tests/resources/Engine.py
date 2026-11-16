@@ -3338,6 +3338,44 @@ def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
         ff.writelines(lines)
 
 
+def ctn_create_recurring_downtime(poller: int, downtime_id: int, host_ids: str = "", service_ids: str = "",
+                                  start_offset: int = -120, end_offset: int = 3600):
+    """
+    Append a recurringdowntime object to recurringdowntimes.cfg of the poller.
+    Its only period is a fixed weekly period on today, from now + start_offset
+    to now + end_offset seconds, in local time and clamped to today.
+    Reference the file with Ctn Config Engine Add Cfg File.
+
+    Args:
+        poller (int): Index of the poller.
+        downtime_id (int): Id of the rule (comment "[Downtime cycle #<id>]").
+        host_ids (str): Comma separated host ids, may be empty.
+        service_ids (str): Comma separated host_id:service_id pairs, may be empty.
+        start_offset (int): Start of the period, in seconds from now.
+        end_offset (int): End of the period, in seconds from now.
+    """
+    now = datetime.datetime.now()
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    next_midnight = midnight + datetime.timedelta(days=1)
+    start = max(now + datetime.timedelta(seconds=start_offset), midnight)
+    end = min(now + datetime.timedelta(seconds=end_offset), next_midnight)
+
+    def hhmm(d):
+        return "24:00" if d >= next_midnight else d.strftime("%H:%M")
+
+    lines = ["define recurringdowntime {\n",
+             f"    downtime_id                    {downtime_id}\n"]
+    if host_ids:
+        lines.append(f"    host_ids                       {host_ids}\n")
+    if service_ids:
+        lines.append(f"    service_ids                    {service_ids}\n")
+    lines.append(
+        f"    period                         weekly:{now.isoweekday()} {hhmm(start)}-{hhmm(end)} fixed\n")
+    lines.append("}\n")
+    with open(f"{CONF_DIR}/config{poller}/recurringdowntimes.cfg", "a+") as ff:
+        ff.writelines(lines)
+
+
 def ctn_add_severity_to_services(poller: int, severity_id: int, svc_lst):
     """
     Add a severity to services.

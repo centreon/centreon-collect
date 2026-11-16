@@ -740,6 +740,66 @@ BEDTCANCELCLEAN
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
 
+BEDTRECUR1
+    [Documentation]    Given a recurringdowntime object on host_1 whose period starts within 10 minutes
+    ...    and that also targets a host unknown to Engine
+    ...    When Engine starts
+    ...    Then the unknown host is a configuration warning
+    ...    And Engine schedules the host downtime and one downtime per service of host_1,
+    ...    with the author and comment the Centreon Web cron used
+    ...    And a reload schedules no duplicate
+    ...    And a cancelled host downtime is not scheduled again.
+    [Tags]    broker    engine    downtime    recurring-downtime
+    Ctn Clear Logs
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    # The period starts after Engine: a rule loaded at start does not catch up
+    # an occurrence that started before the process.
+    Ctn Create Recurring Downtime    ${0}    ${3}    host_ids=1,999    start_offset=${180}
+    Ctn Config Engine Add Cfg File    ${0}    recurringdowntimes.cfg
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${content}    Create List    recurring downtime #3 targets host 999 that does not exist
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The unknown host 999 should be a configuration warning.
+
+    ${content}    Create List    Recurring downtime #3: host downtime
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Engine should have scheduled the host downtime of rule #3.
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${query}    Catenate    SELECT downtime_id FROM downtimes
+    ...    WHERE comment_data='[Downtime cycle #3]' AND author='Downtime cycle' AND deletion_time IS NULL
+    # 1 host downtime + 20 service downtimes.
+    Check Row Count    ${query}    ==    21    retry_timeout=60s    retry_pause=2s
+
+    ${reload}    Ctn Get Round Current Date
+    Ctn Reload Engine
+    ${content}    Create List    Reload configuration finished
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${reload}    ${content}    60
+    Should Be True    ${result}    Engine should have reloaded its configuration.
+    Check Row Count    ${query}    ==    21    retry_timeout=10s    retry_pause=2s
+
+    # A cancelled occurrence is not scheduled again.
+    Ctn Delete Host Downtimes    ${0}    host_1
+    Check Row Count    ${query}    ==    20    retry_timeout=60s    retry_pause=2s
+    # Engine runs the recurring downtimes every 60 s: let one run pass.
+    Sleep    70s
+    Check Row Count    ${query}    ==    20    retry_timeout=5s    retry_pause=2s
+    Disconnect From Database
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
 
 *** Keywords ***
 Ctn Clean Downtimes Before Suite

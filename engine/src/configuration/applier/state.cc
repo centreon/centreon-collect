@@ -37,6 +37,7 @@
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
 #include "com/centreon/engine/configuration/applier/macros.hh"
+#include "com/centreon/engine/configuration/applier/recurringdowntime.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
@@ -46,6 +47,7 @@
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
+#include "com/centreon/engine/downtimes/recurring_downtime.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/broker_sink.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -164,6 +166,7 @@ void applier::state::clear() {
   engine::timeperiod::timeperiods.clear();
   engine::comment::comments.clear();
   engine::comment::set_next_comment_id(1llu);
+  engine::downtimes::recurring_downtime::clear();
 
   applier::scheduler::instance().clear();
   applier::macros::instance().clear();
@@ -200,6 +203,7 @@ applier::state::~state() noexcept {
   engine::timeperiod::timeperiods.clear();
   engine::comment::comments.clear();
   engine::comment::set_next_comment_id(1llu);
+  engine::downtimes::recurring_downtime::clear();
 }
 
 /**
@@ -1397,6 +1401,13 @@ void applier::state::_processing(configuration::State& new_cfg,
       *pb_config.mutable_serviceescalations(), new_cfg.serviceescalations(),
       identity<Serviceescalation>);
 
+  // Build difference for recurring downtimes.
+  pb_difference<configuration::Recurringdowntime, uint64_t>
+      diff_recurringdowntimes;
+  diff_recurringdowntimes.parse(*pb_config.mutable_recurringdowntimes(),
+                                new_cfg.recurringdowntimes(),
+                                &configuration::Recurringdowntime::downtime_id);
+
   // Timing.
   gettimeofday(tv + 1, nullptr);
 
@@ -1529,6 +1540,12 @@ void applier::state::_processing(configuration::State& new_cfg,
     _resolve<configuration::Serviceescalation, applier::serviceescalation>(
         pb_config.serviceescalations(), err);
 
+    // Apply recurring downtimes, once hosts and services are known.
+    _apply<configuration::Recurringdowntime, uint64_t,
+           applier::recurringdowntime>(diff_recurringdowntimes, err);
+    _resolve<configuration::Recurringdowntime, applier::recurringdowntime>(
+        pb_config.recurringdowntimes(), err);
+
 #ifdef DEBUG_CONFIG
     std::cout << "WARNING!! You are using a version of Centreon Engine for "
                  "developers!!! This is not a production version.";
@@ -1656,6 +1673,7 @@ void applier::state::_processing(configuration::State& new_cfg,
   }
 
   has_already_been_loaded = true;
+  engine::downtimes::recurring_downtime::set_initial_load_done();
   _processing_state = state_ready;
 }
 
