@@ -181,7 +181,7 @@ std::shared_ptr<service> service::find_service(const std::string& hostname,
     uint64_t host_poller_id;
     if (absl::SimpleAtoi(std::string_view(hostname).substr(12),
                          &host_poller_id) &&
-        cbm) {
+        cbm && cbm->poller_id() != cbm->original_poller_id()) {
       if (host_poller_id == cbm->poller_id()) {
         search = services.find(std::make_pair(
             fmt::format("_Module_BAM_{}", cbm->original_poller_id()), name));

@@ -2670,6 +2670,25 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::list<service_downtime*> dtlist;
+
+    const std::string* hostname_bis = nullptr;
+    if (cbm && cbm->original_poller_id() != cbm->poller_id()) {
+      std::string bam_hostname_1 =
+          fmt::format("_Module_BAM_{}", cbm->poller_id());
+      std::string bam_hostname_2 =
+          fmt::format("_Module_BAM_{}", cbm->original_poller_id());
+      if (request->host_name() == bam_hostname_1) {
+        hostname_bis = &bam_hostname_2;
+      } else if (request->host_name() == bam_hostname_2) {
+        hostname_bis = &bam_hostname_1;
+      }
+    }
+
+    auto host_matches = [request, hostname_bis](const std::string& name) {
+      return request->host_name().empty() || name == request->host_name() ||
+             (hostname_bis && name == *hostname_bis);
+    };
+
     /* iterate through all current downtime(s) */
     for (auto it = downtimes::downtime_manager::instance()
                        .get_scheduled_downtimes()
@@ -2683,7 +2702,7 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
        */
       auto p =
           engine::get_host_and_service_names(dt->host_id(), dt->service_id());
-      if (!request->host_name().empty() && p.first != request->host_name())
+      if (!host_matches(p.first))
         continue;
       if (!request->service_desc().empty() &&
           p.second != request->service_desc())

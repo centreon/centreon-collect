@@ -1175,8 +1175,8 @@ bool engine::host_exists(uint64_t host_id) noexcept {
  *  @return  The host id or 0.
  */
 uint64_t engine::get_host_id(const std::string& name) {
-  host_map::const_iterator found{host::hosts.find(name)};
-  return found != host::hosts.end() ? found->second->host_id() : 0u;
+  auto hst = host::find_host(name);
+  return hst ? hst->host_id() : 0u;
 }
 
 /**
@@ -4163,7 +4163,8 @@ std::shared_ptr<host> host::find_host(const std::string_view& name) {
   }
   if (!name.compare(0, 12, "_Module_BAM_")) {
     uint64_t host_poller_id;
-    if (absl::SimpleAtoi(name.substr(12), &host_poller_id) && cbm) {
+    if (absl::SimpleAtoi(name.substr(12), &host_poller_id) && cbm &&
+        cbm->poller_id() != cbm->original_poller_id()) {
       if (host_poller_id == cbm->poller_id()) {
         search = hosts.find(
             fmt::format("_Module_BAM_{}", cbm->original_poller_id()));

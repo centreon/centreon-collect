@@ -307,6 +307,19 @@ int downtime_manager::
       comment.empty())
     return deleted;
 
+  const std::string* hostname_bis = nullptr;
+  if (cbm && cbm->original_poller_id() != cbm->poller_id()) {
+    std::string bam_hostname_1 =
+        fmt::format("_Module_BAM_{}", cbm->poller_id());
+    std::string bam_hostname_2 =
+        fmt::format("_Module_BAM_{}", cbm->original_poller_id());
+    if (hostname == bam_hostname_1) {
+      hostname_bis = &bam_hostname_2;
+    } else if (hostname == bam_hostname_2) {
+      hostname_bis = &bam_hostname_1;
+    }
+  }
+
   std::pair<std::multimap<time_t, std::shared_ptr<downtime>>::iterator,
             std::multimap<time_t, std::shared_ptr<downtime>>::iterator>
       range;
@@ -315,6 +328,11 @@ int downtime_manager::
     range = _scheduled_downtimes.equal_range(start_time.second);
   else
     range = {_scheduled_downtimes.begin(), _scheduled_downtimes.end()};
+
+  auto host_matches = [&hostname, hostname_bis](const std::string& name) {
+    return hostname.empty() || name == hostname ||
+           (hostname_bis && name == *hostname_bis);
+  };
 
   std::list<uint64_t> lst;
   for (auto it = range.first, end = range.second; it != end; ++it) {
@@ -325,12 +343,12 @@ int downtime_manager::
       /* If service is specified, then do not delete the host downtime. */
       if (!service_description.empty())
         continue;
-      if (!hostname.empty() && name != hostname)
+      if (!host_matches(name))
         continue;
     } else if (downtime::service_downtime == it->second->get_type()) {
       service_downtime* sdt = static_cast<service_downtime*>(it->second.get());
       auto p = get_host_and_service_names(sdt->host_id(), sdt->service_id());
-      if (!hostname.empty() && p.first != hostname)
+      if (!host_matches(p.first))
         continue;
 
       if (p.second != service_description)

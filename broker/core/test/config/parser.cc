@@ -1412,6 +1412,5 @@ TEST(parser, uid_overrides_poller_id_2) {
 
   ASSERT_EQ(s.poller_id(), 123456789012345678ULL);
   ASSERT_EQ(s.uid(), 123456789012345678ULL);
-  // The 'poller_id' key is kept even when it comes after 'uid'.
   ASSERT_EQ(s.original_poller_id(), 2ULL);
 }
