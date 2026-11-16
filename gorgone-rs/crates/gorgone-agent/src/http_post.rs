@@ -1,6 +1,7 @@
-//! Minimal HTTP/1.1 client of the `http-post:` service actions: one bodiless
-//! `POST` per URL, of which only the status line is read. Plain text only, no
-//! redirect followed. Written on `tokio::net` to keep an HTTP client crate
+//! Minimal HTTP/1.1 client of the `http-post:` service actions (one bodiless
+//! `POST` per URL) and of the remote configuration targets (one `PUT` of a
+//! tar per URL). Only the status line of the answer is read. Plain text only,
+//! no redirect followed. Written on `tokio::net` to keep an HTTP client crate
 //! out of the agent.
 
 use std::time::Duration;
@@ -155,28 +156,86 @@ impl std::fmt::Display for PostError {
     }
 }
 
+/// One request; the caller bounds the body.
+#[derive(Clone, Copy)]
+pub(crate) struct Request<'a> {
+    /// `POST`, `PUT`...
+    pub method: &'static str,
+    /// Value of the `Content-Type` header, sent when set.
+    pub content_type: Option<&'static str>,
+    pub body: &'a [u8],
+    /// Sent as `Authorization: Bearer`; checked when the configuration is
+    /// loaded (visible ASCII only), never logged.
+    pub bearer: Option<&'a str>,
+}
+
 /// Sends `POST` without a body to `target` and returns the status line of
 /// the answer, whatever its code. `timeout` bounds the whole exchange.
-pub(crate) async fn post(target: &HttpTarget, timeout: Duration) -> Result<StatusLine, PostError> {
-    match tokio::time::timeout(timeout, exchange(target)).await {
+pub(crate) async fn post(
+    target: &HttpTarget,
+    bearer: Option<&str>,
+    timeout: Duration,
+) -> Result<StatusLine, PostError> {
+    let request = Request {
+        method: "POST",
+        content_type: None,
+        body: &[],
+        bearer,
+    };
+    send(target, request, timeout).await
+}
+
+/// Sends `request` to `target` and returns the status line of the answer,
+/// whatever its code. `timeout` bounds the whole exchange.
+pub(crate) async fn send(
+    target: &HttpTarget,
+    request: Request<'_>,
+    timeout: Duration,
+) -> Result<StatusLine, PostError> {
+    match tokio::time::timeout(timeout, exchange(target, request)).await {
         Ok(answer) => answer.map_err(PostError::Failed),
         Err(_) => Err(PostError::Timeout(timeout)),
     }
 }
 
-async fn exchange(target: &HttpTarget) -> Result<StatusLine, String> {
+fn head(target: &HttpTarget, request: Request<'_>) -> String {
+    let mut head = format!(
+        "{} {} HTTP/1.1\r\nHost: {}\r\n",
+        request.method, target.request_target, target.host
+    );
+    if let Some(token) = request.bearer {
+        head.push_str(&format!("Authorization: Bearer {token}\r\n"));
+    }
+    if let Some(content_type) = request.content_type {
+        head.push_str(&format!("Content-Type: {content_type}\r\n"));
+    }
+    head.push_str(&format!(
+        "Content-Length: {}\r\nConnection: close\r\n\r\n",
+        request.body.len()
+    ));
+    head
+}
+
+async fn exchange(target: &HttpTarget, request: Request<'_>) -> Result<StatusLine, String> {
     let mut stream = TcpStream::connect(target.address.as_str())
         .await
         .map_err(|error| format!("connection to {}: {error}", target.address))?;
-    let request = format!(
-        "POST {} HTTP/1.1\r\nHost: {}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
-        target.request_target, target.host
-    );
-    stream
-        .write_all(request.as_bytes())
-        .await
-        .map_err(|error| format!("sending the request: {error}"))?;
+    let sent = async {
+        stream.write_all(head(target, request).as_bytes()).await?;
+        stream.write_all(request.body).await
+    }
+    .await;
+    match sent {
+        Ok(()) => read_status(&mut stream).await,
+        // A server may answer (401, 413) and close before reading the whole
+        // body: that answer is the one to report.
+        Err(error) => read_status(&mut stream)
+            .await
+            .map_err(|_| format!("sending the request: {error}")),
+    }
+}
 
+async fn read_status(stream: &mut TcpStream) -> Result<StatusLine, String> {
     let mut received = Vec::with_capacity(256);
     let mut chunk = [0_u8; 512];
     loop {
@@ -218,8 +277,41 @@ pub(crate) mod testing {
     /// nothing at all while keeping the connection open.
     pub(crate) struct FakeHttp {
         pub addr: SocketAddr,
-        requests: Arc<Mutex<Vec<String>>>,
+        requests: Arc<Mutex<Vec<Received>>>,
         task: tokio::task::JoinHandle<()>,
+    }
+
+    /// One request as received: head and body.
+    pub(crate) type Received = (String, Vec<u8>);
+
+    /// Reads one request: its head, then the body its `Content-Length` announces.
+    pub(crate) async fn read_request(stream: &mut tokio::net::TcpStream) -> Received {
+        let mut received = Vec::new();
+        let mut chunk = [0_u8; 4096];
+        let end = loop {
+            if let Some(end) = received.windows(4).position(|w| w == b"\r\n\r\n") {
+                break end + 4;
+            }
+            let read = stream.read(&mut chunk).await.unwrap();
+            if read == 0 {
+                break received.len();
+            }
+            received.extend_from_slice(&chunk[..read]);
+        };
+        let head = String::from_utf8(received[..end].to_vec()).unwrap();
+        let length: usize = head
+            .lines()
+            .find_map(|line| line.strip_prefix("Content-Length: "))
+            .map_or(0, |value| value.parse().unwrap());
+        let mut body = received[end..].to_vec();
+        while body.len() < length {
+            let read = stream.read(&mut chunk).await.unwrap();
+            if read == 0 {
+                break;
+            }
+            body.extend_from_slice(&chunk[..read]);
+        }
+        (head, body)
     }
 
     impl FakeHttp {
@@ -233,18 +325,8 @@ pub(crate) mod testing {
                 let mut silent = Vec::new();
                 loop {
                     let (mut stream, _) = listener.accept().await.unwrap();
-                    let mut request = Vec::new();
-                    let mut chunk = [0_u8; 1024];
-                    while !request.ends_with(b"\r\n\r\n") {
-                        let read = stream.read(&mut chunk).await.unwrap();
-                        if read == 0 {
-                            break;
-                        }
-                        request.extend_from_slice(&chunk[..read]);
-                    }
-                    seen.lock()
-                        .unwrap()
-                        .push(String::from_utf8(request).unwrap());
+                    let request = read_request(&mut stream).await;
+                    seen.lock().unwrap().push(request);
                     match answer {
                         Some(answer) => {
                             // The client may already be gone.
@@ -267,6 +349,12 @@ pub(crate) mod testing {
 
         /// Requests received so far, head only.
         pub(crate) fn requests(&self) -> Vec<String> {
+            let requests = self.requests.lock().unwrap();
+            requests.iter().map(|(head, _)| head.clone()).collect()
+        }
+
+        /// Requests received so far, head and body.
+        pub(crate) fn full_requests(&self) -> Vec<Received> {
             self.requests.lock().unwrap().clone()
         }
     }
@@ -294,7 +382,68 @@ mod tests {
     const LIMIT: Duration = Duration::from_secs(5);
 
     async fn post_to(url: &str, timeout: Duration) -> Result<StatusLine, PostError> {
-        post(&HttpTarget::parse(url).unwrap(), timeout).await
+        post(&HttpTarget::parse(url).unwrap(), None, timeout).await
+    }
+
+    #[tokio::test]
+    async fn puts_a_body_with_its_headers() {
+        let server = FakeHttp::start(Some(b"HTTP/1.1 204 No Content\r\n\r\n")).await;
+        let target = HttpTarget::parse(&server.url("/files/broker")).unwrap();
+        let body = vec![7_u8; 100_000];
+        let request = Request {
+            method: "PUT",
+            content_type: Some("application/x-tar"),
+            body: &body,
+            bearer: Some("s3cr3t"),
+        };
+        let status = send(&target, request, LIMIT).await.unwrap();
+        assert_eq!(status.code, 204);
+        let requests = server.full_requests();
+        assert_eq!(
+            requests[0].0,
+            format!(
+                "PUT /files/broker HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer s3cr3t\r\n\
+                 Content-Type: application/x-tar\r\nContent-Length: 100000\r\n\
+                 Connection: close\r\n\r\n",
+                server.addr
+            )
+        );
+        assert_eq!(requests[0].1, body);
+
+        let status = post(&target, Some("t"), LIMIT).await.unwrap();
+        assert!(status.accepted());
+        assert!(
+            server.requests()[1].contains("\r\nAuthorization: Bearer t\r\nContent-Length: 0\r\n")
+        );
+    }
+
+    #[tokio::test]
+    async fn early_answer_to_a_large_body_is_reported() {
+        // Answers before reading the body, then closes the connection.
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            use tokio::io::{AsyncReadExt, AsyncWriteExt};
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut chunk = [0_u8; 512];
+            let _ = stream.read(&mut chunk).await;
+            let _ = stream.write_all(b"HTTP/1.1 401 Unauthorized\r\n\r\n").await;
+        });
+        let target = HttpTarget::parse(&format!("http://{addr}/files/broker")).unwrap();
+        let body = vec![0_u8; 32 << 20];
+        let request = Request {
+            method: "PUT",
+            content_type: None,
+            body: &body,
+            bearer: None,
+        };
+        match send(&target, request, LIMIT).await {
+            Ok(status) => assert_eq!(status.code, 401),
+            // The reset may arrive before the answer is read.
+            Err(PostError::Failed(reason)) => assert!(reason.contains("sending"), "{reason}"),
+            Err(other) => panic!("unexpected {other:?}"),
+        }
+        server.await.unwrap();
     }
 
     fn failure(answer: Result<StatusLine, PostError>) -> String {

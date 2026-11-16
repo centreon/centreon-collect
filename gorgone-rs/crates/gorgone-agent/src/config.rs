@@ -196,6 +196,10 @@ pub struct AgentConfig {
     /// connection and answer, in milliseconds.
     #[serde(default = "default_http_post_timeout_ms")]
     pub http_post_timeout_ms: u64,
+    /// Sent as `Authorization: Bearer` on every `http-post:` call and every
+    /// `PUT` of a remote target.
+    #[serde(default)]
+    pub http_bearer_token: Option<Secret>,
     /// `RunCommands` policy.
     #[serde(default)]
     pub commands: CommandsConfig,
@@ -408,13 +412,54 @@ impl EngineConfig {
     }
 }
 
-/// Destination of the configuration bundles of one target.
+/// Permission bits forced on the files a target writes locally, written in
+/// octal (`"0640"`): at most `0777`, no setuid, setgid or sticky bit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FileMode(u32);
+
+impl FileMode {
+    /// Reads an octal mode; the error says what is wrong.
+    pub fn parse(text: &str) -> Result<Self, String> {
+        let digits = text.strip_prefix("0o").unwrap_or(text);
+        let invalid = || format!("{text:?} is not an octal mode such as \"0640\"");
+        if digits.is_empty() || digits.len() > 4 || !digits.bytes().all(|b| b.is_ascii_digit()) {
+            return Err(invalid());
+        }
+        let mode = u32::from_str_radix(digits, 8).map_err(|_| invalid())?;
+        if mode > 0o777 {
+            return Err(format!(
+                "{text:?}: setuid, setgid and sticky bits are not allowed, at most \"0777\""
+            ));
+        }
+        Ok(Self(mode))
+    }
+
+    /// The mode bits.
+    #[must_use]
+    pub fn bits(self) -> u32 {
+        self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for FileMode {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = Lenient::deserialize(deserializer)?.0;
+        Self::parse(&text)
+            .map_err(|reason| serde::de::Error::custom(format!("file_mode: {reason}")))
+    }
+}
+
+/// Destinations of the configuration bundles of one target: a local
+/// directory, remote control APIs, or both.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TargetConfig {
     /// Directory the bundle is synchronised into.
-    #[serde(deserialize_with = "lenient::path")]
-    pub path: PathBuf,
+    #[serde(default, deserialize_with = "lenient::option_path")]
+    pub path: Option<PathBuf>,
+    /// `http://` URLs each receiving the bundle as a plain tar (`PUT`).
+    #[serde(default, deserialize_with = "lenient::list")]
+    pub urls: Vec<String>,
     /// Remove the files of `path` that are not in the bundle.
     #[serde(default)]
     pub prune: bool,
@@ -422,6 +467,49 @@ pub struct TargetConfig {
     /// bundle is checked by the engine before it is applied.
     #[serde(default, deserialize_with = "lenient::option_path")]
     pub engine_main_file: Option<PathBuf>,
+    /// Mode of the files written into `path`; 0644 (0755 when executable in
+    /// the bundle) when unset.
+    #[serde(default)]
+    pub file_mode: Option<FileMode>,
+}
+
+impl TargetConfig {
+    /// Target writing into the local directory `path` only.
+    #[must_use]
+    pub fn local(path: impl Into<PathBuf>) -> Self {
+        Self {
+            path: Some(path.into()),
+            urls: Vec::new(),
+            prune: false,
+            engine_main_file: None,
+            file_mode: None,
+        }
+    }
+
+    fn validate(&self, name: &str) -> Result<(), ConfigError> {
+        let invalid =
+            |message: String| Err(ConfigError::Invalid(format!("targets.{name}{message}")));
+        if self.path.is_none() {
+            if self.urls.is_empty() {
+                return invalid(": path or urls is required".to_owned());
+            }
+            for (key, set) in [
+                ("engine_main_file", self.engine_main_file.is_some()),
+                ("file_mode", self.file_mode.is_some()),
+                ("prune", self.prune),
+            ] {
+                if set {
+                    return invalid(format!(".{key} requires path"));
+                }
+            }
+        }
+        for url in &self.urls {
+            if let Err(reason) = HttpTarget::parse(url) {
+                return invalid(format!(".urls: {reason}"));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Call of the engine gRPC API a service operation can be mapped to.
@@ -730,8 +818,16 @@ impl AgentConfig {
         if self.http_post_timeout_ms == 0 {
             return invalid("http_post_timeout_ms must be at least 1");
         }
+        if let Some(token) = &self.http_bearer_token {
+            // Goes into a header line as is: nothing that could end it.
+            let token = token.expose();
+            if token.is_empty() || !token.bytes().all(|b| b.is_ascii_graphic()) {
+                return invalid("http_bearer_token must be non-empty visible ASCII, without space");
+            }
+        }
         self.engine.validate()?;
         for (name, target) in &self.targets {
+            target.validate(name)?;
             let Some(main_file) = &target.engine_main_file else {
                 continue;
             };
@@ -841,6 +937,10 @@ mod tests {
             Some(PathBuf::from("centengine.cfg"))
         );
         assert!(config.targets["broker"].engine_main_file.is_none());
+        let context = &config.targets["engine_context"];
+        assert_eq!(context.file_mode.map(FileMode::bits), Some(0o640));
+        assert!(context.urls.is_empty());
+        assert!(config.http_bearer_token.is_none());
         assert_eq!(
             config.engine.verify_argv().unwrap().unwrap(),
             ["/usr/sbin/centengine", "-v", "{config}"]
@@ -1141,6 +1241,99 @@ mod tests {
     fn secret_is_redacted() {
         let config = AgentConfig::from_toml(MINIMAL).unwrap();
         assert!(!format!("{config:?}").contains("\"t\""));
+        let config =
+            AgentConfig::from_toml(&format!("http_bearer_token = \"b34r3r\"\n{MINIMAL}")).unwrap();
+        assert_eq!(
+            config.http_bearer_token.as_ref().unwrap().expose(),
+            "b34r3r"
+        );
+        assert!(!format!("{config:?}").contains("b34r3r"));
+    }
+
+    #[test]
+    fn targets_can_be_remote_and_force_a_file_mode() {
+        let with = |tail: &str| AgentConfig::from_toml(&format!("{MINIMAL}{tail}"));
+        let config = with(
+            "[targets.broker]\nurls = [\"http://broker:8080/files/broker\", \
+             \"http://rrd:8080/files/broker\"]\n\
+             [targets.engine_context]\npath = \"/etc/centreon-engine\"\nfile_mode = \"0640\"\n\
+             urls = [\"http://broker:8080/files/engine_context\"]\n\
+             [targets.vmware]\npath = \"/etc/centreon\"\nfile_mode = \"0o600\"",
+        )
+        .unwrap();
+        let broker = &config.targets["broker"];
+        assert!(broker.path.is_none() && broker.file_mode.is_none());
+        assert_eq!(broker.urls.len(), 2);
+        let context = &config.targets["engine_context"];
+        assert_eq!(context.file_mode.map(FileMode::bits), Some(0o640));
+        assert_eq!(context.urls.len(), 1);
+        assert_eq!(
+            config.targets["vmware"].file_mode.map(FileMode::bits),
+            Some(0o600)
+        );
+        assert!(config.http_bearer_token.is_none());
+
+        let grpc = "[engine]\ngrpc_url = \"http://e:1\"\n";
+        let remote = "[targets.broker]\nurls = [\"http://broker:8080/files/broker\"]\n";
+        let mode = |value: &str| format!("[targets.t]\npath = \"/t\"\nfile_mode = {value}\n");
+        for (tail, needle) in [
+            (
+                "[targets.broker]\nprune = true\n".to_owned(),
+                "targets.broker: path or urls is required",
+            ),
+            (
+                "[targets.broker]\nurls = []\n".to_owned(),
+                "path or urls is required",
+            ),
+            (
+                format!("{grpc}{remote}engine_main_file = \"centengine.cfg\"\n"),
+                "targets.broker.engine_main_file requires path",
+            ),
+            (
+                format!("{remote}file_mode = \"0640\"\n"),
+                "file_mode requires path",
+            ),
+            (format!("{remote}prune = true\n"), "prune requires path"),
+            (
+                "[targets.broker]\nurls = [\"https://broker/files/broker\"]\n".to_owned(),
+                "targets.broker.urls: https://broker/files/broker: TLS is out of scope",
+            ),
+            (
+                "[targets.broker]\nurls = [\"http://u:p@broker/files/broker\"]\n".to_owned(),
+                "credentials",
+            ),
+            (
+                "[targets.broker]\nurls = [\"broker:8080\"]\n".to_owned(),
+                "expected http://host",
+            ),
+            (mode("\"4755\""), "setuid"),
+            (
+                mode("\"1000\""),
+                "file_mode: \"1000\": setuid, setgid and sticky",
+            ),
+            (mode("\"0648\""), "not an octal mode"),
+            (mode("\"rw-r-----\""), "not an octal mode"),
+            (mode("\"\""), "not an octal mode"),
+            (mode("\"00640\""), "not an octal mode"),
+            ("http_bearer_token = \"\"\n".to_owned(), "http_bearer_token"),
+            (
+                "http_bearer_token = \"a b\"\n".to_owned(),
+                "http_bearer_token",
+            ),
+            (
+                "http_bearer_token = \"a\\r\\nX: y\"\n".to_owned(),
+                "http_bearer_token",
+            ),
+        ] {
+            // Top-level keys go before the tables of MINIMAL's tail.
+            let toml = if tail.starts_with("http_bearer_token") {
+                format!("{tail}{MINIMAL}")
+            } else {
+                format!("{MINIMAL}{tail}")
+            };
+            let message = AgentConfig::from_toml(&toml).unwrap_err().to_string();
+            assert!(message.contains(needle), "{tail}: {message}");
+        }
     }
 
     #[test]
@@ -1209,6 +1402,10 @@ mod tests {
             // Inner double quotes are removed.
             ("SERVICES__ENGINE__START", r#""[1]""#),
             ("TARGETS__7__PATH", "8"),
+            // `0640` is not a TOML integer: text; `640` is one, read back as text.
+            ("TARGETS__7__FILE_MODE", "640"),
+            ("TARGETS__7__URLS", r#"["http://broker:8080/files/broker"]"#),
+            ("HTTP_BEARER_TOKEN", "4242"),
         ]);
         let config = AgentConfig::load_with(None, vars).unwrap();
         assert_eq!(config.node_id, "7");
@@ -1223,7 +1420,16 @@ mod tests {
         assert_eq!(config.services["engine"].stop.as_deref(), Some("1.50"));
         assert_eq!(config.services["engine"].restart.as_deref(), Some("[x]"));
         assert_eq!(config.services["engine"].start.as_deref(), Some("[1]"));
-        assert_eq!(config.targets["7"].path, PathBuf::from("8"));
+        assert_eq!(config.targets["7"].path, Some(PathBuf::from("8")));
+        assert_eq!(
+            config.targets["7"].file_mode.map(FileMode::bits),
+            Some(0o640)
+        );
+        assert_eq!(
+            config.targets["7"].urls,
+            ["http://broker:8080/files/broker"]
+        );
+        assert_eq!(config.http_bearer_token.unwrap().expose(), "4242");
     }
 
     #[test]
@@ -1248,7 +1454,10 @@ mod tests {
             config.services["engine"].reload.as_deref(),
             Some("sudo reload")
         );
-        assert_eq!(config.targets["engine"].path, PathBuf::from("/tmp/engine"));
+        assert_eq!(
+            config.targets["engine"].path,
+            Some(PathBuf::from("/tmp/engine"))
+        );
     }
 
     #[test]

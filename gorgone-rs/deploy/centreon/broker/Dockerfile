@@ -8,6 +8,10 @@
 # The build context holds one file (see README.md): `70-victoria_metrics.so`,
 # built with the packaging image of the same distribution. The base image
 # does not package this module.
+# The named build context `entrypoint` (.github/docker/centreon-broker/trixie/
+# entrypoint of this checkout) brings the control API of
+# gorgone-rs/docs/containers-contract.md ("Broker control API"): PUT /files,
+# bearer token, BROKER_WAIT_FOR_CONFIG.
 
 ARG BASE_IMAGE=docker.centreon.com/centreon/centreon-broker-trixie:develop
 FROM ${BASE_IMAGE}
@@ -17,6 +21,9 @@ FROM ${BASE_IMAGE}
 # same broker/, common/, bbdo/ and clib/ sources.
 COPY --chown=root:root --chmod=755 70-victoria_metrics.so \
      /usr/share/centreon/lib/centreon-broker/70-victoria_metrics.so
+
+# Same mode and owner as the base image (root-owned, not writable by cbd).
+COPY --from=entrypoint --chmod=755 . /usr/local/lib/centreon-broker/
 
 USER root
 # No missing library, and the module exports the version string cbd checks

@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use std::future::Future;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use gorgone_core::bundle::{self, ApplyOptions, ApplyReport};
 use gorgone_proto::agent::job_event::Body;
@@ -15,7 +16,8 @@ use gorgone_proto::agent::{ApplyConfig, CommandResult, JobFinished, ValidateConf
 
 use super::verify::{self, ConfigChecker};
 use super::{Executor, JobContext, command_result, finished};
-use crate::config::TargetConfig;
+use crate::config::{FileMode, Secret, TargetConfig};
+use crate::http_post::{self, HttpTarget, PostError, Request};
 use crate::node_state::{NodeState, marker_name};
 
 /// Paths outside the target named in a result message, at most.
@@ -51,6 +53,10 @@ pub(crate) struct ApplyConfigExecutor<F> {
     pub checker: Option<ConfigChecker>,
     /// Cap on the checker output kept in the job result.
     pub max_output: usize,
+    /// Bound of one `PUT` to a remote destination, connection included.
+    pub http_timeout: Duration,
+    /// Sent with every `PUT` to a remote destination.
+    pub bearer: Option<Secret>,
 }
 
 /// A bundle the engine accepted, with the sentence saying so.
@@ -143,7 +149,7 @@ impl<F: BlobFetcher> ApplyConfigExecutor<F> {
     async fn check(
         &self,
         target_name: &str,
-        target: &TargetConfig,
+        target_path: &Path,
         main_file: &Path,
         blob: Vec<u8>,
         digest: &str,
@@ -159,7 +165,7 @@ impl<F: BlobFetcher> ApplyConfigExecutor<F> {
         let staged = tokio::task::spawn_blocking({
             let (digest, path, main_file) = (
                 digest.to_owned(),
-                target.path.clone(),
+                target_path.to_path_buf(),
                 main_file.to_path_buf(),
             );
             let max_unpacked = self.max_unpacked_bytes;
@@ -187,7 +193,7 @@ impl<F: BlobFetcher> ApplyConfigExecutor<F> {
         let checked = checker
             .check(&staging.verify_file, self.max_output, ctx.cancel)
             .await;
-        let note = outside_note(&staging.outside, &target.path);
+        let note = outside_note(&staging.outside, target_path);
         // Removed off the runtime threads; the result does not depend on it.
         let _ = tokio::task::spawn_blocking(move || drop(staging)).await;
 
@@ -241,7 +247,7 @@ impl<F: BlobFetcher> ApplyConfigExecutor<F> {
             Ok(target) => target,
             Err(done) => return done,
         };
-        let Some(main_file) = &target.engine_main_file else {
+        let (Some(main_file), Some(path)) = (&target.engine_main_file, &target.path) else {
             return finished(
                 Outcome::Rejected,
                 format!(
@@ -259,13 +265,157 @@ impl<F: BlobFetcher> ApplyConfigExecutor<F> {
             Err(done) => return done,
         };
         match self
-            .check(&target_name, target, main_file, blob, &digest, ctx)
+            .check(&target_name, path, main_file, blob, &digest, ctx)
             .await
         {
             Ok(verified) => finished(Outcome::Ok, verified.message),
             Err(done) => done,
         }
     }
+
+    /// True when every destination of `target` already holds `digest`.
+    fn already_applied(&self, name: &str, target: &TargetConfig, digest: &str) -> bool {
+        let local = target.path.as_deref().is_none_or(|path| {
+            bundle::applied_digest(path, &marker_name(name)).as_deref() == Some(digest)
+        });
+        let remote =
+            target.urls.is_empty() || self.state.remote_applied(name).as_deref() == Some(digest);
+        local && remote
+    }
+
+    /// Syncs `blob` into the local directory of the target; returns the
+    /// summary of what was written.
+    async fn apply_locally(
+        &self,
+        target_name: &str,
+        target: &TargetConfig,
+        path: &Path,
+        blob: Vec<u8>,
+        digest: &str,
+    ) -> Result<String, JobFinished> {
+        let marker = marker_name(target_name);
+        let dest = path.to_path_buf();
+        let (prune, max_unpacked) = (target.prune, self.max_unpacked_bytes);
+        let file_mode = target.file_mode.map(FileMode::bits);
+        let digest = digest.to_owned();
+        let applied = tokio::task::spawn_blocking(move || {
+            let options = ApplyOptions {
+                marker: &marker,
+                prune,
+                max_unpacked,
+            };
+            let report = bundle::apply_with_file_mode(&blob, &digest, &dest, &options, file_mode);
+            // Read back rather than assumed: a failed apply may leave either.
+            (report, bundle::applied_digest(&dest, &marker))
+        })
+        .await;
+        let applied = applied.map(|(report, now_applied)| {
+            self.state.set_applied(target_name, now_applied);
+            report
+        });
+        match applied {
+            Ok(Ok(report)) => Ok(summary(target_name, report)),
+            Ok(Err(error)) => Err(finished(Outcome::Failed, format!("{target_name}: {error}"))),
+            Err(error) => Err(finished(
+                Outcome::Failed,
+                format!("apply task failed: {error}"),
+            )),
+        }
+    }
+
+    /// `PUT`s `tar` to every URL, in order, one `CommandResult` each from
+    /// `first_index`. A failure never skips the URLs after it: they are other
+    /// destinations to keep up to date.
+    async fn push(
+        &self,
+        urls: &[String],
+        tar: &[u8],
+        first_index: usize,
+        ctx: &JobContext<'_>,
+    ) -> Pushed {
+        let mut pushed = Pushed {
+            accepted: 0,
+            total: urls.len(),
+            report: String::new(),
+            cancelled: false,
+        };
+        let request = Request {
+            method: "PUT",
+            content_type: Some(TAR_CONTENT_TYPE),
+            body: tar,
+            bearer: self.bearer.as_ref().map(Secret::expose),
+        };
+        for (index, url) in urls.iter().enumerate() {
+            let started = Instant::now();
+            let answer = match HttpTarget::parse(url) {
+                // Refused when the configuration is loaded.
+                Err(reason) => Err(PostError::Failed(reason)),
+                Ok(destination) => tokio::select! {
+                    biased;
+                    () = ctx.cancel.cancelled() => {
+                        pushed.cancelled = true;
+                        return pushed;
+                    }
+                    answer = http_post::send(&destination, request, self.http_timeout) => answer,
+                },
+            };
+            let mut result = CommandResult {
+                index: u32::try_from(first_index + index).unwrap_or(u32::MAX),
+                command: format!("PUT {url}"),
+                exit_code: 1,
+                duration_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+                ..CommandResult::default()
+            };
+            match answer {
+                Ok(status) => {
+                    if status.accepted() {
+                        pushed.accepted += 1;
+                        result.exit_code = 0;
+                    }
+                    result.stdout = status.line;
+                }
+                Err(error) => {
+                    result.timed_out = matches!(error, PostError::Timeout(_));
+                    result.stderr = error.to_string();
+                }
+            }
+            // One of the two is empty.
+            pushed
+                .report
+                .push_str(&format!("; {url}: {}{}", result.stdout, result.stderr));
+            ctx.sink.emit(Body::CommandResult(result));
+        }
+        pushed
+    }
+
+    /// Records what the remote destinations now hold; returns a note when
+    /// it could not be kept on disk.
+    async fn remember_remote(&self, target_name: &str, digest: Option<String>) -> String {
+        let (state, name) = (self.state.clone(), target_name.to_owned());
+        let kept =
+            tokio::task::spawn_blocking(move || state.set_remote_applied(&name, digest)).await;
+        let error = match kept {
+            Ok(Ok(())) => return String::new(),
+            Ok(Err(error)) => error.to_string(),
+            Err(error) => error.to_string(),
+        };
+        // Only the short-circuit after a restart is lost: the next push resends.
+        tracing::warn!(target = %target_name, %error, "cannot keep the remote digest on disk");
+        format!(" (applied digest not kept on disk: {error})")
+    }
+}
+
+/// Content type of the bundles sent to the remote destinations.
+const TAR_CONTENT_TYPE: &str = "application/x-tar";
+
+/// What [`ApplyConfigExecutor::push`] did.
+struct Pushed {
+    accepted: usize,
+    total: usize,
+    /// `; <url>: <status line or error>` per destination called.
+    report: String,
+    /// Stopped by the cancellation of the job.
+    cancelled: bool,
 }
 
 impl<F: BlobFetcher> Executor for ApplyConfigExecutor<F> {
@@ -281,15 +431,16 @@ impl<F: BlobFetcher> Executor for ApplyConfigExecutor<F> {
             return finished(Outcome::Failed, "digest is not a SHA-256 in hexadecimal");
         }
         let digest = action.digest.to_ascii_lowercase();
-        let marker = marker_name(&target_name);
 
-        if bundle::applied_digest(&target.path, &marker).as_deref() == Some(digest.as_str()) {
+        if self.already_applied(&target_name, target, &digest) {
             let unchanged = ApplyReport {
                 written: 0,
                 pruned: 0,
                 unchanged: true,
             };
-            self.state.set_applied(&target_name, Some(digest));
+            if target.path.is_some() {
+                self.state.set_applied(&target_name, Some(digest));
+            }
             let message = summary(&target_name, unchanged);
             ctx.progress(message.clone());
             return finished(Outcome::Ok, message);
@@ -300,9 +451,17 @@ impl<F: BlobFetcher> Executor for ApplyConfigExecutor<F> {
             Err(done) => return done,
         };
         // Nothing of the live directory is written before the engine agrees.
+        let mut first_index = 0;
         if let Some(main_file) = &target.engine_main_file {
+            let Some(path) = &target.path else {
+                // The configuration check at start refuses this.
+                return finished(
+                    Outcome::Rejected,
+                    format!("{target_name}: engine_main_file requires a local path"),
+                );
+            };
             blob = match self
-                .check(&target_name, target, main_file, blob, &digest, ctx)
+                .check(&target_name, path, main_file, blob, &digest, ctx)
                 .await
             {
                 Ok(verified) => {
@@ -311,35 +470,87 @@ impl<F: BlobFetcher> Executor for ApplyConfigExecutor<F> {
                 }
                 Err(done) => return done,
             };
+            first_index = 1;
         }
 
-        let dest = target.path.clone();
-        let prune = target.prune;
-        let max_unpacked = self.max_unpacked_bytes;
-        let applied = tokio::task::spawn_blocking(move || {
-            let options = ApplyOptions {
-                marker: &marker,
-                prune,
-                max_unpacked,
-            };
-            let report = bundle::apply(&blob, &digest, &dest, &options);
-            // Read back rather than assumed: a failed apply may leave either.
-            (report, bundle::applied_digest(&dest, &marker))
-        })
-        .await;
-        let applied = applied.map(|(report, now_applied)| {
-            self.state.set_applied(&target_name, now_applied);
-            report
-        });
-        match applied {
-            Ok(Ok(report)) => {
-                let message = summary(&target_name, report);
-                ctx.progress(message.clone());
-                finished(Outcome::Ok, message)
+        // Converted before anything is written: a bundle no destination can
+        // take fails the job with every destination untouched.
+        let tar = if target.urls.is_empty() {
+            None
+        } else {
+            let max_unpacked = self.max_unpacked_bytes;
+            let converted = tokio::task::spawn_blocking(move || {
+                let tar = bundle::to_tar(&blob, max_unpacked);
+                (blob, tar)
+            })
+            .await;
+            match converted {
+                Ok((kept, Ok(tar))) => {
+                    blob = kept;
+                    Some(tar)
+                }
+                Ok((_, Err(error))) => {
+                    return finished(Outcome::Failed, format!("{target_name}: {error}"));
+                }
+                Err(error) => {
+                    return finished(Outcome::Failed, format!("tar task failed: {error}"));
+                }
             }
-            Ok(Err(error)) => finished(Outcome::Failed, format!("{target_name}: {error}")),
-            Err(error) => finished(Outcome::Failed, format!("apply task failed: {error}")),
+        };
+
+        let local = match &target.path {
+            Some(path) => {
+                match self
+                    .apply_locally(&target_name, target, path, blob, &digest)
+                    .await
+                {
+                    Ok(message) => {
+                        ctx.progress(message.clone());
+                        Some(message)
+                    }
+                    // The remote destinations keep what they hold.
+                    Err(done) => return done,
+                }
+            }
+            None => None,
+        };
+        let Some(tar) = tar else {
+            return finished(Outcome::Ok, local.unwrap_or_default());
+        };
+
+        let pushed = self.push(&target.urls, &tar, first_index, ctx).await;
+        let all = !pushed.cancelled && pushed.accepted == pushed.total;
+        // After a partial push the destinations may hold different bundles:
+        // only a complete one is remembered, so that a retry is never skipped.
+        let note = self
+            .remember_remote(&target_name, all.then(|| digest.clone()))
+            .await;
+        let Pushed {
+            accepted,
+            total,
+            report,
+            cancelled,
+        } = pushed;
+        let (outcome, remote) = if cancelled {
+            (
+                Outcome::Cancelled,
+                format!("cancelled, {accepted} of {total} destinations accepted{report}"),
+            )
+        } else {
+            let outcome = if all { Outcome::Ok } else { Outcome::Failed };
+            (
+                outcome,
+                format!("{accepted} of {total} destinations accepted{report}"),
+            )
+        };
+        let message = match local {
+            Some(local) => format!("{local}; {remote}{note}"),
+            None => format!("{target_name}: {remote}{note}"),
+        };
+        if outcome == Outcome::Ok {
+            ctx.progress(message.clone());
         }
+        finished(outcome, message)
     }
 }
 
@@ -354,6 +565,7 @@ mod tests {
 
     use super::*;
     use crate::executor::testing::{MemorySink, run};
+    use crate::http_post::testing::{FakeHttp, refused_url};
 
     #[derive(Default)]
     struct MemoryFetcher {
@@ -399,18 +611,29 @@ mod tests {
         prune: bool,
     ) -> ApplyConfigExecutor<&'a MemoryFetcher> {
         let target = TargetConfig {
-            path: dest.to_path_buf(),
             prune,
-            engine_main_file: None,
+            ..TargetConfig::local(dest)
         };
+        executor_for(fetcher, target, None)
+    }
+
+    /// Executor of the one target `engine`, its state kept in `state_dir`.
+    fn executor_for<'a>(
+        fetcher: &'a MemoryFetcher,
+        target: TargetConfig,
+        state_dir: Option<&Path>,
+    ) -> ApplyConfigExecutor<&'a MemoryFetcher> {
+        let targets = BTreeMap::from([("engine".to_owned(), target)]);
         ApplyConfigExecutor {
-            targets: BTreeMap::from([("engine".to_owned(), target)]),
+            state: Arc::new(NodeState::load(&targets, false, state_dir)),
+            targets,
             max_bundle_bytes: 1 << 20,
             max_unpacked_bytes: 1 << 20,
             fetcher,
-            state: Arc::new(NodeState::load(&BTreeMap::new(), false)),
             checker: None,
             max_output: 4096,
+            http_timeout: Duration::from_secs(5),
+            bearer: None,
         }
     }
 
@@ -871,6 +1094,286 @@ echo "Total Errors:   $errors"
         assert_eq!(
             node.live(),
             [".gorgone-engine.digest", "centengine.cfg", "hosts.cfg"]
+        );
+    }
+
+    const NO_CONTENT: &[u8] = b"HTTP/1.1 204 No Content\r\n\r\n";
+    const DENIED: &[u8] = b"HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\n\r\n";
+
+    fn remote(urls: &[String]) -> TargetConfig {
+        TargetConfig {
+            path: None,
+            urls: urls.to_vec(),
+            ..TargetConfig::local("")
+        }
+    }
+
+    /// Files of a plain tar: name, mode, content.
+    fn tar_files(body: &[u8]) -> Vec<(String, u32, String)> {
+        use std::io::Read;
+        let mut archive = tar::Archive::new(body);
+        archive
+            .entries()
+            .unwrap()
+            .map(|entry| {
+                let mut entry = entry.unwrap();
+                let mut content = String::new();
+                entry.read_to_string(&mut content).unwrap();
+                let name = entry.path().unwrap().display().to_string();
+                (name, entry.header().mode().unwrap(), content)
+            })
+            .collect()
+    }
+
+    fn header<'a>(head: &'a str, name: &str) -> Option<&'a str> {
+        head.lines()
+            .find_map(|line| line.strip_prefix(name)?.strip_prefix(": "))
+    }
+
+    #[tokio::test]
+    async fn remote_target_puts_a_plain_tar_to_every_url() {
+        let (digest, blob) =
+            bundle_of(&[("central-broker.json", "{}\n"), ("watchdog.json", "w\n")]);
+        let fetcher = MemoryFetcher::holding(&[&(digest.clone(), blob)]);
+        let first = FakeHttp::start(Some(NO_CONTENT)).await;
+        let second = FakeHttp::start(Some(b"HTTP/1.1 200 OK\r\n\r\n")).await;
+        let urls = [first.url("/files/broker"), second.url("/files/broker")];
+        let exec = executor_for(&fetcher, remote(&urls), None);
+
+        let (done, sink) = run(&exec, action(&digest, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Ok, "{}", done.message);
+        assert_eq!(
+            done.message,
+            format!(
+                "engine: 2 of 2 destinations accepted; {}: HTTP/1.1 204 No Content; \
+                 {}: HTTP/1.1 200 OK",
+                urls[0], urls[1]
+            )
+        );
+        assert_eq!(sink.progress(), [done.message.as_str()]);
+        let results = sink.command_results();
+        let summary: Vec<(u32, &str, i32)> = results
+            .iter()
+            .map(|r| (r.index, r.command.as_str(), r.exit_code))
+            .collect();
+        let commands = urls.clone().map(|url| format!("PUT {url}"));
+        assert_eq!(
+            summary,
+            [(0, commands[0].as_str(), 0), (1, commands[1].as_str(), 0)]
+        );
+        for server in [&first, &second] {
+            let requests = server.full_requests();
+            assert_eq!(requests.len(), 1);
+            let (head, body) = &requests[0];
+            assert!(head.starts_with("PUT /files/broker HTTP/1.1\r\n"), "{head}");
+            assert_eq!(header(head, "Content-Type"), Some("application/x-tar"));
+            assert_eq!(header(head, "Authorization"), None);
+            assert_eq!(
+                tar_files(body),
+                [
+                    ("central-broker.json".to_owned(), 0o644, "{}\n".to_owned()),
+                    ("watchdog.json".to_owned(), 0o644, "w\n".to_owned()),
+                ]
+            );
+        }
+        assert_eq!(exec.state.applied()[0].digest, digest);
+
+        // Already accepted everywhere: neither downloaded nor sent again.
+        let (done, sink) = run(&exec, action(&digest, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Ok);
+        assert_eq!(done.message, "engine: configuration unchanged");
+        assert!(sink.command_results().is_empty());
+        assert_eq!(fetcher.calls.load(Ordering::SeqCst), 1);
+        assert_eq!(first.requests().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn bearer_token_is_sent_when_configured() {
+        let (digest, blob) = bundle_of(&[("a.json", "a\n")]);
+        let fetcher = MemoryFetcher::holding(&[&(digest.clone(), blob)]);
+        let server = FakeHttp::start(Some(NO_CONTENT)).await;
+        let mut exec = executor_for(&fetcher, remote(&[server.url("/files/a")]), None);
+        exec.bearer = Some(Secret::new("s3cr3t-t0ken"));
+        let (done, sink) = run(&exec, action(&digest, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Ok, "{}", done.message);
+        let (head, _) = &server.full_requests()[0];
+        assert_eq!(header(head, "Authorization"), Some("Bearer s3cr3t-t0ken"));
+        // Never reported.
+        assert!(!done.message.contains("s3cr3t"));
+        assert!(!format!("{:?}", sink.command_results()).contains("s3cr3t"));
+    }
+
+    #[tokio::test]
+    async fn refused_destination_fails_the_job_and_forgets_the_digest() {
+        let (first, first_blob) = bundle_of(&[("a.json", "1\n")]);
+        let (second, second_blob) = bundle_of(&[("a.json", "2\n")]);
+        let fetcher =
+            MemoryFetcher::holding(&[&(first.clone(), first_blob), &(second.clone(), second_blob)]);
+        let ok = FakeHttp::start(Some(NO_CONTENT)).await;
+        let denied = FakeHttp::start(Some(DENIED)).await;
+        let silent = FakeHttp::start(None).await;
+        let down = refused_url("/files/a").await;
+
+        let mut exec = executor_for(&fetcher, remote(&[ok.url("/files/a")]), None);
+        let (done, _) = run(&exec, action(&first, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Ok, "{}", done.message);
+        assert_eq!(exec.state.applied()[0].digest, first);
+
+        let urls = [
+            denied.url("/files/a"),
+            silent.url("/files/a"),
+            down.clone(),
+            ok.url("/files/a"),
+        ];
+        if let Some(target) = exec.targets.get_mut("engine") {
+            target.urls = urls.to_vec();
+        }
+        exec.http_timeout = Duration::from_millis(300);
+        let (done, sink) = run(&exec, action(&second, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Failed, "{}", done.message);
+        assert!(
+            done.message
+                .starts_with("engine: 1 of 4 destinations accepted; "),
+            "{}",
+            done.message
+        );
+        assert!(
+            done.message.contains("HTTP/1.1 401 Unauthorized"),
+            "{}",
+            done.message
+        );
+        assert!(
+            done.message.contains("no answer within 300 ms"),
+            "{}",
+            done.message
+        );
+        let results = sink.command_results();
+        let codes: Vec<(i32, bool)> = results.iter().map(|r| (r.exit_code, r.timed_out)).collect();
+        assert_eq!(codes, [(1, false), (1, true), (1, false), (0, false)]);
+        assert!(
+            results[2].stderr.starts_with("connection to"),
+            "{results:?}"
+        );
+        assert!(sink.progress().is_empty());
+        // The destinations may now differ: nothing is reported, and the first
+        // bundle is sent again rather than skipped.
+        assert!(exec.state.applied().is_empty());
+        assert_eq!(exec.state.remote_applied("engine"), None);
+        if let Some(target) = exec.targets.get_mut("engine") {
+            target.urls = vec![ok.url("/files/a")];
+        }
+        let (done, _) = run(&exec, action(&first, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Ok, "{}", done.message);
+        assert_eq!(ok.requests().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn remote_digest_survives_a_restart_with_a_state_directory() {
+        let (digest, blob) = bundle_of(&[("a.json", "a\n")]);
+        let fetcher = MemoryFetcher::holding(&[&(digest.clone(), blob)]);
+        let server = FakeHttp::start(Some(NO_CONTENT)).await;
+        let state = tempfile::tempdir().unwrap();
+        let target = remote(&[server.url("/files/a")]);
+
+        let exec = executor_for(&fetcher, target.clone(), Some(state.path()));
+        let (done, _) = run(&exec, action(&digest, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Ok, "{}", done.message);
+        drop(exec);
+
+        let restarted = executor_for(&fetcher, target.clone(), Some(state.path()));
+        assert_eq!(restarted.state.applied()[0].digest, digest);
+        let (done, _) = run(&restarted, action(&digest, 0)).await;
+        assert_eq!(done.message, "engine: configuration unchanged");
+        assert_eq!(server.requests().len(), 1);
+        assert_eq!(fetcher.calls.load(Ordering::SeqCst), 1);
+
+        // Memory only: a restart sends again.
+        let volatile = executor_for(&fetcher, target, None);
+        assert!(volatile.state.applied().is_empty());
+    }
+
+    #[tokio::test]
+    async fn mixed_target_writes_locally_with_its_mode_and_sends_remotely() {
+        let (digest, blob) = bundle_of(&[("engine-context.json", "{\"k\":1}\n")]);
+        let fetcher = MemoryFetcher::holding(&[&(digest.clone(), blob)]);
+        let server = FakeHttp::start(Some(NO_CONTENT)).await;
+        let denied = FakeHttp::start(Some(DENIED)).await;
+        let dest = tempfile::tempdir().unwrap();
+        let target = TargetConfig {
+            urls: vec![denied.url("/files/engine_context")],
+            file_mode: Some(FileMode::parse("0640").unwrap()),
+            ..TargetConfig::local(dest.path())
+        };
+        let mut exec = executor_for(&fetcher, target, None);
+        let mode = |name: &str| {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::metadata(dest.path().join(name))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o7777
+        };
+
+        // Local side written, remote side refused: the job fails, nothing
+        // is reported as applied.
+        let (done, sink) = run(&exec, action(&digest, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Failed, "{}", done.message);
+        assert!(
+            done.message
+                .starts_with("engine: 1 files written, 0 pruned; 0 of 1 destinations accepted; "),
+            "{}",
+            done.message
+        );
+        assert_eq!(sink.progress(), ["engine: 1 files written, 0 pruned"]);
+        assert_eq!(mode("engine-context.json"), 0o640);
+        assert_eq!(mode(".gorgone-engine.digest"), 0o644);
+        assert!(exec.state.applied().is_empty());
+
+        // Retried once the destination accepts: no local write, one PUT.
+        if let Some(target) = exec.targets.get_mut("engine") {
+            target.urls = vec![server.url("/files/engine_context")];
+        }
+        let (done, _) = run(&exec, action(&digest, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Ok, "{}", done.message);
+        assert_eq!(
+            done.message,
+            format!(
+                "engine: configuration unchanged; 1 of 1 destinations accepted; {}: \
+                 HTTP/1.1 204 No Content",
+                server.url("/files/engine_context")
+            )
+        );
+        assert_eq!(exec.state.applied()[0].digest, digest);
+        let (_, body) = &server.full_requests()[0];
+        // The tar keeps the bundle mode: the destination decides its own.
+        assert_eq!(
+            tar_files(body),
+            [(
+                "engine-context.json".to_owned(),
+                0o644,
+                "{\"k\":1}\n".to_owned()
+            )]
+        );
+        let (done, _) = run(&exec, action(&digest, 0)).await;
+        assert_eq!(done.message, "engine: configuration unchanged");
+        assert_eq!(server.requests().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn validation_needs_a_local_target() {
+        let (digest, blob) = bundle_of(&[("a.json", "a\n")]);
+        let fetcher = MemoryFetcher::holding(&[&(digest.clone(), blob)]);
+        let mut target = remote(&["http://broker:8080/files/a".to_owned()]);
+        target.engine_main_file = Some(PathBuf::from("centengine.cfg"));
+        let exec = executor_for(&fetcher, target, None);
+        let (done, _) = exec_validate(&exec, validation(&digest, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Rejected);
+        let (done, _) = run(&exec, action(&digest, 0)).await;
+        assert_eq!(done.outcome(), Outcome::Rejected);
+        assert!(
+            done.message.contains("requires a local path"),
+            "{}",
+            done.message
         );
     }
 

@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-"""Provisioning steps of the bench, run in one-shot containers.
+"""Provisioning of an engine container of the bench, run by its entrypoint.
 
-secrets:  copies the key centreon-web encrypts credentials with to the
-          containers that decrypt them (brokers, engines), as a poller
-          registration does.
-
-register: declares the poller in centreon-web and writes the configuration of
-          its gorgone-agent sidecar (the node id is the id web gave it).
+register: declares the poller in centreon-web when needed and prints the id
+          web gave it, which is the node id of its gorgone-agent.
 deploy:   waits for gorgone-server to see the agent, then asks centreon-web to
           generate, push and restart, as an operator would.
+
+Only the network is used: no file is shared with another container.
 """
 
 import base64
@@ -16,7 +14,6 @@ import json
 import os
 import sys
 import time
-import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Any, Optional
@@ -27,53 +24,6 @@ GORGONE = "http://{}:{}".format(
     os.environ.get("GORGONE_API_PORT", "8085"),
 )
 POLLER = os.environ.get("POLLER_NAME", "engine")
-AGENT_CONFIG = "/agent/agent.toml"
-
-AGENT_TEMPLATE = """\
-node_id = "{node_id}"
-server_url = "http://{gorgone_host}:{agent_port}"
-# Bench value: gorgone-server enrols nodes automatically here.
-token = "integration-test"
-
-[commands]
-allowlist = []
-
-[engine]
-# No command pipe and no systemctl: the engine is another container, reached
-# through the socket of a volume shared with it.
-grpc_url = "unix:/var/lib/centreon-engine/rw/engine.sock"
-allowed_commands = [
-  'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
-  'ACKNOWLEDGE_(HOST|SVC)_PROBLEM',
-  'REMOVE_(HOST|SVC)_ACKNOWLEDGEMENT',
-  'SCHEDULE_(HOST|SVC)_DOWNTIME',
-  'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
-  '(ENABLE|DISABLE)_NOTIFICATIONS',
-]
-
-[targets.engine]
-path = "/etc/centreon-engine"
-prune = false
-# Checked by the engine container, through its API, before it is applied.
-engine_main_file = "centengine.cfg"
-
-[targets.broker]
-path = "/etc/centreon-broker"
-prune = false
-
-[targets.vmware]
-path = "/etc/centreon"
-prune = false
-
-[services.engine]
-reload = "grpc:reload"
-# The engine exits and its container restart policy starts it again.
-restart = "grpc:shutdown"
-
-[services.broker]
-# No cbd here: the broker module is reloaded with the engine.
-reload = "grpc:reload"
-"""
 
 
 def call(
@@ -92,12 +42,23 @@ def call(
 
 
 def login() -> str:
+    """Logs in, waiting for centreon-web to be up and warm."""
     credentials = {
         "login": os.environ.get("WEB_API_USERNAME", "admin"),
         "password": os.environ.get("WEB_API_PASSWORD", "Centreon!2021"),
     }
-    answer = call(WEB + "/centreon/api/latest/login", {"security": {"credentials": credentials}})
-    return answer["security"]["token"]
+    for attempt in range(180):
+        try:
+            answer = call(
+                WEB + "/centreon/api/latest/login", {"security": {"credentials": credentials}}
+            )
+            return answer["security"]["token"]
+        except (OSError, KeyError, ValueError) as error:
+            if attempt == 179:
+                raise
+            print("centreon-web not ready yet:", error, file=sys.stderr)
+            time.sleep(5)
+    raise RuntimeError("unreachable")
 
 
 def poller_id(token: str) -> Optional[int]:
@@ -129,43 +90,7 @@ def register() -> None:
     node_id = poller_id(token)
     if node_id is None:
         sys.exit("centreon-web did not create poller " + POLLER)
-    with open(AGENT_CONFIG, "w") as config:
-        config.write(AGENT_TEMPLATE.format(
-            node_id=node_id,
-            gorgone_host=os.environ.get("GORGONE_HOST", "gorgone-server"),
-            agent_port=os.environ.get("GORGONE_AGENT_PORT", "5556"),
-        ))
-    print("poller {} registered with id {}".format(POLLER, node_id))
-
-
-def secrets() -> None:
-    """Writes engine-context.json into every directory of SECRET_DIRS."""
-    # Right after the installation the first calls can fail while the
-    # application warms its caches up.
-    answer: dict[str, object] = {}
-    for attempt in range(30):
-        try:
-            token = login()
-            answer = call(
-                WEB + "/centreon/api/latest/administration/engine/secrets",
-                headers={"X-AUTH-TOKEN": token},
-            )
-            break
-        except urllib.error.HTTPError as error:
-            if attempt == 29:
-                raise
-            print("engine secrets not available yet:", error)
-            time.sleep(2)
-    content = json.dumps(answer)
-    for directory in os.environ["SECRET_DIRS"].split():
-        path = os.path.join(directory, "engine-context.json")
-        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o640)
-        with os.fdopen(descriptor, "w") as file:
-            file.write(content)
-        # Read by the engine user (901) or the broker group (902).
-        os.chown(path, 901, 902)
-        os.chmod(path, 0o640)
-    print("engine context written")
+    print(node_id)
 
 
 def wait_for_urls() -> None:
@@ -196,6 +121,11 @@ def deploy() -> None:
     for action in ("POLLERGENERATE", "CFGMOVE", "POLLERRESTART"):
         if action == "POLLERRESTART":
             wait_for_urls()
+            # The restart may be this container's: note the deployment first,
+            # or the next start would deploy, and restart, again.
+            marker = os.environ.get("DEPLOY_MARKER")
+            if marker:
+                open(marker, "w").close()
         answer = call(
             WEB + "/centreon/api/index.php?action=action&object=centreon_clapi",
             {"action": action, "values": POLLER},
@@ -205,4 +135,4 @@ def deploy() -> None:
 
 
 if __name__ == "__main__":
-    {"register": register, "deploy": deploy, "secrets": secrets}[sys.argv[1]]()
+    {"register": register, "deploy": deploy}[sys.argv[1]]()

@@ -239,5 +239,7 @@ ENTRYPOINT ["/usr/local/lib/centreon-broker/container.sh"]
 # ["cbd", "/etc/centreon-broker/central-broker.json"] to run cbd directly.
 # Note: cbd's `-c`/`--check` validates and exits, it is not a config-path flag.
 # A real config must be mounted over central-broker.json - container.sh
-# refuses to start on the untouched package default.
+# refuses to start on the untouched package default - or, with
+# BROKER_WAIT_FOR_CONFIG=true, pushed with PUT /files/broker (see
+# gorgone-rs/docs/containers-contract.md, "Broker control API").
 CMD ["/opt/centreon/venv/bin/python3", "/usr/local/lib/centreon-broker/api_control.py", "/etc/centreon-broker/central-broker.json"]

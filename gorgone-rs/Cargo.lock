@@ -568,6 +568,7 @@ dependencies = [
  "rcgen",
  "serde",
  "shell-words",
+ "tar",
  "tempfile",
  "thiserror",
  "tokio",

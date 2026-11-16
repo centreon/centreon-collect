@@ -1,6 +1,6 @@
 # centreon-broker image for the gorgone-rs proof of concept
 
-`centreon-broker-trixie:develop` plus the `victoria_metrics` output of this branch (`/usr/share/centreon/lib/centreon-broker/70-victoria_metrics.so`, a module the base image does not package). The output writes metrics and status as `gorgone-rs/docs/victoria-metrics-contract.md` describes, so that centreon-web can read its graphs from VictoriaMetrics instead of RRD files:
+`centreon-broker-trixie:develop` plus the control API entrypoint of this checkout (`.github/docker/centreon-broker/trixie/entrypoint`: `PUT /files/{target}`, bearer token, `BROKER_WAIT_FOR_CONFIG`, see the "Broker control API" section of `gorgone-rs/docs/containers-contract.md`) and the `victoria_metrics` output of this branch (`/usr/share/centreon/lib/centreon-broker/70-victoria_metrics.so`, a module the base image does not package). The output writes metrics and status as `gorgone-rs/docs/victoria-metrics-contract.md` describes, so that centreon-web can read its graphs from VictoriaMetrics instead of RRD files:
 
 - `POST /write?precision=s` (InfluxDB line protocol, timestamps in seconds); a configured `http_target` keeps its own `precision` if it sets one;
 - `metric_val` labels `id`, `index_id`, `host_id`, `serv_id`, `name`, `unit` and the configured extra tags (no `min`/`max` by default); `status_val` labels `id` (index), `host_id`, `serv_id`; UNKNOWN is not written;
@@ -32,14 +32,32 @@ CTX=$(mktemp -d)
 docker run --rm -v collect-poc-build-trixie:/build:ro -v "$CTX":/out "$PACKAGING" \
   sh -c 'strip -o /out/70-victoria_metrics.so /build/broker/lib/70-victoria_metrics.so && chmod 755 /out/70-victoria_metrics.so'
 
-# 4. Image. The build fails if a library is missing or if the module was not
-#    built for the Broker version of the base image.
-docker build -t centreon-broker-trixie:gorgone-poc -f gorgone-rs/deploy/centreon/broker/Dockerfile "$CTX"
+# 4. Image, with the entrypoint of this checkout as the named context
+#    `entrypoint`. The build fails if a library is missing or if the module
+#    was not built for the Broker version of the base image.
+docker build -t centreon-broker-trixie:gorgone-poc -f gorgone-rs/deploy/centreon/broker/Dockerfile \
+  --build-context entrypoint=.github/docker/centreon-broker/trixie/entrypoint "$CTX"
 ```
 
 ## Configuration
 
-The entrypoint of the base image refuses its packaged default configuration: mount a real one and pass it to `api_control.py`. A `victoria_metrics` output:
+The entrypoint refuses the packaged default configuration: mount a real one and pass it to `api_control.py`, or start the container with `BROKER_WAIT_FOR_CONFIG=true` (and `BROKER_CONTROL_TOKEN`) and let the poller's `gorgone-agent` push it:
+
+```bash
+docker run -d --name broker-poc -p 8080:8080 -e BROKER_WAIT_FOR_CONFIG=true -e BROKER_CONTROL_TOKEN="$TOKEN" \
+  centreon-broker-trixie:gorgone-poc
+curl -s localhost:8080/health                                  # 503 {"state":"waiting_for_config"}
+tar -C ctx -cf - engine-context.json | curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/x-tar' \
+  --data-binary @- localhost:8080/files/engine_context            # 204, written with mode 0640
+tar -C conf -cf - central-broker.json | curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/x-tar' \
+  --data-binary @- localhost:8080/files/broker                    # 204, cbd starts
+```
+
+Push `engine_context` before `broker`: `cbd` reads `/etc/centreon-engine/engine-context.json` when it starts and on each `POST /reload` (SIGHUP), never in between. Later pushes do not restart `cbd`: call `POST /reload`.
+
+A `victoria_metrics` output:
 
 ```json
 {

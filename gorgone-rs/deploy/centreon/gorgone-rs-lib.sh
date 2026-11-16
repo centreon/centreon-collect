@@ -37,6 +37,12 @@ allowed_commands = [
   '(ENABLE|DISABLE)_(HOST|SVC)_CHECK',
 ]
 
+# The key centreon-web encrypts credentials with, pushed before the rest.
+[targets.engine_context]
+path = "/etc/centreon-engine"
+prune = false
+file_mode = "0640"
+
 [targets.engine]
 path = "/etc/centreon-engine"
 prune = false

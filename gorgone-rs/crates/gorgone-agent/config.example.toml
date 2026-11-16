@@ -77,8 +77,17 @@ max_buffered_event_bytes = 67108864
 # `[services.engine]`) to accept the connection and answer, in milliseconds.
 # Past it the call fails and the next URL is tried: a stopped service never
 # hangs the agent. It is a top-level key because every table under
-# `[services]` is a service.
+# `[services]` is a service. The same bound applies to each `PUT` of a target
+# with `urls` (see `[targets.engine]`), which carries a whole bundle: allow
+# for its transfer.
 http_post_timeout_ms = 5000
+
+# Token sent as `Authorization: Bearer <token>` on every `http-post:` service
+# call and every `PUT` to the `urls` of a target: the `BROKER_CONTROL_TOKEN`
+# of the broker container image. Unset by default: no `Authorization` header.
+# Visible ASCII without space. A secret, never logged: like `token`, set it
+# from a secret store (GORGONE_AGENT__HTTP_BEARER_TOKEN) rather than here.
+# http_bearer_token = "..."
 
 [tls]
 # PEM file of the authorities signing the server certificate. Required with
@@ -228,11 +237,39 @@ allowed_commands = [
 
 # Destinations of the configuration bundles (ApplyConfig jobs), one table per
 # target. None by default: the central only names a target, and a target
-# missing here is refused.
-#   path:  required, directory the bundle is synchronised into.
-#   prune: remove the files of `path` that are not in the bundle (default false).
+# missing here is refused. A target writes into a local `path`, sends to
+# remote `urls`, or both; at least one of the two is required.
+#   path:  directory the bundle is synchronised into. Unset by default.
+#   urls:  list of `http://host[:port][/path]` URLs, same rules as the
+#          `http-post:` service operations (no https, no credentials in the
+#          URL). Empty by default. Each receives the bundle as a plain tar:
+#          `PUT`, `Content-Type: application/x-tar`, with `http_bearer_token`
+#          when set, in order, within `http_post_timeout_ms` each; a failure
+#          does not skip the URLs after it. The job result holds one entry per
+#          URL (`PUT <url>`, exit code 0 when the answer is a 2xx status, the
+#          status line or the error).
+#   prune: remove the files of `path` that are not in the bundle (default
+#          false). Requires `path`.
 #   engine_main_file: main file of an engine configuration, relative to
 #          `path`. Unset by default: the bundle is applied without check.
+#          Requires `path`.
+#   file_mode: octal mode of the files written into `path`, such as "0640"
+#          (at most "0777": no setuid, setgid or sticky bit). Unset by
+#          default: 0644, or 0755 for a file executable in the bundle. The
+#          digest marker keeps 0644, and the tar sent to `urls` keeps the
+#          modes of the bundle. Requires `path`. Applied with the next
+#          bundle: a bundle already applied is not written again.
+#
+# An ApplyConfig job succeeds only when every destination took the bundle:
+# the local directory first (after the check below), then every URL. The
+# local directory is not written when the check fails, and no URL is called
+# when the local write fails. The digest the URLs accepted is kept by the
+# agent (under `state_dir` when set, so a restart keeps it; in memory
+# otherwise) and reported in heartbeats like a local one; a target with both
+# sides is reported only when both hold the same digest. After a push that
+# not every URL accepted the digest is forgotten, so the next push of any
+# bundle is sent again. A ValidateConfig job needs `path` and
+# `engine_main_file`.
 #
 # With `engine_main_file` a bundle is checked by the engine of this node
 # before any live file is written, so the central never has to run
@@ -265,6 +302,21 @@ engine_main_file = "centengine.cfg"
 [targets.broker]
 path = "/etc/centreon-broker"
 prune = false
+
+# In containers, without shared volumes, the broker configuration goes to the
+# control API of the broker container instead (`PUT /files/{target}`):
+#   [targets.broker]
+#   urls = ["http://broker:8080/files/broker"]
+#
+# The key centreon-web encrypts credentials with (`engine-context.json`),
+# written next to the engine configuration, readable by its group only, and,
+# on the central poller, also sent to its broker container. Pruning only
+# spares the digest markers: `prune = true` on `[targets.engine]`, which
+# shares this directory, removes the key at every engine push.
+[targets.engine_context]
+path = "/etc/centreon-engine"
+file_mode = "0640"
+# urls = ["http://broker:8080/files/engine_context"]
 
 [targets.vmware]
 path = "/etc/centreon"

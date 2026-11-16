@@ -188,20 +188,65 @@ pub fn from_tar(archive: &[u8], max_unpacked: u64) -> Result<Vec<u8>, BundleErro
     build(entries)
 }
 
+/// Turns a bundle back into a plain `tar` archive, for a destination that
+/// takes no `zstd`: the inverse of [`from_tar`], with the same checks. Entries
+/// keep the order, the names and the permission bits of the bundle.
+pub fn to_tar(bundle: &[u8], max_unpacked: u64) -> Result<Vec<u8>, BundleError> {
+    let decoder = zstd::Decoder::new(bundle).map_err(BundleError::Invalid)?;
+    let mut archive = tar::Archive::new(decoder);
+    let mut plain = tar::Builder::new(Vec::new());
+    let mut total = 0u64;
+    for entry in archive.entries().map_err(BundleError::Invalid)? {
+        let mut entry = entry.map_err(BundleError::Invalid)?;
+        let path = entry.path().map_err(BundleError::Invalid)?.into_owned();
+        let kind = entry.header().entry_type();
+        if kind.is_dir() {
+            continue;
+        }
+        if !kind.is_file() || !is_safe(&path) || is_marker(&path) {
+            return Err(BundleError::UnsafeEntry(path.display().to_string()));
+        }
+        let rel: PathBuf = path
+            .components()
+            .filter(|c| matches!(c, Component::Normal(_)))
+            .collect();
+        let mode = entry.header().mode().unwrap_or(0o644);
+        let mut data = Vec::new();
+        // Real bytes, not the header size, count against the cap.
+        (&mut entry)
+            .take(max_unpacked - total + 1)
+            .read_to_end(&mut data)
+            .map_err(BundleError::Invalid)?;
+        total += data.len() as u64;
+        if total > max_unpacked {
+            return Err(BundleError::TooLarge(max_unpacked));
+        }
+        plain
+            .append_data(&mut entry_header(data.len(), mode), &rel, data.as_slice())
+            .map_err(BundleError::Invalid)?;
+    }
+    plain.into_inner().map_err(BundleError::Invalid)
+}
+
+/// Header of a regular file, without time nor owner.
+fn entry_header(size: usize, mode: u32) -> tar::Header {
+    let mut header = tar::Header::new_gnu();
+    header.set_entry_type(tar::EntryType::Regular);
+    header.set_size(size as u64);
+    header.set_mode(mode & 0o777);
+    header.set_mtime(0);
+    header.set_uid(0);
+    header.set_gid(0);
+    header
+}
+
 /// Writes the deterministic archive: sorted names, no time, no owner.
 fn build(mut entries: Vec<(PathBuf, u32, Vec<u8>)>) -> Result<Vec<u8>, BundleError> {
     entries.sort();
     let encoder = zstd::Encoder::new(Vec::new(), 3).map_err(BundleError::Invalid)?;
     let mut tar = tar::Builder::new(encoder);
     for (rel, mode, data) in &entries {
-        let mut header = tar::Header::new_gnu();
-        header.set_entry_type(tar::EntryType::Regular);
-        header.set_size(data.len() as u64);
-        header.set_mode(mode & 0o777);
-        header.set_mtime(0);
-        header.set_uid(0);
-        header.set_gid(0);
-        tar.append_data(&mut header, rel, data.as_slice())
+        tar.append_data(&mut entry_header(data.len(), *mode), rel, data.as_slice())
             .map_err(BundleError::Invalid)?;
     }
     tar.into_inner()
@@ -288,12 +333,25 @@ pub fn applied_digest(dest: &Path, marker: &str) -> Option<String> {
 ///
 /// Every file is written next to its destination and renamed over it, so a
 /// reader never sees a partial file. Works on mount points and shared
-/// volumes, unlike a directory swap.
+/// volumes, unlike a directory swap. A file gets 0644, or 0755 when it is
+/// executable in the bundle.
 pub fn apply(
     bundle: &[u8],
     expected_digest: &str,
     dest: &Path,
     options: &ApplyOptions<'_>,
+) -> Result<ApplyReport, BundleError> {
+    apply_with_file_mode(bundle, expected_digest, dest, options, None)
+}
+
+/// [`apply`], every file of the bundle written with `file_mode` when it is
+/// set: only its permission bits (`0o777`) are used. The marker keeps 0644.
+pub fn apply_with_file_mode(
+    bundle: &[u8],
+    expected_digest: &str,
+    dest: &Path,
+    options: &ApplyOptions<'_>,
+    file_mode: Option<u32>,
 ) -> Result<ApplyReport, BundleError> {
     let actual = digest(bundle);
     if !actual.eq_ignore_ascii_case(expected_digest) {
@@ -337,7 +395,11 @@ pub fn apply(
         fs::create_dir_all(parent).map_err(io_err(parent))?;
         // Only the executable bit is taken from the bundle.
         let executable = entry.header().mode().unwrap_or(0) & 0o111 != 0;
-        let mode = if executable { 0o755 } else { 0o644 };
+        let mode = match file_mode {
+            Some(mode) => mode & 0o777,
+            None if executable => 0o755,
+            None => 0o644,
+        };
         budget -= write_atomic(&target, mode, |file| {
             let copied =
                 io::copy(&mut (&mut entry).take(budget + 1), file).map_err(io_err(&target))?;
@@ -579,6 +641,107 @@ mod tests {
             digest(&pack(src.path()).unwrap())
         );
         assert!(matches!(from_tar(&plain, 3), Err(BundleError::TooLarge(3))));
+    }
+
+    fn mode_of(path: &Path) -> u32 {
+        fs::metadata(path).unwrap().permissions().mode() & 0o7777
+    }
+
+    #[test]
+    fn forced_file_mode_applies_to_every_file_but_the_marker() {
+        let src = tree();
+        let script = src.path().join("hook.sh");
+        fs::write(&script, "#!/bin/sh\n").unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+        let bundle = pack(src.path()).unwrap();
+        let sum = digest(&bundle);
+        let dest = tempfile::tempdir().unwrap();
+        apply_with_file_mode(&bundle, &sum, dest.path(), &OPTIONS, Some(0o640)).unwrap();
+        for name in ["hook.sh", "centengine.cfg", "objects/hosts.cfg"] {
+            assert_eq!(mode_of(&dest.path().join(name)), 0o640, "{name}");
+        }
+        assert_eq!(mode_of(&dest.path().join(OPTIONS.marker)), 0o644);
+
+        // Only the permission bits are taken.
+        let dest = tempfile::tempdir().unwrap();
+        apply_with_file_mode(&bundle, &sum, dest.path(), &OPTIONS, Some(0o4600)).unwrap();
+        assert_eq!(mode_of(&dest.path().join("hook.sh")), 0o600);
+    }
+
+    #[test]
+    fn to_tar_round_trips_and_keeps_names_and_modes() {
+        let src = tree();
+        let script = src.path().join("hook.sh");
+        fs::write(&script, "#!/bin/sh\n").unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o750)).unwrap();
+        let bundle = pack(src.path()).unwrap();
+        let plain = to_tar(&bundle, DEFAULT_MAX_UNPACKED).unwrap();
+        assert_eq!(from_tar(&plain, DEFAULT_MAX_UNPACKED).unwrap(), bundle);
+
+        let mut archive = tar::Archive::new(plain.as_slice());
+        let entries: Vec<(String, u32, Vec<u8>)> = archive
+            .entries()
+            .unwrap()
+            .map(|entry| {
+                let mut entry = entry.unwrap();
+                let name = entry.path().unwrap().display().to_string();
+                let mode = entry.header().mode().unwrap();
+                let mut data = Vec::new();
+                entry.read_to_end(&mut data).unwrap();
+                (name, mode, data)
+            })
+            .collect();
+        assert_eq!(
+            entries,
+            [
+                ("centengine.cfg".to_owned(), 0o644, b"a=1\n".to_vec()),
+                ("hook.sh".to_owned(), 0o750, b"#!/bin/sh\n".to_vec()),
+                (
+                    "objects/hosts.cfg".to_owned(),
+                    0o644,
+                    b"define host{}\n".to_vec()
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn to_tar_refuses_unsafe_entries_and_oversized_bundles() {
+        let src = tree();
+        let bundle = pack(src.path()).unwrap();
+        assert!(matches!(to_tar(&bundle, 3), Err(BundleError::TooLarge(3))));
+        assert!(matches!(
+            to_tar(b"not a bundle", 10),
+            Err(BundleError::Invalid(_))
+        ));
+
+        let bundle_of = |header: &tar::Header, data: &[u8]| {
+            let encoder = zstd::Encoder::new(Vec::new(), 3).unwrap();
+            let mut tar = tar::Builder::new(encoder);
+            tar.append(header, data).unwrap();
+            tar.into_inner().unwrap().finish().unwrap()
+        };
+        let mut traversal = tar::Header::new_gnu();
+        traversal.set_entry_type(tar::EntryType::Regular);
+        traversal.set_size(1);
+        // `set_path` refuses `..`, so write the raw name.
+        traversal.as_gnu_mut().unwrap().name[..9].copy_from_slice(b"../escape");
+        traversal.set_cksum();
+        let mut link = tar::Header::new_gnu();
+        link.set_entry_type(tar::EntryType::Symlink);
+        link.set_size(0);
+        link.set_path("passwd").unwrap();
+        link.set_link_name("/etc/passwd").unwrap();
+        link.set_cksum();
+        let mut marker = tar::Header::new_gnu();
+        marker.set_entry_type(tar::EntryType::Regular);
+        marker.set_size(1);
+        marker.set_path(".gorgone-engine.digest").unwrap();
+        marker.set_cksum();
+        for (header, data) in [(&traversal, &b"x"[..]), (&link, b""), (&marker, b"x")] {
+            let error = to_tar(&bundle_of(header, data), DEFAULT_MAX_UNPACKED).unwrap_err();
+            assert!(matches!(error, BundleError::UnsafeEntry(_)), "{error}");
+        }
     }
 
     #[test]

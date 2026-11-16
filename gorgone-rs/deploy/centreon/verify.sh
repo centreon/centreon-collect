@@ -55,6 +55,20 @@ web_image_is_slim() {
   ! "${COMPOSE[@]}" exec -T web sh -c "ls /usr/sbin/centengine /usr/sbin/cbd /usr/bin/gorgoned 2>/dev/null | grep ."
 }
 
+web_image_has_no_rrdtool() {
+  ! "${COMPOSE[@]}" exec -T web sh -c 'command -v rrdtool'
+}
+
+# Each volume belongs to one container: configuration, keys and commands go
+# over the network.
+no_shared_volume() {
+  local container
+  for container in $("${COMPOSE[@]}" ps -aq); do
+    docker inspect -f '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{"\n"}}{{end}}{{end}}' "${container}"
+  done | grep . | sort | uniq -d | grep -q . && return 1
+  return 0
+}
+
 all_nodes_connected() {
   gorgone_api GET /v1/nodes \
     | python3 -I -c 'import json,sys; n=json.load(sys.stdin)["nodes"]; sys.exit(0 if len(n) >= 3 and all(x["connected"] for x in n) else 1)'
@@ -206,6 +220,8 @@ no_centcore_file() {
 }
 
 check "the web image carries no collect, Gorgone or plugin package" web_image_is_slim
+check "the web image carries no rrdtool" web_image_has_no_rrdtool
+check "no volume is shared between containers" no_shared_volume
 check "the three agents are connected to gorgone-server" all_nodes_connected
 check "the central broker sees the Central engine running" instance_running Central
 check "the central broker sees the poller's engine running" instance_running poller

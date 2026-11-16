@@ -35,6 +35,9 @@ use crate::session::{Backoff, Session};
 /// Time left to cancelled jobs to stop, then to the last events to be
 /// acknowledged, when the agent stops.
 const SHUTDOWN_FLUSH: Duration = Duration::from_secs(5);
+/// Subdirectory of `state_dir` keeping the digests the remote destinations
+/// accepted, next to the job journal.
+const REMOTE_APPLIED_DIR: &str = "remote-applied";
 
 /// Errors stopping the agent before or while it runs.
 #[derive(Debug, thiserror::Error)]
@@ -81,12 +84,16 @@ pub async fn run(
     let state = {
         let targets = config.targets.clone();
         let engine_api = engine.is_some();
+        let remote_dir = config
+            .state_dir
+            .as_ref()
+            .map(|dir| dir.join(REMOTE_APPLIED_DIR));
         tokio::task::spawn_blocking(move || {
             // What an agent killed during a configuration check left behind.
-            for target in targets.values() {
-                remove_leftovers(&target.path);
+            for path in targets.values().filter_map(|target| target.path.as_ref()) {
+                remove_leftovers(path);
             }
-            NodeState::load(&targets, engine_api)
+            NodeState::load(&targets, engine_api, remote_dir.as_deref())
         })
         .await?
     };
@@ -135,11 +142,14 @@ pub async fn run(
             state: state.clone(),
             checker,
             max_output: config.max_output_bytes,
+            http_timeout: config.http_post_timeout(),
+            bearer: config.http_bearer_token.clone(),
         },
         service_control: ServiceControlExecutor {
             services: config.services.clone(),
             engine,
             http_timeout: config.http_post_timeout(),
+            bearer: config.http_bearer_token.clone(),
             timeout: config.default_command_timeout(),
             kill_grace: config.kill_grace(),
             max_output: config.max_output_bytes,

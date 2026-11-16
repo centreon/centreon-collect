@@ -11,7 +11,7 @@ use gorgone_proto::agent::service_control::Operation;
 use gorgone_proto::agent::{CommandResult, JobFinished, ServiceControl};
 
 use super::{Executor, JobContext, command_result, finished};
-use crate::config::{EngineRpc, ServiceAction, ServiceConfig};
+use crate::config::{EngineRpc, Secret, ServiceAction, ServiceConfig};
 use crate::engine_api::EngineApi;
 use crate::http_post::{self, HttpTarget, PostError};
 use crate::process::{self, CommandSpec};
@@ -22,6 +22,8 @@ pub(crate) struct ServiceControlExecutor {
     pub engine: Option<EngineApi>,
     /// Bound of one call of an `http-post:` operation, connection included.
     pub http_timeout: Duration,
+    /// Sent with every call of an `http-post:` operation.
+    pub bearer: Option<Secret>,
     pub timeout: Duration,
     pub kill_grace: Duration,
     pub max_output: usize,
@@ -59,7 +61,11 @@ impl ServiceControlExecutor {
                         format!("{what}: cancelled, {accepted} of {total} HTTP calls accepted{report}"),
                     );
                 }
-                answer = http_post::post(target, self.http_timeout) => answer,
+                answer = http_post::post(
+                    target,
+                    self.bearer.as_ref().map(Secret::expose),
+                    self.http_timeout,
+                ) => answer,
             };
             let mut result = CommandResult {
                 index: u32::try_from(index).unwrap_or(u32::MAX),
@@ -206,6 +212,7 @@ mod tests {
             services: BTreeMap::from([("engine".to_owned(), service)]),
             engine: None,
             http_timeout: Duration::from_millis(300),
+            bearer: None,
             timeout: Duration::from_secs(10),
             kill_grace: Duration::from_secs(2),
             max_output: 1024,

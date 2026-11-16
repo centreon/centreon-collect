@@ -1,0 +1,54 @@
+# gorgone-agent running inside an engine container of the bench. The node id,
+# the server URL and the central-only destinations come from the environment
+# (GORGONE_AGENT__…), see 50-gorgone-agent_background.sh and compose.yaml.
+server_url = "http://gorgone-server:5556"
+# Bench value: gorgone-server enrols nodes automatically here.
+token = "integration-test"
+# The journal lives on the container's own filesystem, which a restart keeps:
+# the result of a "restart" job is sent once the container is back.
+state_dir = "/var/lib/centreon-gorgone/agent"
+
+[commands]
+allowlist = []
+
+[engine]
+# The engine runs in this container: its API socket is local.
+grpc_url = "unix:/var/lib/centreon-engine/rw/engine.sock"
+allowed_commands = [
+  'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
+  'ACKNOWLEDGE_(HOST|SVC)_PROBLEM',
+  'REMOVE_(HOST|SVC)_ACKNOWLEDGEMENT',
+  'SCHEDULE_(HOST|SVC)_DOWNTIME',
+  'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
+  '(ENABLE|DISABLE)_NOTIFICATIONS',
+]
+
+# The key centreon-web encrypts credentials with, pushed before the rest.
+[targets.engine_context]
+path = "/etc/centreon-engine"
+prune = false
+file_mode = "0640"
+
+[targets.engine]
+path = "/etc/centreon-engine"
+prune = false
+# Checked by the engine of this container before it is applied.
+engine_main_file = "centengine.cfg"
+
+# The broker module of the engine reads its file from here.
+[targets.broker]
+path = "/etc/centreon-broker"
+prune = false
+
+[targets.vmware]
+path = "/var/lib/centreon-gorgone/vmware"
+prune = false
+
+[services.engine]
+reload = "grpc:reload"
+# The engine exits and the container restart policy starts it again.
+restart = "grpc:shutdown"
+
+[services.broker]
+# No cbd in this container: the broker module is reloaded with the engine.
+reload = "grpc:reload"

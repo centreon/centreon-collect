@@ -24,12 +24,17 @@ fi
 
 # Find the config path in "$@": refuse to start on the untouched package
 # default (no SQL/storage output, would run but persist nothing), else tail
-# its log file.
+# its log file. BROKER_WAIT_FOR_CONFIG=true: api_control.py waits for the
+# configuration push instead, and tails the log of the pushed config.
 DEFAULT_SUM=$(cat /var/lib/centreon-broker/.default-config.sha256 2>/dev/null || true)
 for arg in "$@"; do
     case "$arg" in
         *.json)
             if [ -n "$DEFAULT_SUM" ] && [ "$(sha256sum "$arg" 2>/dev/null | cut -d' ' -f1)" = "$DEFAULT_SUM" ]; then
+                if [ "${BROKER_WAIT_FOR_CONFIG:-false}" = "true" ]; then
+                    echo "$arg is still the package-default config, waiting for a configuration push"
+                    break
+                fi
                 echo "ERROR: $arg is still the package-default config (no SQL/storage output) - mount a real broker config" >&2
                 exit 1
             fi

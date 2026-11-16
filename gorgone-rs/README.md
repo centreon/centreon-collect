@@ -59,31 +59,35 @@ curl -H "Authorization: Bearer $TOKEN" -X PUT --data-binary @bundle.tar.zst \
 
 ## Test with a real Centreon
 
-`deploy/centreon/` runs real Centreon components, each in its own container.
-centreon-web runs alone in a slim image: no centreon-collect, Gorgone, plugin,
-Perl or Python package next to it, and no command file anywhere.
+`deploy/centreon/` runs real Centreon components, each in its own container,
+with no volume shared between containers and no RRD file. centreon-web runs
+alone in a slim image: no centreon-collect, Gorgone, plugin, Perl, Python or
+`rrdtool` next to it. Configuration, keys and commands go over the network
+(rules: [docs/containers-contract.md](docs/containers-contract.md)).
 
-| Container                          | Content                                                                    |
-| ---------------------------------- | -------------------------------------------------------------------------- |
-| `gorgone-server`                   | the control plane alone, store in MariaDB                                  |
-| `web`                              | the slim centreon-web image (PHP and Apache), calling the Gorgone REST API |
-| `broker`                           | the central broker: SQL and VictoriaMetrics outputs                        |
-| `victoria-metrics`                 | the time series store; centreon-web reads its graphs from it               |
-| `central-engine` + `central-agent` | the engine of the "Central" poller and its `gorgone-agent` sidecar         |
-| `engine` + `engine-agent`          | a second container-only poller                                             |
-| `poller`                           | the Centreon poller test image, driven by `gorgone-agent`                  |
+| Container          | Content                                                                           |
+| ------------------ | --------------------------------------------------------------------------------- |
+| `gorgone-server`   | the control plane alone, store in MariaDB                                         |
+| `web`              | the slim centreon-web image (PHP and Apache), calling the Gorgone REST API        |
+| `victoria-metrics` | the time series store; centreon-web reads its graphs from it                      |
+| `broker`           | the central broker; receives its configuration and key through its control API    |
+| `central-engine`   | the engine of the "Central" poller and its `gorgone-agent`, in the same container |
+| `engine`           | a second container-only poller, same image; registers and deploys itself          |
+| `poller`           | the Centreon poller test image, driven by `gorgone-agent`                         |
 
-The sidecars drive their engine over its gRPC API on a Unix socket, and the
-broker over its HTTP control API. One-shot containers prepare the bench:
-`central-setup` points the broker flows at the broker containers, `secrets`
-copies the encryption key of centreon-web to the brokers and engines, and the
-`*-deploy` steps register the pollers and ask centreon-web to generate, push
-and restart.
+Inside an engine container the agent drives the engine over its gRPC API on a
+local Unix socket. The Central agent pushes the broker configuration and the
+encryption key to the broker container and reloads it through its control API.
+centreon-web pushes the key (`engine_context`) before every configuration.
+Only VictoriaMetrics keeps a volume, its own; `central-setup` reads one SQL
+file that points the broker flows at the broker container and at
+VictoriaMetrics.
 
 It needs a checkout of the centreon-web branch that sends its commands to the
-Gorgone API (its slim image is built from `CENTREON_SRC`), and the engine
-image built from this branch
-([deploy/centreon/engine/README.md](deploy/centreon/engine/README.md)):
+Gorgone API (its slim image is built from `CENTREON_SRC`), and the engine and
+broker images built from this branch
+([deploy/centreon/engine/README.md](deploy/centreon/engine/README.md),
+[deploy/centreon/broker/README.md](deploy/centreon/broker/README.md)):
 
 ```bash
 export CENTREON_SRC=/path/to/centreon
@@ -93,18 +97,21 @@ docker compose -f deploy/centreon/compose.yaml down -v
 ```
 
 `verify.sh` runs from the host and checks, among other things, that the web
-image carries no collect, Gorgone or plugin package, that the central broker
-sees every engine running, that a forced check sent through the centreon-web
-API reaches the engine, that the engine API is not reachable over the network,
-that a reload asked on top of a failed configuration push is not sent, that a
-configuration is verified by the poller's own engine and refused when invalid,
-and that performance data goes engine, broker, VictoriaMetrics and back to an
-API v2 graph, with no RRD file anywhere. The data model is in
-[docs/victoria-metrics-contract.md](docs/victoria-metrics-contract.md). The
-web UI is on <http://localhost:4000>.
+image carries no collect, Gorgone, plugin package nor `rrdtool`, that no volume
+is shared between containers, that the central broker sees every engine
+running, that a forced check sent through the centreon-web API reaches the
+engine, that the engine API is not reachable over the network, that a reload
+asked on top of a failed configuration push is not sent, that a configuration
+is verified by the poller's own engine and refused when invalid, and that
+performance data goes engine, broker, VictoriaMetrics and back to an API v2
+graph, with no RRD file anywhere. The data model is in
+[docs/victoria-metrics-contract.md](docs/victoria-metrics-contract.md). The web
+UI is on <http://localhost:4000>.
 
 On the `poller` test image the broker module is reloaded with the engine, so
-the bench maps "broker reload" to an engine reload there.
+the bench maps "broker reload" to an engine reload there. An `engine` target
+must keep `prune = false`: pruning would delete the key file the
+`engine_context` target writes in the same directory.
 
 ## Benchmark
 
