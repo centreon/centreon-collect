@@ -57,12 +57,39 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
         const std::vector<std::shared_ptr<io::data>>& events) = 0;
   };
 
-  struct queue_entry {
-    int64_t timestamp;               // INT64_MAX for P, insertion time for C/H
-    std::shared_ptr<io::data> event; // nullptr if tombstoned (C only)
+ private:
+  /* The three priority levels, in read order:
+   *   P (priority_level)   — pb_downtime, pb_acknowledgement
+   *   C (current_level)    — fresh host/service status events
+   *   H (historical_level) — bulk data, logs, old status events */
+  enum level : uint8_t {
+    priority_level = 0,
+    current_level,
+    historical_level,
+    nb_levels
   };
 
- private:
+  /* The events of one level, in publication order. An event stays in `events`
+   * until it is acknowledged: the first `read` ones have been read and wait
+   * for their acknowledgement, the others are not read yet. Reading an event
+   * only increments `read`, nothing is moved. */
+  struct level_queue {
+    struct entry {
+      std::shared_ptr<io::data> event;
+      int64_t timestamp;  // publication time, used to demote stale C events
+    };
+    std::deque<entry> events;
+    size_t read = 0;
+
+    size_t unread() const noexcept { return events.size() - read; }
+  };
+
+  /* `count` events of the level `lvl` read in a row. */
+  struct read_run {
+    level lvl;
+    size_t count;
+  };
+
   static uint32_t _event_queue_max_size;
   static uint32_t _priority_age_threshold;
 
@@ -78,20 +105,15 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   std::shared_ptr<data_handler> _data_handler;
   std::atomic_bool _reader_running = false;
 
-  /** Events are stacked into three priority queues or into _file. Because
-   * several threads access to them, they are protected by _events_m.
-   *   P (_priority_events)   — pb_downtime, pb_acknowledgement
-   *   C (_current_events)    — fresh host/service status events
-   *   H (_historical_events) — bulk data, logs, old status events
-   * Read order: P first, then C (skipping tombstones), then H. */
+  /** Events are stacked into the queues of the three levels, or into _file
+   * when the queues are full. Because several threads access to them, they
+   * are protected by _events_m. */
   mutable absl::Mutex _events_m;
-  std::deque<queue_entry> _priority_events ABSL_GUARDED_BY(_events_m);
-  std::deque<queue_entry> _current_events ABSL_GUARDED_BY(_events_m);
-  std::deque<queue_entry> _historical_events ABSL_GUARDED_BY(_events_m);
-  size_t _priority_read_pos ABSL_GUARDED_BY(_events_m) = 0;
-  size_t _current_read_pos ABSL_GUARDED_BY(_events_m) = 0;
-  size_t _historical_read_pos ABSL_GUARDED_BY(_events_m) = 0;
-  size_t _current_events_size ABSL_GUARDED_BY(_events_m) = 0;
+  std::array<level_queue, nb_levels> _queues ABSL_GUARDED_BY(_events_m);
+  /* The levels of the read events, in read order. ack_events() uses it to
+   * acknowledge the events in the order they were read, whatever their level.
+   * For each level, the counts sum up to the `read` of its queue. */
+  std::deque<read_run> _read_order ABSL_GUARDED_BY(_events_m);
   std::unique_ptr<persistent_file> _file ABSL_GUARDED_BY(_events_m);
   absl::CondVar _no_event_cv;
 
@@ -109,23 +131,37 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void _clean() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
   void _get_event_from_file(std::shared_ptr<io::data>& event)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
-  void _push_to_queue(std::shared_ptr<io::data> const& event)
+  void _push_to_queue(const std::shared_ptr<io::data>& event, int64_t now)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
   void _push_to_queue_from_file(std::shared_ptr<io::data> event)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
   void _demote_stale_current_events() noexcept
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
+  void _mark_read(level lvl, size_t count)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
+  const std::shared_ptr<io::data>* _read_next()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
 
+  size_t _unacked_size() const noexcept
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
+    size_t retval = 0;
+    for (const level_queue& q : _queues)
+      retval += q.read;
+    return retval;
+  }
   size_t _total_queue_size() const noexcept
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
-    return _priority_events.size() + _current_events_size +
-           _historical_events.size();
+    size_t retval = 0;
+    for (const level_queue& q : _queues)
+      retval += q.events.size();
+    return retval;
   }
   bool _has_events_to_read() const noexcept
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
-    return _priority_read_pos < _priority_events.size() ||
-           _current_read_pos < _current_events.size() ||
-           _historical_read_pos < _historical_events.size();
+    for (const level_queue& q : _queues)
+      if (q.unread() > 0)
+        return true;
+    return false;
   }
 
   void _update_stats(void) noexcept ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
@@ -193,26 +229,18 @@ bool muxer::read(container& to_fill, size_t max_to_read) noexcept {
   _logger->debug("muxer::read ({}) call", _name);
   absl::MutexLock lck(&_events_m);
   _demote_stale_current_events();
-  size_t nb_read = 0;
-
-  // Queue P
-  while (_priority_read_pos < _priority_events.size() && nb_read < max_to_read) {
-    to_fill.push_back(_priority_events[_priority_read_pos++].event);
-    ++nb_read;
-  }
-  // Queue C (skip tombstones)
-  while (_current_read_pos < _current_events.size() && nb_read < max_to_read) {
-    auto& entry = _current_events[_current_read_pos++];
-    if (entry.event) {
-      to_fill.push_back(entry.event);
-      ++nb_read;
-    }
-  }
-  // Queue H
-  while (_historical_read_pos < _historical_events.size() &&
-         nb_read < max_to_read) {
-    to_fill.push_back(_historical_events[_historical_read_pos++].event);
-    ++nb_read;
+  // P, then C, then H: copy the unread events of each level in one go.
+  for (uint8_t lvl = 0; lvl < nb_levels && max_to_read > 0; ++lvl) {
+    level_queue& q = _queues[lvl];
+    const size_t count = std::min(max_to_read, q.unread());
+    if (count == 0)
+      continue;
+    const auto first = q.events.cbegin() + q.read;
+    const auto last = first + count;
+    for (auto it = first; it != last; ++it)
+      to_fill.push_back(it->event);
+    _mark_read(static_cast<level>(lvl), count);
+    max_to_read -= count;
   }
 
   _update_stats();

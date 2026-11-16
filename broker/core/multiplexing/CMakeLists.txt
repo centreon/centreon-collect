@@ -38,6 +38,7 @@ if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES}
       ${TESTS_DIR}/engine/start_stop.cc
+      ${TESTS_DIR}/muxer/priority.cc
       ${TESTS_DIR}/muxer/read.cc
       ${TESTS_DIR}/publisher/read.cc
       ${TESTS_DIR}/publisher/write.cc
