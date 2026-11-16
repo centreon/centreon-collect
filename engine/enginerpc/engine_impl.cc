@@ -1548,22 +1548,16 @@ grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
                                             [[maybe_unused]]) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
-    std::shared_ptr<engine::host> temp_host;
-    std::shared_ptr<engine::service> temp_service;
     /* get the service */
-    auto it =
-        service::services.find({request->host_name(), request->svc_desc()});
-    if (it != service::services.end())
-      temp_service = it->second;
-    if (temp_service == nullptr) {
+    auto temp_service =
+        service::find_service(request->host_name(), request->svc_desc());
+    if (!temp_service) {
       err = fmt::format("could not find service ('{}', '{}')",
                         request->host_name(), request->svc_desc());
       return 1;
     }
-    auto it2 = host::hosts.find(request->host_name());
-    if (it2 != host::hosts.end())
-      temp_host = it2->second;
-    if (temp_host == nullptr) {
+    auto temp_host = host::find_host(request->host_name());
+    if (!temp_host) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
     }
