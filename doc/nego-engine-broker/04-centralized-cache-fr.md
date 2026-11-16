@@ -202,6 +202,8 @@ configuration centralisée, le fichier ne porte que l'état propre à Broker et
 reste petit. La bibliothèque est celle du système (`libzstd`), comme `libcrypto`
 ou `libz`.
 
+Le même paramètre décide de la compression des autres fichiers protobuf que cbd écrit, tous par `common::write_proto_file()` et avec le même en-tête : dans le répertoire des configurations des pollers, `<ID>.prot`, `new-<ID>.prot`, `next-<ID>.prot`, `new-diff-<ID>.prot`, `diff-<ID>.prot` et `topology.cache` (`broker_state`), et le cache des états BAM, `<cache_dir>.cache.<nom>`. Leur lecture passe par `common::read_proto_file()`, qui détecte l'en-tête de la même façon : on peut changer le paramètre d'un redémarrage à l'autre, les fichiers déjà écrits restent lisibles. PHP ne lit aucun de ces fichiers. Comme pour le `.cache`, une version de cbd antérieure à la compression ne sait pas les relire.
+
 ### Réinjection au démarrage
 
 `_load_cache()` s'exécute dans le constructeur du cache, avant que
