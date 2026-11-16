@@ -101,4 +101,36 @@ TEST_F(VictoriaMetricsFactory, ParseParameter) {
   ASSERT_EQ(conf.get_http_target(), "/WriteVictoria");
   ASSERT_EQ(conn->get_account_id(), "my_account_id");
   ASSERT_EQ(conf.get_metric_columns().size(), 1);
+  ASSERT_EQ(conn->get_series_config().delete_target,
+            "/api/v1/admin/tsdb/delete_series");
+  ASSERT_EQ(conn->get_series_config().series_target, "/api/v1/series");
+  delete conn;
+}
+
+TEST_F(VictoriaMetricsFactory, SeriesTargets) {
+  victoria_metrics::factory fact;
+  config::endpoint cfg(config::endpoint::io_type::output);
+  cfg.params["db_user"] = "admin";
+  cfg.params["db_password"] = "pass";
+  cfg.params["db_host"] = "localhost";
+  cfg.params["http_delete_target"] =
+      "/delete/1/prometheus/api/v1/admin/tsdb/delete_series";
+  cfg.params["http_series_target"] = "/select/1/prometheus/api/v1/series";
+
+  bool is_acceptor;
+  std::unique_ptr<victoria_metrics::connector> conn(
+      static_cast<victoria_metrics::connector*>(
+          fact.new_endpoint(cfg, {}, is_acceptor, nullptr)));
+  ASSERT_EQ(conn->get_series_config().delete_target,
+            "/delete/1/prometheus/api/v1/admin/tsdb/delete_series");
+  ASSERT_EQ(conn->get_series_config().series_target,
+            "/select/1/prometheus/api/v1/series");
+  // the default metric columns no longer carry min and max
+  for (const http_tsdb::column& col : conn->get_conf()->get_metric_columns()) {
+    ASSERT_NE(col.get_name(), "min");
+    ASSERT_NE(col.get_name(), "max");
+  }
+
+  cfg.params["http_delete_target"] = "delete_series";
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, nullptr), msg_fmt);
 }

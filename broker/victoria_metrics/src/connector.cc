@@ -19,6 +19,7 @@
 
 #include "com/centreon/broker/victoria_metrics/connector.hh"
 #include "bbdo/storage/metric.hh"
+#include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "com/centreon/common/http/https_connection.hh"
@@ -32,16 +33,21 @@ using com::centreon::common::log_v2::log_v2;
 
 static constexpr multiplexing::muxer_filter _victoria_stream_filter = {
     storage::metric::static_type(), storage::status::static_type(),
-    storage::pb_metric::static_type(), storage::pb_status::static_type()};
+    storage::pb_metric::static_type(), storage::pb_status::static_type(),
+    storage::pb_rebuild_message::static_type(),
+    storage::pb_remove_graph_message::static_type(),
+    storage::remove_graph::static_type()};
 
 static constexpr multiplexing::muxer_filter _victoria_forbidden_filter =
     multiplexing::muxer_filter(_victoria_stream_filter).reverse();
 
 connector::connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
-                     const std::string& account_id)
+                     const std::string& account_id,
+                     const series_config& series_conf)
     : io::endpoint(false, _victoria_stream_filter, _victoria_forbidden_filter),
       _conf(conf),
-      _account_id(account_id) {}
+      _account_id(account_id),
+      _series_conf(series_conf) {}
 
 std::shared_ptr<io::stream> connector::open() {
   try {
@@ -52,7 +58,8 @@ std::shared_ptr<io::stream> connector::open() {
             return http::http_connection::load(
                 com::centreon::common::pool::io_context_ptr(),
                 log_v2::instance().get(log_v2::VICTORIA_METRICS), conf);
-          });
+          },
+          _series_conf);
     } else {
       return stream::load(
           com::centreon::common::pool::io_context_ptr(), _conf, _account_id,
@@ -61,7 +68,8 @@ std::shared_ptr<io::stream> connector::open() {
                 com::centreon::common::pool::io_context_ptr(),
                 log_v2::instance().get(log_v2::VICTORIA_METRICS), conf,
                 http::https_connection::load_client_certificate);
-          });
+          },
+          _series_conf);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::VICTORIA_METRICS),

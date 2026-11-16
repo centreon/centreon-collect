@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/http_tsdb/http_tsdb_config.hh"
 #include "com/centreon/broker/io/endpoint.hh"
+#include "com/centreon/broker/victoria_metrics/series_config.hh"
 
 namespace com::centreon::broker {
 
@@ -29,10 +30,12 @@ namespace victoria_metrics {
 class connector : public io::endpoint {
   std::shared_ptr<http_tsdb::http_tsdb_config> _conf;
   std::string _account_id;
+  series_config _series_conf;
 
  public:
   connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
-            const std::string& account_id);
+            const std::string& account_id,
+            const series_config& series_conf = series_config());
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   std::shared_ptr<io::stream> open() override;
@@ -42,6 +45,8 @@ class connector : public io::endpoint {
   }
 
   const std::string& get_account_id() const { return _account_id; }
+
+  const series_config& get_series_config() const { return _series_conf; }
 };
 }  // namespace victoria_metrics
 

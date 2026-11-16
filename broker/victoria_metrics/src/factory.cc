@@ -22,8 +22,10 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/victoria_metrics/connector.hh"
 #include "com/centreon/common/pool.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace nlohmann;
+using com::centreon::exceptions::msg_fmt;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
 using namespace nlohmann::literals;
@@ -41,8 +43,6 @@ const json factory::default_extra_status_column = R"([
 const json factory::default_extra_metric_column = R"([
     {"name" : "host", "is_tag" : "true", "value" : "$HOST$", "type":"string"},
     {"name" : "serv", "is_tag" : "true", "value" : "$SERVICE$", "type":"string"},
-    {"name" : "min", "is_tag" : "true", "value" : "$MIN$", "type":"number"},
-    {"name" : "max", "is_tag" : "true", "value" : "$MAX$", "type":"number"},
     {"name" : "host_grp", "is_tag" : "true", "value" : "$HOSTGROUP$", "type":"string"},
     {"name" : "serv_grp", "is_tag" : "true", "value" : "$SERVICE_GROUP$", "type":"string"},
     {"name" : "host_tag_cat", "is_tag" : "true", "value" : "$HOST_TAG_CAT_NAME$", "type":"string"},
@@ -93,11 +93,24 @@ io::endpoint* factory::new_endpoint(
     account_id = it->second;
   }
 
+  series_config series_conf;
+  auto read_target = [&cfg](const std::string& key, std::string& target) {
+    auto found = cfg.params.find(key);
+    if (found == cfg.params.end())
+      return;
+    if (found->second.empty() || found->second[0] != '/')
+      throw msg_fmt("{} '{}' defined for endpoint '{}' must start with '/'",
+                    key, found->second, cfg.name);
+    target = found->second;
+  };
+  read_target("http_delete_target", series_conf.delete_target);
+  read_target("http_series_target", series_conf.series_target);
+
   if (config::applier::state::loaded()) {  // false only happens in UTs
     cache::global_cache::load(
         com::centreon::common::pool::io_context_ptr(),
         config::applier::state::instance().cache_dir() + ".cache.global");
   }
 
-  return new connector(conf, account_id);
+  return new connector(conf, account_id, series_conf);
 }
