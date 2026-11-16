@@ -429,7 +429,6 @@ BEBAMIDTU3
     Execute SQL String    UPDATE mod_bam_poller_relations SET poller_id=1001
     Disconnect From Database
 
-    # Command of service_314 is set to critical
     ${cmd_1}    Ctn Get Service Command Id    314
     Ctn Set Command Status    ${cmd_1}    2
     ${start}    Ctn Get Round Current Date
@@ -437,16 +436,13 @@ BEBAMIDTU3
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    1
 
-    # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
-    # The BA should become critical
     ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
-    # A downtime is put on service_314
     Ctn Schedule Service Downtime    host_16    service_314    3600
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
@@ -468,7 +464,6 @@ BEBAMIDTU3
     ${result}    Ctn Check Downtimes With Timeout    2    60
     Should Be True    ${result}    Two downtimes are expected: one on service_314 and one inherited by ba_1.
 
-    # The downtime is deleted
     Ctn Delete Service Downtime    host_16    service_314
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
