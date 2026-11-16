@@ -368,9 +368,8 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         if (!last_update || last_update < m.time()) {
           try {
             written = append_metric_to_rrd(m);
-          } catch (const std::exception&) {  // in case of update issue (disk
-                                             // full, bad value type... we pass
-                                             // this event)
+          } catch (const std::exception&) {  // Case of we add a event older
+                                             // than the last ones inserted
             break;
           }
         }
@@ -434,9 +433,8 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         if (!last_update || last_update < s.time()) {
           try {
             written = append_status_to_rrd(s);
-          } catch (const std::exception&) {  // in case of update issue (disk
-                                             // full, bad value type... we pass
-                                             // this event)
+          } catch (const std::exception&) {  // Case of we add a event older
+                                             // than the last ones inserted
             break;
           }
         }
