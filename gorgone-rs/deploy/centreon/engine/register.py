@@ -16,6 +16,7 @@ import json
 import os
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Any, Optional
@@ -139,11 +140,23 @@ def register() -> None:
 
 def secrets() -> None:
     """Writes engine-context.json into every directory of SECRET_DIRS."""
-    token = login()
-    content = json.dumps(
-        call(WEB + "/centreon/api/latest/administration/engine/secrets",
-             headers={"X-AUTH-TOKEN": token})
-    )
+    # Right after the installation the first calls can fail while the
+    # application warms its caches up.
+    answer: dict[str, object] = {}
+    for attempt in range(30):
+        try:
+            token = login()
+            answer = call(
+                WEB + "/centreon/api/latest/administration/engine/secrets",
+                headers={"X-AUTH-TOKEN": token},
+            )
+            break
+        except urllib.error.HTTPError as error:
+            if attempt == 29:
+                raise
+            print("engine secrets not available yet:", error)
+            time.sleep(2)
+    content = json.dumps(answer)
     for directory in os.environ["SECRET_DIRS"].split():
         path = os.path.join(directory, "engine-context.json")
         descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o640)

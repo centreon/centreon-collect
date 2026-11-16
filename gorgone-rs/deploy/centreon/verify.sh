@@ -27,7 +27,7 @@ gorgone_api() {
 }
 
 sql() {
-  "${COMPOSE[@]}" exec -T db mariadb -uroot -pcentreon -N -e "$1"
+  "${COMPOSE[@]}" exec -T db mariadb --skip-ssl -uroot -pcentreon -N -e "$1"
 }
 
 web_token() {
@@ -159,7 +159,7 @@ invalid_config_is_not_applied() {
 # shared volume.
 web_sees_rrd_files() {
   local attempt
-  for attempt in $(seq 1 36); do
+  for _ in $(seq 1 36); do
     if "${COMPOSE[@]}" exec -T web sh -c 'ls /var/lib/centreon/metrics/*.rrd' > /dev/null 2>&1; then
       return 0
     fi

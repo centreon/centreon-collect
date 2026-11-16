@@ -70,7 +70,7 @@ pollers (ZMQ, SSH, pull, pullwss are dropped), and being a broker module
 | `EngineCommands` | list of external command lines                                 | each command name must match the agent's list of allowed external commands; sent to the engine gRPC API when the agent has its address, else written to the engine command pipe                                 |
 | `ApplyConfig`    | `target` (e.g. `engine`, `broker`, `vmware`), `digest`, `size` | fetch blob, verify digest, have an engine configuration checked, then sync into the directory the agent maps to `target`; no-op when the digest is already applied                                              |
 | `ValidateConfig` | `target`, `digest`, `size`                                     | same check as `ApplyConfig`, nothing applied                                                                                                                                                                    |
-| `ServiceControl` | `service`, `operation` (start, stop, reload, restart)          | runs what the agent maps to `(service, operation)`: a local command, or an engine gRPC call (reload, shutdown) when the engine is another container                                                             |
+| `ServiceControl` | `service`, `operation` (start, stop, reload, restart)          | runs what the agent maps to `(service, operation)`: a local command, an engine gRPC call (reload, shutdown), or HTTP POSTs to a control API (broker container image)                                            |
 
 ### Job state machine
 

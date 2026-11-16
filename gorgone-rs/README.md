@@ -59,18 +59,29 @@ curl -H "Authorization: Bearer $TOKEN" -X PUT --data-binary @bundle.tar.zst \
 
 ## Test with a real Centreon
 
-`deploy/centreon/` runs real Centreon components, each in its own container,
-with no Perl Gorgone and no command file:
+`deploy/centreon/` runs real Centreon components, each in its own container.
+centreon-web runs alone in a slim image: no centreon-collect, Gorgone, plugin,
+Perl or Python package next to it, and no command file anywhere.
 
-| Container        | Content                                                                     |
-| ---------------- | --------------------------------------------------------------------------- |
-| `gorgone-server` | the control plane alone, store in MariaDB                                   |
-| `web`            | centreon-web calling the Gorgone REST API instead of writing `centcore.cmd` |
-| `poller`         | the Centreon poller test image, driven by `gorgone-agent`                   |
-| `engine`         | the engine image of this branch, driven over its gRPC API by a sidecar      |
+| Container                          | Content                                                                    |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| `gorgone-server`                   | the control plane alone, store in MariaDB                                  |
+| `web`                              | the slim centreon-web image (PHP and Apache), calling the Gorgone REST API |
+| `broker`, `broker-rrd`             | the central and RRD brokers; the RRD files are shared with `web`           |
+| `central-engine` + `central-agent` | the engine of the "Central" poller and its `gorgone-agent` sidecar         |
+| `engine` + `engine-agent`          | a second container-only poller                                             |
+| `poller`                           | the Centreon poller test image, driven by `gorgone-agent`                  |
+
+The sidecars drive their engine over its gRPC API on a Unix socket, and the
+brokers over their HTTP control API. One-shot containers prepare the bench:
+`central-setup` points the broker flows at the broker containers, `secrets`
+copies the encryption key of centreon-web to the brokers and engines, and the
+`*-deploy` steps register the pollers and ask centreon-web to generate, push
+and restart.
 
 It needs a checkout of the centreon-web branch that sends its commands to the
-Gorgone API, and the engine image built from this branch
+Gorgone API (its slim image is built from `CENTREON_SRC`), and the engine
+image built from this branch
 ([deploy/centreon/engine/README.md](deploy/centreon/engine/README.md)):
 
 ```bash
@@ -80,18 +91,17 @@ deploy/centreon/verify.sh
 docker compose -f deploy/centreon/compose.yaml down -v
 ```
 
-Both pollers register themselves, then ask centreon-web to generate, push and
-restart; centreon-web reports the real outcome of each job. `verify.sh` then
-checks, among other things, that a forced check sent through the centreon-web
-API reaches the engine, that the engine container is driven over a Unix socket
-with nothing listening on the network, that `gorgone-server` knows what each
-node runs, that a reload asked on top of a failed configuration push is not
-sent, that centreon-web has a configuration verified by the poller's own
-engine, and that an invalid configuration is refused while the running one is
-kept. The web UI is on <http://localhost:4000>.
+`verify.sh` runs from the host and checks, among other things, that the web
+image carries no collect, Gorgone or plugin package, that the central broker
+sees every engine running, that a forced check sent through the centreon-web
+API reaches the engine, that the engine API is not reachable over the network,
+that a reload asked on top of a failed configuration push is not sent, that a
+configuration is verified by the poller's own engine and refused when invalid,
+and that centreon-web reads the RRD files written by the broker container. The
+web UI is on <http://localhost:4000>.
 
-On a poller the broker module is reloaded with the engine, so the bench maps
-"broker reload" to an engine reload there.
+On the `poller` test image the broker module is reloaded with the engine, so
+the bench maps "broker reload" to an engine reload there.
 
 ## Benchmark
 
