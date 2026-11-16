@@ -4,7 +4,10 @@
 #
 #   db               MariaDB (Centreon databases and the gorgone-server store)
 #   gorgone-server   the Rust control plane, alone in a distroless image
-#   web              the slim centreon-web image: PHP and Apache only
+#   web-install      sets the Centreon databases up once, then exits
+#   web              centreon-web served by FrankenPHP: a single static
+#                    binary in a scratch image, no shell, no package manager
+#   web-cron         the centreon-web scheduled tasks, same image
 #   victoria-metrics the time series store graphs are read from
 #   broker           the central broker (cbd): SQL and VictoriaMetrics outputs;
 #                    it receives its configuration through its control API
@@ -56,6 +59,24 @@ x-engine-env: &engine-env
   # Register the poller when needed, then generate, push and restart once.
   GORGONE_DEPLOY: "true"
 
+x-web: &web
+  build:
+    context: ${CENTREON_SRC:?set CENTREON_SRC to a checkout of centreon/centreon with the Gorgone API branch}
+    dockerfile: .github/docker/centreon-web/frankenphp/Dockerfile
+  image: ${WEB_IMAGE:-centreon-web-frankenphp:gorgone-poc}
+  environment:
+    <<: *gorgone-api
+    MYSQL_HOST: db
+    MYSQL_ROOT_PASSWORD: centreon
+    MYSQL_USER: centreon
+    MYSQL_PASSWORD: centreon
+    CENTREON_DATASET: "1"
+    # The legacy pages call the internal API: without this they reuse the
+    # port published on the host, which nothing listens on in the container.
+    CENTREON_INTERNAL_API_BASE_URL: 127.0.0.1:80
+    GORGONE_API_ADDRESS: gorgone-server
+    VICTORIA_METRICS_URL: http://victoria-metrics:8428
+
 services:
   db:
     image: ${MYSQL_IMAGE:-bitnamilegacy/mariadb:11.8}
@@ -99,35 +120,34 @@ services:
       GORGONE_SERVER__AUTO_ENROLL: "true"
     ports: ["127.0.0.1:8085:8085"]
 
-  web:
-    build:
-      context: ${CENTREON_SRC:?set CENTREON_SRC to a checkout of centreon/centreon with the Gorgone API branch}
-      dockerfile: .github/docker/centreon-web/alma9/Dockerfile.slim
-      args:
-        WEB_IMAGE: ${WEB_IMAGE:-docker.centreon.com/centreon/centreon-web-alma9:develop}
-    ports: ["127.0.0.1:4000:80"]
+  web-install:
+    <<: *web
+    command: ["install"]
     depends_on:
       db:
         condition: service_healthy
+
+  web:
+    <<: *web
+    ports: ["127.0.0.1:4000:80"]
+    depends_on:
+      web-install:
+        condition: service_completed_successfully
       gorgone-server:
         condition: service_started
-    environment:
-      <<: *gorgone-api
-      MYSQL_HOST: db
-      MYSQL_ROOT_PASSWORD: centreon
-      MYSQL_USER: centreon
-      MYSQL_PASSWORD: centreon
-      CENTREON_DATASET: "1"
-      # The legacy pages call the internal API: without this they reuse the
-      # port published on the host, which nothing listens on in the container.
-      CENTREON_INTERNAL_API_BASE_URL: 127.0.0.1:80
-      GORGONE_API_ADDRESS: gorgone-server
-      VICTORIA_METRICS_URL: http://victoria-metrics:8428
     healthcheck:
-      test: ["CMD-SHELL", "[ -f /tmp/docker.ready ] && curl --fail http://localhost/centreon/api/latest/platform/versions"]
+      # No shell nor curl in the image: PHP checks the API itself.
+      test: ["CMD", "/usr/local/bin/frankenphp", "php-cli", "/usr/local/lib/centreon-container/healthcheck.php"]
       interval: 2s
       retries: 150
       timeout: 5s
+
+  web-cron:
+    <<: *web
+    command: ["cron"]
+    depends_on:
+      web-install:
+        condition: service_completed_successfully
 
   # centreon-web sets a new platform up for a broker on its own host, writing
   # RRD files: send the flows to the broker container and to VictoriaMetrics.

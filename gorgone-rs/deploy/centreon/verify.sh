@@ -3,6 +3,8 @@
 # host: the web image is too small to carry test tools.
 set -euo pipefail
 
+# Nothing is built here, but compose interpolates the build context anyway.
+export CENTREON_SRC="${CENTREON_SRC:-unused-by-verify}"
 COMPOSE=(docker compose -f "$(dirname "$0")/compose.yaml")
 GORGONE_URL=http://127.0.0.1:8085
 GORGONE_AUTH=centreon-web:bench-only
@@ -47,16 +49,23 @@ node_of() {
   sql "SELECT id FROM centreon.nagios_server WHERE name = '$1'"
 }
 
-# The web image holds PHP and Apache only: no collect, Gorgone or plugin
-# package, and none of their processes.
+# The web container has no shell: its files are listed from outside. The
+# list is read whole before grep, so an early grep exit cannot hide a match.
+web_files_matching() {
+  local files
+  files=$(docker export "$("${COMPOSE[@]}" ps -q web)" | tar -t)
+  grep -E "$1" <<< "${files}" || true
+}
+
+# The web image is a web server only: no shell, no package manager, and no
+# collect, Gorgone, plugin or Perl file.
 web_image_is_slim() {
-  ! "${COMPOSE[@]}" exec -T web sh -c \
-    "rpm -qa | grep -iE '^centreon-(engine|broker|gorgone|poller|plugin|connector|clib|collect)'"
-  ! "${COMPOSE[@]}" exec -T web sh -c "ls /usr/sbin/centengine /usr/sbin/cbd /usr/bin/gorgoned 2>/dev/null | grep ."
+  [[ -z "$(web_files_matching \
+    '^(bin|usr/bin|usr/sbin)/(sh|bash|dnf|rpm|apt|perl|centengine|cbd|gorgoned)$|^usr/lib/centreon/plugins/|^usr/share/perl')" ]]
 }
 
 web_image_has_no_rrdtool() {
-  ! "${COMPOSE[@]}" exec -T web sh -c 'command -v rrdtool'
+  [[ -z "$(web_files_matching '(^|/)rrdtool$|librrd')" ]]
 }
 
 # Each volume belongs to one container: configuration, keys and commands go
@@ -208,7 +217,7 @@ sys.exit(0 if values else 1)'
 no_rrd_file() {
   local found
   found=$("${COMPOSE[@]}" exec -T broker sh -c "find / -xdev -name '*.rrd' 2>/dev/null | head -1")
-  found+=$("${COMPOSE[@]}" exec -T web sh -c "find / -xdev -name '*.rrd' 2>/dev/null | head -1")
+  found+=$(web_files_matching '\.rrd$')
   [[ -z "${found}" ]]
 }
 
@@ -224,12 +233,11 @@ key_survives_pruning_push() {
 
 no_centcore_file() {
   local files
-  files=$("${COMPOSE[@]}" exec -T web sh -c \
-    'find /var/lib/centreon/centcore /var/lib/centreon/centcore.cmd -type f 2>/dev/null')
+  files=$(web_files_matching '^var/lib/centreon/centcore(\.cmd$|/.+[^/]$)')
   [[ -z "${files}" ]]
 }
 
-check "the web image carries no collect, Gorgone or plugin package" web_image_is_slim
+check "the web image is a web server only: no shell, collect, Gorgone or plugin" web_image_is_slim
 check "the web image carries no rrdtool" web_image_has_no_rrdtool
 check "no volume is shared between containers" no_shared_volume
 check "the three agents are connected to gorgone-server" all_nodes_connected

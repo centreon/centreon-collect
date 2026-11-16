@@ -68,7 +68,9 @@ alone in a slim image: no centreon-collect, Gorgone, plugin, Perl, Python or
 | Container          | Content                                                                           |
 | ------------------ | --------------------------------------------------------------------------------- |
 | `gorgone-server`   | the control plane alone, store in MariaDB                                         |
-| `web`              | the slim centreon-web image (PHP and Apache), calling the Gorgone REST API        |
+| `web-install`      | sets the Centreon databases up once, then exits                                   |
+| `web`              | centreon-web served by FrankenPHP (scratch image, no shell), calling Gorgone      |
+| `web-cron`         | the centreon-web scheduled tasks, same image                                      |
 | `victoria-metrics` | the time series store; centreon-web reads its graphs from it                      |
 | `broker`           | the central broker; receives its configuration and key through its control API    |
 | `central-engine`   | the engine of the "Central" poller and its `gorgone-agent`, in the same container |
