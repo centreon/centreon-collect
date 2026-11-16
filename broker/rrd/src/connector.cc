@@ -38,6 +38,8 @@ static constexpr multiplexing::muxer_filter _rrd_stream_filter =
          storage::pb_rebuild_message::static_type(),
          storage::remove_graph::static_type(),
          storage::pb_remove_graph_message::static_type(),
+         storage::pb_end_metric_merge::static_type(),
+         storage::pb_end_status_merge::static_type(),
          make_type(io::extcmd, extcmd::de_pb_bench)});
 
 static constexpr multiplexing::muxer_filter _rrd_forbidden_filter =
@@ -53,9 +55,11 @@ connector::connector()
       _ignore_update_errors(true),
       _write_metrics(true),
       _write_status(true),
-      _retention_max_pending_points(144),
-      _retention_max_files(5),
-      _retention_orphan_interval(3600) {}
+      _retention_merge_samples_threshold(60 * 24 / 5),
+      _retention_proportional_activity_threshold(3),
+      _retention_orphan_interval(3600),
+      _retention_merge_retry_delay(120),
+      _retention_merge_timeout(120) {}
 
 /**
  *  Connect.
@@ -66,9 +70,12 @@ std::shared_ptr<io::stream> connector::open() {
   retention_config ret_cfg;
   ret_cfg.metrics_dir = _metrics_path;
   ret_cfg.status_dir = _status_path;
-  ret_cfg.max_pending_points = _retention_max_pending_points;
-  ret_cfg.max_files = _retention_max_files;
+  ret_cfg.merge_samples_threshold = _retention_merge_samples_threshold;
+  ret_cfg.proportional_activity_threshold =
+      _retention_proportional_activity_threshold;
   ret_cfg.orphan_interval = _retention_orphan_interval;
+  ret_cfg.merge_retry_delay = _retention_merge_retry_delay;
+  ret_cfg.merge_time_out = _retention_merge_timeout;
 
   std::shared_ptr<io::stream> retval;
   if (!_cached_local.empty())
@@ -81,8 +88,8 @@ std::shared_ptr<io::stream> connector::open() {
         _cached_port, ret_cfg, _write_metrics, _write_status));
   else
     retval.reset(new stream<lib>(_metrics_path, _status_path, _cache_size,
-                                 _ignore_update_errors, ret_cfg,
-                                 _write_metrics, _write_status));
+                                 _ignore_update_errors, ret_cfg, _write_metrics,
+                                 _write_status));
   return retval;
 }
 
@@ -165,8 +172,8 @@ void connector::set_write_status(bool write_status) noexcept {
  *
  *  @param[in] n  Point-count threshold (default 144 = 12 h at 1 pt / 5 min).
  */
-void connector::set_retention_max_pending_points(uint32_t n) noexcept {
-  _retention_max_pending_points = n;
+void connector::set_retention_merge_samples_threshold(uint32_t n) noexcept {
+  _retention_merge_samples_threshold = n;
 }
 
 /**
@@ -175,8 +182,9 @@ void connector::set_retention_max_pending_points(uint32_t n) noexcept {
  *
  *  @param[in] n  Maximum number of rotated files (default 5).
  */
-void connector::set_retention_max_files(uint32_t n) noexcept {
-  _retention_max_files = n;
+void connector::set_retention_proportional_activity_threshold(
+    uint32_t n) noexcept {
+  _retention_proportional_activity_threshold = n;
 }
 
 /**
@@ -187,6 +195,20 @@ void connector::set_retention_max_files(uint32_t n) noexcept {
  */
 void connector::set_retention_orphan_interval(uint32_t seconds) noexcept {
   _retention_orphan_interval = seconds;
+}
+
+/**
+ *  Set the delay before a retention file whose merge failed can be merged
+ *  again.
+ *
+ *  @param[in] seconds  Delay in seconds (default 120).
+ */
+void connector::set_retention_merge_retry_delay(uint32_t seconds) noexcept {
+  _retention_merge_retry_delay = seconds;
+}
+
+void connector::set_retention_merge_timeout(uint32_t seconds) noexcept {
+  _retention_merge_timeout = seconds;
 }
 
 /**************************************

@@ -178,8 +178,10 @@ enum data_element {
   de_pb_index_mapping = 11,
   de_pb_metric_mapping = 12,
   de_pb_otl_metrics =
-      13  // contain an
-          // ::opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest
+      13,  // contain an
+           // ::opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest
+  de_pb_end_metric_merge = 14,  // end of a metric retention merge (rrd)
+  de_pb_end_status_merge = 15   // end of a status retention merge (rrd)
 };
 }
 namespace bam {

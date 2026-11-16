@@ -4053,6 +4053,33 @@ def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str
                     f.write(cmd)
 
 
+def ctn_process_services_check_result_with_value(hst: str, first_svc: int, last_svc: int, state: int, value: float, nb_metrics: int, config='config0'):
+    """
+    Send a check result for each service from service_<first_svc> to
+    service_<last_svc> (included) of the host. Each result contains nb_metrics
+    metrics named metric0, metric1... all set to value.
+
+    Args:
+        hst (str): Host name of the services.
+        first_svc (int): First service number.
+        last_svc (int): Last service number (included).
+        state (int): State of the checks.
+        value (float): Value of all the metrics.
+        nb_metrics (int): Number of metrics per service.
+        config (str, optional): Defaults to 'config0'.
+
+    *Example:*
+
+    | Ctn Process Services Check Result With Value | host_1 | 1 | 20 | 0 | 2.0 | 5 |
+    """
+    now = int(time.time())
+    perfdata = " ".join(f"metric{m}={value}" for m in range(int(nb_metrics)))
+    with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+        for svc in range(int(first_svc), int(last_svc) + 1):
+            f.write(
+                f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};service_{svc};{state};output {value} | {perfdata}\n")
+
+
 @ctn_external_command
 def ctn_acknowledge_service_problem(hst, service, typ='NORMAL'):
     """

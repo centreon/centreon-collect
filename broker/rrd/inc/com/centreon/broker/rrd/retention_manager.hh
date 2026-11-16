@@ -19,10 +19,10 @@
 #ifndef CCB_RRD_RETENTION_MANAGER_HH
 #define CCB_RRD_RETENTION_MANAGER_HH
 
-#include <filesystem>
-
-#include "absl/synchronization/mutex.h"
-#include "rrd_retention.pb.h"
+#include <absl/container/flat_hash_map.h>
+#include <com/centreon/broker/io/data.hh>
+#include "com/centreon/broker/rrd/backend.hh"
+#include "retention_file.hh"
 
 namespace com::centreon::broker::rrd {
 
@@ -32,283 +32,210 @@ namespace com::centreon::broker::rrd {
  * All fields are read from the RRD endpoint JSON configuration block.
  */
 struct retention_config {
-  std::filesystem::path metrics_dir;  ///< Directory for metric .prot files
-  std::filesystem::path status_dir;   ///< Directory for status .prot files
-  /// Combined point count threshold (metrics + statuses) that triggers a
-  /// rotation.  Default: 144 = 12 h × 1 point/5 min.
-  uint32_t max_pending_points = 144;
-  uint32_t max_files = 5;           ///< Max rotated files before forced merge
-  uint32_t orphan_interval = 3600;  ///< Inactivity seconds before cleanup
-  /// Time window (seconds) that must elapse between two successive partial
-  /// merges for the same metric/status (Step 3.3).  Default: 1 day.
-  uint64_t partial_merge_interval = 86400;
+  std::filesystem::path metrics_dir;  ///< Directory of metric .rrd/.ret files
+  std::filesystem::path status_dir;   ///< Directory of status .rrd/.ret files
+  uint32_t orphan_interval = 3600;    ///< Max inactivity seconds before merge
+  uint32_t merge_samples_threshold =
+      60 * 24 / 5;  ///< when a retention file has more than
+  ///< merge_sample_threshold samples => merge
+
+  // if a retention_file had not been fed during interval *
+  // proportional_delay_threshold, we merge
+  uint32_t proportional_activity_threshold = 3;
+
+  uint32_t merge_retry_delay = 120;  ///< Seconds before retrying a failed merge
+  uint32_t merge_time_out = 120;
+  /// Minimum seconds between two scans of the retention files by
+  /// start_merge(), 0 to scan on every call (tests).
+  uint32_t start_merge_interval = 1;
 };
-
-/**
- * @brief Per-metric or per-status-index retention buffer state.
- *
- * Points accumulate in the in-memory @c pending protobuf batch.  They are
- * written to disk only when the combined point count across metrics and
- * statuses reaches @c max_pending_points (rotation) or when the manager is
- * destroyed (graceful-shutdown flush).  A crash therefore loses at most one
- * batch worth of points.
- *
- * @tparam BatchT  Either MetricRetentionBatch or StatusRetentionBatch.
- */
-template <typename BatchT>
-struct retention_state {
-  /// The current-file path is set once at construction and never changes, so
-  /// it is the only field safe to read without holding @c mutex.
-  explicit retention_state(std::filesystem::path path)
-      : current_path(std::move(path)) {}
-
-  mutable absl::Mutex mutex;
-  uint32_t step ABSL_GUARDED_BY(mutex) = 0;  ///< Metric step in seconds
-  uint64_t last_retention_time ABSL_GUARDED_BY(mutex) =
-      0;  ///< Timestamp of last buffered point
-  uint64_t last_activity_time ABSL_GUARDED_BY(mutex) =
-      0;  ///< Wall-clock time of last write
-  /// Timestamp of the last partial merge (or the first buffered point if no
-  /// merge has run yet).  0 = not yet initialized.
-  uint64_t last_partial_merge_ts ABSL_GUARDED_BY(mutex) = 0;
-  /// Path for the graceful-shutdown flush.  Initialised by the constructor.
-  const std::filesystem::path current_path;
-  std::vector<std::filesystem::path> rotated_files
-      ABSL_GUARDED_BY(mutex);  ///< Immutable on-disk files (oldest first)
-  BatchT pending
-      ABSL_GUARDED_BY(mutex);  ///< In-memory batch, not yet serialised to disk
-                               ///< points_size() drives the rotation threshold
-};
-
-using metric_retention_state = retention_state<MetricRetentionBatch>;
-using status_retention_state = retention_state<StatusRetentionBatch>;
 
 /**
  * @class retention_manager
- * @brief Manages in-memory + on-disk retention buffers for RRD metrics and
- *        statuses.
+ * @brief Manages the retention files of the RRD metrics and statuses.
  *
- * Data flow:
- *   write_metric/status()  →  add point to in-memory protobuf batch
- *   combined points_size() >= max_pending_points  →  serialise batch to rotated
- * file ~retention_manager()  →  serialise remaining batch to {id}.prot
+ * A metric or status point older than the last update of its rrd file can't
+ * be written by rrd_update, the stream gives it to write_metric() or
+ * write_status() which append it to the retention file of the metric or status
+ * (retention_file), created on the first point.
  *
  * On-disk layout (co-located with .rrd files):
- *   {metrics_dir}/{id}.prot         (graceful-shutdown flush)
- *   {metrics_dir}/{id}.{ts}.prot    (rotated, immutable)
- *   {status_dir}/{id}.prot
- *   {status_dir}/{id}.{ts}.prot
+ *   {metrics_dir}/{metric_id}.ret
+ *   {status_dir}/{index_id}.ret
+ * Existing files are reloaded by load().
  *
- * File format: each file is exactly one serialised MetricRetentionBatch or
- * StatusRetentionBatch protobuf message.
+ * After each metric or status received, the stream calls start_merge()
+ * which, if no merge is running, chooses a file to merge, in this order:
+ *   - the least recently fed one if it has not been fed for orphan_interval
+ *   - else the biggest one if it has more than merge_samples_threshold
+ *     samples
+ *   - else the one not fed for the longest time compared to its interval, if
+ *     it has not been fed for interval * proportional_activity_threshold.
+ * A file whose merge failed is skipped during merge_retry_delay.
  *
- * A merge is triggered when the rotated-file count reaches max_files.  The
- * stream calls get_metric_merge_points() / get_status_merge_points() (which
- * return on-disk + in-memory data), replays the points into the RRD backend,
- * then calls metric_merge_done() / status_merge_done() to clear everything.
+ * Only one merge runs at a time, on _io_context. Meanwhile, the stream gives
+ * the events of the metric or status being merged to write_pending_metric()
+ * or write_pending_status(). At the end of the merge, the retention file is
+ * removed (kept on failure) and a pb_end_metric_merge or pb_end_status_merge
+ * is published. The stream then calls clear_merging() and replays the events
+ * returned by get_pending_metric() or get_pending_status().
  */
-class retention_manager {
+class retention_manager
+    : public std::enable_shared_from_this<retention_manager> {
+  /// The directories never change, the thresholds are updated by
+  /// _update_config() and read under _data_m.
   retention_config _config;
+  std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
 
-  mutable absl::Mutex _metrics_m;
-  using metric_cont =
-      absl::flat_hash_map<uint64_t, std::unique_ptr<metric_retention_state>>;
-  metric_cont _metrics ABSL_GUARDED_BY(_metrics_m);
+  mutable absl::Mutex _data_m;
 
-  mutable absl::Mutex _statuses_m;
-  using status_cont =
-      absl::flat_hash_map<uint64_t, std::unique_ptr<status_retention_state>>;
-  status_cont _statuses ABSL_GUARDED_BY(_statuses_m);
+  struct retention_id_extractor {
+    using result_type =
+        std::pair<uint64_t /*index_id or metric_id*/, bool /*is_status*/>;
+    result_type operator()(const std::shared_ptr<retention_file>& ret) const {
+      return std::make_pair(ret->id(), ret->is_status());
+    }
+  };
 
-  // ---- internal helpers ----
+  struct last_activity_extractor {
+    using result_type = time_t;
+    result_type operator()(const std::shared_ptr<retention_file>& ret) const {
+      return ret->last_activity();
+    }
+  };
 
-  metric_retention_state& _get_or_create_metric(uint64_t id)
-      ABSL_LOCKS_EXCLUDED(_metrics_m);
-  status_retention_state& _get_or_create_status(uint64_t id)
-      ABSL_LOCKS_EXCLUDED(_statuses_m);
+  struct nb_samples_extractor {
+    using result_type = size_t;
+    result_type operator()(const std::shared_ptr<retention_file>& ret) const {
+      return ret->nb_samples();
+    }
+  };
 
-  /// Serialise pending batch to a new rotated file; clears batch afterwards.
-  template <typename StateT>
-  void _flush_to_rotated(StateT& state)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
+  class proportional_activity_extractor {
+    unsigned _threshold;
 
-  /// Serialise remaining pending batch to {id}.prot; used at shutdown.
-  template <typename StateT>
-  void _flush_pending(StateT& state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
+   public:
+    using result_type = time_t;
+    proportional_activity_extractor(unsigned theshold) : _threshold(theshold) {}
 
-  /// Check if pending batch has grown past max_pending_points and rotate if
-  /// needed.
-  template <typename StateT>
-  bool _check_and_rotate(StateT& state)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
+    time_t operator()(const std::shared_ptr<retention_file>& ret) const {
+      return ret->last_activity() + ret->interval() * _threshold;
+    }
+  };
 
-  template <typename StateT>
-  void _clear_merge(StateT& state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
+  using retention_cont = boost::multi_index::multi_index_container<
+      std::shared_ptr<retention_file>,
+      boost::multi_index::indexed_by<
+          boost::multi_index::ordered_unique<retention_id_extractor>,
+          boost::multi_index::ordered_non_unique<last_activity_extractor>,
+          boost::multi_index::ordered_non_unique<nb_samples_extractor,
+                                                 std::greater<time_t>>,
+          boost::multi_index::ordered_non_unique<
+              proportional_activity_extractor>>>;
 
-  template <typename StateT>
-  void _remove_state(StateT& state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
+  retention_cont _retentions ABSL_GUARDED_BY(_data_m);
+  std::shared_ptr<retention_file> _merging ABSL_GUARDED_BY(_data_m);
+  time_t _merging_ended ABSL_GUARDED_BY(_data_m);
 
-  template <typename StateT>
-  bool _check_partial_merge(uint64_t metric_id_or_index_id,
-                            const StateT& state) const;
+  using pending_cont =
+      absl::flat_hash_map<uint64_t, std::list<std::shared_ptr<io::data>>>;
 
-  static std::vector<std::pair<uint64_t, double>> _read_metric_points(
-      const std::vector<std::filesystem::path>& files,
-      const std::filesystem::path& current,
-      std::shared_ptr<spdlog::logger> logger);
-  static std::vector<std::pair<uint64_t, uint32_t>> _read_status_points(
-      const std::vector<std::filesystem::path>& files,
-      const std::filesystem::path& current,
-      std::shared_ptr<spdlog::logger> logger);
+  pending_cont _pending_metrics ABSL_GUARDED_BY(_data_m);
+  pending_cont _pending_statuses ABSL_GUARDED_BY(_data_m);
 
-  static std::filesystem::path _rotated_path(
-      const std::filesystem::path& current,
-      uint64_t rotation_ts);
+  /// Last point (time, raw value) of the last merged retention file of each
+  /// COUNTER or DERIVE metric, written first in its next retention file so
+  /// that rrd can compute the rate of the first point of this file.
+  absl::flat_hash_map<uint64_t, std::pair<uint64_t, double>> _counter_primers
+      ABSL_GUARDED_BY(_data_m);
 
-  static std::filesystem::path _current_path(const std::filesystem::path& dir,
-                                             uint64_t id);
+  time_t _last_start_merge ABSL_GUARDED_BY(_data_m);
+
+  void _init();
+
+  static retention_cont _make_retention_cont(uint32_t threshold);
+
+  void _update_config(const retention_config& config);
+
+  void _merge(const std::shared_ptr<retention_file>& to_merge,
+              const std::shared_ptr<lib>& rrd_lib,
+              backend* cached_client) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_data_m);
+
+  void _do_merge(const std::shared_ptr<retention_file>& to_merge, lib& rrd_lib);
+
+  void _post_end_merge(uint64_t id, bool is_status);
 
  public:
-  explicit retention_manager(retention_config config,
-                             std::shared_ptr<spdlog::logger> logger);
-  ~retention_manager();
+  retention_manager(const retention_config& config,
+                    const std::shared_ptr<boost::asio::io_context>& io_context,
+                    const std::shared_ptr<spdlog::logger>& logger);
+
+  static std::shared_ptr<retention_manager> load(
+      const retention_config& config,
+      const std::shared_ptr<boost::asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger);
+
+  static void reset();
 
   bool enabled() const noexcept {
     return !_config.metrics_dir.empty() || !_config.status_dir.empty();
   }
 
   /**
-   * @brief Initialise the manager: scan dirs for existing buffer files.
-   *
-   * Must be called once before write_metric / write_status.
+   * @brief Append a metric point to the retention file of the metric.
    */
-  void init();
+  void write_metric(const Metric& metric);
 
   /**
-   * @brief Append a metric data point to the in-memory retention batch.
-   *
-   * @return true  A merge should be triggered now.
-   * @return false No merge needed yet.
+   * @brief Append a status point to the retention file of the status.
    */
-  bool write_metric(uint64_t metric_id,
-                    uint64_t time,
-                    double value,
-                    uint32_t step);
+  void write_status(const Status& status);
 
   /**
-   * @brief Append a status data point to the in-memory retention batch.
-   *
-   * @return true  A merge should be triggered now.
-   * @return false No merge needed yet.
+   * @brief Keep an event of a metric or status being merged, to replay it at
+   * the end of the merge.
    */
-  bool write_status(uint64_t index_id,
-                    uint64_t time,
-                    uint32_t status,
-                    uint32_t step);
+  bool write_pending_metric(const std::shared_ptr<io::data>& metric);
+  bool write_pending_status(const std::shared_ptr<io::data>& status);
 
   /**
-   * @brief Return all buffered (time, value) pairs for a metric.
-   *
-   * Includes both on-disk rotated files and in-memory pending batch.
+   * @brief Get and forget the events kept during the merge of a metric or a
+   * status.
    */
-  std::vector<std::pair<uint64_t, double>> get_metric_merge_points(
-      uint64_t metric_id);
+  std::list<std::shared_ptr<io::data>> get_pending_metric(uint64_t metric_id);
+  std::list<std::shared_ptr<io::data>> get_pending_status(uint64_t index_id);
 
   /**
-   * @brief Return all buffered (time, status) pairs for a status index.
-   *
-   * Includes both on-disk rotated files and in-memory pending batch.
-   */
-  std::vector<std::pair<uint64_t, uint32_t>> get_status_merge_points(
-      uint64_t index_id);
-
-  /**
-   * @brief Clear the retention buffer for a metric after a successful merge.
-   */
-  void metric_merge_done(uint64_t metric_id);
-  void status_merge_done(uint64_t index_id);
-
-  /**
-   * @brief Remove all retention files for a metric (on remove_graph event).
+   * @brief Remove the retention file of a metric or a status (on rebuild or
+   * remove_graph event).
    */
   void remove_metric(uint64_t metric_id);
   void remove_status(uint64_t index_id);
 
   /**
-   * @brief Return the last buffered timestamp for a metric/status (0 if none).
-   *
-   * Used by the stream write path to detect gaps between consecutive old-data
-   * points (Step 3.2).
+   * @brief Stop the merge of a metric or a status if it is running, its rrd
+   * file is left untouched.
    */
-  uint64_t last_metric_time(uint64_t metric_id);
-  uint64_t last_status_time(uint64_t index_id);
+  void abort_metric_merge(uint64_t metric_id);
+  void abort_status_merge(uint64_t index_id);
 
   /**
-   * @brief Check whether a partial merge should be triggered.
-   *
-   * Returns true when the buffer has accumulated at least @c
-   * partial_merge_interval seconds of data since the previous (partial) merge:
-   *   last_retention_time - last_partial_merge_ts >= partial_merge_interval
-   *
-   * Returns false if the state is not yet initialised (@c last_partial_merge_ts
-   * == 0) to avoid a spurious trigger on the very first write.
+   * @brief Mark the merge of a metric or a status as finished, so that another
+   * merge can start.
    */
-  inline bool check_metric_partial_merge(uint64_t metric_id) const {
-    absl::ReaderMutexLock lk(&_metrics_m);
-    return _check_partial_merge(metric_id, _metrics);
-  }
-
-  inline bool check_status_partial_merge(uint64_t index_id) const {
-    absl::ReaderMutexLock lk(&_statuses_m);
-    return _check_partial_merge(index_id, _statuses);
-  }
+  void clear_merging(uint64_t id, bool is_status);
 
   /**
-   * @brief Check whether the junction condition is met for a metric.
+   * @brief Start the merge of a retention file if one is due and no merge is
+   * running.
    *
-   * The junction is reached when the last buffered point is within one step of
-   * the first current-data point:
-   *   last_retention_time + step >= earliest_current_time
-   *
-   * Called from the current-data write path after updating
-   * earliest_current_time, so that a merge can be triggered as soon as the
-   * buffer catches up.
-   *
-   * @param metric_id              Metric identifier.
-   * @param earliest_current_time  Earliest current-data timestamp seen for this
-   *                               metric (0 = unknown → returns false).
-   * @return true  Junction reached → merge should be triggered.
+   * @return the id of the metric or status being merged and true if it is a
+   * status, nothing if no merge has been started.
    */
-  bool check_metric_junction(uint64_t metric_id,
-                             uint64_t earliest_current_time);
-
-  /**
-   * @brief Same as check_metric_junction() for a status index.
-   */
-  bool check_status_junction(uint64_t index_id, uint64_t earliest_current_time);
-
-  /**
-   * @brief Return the IDs of all metrics that have at least one buffered point
-   *        (rotated file, current file, or pending batch).
-   *
-   * Used at startup to schedule merges for data recovered by init().
-   */
-  std::vector<uint64_t> metric_ids_with_data();
-
-  /**
-   * @brief Return the IDs of all status indices that have at least one buffered
-   *        point.
-   */
-  std::vector<uint64_t> status_ids_with_data();
-
-  /**
-   * @brief Remove retention buffers for metrics inactive longer than
-   *        orphan_interval seconds.
-   *
-   * @param now_seconds  Current Unix timestamp.
-   */
-  void cleanup_orphans(uint64_t now_seconds);
+  std::optional<
+      std::pair<uint64_t /* index_id or metric_id*/, bool /*is status*/>>
+  start_merge(const std::shared_ptr<lib>& rrd_lib, backend* cached_client);
 };
 
 }  // namespace com::centreon::broker::rrd

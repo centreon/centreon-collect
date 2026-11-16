@@ -72,3 +72,13 @@ message MetricMapping {
   double max = 4;
   string uom = 5;
 }
+
+/* io::storage, storage::de_pb_end_metric_merge, 60 */
+message EndMetricMerge {
+  uint64 metric_id = 1;
+}
+
+/* io::storage, storage::de_pb_end_status_merge, 61 */
+message EndStatusMerge {
+  uint64 index_id = 1;
+}

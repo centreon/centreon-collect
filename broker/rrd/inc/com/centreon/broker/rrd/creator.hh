@@ -64,7 +64,8 @@ class creator {
              uint32_t length,
              time_t from,
              uint32_t step,
-             short value_type);
+             short value_type,
+             const std::vector<std::string_view>& sources);
   void _read_write(int out_fd,
                    int in_fd,
                    ssize_t size,
@@ -92,7 +93,8 @@ class creator {
               time_t from,
               uint32_t step,
               short value_type,
-              bool without_cache = false);
+              bool without_cache = false,
+              const std::vector<std::string_view>& sources = {});
 };
 }  // namespace rrd
 

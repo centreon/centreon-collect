@@ -161,29 +161,31 @@ io::endpoint* factory::new_endpoint(
       ignore_update_errors = true;
   }
 
-  // Retention buffer point-count threshold per batch (default 144 = 12h at
-  // 1 pt/5min).
-  uint32_t retention_max_pending_points = 144;
+  // Number of samples above which a retention file is merged (default 288 =
+  // 24h at 1 pt/5min).
+  uint32_t retention_merge_samples_threshold = 24 * 60 / 5;
   {
-    auto it = cfg.params.find("retention_buffer_max_pending_points");
+    auto it = cfg.params.find("retention_merge_samples_threshold");
     if (it != cfg.params.end() &&
-        !absl::SimpleAtoi(it->second, &retention_max_pending_points)) {
+        !absl::SimpleAtoi(it->second, &retention_merge_samples_threshold)) {
       logger->error(
-          "factory: cannot parse 'retention_buffer_max_pending_points' for "
-          "endpoint '{}', using default (144)",
+          "factory: cannot parse 'retention_merge_samples_threshold' for "
+          "endpoint '{}', using default (288)",
           cfg.name);
     }
   }
 
-  // Retention buffer max number of rotated files (default 5).
-  uint32_t retention_max_files = 5;
+  // A retention file not fed during interval * this threshold is merged
+  // (default 3).
+  uint32_t retention_proportional_activity_threshold = 3;
   {
-    auto it = cfg.params.find("retention_buffer_max_files");
+    auto it = cfg.params.find("retention_proportional_activity_threshold");
     if (it != cfg.params.end() &&
-        !absl::SimpleAtoi(it->second, &retention_max_files)) {
+        !absl::SimpleAtoi(it->second,
+                          &retention_proportional_activity_threshold)) {
       logger->error(
-          "factory: cannot parse 'retention_buffer_max_files' for "
-          "endpoint '{}', using default (5)",
+          "factory: cannot parse 'retention_proportional_activity_threshold' "
+          "for endpoint '{}', using default (3)",
           cfg.name);
     }
   }
@@ -197,6 +199,31 @@ io::endpoint* factory::new_endpoint(
       logger->error(
           "factory: cannot parse 'retention_buffer_orphan_interval' for "
           "endpoint '{}', using default (3600)",
+          cfg.name);
+    }
+  }
+
+  // Delay before retrying a failed merge (seconds, default 120).
+  uint32_t retention_merge_retry_delay = 120;
+  {
+    auto it = cfg.params.find("retention_merge_retry_delay");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_merge_retry_delay)) {
+      logger->error(
+          "factory: cannot parse 'retention_merge_retry_delay' for "
+          "endpoint '{}', using default (120)",
+          cfg.name);
+    }
+  }
+
+  uint32_t retention_merge_timeout = 120;
+  {
+    auto it = cfg.params.find("retention_merge_timeout");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_merge_timeout)) {
+      logger->error(
+          "factory: cannot parse 'retention_merge_timeout' for "
+          "endpoint '{}', using default (120)",
           cfg.name);
     }
   }
@@ -215,9 +242,13 @@ io::endpoint* factory::new_endpoint(
   endp->set_write_metrics(write_metrics);
   endp->set_write_status(write_status);
   endp->set_ignore_update_errors(ignore_update_errors);
-  endp->set_retention_max_pending_points(retention_max_pending_points);
-  endp->set_retention_max_files(retention_max_files);
+  endp->set_retention_merge_samples_threshold(
+      retention_merge_samples_threshold);
+  endp->set_retention_proportional_activity_threshold(
+      retention_proportional_activity_threshold);
   endp->set_retention_orphan_interval(retention_orphan_interval);
+  endp->set_retention_merge_retry_delay(retention_merge_retry_delay);
+  endp->set_retention_merge_timeout(retention_merge_timeout);
   is_acceptor = false;
   return endp.release();
 }

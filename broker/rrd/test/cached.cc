@@ -17,10 +17,11 @@
  *
  */
 
-#include "com/centreon/broker/rrd/cached.hh"
 #include <absl/strings/str_split.h>
-
+#include <fmt/std.h>
 #include <gtest/gtest.h>
+
+#include "com/centreon/broker/rrd/cached.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

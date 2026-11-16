@@ -17,122 +17,128 @@
  */
 
 #include "com/centreon/broker/rrd/retention_manager.hh"
+#include <re2/re2.h>
+#include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/rrd/internal.hh"
+#include "com/centreon/broker/rrd/retention_file.hh"
 
 using namespace com::centreon::broker::rrd;
+using namespace com::centreon::broker;
 namespace fs = std::filesystem;
 
 /**
- * @brief Generate the current file path for a given metric/status ID in the
- * specified directory.
+ * @brief Constructor, use load() to also reload the existing retention files.
  *
- * @param dir The base directory where the .prot files are stored (e.g.,
- * "/var/lib/rrd/metrics").
- * @param id The metric or status ID for which to generate the file path (e.g.,
- * 42).
- *
- * @return The full file path for the current .prot file (e.g.,
- * "/var/lib/rrd/metrics/42.prot").
- */
-fs::path retention_manager::_current_path(const fs::path& dir, uint64_t id) {
-  return dir / fmt::format("{}.prot", id);
-}
-
-/**
- * @brief Generate the rotated file path for a given current file and rotation
- * timestamp.
- *
- * @param current The current file path (e.g., "42.prot").
- * @param rotation_ts The timestamp to insert into the rotated file name (e.g.,
- * 1735000000).
- *
- * @return The rotated file path (e.g., "42.1735000000.prot").
- */
-fs::path retention_manager::_rotated_path(const fs::path& current,
-                                          uint64_t rotation_ts) {
-  // Insert the timestamp before ".prot": 42.prot → 42.1735000000.prot
-  std::string s = current.string();
-  const auto pos = s.rfind(".prot");
-  if (pos != std::string::npos)
-    s.insert(pos, fmt::format(".{}", rotation_ts));
-  return fs::path(s);
-}
-
-/**
- * @brief Constructor.
- *
- * @param config Retention configuration (directories, file size limits, etc.)
+ * @param config Retention configuration (directories, merge thresholds).
+ * @param io_context io_context on which merges are run.
  * @param logger Logger for retention-related messages (must not be null).
  */
-retention_manager::retention_manager(retention_config config,
-                                     std::shared_ptr<spdlog::logger> logger)
-    : _config(std::move(config)), _logger(std::move(logger)) {}
+retention_manager::retention_manager(
+    const retention_config& config,
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger)
+    : _config(config),
+      _io_context(io_context),
+      _logger(logger),
+      _retentions(_make_retention_cont(config.proportional_activity_threshold)),
+      _merging_ended(0),
+      _last_start_merge(0) {}
 
-retention_manager::~retention_manager() {
-  // Flush in-memory pending batches to disk for graceful shutdown.
-  auto flush_map = [this](absl::Mutex& map_mutex, auto& map)
-                       ABSL_NO_THREAD_SAFETY_ANALYSIS {
-                         absl::MutexLock lk(&map_mutex);
-                         for (auto& [id, state] : map) {
-                           absl::MutexLock slk(&state->mutex);
-                           _flush_pending(*state);
-                         }
-                       };
-  flush_map(_metrics_m, _metrics);
-  flush_map(_statuses_m, _statuses);
+static absl::Mutex _instance_m;
+static std::shared_ptr<retention_manager> _instance
+    ABSL_GUARDED_BY(_instance_m);
+
+/**
+ * @brief Get the retention_manager shared by all the rrd streams.
+ *
+ * On the first call, the retention_manager is created and the retention files
+ * found in the metrics and status directories are reloaded. It is then kept
+ * for the lifetime of the process, so that a stream opened again (reload,
+ * reconnection) doesn't reload the files still used or merged by the previous
+ * one.
+ *
+ * On the next calls, only the merge thresholds of @p config are applied (see
+ * _update_config()), the directories, @p io_context and @p logger of the first
+ * call are kept.
+ *
+ * @param config Retention configuration (directories, merge thresholds).
+ * @param io_context io_context on which merges are run, used on the first
+ * call only.
+ * @param logger Logger for retention-related messages (must not be null), used
+ * on the first call only.
+ *
+ * @return The shared retention_manager.
+ */
+std::shared_ptr<retention_manager> retention_manager::load(
+    const retention_config& config,
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  absl::MutexLock l(&_instance_m);
+  if (!_instance) {
+    _instance = std::make_shared<retention_manager>(config, io_context, logger);
+    _instance->_init();
+  } else {
+    _instance->_update_config(config);
+  }
+  return _instance;
 }
 
 /**
- * @brief Scan metrics_dir and status_dir for existing .prot buffer files and
- *        restore the in-memory state.
+ * @brief Forget the shared retention_manager, the next load() creates a new
+ * one and reloads the retention files. Used by the unit tests to start each
+ * test with a new configuration or to simulate a restart.
  *
- * Must be called once after construction, before any write_metric /
- * write_status call.  Both directories are created if they do not yet exist.
- * Files whose names do not match the expected pattern are silently ignored.
+ * The streams and merges still using the previous retention_manager keep it
+ * alive until they release it.
  */
-void retention_manager::init() {
-  struct file_info {
-    bool is_rotated;
-    uint64_t ts;
-    fs::path path;
-  };
+void retention_manager::reset() {
+  absl::MutexLock l(&_instance_m);
+  _instance.reset();
+}
 
-  /**
-   * @brief Parse a filename to extract the metric/status ID, rotation timestamp
-   * (if rotated), and whether it's a rotated file. The expected filename
-   * patterns are:
-   * - Current file: "{id}.prot" (e.g., "42.prot")
-   * - Rotated file: "{id}.{ts}.prot" (e.g., "42.1735000000.prot")
-   *
-   * @param name The filename to parse (not the full path, just the filename
-   * component).
-   *
-   */
-  auto parse_name = [](const std::string& name)
-      -> std::optional<std::tuple<uint64_t, uint64_t, bool>> {
-    static constexpr std::string_view suffix = ".prot";
-    if (!absl::EndsWith(name, suffix))
-      return std::nullopt;
-    const std::string_view stem(name.data(), name.size() - suffix.size());
-    const auto dot = stem.rfind('.');
-    uint64_t id = 0, ts = 0;
-    if (dot == std::string_view::npos) {
-      if (!absl::SimpleAtoi(stem, &id))
-        return std::nullopt;
-      return std::make_tuple(id, 0ull, false);
-    }
-    if (!absl::SimpleAtoi(stem.substr(0, dot), &id) ||
-        !absl::SimpleAtoi(stem.substr(dot + 1), &ts))
-      return std::nullopt;
-    return std::make_tuple(id, ts, true);
-  };
+/**
+ * @brief Apply the merge thresholds of a new configuration, called by load()
+ * each time a stream is opened.
+ *
+ * Only merge_samples_threshold, proportional_activity_threshold,
+ * orphan_interval and merge_retry_delay are updated: the directories can't
+ * change since the retention files already loaded or created are in them, so
+ * they can be read without lock. The thresholds are read by start_merge() under
+ * _data_m, that may run on the thread of another stream.
+ *
+ * @param config The new retention configuration.
+ */
+void retention_manager::_update_config(const retention_config& config) {
+  absl::MutexLock l(&_data_m);
+  _config.merge_samples_threshold = config.merge_samples_threshold;
+  _config.orphan_interval = config.orphan_interval;
+  _config.merge_retry_delay = config.merge_retry_delay;
+  _config.merge_time_out = config.merge_time_out;
+  _config.start_merge_interval = config.start_merge_interval;
+  if (_config.proportional_activity_threshold !=
+      config.proportional_activity_threshold) {
+    _config.proportional_activity_threshold =
+        config.proportional_activity_threshold;
+    // index 3 is sorted with the threshold given to its extractor, it can't be
+    // changed in place: the container is rebuilt with a new extractor
+    retention_cont rebuilt(
+        _make_retention_cont(config.proportional_activity_threshold));
+    rebuilt.insert(_retentions.begin(), _retentions.end());
+    _retentions.swap(rebuilt);
+  }
+}
 
-  // Helper: scan one directory, build a sorted per-ID list of file_info, then
-  // populate rotated_files for each recovered state.  Written as a lambda only
-  // to avoid duplicating the parse_name/directory-scan boilerplate; the actual
-  // map access is done via the typed _get_or_create_metric/_status methods so
-  // the thread-safety analyser sees the right mutex.
-  auto scan_dir = [&](const fs::path& dir, const char* kind,
-                      auto get_or_create_fn) ABSL_NO_THREAD_SAFETY_ANALYSIS {
+/**
+ * @brief Scan metrics_dir and status_dir for existing {id}.ret files and
+ * reload them.
+ *
+ * Called once by load(). Both directories are created if they do not yet
+ * exist. Files whose names do not match the expected pattern are ignored,
+ * files that don't contain a header and at least one sample are removed (see
+ * retention_file).
+ */
+void retention_manager::_init() {
+  auto scan_dir = [&](const fs::path& dir) {
     if (dir.empty())
       return;
 
@@ -145,782 +151,514 @@ void retention_manager::init() {
       return;
     }
 
-    absl::btree_map<uint64_t, std::vector<file_info>> found;
+    static re2::RE2 file_filter("\\d+\\.ret");
+
     for (const auto& entry : fs::directory_iterator(dir, ec)) {
       if (ec || !entry.is_regular_file())
         continue;
-      auto parsed = parse_name(entry.path().filename().string());
-      if (!parsed)
+      if (!RE2::FullMatch(entry.path().filename().string(), file_filter))
         continue;
-      auto [id, ts, is_rotated] = *parsed;
-      found[id].push_back({is_rotated, ts, entry.path()});
-    }
 
-    for (auto& [id, files] : found) {
-      std::sort(files.begin(), files.end(),
-                [](const file_info& a, const file_info& b) {
-                  if (!a.is_rotated && b.is_rotated)
-                    return false;
-                  if (a.is_rotated && !b.is_rotated)
-                    return true;
-                  return a.ts < b.ts;
-                });
-
-      auto& state = get_or_create_fn(id);
-
-      absl::MutexLock lk(&state.mutex);
-      for (const auto& fi : files) {
-        if (fi.is_rotated)
-          state.rotated_files.push_back(fi.path);
-        // non-rotated: current_path is already set by the constructor
+      try {
+        auto recovered = std::make_shared<retention_file>(entry.path());
+        SPDLOG_LOGGER_INFO(_logger,
+                           "RRD: recovered retention of {} {} with {} points",
+                           recovered->is_status() ? "status" : "metric",
+                           recovered->id(), recovered->nb_samples());
+        _retentions.emplace(std::move(recovered));
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(_logger, "RRD: fail to recover retention {}: {}",
+                            entry.path().string(), e.what());
       }
-      SPDLOG_LOGGER_DEBUG(_logger,
-                          "retention: recovered {} rotated files for {} id={}",
-                          state.rotated_files.size(), kind, id);
-    }
+    };
   };
-
-  scan_dir(_config.metrics_dir, "metric",
-           [this](uint64_t id) -> metric_retention_state& {
-             return _get_or_create_metric(id);
-           });
-  scan_dir(_config.status_dir, "status",
-           [this](uint64_t id) -> status_retention_state& {
-             return _get_or_create_status(id);
-           });
+  {
+    absl::MutexLock l(&_data_m);
+    scan_dir(_config.metrics_dir);
+    scan_dir(_config.status_dir);
+  }
 }
 
-metric_retention_state& retention_manager::_get_or_create_metric(uint64_t id) {
-  absl::MutexLock lk(&_metrics_m);
-  auto it = _metrics.find(id);
-  if (it == _metrics.end()) {
-    it = _metrics
-             .emplace(id, std::make_unique<metric_retention_state>(
-                              _current_path(_config.metrics_dir, id)))
-             .first;
-  }
-  return *it->second;
-}
-
-status_retention_state& retention_manager::_get_or_create_status(uint64_t id) {
-  absl::MutexLock lk(&_statuses_m);
-  auto it = _statuses.find(id);
-  if (it == _statuses.end()) {
-    it = _statuses
-             .emplace(id, std::make_unique<status_retention_state>(
-                              _current_path(_config.status_dir, id)))
-             .first;
-  }
-  return *it->second;
+retention_manager::retention_cont retention_manager::_make_retention_cont(
+    uint32_t threshold) {
+  return retention_cont(boost::make_tuple(
+      retention_cont::nth_index<0>::type::ctor_args(),
+      retention_cont::nth_index<1>::type::ctor_args(),
+      retention_cont::nth_index<2>::type::ctor_args(),
+      retention_cont::nth_index<3>::type::ctor_args(
+          proportional_activity_extractor(threshold), std::less<time_t>())));
 }
 
 /**
- * @brief Serialise the pending batch to a new immutable rotated file.
+ * @brief Append a metric point to the retention file of the metric, the file
+ * is created on the first point. Nothing is done if metrics_dir is empty.
  *
- * Picks a unique filename by incrementing the timestamp suffix until no
- * collision is found on disk.  Clears the batch on success.
+ * For a COUNTER or DERIVE metric, rrd computes the rate of a point from the
+ * previous raw value: when the file is created, the last point of the
+ * previous merged file (see _counter_primers) is also written in it. Its row
+ * is already in the rrd file, which has the priority at the merge, so this
+ * point only gives its rate to the first new one.
+ *
+ * Errors are only logged.
+ *
+ * @param metric The metric point, older than the last update of its rrd file.
  */
-template <typename StateT>
-void retention_manager::_flush_to_rotated(StateT& state) {
-  if (state.pending.points().empty())
+void retention_manager::write_metric(const Metric& metric) {
+  if (_config.metrics_dir.empty())
     return;
-
-  uint64_t ts = static_cast<uint64_t>(std::time(nullptr));
-  fs::path rotated;
-  std::error_code exists_ec;
-  do {
-    rotated = _rotated_path(state.current_path, ts++);
-  } while (fs::exists(rotated, exists_ec) && !exists_ec);
-
-  std::string data;
-  state.pending.SerializeToString(&data);
-
-  // "wxe" = O_WRONLY|O_CREAT|O_EXCL + O_CLOEXEC (Linux/glibc)
-  std::FILE* f = std::fopen(rotated.c_str(), "wxe");
-  if (!f) {
-    SPDLOG_LOGGER_ERROR(_logger,
-                        "retention: cannot create rotated file '{}': {}",
-                        rotated.string(), strerror(errno));
-    return;
+  {
+    absl::MutexLock l(&_data_m);
+    auto& id_index = _retentions.get<0>();
+    auto exist = id_index.find(std::make_pair(metric.metric_id(), false));
+    try {
+      if (exist == id_index.end()) {
+        auto created =
+            std::make_shared<retention_file>(_config.metrics_dir, metric);
+        auto primer = _counter_primers.find(metric.metric_id());
+        if (primer != _counter_primers.end()) {
+          Metric previous(metric);
+          previous.set_time(primer->second.first);
+          previous.set_value(primer->second.second);
+          _counter_primers.erase(primer);
+          try {
+            created->add_metric(previous);
+          } catch (const std::exception& e) {
+            SPDLOG_LOGGER_ERROR(_logger,
+                                "fail to add previous point of metric {} to "
+                                "retention: {}",
+                                metric.metric_id(), e);
+          }
+        }
+        _retentions.emplace(std::move(created));
+      } else {
+        id_index.modify(
+            exist, [&metric, this](std::shared_ptr<retention_file>& to_update) {
+              try {
+                to_update->add_metric(metric);
+              } catch (const std::exception& e) {
+                SPDLOG_LOGGER_ERROR(_logger,
+                                    "fail to add metric {} to retention: {}",
+                                    metric.metric_id(), e);
+              }
+            });
+      }
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger, "fail to add metric {} to retention: {}",
+                          metric.metric_id(), e);
+      return;
+    }
   }
-  std::fwrite(data.data(), 1, data.size(), f);
-  std::fclose(f);
-
-  state.rotated_files.push_back(rotated);
-  state.pending.Clear();
-
-  SPDLOG_LOGGER_DEBUG(_logger, "retention: flushed batch to '{}' ({} rotated)",
-                      rotated.string(), state.rotated_files.size());
 }
 
 /**
- * @brief Serialise remaining pending batch to the current (non-rotated) file.
+ * @brief Append a status point to the retention file of the status, the file
+ * is created on the first point. Nothing is done if status_dir is empty.
  *
- * Called at graceful shutdown so that data survives a restart.
+ * Errors are only logged.
+ *
+ * @param status The status point, older than the last update of its rrd file.
  */
-template <typename StateT>
-void retention_manager::_flush_pending(StateT& state) {
-  if (state.pending.points().empty())
+void retention_manager::write_status(const Status& status) {
+  if (_config.status_dir.empty())
     return;
-
-  std::string data;
-  state.pending.SerializeToString(&data);
-
-  // "ae" = O_WRONLY|O_CREAT|O_APPEND + O_CLOEXEC
-  std::FILE* f = std::fopen(state.current_path.c_str(), "ae");
-  if (!f) {
-    SPDLOG_LOGGER_ERROR(_logger, "retention: cannot flush to '{}': {}",
-                        state.current_path.string(), strerror(errno));
-    return;
+  {
+    absl::MutexLock l(&_data_m);
+    auto& id_index = _retentions.get<0>();
+    auto exist = id_index.find(std::make_pair(status.index_id(), true));
+    try {
+      if (exist == id_index.end()) {
+        _retentions.emplace(
+            std::make_shared<retention_file>(_config.status_dir, status));
+      } else {
+        id_index.modify(
+            exist, [&status, this](std::shared_ptr<retention_file>& to_update) {
+              try {
+                to_update->add_status(status);
+              } catch (const std::exception& e) {
+                SPDLOG_LOGGER_ERROR(_logger,
+                                    "fail to add status {} to retention: {}",
+                                    status.index_id(), e);
+              }
+            });
+      }
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger, "fail to add status {} to retention: {}",
+                          status.index_id(), e);
+      return;
+    }
   }
-  std::fwrite(data.data(), 1, data.size(), f);
-  std::fclose(f);
-
-  state.pending.Clear();
 }
 
 /**
- * @brief Check if the pending batch has reached max_pending_points and rotate.
+ * @brief Remove the retention file of a metric (on rebuild or remove_graph).
  *
- * The threshold is evaluated against the number of points already in the
- * batch (@c points_size()), which is an O(1) operation.  A rotation is
- * triggered when the batch reaches the configured limit so that each on-disk
- * file represents at most @c max_pending_points data points.
+ * The file is removed from the disk and forgotten. If this metric is being
+ * merged, it is no longer in _retentions: the caller must also call
+ * abort_metric_merge().
  *
- * @return true  Merge should be triggered (rotated-file limit reached).
- * @return false No merge needed yet.
+ * @param metric_id The metric identifier.
  */
-template <typename StateT>
-bool retention_manager::_check_and_rotate(StateT& state) {
-  if (static_cast<uint32_t>(state.pending.points_size()) <
-      _config.max_pending_points)
-    return false;
+void retention_manager::remove_metric(uint64_t metric_id) {
+  absl::MutexLock l(&_data_m);
+  _counter_primers.erase(metric_id);
+  auto& id_index = _retentions.get<0>();
+  // a file being merged is no longer in _retentions, its pending events must
+  // be dropped all the same, otherwise the end of the merge would replay them
+  _pending_metrics.erase(metric_id);
+  auto found = id_index.find(std::make_pair(metric_id, false));
+  if (found == id_index.end())
+    return;
+  ::remove((*found)->file_path().c_str());
+  id_index.erase(found);
+}
 
-  _flush_to_rotated(state);
-  if (state.rotated_files.size() >= _config.max_files) {
-    SPDLOG_LOGGER_INFO(
-        _logger, "retention: file count limit ({}) reached — merge triggered",
-        _config.max_files);
+/**
+ * @brief Remove the retention file of a status (on rebuild or remove_graph).
+ *
+ * Same as remove_metric(), the caller must also call abort_status_merge().
+ *
+ * @param index_id The index identifier.
+ */
+void retention_manager::remove_status(uint64_t index_id) {
+  absl::MutexLock l(&_data_m);
+  auto& id_index = _retentions.get<0>();
+  // a file being merged is no longer in _retentions, its pending events must
+  // be dropped all the same, otherwise the end of the merge would replay them
+  _pending_statuses.erase(index_id);
+  auto found = id_index.find(std::make_pair(index_id, true));
+  if (found == id_index.end())
+    return;
+  ::remove((*found)->file_path().c_str());
+  id_index.erase(found);
+}
+
+/**
+ * @brief Mark a retention file as being merged and post its merge on
+ * _io_context. The caller must remove it from _retentions.
+ *
+ * With rrdcached, the rrd file is flushed first so that the merge reads all
+ * its data.
+ *
+ * @param to_merge The retention file to merge.
+ * @param rrd_lib The lib used to create the rrd files, it must outlive the
+ * merge.
+ * @param cached_client The rrdcached backend of the stream, nullptr if rrd
+ * files are written directly.
+ */
+void retention_manager::_merge(const std::shared_ptr<retention_file>& to_merge,
+                               const std::shared_ptr<lib>& rrd_lib,
+                               backend* cached_client) {
+  auto final_path =
+      to_merge->is_status() ? _config.status_dir : _config.metrics_dir;
+  final_path /= fmt::format("{}.rrd", to_merge->id());
+  SPDLOG_LOGGER_INFO(
+      _logger, "RRD: merging {} retention points for {} {} into {}",
+      to_merge->nb_samples(), to_merge->is_status() ? "status" : "metric",
+      to_merge->id(), final_path.string());
+  if (cached_client) {
+    cached_client->pre_merge_flush(final_path);
+  }
+
+  _merging = to_merge;
+  boost::asio::post(*_io_context,
+                    [me = shared_from_this(), to_merge = _merging, rrd_lib]() {
+                      me->_do_merge(to_merge, *rrd_lib);
+                    });
+}
+
+/**
+ * @brief Merge a retention file into its rrd file (runs on _io_context).
+ *
+ * On success, the retention file is removed before the publication of the end
+ * of the merge, so that a replayed event can create a new one. For a COUNTER
+ * or DERIVE metric, its last point is kept in _counter_primers (see
+ * write_metric()). On failure, it is kept in _retentions and can't be merged
+ * again before merge_retry_delay.
+ *
+ * In both cases a pb_end_metric_merge or pb_end_status_merge is published:
+ * the stream then calls clear_merging(), so that another merge can start, and
+ * replays the events kept during the merge.
+ *
+ * @param to_merge The retention file to merge.
+ * @param rrd_lib The lib used to create the rrd files.
+ */
+void retention_manager::_do_merge(
+    const std::shared_ptr<retention_file>& to_merge,
+    lib& rrd_lib) {
+  auto final_path =
+      to_merge->is_status() ? _config.status_dir : _config.metrics_dir;
+  final_path /= fmt::format("{}.rrd", to_merge->id());
+  try {
+    to_merge->merge(final_path, rrd_lib);
+    // keep the last raw value of a counter to compute the rate of the first
+    // point of the next retention file of this metric
+    if (!to_merge->is_status() && !to_merge->is_merge_aborted() &&
+        (to_merge->value_type() == Metric_ValueType_COUNTER ||
+         to_merge->value_type() == Metric_ValueType_DERIVE)) {
+      absl::MutexLock l(&_data_m);
+      _counter_primers[to_merge->id()] =
+          std::make_pair(to_merge->last_ts(), to_merge->last_value());
+    }
+    ::remove(to_merge->file_path().c_str());
+    SPDLOG_LOGGER_INFO(_logger, "RRD: merge of {} {} into {} done",
+                       to_merge->is_status() ? "status" : "metric",
+                       to_merge->id(), final_path.string());
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "fail to merge {} into {}: {}",
+                        to_merge->file_path(), final_path, e.what());
+    // in order to not log error on next metric received, we mark it
+    if (to_merge->is_merge_aborted()) {
+      ::remove(to_merge->file_path().c_str());
+    } else {
+      absl::MutexLock l(&_data_m);
+      to_merge->set_no_merge_before(time(nullptr) + _config.merge_retry_delay);
+      _retentions.emplace(to_merge);
+    }
+  }
+
+  // Even on failure, the end of the merge must be published: the stream
+  // replays the events kept during the merge only when it receives it.
+  {
+    absl::MutexLock l(&_data_m);
+    _merging_ended = time(nullptr);
+  }
+  _post_end_merge(to_merge->id(), to_merge->is_status());
+}
+
+void retention_manager::_post_end_merge(uint64_t id, bool is_status) {
+  multiplexing::publisher publish;
+  if (is_status) {
+    std::shared_ptr<storage::pb_end_status_merge> to_dispatch =
+        std::make_unique<storage::pb_end_status_merge>();
+    to_dispatch->mut_obj().set_index_id(id);
+    publish.write(to_dispatch);
+  } else {
+    std::shared_ptr<storage::pb_end_metric_merge> to_dispatch =
+        std::make_unique<storage::pb_end_metric_merge>();
+    to_dispatch->mut_obj().set_metric_id(id);
+    publish.write(to_dispatch);
+  }
+}
+
+/**
+ * @brief Mark the merge of a metric or a status as finished, so that
+ * start_merge() can start another one. Called by the stream when it receives
+ * the pb_end_metric_merge or pb_end_status_merge event. Nothing is done if
+ * this metric or status is not the one being merged.
+ *
+ * @param id The metric_id or the index_id.
+ * @param is_status true if id is an index_id.
+ */
+void retention_manager::clear_merging(uint64_t id, bool is_status) {
+  absl::MutexLock l(&_data_m);
+  if (_merging && _merging->id() == id && _merging->is_status() == is_status) {
+    _merging.reset();
+    _merging_ended = 0;
+  }
+}
+
+/**
+ * @brief Stop the merge of a metric if it is running, its rrd file is left
+ * untouched. The end of the merge is still published.
+ *
+ * @param metric_id The metric identifier.
+ */
+void retention_manager::abort_metric_merge(uint64_t metric_id) {
+  absl::MutexLock l(&_data_m);
+  if (_merging && !_merging->is_status() && _merging->id() == metric_id) {
+    _merging->abort_merge();
+  }
+}
+
+/**
+ * @brief Same as abort_metric_merge() for a status.
+ *
+ * @param index_id The index identifier.
+ */
+void retention_manager::abort_status_merge(uint64_t index_id) {
+  absl::MutexLock l(&_data_m);
+  if (_merging && _merging->is_status() && _merging->id() == index_id) {
+    _merging->abort_merge();
+  }
+}
+
+/**
+ * @brief Start the merge of a retention file if no merge is running.
+ *
+ * The file chosen is, in this order:
+ *   - the least recently fed one if it has not been fed for orphan_interval
+ *     seconds,
+ *   - else the one with the most samples if it has more than
+ *     merge_samples_threshold samples,
+ *   - else the one not fed for the longest time compared to its interval, if
+ *     it has not been fed for interval * proportional_activity_threshold.
+ * For each criterion, files whose merge failed less than merge_retry_delay ago
+ * are skipped.
+ *
+ * The file is removed from _retentions and merged on _io_context, the next
+ * points of this metric or status will go to a new retention file. The merge
+ * stays running until clear_merging() is called.
+ *
+ * @param rrd_lib The lib used to create the rrd files, it must outlive the
+ * merge.
+ * @param cached_client The rrdcached backend of the stream, nullptr if rrd
+ * files are written directly.
+ *
+ * @return the id of the metric or status being merged and true if it is a
+ * status, nothing if no merge has been started.
+ */
+std::optional<
+    std::pair<uint64_t /* index_id or metric_id*/, bool /*is status*/>>
+retention_manager::start_merge(const std::shared_ptr<lib>& rrd_lib,
+                               backend* cached_client) {
+  absl::MutexLock l(&_data_m);
+  if (_merging &&
+      (!_merging_ended ||
+       _merging_ended + static_cast<time_t>(_config.merge_time_out) >
+           time(nullptr))) {
+    return {};
+  }
+
+  if (_merging) {
+    boost::asio::post(
+        *_io_context,
+        [id = _merging->id(), is_status = _merging->is_status(),
+         me = shared_from_this()]() { me->_post_end_merge(id, is_status); });
+    _merging.reset();
+  }
+  _merging_ended = 0;
+
+  time_t now = time(nullptr);
+  if (_retentions.empty() ||
+      now < _last_start_merge +
+                static_cast<time_t>(_config.start_merge_interval)) {
+    return {};
+  }
+  _last_start_merge = now;
+  {
+    auto& last_interval_index = _retentions.get<1>();
+    time_t threshold = now - _config.orphan_interval;
+    for (auto to_merge_it = last_interval_index.begin();
+         to_merge_it != last_interval_index.end(); ++to_merge_it) {
+      auto to_merge = *to_merge_it;
+      if (to_merge->last_activity() > threshold) {
+        break;
+      }
+      if (to_merge->no_merge_before() < time(nullptr)) {
+        _merge(to_merge, rrd_lib, cached_client);
+        last_interval_index.erase(to_merge_it);
+        return std::make_pair(to_merge->id(), to_merge->is_status());
+      }
+    }
+  }
+  {
+    auto& nb_samples_index = _retentions.get<2>();
+    for (auto to_merge_it = nb_samples_index.begin();
+         to_merge_it != nb_samples_index.end(); ++to_merge_it) {
+      auto to_merge = *to_merge_it;
+      if (to_merge->nb_samples() <= _config.merge_samples_threshold) {
+        break;
+      }
+      if (to_merge->no_merge_before() < time(nullptr)) {
+        _merge(to_merge, rrd_lib, cached_client);
+        nb_samples_index.erase(to_merge_it);
+        return std::make_pair(to_merge->id(), to_merge->is_status());
+      }
+    }
+  }
+  {
+    auto& prop_activity_index = _retentions.get<3>();
+    for (auto to_merge_it = prop_activity_index.begin();
+         to_merge_it != prop_activity_index.end(); ++to_merge_it) {
+      auto to_merge = *to_merge_it;
+      if (to_merge->last_activity() +
+              to_merge->interval() * _config.proportional_activity_threshold >=
+          (uint64_t)now) {
+        break;
+      }
+      if (to_merge->no_merge_before() < time(nullptr)) {
+        _merge(to_merge, rrd_lib, cached_client);
+        prop_activity_index.erase(to_merge_it);
+        return std::make_pair(to_merge->id(), to_merge->is_status());
+      }
+    }
+  }
+  return {};
+}
+
+/**
+ * @brief Keep a metric event if its metric is being merged, it will be
+ * replayed by the stream at the end of the merge (see get_pending_metric()).
+ *
+ * @param metric A pb_metric event.
+ *
+ * @return true if the event has been kept, false if this metric is not being
+ * merged and the event must be written now.
+ */
+bool retention_manager::write_pending_metric(
+    const std::shared_ptr<io::data>& metric) {
+  absl::MutexLock l(&_data_m);
+  uint64_t metric_id =
+      std::static_pointer_cast<storage::pb_metric>(metric)->obj().metric_id();
+  if (_merging && !_merging->is_status() && _merging->id() == metric_id) {
+    _pending_metrics[metric_id].emplace_back(metric);
     return true;
   }
   return false;
 }
 
 /**
- * @brief Clear all rotated files and the current file for a given state, and
- * clear the pending batch.  Used when a metric/status is removed or after a
- * merge completes to reset the state for the next retention cycle.
+ * @brief Same as write_pending_metric() for a status.
  *
- * @tparam StateT The type of the retention state (metric_retention_state or
- * status_retention_state).
- * @param state The retention state to clear, which will have all its rotated
- * files and current file deleted from disk, and its pending batch cleared.  The
- * caller should hold the state mutex when calling this function.
+ * @param status A pb_status event.
+ *
+ * @return true if the event has been kept, false if this status is not being
+ * merged and the event must be written now.
  */
-template <typename StateT>
-void retention_manager::_clear_merge(StateT& state) {
-  std::error_code ec;
-  for (const auto& f : state.rotated_files)
-    fs::remove(f, ec);
-  state.rotated_files.clear();
-  if (!state.current_path.empty())
-    fs::remove(state.current_path, ec);
-  state.pending.Clear();
+bool retention_manager::write_pending_status(
+    const std::shared_ptr<io::data>& status) {
+  absl::MutexLock l(&_data_m);
+  auto index_id =
+      std::static_pointer_cast<storage::pb_status>(status)->obj().index_id();
+
+  if (_merging && _merging->is_status() && _merging->id() == index_id) {
+    _pending_statuses[index_id].emplace_back(status);
+    return true;
+  }
+  return false;
 }
 
 /**
- * @brief Remove all files and in-memory state for a given metric/status.  Used
- * when a metric/status is removed to clean up all associated data. The caller
- * should hold the state mutex when calling this function.
+ * @brief Get and forget the events kept by write_pending_metric() during the
+ * merge of a metric, in their arrival order.
  *
- * @tparam StateT The type of the retention state (metric_retention_state or
- * status_retention_state).
- * @param state The retention state to remove, which will have all its files
- * deleted from disk and be removed from the in-memory map.  The caller should
- * hold the state mutex when calling this function.
+ * @param metric_id The metric identifier.
+ *
+ * @return The events to replay, empty if there is none.
  */
-template <typename StateT>
-void retention_manager::_remove_state(StateT& state) {
-  _clear_merge(state);
-}
-
-/**
- * @brief Append a metric data point to the in-memory retention batch for the
- * given metric ID.  If the batch reaches the configured max_pending_points, it
- * is flushed to a new rotated file and a merge is triggered if the number of
- * rotated files reaches max_files.  The state for the metric ID is created if
- * it does not already exist.  The caller should hold the _metrics_m when
- * calling this function to ensure thread safety.
- *
- * @param metric_id The identifier of the metric for which to write the data
- * point.
- * @param time The timestamp of the data point, typically in seconds since the
- * Unix epoch.
- * @param value The value of the metric data point to write.
- * @param step The step interval (in seconds) for the metric, which may be used
- * for retention policies or merge logic.  The caller is responsible for
- * providing a valid step value according to the retention configuration and
- * expected data frequency.
- *
- * @return true if a merge should be triggered now (e.g., because the number of
- * rotated files has reached the configured limit), or false if no merge is
- * needed yet.  The caller can use this return value to decide when to trigger a
- * merge of the retention data into the main RRD files.
- */
-bool retention_manager::write_metric(uint64_t metric_id,
-                                     uint64_t time,
-                                     double value,
-                                     uint32_t step) {
-  if (_config.metrics_dir.empty())
-    return false;
-
-  metric_retention_state& state = _get_or_create_metric(metric_id);
-
-  absl::MutexLock lk(&state.mutex);
-  state.step = step;
-  state.last_retention_time = time;
-  state.last_activity_time = static_cast<uint64_t>(std::time(nullptr));
-  // Initialise partial-merge timestamp on the very first write (Step 3.3).
-  if (state.last_partial_merge_ts == 0)
-    state.last_partial_merge_ts = time;
-
-  auto* pt = state.pending.add_points();
-  pt->set_time(time);
-  pt->set_value(value);
-
-  return _check_and_rotate(state);
-}
-
-/**
- * @brief Append a status data point to the in-memory retention batch for the
- * given index ID.  If the batch reaches the configured max_pending_points, it
- * is flushed to a new rotated file and a merge is triggered if the number of
- * rotated files reaches max_files.  The state for the index ID is created if it
- * does not already exist.  The caller should hold the _statuses_m when
- * calling this function to ensure thread safety.
- *
- * @param index_id The identifier of the status index for which to write the
- * data point.
- * @param time The timestamp of the data point, typically in seconds since the
- * Unix epoch.
- * @param status The value of the status data point to write, typically an
- * integer representing the status (e.g., 0 for OK, 1 for WARNING, etc.).
- * @param step The step interval (in seconds) for the status, which may be used
- * for retention policies or merge logic.  The caller is responsible for
- * providing a valid step value according to the retention configuration and
- * expected data frequency.
- *
- * @return true if a merge should be triggered now (e.g., because the number of
- * rotated files has reached the configured limit), or false if no merge is
- * needed yet.  The caller can use this return value to decide when to trigger a
- * merge of the retention data into the main RRD files.
- */
-bool retention_manager::write_status(uint64_t index_id,
-                                     uint64_t time,
-                                     uint32_t status,
-                                     uint32_t step) {
-  if (_config.status_dir.empty())
-    return false;
-
-  status_retention_state& state = _get_or_create_status(index_id);
-
-  absl::MutexLock lk(&state.mutex);
-  state.step = step;
-  state.last_retention_time = time;
-  state.last_activity_time = static_cast<uint64_t>(std::time(nullptr));
-  // Initialise partial-merge timestamp on the very first write (Step 3.3).
-  if (state.last_partial_merge_ts == 0)
-    state.last_partial_merge_ts = time;
-
-  auto* pt = state.pending.add_points();
-  pt->set_time(time);
-  pt->set_status(status);
-
-  return _check_and_rotate(state);
-}
-
-// ---------------------------------------------------------------------------
-// Reading helpers
-// ---------------------------------------------------------------------------
-
-namespace {
-
-/**
- * @brief Read the entire content of a file into a string.
- */
-std::string read_file_content(const fs::path& p,
-                              std::shared_ptr<spdlog::logger> logger) {
-  std::FILE* f = std::fopen(p.c_str(), "re");
-  if (!f) {
-    SPDLOG_LOGGER_WARN(logger, "retention: cannot open '{}': {}", p.string(),
-                       strerror(errno));
+std::list<std::shared_ptr<io::data>> retention_manager::get_pending_metric(
+    uint64_t metric_id) {
+  absl::MutexLock l(&_data_m);
+  auto exist = _pending_metrics.find(metric_id);
+  if (exist == _pending_metrics.end()) {
     return {};
   }
-  std::fseek(f, 0, SEEK_END);
-  const long size = std::ftell(f);
-  std::rewind(f);
-  std::string data;
-  if (size > 0) {
-    data.resize(static_cast<size_t>(size));
-    std::fread(data.data(), 1, static_cast<size_t>(size), f);
-  }
-  std::fclose(f);
-  return data;
-}
-
-}  // namespace
-
-std::vector<std::pair<uint64_t, double>> retention_manager::_read_metric_points(
-    const std::vector<fs::path>& files,
-    const fs::path& current,
-    std::shared_ptr<spdlog::logger> logger) {
-  std::vector<std::pair<uint64_t, double>> result;
-
-  auto read_file = [&](const fs::path& p) {
-    const std::string data = read_file_content(p, logger);
-    if (data.empty())
-      return;
-    MetricRetentionBatch batch;
-    if (!batch.ParseFromString(data)) {
-      SPDLOG_LOGGER_WARN(logger, "retention: cannot parse batch from '{}'",
-                         p.string());
-      return;
-    }
-    for (const auto& pt : batch.points())
-      result.emplace_back(pt.time(), pt.value());
-  };
-
-  for (const auto& f : files)
-    read_file(f);
-  if (!current.empty() && fs::exists(current))
-    read_file(current);
-  return result;
-}
-
-std::vector<std::pair<uint64_t, uint32_t>>
-retention_manager::_read_status_points(const std::vector<fs::path>& files,
-                                       const fs::path& current,
-                                       std::shared_ptr<spdlog::logger> logger) {
-  std::vector<std::pair<uint64_t, uint32_t>> result;
-
-  auto read_file = [&](const fs::path& p) {
-    const std::string data = read_file_content(p, logger);
-    if (data.empty())
-      return;
-    StatusRetentionBatch batch;
-    if (!batch.ParseFromString(data)) {
-      SPDLOG_LOGGER_WARN(logger, "retention: cannot parse batch from '{}'",
-                         p.string());
-      return;
-    }
-    for (const auto& pt : batch.points())
-      result.emplace_back(pt.time(), pt.status());
-  };
-
-  for (const auto& f : files)
-    read_file(f);
-  if (!current.empty() && fs::exists(current))
-    read_file(current);
-  return result;
+  return std::move(_pending_metrics.extract(exist).mapped());
 }
 
 /**
- * @brief Get all data points for a given metric ID from the rotated files and
- * current file, and combine them with any pending points in memory.  The caller
- * should hold the _metrics_m when calling this function to ensure thread
- * safety.  The returned vector contains pairs of (time, value) for all points
- * associated with the metric ID, including those from on-disk files and the
- * in-memory batch.  This function is typically called during a merge operation
- * to retrieve all relevant data points for merging into the main RRD files.
+ * @brief Same as get_pending_metric() for a status.
  *
- * @param metric_id The identifier of the metric for which to retrieve the data
- * points.  The function will look up the retention state for this metric ID,
- * read all points from the associated rotated files and current file, and
- * combine them with any pending points in memory before returning the complete
- * list of points.
+ * @param index_id The index identifier.
  *
- * @return A vector of pairs, where each pair consists of a timestamp (uint64_t)
- * and a metric value (double).  This vector includes all points for the
- * specified metric ID from both on-disk files and the in-memory pending batch.
- * If the metric ID does not exist in the retention manager, an empty vector is
- * returned.
+ * @return The events to replay, empty if there is none.
  */
-std::vector<std::pair<uint64_t, double>>
-retention_manager::get_metric_merge_points(uint64_t metric_id) {
-  absl::MutexLock lk(&_metrics_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
+std::list<std::shared_ptr<io::data>> retention_manager::get_pending_status(
+    uint64_t index_id) {
+  absl::MutexLock l(&_data_m);
+  auto exist = _pending_statuses.find(index_id);
+  if (exist == _pending_statuses.end()) {
     return {};
-  metric_retention_state& state = *it->second;
-  absl::MutexLock slk(&state.mutex);
-  auto result =
-      _read_metric_points(state.rotated_files, state.current_path, _logger);
-  for (const auto& pt : state.pending.points())
-    result.emplace_back(pt.time(), pt.value());
-  return result;
-}
-
-/**
- * @brief Get all data points for a given status index ID from the rotated files
- * and current file, and combine them with any pending points in memory.  The
- * caller should hold the _statuses_m when calling this function to ensure
- * thread safety.  The returned vector contains pairs of (time, status) for all
- * points associated with the index ID, including those from on-disk files and
- * the in-memory batch.  This function is typically called during a merge
- * operation to retrieve all relevant data points for merging into the main RRD
- * files.
- *
- * @param index_id The identifier of the status index for which to retrieve the
- * data points.  The function will look up the retention state for this index
- * ID, read all points from the associated rotated files and current file, and
- * combine them with any pending points in memory before returning the complete
- * list of points.
- *
- * @return A vector of pairs, where each pair consists of a timestamp (uint64_t)
- * and a status value (uint32_t).  This vector includes all points for the
- * specified index ID from both on-disk files and the in-memory pending batch.
- * If the index ID does not exist in the retention manager, an empty vector is
- * returned.
- */
-std::vector<std::pair<uint64_t, uint32_t>>
-retention_manager::get_status_merge_points(uint64_t index_id) {
-  absl::MutexLock lk(&_statuses_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return {};
-  status_retention_state& state = *it->second;
-  absl::MutexLock slk(&state.mutex);
-  auto result =
-      _read_status_points(state.rotated_files, state.current_path, _logger);
-  for (const auto& pt : state.pending.points())
-    result.emplace_back(pt.time(), pt.status());
-  return result;
-}
-
-/**
- * @brief Clear all rotated files, the current file, and the pending batch for a
- * given metric ID after a successful merge.  This function is called after the
- * retention data for a metric has been successfully merged into the main RRD
- * files, and it resets the retention state for that metric ID by deleting all
- * associated files and clearing the in-memory batch.  The caller should hold
- * the _metrics_m when calling this function to ensure thread safety, and it
- * should also hold the mutex for the specific metric state while calling this
- * function to avoid concurrent modifications.  If the metric ID does not exist
- * in the retention manager, this function does nothing.
- *
- * @param metric_id The identifier of the metric for which to clear the
- * retention state after a merge.  The function will look up the retention state
- * for this metric ID, delete all associated rotated files and the current file
- * from disk, and clear the in-memory pending batch.  If the metric ID does not
- * exist, the function will simply return without performing any actions.
- */
-void retention_manager::metric_merge_done(uint64_t metric_id) {
-  absl::MutexLock lk(&_metrics_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
-    return;
-  absl::MutexLock slk(&it->second->mutex);
-  // Advance the partial-merge cursor so the next write does not immediately
-  // re-trigger.  last_retention_time is not cleared by _clear_merge.
-  it->second->last_partial_merge_ts = it->second->last_retention_time;
-  _clear_merge(*it->second);
-}
-
-/**
- * @brief Clear all rotated files, the current file, and the pending batch for a
- * given status index ID after a successful merge.  This function is called
- * after the retention data for a status index has been successfully merged into
- * the main RRD files, and it resets the retention state for that index ID by
- * deleting all associated files and clearing the in-memory batch.  The caller
- * should hold the _statuses_m when calling this function to ensure thread
- * safety, and it should also hold the mutex for the specific status state while
- * calling this function to avoid concurrent modifications.  If the index ID
- * does not exist in the retention manager, this function does nothing.
- *
- * @param index_id The identifier of the status index for which to clear the
- * retention state after a merge.  The function will look up the retention state
- * for this index ID, delete all associated rotated files and the current file
- * from disk, and clear the in-memory pending batch.  If the index ID does not
- * exist, the function will simply return without performing any actions.
- */
-void retention_manager::status_merge_done(uint64_t index_id) {
-  absl::MutexLock lk(&_statuses_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return;
-  absl::MutexLock slk(&it->second->mutex);
-  it->second->last_partial_merge_ts = it->second->last_retention_time;
-  _clear_merge(*it->second);
-}
-
-/**
- * @brief Remove all files and in-memory state for a given metric ID when the
- * metric is removed.  This function is called when a metric is removed from the
- * system, and it cleans up all associated retention data for that metric ID by
- * deleting all rotated files and the current file from disk, and removing the
- * in-memory state from the retention manager.  The caller should hold the
- * _metrics_m when calling this function to ensure thread safety, and it
- * should also hold the mutex for the specific metric state while calling this
- * function to avoid concurrent modifications.  If the metric ID does not exist
- * in the retention manager, this function does nothing.
- *
- * @param metric_id The identifier of the metric for which to remove all
- * retention data.  The function will look up the retention state for this
- * metric ID, delete all associated rotated files and the current file from
- * disk, clear the in-memory pending batch, and remove the state from the
- * retention manager's map.  If the metric ID does not exist, the function will
- * simply return without performing any actions.
- */
-void retention_manager::remove_metric(uint64_t metric_id) {
-  absl::MutexLock lk(&_metrics_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
-    return;
-  {
-    absl::MutexLock slk(&it->second->mutex);
-    _remove_state(*it->second);
   }
-  _metrics.erase(it);
+  return std::move(_pending_statuses.extract(exist).mapped());
 }
-
-/**
- * @brief Remove all files and in-memory state for a given status index ID when
- * the status is removed.  This function is called when a status index is
- * removed from the system, and it cleans up all associated retention data for
- * that index ID by deleting all rotated files and the current file from disk,
- * and removing the in-memory state from the retention manager.  The caller
- * should hold the _statuses_m when calling this function to ensure thread
- * safety, and it should also hold the mutex for the specific status state while
- * calling this function to avoid concurrent modifications.  If the index ID
- * does not exist in the retention manager, this function does nothing.
- *
- * @param index_id The identifier of the status index for which to remove all
- * retention data.  The function will look up the retention state for this index
- * ID, delete all associated rotated files and the current file from disk, clear
- * the in-memory pending batch, and remove the state from the retention
- * manager's map.  If the index ID does not exist, the function will simply
- * return without performing any actions.
- */
-void retention_manager::remove_status(uint64_t index_id) {
-  absl::MutexLock lk(&_statuses_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return;
-  {
-    absl::MutexLock slk(&it->second->mutex);
-    _remove_state(*it->second);
-  }
-  _statuses.erase(it);
-}
-
-/**
- * @brief Scan the retention state maps for metrics and statuses to identify any
- * "orphan" entries that have been inactive for longer than the configured
- * orphan_interval.  For each orphan entry found, all associated files (rotated
- * and current) are deleted from disk, the in-memory pending batch is cleared,
- * and the state is removed from the retention manager's map.  This function is
- * typically called periodically (e.g., by a timer) to clean up retention data
- * for metrics and statuses that are no longer active and have not had any
- * recent retention activity.  The now_seconds parameter is used to determine
- * the inactivity duration for each entry by comparing it to the
- * last_activity_time stored in the retention state.  The caller should ensure
- * that this function is called with appropriate synchronization to avoid
- * concurrent modifications to the retention state maps while it is running.
- *
- * @param now_seconds The current time in seconds since the Unix epoch, used to
- * calculate the inactivity duration for each retention state entry.  Entries
- * that have a last_activity_time of 0 or have been inactive for less than the
- * configured orphan_interval will not be considered orphans and will not be
- * cleaned up.  Only entries that have been inactive for at least
- * orphan_interval seconds will be removed as orphans.
- */
-
-/**
- * @brief Check whether the junction condition is met for a metric.
- *
- * Acquires a shared lock on the map, then a shared lock on the per-metric
- * state, and evaluates:
- *   last_retention_time + step >= earliest_current_time
- *
- * Both locks are shared so this method has negligible contention with the
- * write path.
- */
-bool retention_manager::check_metric_junction(uint64_t metric_id,
-                                              uint64_t earliest_current_time) {
-  if (earliest_current_time == 0)
-    return false;
-  absl::ReaderMutexLock map_lk(&_metrics_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
-    return false;
-  auto& state = *it->second;
-  absl::ReaderMutexLock state_lk(&state.mutex);
-  return state.last_retention_time != 0 &&
-         state.last_retention_time + state.step >= earliest_current_time;
-}
-
-/**
- * @brief Check whether the junction condition is met for a status index.
- */
-bool retention_manager::check_status_junction(uint64_t index_id,
-                                              uint64_t earliest_current_time) {
-  if (earliest_current_time == 0)
-    return false;
-  absl::ReaderMutexLock map_lk(&_statuses_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return false;
-  auto& state = *it->second;
-  absl::ReaderMutexLock state_lk(&state.mutex);
-  return state.last_retention_time != 0 &&
-         state.last_retention_time + state.step >= earliest_current_time;
-}
-
-std::vector<uint64_t> retention_manager::metric_ids_with_data() {
-  absl::ReaderMutexLock lk(&_metrics_m);
-  std::vector<uint64_t> result;
-  result.reserve(_metrics.size());
-  for (const auto& [id, state_ptr] : _metrics) {
-    absl::ReaderMutexLock slk(&state_ptr->mutex);
-    if (!state_ptr->rotated_files.empty() ||
-        !state_ptr->pending.points().empty() ||
-        (!state_ptr->current_path.empty() &&
-         std::filesystem::exists(state_ptr->current_path)))
-      result.push_back(id);
-  }
-  return result;
-}
-
-std::vector<uint64_t> retention_manager::status_ids_with_data() {
-  absl::ReaderMutexLock lk(&_statuses_m);
-  std::vector<uint64_t> result;
-  result.reserve(_statuses.size());
-  for (const auto& [id, state_ptr] : _statuses) {
-    absl::ReaderMutexLock slk(&state_ptr->mutex);
-    if (!state_ptr->rotated_files.empty() ||
-        !state_ptr->pending.points().empty() ||
-        (!state_ptr->current_path.empty() &&
-         std::filesystem::exists(state_ptr->current_path)))
-      result.push_back(id);
-  }
-  return result;
-}
-
-void retention_manager::cleanup_orphans(uint64_t now_seconds) {
-  auto cleanup_map = [&](absl::Mutex& map_mutex, auto& map,
-                         const char* kind) ABSL_NO_THREAD_SAFETY_ANALYSIS {
-    absl::MutexLock lk(&map_mutex);
-    absl::erase_if(map, [&](auto& kv) {
-      auto& [id, state_ptr] = kv;
-      absl::MutexLock slk(&state_ptr->mutex);
-      if (state_ptr->last_activity_time == 0 ||
-          now_seconds - state_ptr->last_activity_time < _config.orphan_interval)
-        return false;
-      SPDLOG_LOGGER_INFO(_logger,
-                         "retention: cleaning up orphan {} id={} "
-                         "(inactive for {}s)",
-                         kind, id, now_seconds - state_ptr->last_activity_time);
-      _remove_state(*state_ptr);
-      return true;
-    });
-  };
-
-  cleanup_map(_metrics_m, _metrics, "metric");
-  cleanup_map(_statuses_m, _statuses, "status");
-}
-
-// ---------------------------------------------------------------------------
-// Step 3.2 / 3.3 helpers
-// ---------------------------------------------------------------------------
-
-/**
- * @brief Return the @c last_retention_time for a metric (0 if unknown).
- *
- * Called from the stream write path to read the previous timestamp before
- * appending a new point, enabling gap detection (Step 3.2).
- */
-uint64_t retention_manager::last_metric_time(uint64_t metric_id) {
-  absl::ReaderMutexLock lk(&_metrics_m);
-  auto it = _metrics.find(metric_id);
-  if (it == _metrics.end())
-    return 0;
-  metric_retention_state& s = *it->second;
-  absl::ReaderMutexLock slk(&s.mutex);
-  return s.last_retention_time;
-}
-
-/**
- * @brief Return the @c last_retention_time for a status index (0 if unknown).
- */
-uint64_t retention_manager::last_status_time(uint64_t index_id) {
-  absl::ReaderMutexLock lk(&_statuses_m);
-  auto it = _statuses.find(index_id);
-  if (it == _statuses.end())
-    return 0;
-  status_retention_state& s = *it->second;
-  absl::ReaderMutexLock slk(&s.mutex);
-  return s.last_retention_time;
-}
-
-/**
- * @brief Check if a partial merge should be triggered for a metric or a status
- * index (Step 3.3).
- *
- * Shared implementation behind check_metric_partial_merge() and
- * check_status_partial_merge(). Returns true when the buffer has accumulated at
- * least @c partial_merge_interval seconds of data since the previous (partial)
- * merge:
- *   last_retention_time - last_partial_merge_ts >= partial_merge_interval
- *
- * Returns false when:
- *   - the id is unknown to @a state,
- *   - @c last_partial_merge_ts or @c last_retention_time is still 0, i.e.
- *     nothing has been merged or buffered yet — this avoids a spurious trigger
- *     on the very first write,
- *   - @c last_retention_time is older than @c last_partial_merge_ts, which
- *     guards the unsigned subtraction against wrapping.
- *
- * @tparam StateT Map type holding the retention states (@c _metrics or
- *                @c _statuses).
- *
- * @param metric_id_or_index_id Metric id or status index id to look up.
- * @param state The matching state map. The caller must already hold its mutex
- *              (@c _metrics_m / @c _statuses_m), at least in read mode; the
- *              per-state mutex is taken here.
- *
- * @return true if a partial merge should be triggered now.
- */
-template <typename StateT>
-bool retention_manager::_check_partial_merge(uint64_t metric_id_or_index_id,
-                                             const StateT& state) const {
-  auto it = state.find(metric_id_or_index_id);
-  if (it == state.end())
-    return false;
-  const auto& s = *it->second;
-  absl::ReaderMutexLock slk(&s.mutex);
-  if (s.last_partial_merge_ts == 0 || s.last_retention_time == 0)
-    return false;
-  return s.last_retention_time >= s.last_partial_merge_ts &&
-         s.last_retention_time - s.last_partial_merge_ts >=
-             _config.partial_merge_interval;
-}
-
-template void retention_manager::_flush_to_rotated(metric_retention_state&);
-template void retention_manager::_flush_to_rotated(status_retention_state&);
-
-template void retention_manager::_flush_pending(metric_retention_state&);
-template void retention_manager::_flush_pending(status_retention_state&);
-
-template bool retention_manager::_check_and_rotate(metric_retention_state&);
-template bool retention_manager::_check_and_rotate(status_retention_state&);
-
-template void retention_manager::_clear_merge(metric_retention_state&);
-template void retention_manager::_clear_merge(status_retention_state&);
-
-template void retention_manager::_remove_state(metric_retention_state&);
-template void retention_manager::_remove_state(status_retention_state&);
-
-template bool retention_manager::_check_partial_merge(uint64_t,
-                                                      const metric_cont&) const;
-template bool retention_manager::_check_partial_merge(uint64_t,
-                                                      const status_cont&) const;
