@@ -5,8 +5,10 @@
 #   db               MariaDB (Centreon databases and the gorgone-server store)
 #   gorgone-server   the Rust control plane, alone in a distroless image
 #   web-install      sets the Centreon databases up once, then exits
-#   web              centreon-web served by FrankenPHP: a single static
-#                    binary in a scratch image, no shell, no package manager
+#   web, web-b       two replicas of centreon-web served by FrankenPHP: a
+#                    single static binary in a scratch image, no shell, no
+#                    package manager; same sessions and same encryption key
+#   valkey           the PHP session store the web replicas share
 #   web-cron         the centreon-web scheduled tasks, same image
 #   victoria-metrics the time series store graphs are read from
 #   broker           the central broker (cbd): SQL and VictoriaMetrics outputs;
@@ -23,9 +25,9 @@
 #   deploy/centreon/verify.sh
 #   docker compose -f deploy/centreon/compose.yaml down -v
 #
-# Web UI: http://localhost:4000 (admin / Centreon!2021, the test image
-# defaults). The engine and broker images are built from this branch:
-# engine/README.md and broker/README.md.
+# Web UI: http://localhost:4000 and http://localhost:4001 (admin /
+# Centreon!2021, the test image defaults). The engine and broker images are
+# built from this branch: engine/README.md and broker/README.md.
 
 name: gorgone-rs-centreon
 
@@ -78,6 +80,28 @@ x-web: &web
     VICTORIA_METRICS_URL: http://victoria-metrics:8428
     # The engines schedule recurring downtimes; the web cron no longer does.
     CENTREON_FEATURE_FLAGS: engine_recurring_downtimes
+    # Sessions opened on one replica are valid on the other.
+    SESSION_REDIS_URL: tcp://valkey:6379
+    # Credentials encryption key, the same in every replica and pushed to the
+    # pollers. Bench only, public on purpose: low-entropy base64 values in the
+    # right format. A real platform passes a secret here or in a file
+    # (ENGINE_CONTEXT_PATH).
+    CENTREON_ENGINE_CONTEXT: '{"app_secret":"YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=","salt":"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nz"}'
+
+x-web-serve: &web-serve
+  depends_on:
+    web-install:
+      condition: service_completed_successfully
+    gorgone-server:
+      condition: service_started
+    valkey:
+      condition: service_healthy
+  healthcheck:
+    # No shell nor curl in the image: PHP checks the API itself.
+    test: ["CMD", "/usr/local/bin/frankenphp", "php-cli", "/usr/local/lib/centreon-container/healthcheck.php"]
+    interval: 2s
+    retries: 150
+    timeout: 5s
 
 services:
   db:
@@ -129,20 +153,26 @@ services:
       db:
         condition: service_healthy
 
-  web:
-    <<: *web
-    ports: ["127.0.0.1:4000:80"]
-    depends_on:
-      web-install:
-        condition: service_completed_successfully
-      gorgone-server:
-        condition: service_started
+  # Valkey, the BSD-licensed fork of Redis (same protocol, same PHP
+  # extension). Sessions only: nothing is persisted, no volume.
+  valkey:
+    image: ${VALKEY_IMAGE:-valkey/valkey:8.1-alpine}
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    # The image declares a /data volume: kept in memory instead.
+    tmpfs: [/data]
     healthcheck:
-      # No shell nor curl in the image: PHP checks the API itself.
-      test: ["CMD", "/usr/local/bin/frankenphp", "php-cli", "/usr/local/lib/centreon-container/healthcheck.php"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 2s
-      retries: 150
-      timeout: 5s
+      retries: 30
+
+  web:
+    <<: [*web, *web-serve]
+    ports: ["127.0.0.1:4000:80"]
+
+  # A second replica, as behind a load balancer.
+  web-b:
+    <<: [*web, *web-serve]
+    ports: ["127.0.0.1:4001:80"]
 
   web-cron:
     <<: *web

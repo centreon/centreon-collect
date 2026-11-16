@@ -58,3 +58,10 @@ configuration target like the others, `engine_context`: with the
 `gorgone_api_commands` flag on, every configuration push of a poller sends it
 first. Each agent maps that target to its engine directory, and the central
 poller's agent also to its broker container.
+
+centreon-web does not create the key when it runs as several replicas: each
+replica would encrypt with its own. The key comes from outside, identical in
+every web container: `CENTREON_ENGINE_CONTEXT` (the file content, from a
+secret) or `ENGINE_CONTEXT_PATH` (a mounted secret file). The replicas also
+share their PHP sessions through a Redis-protocol store
+(`SESSION_REDIS_URL`), never through a shared directory.

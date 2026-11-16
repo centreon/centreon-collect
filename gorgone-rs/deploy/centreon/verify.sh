@@ -9,6 +9,8 @@ COMPOSE=(docker compose -f "$(dirname "$0")/compose.yaml")
 GORGONE_URL=http://127.0.0.1:8085
 GORGONE_AUTH=centreon-web:bench-only
 WEB_URL=http://127.0.0.1:4000/centreon
+# Second replica of centreon-web, same database, sessions and key.
+WEB_B_URL=http://127.0.0.1:4001/centreon
 failures=0
 
 check() {
@@ -276,6 +278,54 @@ web_cron_leaves_recurring_downtimes_to_engine() {
     grep -q 'scheduled by Centreon Engine'
 }
 
+# check runs these in a condition, where errexit does not apply: each step
+# returns on failure.
+#
+# A session opened on one replica is valid on the other: the login sets the
+# PHP session cookie on web, a legacy page answers with it on web-b (without
+# it, the login page). The session itself is in Valkey.
+session_shared_by_replicas() {
+  local jar page
+  jar=$(mktemp)
+  curl -s -f -c "${jar}" -o /dev/null -X POST -H 'Content-Type: application/json' \
+    -d '{"login":"admin","password":"Centreon!2021"}' \
+    "${WEB_URL}/authentication/providers/configurations/local"
+  page=$(curl -s -f -b "${jar}" "${WEB_B_URL}/main.get.php?p=60101")
+  rm -f "${jar}"
+  grep -q 'p=60101&host_id=14&o=u' <<< "${page}" || return 1
+  "${COMPOSE[@]}" exec -T valkey valkey-cli --scan --pattern 'PHPREDIS_SESSION:*' | grep -q .
+}
+
+# Key file of a web container (no shell: copied out as a tar stream).
+web_key() {
+  docker cp "$("${COMPOSE[@]}" ps -q "$1"):/etc/centreon/engine-context.json" - | tar -xOf -
+}
+
+# Both replicas encrypt with the same key, and a configuration pushed through
+# either of them gives the pollers that key.
+key_shared_by_replicas() {
+  local key node_key
+  key=$(web_key web)
+  [[ -n "${key}" && "$(web_key web-b)" == "${key}" ]] || return 1
+  local WEB_URL=${WEB_B_URL}
+  clapi POLLERGENERATE engine > /dev/null
+  clapi CFGMOVE engine | grep -q 'engine: done' || return 1
+  node_key=$("${COMPOSE[@]}" exec -T engine cat /etc/centreon-engine/engine-context.json)
+  [[ "${node_key}" == "${key}" ]]
+}
+
+# The key reaches no log of the web containers.
+key_not_logged() {
+  local values logs value
+  values=$(web_key web | python3 -I -c 'import json,sys; d=json.load(sys.stdin); print(d["app_secret"]); print(d["salt"])')
+  logs=$("${COMPOSE[@]}" logs web web-b web-cron web-install 2>&1)
+  [[ -n "${logs}" ]] || return 1
+  while read -r value; do
+    [[ -n "${value}" ]] || return 1
+    ! grep -qF -- "${value}" <<< "${logs}" || return 1
+  done <<< "${values}"
+}
+
 no_centcore_file() {
   local files
   files=$(web_files_matching '^var/lib/centreon/centcore(\.cmd$|/.+[^/]$)')
@@ -306,6 +356,9 @@ check "a recurring downtime is scheduled by the engine" recurring_downtime_sched
 check "a cancelled recurring downtime is not scheduled again" cancelled_recurring_downtime_stays_cancelled
 check "the web cron leaves recurring downtimes to the engine" web_cron_leaves_recurring_downtimes_to_engine
 check "centreon-web wrote no centcore command file" no_centcore_file
+check "a session opened on one web replica is valid on the other" session_shared_by_replicas
+check "both web replicas push the same encryption key" key_shared_by_replicas
+check "the encryption key is in no log of the web containers" key_not_logged
 
 echo
 echo "Jobs handled by gorgone-server:"

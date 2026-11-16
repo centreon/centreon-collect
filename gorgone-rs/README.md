@@ -65,22 +65,26 @@ alone in a slim image: no centreon-collect, Gorgone, plugin, Perl, Python or
 `rrdtool` next to it. Configuration, keys and commands go over the network
 (rules: [docs/containers-contract.md](docs/containers-contract.md)).
 
-| Container          | Content                                                                           |
-| ------------------ | --------------------------------------------------------------------------------- |
-| `gorgone-server`   | the control plane alone, store in MariaDB                                         |
-| `web-install`      | sets the Centreon databases up once, then exits                                   |
-| `web`              | centreon-web served by FrankenPHP (scratch image, no shell), calling Gorgone      |
-| `web-cron`         | the centreon-web scheduled tasks, same image                                      |
-| `victoria-metrics` | the time series store; centreon-web reads its graphs from it                      |
-| `broker`           | the central broker; receives its configuration and key through its control API    |
-| `central-engine`   | the engine of the "Central" poller and its `gorgone-agent`, in the same container |
-| `engine`           | a second container-only poller, same image; registers and deploys itself          |
-| `poller`           | the Centreon poller test image, driven by `gorgone-agent`                         |
+| Container          | Content                                                                                                               |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `gorgone-server`   | the control plane alone, store in MariaDB                                                                             |
+| `web-install`      | sets the Centreon databases up once, then exits                                                                       |
+| `web`, `web-b`     | two centreon-web replicas served by FrankenPHP (scratch image, no shell), calling Gorgone; same sessions and same key |
+| `valkey`           | the PHP session store of the web replicas, in memory, no volume                                                       |
+| `web-cron`         | the centreon-web scheduled tasks, same image                                                                          |
+| `victoria-metrics` | the time series store; centreon-web reads its graphs from it                                                          |
+| `broker`           | the central broker; receives its configuration and key through its control API                                        |
+| `central-engine`   | the engine of the "Central" poller and its `gorgone-agent`, in the same container                                     |
+| `engine`           | a second container-only poller, same image; registers and deploys itself                                              |
+| `poller`           | the Centreon poller test image, driven by `gorgone-agent`                                                             |
 
 Inside an engine container the agent drives the engine over its gRPC API on a
 local Unix socket. The Central agent pushes the broker configuration and the
 encryption key to the broker container and reloads it through its control API.
-centreon-web pushes the key (`engine_context`) before every configuration.
+centreon-web pushes the key (`engine_context`) before every configuration;
+both replicas get the same key from their environment
+(`CENTREON_ENGINE_CONTEXT`, a bench-only value) and their sessions from Valkey
+(`SESSION_REDIS_URL`).
 Only VictoriaMetrics keeps a volume, its own; `central-setup` reads one SQL
 file that points the broker flows at the broker container and at
 VictoriaMetrics.
@@ -106,9 +110,11 @@ engine, that the engine API is not reachable over the network, that a reload
 asked on top of a failed configuration push is not sent, that a configuration
 is verified by the poller's own engine and refused when invalid, and that
 performance data goes engine, broker, VictoriaMetrics and back to an API v2
-graph, with no RRD file anywhere. The data model is in
+graph, with no RRD file anywhere, that a session opened on `web` is valid on
+`web-b`, that both replicas push the same key and that the key is in no log of
+the web containers. The data model is in
 [docs/victoria-metrics-contract.md](docs/victoria-metrics-contract.md). The web
-UI is on <http://localhost:4000>.
+UI is on <http://localhost:4000> and <http://localhost:4001>.
 
 On the `poller` test image the broker module is reloaded with the engine, so
 the bench maps "broker reload" to an engine reload there. Targets may share a
