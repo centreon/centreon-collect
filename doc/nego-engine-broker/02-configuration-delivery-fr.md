@@ -11,6 +11,8 @@
   * [La livraison](#la-livraison)
   * [Le tour de configuration](#le-tour-de-configuration)
     * [Un export qui arrive pendant un tour ouvert](#un-export-qui-arrive-pendant-un-tour-ouvert)
+    * [Un tour interrompu par l'arrêt de `Broker`](#un-tour-interrompu-par-larrêt-de-broker)
+    * [Limite connue : un objet déplacé vers un poller absent](#limite-connue--un-objet-déplacé-vers-un-poller-absent)
 * [Quelques points plus techniques](#quelques-points-plus-techniques)
   * [Surveillance du répertoire de cache](#surveillance-du-répertoire-de-cache)
     * [Les rouages](#les-rouages)
@@ -205,7 +207,7 @@ Quatre règles tiennent ce mécanisme :
 * **Un tour ne se ferme pas tant qu'un poller attend sa configuration.** La base recevrait sinon l'export poller par poller, et un objet déplacé entre deux pollers manquerait ou apparaîtrait en double le temps d'un tour.
 * **« Attend sa configuration » se teste par `available_conf != engine_conf`**, et non par `available_conf` non vide : ce champ n'est jamais vidé, et tous les pollers paraîtraient en attente pour toujours.
 * **Préparer une version déjà remise ne sort pas le poller du tour.** PHP peut annoncer deux fois le même export. Remettre le poller à `out` pour la même version perdrait son acquittement : `try_close_conf_round()` ne le compterait plus, et le tour ne se fermerait jamais. `_prepare_diff_for_poller()` ne touche donc à `conf_round` que si la version change.
-* **Un poller non connecté n'entre pas dans le tour.** Rien n'est préparé pour lui, il n'a donc rien à attendre. Un `1/1 acknowledged` sur une plateforme dont deux pollers sont éteints est normal, la ligne de bilan du cycle nommant les absents. Il en va de même d'une entrée connue du seul `topology.cache` (voir [Un poller derrière un relais se comporte comme un poller direct](06-remote-servers-fr.md#un-poller-derrière-un-relais-se-comporte-comme-un-poller-direct)).
+* **Un poller non connecté n'entre pas dans le tour.** Rien n'est préparé pour lui, il n'a donc rien à attendre. Un objet déplacé vers lui est alors vu comme supprimé jusqu'à sa connexion (voir [Limite connue : un objet déplacé vers un poller absent](#limite-connue--un-objet-déplacé-vers-un-poller-absent)). Un `1/1 acknowledged` sur une plateforme dont deux pollers sont éteints est normal, la ligne de bilan du cycle nommant les absents. Il en va de même d'une entrée connue du seul `topology.cache` (voir [Un poller derrière un relais se comporte comme un poller direct](06-remote-servers-fr.md#un-poller-derrière-un-relais-se-comporte-comme-un-poller-direct)).
 
 #### Un export qui arrive pendant un tour ouvert
 
@@ -262,6 +264,23 @@ The acknowledged difference(s) of poller(s) 1 did not reach the database before 
 ```
 
 Dans le second cas, si le poller attendu ne revient jamais, les différences attendent la prochaine fermeture de tour, celle d'un nouvel export ; `RemovePoller` supprime son `new-X.prot`, mais ne ferme pas le tour à lui seul. Le test robot `BECSS5` joue le premier cas : `Engine` gelé, les fichiers renommés comme le fait un acquittement, et la base vérifiée après le redémarrage de `Broker`, sans nouvel export.
+
+#### Limite connue : un objet déplacé vers un poller absent
+
+Le diff global ne réconcilie un déplacement que si les deux pollers concernés sont dans le même tour. Un poller non connecté n'y est pas (voir plus haut), et un poller qui se déconnecte en plein tour en sort aussi : `poller_conf::on_disconnected()` le remet à zéro, et le tour se ferme sans lui.
+
+Prenons les pollers 1 et 2 connectés, le poller 3 arrêté, et un export qui déplace l'hôte H du poller 1 vers le poller 3 :
+
+1. le cycle écrit `new-1.prot`, `new-2.prot` et `new-3.prot`, mais ne prépare de différence que pour 1 et 2 ;
+2. 1 et 2 acquittent, le tour se ferme : le diff global contient « H retiré » et rien d'autre pour H ;
+3. `unified_sql` passe H, ses services et leurs lignes de `resources` à `enabled = 0` ; le cache retire H avec l'état d'exécution qu'il portait (acquittement, états de notification…) ; `Engine` 1 le supprime avec ses downtimes et commentaires ;
+4. quand le poller 3 se connecte, il reçoit sa différence, acquitte, et un nouveau tour, pour lui seul, réactive H sous l'instance 3. H repart sans l'état que le cache avait perdu.
+
+Si le poller 3 ne revient jamais, H reste désactivé. Avec les trois pollers connectés, le même export donne un déplacement, sans désactivation.
+
+S'y ajoute une asymétrie avec le chargement : au démarrage de `Broker`, un poller absent qui a un `new-X.prot` retient le tour (voir [Un tour interrompu par l'arrêt de `Broker`](#un-tour-interrompu-par-larrêt-de-broker)), alors qu'à l'exécution il n'y entre pas. Le résultat d'un même export dépend donc aussi de ce que `Broker` ait redémarré ou non entre-temps.
+
+Cette limite est connue et assumée pour l'instant : la base reste cohérente, et le défaut ne touche que les déplacements vers un poller absent. La piste de correction serait de compter un poller absent comme acquitté pour la base : sa différence, calculable depuis `X.prot` et `new-X.prot`, entrerait dans le diff global. Il faudrait alors soit faire de `new-X.prot` le `X.prot` tout de suite et rattraper `Engine` par une configuration complète à sa connexion, soit garder `new-X.prot` pour `Engine` en notant que la base l'a déjà reçu ; et décider quoi faire si le poller refuse ensuite cette configuration que la base montre déjà. Cela touche le cœur du tour, et n'a pas été retenu.
 
 Toutes les opérations sur les fichiers d'un poller se font sous un même verrou, `_conf_handover_m` : le stockage et la préparation par le cycle, l'acquittement, la préparation à la connexion, la réponse à un relais, le retrait d'un poller et la fermeture d'un tour retrouvé au démarrage. Ce verrou ne couvre ni la lecture ni la validation des sources, qui restent la partie coûteuse du cycle.
 
