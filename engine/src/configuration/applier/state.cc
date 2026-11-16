@@ -122,7 +122,7 @@ void save_state_prot() {
         pb_indexed_config.serialize_to_ostream(&os);
         return true;
       },
-      false, ec);
+      cache_compression, ec);
   if (ec)
     config_logger->error(
         "Cannot write '{}': {}. The next start will run the previous "
