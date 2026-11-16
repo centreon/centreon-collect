@@ -568,9 +568,7 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
   char* name(my_strtok(args, ";"));
 
   host* hst{nullptr};
-  host_map::const_iterator it(host::hosts.find(name));
-  if (it != host::hosts.end())
-    hst = it->second.get();
+  hst = host::find_host(name).get();
 
   if (!hst) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown host: {}", name);
@@ -587,9 +585,7 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
   std::string name(my_strtok(args, ";"));
 
   host* hst{nullptr};
-  host_map::const_iterator it(host::hosts.find(name));
-  if (it != host::hosts.end())
-    hst = it->second.get();
+  hst = host::find_host(name).get();
 
   if (!hst) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown host: {}", name);
@@ -701,9 +697,7 @@ void processing::_redirector_servicegroup(int id,
        end2(sg_it->second->members.end());
        it2 != end2; ++it2) {
     host* hst{nullptr};
-    host_map::const_iterator found(host::hosts.find(it2->first.first));
-    if (found != host::hosts.end())
-      hst = found->second.get();
+    hst = host::find_host(it2->first.first).get();
 
     if (!hst || hst == last_host)
       continue;

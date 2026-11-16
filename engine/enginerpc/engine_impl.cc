@@ -1500,9 +1500,7 @@ grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     /* get the host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
+    temp_host = host::find_host(request->host_name());
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -1778,9 +1776,7 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     /* get the host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
+    temp_host = host::find_host(request->host_name());
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -1924,9 +1920,7 @@ grpc::Status engine_impl::ScheduleHostDowntime(
     uint64_t downtime_id = 0;
     unsigned long duration;
     /* get the host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
+    temp_host = host::find_host(request->host_name());
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -2068,9 +2062,7 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
     uint64_t downtime_id(0);
     unsigned long duration;
     /* get the host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
+    temp_host = host::find_host(request->host_name());
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -2315,10 +2307,9 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
          end(sg_it->second->members.end());
          it != end; ++it) {
       /* get the host to schedule */
-      host_map::const_iterator found(host::hosts.find(it->first.first));
-      if (found == host::hosts.end() || !found->second)
+      temp_host = host::find_host(it->first.first).get();
+      if (!temp_host)
         continue;
-      temp_host = found->second.get();
       if (last_host == temp_host)
         continue;
       /* scheduling downtime */
@@ -2448,9 +2439,7 @@ grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
     uint64_t downtime_id(0);
     unsigned long duration;
     /* get the main host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
+    temp_host = host::find_host(request->host_name());
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -2522,9 +2511,7 @@ grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
     uint64_t downtime_id(0);
     unsigned long duration;
     /* get the main host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
+    temp_host = host::find_host(request->host_name());
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -2945,9 +2932,7 @@ grpc::Status engine_impl::ScheduleHostCheck(grpc::ServerContext* context
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
     /* get the host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
+    temp_host = host::find_host(request->host_name());
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -2992,9 +2977,7 @@ grpc::Status engine_impl::ScheduleHostServiceCheck(
     std::shared_ptr<engine::host> temp_host;
 
     /* get the host */
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
+    temp_host = host::find_host(request->host_name());
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -3139,9 +3122,7 @@ grpc::Status engine_impl::DelayHostNotification(
 
     switch (request->identifier_case()) {
       case HostDelayIdentifier::kName: {
-        auto it = host::hosts.find(request->name());
-        if (it != host::hosts.end())
-          temp_host = it->second;
+        temp_host = host::find_host(request->name());
         if (temp_host == nullptr) {
           err = fmt::format("could not find host '{}'", request->name());
           return 1;
@@ -3247,9 +3228,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
     std::shared_ptr<engine::host> temp_host;
     unsigned long attr = MODATTR_NONE;
 
-    auto it = host::hosts.find(request->host_name());
-    if (it != host::hosts.end())
-      temp_host = it->second;
+    temp_host = host::find_host(request->host_name());
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -3524,9 +3503,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         request->mode() == ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD ||
         request->mode() ==
             ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD) {
-      auto it = host::hosts.find(request->host_name());
-      if (it != host::hosts.end())
-        temp_host = it->second;
+      temp_host = host::find_host(request->host_name());
       if (temp_host == nullptr) {
         err = fmt::format("could not find host '{}'", request->host_name());
         return 1;
@@ -3801,9 +3778,7 @@ grpc::Status engine_impl::ChangeHostObjectCustomVar(
     std::string varname(request->varname());
 
     std::transform(varname.begin(), varname.end(), varname.begin(), ::toupper);
-    host_map::const_iterator it_h(host::hosts.find(request->host_name()));
-    if (it_h != host::hosts.end())
-      temp_host = it_h->second.get();
+    temp_host = host::find_host(request->host_name()).get();
     if (temp_host == nullptr) {
       err = fmt::format("could not find host '{}'", request->host_name());
       return 1;
@@ -4078,9 +4053,9 @@ engine_impl::get_host(
   switch (host_info.identifier_case()) {
     case NameOrIdIdentifier::kName: {
       /* get the host */
-      auto ithostname = host::hosts.find(host_info.name());
-      if (ithostname != host::hosts.end())
-        return std::make_pair(ithostname->second, err);
+      auto hst = host::find_host(host_info.name());
+      if (hst)
+        return std::make_pair(hst, err);
       else {
         err = fmt::format("could not find host '{}'", host_info.name());
         return std::make_pair(std::shared_ptr<com::centreon::engine::host>(),
