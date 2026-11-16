@@ -7,6 +7,8 @@ set -euo pipefail
 export CENTREON_SRC="${CENTREON_SRC:-unused-by-verify}"
 COMPOSE=(docker compose -f "$(dirname "$0")/compose.yaml")
 GORGONE_URL=http://127.0.0.1:8085
+# Second gorgone-server replica, same store; the agents reach either one.
+GORGONE_B_URL=http://127.0.0.1:8086
 GORGONE_AUTH=centreon-web:bench-only
 WEB_URL=http://127.0.0.1:4000/centreon
 # Second replica of centreon-web, same database, sessions and key.
@@ -318,7 +320,7 @@ key_shared_by_replicas() {
 key_not_logged() {
   local values logs value
   values=$(web_key web | python3 -I -c 'import json,sys; d=json.load(sys.stdin); print(d["app_secret"]); print(d["salt"])')
-  logs=$("${COMPOSE[@]}" logs web web-b web-cron web-install 2>&1)
+  logs=$("${COMPOSE[@]}" logs web web-b web-cron web-cron-b web-install 2>&1)
   [[ -n "${logs}" ]] || return 1
   while read -r value; do
     [[ -n "${value}" ]] || return 1
@@ -330,6 +332,123 @@ no_centcore_file() {
   local files
   files=$(web_files_matching '^var/lib/centreon/centcore(\.cmd$|/.+[^/]$)')
   [[ -z "${files}" ]]
+}
+
+# Minutes (UTC, from the container log timestamps) of the lines of both cron
+# replicas that hold the text $1.
+cron_log_minutes() {
+  local logs
+  logs=$("${COMPOSE[@]}" logs -t --no-log-prefix web-cron web-cron-b) || return 1
+  grep -F -- "$1" <<< "${logs}" | cut -c1-16 || true
+}
+
+# With two cron replicas, each run of a job happens once: centAcl, due every
+# minute, starts exactly once in each of the last three complete minutes, and
+# the replica that loses a minute says so.
+web_cron_runs_each_job_once() {
+  local scheduled first now minute stamp count
+  # The later replica to start schedules its first run the minute after.
+  scheduled=$(cron_log_minutes 'jobs scheduled (UTC)' | sort | tail -1)
+  [[ -n "${scheduled}" ]] || return 1
+  first=$(($(date -u -d "${scheduled}" +%s) + 60))
+  now=$(date +%s)
+  # At most about 4 minutes: three complete minutes from the first one.
+  if ((now < first + 185)); then
+    sleep $((first + 185 - now))
+  fi
+  now=$(date +%s)
+  for minute in 3 2 1; do
+    stamp=$(date -u -d "@$((now / 60 * 60 - minute * 60))" +%Y-%m-%dT%H:%M)
+    count=$(cron_log_minutes 'cron: centAcl started' | grep -c -x -F "${stamp}" || true)
+    [[ "${count}" == 1 ]] || return 1
+  done
+  [[ -n "$(cron_log_minutes 'skipped: slot taken by another replica')" ]]
+}
+
+# Replica holding the session of node $1 ("" when not connected), as the
+# replica at GORGONE_URL reports it.
+session_replica() {
+  gorgone_api GET "/v1/nodes/$1" | python3 -I -c '
+import json, sys
+node = json.load(sys.stdin)
+print((node.get("session") or {}).get("replica_id", "") if node["connected"] else "")'
+}
+
+# REST URL of a replica, from its replica_id.
+replica_url() {
+  case $1 in
+    gorgone-server) echo "${GORGONE_URL}" ;;
+    gorgone-server-b) echo "${GORGONE_B_URL}" ;;
+    *) return 1 ;;
+  esac
+}
+
+other_replica() {
+  case $1 in
+    gorgone-server) echo gorgone-server-b ;;
+    gorgone-server-b) echo gorgone-server ;;
+    *) return 1 ;;
+  esac
+}
+
+# job_succeeds_via <REST URL> <node>: a cheap engine command submitted through
+# that replica ends succeeded (the host does not need to exist).
+job_succeeds_via() {
+  local GORGONE_URL=$1 node=$2 job
+  job=$(gorgone_api POST "/v1/nodes/${node}/jobs" -H 'Content-Type: application/json' \
+    -d "{\"engine_commands\":{\"commands\":[\"[$(date +%s)] SCHEDULE_FORCED_HOST_CHECK;bench-dispatch-check;$(date +%s)\"]}}" \
+    | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["id"])') || return 1
+  gorgone_api GET "/v1/jobs/${job}?wait=30" \
+    | python3 -I -c 'import json,sys; sys.exit(0 if json.load(sys.stdin)["state"] == "succeeded" else 1)'
+}
+
+# A job submitted to the replica that does not hold the session of its node
+# is handed to the one that does: for each connected node, through the other.
+jobs_cross_replicas() {
+  local nodes node replica url count=0
+  nodes=$(gorgone_api GET /v1/nodes \
+    | python3 -I -c 'import json,sys; print("\n".join(n["id"] for n in json.load(sys.stdin)["nodes"]))') || return 1
+  while read -r node; do
+    replica=$(session_replica "${node}") || return 1
+    url=$(replica_url "$(other_replica "${replica}")") || return 1
+    job_succeeds_via "${url}" "${node}" || return 1
+    count=$((count + 1))
+  done <<< "${nodes}"
+  ((count >= 3))
+}
+
+# wait_replica_ready <replica>: its REST API answers ready within 60 s.
+wait_replica_ready() {
+  local url
+  url=$(replica_url "$1") || return 1
+  for _ in $(seq 30); do
+    curl -s -f -o /dev/null "${url}/readyz" && return 0
+    sleep 2
+  done
+  return 1
+}
+
+# The replica holding the session of the engine container stops: its agent
+# reconnects to the other one through the shared name "gorgone", and a new
+# job reaches it. The stopped replica is started again whatever the outcome.
+failover_to_other_replica() {
+  local node holder survivor survivor_url replica="" result=1
+  node=$(node_of engine)
+  holder=$(session_replica "${node}")
+  survivor=$(other_replica "${holder}") || return 1
+  survivor_url=$(replica_url "${survivor}") || return 1
+  "${COMPOSE[@]}" stop "${holder}" || return 1
+  for _ in $(seq 60); do
+    replica=$(GORGONE_URL=${survivor_url} session_replica "${node}") || replica=""
+    [[ "${replica}" == "${survivor}" ]] && break
+    sleep 2
+  done
+  if [[ "${replica}" == "${survivor}" ]] && job_succeeds_via "${survivor_url}" "${node}"; then
+    result=0
+  fi
+  "${COMPOSE[@]}" start "${holder}" || return 1
+  wait_replica_ready "${holder}" || return 1
+  return "${result}"
 }
 
 check "the web image is a web server only: no shell, collect, Gorgone or plugin" web_image_is_slim
@@ -359,6 +478,10 @@ check "centreon-web wrote no centcore command file" no_centcore_file
 check "a session opened on one web replica is valid on the other" session_shared_by_replicas
 check "both web replicas push the same encryption key" key_shared_by_replicas
 check "the encryption key is in no log of the web containers" key_not_logged
+check "two web cron replicas run each job once per minute" web_cron_runs_each_job_once
+check "a job submitted to either gorgone-server replica reaches every node" jobs_cross_replicas
+# Last: the agents move between the gorgone-server replicas.
+check "an agent fails over to the other gorgone-server replica" failover_to_other_replica
 
 echo
 echo "Jobs handled by gorgone-server:"

@@ -1,7 +1,7 @@
 # gorgone-agent running inside an engine container of the bench. The node id,
 # the server URL and the central-only destinations come from the environment
 # (GORGONE_AGENT__…), see 50-gorgone-agent_background.sh and compose.yaml.
-server_url = "http://gorgone-server:5556"
+server_url = "http://gorgone:5556"
 # Bench value: gorgone-server enrols nodes automatically here.
 token = "integration-test"
 # The journal lives on the container's own filesystem, which a restart keeps:

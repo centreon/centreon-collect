@@ -3,13 +3,16 @@
 # control go over the network, graphs are read from VictoriaMetrics.
 #
 #   db               MariaDB (Centreon databases and the gorgone-server store)
-#   gorgone-server   the Rust control plane, alone in a distroless image
+#   gorgone-server,  two replicas of the Rust control plane, each alone in a
+#   gorgone-server-b distroless image, sharing the store; the agents and
+#                    centreon-web reach them by one name, "gorgone"
 #   web-install      sets the Centreon databases up once, then exits
 #   web, web-b       two replicas of centreon-web served by FrankenPHP: a
 #                    single static binary in a scratch image, no shell, no
 #                    package manager; same sessions and same encryption key
 #   valkey           the PHP session store the web replicas share
-#   web-cron         the centreon-web scheduled tasks, same image
+#   web-cron,        two replicas of the centreon-web scheduled tasks, same
+#   web-cron-b       image: each job runs once per schedule (MariaDB locks)
 #   victoria-metrics the time series store graphs are read from
 #   broker           the central broker (cbd): SQL and VictoriaMetrics outputs;
 #                    it receives its configuration through its control API
@@ -56,7 +59,7 @@ x-engine-env: &engine-env
   # container, for the agent next to it; nothing listens on the network.
   ENGINE_RPC_LISTEN_ADDRESS: unix:/var/lib/centreon-engine/rw/engine.sock
   WEB_HOST: web
-  GORGONE_HOST: gorgone-server
+  GORGONE_HOST: gorgone
   BROKER_HOST: broker
   # Register the poller when needed, then generate, push and restart once.
   GORGONE_DEPLOY: "true"
@@ -76,7 +79,7 @@ x-web: &web
     # The legacy pages call the internal API: without this they reuse the
     # port published on the host, which nothing listens on in the container.
     CENTREON_INTERNAL_API_BASE_URL: 127.0.0.1:80
-    GORGONE_API_ADDRESS: gorgone-server
+    GORGONE_API_ADDRESS: gorgone
     VICTORIA_METRICS_URL: http://victoria-metrics:8428
     # The engines schedule recurring downtimes; the web cron no longer does.
     CENTREON_FEATURE_FLAGS: engine_recurring_downtimes
@@ -88,11 +91,42 @@ x-web: &web
     # (ENGINE_CONTEXT_PATH).
     CENTREON_ENGINE_CONTEXT: '{"app_secret":"YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=","salt":"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nz"}'
 
+x-gorgone-server: &gorgone-server
+  build:
+    context: ../..
+    dockerfile: deploy/Dockerfile
+    target: server
+  # One image for both replicas.
+  image: ${GORGONE_SERVER_IMAGE:-gorgone-rs-centreon-gorgone-server}
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: on-failure
+  networks:
+    default:
+      aliases: [gorgone]
+
+x-gorgone-server-env: &gorgone-server-env
+  GORGONE_SERVER__DATABASE_URL: mysql://centreon:centreon@db/gorgone
+  GORGONE_SERVER__REST_LISTEN: 0.0.0.0:8085
+  GORGONE_SERVER__AGENT_LISTEN: 0.0.0.0:5556
+  # Wake-up hints between the replicas.
+  GORGONE_SERVER__PEER_LISTEN: 0.0.0.0:5557
+  # Throwaway value shared by the replicas of this bench.
+  GORGONE_SERVER__PEER_TOKEN: bench-peer-only
+  GORGONE_SERVER__ALLOW_PLAINTEXT: "true"
+  GORGONE_SERVER__REST__BASIC_USERNAME: centreon-web
+  GORGONE_SERVER__REST__BASIC_PASSWORD: bench-only
+  # Bench only: agents are accepted without enrolment.
+  GORGONE_SERVER__AUTO_ENROLL: "true"
+
 x-web-serve: &web-serve
   depends_on:
     web-install:
       condition: service_completed_successfully
     gorgone-server:
+      condition: service_started
+    gorgone-server-b:
       condition: service_started
     valkey:
       condition: service_healthy
@@ -126,25 +160,23 @@ services:
     volumes:
       - victoria-metrics-data:/victoria-metrics-data
 
+  # Two replicas sharing the store, as behind a Kubernetes Service: the name
+  # "gorgone" resolves to both, and each one keeps its own name for verify.sh.
   gorgone-server:
-    build:
-      context: ../..
-      dockerfile: deploy/Dockerfile
-      target: server
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: on-failure
+    <<: *gorgone-server
     environment:
-      GORGONE_SERVER__DATABASE_URL: mysql://centreon:centreon@db/gorgone
-      GORGONE_SERVER__REST_LISTEN: 0.0.0.0:8085
-      GORGONE_SERVER__AGENT_LISTEN: 0.0.0.0:5556
-      GORGONE_SERVER__ALLOW_PLAINTEXT: "true"
-      GORGONE_SERVER__REST__BASIC_USERNAME: centreon-web
-      GORGONE_SERVER__REST__BASIC_PASSWORD: bench-only
-      # Bench only: agents are accepted without enrolment.
-      GORGONE_SERVER__AUTO_ENROLL: "true"
+      <<: *gorgone-server-env
+      GORGONE_SERVER__REPLICA_ID: gorgone-server
+      GORGONE_SERVER__PEER_ADVERTISE_ADDR: http://gorgone-server:5557
     ports: ["127.0.0.1:8085:8085"]
+
+  gorgone-server-b:
+    <<: *gorgone-server
+    environment:
+      <<: *gorgone-server-env
+      GORGONE_SERVER__REPLICA_ID: gorgone-server-b
+      GORGONE_SERVER__PEER_ADVERTISE_ADDR: http://gorgone-server-b:5557
+    ports: ["127.0.0.1:8086:8085"]
 
   web-install:
     <<: *web
@@ -175,6 +207,15 @@ services:
     ports: ["127.0.0.1:4001:80"]
 
   web-cron:
+    <<: *web
+    command: ["cron"]
+    depends_on:
+      web-install:
+        condition: service_completed_successfully
+
+  # A second replica: the replica that takes the MariaDB lock of a minute runs
+  # the jobs due then, the other skips them.
+  web-cron-b:
     <<: *web
     command: ["cron"]
     depends_on:
@@ -241,7 +282,7 @@ services:
     environment:
       <<: *gorgone-api
       WEB_HOST: web
-      GORGONE_HOST: gorgone-server
+      GORGONE_HOST: gorgone
       BROKER_HOST: broker
 
 configs:
