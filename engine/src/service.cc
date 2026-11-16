@@ -177,11 +177,11 @@ std::shared_ptr<service> service::find_service(const std::string& hostname,
   if (search != services.end()) {
     return search->second;
   }
-  // poller_id uid migration back compatibility
   if (!hostname.compare(0, 12, "_Module_BAM_")) {
     uint64_t host_poller_id;
     if (absl::SimpleAtoi(std::string_view(hostname).substr(12),
-                         &host_poller_id)) {
+                         &host_poller_id) &&
+        cbm) {
       if (host_poller_id == cbm->poller_id()) {
         search = services.find(std::make_pair(
             fmt::format("_Module_BAM_{}", cbm->original_poller_id()), name));

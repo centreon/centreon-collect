@@ -4146,11 +4146,11 @@ void host::_switch_all_services_to_unknown() {
 /**
  * @brief Find a host by name.
  *
- * The BAM virtual host is named '_Module_BAM_<poller id>'. Since the Broker
- * 'uid' key can override 'poller_id', a name built with one of these ids may
- * target a host created with the other one (configuration or external
- * commands generated before the migration). When the exact name is not found,
- * the BAM virtual host is looked up again with the other id.
+ * The BAM virtual host is named '_Module_BAM_<poller id>'. The Broker 'uid'
+ * key overrides 'poller_id', so BAM may build its external commands with the
+ * uid while the Engine configuration still names the host after 'poller_id',
+ * or the reverse. When the exact name is not found, the BAM virtual host is
+ * looked up again with the other id.
  *
  * @param name Host name.
  *
@@ -4163,7 +4163,7 @@ std::shared_ptr<host> host::find_host(const std::string_view& name) {
   }
   if (!name.compare(0, 12, "_Module_BAM_")) {
     uint64_t host_poller_id;
-    if (absl::SimpleAtoi(name.substr(12), &host_poller_id)) {
+    if (absl::SimpleAtoi(name.substr(12), &host_poller_id) && cbm) {
       if (host_poller_id == cbm->poller_id()) {
         search = hosts.find(
             fmt::format("_Module_BAM_{}", cbm->original_poller_id()));
