@@ -17,6 +17,7 @@ check autodiscovery ${communication_mode}
     Test Service Disco
     # host discovery command is constructed by php which honor vault himself.
     Test Host disco    ${poller}
+    Test Service Disco change rules are not interpreted as code    ${central}
     # This should always be last as the autodiscovery module will DIE trying to parse the output of the injection.
     Test Service Disco don't interpret bash    ${central}
 
@@ -48,6 +49,41 @@ Test Service Disco don't interpret bash
     ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${poller_name}/gorgoned.log    content=${query}    date=${start_date}    timeout=10    regex=True
     Should Be True    ${logs_poller}    Didn't found the service injection command in the poller logs
     File Should Not Exist    /tmp/robotInjectionAutodiscoverychecker    File should not have been created by the autodiscovery service.
+
+Test Service Disco change rules are not interpreted as code
+    [Documentation]    The regexp, replacement and modifier of a rule transformation are data.
+    ...    The rule 4 (disabled by default) mixes legitimate transformations with injection attempts on every field.
+    ...    Legitimate ones must still be applied, injected ones must be rejected without running any code.
+    [Arguments]    ${central_name}
+    @{markers}    Create List    Modifier    EFlag    Replace    Regexp    Delimiter
+    FOR    ${marker}    IN    @{markers}
+        Remove File    /tmp/robotChangeVars${marker}
+    END
+    ${start_date}=   Get Current Date    increment=-1s
+
+    ${http_body}=    Get File    ${ROOT_CONFIG}${/}autodiscovery/service-change-vars-http-body.json
+    ${response}=    POST  http://127.0.0.1:8085/api/centreon/autodiscovery/services    data=${http_body}
+    Log To Console    ${response.json()}
+    Dictionary Should Not Contain Key  ${response.json()}    error    api/centreon/autodiscovery/services api call resulted in an error : ${response.json()}
+
+    # '$1' backreference on an attribute, then 'g' and 'i' flags on the service name: 'Sec-/var/lib/docker' -> 'Safe-VAR-lib_docker'.
+    Check Row Count    SELECT * FROM service WHERE service_description like 'Safe-%';    equal    5    alias=conf    retry_timeout=15    retry_pause=1
+    Check Row Count    SELECT * FROM service WHERE service_description = 'Safe-VAR-lib_docker';    equal    1    alias=conf
+    Check Row Count    SELECT * FROM service WHERE service_description = 'Safe-_run_user_1001';    equal    1    alias=conf
+    Check Row Count    SELECT * FROM service WHERE service_description like 'Sec-%';    equal    0    alias=conf
+
+    # services are created after every transformation has been applied: no marker can show up later.
+    @{run_injections}    Create List
+    FOR    ${marker}    IN    @{markers}
+        ${exists}    Run Keyword And Return Status    File Should Exist    /tmp/robotChangeVars${marker}
+        IF    ${exists}    Append To List    ${run_injections}    ${marker}
+    END
+    Should Be Empty    ${run_injections}    Perl code injected in rule transformations has been run by gorgone: ${run_injections}
+
+    ${query}    Create List    change: invalid modifier 'e'    change: invalid regexp
+    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${central_name}/gorgoned.log    content=${query}    date=${start_date}    timeout=10
+    Should Be True    ${logs_central}    Rejected transformations should be logged in /var/log/centreon-gorgone/${central_name}/gorgoned.log
+
 
 Test Host disco
     [Arguments]    ${poller_name}
