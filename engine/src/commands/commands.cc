@@ -178,20 +178,18 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
       return ERROR;
 
     /* verify that the service is valid */
-    service_map::const_iterator found(
-        service::services.find({host_name, svc_description}));
-    if (found == service::services.end() || !found->second)
+    std::shared_ptr<service> found{
+        service::find_service(host_name, svc_description)};
+    if (!found)
       return ERROR;
-    service_id = found->second->service_id();
+    service_id = found->service_id();
   } else {
     command_name = "ADD_HOST_COMMENT";
   }
 
   /* else verify that the host is valid */
   temp_host = nullptr;
-  host_map::const_iterator it(host::hosts.find(host_name));
-  if (it != host::hosts.end())
-    temp_host = it->second.get();
+  temp_host = host::find_host(host_name).get();
   if (temp_host == nullptr)
     return ERROR;
 
@@ -260,10 +258,7 @@ int cmd_delete_all_comments(int cmd, char* args) {
       return ERROR;
 
     /* verify that the service is valid */
-    service_map::const_iterator found(
-        service::services.find({host_name, svc_description}));
-    if (found != service::services.end())
-      temp_service = found->second.get();
+    temp_service = service::find_service(host_name, svc_description).get();
     if (temp_service == nullptr)
       return ERROR;
     /* delete comments */
@@ -271,9 +266,7 @@ int cmd_delete_all_comments(int cmd, char* args) {
                                      temp_service->service_id());
   } else {
     /* else verify that the host is valid */
-    host_map::const_iterator it(host::hosts.find(host_name));
-    if (it != host::hosts.end())
-      temp_host = it->second.get();
+    temp_host = host::find_host(host_name).get();
     if (temp_host == nullptr)
       return ERROR;
     /* delete comments */
@@ -289,7 +282,7 @@ int cmd_delay_notification(int cmd, char* args) {
   char* host_name(nullptr);
   char* svc_description(nullptr);
   time_t delay_time(0);
-  service_map::const_iterator found;
+  std::shared_ptr<service> found;
 
   /* get the host name */
   if ((host_name = my_strtok(args, ";")) == nullptr)
@@ -302,18 +295,16 @@ int cmd_delay_notification(int cmd, char* args) {
       return ERROR;
 
     /* verify that the service is valid */
-    found = service::services.find({host_name, svc_description});
+    found = service::find_service(host_name, svc_description);
 
-    if (found == service::services.end() || !found->second)
+    if (!found)
       return ERROR;
   }
 
   /* else verify that the host is valid */
   else {
     temp_host = nullptr;
-    host_map::const_iterator it(host::hosts.find(host_name));
-    if (it != host::hosts.end())
-      temp_host = it->second.get();
+    temp_host = host::find_host(host_name).get();
     if (temp_host == nullptr)
       return ERROR;
   }
@@ -333,7 +324,7 @@ int cmd_delay_notification(int cmd, char* args) {
   if (cmd == CMD_DELAY_HOST_NOTIFICATION)
     temp_host->set_next_notification(delay_time);
   else
-    found->second->set_next_notification(delay_time);
+    found->set_next_notification(delay_time);
 
   return OK;
 }
@@ -345,7 +336,7 @@ int cmd_schedule_check(int cmd, char* args) {
   char* host_name(nullptr);
   char* svc_description(nullptr);
   time_t delay_time(0);
-  service_map::const_iterator found;
+  std::shared_ptr<service> found;
 
   /* get the host name */
   if ((host_name = my_strtok(args, ";")) == nullptr)
@@ -356,9 +347,7 @@ int cmd_schedule_check(int cmd, char* args) {
       cmd == CMD_SCHEDULE_FORCED_HOST_SVC_CHECKS) {
     /* verify that the host is valid */
     temp_host = nullptr;
-    host_map::const_iterator it(host::hosts.find(host_name));
-    if (it != host::hosts.end())
-      temp_host = it->second.get();
+    temp_host = host::find_host(host_name).get();
     if (temp_host == nullptr)
       return ERROR;
   } else {
@@ -367,9 +356,9 @@ int cmd_schedule_check(int cmd, char* args) {
       return ERROR;
 
     /* verify that the service is valid */
-    found = service::services.find({host_name, svc_description});
+    found = service::find_service(host_name, svc_description);
 
-    if (found == service::services.end() || !found->second)
+    if (!found)
       return ERROR;
   }
 
@@ -404,10 +393,9 @@ int cmd_schedule_check(int cmd, char* args) {
                                      : CHECK_OPTION_NONE);
     }
   } else
-    found->second->schedule_check(delay_time,
-                                  cmd == CMD_SCHEDULE_FORCED_SVC_CHECK
-                                      ? CHECK_OPTION_FORCE_EXECUTION
-                                      : CHECK_OPTION_NONE);
+    found->schedule_check(delay_time, cmd == CMD_SCHEDULE_FORCED_SVC_CHECK
+                                          ? CHECK_OPTION_FORCE_EXECUTION
+                                          : CHECK_OPTION_NONE);
 
   return OK;
 }
@@ -427,9 +415,7 @@ int cmd_schedule_host_service_checks(int cmd, char* args, int force) {
 
   /* verify that the host is valid */
   temp_host = nullptr;
-  host_map::const_iterator it(host::hosts.find(host_name));
-  if (it != host::hosts.end())
-    temp_host = it->second.get();
+  temp_host = host::find_host(host_name).get();
   if (temp_host == nullptr)
     return ERROR;
 
@@ -517,15 +503,14 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
   ++ait;
 
   /* find the host by its name or address */
-  host_map::const_iterator it(host::hosts.find(host_name));
-  if (it != host::hosts.end() && it->second)
-    real_host_name = std::string(host_name.data(), host_name.size());
+  std::shared_ptr<host> hst{host::find_host(host_name)};
+  if (hst)
+    real_host_name = hst->name();
   else {
     for (host_map::iterator itt = host::hosts.begin(), end = host::hosts.end();
          itt != end; ++itt) {
       if (itt->second && itt->second->get_address() == host_name) {
         real_host_name = itt->first;
-        it = itt;
         break;
       }
     }
@@ -545,9 +530,9 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
   }
 
   /* make sure the service exists */
-  service_map::const_iterator found(
-      service::services.find({real_host_name, svc_description}));
-  if (found == service::services.end() || !found->second) {
+  std::shared_ptr<service> found{
+      service::find_service(real_host_name, svc_description)};
+  if (!found) {
     engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << real_host_name
@@ -560,7 +545,7 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
   }
 
   /* skip this is we aren't accepting passive checks for this service */
-  if (!found->second->passive_checks_enabled())
+  if (!found->passive_checks_enabled())
     return ERROR;
 
   int32_t return_code;
@@ -578,8 +563,8 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
   timeval set_tv = {.tv_sec = check_time, .tv_usec = 0};
 
   check_result::pointer result = std::make_shared<check_result>(
-      service_check, found->second.get(), checkable::check_passive,
-      CHECK_OPTION_NONE, false,
+      service_check, found.get(), checkable::check_passive, CHECK_OPTION_NONE,
+      false,
       static_cast<double>(tv.tv_sec - check_time) +
           static_cast<double>(tv.tv_usec / 1000000.0),
       set_tv, set_tv, false, true, return_code, std::move(output));
@@ -619,15 +604,14 @@ int process_passive_service_check(time_t check_time,
     return ERROR;
 
   /* find the host by its name or address */
-  host_map::const_iterator it(host::hosts.find(host_name));
-  if (it != host::hosts.end() && it->second)
-    real_host_name = host_name;
+  std::shared_ptr<host> hst{host::find_host(host_name)};
+  if (hst)
+    real_host_name = hst->name().c_str();
   else {
     for (host_map::iterator itt(host::hosts.begin()), end(host::hosts.end());
          itt != end; ++itt) {
       if (itt->second && itt->second->get_address() == host_name) {
         real_host_name = itt->first.c_str();
-        it = itt;
         break;
       }
     }
@@ -648,9 +632,9 @@ int process_passive_service_check(time_t check_time,
   }
 
   /* make sure the service exists */
-  service_map::const_iterator found(
-      service::services.find({real_host_name, svc_description}));
-  if (found == service::services.end() || !found->second) {
+  std::shared_ptr<service> found{
+      service::find_service(real_host_name, svc_description)};
+  if (!found) {
     engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
@@ -664,7 +648,7 @@ int process_passive_service_check(time_t check_time,
   }
 
   /* skip this is we aren't accepting passive checks for this service */
-  if (!found->second->passive_checks_enabled())
+  if (!found->passive_checks_enabled())
     return ERROR;
 
   timeval tv;
@@ -673,8 +657,8 @@ int process_passive_service_check(time_t check_time,
   timeval set_tv = {.tv_sec = check_time, .tv_usec = 0};
 
   check_result::pointer result = std::make_shared<check_result>(
-      service_check, found->second.get(), checkable::check_passive,
-      CHECK_OPTION_NONE, false,
+      service_check, found.get(), checkable::check_passive, CHECK_OPTION_NONE,
+      false,
       static_cast<double>(tv.tv_sec - check_time) +
           static_cast<double>(tv.tv_usec / 1000000.0),
       set_tv, set_tv, false, true, return_code, output);
@@ -764,15 +748,15 @@ int process_passive_host_check(time_t check_time,
     return ERROR;
 
   /* find the host by its name or address */
-  host_map::const_iterator it(host::hosts.find(host_name));
-  if (it != host::hosts.end() && it->second)
-    real_host_name = host_name;
+  std::shared_ptr<host> hst{host::find_host(host_name)};
+  if (hst)
+    real_host_name = hst->name().c_str();
   else {
     for (host_map::iterator itt(host::hosts.begin()), end(host::hosts.end());
          itt != end; ++itt) {
       if (itt->second && itt->second->get_address() == host_name) {
         real_host_name = itt->first.c_str();
-        it = itt;
+        hst = itt->second;
         break;
       }
     }
@@ -791,7 +775,7 @@ int process_passive_host_check(time_t check_time,
   }
 
   /* skip this is we aren't accepting passive checks for this host */
-  if (!it->second->passive_checks_enabled())
+  if (!hst->passive_checks_enabled())
     return ERROR;
 
   timeval tv;
@@ -799,8 +783,7 @@ int process_passive_host_check(time_t check_time,
   timeval tv_start = {.tv_sec = check_time, .tv_usec = 0};
 
   check_result::pointer result = std::make_shared<check_result>(
-      host_check, it->second.get(), checkable::check_passive, CHECK_OPTION_NONE,
-      false,
+      host_check, hst.get(), checkable::check_passive, CHECK_OPTION_NONE, false,
       static_cast<double>(tv.tv_sec - check_time) +
           static_cast<double>(tv.tv_usec / 1000000.0),
       tv_start, tv_start, false, true, return_code, output);
@@ -826,7 +809,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   int type(AckType::NORMAL);
   int notify(true);
   int persistent(true);
-  service_map::const_iterator found;
+  std::shared_ptr<service> found;
 
   string::c_strtok arg(args);
 
@@ -835,8 +818,8 @@ int cmd_acknowledge_problem(int cmd, char* args) {
     return ERROR;
 
   /* verify that the host is valid */
-  host_map::const_iterator it(host::hosts.find(host_name));
-  if (it == host::hosts.end() || !it->second)
+  std::shared_ptr<host> hst{host::find_host(host_name)};
+  if (!hst)
     return ERROR;
 
   /* this is a service acknowledgement */
@@ -846,9 +829,9 @@ int cmd_acknowledge_problem(int cmd, char* args) {
       return ERROR;
 
     /* verify that the service is valid */
-    found = service::services.find({it->second->name(), svc_description});
+    found = service::find_service(hst->name(), svc_description);
 
-    if (found == service::services.end() || !found->second)
+    if (!found)
       return ERROR;
   }
 
@@ -880,12 +863,12 @@ int cmd_acknowledge_problem(int cmd, char* args) {
 
   /* acknowledge the host problem */
   if (cmd == CMD_ACKNOWLEDGE_HOST_PROBLEM)
-    acknowledge_host_problem(it->second.get(), ack_author, ack_data, type,
-                             notify, persistent);
+    acknowledge_host_problem(hst.get(), ack_author, ack_data, type, notify,
+                             persistent);
   /* acknowledge the service problem */
   else
-    acknowledge_service_problem(found->second.get(), ack_author, ack_data, type,
-                                notify, persistent);
+    acknowledge_service_problem(found.get(), ack_author, ack_data, type, notify,
+                                persistent);
 
   return OK;
 }
@@ -903,10 +886,10 @@ int cmd_remove_acknowledgement(int cmd, char* args) {
 
   switch (cmd) {
     case CMD_REMOVE_HOST_ACKNOWLEDGEMENT: {
-      host_map::const_iterator hit = host::hosts.find(hostname);
-      if (hit == host::hosts.end() || !hit->second)
+      std::shared_ptr<host> hst = host::find_host(hostname);
+      if (!hst)
         return ERROR;
-      remove_host_acknowledgement(hit->second.get());
+      remove_host_acknowledgement(hst.get());
     } break;
     case CMD_REMOVE_SVC_ACKNOWLEDGEMENT:
       /* we are removing a service acknowledgement */
@@ -916,13 +899,13 @@ int cmd_remove_acknowledgement(int cmd, char* args) {
           return ERROR;
 
         /* verify that the service is valid */
-        service_map::const_iterator sit = service::services.find(
-            std::make_pair(std::string(hostname.data(), hostname.size()),
-                           std::string(ait->data(), ait->size())));
+        std::shared_ptr<service> svc =
+            service::find_service(std::string(hostname.data(), hostname.size()),
+                                  std::string(ait->data(), ait->size()));
 
-        if (sit == service::services.end() || !sit->second)
+        if (!svc)
           return ERROR;
-        remove_service_acknowledgement(sit->second.get());
+        remove_service_acknowledgement(svc.get());
       }
       break;
   }
@@ -966,24 +949,23 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
     ++ait;
   } else {
     /* get the host name */
-    host_map::const_iterator it{host::hosts.find(*ait)};
-    if (it == host::hosts.end() || !it->second)
+    temp_host = host::find_host(*ait).get();
+    if (!temp_host)
       return ERROR;
     ++ait;
-    temp_host = it->second.get();
 
     /* this is a service downtime */
     if (cmd == CMD_SCHEDULE_SVC_DOWNTIME) {
       /* get the service name */
       if (ait == a.end())
         return ERROR;
-      service_map::const_iterator found = service::services.find(
-          {temp_host->name(), std::string(ait->data(), ait->size())});
-
-      if (found == service::services.end() || !found->second)
+      temp_service =
+          service::find_service(temp_host->name(),
+                                std::string(ait->data(), ait->size()))
+              .get();
+      if (!temp_service)
         return ERROR;
       ++ait;
-      temp_service = found->second.get();
     }
   }
 
@@ -1142,10 +1124,9 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
            end(sg_it->second->members.end());
            it != end; ++it) {
         temp_host = nullptr;
-        host_map::const_iterator found = host::hosts.find(it->first.first);
-        if (found == host::hosts.end() || !found->second)
+        temp_host = host::find_host(it->first.first).get();
+        if (!temp_host)
           continue;
-        temp_host = found->second.get();
         if (last_host == temp_host)
           continue;
         downtime_manager::instance().schedule_downtime(
@@ -1238,8 +1219,14 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   // Host name.
   if (it == a.end())
     return ERROR;
-  if (!it->empty())
-    criterias.emplace_back("host", std::string(it->data(), it->size()));
+  if (!it->empty()) {
+    // downtime_finder compares names: use the real name of the host, since
+    // find_host() also resolves the BAM virtual host named after the other
+    // poller id (uid or poller_id).
+    std::shared_ptr<host> hst = host::find_host(*it);
+    criterias.emplace_back(
+        "host", hst ? hst->name() : std::string(it->data(), it->size()));
+  }
 
   ++it;
 
@@ -1503,8 +1490,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
   uint32_t attr = MODATTR_NONE;
   unsigned long hattr(MODATTR_NONE);
   unsigned long sattr(MODATTR_NONE);
-  host_map::const_iterator it;
-  service_map::const_iterator found_svc;
+  std::shared_ptr<service> found_svc;
   contact_map::iterator cnct;
 
   switch (cmd) {
@@ -1522,9 +1508,9 @@ int cmd_change_object_int_var(int cmd, char* args) {
         return ERROR;
 
       /* verify that the service is valid */
-      found_svc = service::services.find({host_name, svc_description});
+      found_svc = service::find_service(host_name, svc_description);
 
-      if (found_svc == service::services.end() || !found_svc->second)
+      if (!found_svc)
         return ERROR;
       break;
 
@@ -1538,9 +1524,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
 
       /* verify that the host is valid */
       temp_host = nullptr;
-      it = host::hosts.find(host_name);
-      if (it != host::hosts.end())
-        temp_host = it->second.get();
+      temp_host = host::find_host(host_name).get();
       if (temp_host == nullptr)
         return ERROR;
       break;
@@ -1641,69 +1625,68 @@ int cmd_change_object_int_var(int cmd, char* args) {
 
     case CMD_CHANGE_NORMAL_SVC_CHECK_INTERVAL:
       /* save the old check interval */
-      old_dval = found_svc->second->check_interval();
+      old_dval = found_svc->check_interval();
 
       /* modify the check interval */
-      found_svc->second->set_check_interval(dval);
+      found_svc->set_check_interval(dval);
       attr = MODATTR_NORMAL_CHECK_INTERVAL;
 
       /* schedule a service check if previous interval was 0 (checks were not
        * regularly scheduled) */
-      if (old_dval == 0 && found_svc->second->active_checks_enabled() &&
-          found_svc->second->check_interval() != 0) {
+      if (old_dval == 0 && found_svc->active_checks_enabled() &&
+          found_svc->check_interval() != 0) {
         /* set the service check flag */
-        found_svc->second->set_should_be_scheduled(true);
+        found_svc->set_should_be_scheduled(true);
 
         /* schedule a check for right now (or as soon as possible) */
         time(&preferred_time);
         if (!check_time_against_period(preferred_time,
-                                       found_svc->second->check_period_ptr)) {
+                                       found_svc->check_period_ptr)) {
           get_next_valid_time(preferred_time, &next_valid_time,
-                              found_svc->second->check_period_ptr);
-          found_svc->second->set_next_check(next_valid_time);
+                              found_svc->check_period_ptr);
+          found_svc->set_next_check(next_valid_time);
         } else
-          found_svc->second->set_next_check(preferred_time);
+          found_svc->set_next_check(preferred_time);
 
         /* schedule a check if we should */
-        if (found_svc->second->get_should_be_scheduled())
-          found_svc->second->schedule_check(found_svc->second->get_next_check(),
-                                            CHECK_OPTION_NONE);
+        if (found_svc->get_should_be_scheduled())
+          found_svc->schedule_check(found_svc->get_next_check(),
+                                    CHECK_OPTION_NONE);
       }
-      found_svc->second->set_modified_attributes(
-          found_svc->second->get_modified_attributes() | attr);
+      found_svc->set_modified_attributes(found_svc->get_modified_attributes() |
+                                         attr);
       broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                                   found_svc->second.get(), attr);
+                                   found_svc.get(), attr);
 
       /* We need check result to handle next check */
-      found_svc->second->update_status();
+      found_svc->update_status();
       break;
 
     case CMD_CHANGE_RETRY_SVC_CHECK_INTERVAL:
-      found_svc->second->set_retry_interval(dval);
+      found_svc->set_retry_interval(dval);
       attr = MODATTR_RETRY_CHECK_INTERVAL;
-      found_svc->second->set_modified_attributes(
-          found_svc->second->get_modified_attributes() | attr);
+      found_svc->set_modified_attributes(found_svc->get_modified_attributes() |
+                                         attr);
       broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                                   found_svc->second.get(), attr);
+                                   found_svc.get(), attr);
       break;
 
     case CMD_CHANGE_MAX_SVC_CHECK_ATTEMPTS:
-      found_svc->second->set_max_attempts(intval);
+      found_svc->set_max_attempts(intval);
       attr = MODATTR_MAX_CHECK_ATTEMPTS;
-      found_svc->second->set_modified_attributes(
-          found_svc->second->get_modified_attributes() | attr);
+      found_svc->set_modified_attributes(found_svc->get_modified_attributes() |
+                                         attr);
       /* send data to event broker */
       broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                                   found_svc->second.get(), attr);
+                                   found_svc.get(), attr);
 
       /* adjust current attempt number if in a hard state */
-      if (found_svc->second->get_state_type() == notifier::hard &&
-          found_svc->second->get_current_state() != service::state_ok &&
-          found_svc->second->get_current_attempt() > 1) {
-        found_svc->second->set_current_attempt(
-            found_svc->second->max_check_attempts());
+      if (found_svc->get_state_type() == notifier::hard &&
+          found_svc->get_current_state() != service::state_ok &&
+          found_svc->get_current_attempt() > 1) {
+        found_svc->set_current_attempt(found_svc->max_check_attempts());
         /* We need check result to handle next check */
-        found_svc->second->update_status();
+        found_svc->update_status();
       }
       break;
 
@@ -1717,11 +1700,11 @@ int cmd_change_object_int_var(int cmd, char* args) {
 
     case CMD_CHANGE_SVC_MODATTR:
       attr = intval;
-      found_svc->second->set_modified_attributes(attr);
+      found_svc->set_modified_attributes(attr);
 
       /* send data to event broker */
       broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                                   found_svc->second.get(), attr);
+                                   found_svc.get(), attr);
       break;
 
     case CMD_CHANGE_CONTACT_MODATTR:
@@ -1784,8 +1767,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
   unsigned long attr{MODATTR_NONE};
   unsigned long hattr{MODATTR_NONE};
   unsigned long sattr{MODATTR_NONE};
-  host_map::const_iterator it;
-  service_map::const_iterator found_svc;
+  std::shared_ptr<service> found_svc;
   contact_map::iterator cnct;
 
   /* SECURITY PATCH - disable these for the time being */
@@ -1817,9 +1799,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
       /* verify that the host is valid */
       temp_host = nullptr;
-      it = host::hosts.find(host_name);
-      if (it != host::hosts.end())
-        temp_host = it->second.get();
+      temp_host = host::find_host(host_name).get();
       if (temp_host == nullptr)
         return ERROR;
 
@@ -1840,9 +1820,9 @@ int cmd_change_object_char_var(int cmd, char* args) {
         return ERROR;
 
       /* verify that the service is valid */
-      found_svc = service::services.find({host_name, svc_description});
+      found_svc = service::find_service(host_name, svc_description);
 
-      if (found_svc == service::services.end() || !found_svc->second)
+      if (!found_svc)
         return ERROR;
 
       if ((charval = my_strtok(nullptr, "\n")) == nullptr)
@@ -1956,26 +1936,26 @@ int cmd_change_object_char_var(int cmd, char* args) {
       break;
 
     case CMD_CHANGE_SVC_EVENT_HANDLER:
-      found_svc->second->set_event_handler(temp_ptr);
-      found_svc->second->set_event_handler_ptr(cmd_found->second.get());
+      found_svc->set_event_handler(temp_ptr);
+      found_svc->set_event_handler_ptr(cmd_found->second.get());
       attr = MODATTR_EVENT_HANDLER_COMMAND;
       break;
 
     case CMD_CHANGE_SVC_CHECK_COMMAND:
-      found_svc->second->set_check_command(temp_ptr);
-      found_svc->second->set_check_command_ptr(cmd_found->second);
+      found_svc->set_check_command(temp_ptr);
+      found_svc->set_check_command_ptr(cmd_found->second);
       attr = MODATTR_CHECK_COMMAND;
       break;
 
     case CMD_CHANGE_SVC_CHECK_TIMEPERIOD:
-      found_svc->second->set_check_period(temp_ptr);
-      found_svc->second->check_period_ptr = temp_timeperiod;
+      found_svc->set_check_period(temp_ptr);
+      found_svc->check_period_ptr = temp_timeperiod;
       attr = MODATTR_CHECK_TIMEPERIOD;
       break;
 
     case CMD_CHANGE_SVC_NOTIFICATION_TIMEPERIOD:
-      found_svc->second->set_notification_period(temp_ptr);
-      found_svc->second->set_notification_period_ptr(temp_timeperiod);
+      found_svc->set_notification_period(temp_ptr);
+      found_svc->set_notification_period_ptr(temp_timeperiod);
       attr = MODATTR_NOTIFICATION_TIMEPERIOD;
       break;
 
@@ -2019,11 +1999,11 @@ int cmd_change_object_char_var(int cmd, char* args) {
     case CMD_CHANGE_SVC_NOTIFICATION_TIMEPERIOD:
 
       /* set the modified service attribute */
-      found_svc->second->add_modified_attributes(attr);
+      found_svc->add_modified_attributes(attr);
 
       /* send data to event broker */
       broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                                   found_svc->second.get(), attr);
+                                   found_svc.get(), attr);
       break;
 
     case CMD_CHANGE_HOST_EVENT_HANDLER:
@@ -2092,9 +2072,7 @@ int cmd_change_object_custom_var(int cmd, char* args) {
   switch (cmd) {
     case CMD_CHANGE_CUSTOM_HOST_VAR: {
       host* temp_host{nullptr};
-      host_map::const_iterator it_h(host::hosts.find(name1));
-      if (it_h != host::hosts.end())
-        temp_host = it_h->second.get();
+      temp_host = host::find_host(name1).get();
       if (temp_host == nullptr)
         return ERROR;
       map_customvar::iterator it(temp_host->custom_variables.find(varname));
@@ -2107,17 +2085,17 @@ int cmd_change_object_custom_var(int cmd, char* args) {
       temp_host->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
     } break;
     case CMD_CHANGE_CUSTOM_SVC_VAR: {
-      service_map::const_iterator found(service::services.find({name1, name2}));
+      std::shared_ptr<service> found{service::find_service(name1, name2)};
 
-      if (found == service::services.end() || !found->second)
+      if (!found)
         return ERROR;
-      map_customvar::iterator it(found->second->custom_variables.find(varname));
-      if (it == found->second->custom_variables.end())
-        found->second->custom_variables[varname] = customvariable(varvalue);
+      map_customvar::iterator it(found->custom_variables.find(varname));
+      if (it == found->custom_variables.end())
+        found->custom_variables[varname] = customvariable(varvalue);
       else
         it->second.update(varvalue);
 
-      found->second->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
+      found->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
     } break;
     case CMD_CHANGE_CUSTOM_CONTACT_VAR: {
       contact_map::iterator cnct_it = contact::contacts.find(name1);

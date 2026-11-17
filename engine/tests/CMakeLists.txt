@@ -84,6 +84,7 @@ if(WITH_TESTING)
   set(ut_sources
       # Sources.
       ${TESTS_DIR}/parse-check-output.cc
+      ${TESTS_DIR}/bam_virtual_host.cc
       ${TESTS_DIR}/checks/pb_service_check.cc
       ${TESTS_DIR}/checks/pb_service_retention.cc
       ${TESTS_DIR}/checks/pb_anomalydetection.cc
