@@ -220,6 +220,8 @@ pub struct Service {
     pub retain_status_information: bool,
     #[prost(uint64, tag = "83")]
     pub severity_id: u64,
+    #[prost(message, repeated, tag = "84")]
+    pub tags: ::prost::alloc::vec::Vec<TagInfo>,
     #[prost(enumeration = "ServiceType", tag = "85")]
     pub r#type: i32,
     /// In case of metaservice and ba, they also have an internal id. We keep it
@@ -712,6 +714,8 @@ pub struct Host {
     pub timezone: ::prost::alloc::string::String,
     #[prost(uint64, tag = "80")]
     pub severity_id: u64,
+    #[prost(message, repeated, tag = "81")]
+    pub tags: ::prost::alloc::vec::Vec<TagInfo>,
     #[prost(uint64, tag = "82")]
     pub icon_id: u64,
 }
@@ -1410,6 +1414,399 @@ pub mod acknowledgement {
         }
     }
 }
+/// neb:pb_log_entry (element 41)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LogEntry {
+    #[prost(uint64, tag = "1")]
+    pub ctime: u64,
+    #[prost(string, tag = "2")]
+    pub instance_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub output: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub host_id: u64,
+    #[prost(uint64, tag = "5")]
+    pub service_id: u64,
+    #[prost(string, tag = "6")]
+    pub host_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub service_description: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub notification_contact: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub notification_cmd: ::prost::alloc::string::String,
+    #[prost(enumeration = "log_entry::LogType", tag = "10")]
+    pub r#type: i32,
+    #[prost(enumeration = "log_entry::MsgType", tag = "11")]
+    pub msg_type: i32,
+    #[prost(int32, tag = "12")]
+    pub status: i32,
+    #[prost(int32, tag = "13")]
+    pub retry: i32,
+}
+/// Nested message and enum types in `LogEntry`.
+pub mod log_entry {
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum LogType {
+        Soft = 0,
+        Hard = 1,
+    }
+    impl LogType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Soft => "SOFT",
+                Self::Hard => "HARD",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "SOFT" => Some(Self::Soft),
+                "HARD" => Some(Self::Hard),
+                _ => None,
+            }
+        }
+    }
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum MsgType {
+        ServiceAlert = 0,
+        HostAlert = 1,
+        ServiceNotification = 2,
+        HostNotification = 3,
+        Warning = 4,
+        Other = 5,
+        ServiceInitialState = 8,
+        HostInitialState = 9,
+        ServiceAcknowledgeProblem = 10,
+        HostAcknowledgeProblem = 11,
+        ServiceEventHandler = 12,
+        HostEventHandler = 13,
+        GlobalServiceEventHandler = 14,
+        GlobalHostEventHandler = 15,
+    }
+    impl MsgType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::ServiceAlert => "SERVICE_ALERT",
+                Self::HostAlert => "HOST_ALERT",
+                Self::ServiceNotification => "SERVICE_NOTIFICATION",
+                Self::HostNotification => "HOST_NOTIFICATION",
+                Self::Warning => "WARNING",
+                Self::Other => "OTHER",
+                Self::ServiceInitialState => "SERVICE_INITIAL_STATE",
+                Self::HostInitialState => "HOST_INITIAL_STATE",
+                Self::ServiceAcknowledgeProblem => "SERVICE_ACKNOWLEDGE_PROBLEM",
+                Self::HostAcknowledgeProblem => "HOST_ACKNOWLEDGE_PROBLEM",
+                Self::ServiceEventHandler => "SERVICE_EVENT_HANDLER",
+                Self::HostEventHandler => "HOST_EVENT_HANDLER",
+                Self::GlobalServiceEventHandler => "GLOBAL_SERVICE_EVENT_HANDLER",
+                Self::GlobalHostEventHandler => "GLOBAL_HOST_EVENT_HANDLER",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "SERVICE_ALERT" => Some(Self::ServiceAlert),
+                "HOST_ALERT" => Some(Self::HostAlert),
+                "SERVICE_NOTIFICATION" => Some(Self::ServiceNotification),
+                "HOST_NOTIFICATION" => Some(Self::HostNotification),
+                "WARNING" => Some(Self::Warning),
+                "OTHER" => Some(Self::Other),
+                "SERVICE_INITIAL_STATE" => Some(Self::ServiceInitialState),
+                "HOST_INITIAL_STATE" => Some(Self::HostInitialState),
+                "SERVICE_ACKNOWLEDGE_PROBLEM" => Some(Self::ServiceAcknowledgeProblem),
+                "HOST_ACKNOWLEDGE_PROBLEM" => Some(Self::HostAcknowledgeProblem),
+                "SERVICE_EVENT_HANDLER" => Some(Self::ServiceEventHandler),
+                "HOST_EVENT_HANDLER" => Some(Self::HostEventHandler),
+                "GLOBAL_SERVICE_EVENT_HANDLER" => Some(Self::GlobalServiceEventHandler),
+                "GLOBAL_HOST_EVENT_HANDLER" => Some(Self::GlobalHostEventHandler),
+                _ => None,
+            }
+        }
+    }
+}
+/// neb:pb_host_group (element 49)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HostGroup {
+    #[prost(message, optional, tag = "1")]
+    pub header: ::core::option::Option<BbdoHeader>,
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
+    #[prost(uint64, tag = "3")]
+    pub hostgroup_id: u64,
+    #[prost(string, tag = "4")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "5")]
+    pub poller_id: u64,
+    #[prost(string, tag = "6")]
+    pub alias: ::prost::alloc::string::String,
+}
+/// neb:pb_service_group (element 51)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ServiceGroup {
+    #[prost(message, optional, tag = "1")]
+    pub header: ::core::option::Option<BbdoHeader>,
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
+    #[prost(uint64, tag = "3")]
+    pub servicegroup_id: u64,
+    #[prost(string, tag = "4")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "5")]
+    pub poller_id: u64,
+    #[prost(string, tag = "6")]
+    pub alias: ::prost::alloc::string::String,
+}
+/// neb:pb_host_group_member (element 50)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HostGroupMember {
+    #[prost(message, optional, tag = "1")]
+    pub header: ::core::option::Option<BbdoHeader>,
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
+    #[prost(uint64, tag = "3")]
+    pub hostgroup_id: u64,
+    #[prost(string, tag = "4")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "5")]
+    pub host_id: u64,
+    #[prost(uint64, tag = "6")]
+    pub poller_id: u64,
+}
+/// neb:pb_service_group_member (element 52)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ServiceGroupMember {
+    #[prost(message, optional, tag = "1")]
+    pub header: ::core::option::Option<BbdoHeader>,
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
+    #[prost(uint64, tag = "3")]
+    pub servicegroup_id: u64,
+    #[prost(string, tag = "4")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "5")]
+    pub host_id: u64,
+    #[prost(uint64, tag = "6")]
+    pub poller_id: u64,
+    #[prost(uint64, tag = "7")]
+    pub service_id: u64,
+}
+/// neb:pb_host_parent (element 53)
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HostParent {
+    #[prost(message, optional, tag = "1")]
+    pub header: ::core::option::Option<BbdoHeader>,
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
+    #[prost(uint64, tag = "3")]
+    pub child_id: u64,
+    #[prost(uint64, tag = "4")]
+    pub parent_id: u64,
+}
+/// neb:pb_severity (element 33)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Severity {
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    #[prost(enumeration = "severity::Action", tag = "2")]
+    pub action: i32,
+    #[prost(uint32, tag = "3")]
+    pub level: u32,
+    #[prost(uint64, tag = "4")]
+    pub icon_id: u64,
+    #[prost(string, tag = "5")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(enumeration = "severity::Type", tag = "6")]
+    pub r#type: i32,
+    #[prost(uint64, tag = "7")]
+    pub poller_id: u64,
+}
+/// Nested message and enum types in `Severity`.
+pub mod severity {
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Action {
+        Add = 0,
+        Delete = 1,
+        Modify = 2,
+    }
+    impl Action {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Add => "ADD",
+                Self::Delete => "DELETE",
+                Self::Modify => "MODIFY",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "ADD" => Some(Self::Add),
+                "DELETE" => Some(Self::Delete),
+                "MODIFY" => Some(Self::Modify),
+                _ => None,
+            }
+        }
+    }
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Type {
+        Service = 0,
+        Host = 1,
+    }
+    impl Type {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Service => "SERVICE",
+                Self::Host => "HOST",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "SERVICE" => Some(Self::Service),
+                "HOST" => Some(Self::Host),
+                _ => None,
+            }
+        }
+    }
+}
+/// neb:pb_tag (element 34)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Tag {
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    #[prost(enumeration = "tag::Action", tag = "2")]
+    pub action: i32,
+    #[prost(enumeration = "TagType", tag = "3")]
+    pub r#type: i32,
+    #[prost(string, tag = "4")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "5")]
+    pub poller_id: u64,
+}
+/// Nested message and enum types in `Tag`.
+pub mod tag {
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Action {
+        Add = 0,
+        Delete = 1,
+        Modify = 2,
+    }
+    impl Action {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Add => "ADD",
+                Self::Delete => "DELETE",
+                Self::Modify => "MODIFY",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "ADD" => Some(Self::Add),
+                "DELETE" => Some(Self::Delete),
+                "MODIFY" => Some(Self::Modify),
+                _ => None,
+            }
+        }
+    }
+}
+/// Not an event: the tags of a host or a service.
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TagInfo {
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    #[prost(enumeration = "TagType", tag = "2")]
+    pub r#type: i32,
+}
 /// `bbdo/common.proto`, package com.centreon.common upstream: an enum travels
 /// as its number, the package does not matter on the wire.
 #[allow(clippy::all)]
@@ -1505,6 +1902,39 @@ impl AckType {
             "NONE" => Some(Self::None),
             "NORMAL" => Some(Self::Normal),
             "STICKY" => Some(Self::Sticky),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TagType {
+    Servicegroup = 0,
+    Hostgroup = 1,
+    Servicecategory = 2,
+    Hostcategory = 3,
+}
+impl TagType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Servicegroup => "SERVICEGROUP",
+            Self::Hostgroup => "HOSTGROUP",
+            Self::Servicecategory => "SERVICECATEGORY",
+            Self::Hostcategory => "HOSTCATEGORY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SERVICEGROUP" => Some(Self::Servicegroup),
+            "HOSTGROUP" => Some(Self::Hostgroup),
+            "SERVICECATEGORY" => Some(Self::Servicecategory),
+            "HOSTCATEGORY" => Some(Self::Hostcategory),
             _ => None,
         }
     }

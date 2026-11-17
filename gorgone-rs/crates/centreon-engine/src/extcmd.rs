@@ -11,6 +11,13 @@ pub enum DowntimeTarget {
     HostServices(String),
     /// `SCHEDULE_SVC_DOWNTIME`.
     Service(String, String),
+    /// `SCHEDULE_HOSTGROUP_HOST_DOWNTIME` (each member host), with
+    /// `services` `SCHEDULE_HOSTGROUP_SVC_DOWNTIME` (each service of each
+    /// member host).
+    HostGroup { name: String, services: bool },
+    /// `SCHEDULE_SERVICEGROUP_HOST_DOWNTIME` (each host of the members),
+    /// with `services` `SCHEDULE_SERVICEGROUP_SVC_DOWNTIME` (each member).
+    ServiceGroup { name: String, services: bool },
 }
 
 /// A supported external command.
@@ -150,6 +157,20 @@ fn number<T: std::str::FromStr>(value: &str, what: &str) -> Result<T, ParseError
         .map_err(|_| ParseError::Invalid(format!("{what} {value:?} must be an integer")))
 }
 
+/// Name and arguments of a line, as `processing::execute` logs them
+/// (`EXTERNAL COMMAND: name;args`).
+#[must_use]
+pub fn name_and_args(line: &str) -> (&str, &str) {
+    let line = line.trim_end_matches(['\r', '\n']);
+    let body = match line.strip_prefix('[') {
+        Some(stamped) => stamped
+            .split_once(']')
+            .map_or(line, |(_, rest)| rest.trim_start()),
+        None => line,
+    };
+    body.split_once(';').unwrap_or((body, ""))
+}
+
 /// Parses `[timestamp] NAME;arg;…`.
 #[cfg(test)]
 pub fn parse(line: &str) -> Result<ExtCommand, ParseError> {
@@ -218,9 +239,13 @@ fn parse_body(body: &str) -> Result<ExtCommand, ParseError> {
                 output: parts[2].to_owned(),
             })
         }
-        "SCHEDULE_HOST_DOWNTIME" | "SCHEDULE_HOST_SVC_DOWNTIME" | "SCHEDULE_SVC_DOWNTIME" => {
-            downtime(name, args)
-        }
+        "SCHEDULE_HOST_DOWNTIME"
+        | "SCHEDULE_HOST_SVC_DOWNTIME"
+        | "SCHEDULE_SVC_DOWNTIME"
+        | "SCHEDULE_HOSTGROUP_HOST_DOWNTIME"
+        | "SCHEDULE_HOSTGROUP_SVC_DOWNTIME"
+        | "SCHEDULE_SERVICEGROUP_HOST_DOWNTIME"
+        | "SCHEDULE_SERVICEGROUP_SVC_DOWNTIME" => downtime(name, args),
         "DEL_HOST_DOWNTIME" | "DEL_SVC_DOWNTIME" => {
             let id = args.split('\n').next().unwrap_or_default();
             Ok(ExtCommand::DeleteDowntime {
@@ -312,11 +337,23 @@ fn downtime(name: &str, args: &str) -> Result<ExtCommand, ParseError> {
             .next()
             .ok_or_else(|| ParseError::Invalid(format!("{name}: no {what}")))
     };
-    let host = next("host")?.to_owned();
+    let first = next("host")?.to_owned();
     let target = match name {
-        "SCHEDULE_HOST_DOWNTIME" => DowntimeTarget::Host(host),
-        "SCHEDULE_HOST_SVC_DOWNTIME" => DowntimeTarget::HostServices(host),
-        _ => DowntimeTarget::Service(host, next("service")?.to_owned()),
+        "SCHEDULE_HOST_DOWNTIME" => DowntimeTarget::Host(first),
+        "SCHEDULE_HOST_SVC_DOWNTIME" => DowntimeTarget::HostServices(first),
+        "SCHEDULE_HOSTGROUP_HOST_DOWNTIME" | "SCHEDULE_HOSTGROUP_SVC_DOWNTIME" => {
+            DowntimeTarget::HostGroup {
+                name: first,
+                services: name.ends_with("SVC_DOWNTIME"),
+            }
+        }
+        "SCHEDULE_SERVICEGROUP_HOST_DOWNTIME" | "SCHEDULE_SERVICEGROUP_SVC_DOWNTIME" => {
+            DowntimeTarget::ServiceGroup {
+                name: first,
+                services: name.ends_with("SVC_DOWNTIME"),
+            }
+        }
+        _ => DowntimeTarget::Service(first, next("service")?.to_owned()),
     };
     let start = number(next("start_time")?, "start_time")?;
     let end = number(next("end_time")?, "end_time")?;

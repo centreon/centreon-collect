@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 
 use crate::book::{Acknowledgement, Comment, Downtime, EntryType, Key, Source};
 use crate::events;
+use crate::logs::DowntimeAlert;
 use crate::recurring::{self, RecurringConf, Rule, Target};
 use crate::state::AckType;
 use crate::tz::Tz;
@@ -208,16 +209,12 @@ impl Core {
             self.emit_downtime(id, None);
             let obj = &mut self.objs[index];
             obj.state.downtime_depth -= 1;
-            if obj.state.downtime_depth == 0 {
-                tracing::info!(
-                    host_id = obj.key.0,
-                    service_id = obj.key.1,
-                    "DOWNTIME ALERT: STOPPED; the object has exited from a period of scheduled \
-                     downtime"
-                );
-            }
+            let stopped = obj.state.downtime_depth == 0;
             if !downtime.fixed && downtime.incremented_pending && obj.pending_flex > 0 {
                 obj.pending_flex -= 1;
+            }
+            if stopped {
+                self.log_downtime_alert(index, DowntimeAlert::Stopped);
             }
             self.emit_status(index);
             // Downtimes this one triggered end with it.
@@ -244,15 +241,10 @@ impl Core {
                 d.in_effect = true;
             }
             self.emit_downtime(id, None);
-            let obj = &mut self.objs[index];
-            if obj.state.downtime_depth == 0 {
-                tracing::info!(
-                    host_id = obj.key.0,
-                    service_id = obj.key.1,
-                    "DOWNTIME ALERT: STARTED; the object has entered a period of scheduled \
-                     downtime"
-                );
+            if self.objs[index].state.downtime_depth == 0 {
+                self.log_downtime_alert(index, DowntimeAlert::Started);
             }
+            let obj = &mut self.objs[index];
             obj.state.downtime_depth += 1;
             self.emit_status(index);
             let stop = if downtime.fixed {
@@ -295,6 +287,9 @@ impl Core {
                 self.emit_downtime(id, None);
                 self.objs[index].state.downtime_depth -= 1;
                 self.emit_status(index);
+                if self.objs[index].state.downtime_depth == 0 {
+                    self.log_downtime_alert(index, DowntimeAlert::Cancelled);
+                }
             }
         }
         self.delete_downtime(id);
@@ -470,7 +465,54 @@ impl Core {
             sticky,
             "problem acknowledged"
         );
+        self.schedule_acknowledgement_expiry(key, now);
         "problem acknowledged".to_owned()
+    }
+
+    /// `schedule_acknowledgement_expiration` (`service.cc:935-945`,
+    /// `host.cc:1202-1212`): with an `acknowledgement_timeout`, a timer at
+    /// the time of the acknowledgement plus the timeout, in units of
+    /// `interval_length`.
+    pub(crate) fn schedule_acknowledgement_expiry(&mut self, key: Key, acknowledged: i64) {
+        let Some(&index) = self.by_key.get(&key) else {
+            return;
+        };
+        let timeout = self.acknowledgement_timeout(index);
+        if timeout > 0 && acknowledged != 0 {
+            self.add_timer(acknowledged + timeout, Timer::AcknowledgementExpiry(key));
+        }
+    }
+
+    /// `acknowledgement_timeout` of object `index`, in seconds.
+    fn acknowledgement_timeout(&self, index: usize) -> i64 {
+        let units = match &self.objs[index].conf {
+            super::ObjConf::Host(host) => host.acknowledgement_timeout,
+            super::ObjConf::Service { conf, .. } => conf.acknowledgement_timeout,
+        };
+        i64::from(units) * self.interval_length() as i64
+    }
+
+    /// `check_for_expired_acknowledgement` (`service.cc:828-848`,
+    /// `host.cc:2340-2354`), its test included: the acknowledgement ends
+    /// when its time plus the timeout is not past yet, which is the case
+    /// when the timer runs on time.
+    pub(crate) fn expire_acknowledgement(&mut self, key: Key) {
+        let Some(&index) = self.by_key.get(&key) else {
+            return;
+        };
+        if self.objs[index].state.acknowledgement == AckType::None {
+            return;
+        }
+        let timeout = self.acknowledgement_timeout(index);
+        let Some(acknowledged) = self.book.acknowledgements.get(&key).map(|a| a.entry_time) else {
+            return;
+        };
+        let now = self.clock.now();
+        if timeout > 0 && acknowledged + timeout >= now {
+            self.log_acknowledgement_expired(index);
+            self.objs[index].state.acknowledgement = AckType::None;
+            self.emit_status(index);
+        }
     }
 
     /// `remove_*_acknowledgement`.
@@ -587,7 +629,11 @@ impl Core {
         for ack in retained.acknowledgements {
             let key = (ack.host_id, ack.service_id);
             if exists(self, &key) {
+                let acknowledged = ack.entry_time;
                 self.book.acknowledgements.insert(key, ack);
+                // `applier::scheduler`: the expirations of the retained
+                // acknowledgements (`scheduler.cc:905-915`, `:1015-1022`).
+                self.schedule_acknowledgement_expiry(key, acknowledged);
             }
         }
         let mut downtimes: Vec<Downtime> = retained

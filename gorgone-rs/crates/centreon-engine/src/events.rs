@@ -2,14 +2,16 @@
 //! them for the fields the scheduler knows.
 
 use gorgone_proto::bbdo::{
-    AckType, Acknowledgement, Comment, Downtime, Host, HostStatus, Instance, InstanceConfiguration,
-    InstanceStatus, Service, ServiceStatus, ServiceType, acknowledgement, comment, downtime, host,
-    host_status, service, service_status,
+    AckType, Acknowledgement, Comment, Downtime, Host, HostGroup, HostGroupMember, HostParent,
+    HostStatus, Instance, InstanceConfiguration, InstanceStatus, Service, ServiceGroup,
+    ServiceGroupMember, ServiceStatus, ServiceType, Severity, Tag, TagInfo, acknowledgement,
+    comment, downtime, host, host_status, service, service_status, severity, tag,
 };
 
 use crate::bbdo::{event, frame};
 use crate::book;
 use crate::cfg::{HostConf, ServiceConf};
+use crate::objects::{self, HostGroupConf, ServiceGroupConf, SeverityConf, TagConf};
 use crate::state::{self, CheckState, CheckType, StateType};
 
 /// Name the instance reports in `instances.engine`.
@@ -217,6 +219,170 @@ fn should_be_scheduled(st: &CheckState) -> bool {
     st.next_check != 0
 }
 
+fn tag_type(kind: objects::TagType) -> gorgone_proto::bbdo::TagType {
+    match kind {
+        objects::TagType::ServiceGroup => gorgone_proto::bbdo::TagType::Servicegroup,
+        objects::TagType::HostGroup => gorgone_proto::bbdo::TagType::Hostgroup,
+        objects::TagType::ServiceCategory => gorgone_proto::bbdo::TagType::Servicecategory,
+        objects::TagType::HostCategory => gorgone_proto::bbdo::TagType::Hostcategory,
+    }
+}
+
+/// `tags` of `pb_host`/`pb_service` (`forward_pb_host`, `broker.cc:660-664`).
+fn tag_infos(tags: &[(u64, objects::TagType)]) -> Vec<TagInfo> {
+    tags.iter()
+        .map(|(id, kind)| TagInfo {
+            id: *id,
+            r#type: tag_type(*kind).into(),
+        })
+        .collect()
+}
+
+/// What a severity or tag event tells (`NEBTYPE_*_ADD`, `_DELETE`,
+/// `_UPDATE`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Action {
+    Add,
+    Delete,
+    Modify,
+}
+
+/// `pb_severity` (`broker_adaptive_severity_data`, `broker.cc:233-276`).
+#[must_use]
+pub fn severity(poller_id: u64, conf: &SeverityConf, action: Action) -> Vec<u8> {
+    frame(
+        event::SEVERITY,
+        &Severity {
+            id: conf.id,
+            action: match action {
+                Action::Add => severity::Action::Add,
+                Action::Delete => severity::Action::Delete,
+                Action::Modify => severity::Action::Modify,
+            }
+            .into(),
+            level: conf.level,
+            icon_id: conf.icon_id,
+            name: conf.name.clone(),
+            r#type: match conf.kind {
+                objects::SeverityType::Service => severity::Type::Service,
+                objects::SeverityType::Host => severity::Type::Host,
+            }
+            .into(),
+            poller_id,
+        },
+    )
+}
+
+/// `pb_tag` (`broker_adaptive_tag_data`, `broker.cc:280-336`).
+#[must_use]
+pub fn tag(poller_id: u64, conf: &TagConf, action: Action) -> Vec<u8> {
+    frame(
+        event::TAG,
+        &Tag {
+            id: conf.id,
+            action: match action {
+                Action::Add => tag::Action::Add,
+                Action::Delete => tag::Action::Delete,
+                Action::Modify => tag::Action::Modify,
+            }
+            .into(),
+            r#type: tag_type(conf.kind).into(),
+            name: conf.name.clone(),
+            poller_id,
+        },
+    )
+}
+
+/// `pb_host_group` (`forward_pb_group`, `broker.cc:2131-2180`): enabled
+/// when added, or updated with members.
+#[must_use]
+pub fn host_group(poller_id: u64, conf: &HostGroupConf, enabled: bool) -> Vec<u8> {
+    frame(
+        event::HOST_GROUP,
+        &HostGroup {
+            enabled,
+            hostgroup_id: conf.id,
+            name: conf.name.clone(),
+            poller_id,
+            alias: conf.alias.clone(),
+            ..HostGroup::default()
+        },
+    )
+}
+
+/// `pb_host_group_member` (`forward_pb_group_member`, `broker.cc:2341-2385`).
+#[must_use]
+pub fn host_group_member(
+    poller_id: u64,
+    conf: &HostGroupConf,
+    host_id: u64,
+    enabled: bool,
+) -> Vec<u8> {
+    frame(
+        event::HOST_GROUP_MEMBER,
+        &HostGroupMember {
+            enabled,
+            hostgroup_id: conf.id,
+            name: conf.name.clone(),
+            host_id,
+            poller_id,
+            ..HostGroupMember::default()
+        },
+    )
+}
+
+/// `pb_service_group` (`forward_pb_group`, `broker.cc:2182-2215`).
+#[must_use]
+pub fn service_group(poller_id: u64, conf: &ServiceGroupConf, enabled: bool) -> Vec<u8> {
+    frame(
+        event::SERVICE_GROUP,
+        &ServiceGroup {
+            enabled,
+            servicegroup_id: conf.id,
+            name: conf.name.clone(),
+            poller_id,
+            alias: conf.alias.clone(),
+            ..ServiceGroup::default()
+        },
+    )
+}
+
+/// `pb_service_group_member` (`forward_pb_group_member`, `broker.cc:2386-2425`).
+#[must_use]
+pub fn service_group_member(
+    poller_id: u64,
+    conf: &ServiceGroupConf,
+    (host_id, service_id): (u64, u64),
+    enabled: bool,
+) -> Vec<u8> {
+    frame(
+        event::SERVICE_GROUP_MEMBER,
+        &ServiceGroupMember {
+            enabled,
+            servicegroup_id: conf.id,
+            name: conf.name.clone(),
+            host_id,
+            poller_id,
+            service_id,
+            ..ServiceGroupMember::default()
+        },
+    )
+}
+
+/// `pb_host_parent` (`forward_pb_relation`, `broker.cc:3973-4005`).
+#[must_use]
+pub fn host_parent(child_id: u64, parent_id: u64, enabled: bool) -> Vec<u8> {
+    frame(
+        event::HOST_PARENT,
+        &HostParent {
+            enabled,
+            child_id,
+            parent_id,
+            ..HostParent::default()
+        },
+    )
+}
+
 /// `pb_host`: configuration and current state of a host; `enabled` false
 /// when it is removed.
 #[must_use]
@@ -249,6 +415,7 @@ pub fn host(poller_id: u64, conf: &HostConf, st: &CheckState, now: i64, enabled:
         last_state_change: st.last_state_change,
         last_time_up: st.last_time[0],
         last_time_down: st.last_time[1],
+        last_time_unreachable: st.last_time[2],
         last_update: now,
         latency: st.latency,
         max_check_attempts: i32::try_from(check.max_check_attempts).unwrap_or(i32::MAX),
@@ -271,6 +438,9 @@ pub fn host(poller_id: u64, conf: &HostConf, st: &CheckState, now: i64, enabled:
         display_name: conf.name.clone(),
         name: conf.name.clone(),
         instance_id: poller_id,
+        severity_id: conf.severity_id,
+        tags: tag_infos(&conf.tags),
+        icon_id: conf.icon_id,
         ..Host::default()
     };
     frame(event::HOST, &message)
@@ -302,6 +472,7 @@ pub fn host_status(conf: &HostConf, st: &CheckState) -> Vec<u8> {
             last_hard_state_change: st.last_hard_state_change,
             last_time_up: st.last_time[0],
             last_time_down: st.last_time[1],
+            last_time_unreachable: st.last_time[2],
             output: st.output.clone(),
             long_output: st.long_output.clone(),
             perfdata: st.perfdata.clone(),
@@ -381,6 +552,9 @@ pub fn service(
         display_name: conf.description.clone(),
         r#type: ServiceType::Service.into(),
         instance_id: poller_id,
+        severity_id: conf.severity_id,
+        tags: tag_infos(&conf.tags),
+        icon_id: conf.icon_id,
         ..Service::default()
     };
     frame(event::SERVICE, &message)

@@ -88,6 +88,18 @@ Event types used (`bbdo/events.hh`): category `neb` = 1, `bbdo` = 2.
 | `neb:pb_comment`                | 35      | `Comment`                     |
 | `neb:pb_downtime`               | 36      | `Downtime`                    |
 | `neb:pb_acknowledgement`        | 45      | `Acknowledgement`             |
+| `neb:pb_severity`               | 33      | `Severity`                    |
+| `neb:pb_tag`                    | 34      | `Tag`                         |
+| `neb:pb_log_entry`              | 41      | `LogEntry`                    |
+| `neb:pb_host_group`             | 49      | `HostGroup`                   |
+| `neb:pb_host_group_member`      | 50      | `HostGroupMember`             |
+| `neb:pb_service_group`          | 51      | `ServiceGroup`                |
+| `neb:pb_service_group_member`   | 52      | `ServiceGroupMember`          |
+| `neb:pb_host_parent`            | 53      | `HostParent`                  |
+
+There is no dependency event: `de_pb_host_dependency` and
+`de_pb_service_dependency` are "Not used" (`bbdo/events.hh:149-150`), and
+`broker.cc` sends none in BBDO 3.
 
 The messages are mirrored in `gorgone-rs/proto/com/centreon/broker/bbdo.proto`
 with the field numbers of `bbdo/neb.proto` and `bbdo/bbdo.proto`, reduced to
@@ -181,15 +193,18 @@ On the central (`broker/unified_sql/src/stream_sql.cc`):
 Order kept by the engine on every (re)connection:
 
 ```
-pb_instance(running) → pb_host × N → pb_service × M → pb_downtime × D
-→ pb_comment × C → pb_instance_configuration → pb_host_status × N
-→ pb_service_status × M → pb_instance_status
+pb_instance(running) → pb_severity × S → pb_tag × T → pb_host × N
+→ pb_service × M → pb_downtime × D → pb_comment × C → pb_host_parent × P
+→ (pb_host_group, pb_host_group_member × m) × G
+→ (pb_service_group, pb_service_group_member × m) × G'
+→ pb_instance_configuration → pb_host_status × N → pb_service_status × M
+→ pb_instance_status → pb_log_entry (made before the first connection)
 ```
 
-then statuses as checks complete and `pb_instance_status` every
-`status_update_interval`. Custom variables, groups, severities, tags and
-parents are not sent yet (batch 2b); `resources` are still filled from
-`pb_host`/`pb_service`.
+then statuses as checks complete, log entries, and `pb_instance_status`
+every `status_update_interval`. Custom variables are not sent;
+`resources` take their severity and tags from `pb_host`/`pb_service`
+(`severity_id`, `tags`).
 
 Downtimes and comments are in every dump with their current state, where
 Engine sends its downtimes as added (`send_downtimes_list`,
@@ -215,15 +230,19 @@ Engine does not resend its configuration on a reload
 each object type is diffed (`pb_difference`) and each applier tells the
 broker about its own changes:
 
-| Change          | Engine                                                                                                                            | Event                                                                    |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| host added      | `applier::host::add_object`, `NEBTYPE_HOST_ADD` (`host.cc:134`)                                                                   | `pb_host`, `enabled` true                                                |
-| host changed    | `applier::host::modify_object`, `NEBTYPE_HOST_UPDATE` (`host.cc:387`)                                                             | `pb_host`, `enabled` true                                                |
-| host removed    | `applier::host::remove_object`: `NEBTYPE_SERVICE_DELETE` for each of its services, then `NEBTYPE_HOST_DELETE` (`host.cc:428-436`) | `pb_service`, then `pb_host`, `enabled` false (`broker.cc:574`, `:1059`) |
-| service added   | `NEBTYPE_SERVICE_ADD` (`service.cc:152`)                                                                                          | `pb_service`, `enabled` true                                             |
-| service changed | `NEBTYPE_SERVICE_UPDATE` (`service.cc:407`)                                                                                       | `pb_service`, `enabled` true                                             |
-| service removed | `NEBTYPE_SERVICE_DELETE` (`service.cc:464-466`)                                                                                   | `pb_service`, `enabled` false                                            |
-| end of reload   | `cbm->reload()` (`state.cc:1617`), `cbmod::reload` (`broker/neb/src/cbmod.cc:376-391`)                                            | `pb_instance_configuration{loaded}`                                      |
+| Change          | Engine                                                                                                                                                                         | Event                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| host added      | `applier::host::add_object`, `NEBTYPE_HOST_ADD` (`host.cc:134`)                                                                                                                | `pb_host`, `enabled` true                                                                                            |
+| host changed    | `applier::host::modify_object`, `NEBTYPE_HOST_UPDATE` (`host.cc:387`)                                                                                                          | `pb_host`, `enabled` true                                                                                            |
+| host removed    | `applier::host::remove_object`: `NEBTYPE_SERVICE_DELETE` for each of its services, then `NEBTYPE_HOST_DELETE` (`host.cc:428-436`)                                              | `pb_service`, then `pb_host`, `enabled` false (`broker.cc:574`, `:1059`)                                             |
+| service added   | `NEBTYPE_SERVICE_ADD` (`service.cc:152`)                                                                                                                                       | `pb_service`, `enabled` true                                                                                         |
+| service changed | `NEBTYPE_SERVICE_UPDATE` (`service.cc:407`)                                                                                                                                    | `pb_service`, `enabled` true                                                                                         |
+| service removed | `NEBTYPE_SERVICE_DELETE` (`service.cc:464-466`)                                                                                                                                | `pb_service`, `enabled` false                                                                                        |
+| severity, tag   | `applier::severity`, `applier::tag`: modified, removed, added (`severity.cc:57-125`, `tag.cc:64-120`)                                                                          | `pb_severity`/`pb_tag`, `MODIFY`, `DELETE`, `ADD`                                                                    |
+| host group      | `applier::hostgroup` (`hostgroup.cc:54`, `:96-114`, `:135`); members added at `hostgroup::resolve` (`engine/src/hostgroup.cc:177-183`)                                         | changed members: each old one `enabled` false, the group (`enabled` when it has members), each new one at resolution |
+| service group   | `applier::servicegroup` (`servicegroup.cc:88`, `:150-191`), `servicegroup::resolve`                                                                                            | same as host groups                                                                                                  |
+| parents         | `applier::host::modify_object` (`host.cc:344-368`): old ones deleted; `host::resolve` adds every parent of every host (`engine/src/host.cc:4007`, `add_child_host` `:335-344`) | `pb_host_parent`, `enabled` false then true                                                                          |
+| end of reload   | `cbm->reload()` (`state.cc:1617`), `cbmod::reload` (`broker/neb/src/cbmod.cc:376-391`)                                                                                         | `pb_instance_configuration{loaded}`                                                                                  |
 
 `broker_program_state` sends `pb_instance` only at the start and the end of
 the event loop (`broker.cc:4160-4212`): never on a reload. `unified_sql`
@@ -234,12 +253,19 @@ first (`_clean_tables`, `:73-160`).
 
 The engine does the same: a new configuration (document or files) is
 diffed against the one in force by object key (`host_id`, `(host_id,
-service_id)`); objects whose resolved configuration differs are "changed".
-On the same connection the central gets, in this order, `pb_service` then
-`pb_host` with `enabled` false for removed objects, `pb_host` then
-`pb_service` for added and changed ones (with their current state, so a
-kept object keeps its state), then `pb_instance_configuration`; no
-`pb_instance`, no status. Kept objects keep their state and their plan. A
+service_id)`, group name, `(id, type)` of severities and tags); objects
+whose resolved configuration differs are "changed". On the same
+connection the central gets, in the order of `applier::state::_processing`
+(`state.cc:1477-1530`): severities and tags; the group memberships then
+`pb_service` with `enabled` false of the removed services; the
+memberships and parents then `pb_host` with `enabled` false of the removed
+hosts (`host.cc:410-436`, `service.cc:455-466`); the old parents of the
+hosts whose parents changed; `pb_host` of the added and changed hosts
+(with their current state, so a kept object keeps its state); host
+groups; `pb_service` of the added and changed services; service groups;
+the resolution (every parent, the members of the new and changed groups);
+then `pb_instance_configuration`; no `pb_instance`, no status. Kept
+objects keep their state and their plan. A
 (re)connection still sends the full dump above, and a change of the poller
 identity or of the central address reconnects, hence a full dump. Commands
 and resource macros have no event: they only change the next command lines.
@@ -266,10 +292,21 @@ reads:
 - **Object files** (`parser.cc:222-486`): `define <type> {` … `}` blocks,
   `key value` lines (key up to the first blank, value trimmed), comment lines
   starting with `#` or `;`, `\` line continuation. Types read: `command`,
-  `host`, `service`, `timeperiod`, `recurringdowntime`; every other type is
-  skipped. Host keys add `check_period` and `timezone`, service keys
-  `check_period` (a service has the zone of its host,
-  `common/engine_conf/service_helper.cc:313-344`).
+  `host`, `service`, `timeperiod`, `recurringdowntime`, `hostgroup`,
+  `servicegroup`, `severity`, `tag`, `hostdependency`, `servicedependency`;
+  every other type is skipped. Host keys add `check_period`, `timezone`,
+  `parents`, `hostgroups`, `severity` (`severity_id`), `category_tags`,
+  `group_tags`, `icon_id`, `acknowledgement_timeout`; service keys
+  `check_period`, `timezone` (the zone of its host when absent,
+  `common/engine_conf/service_helper.cc:313-344`), `servicegroups` and the
+  same severity, tags, icon and timeout. Main file keys add
+  `log_service_retries`, `log_host_retries`, `log_external_commands`,
+  `log_passive_checks`, `log_level_events`, `log_level_checks`,
+  `log_level_external_command`, `soft_state_dependencies`,
+  `enable_predictive_host_dependency_checks`,
+  `enable_predictive_service_dependency_checks`,
+  `cached_host_check_horizon`, with Engine's defaults
+  (`common/engine_conf/state_helper.cc:242-346`).
 - **Templates** (`parser.cc:280-300`, `:636-656`, `_merge` `:695-…`): an
   object with `name` is a template (also when registered); `register 0`
   objects are templates only. `use a,b` resolves `a` (recursively), merges it,
@@ -300,15 +337,18 @@ reads:
 configuration is one JSON document, never a file on the poller.
 
 - **Format**: JSON, documented by
-  [`schemas/engine-configuration.v2.json`](../schemas/engine-configuration.v2.json)
-  (version 1: [`v1`](../schemas/engine-configuration.v1.json)),
+  [`schemas/engine-configuration.v3.json`](../schemas/engine-configuration.v3.json)
+  (versions 1 and 2: [`v1`](../schemas/engine-configuration.v1.json),
+  [`v2`](../schemas/engine-configuration.v2.json)),
   read by the serde model of `crates/centreon-engine/src/document.rs`. JSON
   rather than protobuf: PHP writes it with `json_encode`, protobuf would
   need a PHP library and generated classes in centreon-web. Content:
   `version`, `poller {id, name}`, `broker {address, name}` (what the `cbmod`
   file gave), `settings` (the globals above), `resource_macros`
   (`$USERn$`), `commands`, `host_templates`, `hosts`, `service_templates`,
-  `services`, `timeperiods` and `recurring_downtimes` (version 2). Field names are the Engine keys after alias resolution
+  `services`, `timeperiods` and `recurring_downtimes` (version 2),
+  `hostgroups`, `servicegroups`, `severities`, `tags`, `host_dependencies`
+  and `service_dependencies` (version 3). Field names are the Engine keys after alias resolution
   (`check_interval`, `active_checks_enabled`…), `host_id`/`service_id` for
   `_HOST_ID`/`_SERVICE_ID`, custom macros in `macros` without the leading
   underscore.
@@ -335,13 +375,39 @@ configuration is one JSON document, never a file on the poller.
   `encrypt::…` is decrypted, `raw::` removed, as Engine reads its files
   (version 1 values are literal: the web decrypted them). The change of
   meaning makes it a new version rather than fields added to version 1: an
-  engine of version 1 would run the plugins with the ciphertext. The engine
-  reads versions 1 and 2; a version 1 document using a version 2 field is
-  refused by name. The engine reports `centreon-engine 0.1.0
-(configuration 1-2)` in its heartbeat, and gorgone-server refuses (409) a
-  document newer than what the node reads before submitting the job; an
-  engine that reports no range reads version 1. centreon-web sends
-  version 2.
+  engine of version 1 would run the plugins with the ciphertext. A version
+  1 document using a version 2 field is refused by name. The engine
+  reports the versions it reads in its heartbeat (`centreon-engine 0.1.0
+(configuration 1-3)`), and gorgone-server refuses (409) a document newer
+  than what the node reads before submitting the job; an engine that
+  reports no range reads version 1.
+- **Version 3** (batch 2b): host and service groups, severities, tags,
+  `parents`, `hostgroups`/`servicegroups` of the objects, `severity_id`,
+  `category_tags`, `group_tags`, `icon_id`, `acknowledgement_timeout`, a
+  service's own `timezone`, host and service dependencies and the event
+  log settings above. No field changes meaning, so by the rule above these
+  could have been added to version 2. They make a new version all the same:
+  centreon-web sends groups, tags and severities for nearly every poller,
+  and an engine reading 1-2 would refuse each of those documents at apply
+  time, after gorgone-server stored and submitted it; with version 3,
+  gorgone-server refuses it up front (409, the node reports `configuration
+1-2`) and the operator sees why. The engine reports `configuration 1-3`;
+  gorgone-server accepts versions 1 to 3; a version 1 or 2 document using a
+  version 3 field is refused by name; centreon-web sends version 3.
+- **Relations in the document**: groups as the generator writes them
+  (`hostgroup_id`, `hostgroup_name`, `alias`, `members` as host names;
+  `servicegroup_id`, `servicegroup_name`, `alias`, `members` as `[host,
+service]`, `servicegroup_members`); severities (`id`, `severity_name`,
+  `level`, `icon_id`, `type` `host`/`service`); tags (`id`, `tag_name`,
+  `type` `hostcategory`, `servicecategory`, `hostgroup`, `servicegroup`);
+  dependencies with the `.cfg` keys of the generator as lists
+  (`host_name`, `hostgroup_name`, `dependent_host_name`,
+  `dependent_hostgroup_name`, `service_description`, `servicegroup_name`,
+  `dependent_service_description`, `dependent_servicegroup_name`) and
+  `execution_failure_criteria`, `notification_failure_criteria`,
+  `inherits_parent`, `dependency_period`. They become the raw objects of
+  the file reader. centreon-web leaves out what refers to the meta-service
+  host `_Module_Meta`, absent from the document.
 - **Timeperiods in the document**: `timeperiod_name`, `alias`, `use`
   (included periods: each timeperiod is the template, under its name, of
   those that use it, as the web writes `name` = `timeperiod_name`), the
@@ -386,7 +452,12 @@ address): syntax of the files, unknown template, duplicate template
 name, host without `host_name` or `host_id`, service without description,
 host, `service_id` or check command, service on an unknown host, unknown
 check command, duplicate `host_id` or `(host_id, service_id)`, unreadable or
-invalid `cbmod` file. The report ends with `Total Warnings:` / `Total
+invalid `cbmod` file, a group, severity or tag without name, id, level or
+type, a group member, parent, group of an object, tag or severity that does
+not exist (`hostgroup::resolve`, `servicegroup::resolve`, `host::resolve`,
+`applier::host::add_object`), a dependency without master or dependent, on
+an unknown object, group or `dependency_period`, invalid failure criteria,
+an invalid `log_level_*`. The report ends with `Total Warnings:` / `Total
 Errors:` like `centengine -v`, which the agent already reads.
 
 ### Macros and command line
@@ -448,8 +519,13 @@ Errors:` like `centengine -v`, which the agent already reads.
   `last_state_change` changes on any state change, `last_hard_state` and
   `last_hard_state_change` on a hard one, `last_time_<state>` on every result.
 - **Hosts**: checked only when they have a check command (else UP, never
-  scheduled, as a passive host). Exit 0 or 1 → UP, 2 or 3 → DOWN (Nagios 3,
-  no parents so no UNREACHABLE). Same SOFT/HARD rules with UP/DOWN.
+  scheduled, as a passive host). Exit 0 or 1 → UP, 2 or 3 → a problem,
+  DOWN or UNREACHABLE (parents below). Same SOFT/HARD rules, DOWN and
+  UNREACHABLE being one problem for the attempts.
+- **Output**: an empty output becomes `(No output returned from plugin)`
+  (`(No output returned from host check)` for a host), and `;` becomes `:`
+  (`service.cc:1328-1340`, `host.cc:1449-1460`): `;` separates the fields
+  of the event log.
 - **Active/passive**: `active_checks_enabled 0` objects are not scheduled
   but accept passive results (`PROCESS_*_CHECK_RESULT`) when
   `passive_checks_enabled`; passive results go through the same state machine
@@ -457,16 +533,136 @@ Errors:` like `centengine -v`, which the agent already reads.
 - **Timeouts**: `service_check_timeout`, `host_check_timeout`; the plugin's
   process group gets SIGKILL.
 - **Out of scope** (not done, nothing emulated): notifications and
-  escalations (and so `notification_period`, the notify flag of
-  acknowledgements and the notifications of downtimes), dependencies and
-  parents, event handlers, OCSP/OCHP, flapping, freshness, connectors (the
-  command line runs as a process), CMA/OpenTelemetry, anomaly detection,
-  meta-services, BAM virtual hosts, severities, tags, groups, custom
-  variables events, log entries (the event log), whitelist, environment
-  macros, acknowledgement expiry (`acknowledgement_timeout`), comments
-  that expire, `DEL_*_DOWNTIME_FULL`, `DEL_DOWNTIME_BY_*`, group and
-  propagated downtimes (`SCHEDULE_HOSTGROUP_*`, `SCHEDULE_AND_PROPAGATE_*`),
-  a service `timezone` of its own.
+  escalations (and so `notification_period`, the notification criteria of
+  dependencies, the notify flag of acknowledgements and the notifications
+  of downtimes), event handlers, OCSP/OCHP, flapping, freshness,
+  connectors (the command line runs as a process), CMA/OpenTelemetry,
+  anomaly detection, meta-services, BAM virtual hosts, custom variables
+  events, whitelist, environment macros, comments that expire, state
+  stalking, volatile services, `host_down_disable_service_checks`, the
+  synchronous parent checks of a host with one attempt (below),
+  `DEL_*_DOWNTIME_FULL` and `DEL_DOWNTIME_BY_*` (centreon-web sends none),
+  propagated downtimes (`SCHEDULE_AND_PROPAGATE_*`), `CURRENT` states
+  (this Engine never logs them: `CURRENT_STATES` has no caller).
+
+### Groups, severities and tags
+
+`src/cfg/relations.rs`, `src/core/relations.rs`. Host groups take their
+`members` and the `hostgroups` of the hosts (`host_helper::expand`,
+`common/engine_conf/host_helper.cc:330-345`); service groups their
+`members` (host, service pairs), the `servicegroups` of the services and,
+transitively, the members of their `servicegroup_members`
+(`servicegroup_helper::expand`). Severities and tags are keyed by `(id,
+type)` (`severity_helper.cc`, `tag_helper.cc`): a host takes a host
+severity, a service a service severity; `category_tags` give host or
+service category tags, `group_tags` host or service group tags, as
+centreon-web writes them (`host.class.php:588-605`, `service.class.php:
+261-264`) — the central fills `resources_tags` and `resources.severity_id`
+from `pb_host`/`pb_service`. Events: `pb_severity`, `pb_tag` (`ADD` at the
+dump), `pb_host_group`/`pb_service_group` with `enabled`, members, all
+skipped for a group without id (`forward_pb_group`,
+`engine/src/broker.cc:2131-2215`, `forward_pb_group_member` `:2341-2425`).
+
+### Event log
+
+`src/logs.rs`. Engine writes its event log through spdlog; a
+`broker_sink_mt` at INFO (`engine/inc/com/centreon/engine/logging/broker_sink.hh`)
+hands each line to `broker_log_data`, and `cbmod` parses it into a
+`pb_log_entry` (`forward_pb_log`, `set_pb_log_data`,
+`engine/src/broker.cc:3252-3720`): type, host, service, status, SOFT/HARD,
+attempt, output, ids from the names. The engine builds the same lines
+with Engine's format strings and parses them back with a port of
+`set_pb_log_data`, quirks included (an empty output keeps the whole
+line). Lines sent, each when its logger logs INFO (`log_level_*`):
+
+- `SERVICE ALERT: host;service;STATE;HARD|SOFT;attempt;output`
+  (`service::log_event`, `service.cc:2129-2151`) on a hard change, a soft
+  recovery, or a retry while the host is up (`service.cc:1620-1980`);
+  SOFT lines only with `log_service_retries`.
+- `HOST ALERT: host;STATE;type;attempt;output` (`host::handle_state`,
+  `host.cc:2358-2500`): a change of state when HARD (SOFT with
+  `log_host_retries`), a SOFT result without change with
+  `log_host_retries`.
+- `INITIAL HOST STATE` / `INITIAL SERVICE STATE` of each object a
+  configuration adds, at start and on each reload (`applier::state`,
+  `state.cc:1621-1634`). Engine never logs `CURRENT` states.
+- `EXTERNAL COMMAND: NAME;args` (`processing.cc:878-891`) of each
+  command handled: the check results with `log_passive_checks` on the
+  checks logger, the others with `log_external_commands` on the external
+  command logger (`ACKNOWLEDGE_*` lines become the acknowledgement types of
+  the log).
+- `PASSIVE SERVICE CHECK: host;service;state;output` (`service.cc:1396-1404`):
+  at INFO whatever `log_passive_checks` says (it drives the legacy log only).
+- `HOST|SERVICE DOWNTIME ALERT: …;STARTED|STOPPED|CANCELLED; …`
+  (`host_downtime.cc:187`, `:379`, `:454`, `service_downtime.cc:216`,
+  `:420`, `:502`) when the downtime depth leaves or reaches 0.
+- `Acknowledgement of host '…' just expired`, `Acknowledgement of service
+'…' on host '…' just expired` (`host.cc:2347`, `service.cc:835`).
+
+Lines made before the first connection (the initial states of the first
+configuration) are kept, at most 10 000, and sent after the dump, as
+`cbmod` keeps what Engine writes before it reaches the central. The
+central stores them in `logs`; the event logs page and the timeline API
+read them.
+
+### Parents and UNREACHABLE
+
+`parents` of a host (`host::resolve` checks they exist,
+`engine/src/host.cc:4007-4020`). A host result that is not UP is DOWN when
+the host has no parent or one parent UP, else UNREACHABLE
+(`determine_host_reachability`, `host.cc:3628-3680`); a passive result 1 or
+2 goes through the same rule. Then, as `process_check_result_3x`
+(`host.cc:3154-3380`), on-demand checks: a host recovering checks its
+parents and children not UP; a host going down checks its children not
+UNREACHABLE, and with more than one attempt its parents UP and, at the
+next to last attempt with `enable_predictive_host_dependency_checks`, the
+hosts it depends on. A service result checks its host as
+`handle_async_check_result` does (`service.cc:1408-1422`, `:1580-1620`,
+`:1700-1760`): a host never checked and not planned within 5 minutes, a
+host not UP when the service is OK, the host UP when a problem changed
+state; and the masters of a service at its next to last attempt
+(`enable_predictive_service_dependency_checks`). An on-demand check runs
+now unless the object is running, has no check command or active checks,
+or was checked within `cached_host_check_horizon` (15 s) when Engine uses
+the cached state. Differences: Engine runs the parents of a host with one
+attempt synchronously (`run_sync_check_3x`) before deciding; the engine
+uses their current state and checks them on demand. An on-demand check
+replaces the planned check of the object (one plan per object), where
+Engine runs it beside the plan. The services of a host not UP are HARD at
+once, as before. Events: `pb_host_parent` at the dump, state 2 in
+`pb_host_status` and `pb_host`; macros `$HOSTSTATE$` gives `UNREACHABLE`.
+
+### Dependencies
+
+`hostdependency` and `servicedependency` are expanded to one dependency per
+(dependent, master), host groups and service groups resolved
+(`hostdependency_helper::expand`, `servicedependency_helper::expand`,
+`_expand_services` `:301-344`). Criteria letters as
+`servicedependency_helper::hook` (`o,w,c,u,p,n,a`; `a` leaves UNKNOWN out)
+and `hostdependency_helper::hook` (`o,d,u,p,n,a`). Execution: a scheduled
+check is not run when `authorized_by_dependencies(execution)` fails
+(`service.cc:3613-3662`, `host.cc:3706-3755`, from `verify_check_viability`
+`service.cc:3177-3188`): the master's state (its last hard state while
+SOFT, unless `soft_state_dependencies`) is one of the criteria, or it was
+never checked with `p`; `inherits_parent` checks the master's own
+dependencies. Quirk kept: a dependency outside its `dependency_period` (in
+the zone of the process) authorizes everything. The check is planned one
+interval later (the retry interval while SOFT, `service.cc:3130-3134`) at
+the next valid time, and a status is sent; `last_check` does not move.
+Forced checks ignore it (`CHECK_OPTION_FORCE_EXECUTION`). Notification
+criteria are kept for batch 3. No BBDO event (see section 1).
+
+### Acknowledgement expiry
+
+`acknowledgement_timeout` (units of `interval_length`,
+`applier/service.cc:102`, `applier/host.cc:88`): an acknowledgement
+schedules `EVENT_EXPIRE_*_ACK` at its time plus the timeout
+(`schedule_acknowledgement_expiration`, `service.cc:935-945`), also for
+the acknowledgements of the retention (`applier/scheduler.cc:905-915`).
+When it runs, the acknowledgement ends if its time plus the timeout is
+not past yet (`check_for_expired_acknowledgement`, `service.cc:828-848`):
+Engine's test, which holds when the timer runs on time. A status follows
+(and `cbmod`'s deletion of the acknowledgement), and the expiry line.
 
 ### Timeperiods and check periods
 
@@ -544,12 +740,17 @@ actual_end_time}` and depth − 1; then deleted, with the downtimes it
   triggered. A downtime never started and over is deleted, cancelled.
 - **Commands** (`commands.cc:933-1200`): `SCHEDULE_HOST_DOWNTIME`,
   `SCHEDULE_HOST_SVC_DOWNTIME` (each service of the host),
-  `SCHEDULE_SVC_DOWNTIME`; the comment is one `;` piece, as Engine reads
-  it; the entry time is the timestamp of the command. These, `DEL_*` and
-  the acknowledgements and comments below are what centreon-web sends
+  `SCHEDULE_SVC_DOWNTIME`, `SCHEDULE_HOSTGROUP_HOST_DOWNTIME` (each member),
+  `SCHEDULE_HOSTGROUP_SVC_DOWNTIME` (each service of each member),
+  `SCHEDULE_SERVICEGROUP_HOST_DOWNTIME` (each host of the members, once),
+  `SCHEDULE_SERVICEGROUP_SVC_DOWNTIME` (each member); an unknown group is
+  ignored. The comment is one `;` piece, as Engine reads it; the entry
+  time is the timestamp of the command. These, `DEL_*` and the
+  acknowledgements and comments below are what centreon-web sends
   (`src/Centreon/Domain/Engine/EngineService.php`; the legacy comments
-  page sends `DEL_*_COMMENT`); the `_FULL` variants are not sent by the
-  web and stay refused.
+  page sends `DEL_*_COMMENT`); the `_FULL` and `DEL_DOWNTIME_BY_*`
+  variants are sent neither by the web nor by its scripts and stay
+  refused.
 - A reload that removes an object deletes its downtimes, comments and
   acknowledgement (events sent); Engine would only fail to handle them.
 
@@ -694,14 +895,18 @@ restart = "scheduler:reload"
   handled in process: `SCHEDULE_FORCED_HOST_CHECK`, `SCHEDULE_FORCED_SVC_CHECK`,
   `SCHEDULE_HOST_CHECK`, `SCHEDULE_SVC_CHECK`, `PROCESS_HOST_CHECK_RESULT`,
   `PROCESS_SERVICE_CHECK_RESULT`, `SCHEDULE_HOST_DOWNTIME`,
-  `SCHEDULE_HOST_SVC_DOWNTIME`, `SCHEDULE_SVC_DOWNTIME`, `DEL_HOST_DOWNTIME`,
+  `SCHEDULE_HOST_SVC_DOWNTIME`, `SCHEDULE_SVC_DOWNTIME`,
+  `SCHEDULE_HOSTGROUP_HOST_DOWNTIME`, `SCHEDULE_HOSTGROUP_SVC_DOWNTIME`,
+  `SCHEDULE_SERVICEGROUP_HOST_DOWNTIME`, `SCHEDULE_SERVICEGROUP_SVC_DOWNTIME`,
+  `DEL_HOST_DOWNTIME`,
   `DEL_SVC_DOWNTIME`, `ACKNOWLEDGE_HOST_PROBLEM`, `ACKNOWLEDGE_SVC_PROBLEM`,
   `REMOVE_HOST_ACKNOWLEDGEMENT`, `REMOVE_SVC_ACKNOWLEDGEMENT`,
   `ADD_HOST_COMMENT`, `ADD_SVC_COMMENT`, `DEL_HOST_COMMENT`,
   `DEL_SVC_COMMENT`, `DEL_ALL_HOST_COMMENTS`, `DEL_ALL_SVC_COMMENTS`. Any
   other command fails the job with "not supported by the built-in
-  scheduler"; lines after it are not run. The lines are not logged (they
-  carry comments).
+  scheduler"; lines after it are not run. The lines are not written to
+  the engine's own log (they carry comments); they go to the event log as
+  Engine's `EXTERNAL COMMAND` lines (above).
 - **Key and retention**: `scheduler.credentials_file` (default
   `/etc/centreon-engine/engine-context.json`); the poller declares the
   `engine_context` target and centreon-web pushes the key before each
@@ -709,7 +914,7 @@ restart = "scheduler:reload"
   The retention file is `<state_dir>/retention.json`.
 - **Node state**: the heartbeat reports the engine state as
   `reachable = configuration loaded`, version `centreon-engine <version>
-(configuration 1-2)`,
+(configuration 1-3)`,
   and, with the structured input, the digest of the document in force as
   applied to `target`.
 - The crate is a separate library; without the feature the agent binary
@@ -719,9 +924,13 @@ restart = "scheduler:reload"
 
 Done in batch 2a: timeperiods, check periods and zones, downtimes,
 recurring downtimes, acknowledgements, comments, retention, `encrypt::`
-macros (sections 3 and 4). Next (batch 2b): groups, severities, tags, the
-event log (`logs`), parents and UNREACHABLE, dependencies; then what
-section 4 lists as out of scope.
+macros. Done in batch 2b: groups, severities, tags, the event log, parents
+and UNREACHABLE, dependencies (execution), acknowledgement expiry, group
+downtimes, a service's own zone (sections 3 and 4). Next (batch 3):
+notifications (contacts, contact groups, escalations, notification
+commands and macros, the notification criteria of dependencies), event
+handlers, flapping, freshness, TLS to `cbd`; then what section 4 lists as
+out of scope.
 
 - **Document**: a new object type is a new top-level list (`timeperiods`,
   `hostgroups`, `severities`…) with its own `$defs` entry in the schema and

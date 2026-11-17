@@ -32,3 +32,26 @@ SERVICE;ADD;rust-h1;rust-secret;rust-svc-tpl
 SERVICE;SETPARAM;rust-h1;rust-secret;check_command;rust-secret-length
 # Given a check period that excludes the current time by verify.sh.
 SERVICE;ADD;rust-h2;rust-period;rust-svc-tpl
+# Groups, a category and a severity (rust-sev, given its level by verify.sh:
+# CLAPI asks an icon for that).
+HG;ADD;rust-hg;Rust hosts
+HG;ADDMEMBER;rust-hg;rust-h1|rust-h2
+SG;ADD;rust-sg;Rust services
+SG;ADDSERVICE;rust-sg;rust-h1,rust-ok
+HC;ADD;rust-cat;Rust category
+HC;ADDMEMBER;rust-cat;rust-h1
+HC;ADD;rust-sev;Rust severity
+HC;ADDMEMBER;rust-sev;rust-h1
+# A parent DOWN, and its child UNREACHABLE behind it.
+HOST;ADD;rust-parent;Rust parent;127.0.0.3;rust-host-tpl;@POLLER@;
+HOST;SETPARAM;rust-parent;check_command_arguments;!2!gone
+HOST;SETPARAM;rust-parent;max_check_attempts;1
+HOST;ADD;rust-child;Rust child;127.0.0.4;rust-host-tpl;@POLLER@;
+HOST;SETPARAM;rust-child;check_command_arguments;!2!no route
+HOST;SETPARAM;rust-child;max_check_attempts;1
+HOST;ADDPARENT;rust-child;rust-parent
+# Not checked while its master, rust-crit, is CRITICAL.
+SERVICE;ADD;rust-h1;rust-dependent;rust-svc-tpl
+DEP;ADD;rust-dep;Rust dependency;SERVICE;rust-h1,rust-crit
+DEP;ADDCHILD;rust-dep;rust-h1,rust-dependent
+DEP;SETPARAM;rust-dep;execution_failure_criteria;c

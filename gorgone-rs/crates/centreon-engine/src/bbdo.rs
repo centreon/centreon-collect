@@ -49,6 +49,22 @@ pub mod event {
     pub const DOWNTIME: u32 = (NEB << 16) | 36;
     /// `neb::de_pb_acknowledgement`.
     pub const ACKNOWLEDGEMENT: u32 = (NEB << 16) | 45;
+    /// `neb::de_pb_severity`.
+    pub const SEVERITY: u32 = (NEB << 16) | 33;
+    /// `neb::de_pb_tag`.
+    pub const TAG: u32 = (NEB << 16) | 34;
+    /// `neb::de_pb_log_entry`.
+    pub const LOG_ENTRY: u32 = (NEB << 16) | 41;
+    /// `neb::de_pb_host_group`.
+    pub const HOST_GROUP: u32 = (NEB << 16) | 49;
+    /// `neb::de_pb_host_group_member`.
+    pub const HOST_GROUP_MEMBER: u32 = (NEB << 16) | 50;
+    /// `neb::de_pb_service_group`.
+    pub const SERVICE_GROUP: u32 = (NEB << 16) | 51;
+    /// `neb::de_pb_service_group_member`.
+    pub const SERVICE_GROUP_MEMBER: u32 = (NEB << 16) | 52;
+    /// `neb::de_pb_host_parent`.
+    pub const HOST_PARENT: u32 = (NEB << 16) | 53;
 }
 
 const CRC_TABLE: [u16; 16] = [

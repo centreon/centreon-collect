@@ -1,7 +1,7 @@
 //! centreon-engine: the monitoring core of a Centreon poller, in place of
 //! Centreon Engine and its Broker module. It takes the poller configuration
 //! (the Engine `.cfg` files centreon-web generates, or the structured JSON
-//! document of `gorgone-rs/schemas/engine-configuration.v1.json`), runs the
+//! document of `gorgone-rs/schemas/engine-configuration.v3.json`), runs the
 //! checks and sends the results to the central Broker over BBDO. Run by the
 //! `centreon-engine` program of the gorgone-agent crate. Design and sources:
 //! `docs/scheduler-design.md`.
@@ -17,7 +17,9 @@ mod crypto;
 mod document;
 mod events;
 mod extcmd;
+mod logs;
 mod macros;
+mod objects;
 mod output;
 mod recurring;
 mod runner;
@@ -140,7 +142,7 @@ pub struct Status {
 pub const VERSION: &str = concat!(
     "centreon-engine ",
     env!("CARGO_PKG_VERSION"),
-    " (configuration 1-2)"
+    " (configuration 1-3)"
 );
 
 #[cfg(test)]

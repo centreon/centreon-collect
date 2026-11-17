@@ -7,17 +7,17 @@ The architecture, the protocol and the migration path are in
 
 ## Layout
 
-| Path                     | Content                                                                                                                                                                                                                                                               |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `proto/`                 | gRPC contracts                                                                                                                                                                                                                                                        |
-| `crates/gorgone-proto`   | generated gRPC code                                                                                                                                                                                                                                                   |
-| `crates/gorgone-core`    | config bundles, command allowlist, legacy codes                                                                                                                                                                                                                       |
-| `crates/gorgone-server`  | REST API, agent gateway, job store, dispatcher                                                                                                                                                                                                                        |
-| `crates/gorgone-agent`   | job executors and session with the server                                                                                                                                                                                                                             |
-| `crates/centreon-engine` | monitoring engine, in place of Engine and its broker module (checks, timeperiods, downtimes, acknowledgements, comments, retention, encrypted macros); run by the `centreon-engine` program of `gorgone-agent` ([docs/scheduler-design.md](docs/scheduler-design.md)) |
-| `schemas/`               | JSON Schema of the structured engine configuration centreon-web sends                                                                                                                                                                                                 |
-| `crates/gorgone-e2e`     | tests running the real server and agent together                                                                                                                                                                                                                      |
-| `deploy/`                | container images and a two-replica demo                                                                                                                                                                                                                               |
+| Path                     | Content                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `proto/`                 | gRPC contracts                                                                                                                                                                                                                                                                                                                                    |
+| `crates/gorgone-proto`   | generated gRPC code                                                                                                                                                                                                                                                                                                                               |
+| `crates/gorgone-core`    | config bundles, command allowlist, legacy codes                                                                                                                                                                                                                                                                                                   |
+| `crates/gorgone-server`  | REST API, agent gateway, job store, dispatcher                                                                                                                                                                                                                                                                                                    |
+| `crates/gorgone-agent`   | job executors and session with the server                                                                                                                                                                                                                                                                                                         |
+| `crates/centreon-engine` | monitoring engine, in place of Engine and its broker module (checks, timeperiods, downtimes, acknowledgements, comments, retention, encrypted macros, groups, severities, tags, parents and UNREACHABLE, dependencies, event log); run by the `centreon-engine` program of `gorgone-agent` ([docs/scheduler-design.md](docs/scheduler-design.md)) |
+| `schemas/`               | JSON Schema of the structured engine configuration centreon-web sends                                                                                                                                                                                                                                                                             |
+| `crates/gorgone-e2e`     | tests running the real server and agent together                                                                                                                                                                                                                                                                                                  |
+| `deploy/`                | container images and a two-replica demo                                                                                                                                                                                                                                                                                                           |
 
 ## Build and test
 
@@ -133,7 +133,12 @@ created through the web reaches its plugin decrypted while the document,
 the kept configuration and the logs hold no clear value, that it schedules
 the recurring downtime of its host, that a downtime, an acknowledgement and
 a comment set through the web API are stored by the central (host in
-downtime, service acknowledged), that a service outside its check period is
+downtime, service acknowledged), that its host and service groups,
+category, severity and tags are stored by the central and found by the
+filters of the web resources API, that its alerts and initial states reach
+`logs` in Engine's format and the web timeline API, that the child of a
+DOWN parent is UNREACHABLE, that a service is not checked while the
+service it depends on fails, that a service outside its check period is
 not checked, that a restart keeps states, attempts, downtime and
 acknowledgement (retention), and that its configuration survives a
 container restart, and, last, that
@@ -188,7 +193,7 @@ broker excluded; resident memory of the whole process. Same laptop:
 
 Images of the bench, layers summed (`docker history`) / `docker save`:
 `centreon-engine` (Debian slim, basic plugins, `centreon-engine` binary of
-6.3 MB) 113 MB / 39 MB,
+6.5 MB) 113 MB / 39 MB,
 against 313 MB / 87 MB for the engine image plus 160 MB / 54 MB for the
 broker image a poller needs today. The bench image adds Perl for its
 provisioning script (170 MB / 52 MB).

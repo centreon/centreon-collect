@@ -628,7 +628,7 @@ sys.exit(0 if node["connected"] and (node["engine"] or {}).get("reachable") else
   [[ $(sql "SELECT COUNT(*) FROM centreon_storage.services s
             JOIN centreon_storage.hosts h ON h.host_id = s.host_id
             JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
-            WHERE i.name = 'centreon-engine' AND s.enabled = 1 AND h.enabled = 1") == 5 ]]
+            WHERE i.name = 'centreon-engine' AND s.enabled = 1 AND h.enabled = 1") == 6 ]]
 }
 
 # centreon_engine_status <host> <service> <state> <type>: the state the central
@@ -895,13 +895,141 @@ centreon_engine_api_comment() {
 
 # State of the services of the centreon-engine poller as the central
 # stores them: description, checked, state, type, attempt, acknowledged.
+# rust-period and rust-dependent may never be checked.
 rust_states() {
   sql "SELECT CONCAT(s.description, ' ', s.checked, ' ', s.state, ' ', s.state_type, ' ',
               s.check_attempt, ' ', s.acknowledged)
        FROM centreon_storage.services s JOIN centreon_storage.hosts h ON h.host_id = s.host_id
        JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
-       WHERE i.name = 'centreon-engine' AND s.enabled = 1 AND s.description <> 'rust-period'
+       WHERE i.name = 'centreon-engine' AND s.enabled = 1
+         AND s.description NOT IN ('rust-period', 'rust-dependent')
        ORDER BY s.description"
+}
+
+# rust-sev becomes a severity (a level; CLAPI would ask an icon), pushed
+# with the groups, category, parent and dependency of objects.clapi.
+centreon_engine_v3_configuration() {
+  local before
+  before=$(last_engine_configuration)
+  sql "UPDATE centreon.hostcategories SET level = 1 WHERE hc_name = 'rust-sev'" || return 1
+  clapi POLLERGENERATE centreon-engine > /dev/null || return 1
+  clapi CFGMOVE centreon-engine | grep -q 'centreon-engine: done' || return 1
+  clapi POLLERRELOAD centreon-engine > /dev/null || return 1
+  wait_new_engine_configuration "${before}"
+}
+
+# The host and service groups in centreon_storage, as Engine's group and
+# member events make them.
+centreon_engine_groups() {
+  for _ in $(seq 1 30); do
+    if [[ "$(sql "SELECT GROUP_CONCAT(h.name ORDER BY h.name)
+          FROM centreon_storage.hostgroups g
+          JOIN centreon_storage.hosts_hostgroups hg ON hg.hostgroup_id = g.hostgroup_id
+          JOIN centreon_storage.hosts h ON h.host_id = hg.host_id
+          WHERE g.name = 'rust-hg'")" == "rust-h1,rust-h2" \
+      && "$(sql "SELECT GROUP_CONCAT(s.description)
+          FROM centreon_storage.servicegroups g
+          JOIN centreon_storage.services_servicegroups sg ON sg.servicegroup_id = g.servicegroup_id
+          JOIN centreon_storage.services s ON s.host_id = sg.host_id AND s.service_id = sg.service_id
+          WHERE g.name = 'rust-sg'")" == "rust-ok" ]]; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+# The severity and the tags of the resources: severity rust-sev on
+# rust-h1, its category and host group tags, the service group tag of
+# rust-ok.
+centreon_engine_severity_and_tags() {
+  [[ "$(sql "SELECT CONCAT(sv.name, ' ', sv.level, ' ', sv.type)
+        FROM centreon_storage.resources r
+        JOIN centreon_storage.severities sv ON sv.severity_id = r.severity_id
+        WHERE r.type = 1 AND r.name = 'rust-h1' AND r.enabled = 1")" == "rust-sev 1 1" ]] || return 1
+  [[ "$(sql "SELECT GROUP_CONCAT(CONCAT(t.name, ':', t.type) ORDER BY t.name)
+        FROM centreon_storage.resources r
+        JOIN centreon_storage.resources_tags rt ON rt.resource_id = r.resource_id
+        JOIN centreon_storage.tags t ON t.tag_id = rt.tag_id
+        WHERE r.type = 1 AND r.name = 'rust-h1' AND r.enabled = 1")" == "rust-cat:3,rust-hg:1" ]] \
+    || return 1
+  [[ "$(sql "SELECT GROUP_CONCAT(CONCAT(t.name, ':', t.type))
+        FROM centreon_storage.resources r
+        JOIN centreon_storage.resources_tags rt ON rt.resource_id = r.resource_id
+        JOIN centreon_storage.tags t ON t.tag_id = rt.tag_id
+        WHERE r.type = 0 AND r.name = 'rust-ok' AND r.enabled = 1")" == "rust-sg:0" ]]
+}
+
+# resource_names <filter> <values JSON>: names the resources API of
+# centreon-web returns for one filter, sorted.
+resource_names() {
+  curl -s -G -H "X-AUTH-TOKEN: $(web_token)" --data-urlencode "$1=$2" \
+    --data-urlencode 'limit=100' "${WEB_URL}/api/latest/monitoring/resources" \
+    | python3 -I -c 'import json,sys; print(",".join(sorted({r["name"] for r in json.load(sys.stdin)["result"]})))'
+}
+
+# The resources filters of the web find the objects by group, category,
+# severity and service group.
+centreon_engine_resources_filters() {
+  [[ "$(resource_names hostgroup_names '["rust-hg"]')" == *"rust-h1,rust-h2"* ]] || return 1
+  [[ "$(resource_names host_category_names '["rust-cat"]')" == *"rust-h1"* ]] || return 1
+  [[ "$(resource_names host_severity_names '["rust-sev"]')" == *"rust-h1"* ]] || return 1
+  [[ "$(resource_names servicegroup_names '["rust-sg"]')" == "rust-ok" ]]
+}
+
+# The event log: initial states and a HARD SERVICE ALERT of rust-crit as
+# cbmod parses Engine's lines into logs, and the timeline of the web API
+# shows the alert.
+centreon_engine_event_log() {
+  local host_id service_id
+  host_id=$(rust_id s.host_id rust-h1 rust-crit) || return 1
+  service_id=$(rust_id s.service_id rust-h1 rust-crit) || return 1
+  [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.logs WHERE instance_name = 'centreon-engine'
+        AND msg_type = 0 AND host_name = 'rust-h1' AND service_description = 'rust-crit'
+        AND host_id = ${host_id} AND service_id = ${service_id} AND status = 2 AND type = 1
+        AND output LIKE '%broken%'")" -ge 1 ]] || return 1
+  [[ "$(sql "SELECT COUNT(DISTINCT msg_type) FROM centreon_storage.logs
+        WHERE instance_name = 'centreon-engine' AND msg_type IN (8, 9)
+        AND host_name = 'rust-h1'")" == 2 ]] || return 1
+  curl -s -H "X-AUTH-TOKEN: $(web_token)" \
+    "${WEB_URL}/api/latest/monitoring/hosts/${host_id}/services/${service_id}/timeline?limit=100" \
+    | python3 -I -c '
+import json, sys
+events = json.load(sys.stdin)["result"]
+sys.exit(0 if any(e["type"] == "event" and (e.get("status") or {}).get("name") == "CRITICAL"
+                  and "broken" in (e.get("content") or "") for e in events) else 1)'
+}
+
+# rust-parent is DOWN, rust-child UNREACHABLE (state 2) and HARD, in hosts
+# and resources, and the central knows the parent.
+centreon_engine_unreachable_child() {
+  for _ in $(seq 1 36); do
+    if [[ "$(sql "SELECT CONCAT(h.name, ' ', h.state, ' ', h.state_type, ' ', r.status)
+          FROM centreon_storage.hosts h
+          JOIN centreon_storage.resources r ON r.id = h.host_id AND r.type = 1
+          WHERE h.name IN ('rust-parent', 'rust-child') AND h.enabled = 1
+          ORDER BY h.name DESC" | tr '\n' ';')" == "rust-parent 1 1 1;rust-child 2 1 2;" ]]; then
+      [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.hosts_hosts_parents p
+            JOIN centreon_storage.hosts c ON c.host_id = p.child_id
+            JOIN centreon_storage.hosts pa ON pa.host_id = p.parent_id
+            WHERE c.name = 'rust-child' AND pa.name = 'rust-parent'")" == 1 ]]
+      return
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+# rust-dependent is not checked while its master rust-crit is CRITICAL
+# HARD (execution_failure_criteria c): its last check does not move for
+# more than two check intervals.
+centreon_engine_dependency_suppresses_checks() {
+  local before master="CONCAT(s.state, ' ', s.state_type)"
+  [[ "$(rust_id "${master}" rust-h1 rust-crit)" == "2 1" ]] || return 1
+  before=$(rust_id s.last_check rust-h1 rust-dependent)
+  sleep 150
+  [[ "$(rust_id s.last_check rust-h1 rust-dependent)" == "${before}" ]] || return 1
+  [[ "$(rust_id "${master}" rust-h1 rust-crit)" == "2 1" ]]
 }
 
 # A restart of the container keeps the states (none pending, same state,
@@ -985,6 +1113,18 @@ check "centreon-engine: a downtime from the centreon-web API is started, the hos
 check "centreon-engine: an acknowledgement from the centreon-web API is stored" \
   centreon_engine_api_acknowledgement
 check "centreon-engine: a comment from the centreon-web API is stored" centreon_engine_api_comment
+check "centreon-engine: groups, a category, a severity, parents and a dependency are pushed" \
+  centreon_engine_v3_configuration
+check "centreon-engine: the host and service groups are in centreon_storage" centreon_engine_groups
+check "centreon-engine: the resources carry their severity and tags" \
+  centreon_engine_severity_and_tags
+check "centreon-engine: the resources API filters by group, category and severity" \
+  centreon_engine_resources_filters
+check "centreon-engine: alerts and initial states reach logs and the timeline API" \
+  centreon_engine_event_log
+check "centreon-engine: the child of a DOWN parent is UNREACHABLE" centreon_engine_unreachable_child
+check "centreon-engine: a service is not checked while its master fails" \
+  centreon_engine_dependency_suppresses_checks
 check "centreon-engine: a service outside its check period is not checked" \
   centreon_engine_check_period
 check "centreon-engine: a restart keeps states, attempts, downtime and acknowledgement" \

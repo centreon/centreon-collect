@@ -14,7 +14,8 @@ pub enum StateType {
     Hard,
 }
 
-/// Service states (`ServiceStatus.State`); hosts use 0 (UP) and 1 (DOWN).
+/// Service states (`ServiceStatus.State`); hosts use 0 (UP), 1 (DOWN) and
+/// 2 (UNREACHABLE).
 pub mod code {
     /// OK, or UP.
     pub const OK: u32 = 0;
@@ -26,6 +27,8 @@ pub mod code {
     pub const UNKNOWN: u32 = 3;
     /// Host DOWN.
     pub const DOWN: u32 = 1;
+    /// Host UNREACHABLE: DOWN with no parent UP.
+    pub const UNREACHABLE: u32 = 2;
 }
 
 /// Whether a result came from a check the scheduler ran.
@@ -162,7 +165,22 @@ impl CheckState {
 
     /// Applies a service result; `host_up` is the current state of its
     /// host. Returns which interval plans the next check.
+    #[cfg(test)]
     pub fn apply_service(&mut self, outcome: &Outcome, max_attempts: u32, host_up: bool) -> Next {
+        self.apply_service_logged(outcome, max_attempts, host_up).0
+    }
+
+    /// [`Self::apply_service`], and whether Engine calls `log_event` for
+    /// this result (`service::handle_async_check_result`,
+    /// `engine/src/service.cc:1620-1980`): a hard change, a soft recovery,
+    /// or a retry while the host is up. `log_event` itself drops the SOFT
+    /// ones unless `log_service_retries`.
+    pub fn apply_service_logged(
+        &mut self,
+        outcome: &Outcome,
+        max_attempts: u32,
+        host_up: bool,
+    ) -> (Next, bool) {
         let max_attempts = max_attempts.max(1);
         let last_state = self.state;
         self.state = outcome.state;
@@ -202,7 +220,7 @@ impl CheckState {
             }
             self.host_problem_at_last_check = false;
             self.last_hard_state = code::OK;
-            return next(Next::Normal);
+            return (next(Next::Normal), hard_change || state_change);
         }
 
         if !host_up {
@@ -227,19 +245,21 @@ impl CheckState {
         }
         if self.attempt < max_attempts {
             if !host_up {
-                return next(Next::Normal);
+                return (next(Next::Normal), hard_change);
             }
             self.state_type = StateType::Soft;
-            next(Next::Retry)
+            (next(Next::Retry), true)
         } else {
             self.state_type = StateType::Hard;
             self.last_hard_state = self.state;
-            next(Next::Normal)
+            (next(Next::Normal), hard_change)
         }
     }
 
-    /// Applies a host result (state already UP or DOWN). A recovery is
-    /// always hard; problems go SOFT then HARD after `max_attempts`.
+    /// Applies a host result (state already UP, DOWN or UNREACHABLE). A
+    /// recovery is always hard; problems go SOFT then HARD after
+    /// `max_attempts`, DOWN and UNREACHABLE being the same problem for the
+    /// attempts (`host::process_check_result_3x`).
     pub fn apply_host(&mut self, outcome: &Outcome, max_attempts: u32) -> Next {
         let max_attempts = max_attempts.max(1);
         let last_state = self.state;
@@ -264,7 +284,7 @@ impl CheckState {
             self.last_hard_state = code::OK;
             return next(Next::Normal);
         }
-        if state_change {
+        if last_state == code::OK {
             self.attempt = 1;
         } else if self.state_type == StateType::Soft && self.attempt < max_attempts {
             self.attempt += 1;
@@ -284,7 +304,8 @@ impl CheckState {
 }
 
 /// Host state of a plugin exit code: 0 and 1 are UP, the others DOWN
-/// (Nagios 3, no parents so never UNREACHABLE).
+/// (`handle_async_check_result_3x`); DOWN becomes UNREACHABLE when no
+/// parent is up, which the core decides.
 #[must_use]
 pub fn host_state_of(exit_code: u32) -> u32 {
     if exit_code <= code::WARNING {
@@ -375,6 +396,37 @@ mod tests {
         assert_eq!(s.apply_service(&passive(0, 5), 3, true), Next::Unchanged);
         assert_eq!(s.apply_service(&passive(2, 6), 1, true), Next::Normal);
         assert_eq!(s.check_type, CheckType::Passive);
+    }
+
+    #[test]
+    fn down_and_unreachable_share_the_attempts() {
+        let mut h = CheckState::default();
+        h.apply_host(&active(code::DOWN, 10), 3);
+        assert_eq!((h.state_type, h.attempt), (StateType::Soft, 1));
+        // The parent went down meanwhile: UNREACHABLE, next attempt.
+        h.apply_host(&active(code::UNREACHABLE, 20), 3);
+        assert_eq!((h.state, h.state_type, h.attempt), (2, StateType::Soft, 2));
+        h.apply_host(&active(code::UNREACHABLE, 30), 3);
+        assert_eq!((h.state_type, h.last_hard_state), (StateType::Hard, 2));
+        assert_eq!(h.last_time[2], 30);
+    }
+
+    #[test]
+    fn services_log_their_alerts_as_engine() {
+        let mut s = CheckState::default();
+        // A soft problem, its retry, the hard state, a stable hard state.
+        let logged: Vec<bool> = [2, 2, 2, 2]
+            .iter()
+            .enumerate()
+            .map(|(i, state)| s.apply_service_logged(&active(*state, i as i64), 3, true).1)
+            .collect();
+        assert_eq!(logged, [true, true, true, false]);
+        // Recovery is logged, a stable OK is not.
+        assert!(s.apply_service_logged(&active(0, 10), 3, true).1);
+        assert!(!s.apply_service_logged(&active(0, 11), 3, true).1);
+        // Host down: only the hard change is logged.
+        assert!(s.apply_service_logged(&active(2, 12), 3, false).1);
+        assert!(!s.apply_service_logged(&active(2, 13), 3, false).1);
     }
 
     #[test]

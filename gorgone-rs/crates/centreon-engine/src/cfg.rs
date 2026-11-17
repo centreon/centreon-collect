@@ -9,8 +9,50 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+mod relations;
+
+use crate::objects::{
+    self, DependencyConf, HostGroupConf, ServiceGroupConf, SeverityConf, SeverityType, TagConf,
+    TagType,
+};
 use crate::recurring::RecurringConf;
 use crate::timeperiod::Timeperiod;
+
+/// Level of an Engine logger (`log_level_*`): lines below it are not
+/// written, and only INFO and above reach the event log (`broker_sink_mt`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warning,
+    Error,
+    Critical,
+    Off,
+}
+
+impl LogLevel {
+    /// `state_helper::hook`: `err` is `error`.
+    #[must_use]
+    pub fn parse(value: &str) -> Option<Self> {
+        Some(match value.trim() {
+            "trace" => Self::Trace,
+            "debug" => Self::Debug,
+            "info" => Self::Info,
+            "warning" => Self::Warning,
+            "error" | "err" => Self::Error,
+            "critical" => Self::Critical,
+            "off" => Self::Off,
+            _ => return None,
+        })
+    }
+
+    /// An INFO line of this logger is written, hence sent to the event log.
+    #[must_use]
+    pub fn logs_info(self) -> bool {
+        self <= Self::Info
+    }
+}
 
 /// Global settings of `centengine.cfg` the scheduler uses.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,6 +78,29 @@ pub struct Settings {
     pub use_retained_scheduling_info: bool,
     /// The `cbmod` configuration file (poller identity, central address).
     pub broker_module_cfg_file: Option<PathBuf>,
+    /// SOFT service states are written to the event log.
+    pub log_service_retries: bool,
+    /// SOFT host states are written to the event log.
+    pub log_host_retries: bool,
+    /// External commands are written to the event log.
+    pub log_external_commands: bool,
+    /// Passive check results are written to the event log.
+    pub log_passive_checks: bool,
+    /// `log_level_events`: alerts, initial states, downtime alerts.
+    pub log_level_events: LogLevel,
+    /// `log_level_checks`: passive checks.
+    pub log_level_checks: LogLevel,
+    /// `log_level_external_command`: external commands.
+    pub log_level_external_command: LogLevel,
+    /// A dependency looks at the current SOFT state of its master, not at
+    /// its last hard state.
+    pub soft_state_dependencies: bool,
+    /// Checks of the hosts a host depends on, at its next to last attempt.
+    pub enable_predictive_host_dependency_checks: bool,
+    /// Same for services.
+    pub enable_predictive_service_dependency_checks: bool,
+    /// Seconds a host result stays fresh enough to skip an on-demand check.
+    pub cached_host_check_horizon: u32,
 }
 
 impl Default for Settings {
@@ -52,6 +117,17 @@ impl Default for Settings {
             retention_update_interval: 60,
             use_retained_scheduling_info: false,
             broker_module_cfg_file: None,
+            log_service_retries: false,
+            log_host_retries: false,
+            log_external_commands: true,
+            log_passive_checks: true,
+            log_level_events: LogLevel::Info,
+            log_level_checks: LogLevel::Info,
+            log_level_external_command: LogLevel::Error,
+            soft_state_dependencies: false,
+            enable_predictive_host_dependency_checks: true,
+            enable_predictive_service_dependency_checks: true,
+            cached_host_check_horizon: 15,
         }
     }
 }
@@ -93,6 +169,16 @@ pub struct HostConf {
     pub macros: BTreeMap<String, String>,
     /// `timezone` of its timeperiods (`TZ` syntax); `use_timezone` when empty.
     pub timezone: String,
+    /// `parents`: names of its parent hosts.
+    pub parents: Vec<String>,
+    /// `severity_id` (`severity`): a host severity, 0 for none.
+    pub severity_id: u64,
+    /// `category_tags` (host categories) then `group_tags` (host groups).
+    pub tags: Vec<(u64, TagType)>,
+    /// `icon_id`.
+    pub icon_id: u64,
+    /// `acknowledgement_timeout`, in units of `interval_length`; 0: never.
+    pub acknowledgement_timeout: u32,
 }
 
 /// A service to monitor.
@@ -110,9 +196,18 @@ pub struct ServiceConf {
     pub check: CheckParams,
     /// Custom macros, names upper-cased, without `_`.
     pub macros: BTreeMap<String, String>,
-    /// Zone of its timeperiods: the one of its host, as Engine inherits it
-    /// (`service_helper.cc`).
+    /// Zone of its timeperiods: its own `timezone`, else the one of its
+    /// host, as Engine inherits it (`service_helper.cc:313-344`).
     pub timezone: String,
+    /// `severity_id` (`severity`): a service severity, 0 for none.
+    pub severity_id: u64,
+    /// `category_tags` (service categories) then `group_tags` (service
+    /// groups).
+    pub tags: Vec<(u64, TagType)>,
+    /// `icon_id`.
+    pub icon_id: u64,
+    /// `acknowledgement_timeout`, in units of `interval_length`; 0: never.
+    pub acknowledgement_timeout: u32,
 }
 
 /// Everything the scheduler needs from one configuration.
@@ -137,6 +232,18 @@ pub struct MonitoringConfig {
     /// Macro values starting with `encrypt::` or `raw::` are read as Engine
     /// reads them (files, document version 2), not literally (version 1).
     pub secret_prefixes: bool,
+    /// Host groups by name.
+    pub hostgroups: BTreeMap<String, HostGroupConf>,
+    /// Service groups by name.
+    pub servicegroups: BTreeMap<String, ServiceGroupConf>,
+    /// Severities by `(id, type)`.
+    pub severities: BTreeMap<(u64, SeverityType), SeverityConf>,
+    /// Tags by `(id, type)`.
+    pub tags: BTreeMap<(u64, TagType), TagConf>,
+    /// Host dependencies, expanded to one per (dependent, master).
+    pub host_dependencies: Vec<DependencyConf>,
+    /// Service dependencies, expanded the same way.
+    pub service_dependencies: Vec<DependencyConf>,
 }
 
 /// Findings of a read, in the words `centengine -v` uses.
@@ -179,6 +286,12 @@ pub(crate) enum Kind {
     Service,
     Timeperiod,
     RecurringDowntime,
+    HostGroup,
+    ServiceGroup,
+    Severity,
+    Tag,
+    HostDependency,
+    ServiceDependency,
 }
 
 /// One `define` block, keys already mapped to their canonical name.
@@ -205,9 +318,32 @@ pub(crate) struct RawObject {
 fn canonical(kind: Kind, key: &str) -> Option<&str> {
     let key = match (kind, key) {
         (Kind::Host, "_HOST_ID") => "host_id",
+        (Kind::Host, "host_groups") => "hostgroups",
         (Kind::Service, "_SERVICE_ID") => "service_id",
         (Kind::Service, "host" | "hosts") => "host_name",
         (Kind::Service, "description") => "service_description",
+        (Kind::Service, "service_groups") => "servicegroups",
+        (Kind::Host | Kind::Service, "severity") => "severity_id",
+        (Kind::Tag, "tag_id") | (Kind::Severity, "severity_id") => "id",
+        (Kind::Tag, "tag_type") | (Kind::Severity, "severity_type") => "type",
+        (Kind::Severity, "severity_level") => "level",
+        (Kind::Severity, "severity_icon_id") => "icon_id",
+        (Kind::HostDependency | Kind::ServiceDependency, key) => match key {
+            "hostgroup" | "hostgroup_name" => "hostgroups",
+            "host" | "host_name" | "master_host" | "master_host_name" => "hosts",
+            "dependent_hostgroup" | "dependent_hostgroup_name" => "dependent_hostgroups",
+            "dependent_host" | "dependent_host_name" => "dependent_hosts",
+            "servicegroup" | "servicegroup_name" => "servicegroups",
+            "dependent_servicegroup" | "dependent_servicegroup_name" => "dependent_servicegroups",
+            "description" | "master_description" | "master_service_description" => {
+                "service_description"
+            }
+            "dependent_description" => "dependent_service_description",
+            "notification_failure_criteria" => "notification_failure_options",
+            "execution_failure_criteria" => "execution_failure_options",
+            key if key.starts_with('_') => return None,
+            key => key,
+        },
         (_, "normal_check_interval") => "check_interval",
         (_, "retry_check_interval") => "retry_interval",
         (_, "active_checks_enabled") => "checks_active",
@@ -336,10 +472,55 @@ impl Reader {
                     self.settings.retention_update_interval = slot;
                 }
                 "use_timezone" => self.settings.use_timezone = value.trim().to_owned(),
-                "use_retained_scheduling_info" => match parse_bool(value) {
-                    Some(flag) => self.settings.use_retained_scheduling_info = flag,
+                "use_retained_scheduling_info"
+                | "log_service_retries"
+                | "log_host_retries"
+                | "log_external_commands"
+                | "log_passive_checks"
+                | "soft_state_dependencies"
+                | "enable_predictive_host_dependency_checks"
+                | "enable_predictive_service_dependency_checks" => match parse_bool(value) {
+                    Some(flag) => {
+                        let settings = &mut self.settings;
+                        *match key {
+                            "use_retained_scheduling_info" => {
+                                &mut settings.use_retained_scheduling_info
+                            }
+                            "log_service_retries" => &mut settings.log_service_retries,
+                            "log_host_retries" => &mut settings.log_host_retries,
+                            "log_external_commands" => &mut settings.log_external_commands,
+                            "log_passive_checks" => &mut settings.log_passive_checks,
+                            "soft_state_dependencies" => &mut settings.soft_state_dependencies,
+                            "enable_predictive_host_dependency_checks" => {
+                                &mut settings.enable_predictive_host_dependency_checks
+                            }
+                            _ => &mut settings.enable_predictive_service_dependency_checks,
+                        } = flag;
+                    }
                     None => self.error(format!("{key}: invalid value {value:?}")),
                 },
+                "cached_host_check_horizon" => {
+                    let mut slot = self.settings.cached_host_check_horizon;
+                    number(self, &mut slot);
+                    self.settings.cached_host_check_horizon = slot;
+                }
+                "log_level_events" | "log_level_checks" | "log_level_external_command" => {
+                    match LogLevel::parse(value) {
+                        Some(level) => {
+                            let settings = &mut self.settings;
+                            *match key {
+                                "log_level_events" => &mut settings.log_level_events,
+                                "log_level_checks" => &mut settings.log_level_checks,
+                                _ => &mut settings.log_level_external_command,
+                            } = level;
+                        }
+                        // Engine refuses the file (`state_helper::hook`).
+                        None => self.error(format!(
+                            "Log level '{key}' has value '{value}' but it cannot be a different \
+                             string than off, critical, error, err, warning, info, debug or trace"
+                        )),
+                    }
+                }
                 _ => {}
             }
         }
@@ -505,6 +686,12 @@ impl Reader {
                         "service" => Some(Kind::Service),
                         "timeperiod" => Some(Kind::Timeperiod),
                         "recurringdowntime" => Some(Kind::RecurringDowntime),
+                        "hostgroup" => Some(Kind::HostGroup),
+                        "servicegroup" => Some(Kind::ServiceGroup),
+                        "severity" => Some(Kind::Severity),
+                        "tag" => Some(Kind::Tag),
+                        "hostdependency" => Some(Kind::HostDependency),
+                        "servicedependency" => Some(Kind::ServiceDependency),
                         _ => None,
                     };
                     current = Some((
@@ -587,6 +774,9 @@ impl Reader {
         let mut host_ids = HashSet::new();
         let mut service_ids = HashSet::new();
         let mut pending_services = Vec::new();
+        let mut pending_relations = Vec::new();
+        // `hostgroups` of each host: (host id, group names, origin).
+        let mut host_groups_of = Vec::new();
         let mut timeperiod_cache = vec![None; self.objects.len()];
         for index in 0..self.objects.len() {
             let (kind, register) = (self.objects[index].0, self.objects[index].1.register);
@@ -629,6 +819,13 @@ impl Reader {
                 Kind::Command => self.command(&object, &mut config),
                 Kind::Host => {
                     if let Some(host) = self.host(&object) {
+                        if let Some(groups) = object.fields.get("hostgroups") {
+                            host_groups_of.push((
+                                host.host_id,
+                                objects::names(groups),
+                                object.origin.clone(),
+                            ));
+                        }
                         if !host_ids.insert(host.host_id) {
                             self.error(format!(
                                 "{}: host id {} is used twice",
@@ -647,6 +844,12 @@ impl Reader {
                     }
                 }
                 Kind::Service => pending_services.push(object),
+                Kind::HostGroup
+                | Kind::ServiceGroup
+                | Kind::Severity
+                | Kind::Tag
+                | Kind::HostDependency
+                | Kind::ServiceDependency => pending_relations.push((kind, object)),
             }
         }
         // Services last: they need their host whatever the file order.
@@ -655,12 +858,22 @@ impl Reader {
             .iter()
             .map(|host| (host.name.clone(), host.timezone.clone()))
             .collect();
+        let mut service_groups_of = Vec::new();
         for object in pending_services {
             if let Some(mut service) = self.service(&object, &hosts_by_name) {
-                service.timezone = host_zones
-                    .get(&service.host_name)
-                    .cloned()
-                    .unwrap_or_default();
+                if service.timezone.is_empty() {
+                    service.timezone = host_zones
+                        .get(&service.host_name)
+                        .cloned()
+                        .unwrap_or_default();
+                }
+                if let Some(groups) = object.fields.get("servicegroups") {
+                    service_groups_of.push((
+                        (service.host_id, service.service_id),
+                        objects::names(groups),
+                        object.origin.clone(),
+                    ));
+                }
                 if !service_ids.insert((service.host_id, service.service_id)) {
                     self.error(format!(
                         "{}: service ({}, {}) is defined twice",
@@ -689,6 +902,12 @@ impl Reader {
                 self.error(format!("{what}: unknown check command '{name}'"));
             }
         }
+        self.relations(
+            &mut config,
+            pending_relations,
+            &host_groups_of,
+            &service_groups_of,
+        );
         self.check_references(&config);
         (config, self.report)
     }
@@ -933,7 +1152,49 @@ impl Reader {
                 .get("timezone")
                 .map(|zone| zone.trim().to_owned())
                 .unwrap_or_default(),
+            parents: object
+                .fields
+                .get("parents")
+                .map(|parents| objects::names(parents))
+                .unwrap_or_default(),
+            severity_id: self.number(object, "severity_id"),
+            tags: self.tags(object, TagType::HostCategory, TagType::HostGroup),
+            icon_id: self.number(object, "icon_id"),
+            acknowledgement_timeout: u32::try_from(self.number(object, "acknowledgement_timeout"))
+                .unwrap_or(u32::MAX),
         })
+    }
+
+    /// An optional number field, 0 when absent.
+    fn number(&mut self, object: &RawObject, key: &str) -> u64 {
+        match object.fields.get(key).map(|value| value.trim()) {
+            None | Some("") => 0,
+            Some(value) => value.parse().unwrap_or_else(|_| {
+                self.error(format!("{}: invalid {key} {value:?}", object.origin));
+                0
+            }),
+        }
+    }
+
+    /// `category_tags` then `group_tags` of a host or a service
+    /// (`host_helper::hook`, `service_helper::hook`).
+    fn tags(
+        &mut self,
+        object: &RawObject,
+        category: TagType,
+        group: TagType,
+    ) -> Vec<(u64, TagType)> {
+        let mut tags = Vec::new();
+        for (key, kind) in [("category_tags", category), ("group_tags", group)] {
+            let Some(value) = object.fields.get(key) else {
+                continue;
+            };
+            match objects::ids(value) {
+                Some(ids) => tags.extend(ids.into_iter().map(|id| (id, kind))),
+                None => self.error(format!("{}: invalid {key} {value:?}", object.origin)),
+            }
+        }
+        tags
     }
 
     fn service(&mut self, object: &RawObject, hosts: &HashMap<String, u64>) -> Option<ServiceConf> {
@@ -979,7 +1240,16 @@ impl Reader {
             description,
             check,
             macros: object.custom.clone(),
-            timezone: String::new(),
+            timezone: object
+                .fields
+                .get("timezone")
+                .map(|zone| zone.trim().to_owned())
+                .unwrap_or_default(),
+            severity_id: self.number(object, "severity_id"),
+            tags: self.tags(object, TagType::ServiceCategory, TagType::ServiceGroup),
+            icon_id: self.number(object, "icon_id"),
+            acknowledgement_timeout: u32::try_from(self.number(object, "acknowledgement_timeout"))
+                .unwrap_or(u32::MAX),
         })
     }
 }
@@ -1035,8 +1305,11 @@ pub(crate) mod tests {
                 "# generated\ncfg_file={0}/hostTemplates.cfg\ncfg_file={0}/hosts.cfg\n\
                  cfg_file={0}/serviceTemplates.cfg\ncfg_file={0}/services.cfg\n\
                  cfg_file=commands.cfg\ncfg_file={0}/timeperiods.cfg\n\
+                 cfg_file={0}/groups.cfg\ncfg_file={0}/tags.cfg\n\
+                 cfg_file={0}/severities.cfg\ncfg_file={0}/dependencies.cfg\n\
                  resource_file={0}/resource.cfg\ninterval_length=60\n\
                  service_check_timeout=20\nretention_update_interval=30\n\
+                 log_service_retries=1\nlog_level_external_command=info\n\
                  broker_module_cfg_file=/etc/centreon-broker/p-module.json\n\
                  log_file=/var/log/centreon-engine/centengine.log\nunknown_key=1\n",
                 dir.display()
@@ -1045,6 +1318,35 @@ pub(crate) mod tests {
         write(
             "resource.cfg",
             "$USER1$=/usr/lib/nagios/plugins\n# comment\n$CENTREONPLUGINS$=/usr/lib/centreon/plugins\n",
+        );
+        write(
+            "groups.cfg",
+            "define hostgroup {\n    hostgroup_id 20\n    hostgroup_name hg1\n    \
+             alias First hosts\n    members h1,h2\n}\n\
+             define servicegroup {\n    servicegroup_id 30\n    servicegroup_name sg1\n    \
+             alias Some services\n    members h1,Ping,h2,Disk\n}\n",
+        );
+        write(
+            "tags.cfg",
+            "define tag {\n    id 7\n    tag_name cat7\n    type hostcategory\n}\n\
+             define tag {\n    id 20\n    tag_name hg1\n    type hostgroup\n}\n\
+             define tag {\n    id 30\n    tag_name sg1\n    type servicegroup\n}\n",
+        );
+        write(
+            "severities.cfg",
+            "define severity {\n    id 3\n    severity_name high\n    level 1\n    \
+             icon_id 9\n    type host\n}\n\
+             define severity {\n    id 4\n    severity_name low\n    level 5\n    \
+             type service\n}\n",
+        );
+        write(
+            "dependencies.cfg",
+            "define servicedependency {\n    ;dependency_name ping-disk\n    \
+             execution_failure_criteria c,u\n    notification_failure_criteria w,c\n    \
+             inherits_parent 1\n    host_name h1\n    service_description Ping\n    \
+             dependent_host_name h2\n    dependent_service_description Disk\n}\n\
+             define hostdependency {\n    execution_failure_criteria d\n    \
+             dependency_period 24x7\n    hostgroup_name hg1\n    dependent_host_name h1\n}\n",
         );
         write(
             "commands.cfg",
@@ -1077,7 +1379,9 @@ pub(crate) mod tests {
             "define host {\n    host_name                      h1\n    alias \
              First\n    address                        10.0.0.1\n    use \
              generic-host,other\n    _HOST_ID                       12\n    register 1\n    \
-             check_period workhours\n    timezone :Europe/Paris\n}\n\
+             check_period workhours\n    timezone :Europe/Paris\n    parents h2\n    \
+             category_tags 7\n    group_tags 20\n    severity 3\n    \
+             acknowledgement_timeout 5\n}\n\
              define host {\n    host_name h2\n    address 10.0.0.2\n    _HOST_ID 13\n}\n",
         );
         write(
@@ -1089,7 +1393,7 @@ pub(crate) mod tests {
         write(
             "services.cfg",
             "define service {\n    host_name h1\n    service_description Ping\n    use \
-             svc-tpl\n    _SERVICE_ID 101\n    register 1\n}\n\
+             svc-tpl\n    _SERVICE_ID 101\n    register 1\n    group_tags 30\n    severity 4\n}\n\
              define service {\n    host_name h2\n    service_description Disk\n    \
              check_command check_dummy!2!\\\n    ;a comment line is skipped\n    full\n    \
              active_checks_enabled 0\n    _SERVICE_ID 102\n    _CRIT 90\n    \
@@ -1154,6 +1458,31 @@ pub(crate) mod tests {
         // A service has the zone of its host.
         assert_eq!(ping.timezone, ":Europe/Paris");
         assert_eq!(disk.check.check_period, "24x7");
+        // Relations.
+        assert_eq!(h1.parents, ["h2"]);
+        assert_eq!(
+            h1.tags,
+            [(7, TagType::HostCategory), (20, TagType::HostGroup)]
+        );
+        assert_eq!((h1.severity_id, h1.acknowledgement_timeout), (3, 5));
+        assert_eq!(config.hostgroups["hg1"].members, [12, 13]);
+        assert_eq!(config.hostgroups["hg1"].alias, "First hosts");
+        assert_eq!(config.servicegroups["sg1"].members, [(12, 101), (13, 102)]);
+        assert_eq!(ping.severity_id, 4);
+        assert_eq!(config.severities[&(3, SeverityType::Host)].icon_id, 9);
+        assert_eq!(config.tags.len(), 3);
+        let dependency = &config.service_dependencies[0];
+        assert_eq!(
+            (dependency.dependent, dependency.master),
+            ((13, 102), (12, 101))
+        );
+        assert!(dependency.execution.on(2) && dependency.execution.on(3));
+        assert!(!dependency.execution.on(1) && dependency.notification.on(1));
+        assert!(dependency.inherits_parent);
+        // A host group master: one dependency per member, the dependent itself included.
+        assert_eq!(config.host_dependencies.len(), 2);
+        assert!(config.settings.log_service_retries);
+        assert_eq!(config.settings.log_level_external_command, LogLevel::Info);
         let rule = &config.recurring[&5];
         assert_eq!(
             (rule.host_ids.clone(), rule.service_ids.clone()),
@@ -1213,13 +1542,51 @@ pub(crate) mod tests {
         assert!(all.contains("unknown check command 'unknown'"), "{all}");
         assert!(all.contains("has no _SERVICE_ID"), "{all}");
         let rendered = report.render(None);
-        assert!(rendered.ends_with("Total Errors:   4\n"), "{rendered}");
+        assert!(rendered.ends_with("Total Errors:   8\n"), "{rendered}");
 
         std::fs::write(dir.path().join("services.cfg"), "service {\n").unwrap();
         let (_, report) = read(&main);
         assert!(report.errors[0].contains("unexpected start"), "{report:?}");
         let (_, report) = read(&dir.path().join("absent.cfg"));
         assert_eq!(report.errors.len(), 1);
+    }
+
+    #[test]
+    fn refuses_unknown_relations() {
+        let dir = tempfile::tempdir().unwrap();
+        let main = web_like(dir.path());
+        let hosts = dir.path().join("hosts.cfg");
+        let text = std::fs::read_to_string(&hosts).unwrap();
+        std::fs::write(
+            &hosts,
+            text.replace("parents h2", "parents nope\n    hostgroups missing")
+                .replace("category_tags 7", "category_tags 8")
+                .replace("severity 3", "severity 4"),
+        )
+        .unwrap();
+        let groups = dir.path().join("groups.cfg");
+        let text = std::fs::read_to_string(&groups).unwrap();
+        std::fs::write(&groups, text.replace("h2,Disk", "h2,Nope")).unwrap();
+        std::fs::write(
+            dir.path().join("dependencies.cfg"),
+            "define servicedependency {\n    host_name h1\n    service_description Ping\n}\n\
+             define hostdependency {\n    host_name h1\n    dependent_host_name h2\n    \
+             execution_failure_criteria x\n}\n",
+        )
+        .unwrap();
+        let (_, report) = read(&main);
+        let all = report.errors.join("\n");
+        for expected in [
+            "'nope' is not a valid parent for host 'h1'!",
+            "Could not add host 'h1' to non-existing host group 'missing'",
+            "Could not find tag '8' on which to apply host (12)",
+            "Could not add the severity (4, 1) to the host 'h1'",
+            "Service 'Nope' on host 'h2' specified in service group 'sg1' is not defined",
+            "Service dependency is not attached to any dependent service",
+            "invalid execution_failure_options \"x\"",
+        ] {
+            assert!(all.contains(expected), "{expected}: {all}");
+        }
     }
 
     #[test]

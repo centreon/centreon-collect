@@ -5,6 +5,7 @@
 //! file in `core/retention.rs`.
 
 mod downtimes;
+mod relations;
 mod retention;
 
 use std::cmp::Reverse;
@@ -205,6 +206,8 @@ enum Timer {
     Recurring,
     /// `EVENT_RETENTION_SAVE`.
     RetentionSave,
+    /// `EVENT_EXPIRE_HOST_ACK`, `EVENT_EXPIRE_SERVICE_ACK`.
+    AcknowledgementExpiry(Key),
 }
 
 /// Recurring downtimes run every minute (`EVENT_RECURRING_DOWNTIME`).
@@ -245,6 +248,10 @@ pub(crate) struct Core {
     credentials: Option<Credentials>,
     /// What the retention file kept, until the first configuration uses it.
     retained: Option<retention::Retained>,
+    /// Parents, children and dependencies of the objects.
+    links: relations::Links,
+    /// Event log entries made before the first connection.
+    early_logs: Vec<Vec<u8>>,
 }
 
 impl Core {
@@ -286,6 +293,8 @@ impl Core {
             initial_load_done: false,
             credentials: None,
             retained,
+            links: relations::Links::default(),
+            early_logs: Vec::new(),
         }
     }
 
@@ -335,6 +344,12 @@ impl Core {
             (self.start_time, 0),
             encryption,
         )];
+        let (before, after) = self
+            .loaded
+            .as_ref()
+            .map(|l| relations::snapshot_frames(poller_id, &l.config))
+            .unwrap_or_default();
+        frames.extend(before);
         for obj in &self.objs {
             frames.push(match &obj.conf {
                 ObjConf::Host(host) => events::host(poller_id, host, &obj.state, now, true),
@@ -349,6 +364,7 @@ impl Core {
         for comment in self.book.comments.values() {
             frames.push(events::comment(poller_id, comment, None));
         }
+        frames.extend(after);
         frames.push(events::instance_configuration(poller_id));
         for obj in &self.objs {
             frames.push(match &obj.conf {
@@ -357,6 +373,8 @@ impl Core {
             });
         }
         frames.push(events::instance_status(poller_id, now));
+        // The event log made before the central was reached.
+        frames.append(&mut self.early_logs);
         for frame in frames {
             self.emit(frame);
         }
@@ -553,6 +571,11 @@ impl Core {
         let same_target = self.loaded.as_ref().map(|l| &l.target) == Some(&target);
         let first = self.loaded.is_none();
         let changes = self.rebuild(&config);
+        let relation_frames = self
+            .loaded
+            .as_ref()
+            .filter(|_| self.connected && same_target)
+            .map(|l| relations::change_frames(target.poller_id, &l.config, &config, &changes));
         let text = format!(
             "configuration loaded: {} commands, {} hosts, {} services, poller {} ({}); \
              {} added, {} changed, {} removed",
@@ -577,9 +600,10 @@ impl Core {
             *current = Some(target);
             changed
         });
-        if self.connected && same_target {
-            self.emit_changes(&changes);
+        if let Some(relation_frames) = relation_frames {
+            self.emit_changes(&changes, relation_frames);
         }
+        self.log_initial_states(&changes.added);
         let now = self.clock.now();
         if first {
             // Downtimes, comments and acknowledgements of the retention
@@ -603,30 +627,30 @@ impl Core {
     /// added and changed ones (`host.cc:134`, `:387`, `service.cc:152`,
     /// `:407`), then `pb_instance_configuration` (`cbmod::reload`,
     /// `broker/neb/src/cbmod.cc:376-391`). No `pb_instance`: the central
-    /// keeps every other object of the poller enabled.
-    fn emit_changes(&mut self, changes: &Changes) {
+    /// keeps every other object of the poller enabled. Severities, tags,
+    /// groups and parents go in the order of `applier::state::_processing`
+    /// (`state.cc:1477-1530`): severities and tags, hosts, host groups,
+    /// services, service groups, then the resolution (parents, members).
+    fn emit_changes(&mut self, changes: &Changes, mut relation: relations::RelationFrames) {
         let Some((poller_id, _)) = self.poller() else {
             return;
         };
         let now = self.clock.now();
         let idle = CheckState::default();
-        let mut frames = Vec::new();
-        let removed_services = changes
-            .removed
-            .iter()
-            .filter(|conf| matches!(conf, ObjConf::Service { .. }));
-        let removed_hosts = changes
-            .removed
-            .iter()
-            .filter(|conf| matches!(conf, ObjConf::Host(_)));
-        for conf in removed_services.chain(removed_hosts) {
-            frames.push(match conf {
-                ObjConf::Host(host) => events::host(poller_id, host, &idle, now, false),
-                ObjConf::Service { conf, .. } => {
-                    events::service(poller_id, conf, &idle, now, false)
-                }
-            });
+        let mut frames = relation.before_objects;
+        frames.extend(relation.removed_services);
+        for conf in &changes.removed {
+            if let ObjConf::Service { conf, .. } = conf {
+                frames.push(events::service(poller_id, conf, &idle, now, false));
+            }
         }
+        frames.extend(relation.removed_hosts);
+        for conf in &changes.removed {
+            if let ObjConf::Host(host) = conf {
+                frames.push(events::host(poller_id, host, &idle, now, false));
+            }
+        }
+        frames.extend(relation.changed_parents);
         let mut updated: Vec<usize> = changes
             .added
             .iter()
@@ -635,8 +659,13 @@ impl Core {
             .collect();
         // Hosts first: a service of an unknown host is ignored by the central.
         updated.sort_by_key(|index| (!self.objs[*index].is_host(), *index));
+        let mut groups_sent = false;
         for index in updated {
             let obj = &self.objs[index];
+            if !obj.is_host() && !groups_sent {
+                frames.append(&mut relation.hostgroups);
+                groups_sent = true;
+            }
             frames.push(match &obj.conf {
                 ObjConf::Host(host) => events::host(poller_id, host, &obj.state, now, true),
                 ObjConf::Service { conf, .. } => {
@@ -644,6 +673,11 @@ impl Core {
                 }
             });
         }
+        if !groups_sent {
+            frames.extend(relation.hostgroups);
+        }
+        frames.extend(relation.servicegroups);
+        frames.extend(relation.resolve);
         frames.push(events::instance_configuration(poller_id));
         for frame in frames {
             self.emit(frame);
@@ -748,6 +782,7 @@ impl Core {
                 }
             }
         }
+        self.index_links(config);
         // The configuration is needed by the timeperiod computations below.
         let interval_length = u64::from(config.settings.interval_length.max(1));
         let now = Instant::now();
@@ -884,23 +919,47 @@ impl Core {
         }
     }
 
-    /// `verify_check_viability` for the check period (`service.cc:3119`,
-    /// rescheduling `service.cc:2500-2560`, same for hosts): a check due
-    /// outside its period is not run but planned at the next valid time
-    /// after one check interval, or a week later when there is none.
+    /// `verify_check_viability` (`service.cc:3119-3196`, rescheduling
+    /// `service.cc:2471-2560`, the same for hosts): a check due outside its
+    /// period, or whose execution dependencies fail, is not run. Outside
+    /// the period it is planned at the next valid time after one check
+    /// interval, or a week later when there is none; a failing dependency
+    /// plans it one interval later (the retry interval while SOFT).
     fn viable(&mut self, index: usize) -> bool {
         let now = self.clock.now();
-        if self.in_check_period(index, now) {
+        let in_period = self.in_check_period(index, now);
+        let authorized = self.authorized_by_dependencies(index, 0);
+        if in_period && authorized {
             return true;
         }
         let check = self.objs[index].check().clone();
+        let length = self.interval_length() as i64;
         let interval = if check.check_interval == 0 {
             300
         } else {
-            i64::from(check.check_interval) * self.interval_length() as i64
+            i64::from(check.check_interval) * length
         };
-        let mut next = self.next_valid_time(index, now + interval);
-        if !self.in_check_period(index, next) {
+        let mut preferred = now + interval;
+        if !authorized {
+            let st = &self.objs[index].state;
+            let units = if st.state_type == StateType::Soft && st.state != code::OK {
+                check.retry_interval
+            } else {
+                check.check_interval
+            };
+            preferred = now + i64::from(units) * length;
+            if preferred <= now {
+                preferred = now + interval;
+            }
+            tracing::debug!(
+                host_id = self.objs[index].key.0,
+                service_id = self.objs[index].key.1,
+                "Execution dependencies for this object failed, so it will not be actively \
+                 checked."
+            );
+        }
+        let mut next = self.next_valid_time(index, preferred);
+        if !in_period && !self.in_check_period(index, next) {
             next += 7 * 24 * 60 * 60;
             tracing::warn!(
                 host_id = self.objs[index].key.0,
@@ -924,6 +983,7 @@ impl Core {
         let name = if host {
             match st.state {
                 code::OK => "UP",
+                code::UNREACHABLE => "UNREACHABLE",
                 _ => "DOWN",
             }
         } else {
@@ -1079,15 +1139,36 @@ impl Core {
             Err((code, text)) => (code, text, 0.0, 0.0),
         };
         let state = if is_host {
-            match check_type {
-                CheckType::Active => state::host_state_of(raw_code),
-                // Passive host results are host states: UP, DOWN, UNREACHABLE.
-                CheckType::Passive => u32::from(raw_code != code::OK),
+            let up = match check_type {
+                CheckType::Active => state::host_state_of(raw_code) == code::OK,
+                // Passive host results are host states: UP, DOWN,
+                // UNREACHABLE; a problem goes through the reachability too.
+                CheckType::Passive => raw_code == code::OK,
+            };
+            if up {
+                code::OK
+            } else {
+                self.reachability(index)
             }
         } else {
             raw_code
         };
-        let parsed = output::parse(&raw_output);
+        let mut parsed = output::parse(&raw_output);
+        // `handle_async_check_result` (`service.cc:1328-1340`,
+        // `host.cc:1449-1460`): a placeholder for an empty output, and no
+        // `;` in it, the separator of the event log.
+        if parsed.output.is_empty() {
+            parsed.output = if is_host {
+                "(No output returned from host check)"
+            } else {
+                "(No output returned from plugin)"
+            }
+            .to_owned();
+        }
+        parsed.output = parsed.output.replace(';', ":");
+        if !is_host && check_type == CheckType::Passive {
+            self.log_passive_service_check(index, state, &parsed.output);
+        }
         let now = self.clock.now();
         let host_up = match &self.objs[index].conf {
             ObjConf::Service { host, .. } => self.objs[*host].state.state == code::OK,
@@ -1096,16 +1177,20 @@ impl Core {
         let check = self.objs[index].check().clone();
         let obj = &mut self.objs[index];
         let before = (obj.state.state, obj.state.last_hard_state_change);
+        let before_hard_state = obj.state.last_hard_state;
         let outcome = Outcome {
             state,
             check_type,
             now,
         };
-        let next = if is_host {
-            obj.state.apply_host(&outcome, check.max_check_attempts)
+        let (next, service_logged) = if is_host {
+            (
+                obj.state.apply_host(&outcome, check.max_check_attempts),
+                false,
+            )
         } else {
             obj.state
-                .apply_service(&outcome, check.max_check_attempts, host_up)
+                .apply_service_logged(&outcome, check.max_check_attempts, host_up)
         };
         let state_change = obj.state.state != before.0;
         let hard_change = obj.state.last_hard_state_change != before.1;
@@ -1148,8 +1233,18 @@ impl Core {
             attempt = obj.state.attempt,
             "check result applied"
         );
+        if is_host {
+            self.log_host_alert(index, before.0, before_hard_state);
+        } else if service_logged {
+            self.log_service_alert(index);
+        }
         self.emit_status(index);
         self.flexible_downtimes_after_result(index, state_change, hard_change);
+        if is_host {
+            self.propagate_host_checks(index, before.0 == code::OK);
+        } else {
+            self.propagate_service_checks(index, state_change);
+        }
     }
 
     fn finished(&mut self, done: Done) {
@@ -1168,6 +1263,8 @@ impl Core {
         }
         let (stamp, command) = extcmd::parse_stamped(line).map_err(|error| error.to_string())?;
         let entry_time = stamp.unwrap_or_else(|| self.clock.now());
+        let (name, args) = extcmd::name_and_args(line);
+        self.log_external_command(name, args);
         let find_service = |core: &Self, host: &str, service: &str| {
             core.services_by_name
                 .get(&(host.to_owned(), service.to_owned()))
@@ -1248,14 +1345,44 @@ impl Core {
                     extcmd::DowntimeTarget::HostServices(host) => match find(self, host, None) {
                         Ok(index) => {
                             let host_id = self.objs[index].key.0;
-                            self.objs
-                                .iter()
-                                .filter(|obj| obj.key.0 == host_id && obj.key.1 != 0)
-                                .map(|obj| obj.key)
-                                .collect()
+                            self.services_of(&[host_id])
                         }
                         Err(what) => return ignored(what),
                     },
+                    extcmd::DowntimeTarget::HostGroup { name, services } => {
+                        let Some(group) = self
+                            .loaded
+                            .as_ref()
+                            .and_then(|l| l.config.hostgroups.get(name))
+                        else {
+                            return ignored(format!("unknown host group '{name}'"));
+                        };
+                        let hosts = group.members.clone();
+                        if *services {
+                            self.services_of(&hosts)
+                        } else {
+                            hosts.into_iter().map(|host| (host, 0)).collect()
+                        }
+                    }
+                    extcmd::DowntimeTarget::ServiceGroup { name, services } => {
+                        let Some(group) = self
+                            .loaded
+                            .as_ref()
+                            .and_then(|l| l.config.servicegroups.get(name))
+                        else {
+                            return ignored(format!("unknown service group '{name}'"));
+                        };
+                        if *services {
+                            group.members.clone()
+                        } else {
+                            // One downtime per host, as the `last_host` of
+                            // `cmd_schedule_downtime` gives on sorted members.
+                            let mut hosts: Vec<Key> =
+                                group.members.iter().map(|(host, _)| (*host, 0)).collect();
+                            hosts.dedup();
+                            hosts
+                        }
+                    }
                 };
                 let request = downtimes::Request {
                     entry_time,
@@ -1371,7 +1498,18 @@ impl Core {
             return Err("passive checks are disabled".to_owned());
         }
         self.apply(index, Err((code, output)), CheckType::Passive);
+        // On-demand checks the result asked for.
+        self.launch();
         Ok("result processed".to_owned())
+    }
+
+    /// Keys of the services of the hosts `host_ids`, in configuration order.
+    fn services_of(&self, host_ids: &[u64]) -> Vec<Key> {
+        self.objs
+            .iter()
+            .filter(|obj| obj.key.1 != 0 && host_ids.contains(&obj.key.0))
+            .map(|obj| obj.key)
+            .collect()
     }
 
     /// Runs the timed events that are due.
@@ -1384,6 +1522,7 @@ impl Core {
             self.timers.pop();
             match timer {
                 Timer::Downtime(id) => self.handle_downtime(id),
+                Timer::AcknowledgementExpiry(key) => self.expire_acknowledgement(key),
                 Timer::ExpireDowntimes => self.expire_downtimes(),
                 Timer::Recurring => {
                     self.run_rules(now);

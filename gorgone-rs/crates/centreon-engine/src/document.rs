@@ -1,5 +1,5 @@
-//! The structured configuration document, versions 1 and 2
-//! (`gorgone-rs/schemas/engine-configuration.v2.json`): what centreon-web
+//! The structured configuration document, versions 1 to 3
+//! (`gorgone-rs/schemas/engine-configuration.v3.json`): what centreon-web
 //! sends instead of the `.cfg` files. Its objects become the raw objects of
 //! the file reader, so that templates are resolved and objects checked by
 //! the same code ([`cfg::build`]): both inputs give the same model.
@@ -10,6 +10,12 @@
 //! files (decrypted, stripped). A version 1 document may not use any of
 //! it, and its values stay literal.
 //!
+//! Version 3 adds host and service groups, severities, tags, parents,
+//! dependencies, acknowledgement timeouts, a service's own time zone and
+//! the event log settings. Nothing changes meaning, but an engine reading
+//! 1-2 would refuse every document using them: a new version lets
+//! gorgone-server refuse it up front (409) instead of a failed apply.
+//!
 //! Every object refuses a field it does not know: a field the engine would
 //! ignore is a behaviour it would silently not have (a check period, a
 //! downtime...), so the whole document is refused and the configuration in
@@ -19,11 +25,11 @@ use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
 
-use crate::cfg::{self, Kind, MonitoringConfig, RawObject, Report, Settings};
+use crate::cfg::{self, Kind, LogLevel, MonitoringConfig, RawObject, Report, Settings};
 
 /// Latest version of the document format this engine reads; it also
 /// reads the previous ones.
-pub const VERSION: u32 = 2;
+pub const VERSION: u32 = 3;
 
 /// The whole document.
 #[derive(Debug, Clone, Deserialize)]
@@ -50,6 +56,91 @@ pub(crate) struct Document {
     pub timeperiods: Vec<TimeperiodDoc>,
     #[serde(default)]
     pub recurring_downtimes: Vec<RecurringDoc>,
+    #[serde(default)]
+    pub hostgroups: Vec<HostGroupDoc>,
+    #[serde(default)]
+    pub servicegroups: Vec<ServiceGroupDoc>,
+    #[serde(default)]
+    pub severities: Vec<SeverityDoc>,
+    #[serde(default)]
+    pub tags: Vec<TagDoc>,
+    #[serde(default)]
+    pub host_dependencies: Vec<DependencyDoc>,
+    #[serde(default)]
+    pub service_dependencies: Vec<DependencyDoc>,
+}
+
+/// A host group (`define hostgroup`), members by host name.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct HostGroupDoc {
+    pub hostgroup_id: Option<u64>,
+    pub hostgroup_name: String,
+    pub alias: Option<String>,
+    #[serde(default)]
+    pub members: Vec<String>,
+}
+
+/// A service group (`define servicegroup`), members as `[host, service]`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ServiceGroupDoc {
+    pub servicegroup_id: Option<u64>,
+    pub servicegroup_name: String,
+    pub alias: Option<String>,
+    #[serde(default)]
+    pub members: Vec<(String, String)>,
+    #[serde(default)]
+    pub servicegroup_members: Vec<String>,
+}
+
+/// A severity (`define severity`); `type` is `host` or `service`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SeverityDoc {
+    pub id: u64,
+    pub severity_name: String,
+    pub level: u32,
+    pub icon_id: Option<u64>,
+    #[serde(rename = "type")]
+    pub kind: String,
+}
+
+/// A tag (`define tag`); `type` is `hostcategory`, `servicecategory`,
+/// `hostgroup` or `servicegroup`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct TagDoc {
+    pub id: u64,
+    pub tag_name: String,
+    #[serde(rename = "type")]
+    pub kind: String,
+}
+
+/// A host or service dependency, with the keys the .cfg generator writes.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DependencyDoc {
+    #[serde(default)]
+    pub host_name: Vec<String>,
+    #[serde(default)]
+    pub hostgroup_name: Vec<String>,
+    #[serde(default)]
+    pub dependent_host_name: Vec<String>,
+    #[serde(default)]
+    pub dependent_hostgroup_name: Vec<String>,
+    #[serde(default)]
+    pub service_description: Vec<String>,
+    #[serde(default)]
+    pub servicegroup_name: Vec<String>,
+    #[serde(default)]
+    pub dependent_service_description: Vec<String>,
+    #[serde(default)]
+    pub dependent_servicegroup_name: Vec<String>,
+    pub execution_failure_criteria: Option<String>,
+    pub notification_failure_criteria: Option<String>,
+    pub inherits_parent: Option<bool>,
+    pub dependency_period: Option<String>,
 }
 
 /// A timeperiod; it is also the template of those that `use` it.
@@ -126,6 +217,56 @@ pub(crate) struct SettingsDoc {
     pub use_timezone: Option<String>,
     pub retention_update_interval: Option<u32>,
     pub use_retained_scheduling_info: Option<bool>,
+    pub log_service_retries: Option<bool>,
+    pub log_host_retries: Option<bool>,
+    pub log_external_commands: Option<bool>,
+    pub log_passive_checks: Option<bool>,
+    pub log_level_events: Option<String>,
+    pub log_level_checks: Option<String>,
+    pub log_level_external_command: Option<String>,
+    pub soft_state_dependencies: Option<bool>,
+    pub enable_predictive_host_dependency_checks: Option<bool>,
+    pub enable_predictive_service_dependency_checks: Option<bool>,
+    pub cached_host_check_horizon: Option<u32>,
+}
+
+impl SettingsDoc {
+    /// The first version 3 setting given, if any.
+    fn version_3_field(&self) -> Option<&'static str> {
+        [
+            ("log_service_retries", self.log_service_retries.is_some()),
+            ("log_host_retries", self.log_host_retries.is_some()),
+            (
+                "log_external_commands",
+                self.log_external_commands.is_some(),
+            ),
+            ("log_passive_checks", self.log_passive_checks.is_some()),
+            ("log_level_events", self.log_level_events.is_some()),
+            ("log_level_checks", self.log_level_checks.is_some()),
+            (
+                "log_level_external_command",
+                self.log_level_external_command.is_some(),
+            ),
+            (
+                "soft_state_dependencies",
+                self.soft_state_dependencies.is_some(),
+            ),
+            (
+                "enable_predictive_host_dependency_checks",
+                self.enable_predictive_host_dependency_checks.is_some(),
+            ),
+            (
+                "enable_predictive_service_dependency_checks",
+                self.enable_predictive_service_dependency_checks.is_some(),
+            ),
+            (
+                "cached_host_check_horizon",
+                self.cached_host_check_horizon.is_some(),
+            ),
+        ]
+        .into_iter()
+        .find_map(|(name, given)| given.then_some(name))
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -157,6 +298,17 @@ pub(crate) struct HostDoc {
     pub timezone: Option<String>,
     #[serde(default)]
     pub macros: BTreeMap<String, String>,
+    #[serde(default)]
+    pub parents: Vec<String>,
+    #[serde(default)]
+    pub hostgroups: Vec<String>,
+    pub severity_id: Option<u64>,
+    #[serde(default)]
+    pub category_tags: Vec<u64>,
+    #[serde(default)]
+    pub group_tags: Vec<u64>,
+    pub icon_id: Option<u64>,
+    pub acknowledgement_timeout: Option<u32>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -177,6 +329,16 @@ pub(crate) struct ServiceDoc {
     pub check_period: Option<String>,
     #[serde(default)]
     pub macros: BTreeMap<String, String>,
+    pub timezone: Option<String>,
+    #[serde(default)]
+    pub servicegroups: Vec<String>,
+    pub severity_id: Option<u64>,
+    #[serde(default)]
+    pub category_tags: Vec<u64>,
+    #[serde(default)]
+    pub group_tags: Vec<u64>,
+    pub icon_id: Option<u64>,
+    pub acknowledgement_timeout: Option<u32>,
 }
 
 /// Only the version, read first so that a document of another version is
@@ -217,6 +379,38 @@ impl Fields {
                 .insert(key.to_owned(), if value { "1" } else { "0" }.to_owned());
         }
     }
+
+    /// A list, as the .cfg writes it: comma-separated.
+    fn list(&mut self, key: &str, values: &[impl ToString]) {
+        if !values.is_empty() {
+            let joined: Vec<String> = values.iter().map(ToString::to_string).collect();
+            self.0.insert(key.to_owned(), joined.join(","));
+        }
+    }
+}
+
+impl HostDoc {
+    fn uses_version_3(&self) -> bool {
+        !self.parents.is_empty()
+            || !self.hostgroups.is_empty()
+            || self.severity_id.is_some()
+            || !self.category_tags.is_empty()
+            || !self.group_tags.is_empty()
+            || self.icon_id.is_some()
+            || self.acknowledgement_timeout.is_some()
+    }
+}
+
+impl ServiceDoc {
+    fn uses_version_3(&self) -> bool {
+        self.timezone.is_some()
+            || !self.servicegroups.is_empty()
+            || self.severity_id.is_some()
+            || !self.category_tags.is_empty()
+            || !self.group_tags.is_empty()
+            || self.icon_id.is_some()
+            || self.acknowledgement_timeout.is_some()
+    }
 }
 
 fn macros(map: &BTreeMap<String, String>) -> BTreeMap<String, String> {
@@ -239,6 +433,13 @@ fn host_object(host: &HostDoc, register: bool, origin: String) -> RawObject {
     fields.flag("checks_passive", host.passive_checks_enabled);
     fields.text("check_period", host.check_period.as_ref());
     fields.text("timezone", host.timezone.as_ref());
+    fields.list("parents", &host.parents);
+    fields.list("hostgroups", &host.hostgroups);
+    fields.number("severity_id", host.severity_id);
+    fields.list("category_tags", &host.category_tags);
+    fields.list("group_tags", &host.group_tags);
+    fields.number("icon_id", host.icon_id);
+    fields.number("acknowledgement_timeout", host.acknowledgement_timeout);
     RawObject {
         fields: fields.0,
         custom: macros(&host.macros),
@@ -262,6 +463,13 @@ fn service_object(service: &ServiceDoc, register: bool, origin: String) -> RawOb
     fields.flag("checks_active", service.active_checks_enabled);
     fields.flag("checks_passive", service.passive_checks_enabled);
     fields.text("check_period", service.check_period.as_ref());
+    fields.text("timezone", service.timezone.as_ref());
+    fields.list("servicegroups", &service.servicegroups);
+    fields.number("severity_id", service.severity_id);
+    fields.list("category_tags", &service.category_tags);
+    fields.list("group_tags", &service.group_tags);
+    fields.number("icon_id", service.icon_id);
+    fields.number("acknowledgement_timeout", service.acknowledgement_timeout);
     RawObject {
         fields: fields.0,
         custom: macros(&service.macros),
@@ -346,6 +554,100 @@ fn recurring_object(rule: &RecurringDoc, origin: String) -> RawObject {
     }
 }
 
+/// A group, severity, tag or dependency as the raw object of the file
+/// reader.
+fn registered(fields: Fields, origin: String) -> RawObject {
+    RawObject {
+        fields: fields.0,
+        register: true,
+        origin,
+        ..RawObject::default()
+    }
+}
+
+fn dependency_object(dependency: &DependencyDoc, origin: String) -> RawObject {
+    let mut fields = Fields::default();
+    fields.list("hosts", &dependency.host_name);
+    fields.list("hostgroups", &dependency.hostgroup_name);
+    fields.list("dependent_hosts", &dependency.dependent_host_name);
+    fields.list("dependent_hostgroups", &dependency.dependent_hostgroup_name);
+    fields.list("service_description", &dependency.service_description);
+    fields.list("servicegroups", &dependency.servicegroup_name);
+    fields.list(
+        "dependent_service_description",
+        &dependency.dependent_service_description,
+    );
+    fields.list(
+        "dependent_servicegroups",
+        &dependency.dependent_servicegroup_name,
+    );
+    fields.text(
+        "execution_failure_options",
+        dependency.execution_failure_criteria.as_ref(),
+    );
+    fields.text(
+        "notification_failure_options",
+        dependency.notification_failure_criteria.as_ref(),
+    );
+    fields.flag("inherits_parent", dependency.inherits_parent);
+    fields.text("dependency_period", dependency.dependency_period.as_ref());
+    registered(fields, origin)
+}
+
+/// The relation objects of a document (version 3).
+fn relation_objects(document: &Document, objects: &mut Vec<(Kind, RawObject)>) {
+    for (index, group) in document.hostgroups.iter().enumerate() {
+        let mut fields = Fields::default();
+        fields.number("hostgroup_id", group.hostgroup_id);
+        fields.text("hostgroup_name", Some(&group.hostgroup_name));
+        fields.text("alias", group.alias.as_ref());
+        fields.list("members", &group.members);
+        let at = origin("hostgroups", index, Some(&group.hostgroup_name));
+        objects.push((Kind::HostGroup, registered(fields, at)));
+    }
+    for (index, group) in document.servicegroups.iter().enumerate() {
+        let mut fields = Fields::default();
+        fields.number("servicegroup_id", group.servicegroup_id);
+        fields.text("servicegroup_name", Some(&group.servicegroup_name));
+        fields.text("alias", group.alias.as_ref());
+        let members: Vec<&String> = group
+            .members
+            .iter()
+            .flat_map(|(host, service)| [host, service])
+            .collect();
+        fields.list("members", &members);
+        fields.list("servicegroup_members", &group.servicegroup_members);
+        let at = origin("servicegroups", index, Some(&group.servicegroup_name));
+        objects.push((Kind::ServiceGroup, registered(fields, at)));
+    }
+    for (index, severity) in document.severities.iter().enumerate() {
+        let mut fields = Fields::default();
+        fields.number("id", Some(severity.id));
+        fields.text("severity_name", Some(&severity.severity_name));
+        fields.number("level", Some(severity.level));
+        fields.number("icon_id", severity.icon_id);
+        fields.text("type", Some(&severity.kind));
+        let at = origin("severities", index, Some(&severity.severity_name));
+        objects.push((Kind::Severity, registered(fields, at)));
+    }
+    for (index, tag) in document.tags.iter().enumerate() {
+        let mut fields = Fields::default();
+        fields.number("id", Some(tag.id));
+        fields.text("tag_name", Some(&tag.tag_name));
+        fields.text("type", Some(&tag.kind));
+        let at = origin("tags", index, Some(&tag.tag_name));
+        objects.push((Kind::Tag, registered(fields, at)));
+    }
+    for (index, dependency) in document.host_dependencies.iter().enumerate() {
+        let at = origin("host_dependencies", index, None);
+        objects.push((Kind::HostDependency, dependency_object(dependency, at)));
+    }
+    for (index, dependency) in document.service_dependencies.iter().enumerate() {
+        let at = origin("service_dependencies", index, None);
+        objects.push((Kind::ServiceDependency, dependency_object(dependency, at)));
+    }
+}
+
 /// Origin of an object in messages: its list, index and name.
 fn origin(list: &str, index: usize, name: Option<&String>) -> String {
     match name {
@@ -397,6 +699,13 @@ pub(crate) fn parse(bytes: &[u8]) -> Result<(Parsed, Report), String> {
     {
         return refuse(format!(
             "{field} needs version 2 of the configuration document"
+        ));
+    }
+    if document.version < 3
+        && let Some(field) = version_3_field(&document)
+    {
+        return refuse(format!(
+            "{field} needs version 3 of the configuration document"
         ));
     }
     let (mut config, report) = model(&document);
@@ -463,6 +772,50 @@ fn version_2_field(document: &Document) -> Option<&'static str> {
     None
 }
 
+/// The first version 3 field a document uses, if any.
+fn version_3_field(document: &Document) -> Option<&'static str> {
+    if let Some(field) = document.settings.version_3_field() {
+        return Some(field);
+    }
+    let lists = [
+        ("hostgroups", document.hostgroups.is_empty()),
+        ("servicegroups", document.servicegroups.is_empty()),
+        ("severities", document.severities.is_empty()),
+        ("tags", document.tags.is_empty()),
+        ("host_dependencies", document.host_dependencies.is_empty()),
+        (
+            "service_dependencies",
+            document.service_dependencies.is_empty(),
+        ),
+    ];
+    if let Some((name, _)) = lists.into_iter().find(|(_, empty)| !empty) {
+        return Some(name);
+    }
+    if document
+        .host_templates
+        .iter()
+        .chain(&document.hosts)
+        .any(HostDoc::uses_version_3)
+    {
+        return Some(
+            "parents, hostgroups, severity_id, category_tags, group_tags, icon_id or \
+             acknowledgement_timeout of a host",
+        );
+    }
+    if document
+        .service_templates
+        .iter()
+        .chain(&document.services)
+        .any(ServiceDoc::uses_version_3)
+    {
+        return Some(
+            "timezone, servicegroups, severity_id, category_tags, group_tags, icon_id or \
+             acknowledgement_timeout of a service",
+        );
+    }
+    None
+}
+
 /// The engine model of a document: raw objects, then the file reader's
 /// template resolution and checks.
 fn model(document: &Document) -> (MonitoringConfig, Report) {
@@ -494,6 +847,46 @@ fn model(document: &Document) -> (MonitoringConfig, Report) {
             .use_retained_scheduling_info
             .unwrap_or(defaults.use_retained_scheduling_info),
         broker_module_cfg_file: None,
+        log_service_retries: given
+            .log_service_retries
+            .unwrap_or(defaults.log_service_retries),
+        log_host_retries: given.log_host_retries.unwrap_or(defaults.log_host_retries),
+        log_external_commands: given
+            .log_external_commands
+            .unwrap_or(defaults.log_external_commands),
+        log_passive_checks: given
+            .log_passive_checks
+            .unwrap_or(defaults.log_passive_checks),
+        log_level_events: level(
+            &mut report,
+            "log_level_events",
+            given.log_level_events.as_deref(),
+            defaults.log_level_events,
+        ),
+        log_level_checks: level(
+            &mut report,
+            "log_level_checks",
+            given.log_level_checks.as_deref(),
+            defaults.log_level_checks,
+        ),
+        log_level_external_command: level(
+            &mut report,
+            "log_level_external_command",
+            given.log_level_external_command.as_deref(),
+            defaults.log_level_external_command,
+        ),
+        soft_state_dependencies: given
+            .soft_state_dependencies
+            .unwrap_or(defaults.soft_state_dependencies),
+        enable_predictive_host_dependency_checks: given
+            .enable_predictive_host_dependency_checks
+            .unwrap_or(defaults.enable_predictive_host_dependency_checks),
+        enable_predictive_service_dependency_checks: given
+            .enable_predictive_service_dependency_checks
+            .unwrap_or(defaults.enable_predictive_service_dependency_checks),
+        cached_host_check_horizon: given
+            .cached_host_check_horizon
+            .unwrap_or(defaults.cached_host_check_horizon),
     };
     let mut users = HashMap::new();
     for (name, value) in &document.resource_macros {
@@ -565,7 +958,22 @@ fn model(document: &Document) -> (MonitoringConfig, Report) {
         let at = format!("recurring_downtimes[{index}] #{}", rule.downtime_id);
         objects.push((Kind::RecurringDowntime, recurring_object(rule, at)));
     }
+    relation_objects(document, &mut objects);
     cfg::build(settings, users, objects, report)
+}
+
+/// A `log_level_*` setting; an invalid one is an error, as in the files.
+fn level(report: &mut Report, key: &str, value: Option<&str>, default: LogLevel) -> LogLevel {
+    let Some(value) = value else {
+        return default;
+    };
+    LogLevel::parse(value).unwrap_or_else(|| {
+        report.errors.push(format!(
+            "settings.{key}: '{value}' is not off, critical, error, err, warning, info, debug \
+             or trace"
+        ));
+        default
+    })
 }
 
 #[cfg(test)]
@@ -577,10 +985,11 @@ pub(crate) mod tests {
     /// The objects of `cfg::tests::web_like`, as centreon-web sends them in
     /// a document.
     pub(crate) const WEB_LIKE: &str = r#"{
-      "version": 2,
+      "version": 3,
       "poller": {"id": 4, "name": "rust-poller"},
       "broker": {"address": "broker:5669", "name": "rust-poller-module"},
-      "settings": {"interval_length": 60, "service_check_timeout": 20, "retention_update_interval": 30},
+      "settings": {"interval_length": 60, "service_check_timeout": 20, "retention_update_interval": 30,
+                   "log_service_retries": true, "log_level_external_command": "info"},
       "resource_macros": {"USER1": "/usr/lib/nagios/plugins", "CENTREONPLUGINS": "/usr/lib/centreon/plugins"},
       "commands": [{"command_name": "check_dummy", "command_line": "$USER1$/check_dummy $ARG1$ \"$ARG2$\""}],
       "host_templates": [
@@ -591,7 +1000,8 @@ pub(crate) mod tests {
       ],
       "hosts": [
         {"host_name": "h1", "alias": "First", "address": "10.0.0.1", "use": ["generic-host", "other"], "host_id": 12,
-         "check_period": "workhours", "timezone": ":Europe/Paris"},
+         "check_period": "workhours", "timezone": ":Europe/Paris", "parents": ["h2"], "category_tags": [7],
+         "group_tags": [20], "severity_id": 3, "acknowledgement_timeout": 5},
         {"host_name": "h2", "address": "10.0.0.2", "host_id": 13}
       ],
       "service_templates": [
@@ -599,7 +1009,8 @@ pub(crate) mod tests {
          "check_interval": 3, "retry_interval": 1, "max_check_attempts": 3}
       ],
       "services": [
-        {"host_name": "h1", "service_description": "Ping", "use": ["svc-tpl"], "service_id": 101},
+        {"host_name": "h1", "service_description": "Ping", "use": ["svc-tpl"], "service_id": 101,
+         "group_tags": [30], "severity_id": 4},
         {"host_name": "h2", "service_description": "Disk", "check_command": "check_dummy!2!full",
          "active_checks_enabled": false, "service_id": 102, "macros": {"CRIT": "90"},
          "check_period": "24x7"}
@@ -614,7 +1025,19 @@ pub(crate) mod tests {
       "recurring_downtimes": [
         {"downtime_id": 5, "downtime_name": "maintenance", "host_ids": [12], "service_ids": [[13, 102]],
          "periods": ["weekly:1,2 22:00-23:00 fixed", "monthly:1 01:00-02:00 flexible:600"]}
-      ]
+      ],
+      "hostgroups": [{"hostgroup_id": 20, "hostgroup_name": "hg1", "alias": "First hosts", "members": ["h1", "h2"]}],
+      "servicegroups": [{"servicegroup_id": 30, "servicegroup_name": "sg1", "alias": "Some services",
+                         "members": [["h1", "Ping"], ["h2", "Disk"]]}],
+      "tags": [{"id": 7, "tag_name": "cat7", "type": "hostcategory"}, {"id": 20, "tag_name": "hg1", "type": "hostgroup"},
+               {"id": 30, "tag_name": "sg1", "type": "servicegroup"}],
+      "severities": [{"id": 3, "severity_name": "high", "level": 1, "icon_id": 9, "type": "host"},
+                     {"id": 4, "severity_name": "low", "level": 5, "type": "service"}],
+      "service_dependencies": [{"execution_failure_criteria": "c,u", "notification_failure_criteria": "w,c",
+                                "inherits_parent": true, "host_name": ["h1"], "service_description": ["Ping"],
+                                "dependent_host_name": ["h2"], "dependent_service_description": ["Disk"]}],
+      "host_dependencies": [{"execution_failure_criteria": "d", "dependency_period": "24x7",
+                             "hostgroup_name": ["hg1"], "dependent_host_name": ["h1"]}]
     }"#;
 
     fn without_sources(mut config: MonitoringConfig) -> MonitoringConfig {
@@ -653,7 +1076,8 @@ pub(crate) mod tests {
         assert!(report.contains("'nope', which does not exist"), "{report}");
         assert!(report.contains("'missing': no such template"), "{report}");
         assert!(report.contains("services[0] 'Ping'"), "{report}");
-        assert!(report.ends_with("Total Errors:   3\n"), "{report}");
+        // The group and the dependency of the removed services are refused too.
+        assert!(report.ends_with("Total Errors:   7\n"), "{report}");
     }
 
     #[test]
@@ -669,14 +1093,27 @@ pub(crate) mod tests {
         );
         assert!(report.contains("Total Errors:   1"), "{report}");
 
-        let newer = unknown.replace(r#""version": 2"#, r#""version": 3"#);
+        let newer = unknown.replace(r#""version": 3"#, r#""version": 4"#);
         let report = parse(newer.as_bytes()).unwrap_err();
-        assert!(report.contains("version 3 is not supported"), "{report}");
+        assert!(report.contains("version 4 is not supported"), "{report}");
 
         // Version 1 takes no version 2 field, and keeps its values literal.
-        let old = WEB_LIKE.replace(r#""version": 2"#, r#""version": 1"#);
+        let old = WEB_LIKE.replace(r#""version": 3"#, r#""version": 1"#);
         let report = parse(old.as_bytes()).unwrap_err();
         assert!(report.contains("needs version 2"), "{report}");
+        // Version 2 takes no version 3 field.
+        let v2 = WEB_LIKE.replace(r#""version": 3"#, r#""version": 2"#);
+        let report = parse(v2.as_bytes()).unwrap_err();
+        assert!(report.contains("needs version 3"), "{report}");
+        let level = WEB_LIKE.replace(
+            r#""log_level_external_command": "info""#,
+            r#""log_level_external_command": "loud""#,
+        );
+        let report = parse(level.as_bytes()).unwrap_err();
+        assert!(
+            report.contains("settings.log_level_external_command"),
+            "{report}"
+        );
         let v1 =
             r#"{"version": 1, "poller": {"id": 1, "name": "p"}, "broker": {"address": "b:1"}}"#;
         let (parsed, _) = parse(v1.as_bytes()).unwrap();
@@ -706,7 +1143,7 @@ pub(crate) mod tests {
         // The schema is the contract of centreon-web: same objects, same
         // field names as the model.
         let schema = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../schemas/engine-configuration.v2.json");
+            .join("../../schemas/engine-configuration.v3.json");
         let schema: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(schema).unwrap()).unwrap();
         let keys = |value: &serde_json::Value| -> Vec<String> {
@@ -724,14 +1161,20 @@ pub(crate) mod tests {
             [
                 "broker",
                 "commands",
+                "host_dependencies",
                 "host_templates",
+                "hostgroups",
                 "hosts",
                 "poller",
                 "recurring_downtimes",
                 "resource_macros",
+                "service_dependencies",
                 "service_templates",
+                "servicegroups",
                 "services",
                 "settings",
+                "severities",
+                "tags",
                 "timeperiods",
                 "version"
             ]
@@ -757,23 +1200,43 @@ pub(crate) mod tests {
         for (def, required) in [
             ("timeperiod", serde_json::json!({"timeperiod_name": "t"})),
             ("recurring_downtime", serde_json::json!({"downtime_id": 1})),
+            ("hostgroup", serde_json::json!({"hostgroup_name": "g"})),
+            (
+                "servicegroup",
+                serde_json::json!({"servicegroup_name": "g"}),
+            ),
+            (
+                "severity",
+                serde_json::json!({"id": 1, "severity_name": "s", "level": 1, "type": "host"}),
+            ),
+            (
+                "tag",
+                serde_json::json!({"id": 1, "tag_name": "t", "type": "hostgroup"}),
+            ),
+            ("dependency", serde_json::json!({})),
         ] {
             for key in keys(&schema["$defs"][def]) {
                 let mut one = required.clone();
                 one[&key] = sample(&schema["$defs"][def]["properties"][&key]);
-                if def == "timeperiod" {
-                    let _: TimeperiodDoc =
-                        serde_json::from_value(one).unwrap_or_else(|e| panic!("{def}.{key}: {e}"));
-                } else {
-                    let _: RecurringDoc =
-                        serde_json::from_value(one).unwrap_or_else(|e| panic!("{def}.{key}: {e}"));
-                }
+                let read = match def {
+                    "timeperiod" => serde_json::from_value::<TimeperiodDoc>(one).map(drop),
+                    "recurring_downtime" => serde_json::from_value::<RecurringDoc>(one).map(drop),
+                    "hostgroup" => serde_json::from_value::<HostGroupDoc>(one).map(drop),
+                    "servicegroup" => serde_json::from_value::<ServiceGroupDoc>(one).map(drop),
+                    "severity" => serde_json::from_value::<SeverityDoc>(one).map(drop),
+                    "tag" => serde_json::from_value::<TagDoc>(one).map(drop),
+                    _ => serde_json::from_value::<DependencyDoc>(one).map(drop),
+                };
+                read.unwrap_or_else(|e| panic!("{def}.{key}: {e}"));
             }
         }
     }
 
     /// A value of the type a schema property asks for.
     fn sample(property: &serde_json::Value) -> serde_json::Value {
+        if let Some(values) = property["enum"].as_array() {
+            return values[0].clone();
+        }
         let kind = match property["$ref"].as_str() {
             Some("#/$defs/macros") => Some("object"),
             Some("#/$defs/uses" | "#/$defs/names") => Some("array"),
@@ -785,6 +1248,9 @@ pub(crate) mod tests {
             Some("boolean") => true.into(),
             Some("array") => match property["items"]["type"].as_str() {
                 Some("integer") => serde_json::json!([1]),
+                Some("array") if property["items"]["items"]["type"] == "string" => {
+                    serde_json::json!([["h", "s"]])
+                }
                 Some("array") => serde_json::json!([[1, 2]]),
                 Some("object") => {
                     serde_json::json!([{"days": "monday 1", "timerange": "00:00-01:00"}])
