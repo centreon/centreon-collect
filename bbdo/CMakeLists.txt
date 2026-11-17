@@ -211,3 +211,9 @@ target_link_libraries(centreon_pb_bbdo
   pb_header_lib
 )
 
+# Install shared library.
+install(
+  TARGETS centreon_pb_bbdo
+  DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+  COMPONENT "runtime")
+

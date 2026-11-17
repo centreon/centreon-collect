@@ -109,4 +109,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_precompile_headers(centreon_engine_conf PRIVATE
                             ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
   set_target_properties(centreon_engine_conf PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+  # Install shared library.
+  install(
+    TARGETS centreon_engine_conf
+    DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+    COMPONENT "runtime")
 endif()
