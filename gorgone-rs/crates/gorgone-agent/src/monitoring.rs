@@ -48,6 +48,10 @@ mod imp {
             options.max_concurrent_checks = section.max_concurrent_checks;
             options.max_pending_events = section.max_pending_events;
             options.max_output_bytes = config.max_output_bytes.min(64 * 1024);
+            options.retention_file = config.scheduler_retention_file();
+            if let Some(file) = &section.credentials_file {
+                options.credentials_file = Some(file.clone());
+            }
             Some(Self {
                 engine: centreon_engine::Scheduler::start(options),
                 structured,
@@ -305,7 +309,7 @@ mod tests {
         // External commands: supported ones run, others fail the job.
         let commands = EngineCommandsExecutor {
             transport: EngineTransport::Scheduler(monitoring.clone()),
-            allowed: Allowlist::new(["SCHEDULE_FORCED_SVC_CHECK", "ACKNOWLEDGE_SVC_PROBLEM"])
+            allowed: Allowlist::new(["SCHEDULE_FORCED_SVC_CHECK", "DEL_SVC_DOWNTIME_FULL"])
                 .unwrap(),
         };
         let action = |lines: &[&str]| EngineCommands {
@@ -317,7 +321,7 @@ mod tests {
             &commands,
             action(&[
                 "[1] SCHEDULE_FORCED_SVC_CHECK;h;s;1",
-                "[1] ACKNOWLEDGE_SVC_PROBLEM;h;s;1;1;1;me;x",
+                "[1] DEL_SVC_DOWNTIME_FULL;h;s;;;;;;",
             ]),
         )
         .await;

@@ -38,8 +38,12 @@ database, VictoriaMetrics), never one shared with another container.
   without a new push). centreon-web marks its poller with
   `nagios_server.engine_name = centreon-engine` and, with the feature flag
   `engine_structured_configuration`, sends it the structured configuration
-  (`ApplyEngineConfiguration`) instead of the `engine`, `broker`, `vmware`
-  and `engine_context` pushes. The engine checks and applies it in process
+  (`ApplyEngineConfiguration`) instead of the `engine`, `broker` and
+  `vmware` pushes, after the `engine_context` push of the key that decrypts
+  its `encrypt::` values (`/etc/centreon-engine/engine-context.json`, a
+  directory the engine user can write). States, downtimes, comments and
+  acknowledgements survive a restart in `/var/lib/centreon-engine/retention.json`.
+  The engine checks and applies it in process
   and sends the results to the central broker input (TCP 5669) the
   document names. Its plugins are in the image (Debian
   `monitoring-plugins-basic`, reachable as `/usr/lib64/nagios/plugins`, the

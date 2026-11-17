@@ -43,6 +43,12 @@ pub mod event {
     pub const INSTANCE: u32 = (NEB << 16) | 44;
     /// `neb::de_pb_instance_configuration`.
     pub const INSTANCE_CONFIGURATION: u32 = (NEB << 16) | 54;
+    /// `neb::de_pb_comment`.
+    pub const COMMENT: u32 = (NEB << 16) | 35;
+    /// `neb::de_pb_downtime`.
+    pub const DOWNTIME: u32 = (NEB << 16) | 36;
+    /// `neb::de_pb_acknowledgement`.
+    pub const ACKNOWLEDGEMENT: u32 = (NEB << 16) | 45;
 }
 
 const CRC_TABLE: [u16; 16] = [

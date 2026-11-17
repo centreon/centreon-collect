@@ -1,5 +1,17 @@
-//! External commands the scheduler handles, with the argument order of
-//! Engine (`engine/src/commands/processing.cc`).
+//! External commands the scheduler handles, with the argument order and
+//! parsing of Engine (`engine/src/commands/processing.cc`,
+//! `engine/src/commands/commands.cc`).
+
+/// What a downtime command puts in downtime.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DowntimeTarget {
+    /// `SCHEDULE_HOST_DOWNTIME`.
+    Host(String),
+    /// `SCHEDULE_HOST_SVC_DOWNTIME`: every service of the host.
+    HostServices(String),
+    /// `SCHEDULE_SVC_DOWNTIME`.
+    Service(String, String),
+}
 
 /// A supported external command.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +57,52 @@ pub enum ExtCommand {
         /// Plugin output.
         output: String,
     },
+    /// `SCHEDULE_{HOST,HOST_SVC,SVC}_DOWNTIME;target;start;end;fixed;
+    /// trigger_id;duration;author;comment` (`cmd_schedule_downtime`).
+    ScheduleDowntime {
+        target: DowntimeTarget,
+        start: i64,
+        end: i64,
+        fixed: bool,
+        triggered_by: u64,
+        duration: u64,
+        author: String,
+        comment: String,
+    },
+    /// `DEL_HOST_DOWNTIME;id`, `DEL_SVC_DOWNTIME;id`.
+    DeleteDowntime { id: u64 },
+    /// `ACKNOWLEDGE_HOST_PROBLEM;host;sticky;notify;persistent;author;comment`,
+    /// `ACKNOWLEDGE_SVC_PROBLEM;host;service;...` (`cmd_acknowledge_problem`).
+    Acknowledge {
+        host: String,
+        service: Option<String>,
+        sticky: bool,
+        notify: bool,
+        persistent: bool,
+        author: String,
+        comment: String,
+    },
+    /// `REMOVE_HOST_ACKNOWLEDGEMENT;host`, `REMOVE_SVC_ACKNOWLEDGEMENT;host;service`.
+    RemoveAcknowledgement {
+        host: String,
+        service: Option<String>,
+    },
+    /// `ADD_HOST_COMMENT;host;persistent;author;comment`,
+    /// `ADD_SVC_COMMENT;host;service;persistent;author;comment`.
+    AddComment {
+        host: String,
+        service: Option<String>,
+        persistent: bool,
+        author: String,
+        comment: String,
+    },
+    /// `DEL_HOST_COMMENT;id`, `DEL_SVC_COMMENT;id`.
+    DeleteComment { id: u64 },
+    /// `DEL_ALL_HOST_COMMENTS;host`, `DEL_ALL_SVC_COMMENTS;host;service`.
+    DeleteAllComments {
+        host: String,
+        service: Option<String>,
+    },
 }
 
 /// Why a line is refused.
@@ -74,16 +132,45 @@ fn code(value: &str, name: &str, max: u32) -> Result<u32, ParseError> {
         .ok_or_else(|| ParseError::Invalid(format!("{name}: invalid return code {value:?}")))
 }
 
+/// `absl::SimpleAtob`.
+fn flag(value: &str, what: &str) -> Result<bool, ParseError> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "1" | "true" | "t" | "yes" | "y" => Ok(true),
+        "0" | "false" | "f" | "no" | "n" => Ok(false),
+        _ => Err(ParseError::Invalid(format!(
+            "{what} {value:?} must be 1 or 0"
+        ))),
+    }
+}
+
+fn number<T: std::str::FromStr>(value: &str, what: &str) -> Result<T, ParseError> {
+    value
+        .trim()
+        .parse()
+        .map_err(|_| ParseError::Invalid(format!("{what} {value:?} must be an integer")))
+}
+
 /// Parses `[timestamp] NAME;arg;…`.
+#[cfg(test)]
 pub fn parse(line: &str) -> Result<ExtCommand, ParseError> {
+    parse_stamped(line).map(|(_, command)| command)
+}
+
+/// Parses `[timestamp] NAME;arg;…`, with its timestamp when it has one
+/// (the entry time of comments and downtimes).
+pub fn parse_stamped(line: &str) -> Result<(Option<i64>, ExtCommand), ParseError> {
     let line = line.trim_end_matches(['\r', '\n']);
-    let body = match line.strip_prefix('[') {
+    let (stamp, body) = match line.strip_prefix('[') {
         Some(stamped) => stamped
             .split_once(']')
-            .map(|(_, rest)| rest.trim_start())
+            .map(|(stamp, rest)| (stamp.trim().parse().ok(), rest.trim_start()))
             .ok_or_else(|| ParseError::Invalid("unterminated timestamp".to_owned()))?,
-        None => line,
+        None => (None, line),
     };
+    parse_body(body).map(|command| (stamp, command))
+}
+
+fn parse_body(body: &str) -> Result<ExtCommand, ParseError> {
     let (name, args) = body.split_once(';').unwrap_or((body, ""));
     let fields = |count: usize| -> Result<Vec<&str>, ParseError> {
         let parts: Vec<&str> = args.splitn(count, ';').collect();
@@ -131,9 +218,131 @@ pub fn parse(line: &str) -> Result<ExtCommand, ParseError> {
                 output: parts[2].to_owned(),
             })
         }
+        "SCHEDULE_HOST_DOWNTIME" | "SCHEDULE_HOST_SVC_DOWNTIME" | "SCHEDULE_SVC_DOWNTIME" => {
+            downtime(name, args)
+        }
+        "DEL_HOST_DOWNTIME" | "DEL_SVC_DOWNTIME" => {
+            let id = args.split('\n').next().unwrap_or_default();
+            Ok(ExtCommand::DeleteDowntime {
+                id: number(id, "downtime_id")?,
+            })
+        }
+        "ACKNOWLEDGE_HOST_PROBLEM" | "ACKNOWLEDGE_SVC_PROBLEM" => {
+            let service = name == "ACKNOWLEDGE_SVC_PROBLEM";
+            let parts = fields(if service { 7 } else { 6 })?;
+            let at = usize::from(service);
+            let kind: i64 = number(parts[at + 1], "type")?;
+            let notify: i64 = number(parts[at + 2], "notify")?;
+            let persistent: i64 = number(parts[at + 3], "persistent")?;
+            Ok(ExtCommand::Acknowledge {
+                host: parts[0].to_owned(),
+                service: service.then(|| parts[1].to_owned()),
+                // AckType::STICKY is 2; 0 and 1 are a normal acknowledgement.
+                sticky: kind == 2,
+                notify: notify > 0,
+                persistent: persistent > 0,
+                author: parts[at + 4].to_owned(),
+                comment: parts[at + 5]
+                    .split('\n')
+                    .next()
+                    .unwrap_or_default()
+                    .to_owned(),
+            })
+        }
+        "REMOVE_HOST_ACKNOWLEDGEMENT" | "REMOVE_SVC_ACKNOWLEDGEMENT" => {
+            let mut parts = args.split(';');
+            let host = parts.next().unwrap_or_default().to_owned();
+            let service = if name == "REMOVE_SVC_ACKNOWLEDGEMENT" {
+                Some(
+                    parts
+                        .next()
+                        .ok_or_else(|| ParseError::Invalid(format!("{name}: no service")))?
+                        .to_owned(),
+                )
+            } else {
+                None
+            };
+            Ok(ExtCommand::RemoveAcknowledgement { host, service })
+        }
+        "ADD_HOST_COMMENT" | "ADD_SVC_COMMENT" => {
+            let service = name == "ADD_SVC_COMMENT";
+            let parts = fields(if service { 5 } else { 4 })?;
+            let at = usize::from(service);
+            Ok(ExtCommand::AddComment {
+                host: parts[0].to_owned(),
+                service: service.then(|| parts[1].to_owned()),
+                persistent: flag(parts[at + 1], "persistent")?,
+                author: parts[at + 2].to_owned(),
+                comment: parts[at + 3]
+                    .split('\n')
+                    .next()
+                    .unwrap_or_default()
+                    .to_owned(),
+            })
+        }
+        "DEL_HOST_COMMENT" | "DEL_SVC_COMMENT" => Ok(ExtCommand::DeleteComment {
+            id: number(args, "comment_id")?,
+        }),
+        "DEL_ALL_HOST_COMMENTS" | "DEL_ALL_SVC_COMMENTS" => {
+            let mut parts = args.split(';');
+            let host = parts.next().unwrap_or_default().to_owned();
+            let service = if name == "DEL_ALL_SVC_COMMENTS" {
+                Some(
+                    parts
+                        .next()
+                        .ok_or_else(|| ParseError::Invalid(format!("{name}: no service")))?
+                        .to_owned(),
+                )
+            } else {
+                None
+            };
+            Ok(ExtCommand::DeleteAllComments { host, service })
+        }
         "" => Err(ParseError::Invalid("no command name".to_owned())),
         other => Err(ParseError::Unsupported(other.to_owned())),
     }
+}
+
+/// `cmd_schedule_downtime`: every argument is one `;` piece, the comment
+/// included.
+fn downtime(name: &str, args: &str) -> Result<ExtCommand, ParseError> {
+    let mut parts = args.split(';');
+    let mut next = |what: &str| {
+        parts
+            .next()
+            .ok_or_else(|| ParseError::Invalid(format!("{name}: no {what}")))
+    };
+    let host = next("host")?.to_owned();
+    let target = match name {
+        "SCHEDULE_HOST_DOWNTIME" => DowntimeTarget::Host(host),
+        "SCHEDULE_HOST_SVC_DOWNTIME" => DowntimeTarget::HostServices(host),
+        _ => DowntimeTarget::Service(host, next("service")?.to_owned()),
+    };
+    let start = number(next("start_time")?, "start_time")?;
+    let end = number(next("end_time")?, "end_time")?;
+    let fixed = flag(next("fixed")?, "fixed")?;
+    let triggered_by = number(next("triggered_by")?, "triggered_by")?;
+    let duration = match next("duration")? {
+        "" => 0,
+        value => number(value, "duration")?,
+    };
+    let author = next("author")?.to_owned();
+    let comment = next("comment")?.to_owned();
+    if !fixed && duration == 0 {
+        return Err(ParseError::Invalid(format!(
+            "{name}: a flexible downtime needs a duration"
+        )));
+    }
+    Ok(ExtCommand::ScheduleDowntime {
+        target,
+        start,
+        end,
+        fixed,
+        triggered_by,
+        duration,
+        author,
+        comment,
+    })
 }
 
 #[cfg(test)]
@@ -180,10 +389,95 @@ mod tests {
     }
 
     #[test]
+    fn parses_downtime_ack_and_comment_commands() {
+        assert_eq!(
+            parse_stamped("[17] SCHEDULE_SVC_DOWNTIME;h;s;100;200;1;0;;me;a comment").unwrap(),
+            (
+                Some(17),
+                ExtCommand::ScheduleDowntime {
+                    target: DowntimeTarget::Service("h".into(), "s".into()),
+                    start: 100,
+                    end: 200,
+                    fixed: true,
+                    triggered_by: 0,
+                    duration: 0,
+                    author: "me".into(),
+                    comment: "a comment".into(),
+                }
+            )
+        );
+        // The comment is one piece, as Engine reads it.
+        let ExtCommand::ScheduleDowntime {
+            comment, target, ..
+        } = parse("SCHEDULE_HOST_SVC_DOWNTIME;h;1;2;0;3;60;me;a;b").unwrap()
+        else {
+            panic!()
+        };
+        assert_eq!(
+            (comment.as_str(), target),
+            ("a", DowntimeTarget::HostServices("h".into()))
+        );
+        assert!(parse("SCHEDULE_HOST_DOWNTIME;h;1;2;0;0;0;me;c").is_err());
+        assert!(parse("SCHEDULE_HOST_DOWNTIME;h;1;2;1;0;0;me").is_err());
+        assert_eq!(
+            parse("DEL_SVC_DOWNTIME;12"),
+            Ok(ExtCommand::DeleteDowntime { id: 12 })
+        );
+        assert_eq!(
+            parse("ACKNOWLEDGE_SVC_PROBLEM;h;s;2;0;1;admin;text; with ;semicolons"),
+            Ok(ExtCommand::Acknowledge {
+                host: "h".into(),
+                service: Some("s".into()),
+                sticky: true,
+                notify: false,
+                persistent: true,
+                author: "admin".into(),
+                comment: "text; with ;semicolons".into(),
+            })
+        );
+        let ExtCommand::Acknowledge {
+            sticky, service, ..
+        } = parse("ACKNOWLEDGE_HOST_PROBLEM;h;1;1;0;a;c").unwrap()
+        else {
+            panic!()
+        };
+        assert!(!sticky && service.is_none());
+        assert_eq!(
+            parse("REMOVE_SVC_ACKNOWLEDGEMENT;h;s"),
+            Ok(ExtCommand::RemoveAcknowledgement {
+                host: "h".into(),
+                service: Some("s".into())
+            })
+        );
+        assert_eq!(
+            parse("ADD_HOST_COMMENT;h;1;me;hello; world"),
+            Ok(ExtCommand::AddComment {
+                host: "h".into(),
+                service: None,
+                persistent: true,
+                author: "me".into(),
+                comment: "hello; world".into(),
+            })
+        );
+        assert!(parse("ADD_SVC_COMMENT;h;s;maybe;me;c").is_err());
+        assert_eq!(
+            parse("DEL_SVC_COMMENT;3"),
+            Ok(ExtCommand::DeleteComment { id: 3 })
+        );
+        assert_eq!(
+            parse("DEL_ALL_SVC_COMMENTS;h;s"),
+            Ok(ExtCommand::DeleteAllComments {
+                host: "h".into(),
+                service: Some("s".into())
+            })
+        );
+    }
+
+    #[test]
     fn refuses_explicitly() {
         assert_eq!(
-            parse("[1] ACKNOWLEDGE_SVC_PROBLEM;h;s;1;1;1;a;c"),
-            Err(ParseError::Unsupported("ACKNOWLEDGE_SVC_PROBLEM".into()))
+            parse("[1] DEL_SVC_DOWNTIME_FULL;h;s;;;;;;"),
+            Err(ParseError::Unsupported("DEL_SVC_DOWNTIME_FULL".into()))
         );
         assert!(matches!(
             parse("SCHEDULE_SVC_CHECK;h;s"),

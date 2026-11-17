@@ -327,6 +327,10 @@ allowed_commands = [
 # Events kept in memory while the central broker does not take them; the
 # oldest are dropped beyond.
 # max_pending_events = 100000
+# Keys of the encrypt:: macro values: the file the engine_context target
+# delivers. States, downtimes, comments and acknowledgements are kept in
+# <state_dir>/retention.json when state_dir is set.
+# credentials_file = "/etc/centreon-engine/engine-context.json"
 #
 # [services.engine]
 # reload = "scheduler:reload"

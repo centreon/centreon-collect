@@ -2,13 +2,15 @@
 //! them for the fields the scheduler knows.
 
 use gorgone_proto::bbdo::{
-    Host, HostStatus, Instance, InstanceConfiguration, InstanceStatus, Service, ServiceStatus,
-    ServiceType, host, host_status, service, service_status,
+    AckType, Acknowledgement, Comment, Downtime, Host, HostStatus, Instance, InstanceConfiguration,
+    InstanceStatus, Service, ServiceStatus, ServiceType, acknowledgement, comment, downtime, host,
+    host_status, service, service_status,
 };
 
 use crate::bbdo::{event, frame};
+use crate::book;
 use crate::cfg::{HostConf, ServiceConf};
-use crate::state::{CheckState, CheckType, StateType};
+use crate::state::{self, CheckState, CheckType, StateType};
 
 /// Name the instance reports in `instances.engine`.
 pub const ENGINE_NAME: &str = "Centreon Engine (Rust)";
@@ -21,9 +23,17 @@ pub const ENGINE_NAME: &str = "Centreon Engine (Rust)";
 /// crate version (0.x) would read as a very old Engine.
 pub const INSTANCE_VERSION: &str = "27.01.0";
 
-/// `pb_instance`: start (`running`) or end of the poller.
+/// `pb_instance`: start (`running`) or end of the poller; `encryption`
+/// when it has the keys to decrypt `encrypt::` values
+/// (`broker_program_state`, `engine/src/broker.cc:4176`).
 #[must_use]
-pub fn instance(poller_id: u64, name: &str, running: bool, start: i64, end: i64) -> Vec<u8> {
+pub fn instance(
+    poller_id: u64,
+    name: &str,
+    running: bool,
+    (start, end): (i64, i64),
+    encryption: bool,
+) -> Vec<u8> {
     frame(
         event::INSTANCE,
         &Instance {
@@ -35,7 +45,131 @@ pub fn instance(poller_id: u64, name: &str, running: bool, start: i64, end: i64)
             end_time: end,
             start_time: start,
             version: INSTANCE_VERSION.to_owned(),
+            is_encryption_ready: encryption,
             ..Instance::default()
+        },
+    )
+}
+
+fn ack_type(st: &CheckState) -> AckType {
+    match st.acknowledgement {
+        state::AckType::None => AckType::None,
+        state::AckType::Normal => AckType::Normal,
+        state::AckType::Sticky => AckType::Sticky,
+    }
+}
+
+/// `-1` of `cbmod` for a time not set yet, as the unsigned field takes it.
+fn time_or_unset(time: Option<i64>) -> u64 {
+    time.map_or(u64::MAX, |t| u64::try_from(t).unwrap_or(0))
+}
+
+fn epoch(time: i64) -> u64 {
+    u64::try_from(time).unwrap_or(0)
+}
+
+/// `pb_downtime` as `cbmod` fills it (`broker/neb/src/cbmod.cc:251-372`):
+/// `deletion` is the time of a `remove_downtime`.
+#[must_use]
+pub fn downtime(poller_id: u64, dt: &book::Downtime, deletion: Option<i64>) -> Vec<u8> {
+    frame(
+        event::DOWNTIME,
+        &Downtime {
+            id: dt.id,
+            instance_id: poller_id,
+            host_id: dt.host_id,
+            service_id: dt.service_id,
+            author: dt.author.clone(),
+            comment_data: dt.comment.clone(),
+            r#type: if dt.service_id == 0 {
+                downtime::DowntimeType::Host
+            } else {
+                downtime::DowntimeType::Service
+            }
+            .into(),
+            duration: dt.duration,
+            triggered_by: dt.triggered_by,
+            entry_time: dt.entry_time,
+            actual_start_time: time_or_unset(dt.actual_start),
+            actual_end_time: time_or_unset(dt.actual_end),
+            start_time: epoch(dt.start_time),
+            deletion_time: time_or_unset(deletion),
+            end_time: epoch(dt.end_time),
+            started: dt.started,
+            cancelled: dt.cancelled,
+            fixed: dt.fixed,
+        },
+    )
+}
+
+/// `pb_comment` (`forward_pb_comment`, `engine/src/broker.cc:1286-1360`):
+/// `deletion` on `NEBTYPE_COMMENT_DELETE`.
+#[must_use]
+pub fn comment(poller_id: u64, c: &book::Comment, deletion: Option<i64>) -> Vec<u8> {
+    frame(
+        event::COMMENT,
+        &Comment {
+            author: c.author.clone(),
+            r#type: if c.service_id == 0 {
+                comment::Type::Host
+            } else {
+                comment::Type::Service
+            }
+            .into(),
+            data: c.data.clone(),
+            deletion_time: deletion.map_or(0, epoch),
+            entry_time: epoch(c.entry_time),
+            entry_type: match c.entry_type {
+                book::EntryType::User => comment::EntryType::User,
+                book::EntryType::Downtime => comment::EntryType::Downtime,
+                book::EntryType::Acknowledgement => comment::EntryType::Acknowledgment,
+            }
+            .into(),
+            expire_time: 0,
+            expires: false,
+            host_id: c.host_id,
+            internal_id: c.id,
+            persistent: c.persistent,
+            instance_id: poller_id,
+            service_id: c.service_id,
+            source: match c.source {
+                book::Source::Internal => comment::Src::Internal,
+                book::Source::External => comment::Src::External,
+            }
+            .into(),
+            ..Comment::default()
+        },
+    )
+}
+
+/// `pb_acknowledgement` (`forward_pb_acknowledgement`,
+/// `engine/src/broker.cc:140-190`); `deletion` when it ends.
+#[must_use]
+pub fn acknowledgement(
+    poller_id: u64,
+    ack: &book::Acknowledgement,
+    deletion: Option<i64>,
+) -> Vec<u8> {
+    frame(
+        event::ACKNOWLEDGEMENT,
+        &Acknowledgement {
+            host_id: ack.host_id,
+            service_id: ack.service_id,
+            instance_id: poller_id,
+            r#type: if ack.service_id == 0 {
+                acknowledgement::ResourceType::Host
+            } else {
+                acknowledgement::ResourceType::Service
+            }
+            .into(),
+            author: ack.author.clone(),
+            comment_data: ack.comment.clone(),
+            sticky: ack.sticky,
+            notify_contacts: ack.notify,
+            entry_time: epoch(ack.entry_time),
+            deletion_time: deletion.map_or(0, epoch),
+            persistent_comment: ack.persistent,
+            state: ack.state,
         },
     )
 }
@@ -90,6 +224,11 @@ pub fn host(poller_id: u64, conf: &HostConf, st: &CheckState, now: i64, enabled:
     let check = &conf.check;
     let message = Host {
         host_id: conf.host_id,
+        acknowledged: st.acknowledgement != state::AckType::None,
+        acknowledgement_type: ack_type(st).into(),
+        scheduled_downtime_depth: st.downtime_depth,
+        check_period: check.check_period.clone(),
+        timezone: conf.timezone.clone(),
         active_checks: check.active_checks,
         enabled,
         check_command: check.check_command.clone(),
@@ -172,6 +311,8 @@ pub fn host_status(conf: &HostConf, st: &CheckState) -> Vec<u8> {
             next_check: st.next_check,
             should_be_scheduled: should_be_scheduled(st),
             check_attempt: i32::try_from(st.attempt).unwrap_or(i32::MAX),
+            acknowledgement_type: ack_type(st).into(),
+            scheduled_downtime_depth: st.downtime_depth,
             ..HostStatus::default()
         },
     )
@@ -191,6 +332,10 @@ pub fn service(
     let message = Service {
         host_id: conf.host_id,
         service_id: conf.service_id,
+        acknowledged: st.acknowledgement != state::AckType::None,
+        acknowledgement_type: ack_type(st).into(),
+        scheduled_downtime_depth: st.downtime_depth,
+        check_period: check.check_period.clone(),
         active_checks: check.active_checks,
         enabled,
         check_command: check.check_command.clone(),
@@ -280,6 +425,8 @@ pub fn service_status(conf: &ServiceConf, st: &CheckState) -> Vec<u8> {
             should_be_scheduled: should_be_scheduled(st),
             check_attempt: i32::try_from(st.attempt).unwrap_or(i32::MAX),
             r#type: ServiceType::Service.into(),
+            acknowledgement_type: ack_type(st).into(),
+            scheduled_downtime_depth: st.downtime_depth,
             ..ServiceStatus::default()
         },
     )

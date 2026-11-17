@@ -4,6 +4,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+use crate::crypto::Credentials;
+
 /// Engine's `MAX_COMMAND_ARGUMENTS`.
 const MAX_ARGS: usize = 32;
 
@@ -56,6 +58,9 @@ pub struct Context<'a> {
     pub service: Option<ServiceView<'a>>,
     /// `$ARGn$` values, already expanded.
     args: Vec<String>,
+    /// Keys of `encrypt::` values: with them, values are read as Engine
+    /// reads them (`macros/grab_value.cc`), `raw::` stripped.
+    secrets: Option<&'a Credentials>,
 }
 
 impl<'a> Context<'a> {
@@ -71,11 +76,42 @@ impl<'a> Context<'a> {
             host,
             service,
             args: Vec::new(),
+            secrets: None,
+        }
+    }
+
+    /// Reads `encrypt::` and `raw::` values with `credentials`.
+    #[must_use]
+    pub fn with_secrets(mut self, credentials: Option<&'a Credentials>) -> Self {
+        self.secrets = credentials;
+        self
+    }
+
+    /// A macro value once its `encrypt::`/`raw::` prefix is handled;
+    /// `None` when it has none or there are no keys. A value that does
+    /// not decrypt stays as it is, as in Engine; the error names the macro
+    /// only.
+    fn reveal(&self, name: &str, value: &str) -> Option<String> {
+        match self.secrets?.reveal(value) {
+            Ok(revealed) => revealed,
+            Err(error) => {
+                tracing::error!(
+                    macro_name = name,
+                    "fail to decrypt content of macro: {error}"
+                );
+                None
+            }
         }
     }
 
     /// Value of macro `name`, `None` when unknown.
     fn grab(&self, name: &str, depth: u32) -> Option<String> {
+        let value = self.grab_raw(name, depth)?;
+        Some(self.reveal(name, &value).unwrap_or(value))
+    }
+
+    /// Value of macro `name` before its prefix is handled.
+    fn grab_raw(&self, name: &str, depth: u32) -> Option<String> {
         let host = &self.host;
         let service = self.service.as_ref();
         let value = match name {
@@ -109,7 +145,11 @@ impl<'a> Context<'a> {
                     None
                 };
                 if let Some(value) = custom {
-                    // The content of a custom macro is expanded in turn.
+                    // A secret is used as it is; other values are expanded
+                    // in turn.
+                    if let Some(revealed) = self.reveal(name, value) {
+                        return Some(revealed);
+                    }
                     return Some(self.expand_at(value, depth + 1));
                 }
                 return self.users.get(name).cloned();
@@ -257,5 +297,36 @@ mod tests {
         );
         assert_eq!(ctx.expand("$_HOSTURL$"), "http://10.0.0.1/$NOPE$");
         assert_eq!(ctx.expand("no end $HOSTNAME"), "no end $HOSTNAME");
+    }
+
+    #[test]
+    fn secrets_are_decrypted_at_resolution() {
+        use crate::crypto::tests::{BENCH_KEY, FROM_WEB};
+        let keys = Credentials::from_json(BENCH_KEY.as_bytes()).unwrap();
+        let users = HashMap::from([
+            ("USER2".to_owned(), format!("encrypt::{}", FROM_WEB.trim())),
+            ("USER3".to_owned(), "raw::$dollar".to_owned()),
+        ]);
+        let hmacros = BTreeMap::from([
+            ("SECRET".to_owned(), format!("encrypt::{}", FROM_WEB.trim())),
+            (
+                "BROKEN".to_owned(),
+                "encrypt::bm90IGVuY3J5cHRlZA==".to_owned(),
+            ),
+        ]);
+        let host = HostView {
+            name: "h",
+            macros: Some(&hmacros),
+            ..HostView::default()
+        };
+        let mut ctx = Context::new(&users, host.clone(), None).with_secrets(Some(&keys));
+        let line = ctx.check_command_line("cmd!$_HOSTSECRET$", "/p $ARG1$ $USER2$ $USER3$");
+        assert_eq!(line, "/p s3cr3t-value s3cr3t-value $dollar");
+        // Not decryptable: kept as written.
+        assert!(ctx.expand("$_HOSTBROKEN$").starts_with("encrypt::"));
+        // Without keys (or a version 1 document), values are literal.
+        let ctx = Context::new(&users, host, None);
+        assert!(ctx.expand("$_HOSTSECRET$").starts_with("encrypt::"));
+        assert_eq!(ctx.expand("$USER3$"), "raw::$dollar");
     }
 }

@@ -148,7 +148,7 @@ async fn runs_checks_and_feeds_a_bbdo_peer() {
         "{answer}"
     );
     let refused = scheduler
-        .external_command("ACKNOWLEDGE_SVC_PROBLEM;h1;crit;1;1;1;me;x")
+        .external_command("DEL_SVC_DOWNTIME_FULL;h1;crit;;;;;;")
         .await
         .unwrap_err();
     assert!(refused.contains("not supported"), "{refused}");

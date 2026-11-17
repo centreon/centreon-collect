@@ -267,6 +267,11 @@ pub struct SchedulerConfig {
     /// the oldest are dropped beyond.
     #[serde(default = "default_max_pending_events")]
     pub max_pending_events: usize,
+    /// Keys of the `encrypt::` macro values, the file of the
+    /// `engine_context` target (`/etc/centreon-engine/engine-context.json`
+    /// when unset, as Engine).
+    #[serde(default, deserialize_with = "lenient::option_path")]
+    pub credentials_file: Option<PathBuf>,
 }
 
 impl Default for SchedulerConfig {
@@ -280,6 +285,7 @@ impl Default for SchedulerConfig {
             broker_address: None,
             max_concurrent_checks: default_max_concurrent_checks(),
             max_pending_events: default_max_pending_events(),
+            credentials_file: None,
         }
     }
 }
@@ -1177,6 +1183,12 @@ impl AgentConfig {
             return None;
         }
         Some(self.state_dir.as_ref()?.join("engine-configuration"))
+    }
+
+    /// Retention file of the built-in scheduler: in `state_dir`, when set.
+    #[must_use]
+    pub fn scheduler_retention_file(&self) -> Option<PathBuf> {
+        Some(self.state_dir.as_ref()?.join("retention.json"))
     }
 
     /// Main Engine file of the built-in scheduler, when its target has a

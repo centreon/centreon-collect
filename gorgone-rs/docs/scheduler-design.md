@@ -85,6 +85,9 @@ Event types used (`bbdo/events.hh`): category `neb` = 1, `bbdo` = 2.
 | `neb:pb_instance_status`        | 42      | `InstanceStatus`              |
 | `neb:pb_instance`               | 44      | `Instance`                    |
 | `neb:pb_instance_configuration` | 54      | `InstanceConfiguration`       |
+| `neb:pb_comment`                | 35      | `Comment`                     |
+| `neb:pb_downtime`               | 36      | `Downtime`                    |
+| `neb:pb_acknowledgement`        | 45      | `Acknowledgement`             |
 
 The messages are mirrored in `gorgone-rs/proto/com/centreon/broker/bbdo.proto`
 with the field numbers of `bbdo/neb.proto` and `bbdo/bbdo.proto`, reduced to
@@ -178,14 +181,32 @@ On the central (`broker/unified_sql/src/stream_sql.cc`):
 Order kept by the engine on every (re)connection:
 
 ```
-pb_instance(running) → pb_host × N → pb_service × M → pb_instance_configuration
-→ pb_host_status × N → pb_service_status × M → pb_instance_status
+pb_instance(running) → pb_host × N → pb_service × M → pb_downtime × D
+→ pb_comment × C → pb_instance_configuration → pb_host_status × N
+→ pb_service_status × M → pb_instance_status
 ```
 
 then statuses as checks complete and `pb_instance_status` every
-`status_update_interval`. Custom variables, groups, severities, tags,
-parents, downtimes, comments and acknowledgements are not sent (out of
-scope); `resources` are still filled from `pb_host`/`pb_service`.
+`status_update_interval`. Custom variables, groups, severities, tags and
+parents are not sent yet (batch 2b); `resources` are still filled from
+`pb_host`/`pb_service`.
+
+Downtimes and comments are in every dump with their current state, where
+Engine sends its downtimes as added (`send_downtimes_list`,
+`engine/src/broker.cc:3895-3924`) and its comments not at all: Engine sends
+the dump once per process, `cbmod` keeps its events across a lost
+connection, while this engine sends the dump on every connection. The
+`pb_instance` of each dump makes the central cancel the open downtimes and
+delete the non-persistent comments of the poller (`_clean_tables`,
+`broker/unified_sql/src/stream_sql.cc:162-185`); the upserts that follow
+(`broker/unified_sql/src/stream.cc:1230-1260`, keys entry time, poller and
+internal id) put them back as they are.
+
+`pb_instance` carries `is_encryption_ready` when the engine has the key of
+the `encrypt::` values (`engine/src/broker.cc:4176`): centreon-web
+encrypts the password macros of a poller only once it reported it
+(`DbWriteMonitoringServerRepository::updateAllEncryptionReadyFromRealtime`,
+run by each generation).
 
 ### Reload: only what changed
 
@@ -237,13 +258,18 @@ reads:
   `interval_length` (default 60), `service_check_timeout` (60),
   `host_check_timeout` (30), `max_service_check_spread` and
   `max_host_check_spread` (5 min), `status_update_interval` (60),
-  `broker_module_cfg_file`, and a `broker_module=…cbmod.so <file>` line as
-  Engine's compatibility hook does (`:165-205`). Other keys are ignored.
+  `broker_module_cfg_file`, `use_timezone`, `retention_update_interval`
+  (60 min), `use_retained_scheduling_info` (0), and a
+  `broker_module=…cbmod.so <file>` line as Engine's compatibility hook does
+  (`:165-205`). Other keys are ignored.
   Relative paths are resolved from the directory of the main file.
 - **Object files** (`parser.cc:222-486`): `define <type> {` … `}` blocks,
   `key value` lines (key up to the first blank, value trimmed), comment lines
   starting with `#` or `;`, `\` line continuation. Types read: `command`,
-  `host`, `service`; every other type is skipped.
+  `host`, `service`, `timeperiod`, `recurringdowntime`; every other type is
+  skipped. Host keys add `check_period` and `timezone`, service keys
+  `check_period` (a service has the zone of its host,
+  `common/engine_conf/service_helper.cc:313-344`).
 - **Templates** (`parser.cc:280-300`, `:636-656`, `_merge` `:695-…`): an
   object with `name` is a template (also when registered); `register 0`
   objects are templates only. `use a,b` resolves `a` (recursively), merges it,
@@ -274,14 +300,15 @@ reads:
 configuration is one JSON document, never a file on the poller.
 
 - **Format**: JSON, documented by
-  [`schemas/engine-configuration.v1.json`](../schemas/engine-configuration.v1.json),
+  [`schemas/engine-configuration.v2.json`](../schemas/engine-configuration.v2.json)
+  (version 1: [`v1`](../schemas/engine-configuration.v1.json)),
   read by the serde model of `crates/centreon-engine/src/document.rs`. JSON
   rather than protobuf: PHP writes it with `json_encode`, protobuf would
   need a PHP library and generated classes in centreon-web. Content:
   `version`, `poller {id, name}`, `broker {address, name}` (what the `cbmod`
   file gave), `settings` (the globals above), `resource_macros`
   (`$USERn$`), `commands`, `host_templates`, `hosts`, `service_templates`,
-  `services`. Field names are the Engine keys after alias resolution
+  `services`, `timeperiods` and `recurring_downtimes` (version 2). Field names are the Engine keys after alias resolution
   (`check_interval`, `active_checks_enabled`…), `host_id`/`service_id` for
   `_HOST_ID`/`_SERVICE_ID`, custom macros in `macros` without the leading
   underscore.
@@ -302,6 +329,28 @@ configuration is one JSON document, never a file on the poller.
   `version` is read first: another version is refused for that reason. A
   later field is added to version 1 when an older engine refusing it is
   acceptable; a change of meaning makes version 2.
+- **Version 2** (this batch): timeperiods, `check_period`, `timezone`,
+  recurring downtimes, `use_timezone`, `retention_update_interval`,
+  `use_retained_scheduling_info`, and a change of meaning: a macro value
+  `encrypt::…` is decrypted, `raw::` removed, as Engine reads its files
+  (version 1 values are literal: the web decrypted them). The change of
+  meaning makes it a new version rather than fields added to version 1: an
+  engine of version 1 would run the plugins with the ciphertext. The engine
+  reads versions 1 and 2; a version 1 document using a version 2 field is
+  refused by name. The engine reports `centreon-engine 0.1.0
+(configuration 1-2)` in its heartbeat, and gorgone-server refuses (409) a
+  document newer than what the node reads before submitting the job; an
+  engine that reports no range reads version 1. centreon-web sends
+  version 2.
+- **Timeperiods in the document**: `timeperiod_name`, `alias`, `use`
+  (included periods: each timeperiod is the template, under its name, of
+  those that use it, as the web writes `name` = `timeperiod_name`), the
+  weekdays (`HH:MM-HH:MM,…`), `exceptions` as the web stores them
+  (`[{days: "december 25", timerange: "00:00-24:00"}]`, the `.cfg` line is
+  `days timerange`) and `exclude`. They become the raw objects of the file
+  reader: same parser, same templates. Recurring downtimes: `downtime_id`,
+  `downtime_name`, `timezone`, `host_ids`, `service_ids` (`[host, service]`)
+  and `periods` in the `.cfg` syntax.
 - **Delivery**: `PUT /v1/nodes/{node}/engine-configuration` (gorgone-server)
   takes the document (up to `body_limit_bytes`, 256 MiB by default; the
   1 MiB limit of `POST /v1/nodes/{node}/jobs` does not apply), checks its
@@ -352,7 +401,28 @@ Errors:` like `centengine -v`, which the agent already reads.
   `$HOSTSTATETYPE$`, `$HOSTATTEMPT$`, `$SERVICEDESC$`, `$SERVICESTATE$`,
   `$SERVICESTATEID$`, `$SERVICESTATETYPE$`, `$SERVICEATTEMPT$`, `$ARGn$`,
   `$USERn$`, `$_HOSTxxx$`, `$_SERVICExxx$` (values expanded once more).
-  `{{$…$}}` tags and `encrypt::` values are not supported.
+  `{{$…$}}` tags are not supported.
+- **Secrets** (`engine/src/macros/grab_value.cc:1105-1119`): with a valid
+  key file, a macro value starting with `encrypt::` is decrypted when a
+  command uses it, `raw::` is removed; a value that does not decrypt stays
+  as written and the error names the macro only. Without key (or with a
+  version 1 document), values are literal. A decrypted value is not
+  expanded again. The key is `engine-context.json` (`app_secret`, `salt`),
+  read at each configuration apply as Engine does
+  (`engine/src/configuration/applier/state.cc:1569-1589`: an absent file
+  keeps the keys in force, keys that cannot encrypt then decrypt a probe
+  are refused); its path is `scheduler.credentials_file`, by default
+  Engine's `/etc/centreon-engine/engine-context.json`, the file of the
+  `engine_context` target. Format (`common/crypto/aes256.cc`,
+  centreon-web `Security\Encryption`): base64 of IV (16 bytes),
+  HMAC-SHA3-512 of the ciphertext (64), AES-256-CBC ciphertext (PKCS#7);
+  the HMAC is checked before decrypting. Crates: `aes`, `cbc`, `sha3`
+  (RustCrypto, with `cipher`, `inout`, `block-padding`, `keccak`: 7 new
+  entries of `Cargo.lock`), `hmac` and `base64` were already built. No
+  crate of the workspace had AES-CBC or SHA-3 (`ring` has neither); the
+  `openssl` crate would link the system library into a static binary.
+  Processed command lines are never logged; the document, the kept
+  snapshot and gorgone-server's blob hold the encrypted values only.
 - Splitting is Engine's (`common/process/src/process_args.cc:48-150`): no
   shell; blanks separate arguments; `'…'` and `"…"` quote (quotes may start
   inside a word); `\` escapes the next character, `\n \r \t \a \b \v \f`
@@ -387,14 +457,164 @@ Errors:` like `centengine -v`, which the agent already reads.
 - **Timeouts**: `service_check_timeout`, `host_check_timeout`; the plugin's
   process group gets SIGKILL.
 - **Out of scope** (not done, nothing emulated): notifications and
-  escalations, downtimes, acknowledgements, comments, dependencies and
-  parents, timeperiods (every check runs 24x7), event handlers, OCSP/OCHP,
-  flapping, freshness, retention across restarts (a restarted agent starts
-  PENDING; a reload keeps the state of unchanged objects), connectors (the
+  escalations (and so `notification_period`, the notify flag of
+  acknowledgements and the notifications of downtimes), dependencies and
+  parents, event handlers, OCSP/OCHP, flapping, freshness, connectors (the
   command line runs as a process), CMA/OpenTelemetry, anomaly detection,
   meta-services, BAM virtual hosts, severities, tags, groups, custom
-  variables events, log entries (the event log), `encrypt::` macros,
-  whitelist, environment macros.
+  variables events, log entries (the event log), whitelist, environment
+  macros, acknowledgement expiry (`acknowledgement_timeout`), comments
+  that expire, `DEL_*_DOWNTIME_FULL`, `DEL_DOWNTIME_BY_*`, group and
+  propagated downtimes (`SCHEDULE_HOSTGROUP_*`, `SCHEDULE_AND_PROPAGATE_*`),
+  a service `timezone` of its own.
+
+### Timeperiods and check periods
+
+- **Syntax** (`common/engine_conf/timeperiod_helper.cc:33-430`): weekday
+  lines `monday 09:00-12:00,14:00-18:00`, and the exception lines in the
+  same order of attempts as the helper's `sscanf` formats: calendar dates
+  (`2026-12-25`, `2026-12-24 - 2026-12-26 / 2`), month dates (`december
+25`, `february 1 - march 15`), month days (`day 1 - 15`, `day -1`),
+  weekdays of a month (`monday 1 january`, `thursday -1 november`) and of
+  every month (`monday 2`, `monday 1 - thursday 3`), each with ranges and an
+  optional `/ skip`. `exclude a,b` (`+` adds those of the templates).
+  Templates (`common/engine_conf/parser.cc:660-695`, `:870-905`): weekdays
+  the object leaves empty, exceptions it does not have, exclusions when it
+  has none.
+- **Computation**: a port of `common/inc/com/centreon/common/timeperiod_utils.hh`
+  and `common/src/timeperiod_utils.cc` (`get_next_valid_time_per_timeperiod_impl`,
+  `get_next_invalid_time_per_timeperiod`, the `daterange_*_to_time_t`
+  functions, `add_round_days_to_midnight`, `calculate_time_from_*`), with
+  the same `-1` sentinels and precedence of exceptions over weekdays. One
+  quirk is kept: a timeperiod with no valid time within a year is valid
+  all the time (`check_time_against_period` compares the next valid time
+  with the time asked, and gets the time asked back), so a period meant to
+  exclude now must have a valid time later.
+- **Zones**: Engine switches `TZ` and calls `localtime_r`/`mktime`
+  (`engine/src/timezone_manager.cc`, `timezone_locker`): the object's
+  `timezone` (a service takes its host's), else `use_timezone`, else the
+  zone of the process. A multi-threaded program cannot change `TZ`, so
+  `src/tz.rs` gives the same `localtime_r` and `mktime` (`tm_isdst = -1`)
+  for a zone: TZif files of `/usr/share/zoneinfo` (versions 1 to 4, with
+  the POSIX rule of their footer) or a POSIX `TZ` string, an unknown zone
+  being UTC as for glibc. `mktime` behaves as glibc on DST changes (checked
+  against glibc: a skipped 02:30 becomes 03:30, an ambiguous one the first,
+  fields normalised). No crate: the zone reading is 250 lines.
+- **Checks** (`service::verify_check_viability`, `engine/src/service.cc:3119-3190`,
+  rescheduling `:2490-2560`, the same for hosts): a check due outside its
+  `check_period` is not run; it is planned at the next valid time after
+  one check interval (300 s when 0), or a week later when there is none,
+  and a status with the new `next_check` is sent. A planned check (first
+  spread, after a result) is moved to the next valid time
+  (`service.cc:2028-2037`). Forced checks ignore the period, as
+  `CHECK_OPTION_FORCE_EXECUTION`. A reload refuses an unknown
+  `check_period` or excluded period (`timeperiod::resolve`,
+  `engine/src/timeperiod.cc:220-260`).
+
+### Downtimes
+
+`engine/src/downtimes/downtime_manager.cc`, `host_downtime.cc`,
+`service_downtime.cc`; events as `cbmod` writes them
+(`broker/neb/src/cbmod.cc:251-372`): `actual_*_time` and `deletion_time`
+-1 (unset) until known.
+
+- **Schedule** (`schedule_downtime` `:505-588`): refused when it ends
+  before it starts or is over; times capped at 1/1/2100, duration at 366
+  days; a fixed downtime lasts `end - start`; a flexible one needs a
+  duration (`cmd_schedule_downtime`); a `triggered_by` must exist. Ids
+  never reused (`get_next_downtime_id`). Events: `pb_downtime` added, then
+  its comment (`entry_type` downtime, internal, "This host has been
+  scheduled for fixed downtime from … to …", `subscribe`), then a timer at
+  `start_time` unless triggered.
+- **Start** (`handle`, `host_downtime.cc:307-505`): a flexible downtime of
+  an object OK/UP waits (pending, expired at `end_time + 1`); otherwise
+  `pb_downtime{started, actual_start_time}`, `scheduled_downtime_depth`
+  - 1 and a status, a timer at `end_time + 1` (fixed) or `now + duration`
+    (flexible), and the downtimes it triggers start. A pending flexible
+    downtime starts when its object turns to a problem within its window
+    (`check_pending_flex_*_downtime`, `downtime_manager.cc:126-235`, called
+    on a host state change, `host.cc:2464-2467`, or a service problem change
+    with flexible downtimes pending, `service.cc:1974-1980`).
+- **Stop**: `pb_downtime{actual_end_time}`, depth − 1 and a status, the
+  downtimes it triggered end, then the downtime and its comment are
+  deleted (`pb_comment` and `pb_downtime` with `deletion_time`).
+- **Cancel** (`DEL_HOST_DOWNTIME;id`, `DEL_SVC_DOWNTIME;id`,
+  `unschedule_downtime` `:61-107`): in effect, `pb_downtime{cancelled,
+actual_end_time}` and depth − 1; then deleted, with the downtimes it
+  triggered. A downtime never started and over is deleted, cancelled.
+- **Commands** (`commands.cc:933-1200`): `SCHEDULE_HOST_DOWNTIME`,
+  `SCHEDULE_HOST_SVC_DOWNTIME` (each service of the host),
+  `SCHEDULE_SVC_DOWNTIME`; the comment is one `;` piece, as Engine reads
+  it; the entry time is the timestamp of the command. These, `DEL_*` and
+  the acknowledgements and comments below are what centreon-web sends
+  (`src/Centreon/Domain/Engine/EngineService.php`; the legacy comments
+  page sends `DEL_*_COMMENT`); the `_FULL` variants are not sent by the
+  web and stay refused.
+- A reload that removes an object deletes its downtimes, comments and
+  acknowledgement (events sent); Engine would only fail to handle them.
+
+### Recurring downtimes
+
+As `engine/src/downtimes/recurring_downtime.cc` and its header (rule in
+`docs/architecture/engine.md`), `src/recurring.rs`: `period` lines of
+`recurringdowntime_helper.cc:62-150`; occurrences of yesterday, today and
+tomorrow in the zone of the rule, else of each host (`compute_occurrences`,
+noon of each day, `mktime` of the bounds, empty windows skipped), scheduled
+when they start within 600 s or run; once per (rule, target, start) per
+rule object; author `Downtime cycle`, comment `[Downtime cycle #id]`; a
+host target also gets one downtime per service; a downtime with the same
+target, comment and start (also from retention) is not doubled. Run every
+60 s and after each apply. A rule of the configuration loaded at start
+skips occurrences that started before the process (no catch-up); a rule
+added or changed by a reload takes effect at once with nothing handled;
+changing or removing a rule deletes its downtimes not started.
+
+### Acknowledgements and comments
+
+- `ACKNOWLEDGE_HOST_PROBLEM`, `ACKNOWLEDGE_SVC_PROBLEM`
+  (`cmd_acknowledge_problem`, `commands.cc:821-892`;
+  `acknowledge_*_problem` `:2515-2592`): nothing on an OK/UP object;
+  type 2 is sticky, else normal; `pb_acknowledgement`, a status with
+  `acknowledgement_type` (the central sets `acknowledged` in `services`,
+  `hosts`, `resources`), then a comment (`entry_type` acknowledgement,
+  internal, persistent as asked). Notify is recorded, not acted on.
+- `REMOVE_*_ACKNOWLEDGEMENT` (`:2594-2617`): type none, a status, the
+  non-persistent acknowledgement comments deleted.
+- Automatic end (`service.cc:1488-1515`, `host.cc:2438-2450`): a normal
+  acknowledgement ends with a change of state, a sticky one with the
+  recovery; a service OK has none (`:1574-1576`).
+- The `pb_acknowledgement` deletion follows `cbmod`'s list
+  (`engine/src/broker.cc:2672-2690`, `:4672-4690`): when a status shows no
+  acknowledgement, the open one is closed with a `deletion_time`, unless
+  the object recovered or a normal acknowledgement saw its state change
+  (the central keeps those rows open, as with Engine).
+- `ADD_HOST_COMMENT`, `ADD_SVC_COMMENT` (`cmd_add_comment`,
+  `commands.cc:157-227`: persistent as `SimpleAtob`, the comment is the
+  rest of the line), `DEL_HOST_COMMENT`, `DEL_SVC_COMMENT` (any comment by
+  id), `DEL_ALL_HOST_COMMENTS`, `DEL_ALL_SVC_COMMENTS`; ids are the
+  smallest free one (`comment::comment`, `engine/src/comment.cc`).
+
+### Retention
+
+`src/core/retention.rs`. Engine's `retention.dat` (`engine/src/retention/`)
+is not reused: its format serves the C++ objects; this engine writes one
+JSON document of its own, `retention.json` in `state_dir`, written aside,
+synced and renamed. Kept: each object's state (state, state type,
+attempt, checked, last check and state change times, last hard state,
+output, long output, perfdata, latency, execution time, acknowledgement),
+its next check, downtimes, comments and open acknowledgements. Written
+every `retention_update_interval` minutes (Engine's 60 by default,
+`EVENT_RETENTION_SAVE`) and at a clean stop, before `pb_instance(running
+false)`. Read once at start; the first configuration put in force takes
+the states of the objects that still exist, before the connection dump,
+so the central never sees them PENDING. Retained next checks are used only
+with `use_retained_scheduling_info` (Engine's default is 0: checks are
+spread again). As Engine with the downtimes of its retention, downtimes not
+over are registered again (new comment, start again, depth recomputed);
+downtime comments are not restored (made again), a triggered downtime
+without its parent is dropped (`xdddefault_validate_downtime_data`).
+Objects, downtimes and comments whose object is gone are skipped. An
+unreadable file is logged and ignored.
 
 ## 5. Scalability
 
@@ -473,10 +693,23 @@ restart = "scheduler:reload"
 - **External commands** (`EngineCommands`): after the agent allowlist,
   handled in process: `SCHEDULE_FORCED_HOST_CHECK`, `SCHEDULE_FORCED_SVC_CHECK`,
   `SCHEDULE_HOST_CHECK`, `SCHEDULE_SVC_CHECK`, `PROCESS_HOST_CHECK_RESULT`,
-  `PROCESS_SERVICE_CHECK_RESULT`. Any other command fails the job with
-  "not supported by the built-in scheduler"; lines after it are not run.
+  `PROCESS_SERVICE_CHECK_RESULT`, `SCHEDULE_HOST_DOWNTIME`,
+  `SCHEDULE_HOST_SVC_DOWNTIME`, `SCHEDULE_SVC_DOWNTIME`, `DEL_HOST_DOWNTIME`,
+  `DEL_SVC_DOWNTIME`, `ACKNOWLEDGE_HOST_PROBLEM`, `ACKNOWLEDGE_SVC_PROBLEM`,
+  `REMOVE_HOST_ACKNOWLEDGEMENT`, `REMOVE_SVC_ACKNOWLEDGEMENT`,
+  `ADD_HOST_COMMENT`, `ADD_SVC_COMMENT`, `DEL_HOST_COMMENT`,
+  `DEL_SVC_COMMENT`, `DEL_ALL_HOST_COMMENTS`, `DEL_ALL_SVC_COMMENTS`. Any
+  other command fails the job with "not supported by the built-in
+  scheduler"; lines after it are not run. The lines are not logged (they
+  carry comments).
+- **Key and retention**: `scheduler.credentials_file` (default
+  `/etc/centreon-engine/engine-context.json`); the poller declares the
+  `engine_context` target and centreon-web pushes the key before each
+  document, which requires it (`GorgoneCommandService::sendEngineConfiguration`).
+  The retention file is `<state_dir>/retention.json`.
 - **Node state**: the heartbeat reports the engine state as
-  `reachable = configuration loaded`, version `centreon-engine <version>`,
+  `reachable = configuration loaded`, version `centreon-engine <version>
+(configuration 1-2)`,
   and, with the structured input, the digest of the document in force as
   applied to `target`.
 - The crate is a separate library; without the feature the agent binary
@@ -484,8 +717,11 @@ restart = "scheduler:reload"
 
 ## 7. Growing the model (next batches)
 
-Timeperiods, downtimes, acknowledgements, comments, retention, groups,
-severities, tags, the event log, parents and UNREACHABLE, dependencies:
+Done in batch 2a: timeperiods, check periods and zones, downtimes,
+recurring downtimes, acknowledgements, comments, retention, `encrypt::`
+macros (sections 3 and 4). Next (batch 2b): groups, severities, tags, the
+event log (`logs`), parents and UNREACHABLE, dependencies; then what
+section 4 lists as out of scope.
 
 - **Document**: a new object type is a new top-level list (`timeperiods`,
   `hostgroups`, `severities`…) with its own `$defs` entry in the schema and

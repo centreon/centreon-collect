@@ -1,0 +1,458 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/centreon/centreon-collect/gorgone-rs/schemas/engine-configuration.v2.json",
+  "title": "centreon-engine configuration, version 2",
+  "description": "Configuration of one poller run by centreon-engine (gorgone-rs/crates/centreon-engine), sent by centreon-web through gorgone-server instead of the Engine .cfg files. Field names are the Engine .cfg keys after their aliases are resolved (common/engine_conf/*_helper.cc). Templates are sent unresolved, with their `use` lists: centreon-engine merges them with Engine's rules. Every object accepts only the fields listed here: an unknown field makes the whole document refused, and the configuration in force stays. Version 2 adds timeperiods, check periods, time zones, recurring downtimes and retention settings to version 1, and reads macro values as Engine reads them in its files: `encrypt::` values are decrypted with the key of the engine_context target, `raw::` is removed. Design: gorgone-rs/docs/scheduler-design.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "poller", "broker"],
+  "properties": {
+    "version": {
+      "description": "Version of this document format. centreon-engine refuses a version it does not know; this one also reads version 1 documents (schema engine-configuration.v1.json), whose values are literal.",
+      "const": 2
+    },
+    "poller": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "description": "nagios_server.id: the BBDO instance_id of the poller.",
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "broker": {
+      "description": "Where the poller sends its events: what the cbmod file gives Engine.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["address"],
+      "properties": {
+        "address": {
+          "description": "host:port of the TCP (BBDO) input of the central broker; [v6]:port for an IPv6 address.",
+          "type": "string",
+          "pattern": "^.+:[0-9]{1,5}$"
+        },
+        "name": {
+          "description": "Name of the broker module of the poller (broker_name of the cbmod file).",
+          "type": "string"
+        }
+      }
+    },
+    "settings": {
+      "description": "Global settings of centengine.cfg the engine uses; Engine's default when absent.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "interval_length": {
+          "$ref": "#/$defs/positive",
+          "default": 60
+        },
+        "service_check_timeout": {
+          "$ref": "#/$defs/count",
+          "default": 60
+        },
+        "host_check_timeout": {
+          "$ref": "#/$defs/count",
+          "default": 30
+        },
+        "max_service_check_spread": {
+          "$ref": "#/$defs/count",
+          "default": 5
+        },
+        "max_host_check_spread": {
+          "$ref": "#/$defs/count",
+          "default": 5
+        },
+        "status_update_interval": {
+          "$ref": "#/$defs/count",
+          "default": 60
+        },
+        "use_timezone": {
+          "description": "Zone of the timeperiods of the objects without timezone, in the TZ syntax (\":Europe/Paris\"); the zone of the engine process when absent.",
+          "type": "string"
+        },
+        "retention_update_interval": {
+          "description": "Minutes between two writes of the retention file (0: only at stop).",
+          "$ref": "#/$defs/count",
+          "default": 60
+        },
+        "use_retained_scheduling_info": {
+          "description": "After a restart, keep the retained next checks instead of spreading the checks again.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "resource_macros": {
+      "description": "Resource macros by name without the dollars, e.g. {\"USER1\": \"/usr/lib64/nagios/plugins\"} (resource.cfg). A value may be \"encrypt::...\" (decrypted when a command uses it) or \"raw::...\".",
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1,
+        "pattern": "^[^$]+$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/command"
+      }
+    },
+    "host_templates": {
+      "description": "Host templates (register 0): `name` is required.",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/host"
+          }
+        ],
+        "required": ["name"]
+      }
+    },
+    "hosts": {
+      "description": "Monitored hosts (register 1).",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/host"
+          }
+        ],
+        "not": {
+          "required": ["name"]
+        }
+      }
+    },
+    "service_templates": {
+      "description": "Service templates (register 0): `name` is required.",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/service"
+          }
+        ],
+        "required": ["name"]
+      }
+    },
+    "services": {
+      "description": "Monitored services (register 1).",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/service"
+          }
+        ],
+        "not": {
+          "required": ["name"]
+        }
+      }
+    },
+    "timeperiods": {
+      "description": "Timeperiods. Each one is also a template, under its timeperiod_name, of those that `use` it.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/timeperiod"
+      }
+    },
+    "recurring_downtimes": {
+      "description": "Recurring downtimes (Centreon downtime cycles), scheduled by the engine.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/recurring_downtime"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "positive": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "uses": {
+      "description": "Templates, in order: the first one that sets a field wins; custom macros are merged by name.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "macros": {
+      "description": "Custom macros by name without the leading underscore, e.g. {\"SNMPCOMMUNITY\": \"public\"} for _SNMPCOMMUNITY. Names are upper-cased by the engine. A value may be \"encrypt::...\" or \"raw::...\".",
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command_name", "command_line"],
+      "properties": {
+        "command_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command_line": {
+          "type": "string",
+          "minLength": 1
+        },
+        "connector": {
+          "description": "Accepted for compatibility: the command runs as a plain process.",
+          "type": "string"
+        }
+      }
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Template name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "use": {
+          "$ref": "#/$defs/uses"
+        },
+        "host_name": {
+          "type": "string"
+        },
+        "host_id": {
+          "description": "_HOST_ID",
+          "$ref": "#/$defs/id"
+        },
+        "alias": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "check_command": {
+          "description": "command_name!arg1!arg2",
+          "type": "string"
+        },
+        "check_interval": {
+          "$ref": "#/$defs/count"
+        },
+        "retry_interval": {
+          "$ref": "#/$defs/count"
+        },
+        "max_check_attempts": {
+          "$ref": "#/$defs/count"
+        },
+        "active_checks_enabled": {
+          "type": "boolean"
+        },
+        "passive_checks_enabled": {
+          "type": "boolean"
+        },
+        "macros": {
+          "$ref": "#/$defs/macros"
+        },
+        "check_period": {
+          "description": "Timeperiod of the active checks; always when absent.",
+          "type": "string"
+        },
+        "timezone": {
+          "description": "Zone of the timeperiods of the host and of its services, TZ syntax (\":Europe/Paris\").",
+          "type": "string"
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Template name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "use": {
+          "$ref": "#/$defs/uses"
+        },
+        "host_name": {
+          "type": "string"
+        },
+        "service_description": {
+          "type": "string"
+        },
+        "service_id": {
+          "description": "_SERVICE_ID",
+          "$ref": "#/$defs/id"
+        },
+        "check_command": {
+          "description": "command_name!arg1!arg2",
+          "type": "string"
+        },
+        "check_interval": {
+          "$ref": "#/$defs/count"
+        },
+        "retry_interval": {
+          "$ref": "#/$defs/count"
+        },
+        "max_check_attempts": {
+          "$ref": "#/$defs/count"
+        },
+        "active_checks_enabled": {
+          "type": "boolean"
+        },
+        "passive_checks_enabled": {
+          "type": "boolean"
+        },
+        "macros": {
+          "$ref": "#/$defs/macros"
+        },
+        "check_period": {
+          "description": "Timeperiod of the active checks; always when absent.",
+          "type": "string"
+        }
+      }
+    },
+    "names": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "timeperiod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timeperiod_name"],
+      "properties": {
+        "timeperiod_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alias": {
+          "type": "string"
+        },
+        "use": {
+          "description": "Included timeperiods, in order (templates).",
+          "$ref": "#/$defs/uses"
+        },
+        "sunday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "monday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "tuesday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "wednesday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "thursday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "friday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "saturday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "exceptions": {
+          "description": "Exceptions, as the timeperiod_exceptions of centreon-web: the days in the Engine syntax (\"2026-12-25\", \"december 25\", \"day 1 - 15\", \"monday -1\", \"monday 1 january\"...) and the ranges.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["days", "timerange"],
+            "properties": {
+              "days": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timerange": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "exclude": {
+          "description": "Excluded timeperiods.",
+          "$ref": "#/$defs/names"
+        }
+      }
+    },
+    "recurring_downtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["downtime_id", "periods"],
+      "properties": {
+        "downtime_id": {
+          "description": "downtime.dt_id: the comment of its downtimes is [Downtime cycle #id].",
+          "$ref": "#/$defs/id"
+        },
+        "downtime_name": {
+          "type": "string"
+        },
+        "timezone": {
+          "description": "Zone of the periods; the zone of each host when absent.",
+          "type": "string"
+        },
+        "host_ids": {
+          "description": "Hosts put in downtime with all their services.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "service_ids": {
+          "description": "Services put in downtime, as [host_id, service_id].",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "periods": {
+          "description": "Periods in the Engine syntax: \"weekly:1,7 22:00-24:00 fixed\", \"monthly:1,15 08:00-09:00 flexible:3600\", \"nth:last:5 10:00-11:00 fixed\" (days 1 = Monday).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

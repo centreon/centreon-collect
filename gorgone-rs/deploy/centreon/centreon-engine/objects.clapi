@@ -25,3 +25,10 @@ SERVICE;ADD;rust-h1;rust-crit;rust-svc-tpl
 SERVICE;SETPARAM;rust-h1;rust-crit;check_command_arguments;!2!broken
 SERVICE;ADD;rust-h2;rust-warn;rust-svc-tpl
 SERVICE;SETPARAM;rust-h2;rust-warn;check_command_arguments;!1!degraded
+# The length and a hash of $_HOSTSECRET$ (set by verify.sh, encrypted), not
+# its value: proves centreon-engine decrypted it without printing it.
+CMD;ADD;rust-secret-length;check;/bin/sh -c 'printf "secret-length %s sha %.12s" "$${#1}" "$$(printf %s "$$1" | sha256sum)"' sh "$_HOSTSECRET$"
+SERVICE;ADD;rust-h1;rust-secret;rust-svc-tpl
+SERVICE;SETPARAM;rust-h1;rust-secret;check_command;rust-secret-length
+# Given a check period that excludes the current time by verify.sh.
+SERVICE;ADD;rust-h2;rust-period;rust-svc-tpl

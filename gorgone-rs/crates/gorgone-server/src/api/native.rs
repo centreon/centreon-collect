@@ -565,8 +565,26 @@ async fn submit_config(
     ))
 }
 
-/// Version of the structured configuration document this server accepts.
-const ENGINE_DOCUMENT_VERSION: u64 = 1;
+/// Versions of the structured configuration document this server accepts.
+const ENGINE_DOCUMENT_VERSIONS: std::ops::RangeInclusive<u64> = 1..=2;
+
+/// Highest document version the engine of a node reads, from the version
+/// its heartbeat reports: `centreon-engine 0.1.0 (configuration 1-2)`. An
+/// engine that reports no range reads version 1 only; `None` when the node
+/// reports no centreon-engine (yet): the engine checks it when it gets it.
+fn node_document_version(state: Option<&str>) -> Option<u64> {
+    let state: Value = serde_json::from_str(state?).ok()?;
+    let version = state["engine"]["version"].as_str()?;
+    if !version.starts_with("centreon-engine ") {
+        return None;
+    }
+    let max = version
+        .split_once("(configuration ")
+        .and_then(|(_, rest)| rest.split_once(')'))
+        .and_then(|(range, _)| range.rsplit('-').next())
+        .and_then(|max| max.trim().parse().ok());
+    Some(max.unwrap_or(1))
+}
 
 /// Only the version of a document: the rest is skipped, not kept.
 #[derive(Deserialize)]
@@ -624,16 +642,36 @@ pub(super) async fn put_engine_configuration(
     let blob = tokio::task::spawn_blocking(move || {
         let probe: DocumentProbe = serde_json::from_slice(&body)
             .map_err(|error| format!("invalid JSON document: {error}"))?;
-        match probe.version {
-            Some(Value::Number(version)) if version.as_u64() == Some(ENGINE_DOCUMENT_VERSION) => {}
+        let version = match probe.version {
+            Some(Value::Number(version))
+                if version
+                    .as_u64()
+                    .is_some_and(|v| ENGINE_DOCUMENT_VERSIONS.contains(&v)) =>
+            {
+                version.as_u64().unwrap_or_default()
+            }
             Some(version) => return Err(format!("unsupported document version {version}")),
             None => return Err("document without version".to_owned()),
-        }
-        gorgone_core::document::pack(&body).map_err(|error| error.to_string())
+        };
+        gorgone_core::document::pack(&body)
+            .map(|blob| (blob, version))
+            .map_err(|error| error.to_string())
     })
     .await
     .map_err(|_| ApiError::bad_request("document check aborted"))?
     .map_err(ApiError::bad_request)?;
+    let (blob, version) = blob;
+    // The engine would refuse a version it does not read: say it now, with
+    // what the node reads, rather than through a failed job.
+    let node_row = state.store.node(&node).await?;
+    if let Some(max) = node_document_version(node_row.as_ref().and_then(|r| r.state.as_deref()))
+        && version > max
+    {
+        return Err(ApiError::conflict(format!(
+            "node {node} runs a centreon-engine that reads configuration documents up to \
+             version {max}, not {version}: upgrade it"
+        )));
+    }
     let (digest, size) = state.store.put_blob(&blob).await?;
     let action = Action {
         kind: Some(Kind::ApplyEngineConfiguration(ApplyEngineConfiguration {

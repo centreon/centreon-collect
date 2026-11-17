@@ -9,6 +9,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+use crate::recurring::RecurringConf;
+use crate::timeperiod::Timeperiod;
+
 /// Global settings of `centengine.cfg` the scheduler uses.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
@@ -24,6 +27,13 @@ pub struct Settings {
     pub max_host_check_spread: u32,
     /// Seconds between two instance status events.
     pub status_update_interval: u32,
+    /// Zone of the timeperiods of objects without `timezone`, in the `TZ`
+    /// syntax (`:Europe/Paris`); the zone of the process when empty.
+    pub use_timezone: String,
+    /// Minutes between two writes of the retention file.
+    pub retention_update_interval: u32,
+    /// Retained next checks are kept instead of spreading the checks again.
+    pub use_retained_scheduling_info: bool,
     /// The `cbmod` configuration file (poller identity, central address).
     pub broker_module_cfg_file: Option<PathBuf>,
 }
@@ -38,6 +48,9 @@ impl Default for Settings {
             max_service_check_spread: 5,
             max_host_check_spread: 5,
             status_update_interval: 60,
+            use_timezone: String::new(),
+            retention_update_interval: 60,
+            use_retained_scheduling_info: false,
             broker_module_cfg_file: None,
         }
     }
@@ -58,6 +71,9 @@ pub struct CheckParams {
     pub active_checks: bool,
     /// Accepts `PROCESS_*_CHECK_RESULT`.
     pub passive_checks: bool,
+    /// `check_period`: active checks run in this timeperiod only (always
+    /// when empty).
+    pub check_period: String,
 }
 
 /// A host to monitor.
@@ -75,6 +91,8 @@ pub struct HostConf {
     pub check: CheckParams,
     /// Custom macros (`_KEY value`), names upper-cased, without `_`.
     pub macros: BTreeMap<String, String>,
+    /// `timezone` of its timeperiods (`TZ` syntax); `use_timezone` when empty.
+    pub timezone: String,
 }
 
 /// A service to monitor.
@@ -92,6 +110,9 @@ pub struct ServiceConf {
     pub check: CheckParams,
     /// Custom macros, names upper-cased, without `_`.
     pub macros: BTreeMap<String, String>,
+    /// Zone of its timeperiods: the one of its host, as Engine inherits it
+    /// (`service_helper.cc`).
+    pub timezone: String,
 }
 
 /// Everything the scheduler needs from one configuration.
@@ -109,6 +130,13 @@ pub struct MonitoringConfig {
     pub hosts: Vec<HostConf>,
     /// Registered services, in file order.
     pub services: Vec<ServiceConf>,
+    /// Timeperiods by `timeperiod_name`, templates resolved.
+    pub timeperiods: HashMap<String, Timeperiod>,
+    /// Recurring downtimes by `downtime_id`.
+    pub recurring: BTreeMap<u64, RecurringConf>,
+    /// Macro values starting with `encrypt::` or `raw::` are read as Engine
+    /// reads them (files, document version 2), not literally (version 1).
+    pub secret_prefixes: bool,
 }
 
 /// Findings of a read, in the words `centengine -v` uses.
@@ -149,6 +177,8 @@ pub(crate) enum Kind {
     Command,
     Host,
     Service,
+    Timeperiod,
+    RecurringDowntime,
 }
 
 /// One `define` block, keys already mapped to their canonical name.
@@ -159,6 +189,9 @@ pub(crate) struct RawObject {
     pub custom: BTreeMap<String, String>,
     /// `use` list, in order.
     pub uses: Vec<String>,
+    /// Lines a key may repeat, in order: weekday and exception lines of a
+    /// timeperiod, `period` lines of a recurring downtime.
+    pub lines: Vec<(String, String)>,
     /// `name`: a template other objects can `use`.
     pub name: Option<String>,
     pub register: bool,
@@ -297,6 +330,16 @@ impl Reader {
                     number(self, &mut slot);
                     self.settings.status_update_interval = slot;
                 }
+                "retention_update_interval" => {
+                    let mut slot = self.settings.retention_update_interval;
+                    number(self, &mut slot);
+                    self.settings.retention_update_interval = slot;
+                }
+                "use_timezone" => self.settings.use_timezone = value.trim().to_owned(),
+                "use_retained_scheduling_info" => match parse_bool(value) {
+                    Some(flag) => self.settings.use_retained_scheduling_info = flag,
+                    None => self.error(format!("{key}: invalid value {value:?}")),
+                },
                 _ => {}
             }
         }
@@ -425,6 +468,14 @@ impl Reader {
                             Some(register) => object.register = register,
                             None => self.error(format!("{origin}: invalid register {value:?}")),
                         },
+                        key if kind == Kind::Timeperiod
+                            && !matches!(key, "timeperiod_name" | "alias" | "exclude") =>
+                        {
+                            object.lines.push((key.to_owned(), value.to_owned()));
+                        }
+                        "period" if kind == Kind::RecurringDowntime => {
+                            object.lines.push(("period".to_owned(), value.to_owned()));
+                        }
                         key => match canonical(kind, key) {
                             Some(field) => {
                                 object.fields.insert(field.to_owned(), value.to_owned());
@@ -452,6 +503,8 @@ impl Reader {
                         "command" => Some(Kind::Command),
                         "host" => Some(Kind::Host),
                         "service" => Some(Kind::Service),
+                        "timeperiod" => Some(Kind::Timeperiod),
+                        "recurringdowntime" => Some(Kind::RecurringDowntime),
                         _ => None,
                     };
                     current = Some((
@@ -527,19 +580,52 @@ impl Reader {
             main_file: main_file.to_path_buf(),
             settings: self.settings.clone(),
             users: std::mem::take(&mut self.users),
+            secret_prefixes: true,
             ..MonitoringConfig::default()
         };
         let mut hosts_by_name: HashMap<String, u64> = HashMap::new();
         let mut host_ids = HashSet::new();
         let mut service_ids = HashSet::new();
         let mut pending_services = Vec::new();
+        let mut timeperiod_cache = vec![None; self.objects.len()];
         for index in 0..self.objects.len() {
             let (kind, register) = (self.objects[index].0, self.objects[index].1.register);
             if !register {
                 continue;
             }
+            if kind == Kind::Timeperiod {
+                let origin = self.objects[index].1.origin.clone();
+                let period =
+                    self.timeperiod(index, &templates, &mut timeperiod_cache, &mut Vec::new());
+                if period.name.is_empty() {
+                    self.error(format!(
+                        "{origin}: time period has no name (property 'timeperiod_name')"
+                    ));
+                } else if config.timeperiods.contains_key(&period.name) {
+                    self.error(format!(
+                        "{origin}: timeperiod '{}' has already been defined",
+                        period.name
+                    ));
+                } else {
+                    config.timeperiods.insert(period.name.clone(), period);
+                }
+                continue;
+            }
             let object = self.resolved(index, &templates, &mut cache, &mut Vec::new());
             match kind {
+                Kind::Timeperiod => {}
+                Kind::RecurringDowntime => match RecurringConf::from_raw(&object) {
+                    Ok(rule) => match config.recurring.entry(rule.id) {
+                        std::collections::btree_map::Entry::Occupied(_) => self.error(format!(
+                            "{}: recurring downtime {} is defined twice",
+                            object.origin, rule.id
+                        )),
+                        std::collections::btree_map::Entry::Vacant(slot) => {
+                            slot.insert(rule);
+                        }
+                    },
+                    Err(error) => self.error(format!("{}: {error}", object.origin)),
+                },
                 Kind::Command => self.command(&object, &mut config),
                 Kind::Host => {
                     if let Some(host) = self.host(&object) {
@@ -564,8 +650,17 @@ impl Reader {
             }
         }
         // Services last: they need their host whatever the file order.
+        let host_zones: HashMap<String, String> = config
+            .hosts
+            .iter()
+            .map(|host| (host.name.clone(), host.timezone.clone()))
+            .collect();
         for object in pending_services {
-            if let Some(service) = self.service(&object, &hosts_by_name) {
+            if let Some(mut service) = self.service(&object, &hosts_by_name) {
+                service.timezone = host_zones
+                    .get(&service.host_name)
+                    .cloned()
+                    .unwrap_or_default();
                 if !service_ids.insert((service.host_id, service.service_id)) {
                     self.error(format!(
                         "{}: service ({}, {}) is defined twice",
@@ -594,7 +689,141 @@ impl Reader {
                 self.error(format!("{what}: unknown check command '{name}'"));
             }
         }
+        self.check_references(&config);
         (config, self.report)
+    }
+
+    /// Timeperiods, exclusions and recurring downtime targets that must
+    /// exist (`timeperiod::resolve`, `applier::host`/`service` resolution,
+    /// `applier::recurringdowntime`).
+    fn check_references(&mut self, config: &MonitoringConfig) {
+        let mut errors = Vec::new();
+        for period in config.timeperiods.values() {
+            for excluded in &period.exclude {
+                if !config.timeperiods.contains_key(excluded) {
+                    errors.push(format!(
+                        "excluded time period '{excluded}' specified in timeperiod '{}' is not \
+                         defined anywhere",
+                        period.name
+                    ));
+                }
+            }
+        }
+        let periods = config
+            .hosts
+            .iter()
+            .map(|host| (&host.check.check_period, format!("host '{}'", host.name)))
+            .chain(config.services.iter().map(|service| {
+                (
+                    &service.check.check_period,
+                    format!(
+                        "service '{}' on host '{}'",
+                        service.description, service.host_name
+                    ),
+                )
+            }));
+        for (period, what) in periods {
+            if !period.is_empty() && !config.timeperiods.contains_key(period) {
+                errors.push(format!(
+                    "check period '{period}' specified for {what} is not defined anywhere"
+                ));
+            }
+        }
+        errors.sort();
+        self.report.errors.extend(errors);
+        let host_ids: HashSet<u64> = config.hosts.iter().map(|h| h.host_id).collect();
+        let service_ids: HashSet<(u64, u64)> = config
+            .services
+            .iter()
+            .map(|s| (s.host_id, s.service_id))
+            .collect();
+        for rule in config.recurring.values() {
+            for host_id in &rule.host_ids {
+                if !host_ids.contains(host_id) {
+                    self.warning(format!(
+                        "recurring downtime {}: host {host_id} is not on this poller, ignored",
+                        rule.id
+                    ));
+                }
+            }
+            for (host_id, service_id) in &rule.service_ids {
+                if !service_ids.contains(&(*host_id, *service_id)) {
+                    self.warning(format!(
+                        "recurring downtime {}: service {host_id}:{service_id} is not on this \
+                         poller, ignored",
+                        rule.id
+                    ));
+                }
+            }
+        }
+    }
+
+    /// Timeperiod of object `index`, its `use` templates merged in order
+    /// as `parser::_merge` does, memoized.
+    fn timeperiod(
+        &mut self,
+        index: usize,
+        templates: &HashMap<(Kind, String), usize>,
+        cache: &mut Vec<Option<Timeperiod>>,
+        stack: &mut Vec<usize>,
+    ) -> Timeperiod {
+        if let Some(done) = &cache[index] {
+            return done.clone();
+        }
+        let object = self.objects[index].1.clone();
+        let mut period = Timeperiod {
+            name: object
+                .fields
+                .get("timeperiod_name")
+                .cloned()
+                .unwrap_or_default(),
+            alias: object.fields.get("alias").cloned().unwrap_or_default(),
+            ..Timeperiod::default()
+        };
+        // `+a,b`: the exclusions of the templates are added to these.
+        let mut additive = false;
+        if let Some(exclude) = object.fields.get("exclude") {
+            let exclude = exclude.trim();
+            additive = exclude.starts_with('+');
+            period.exclude = exclude
+                .trim_start_matches('+')
+                .split(',')
+                .map(str::trim)
+                .filter(|name| !name.is_empty())
+                .map(str::to_owned)
+                .collect();
+        }
+        for (key, value) in &object.lines {
+            if let Err(error) = period.add_line(key, value) {
+                self.error(format!("{}: {error}", object.origin));
+            }
+        }
+        if stack.contains(&index) {
+            self.error(format!("{}: template loop", object.origin));
+            return period;
+        }
+        stack.push(index);
+        for name in &object.uses {
+            let Some(&parent) = templates.get(&(Kind::Timeperiod, name.clone())) else {
+                self.error(format!(
+                    "{}: cannot merge object of type '{name}': no such template",
+                    object.origin
+                ));
+                continue;
+            };
+            let parent = self.timeperiod(parent, templates, cache, stack);
+            if additive {
+                for name in &parent.exclude {
+                    if !period.exclude.contains(name) {
+                        period.exclude.push(name.clone());
+                    }
+                }
+            }
+            period.merge(&parent);
+        }
+        stack.pop();
+        cache[index] = Some(period.clone());
+        period
     }
 
     fn command(&mut self, object: &RawObject, config: &mut MonitoringConfig) {
@@ -657,6 +886,11 @@ impl Reader {
             max_check_attempts,
             active_checks: flag("checks_active"),
             passive_checks: flag("checks_passive"),
+            check_period: object
+                .fields
+                .get("check_period")
+                .map(|period| period.trim().to_owned())
+                .unwrap_or_default(),
         }
     }
 
@@ -694,6 +928,11 @@ impl Reader {
             host_id,
             check,
             macros: object.custom.clone(),
+            timezone: object
+                .fields
+                .get("timezone")
+                .map(|zone| zone.trim().to_owned())
+                .unwrap_or_default(),
         })
     }
 
@@ -740,6 +979,7 @@ impl Reader {
             description,
             check,
             macros: object.custom.clone(),
+            timezone: String::new(),
         })
     }
 }
@@ -796,7 +1036,8 @@ pub(crate) mod tests {
                  cfg_file={0}/serviceTemplates.cfg\ncfg_file={0}/services.cfg\n\
                  cfg_file=commands.cfg\ncfg_file={0}/timeperiods.cfg\n\
                  resource_file={0}/resource.cfg\ninterval_length=60\n\
-                 service_check_timeout=20\nbroker_module_cfg_file=/etc/centreon-broker/p-module.json\n\
+                 service_check_timeout=20\nretention_update_interval=30\n\
+                 broker_module_cfg_file=/etc/centreon-broker/p-module.json\n\
                  log_file=/var/log/centreon-engine/centengine.log\nunknown_key=1\n",
                 dir.display()
             ),
@@ -812,7 +1053,16 @@ pub(crate) mod tests {
         );
         write(
             "timeperiods.cfg",
-            "define timeperiod {\n    timeperiod_name 24x7\n    sunday 00:00-24:00\n}\n",
+            "define timeperiod {\n    name 24x7\n    timeperiod_name 24x7\n    alias Always\n    \
+             sunday 00:00-24:00\n    monday 00:00-24:00\n}\n\
+             define timeperiod {\n    name workhours\n    timeperiod_name workhours\n    \
+             alias Work\n    use 24x7\n    monday 09:00-17:00\n    december 25 00:00-24:00\n    \
+             exclude nonworkhours\n}\n\
+             define timeperiod {\n    name nonworkhours\n    timeperiod_name nonworkhours\n    \
+             alias Nights\n    2026-12-24 - 2026-12-26 00:00-24:00\n}\n\
+             define recurringdowntime {\n    downtime_id 5\n    downtime_name maintenance\n    \
+             host_ids 12\n    service_ids 13:102\n    period weekly:1,2 22:00-23:00 fixed\n    \
+             period monthly:1 01:00-02:00 flexible:600\n}\n",
         );
         write(
             "hostTemplates.cfg",
@@ -826,7 +1076,8 @@ pub(crate) mod tests {
             "hosts.cfg",
             "define host {\n    host_name                      h1\n    alias \
              First\n    address                        10.0.0.1\n    use \
-             generic-host,other\n    _HOST_ID                       12\n    register 1\n}\n\
+             generic-host,other\n    _HOST_ID                       12\n    register 1\n    \
+             check_period workhours\n    timezone :Europe/Paris\n}\n\
              define host {\n    host_name h2\n    address 10.0.0.2\n    _HOST_ID 13\n}\n",
         );
         write(
@@ -841,7 +1092,8 @@ pub(crate) mod tests {
              svc-tpl\n    _SERVICE_ID 101\n    register 1\n}\n\
              define service {\n    host_name h2\n    service_description Disk\n    \
              check_command check_dummy!2!\\\n    ;a comment line is skipped\n    full\n    \
-             active_checks_enabled 0\n    _SERVICE_ID 102\n    _CRIT 90\n}\n",
+             active_checks_enabled 0\n    _SERVICE_ID 102\n    _CRIT 90\n    \
+             check_period 24x7\n}\n",
         );
         dir.join("centengine.cfg")
     }
@@ -891,6 +1143,54 @@ pub(crate) mod tests {
         assert!(!disk.check.active_checks && disk.check.passive_checks);
         assert_eq!(disk.macros["CRIT"], "90");
         assert_eq!(disk.check.check_interval, 5);
+        // Timeperiods: own weekdays win, others and exceptions are merged.
+        assert_eq!(config.settings.retention_update_interval, 30);
+        let work = &config.timeperiods["workhours"];
+        assert_eq!(work.days[1].len(), 1);
+        assert_eq!(work.days[0].len(), 1);
+        assert_eq!(work.exclude, ["nonworkhours"]);
+        assert_eq!(h1.check.check_period, "workhours");
+        assert_eq!(h1.timezone, ":Europe/Paris");
+        // A service has the zone of its host.
+        assert_eq!(ping.timezone, ":Europe/Paris");
+        assert_eq!(disk.check.check_period, "24x7");
+        let rule = &config.recurring[&5];
+        assert_eq!(
+            (rule.host_ids.clone(), rule.service_ids.clone()),
+            (vec![12], vec![(13, 102)])
+        );
+        assert_eq!(rule.periods.len(), 2);
+        assert_eq!(report.warnings.len(), 0, "{report:?}");
+    }
+
+    #[test]
+    fn refuses_unknown_timeperiods() {
+        let dir = tempfile::tempdir().unwrap();
+        let main = web_like(dir.path());
+        let path = dir.path().join("timeperiods.cfg");
+        let text = std::fs::read_to_string(&path).unwrap();
+        std::fs::write(
+            &path,
+            text.replace("exclude nonworkhours", "exclude nope")
+                .replace("check_period workhours", "")
+                .replace("monday 09:00-17:00", "monday 9h"),
+        )
+        .unwrap();
+        let hosts = dir.path().join("hosts.cfg");
+        let text = std::fs::read_to_string(&hosts).unwrap();
+        std::fs::write(
+            &hosts,
+            text.replace("check_period workhours", "check_period missing"),
+        )
+        .unwrap();
+        let (_, report) = read(&main);
+        let all = report.errors.join("\n");
+        assert!(all.contains("excluded time period 'nope'"), "{all}");
+        assert!(
+            all.contains("check period 'missing' specified for host 'h1'"),
+            "{all}"
+        );
+        assert!(all.contains("invalid timeperiod line 'monday 9h'"), "{all}");
     }
 
     #[test]

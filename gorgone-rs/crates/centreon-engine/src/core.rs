@@ -1,22 +1,33 @@
 //! The scheduler task: owns every host and service, plans checks, runs them
 //! with bounded concurrency, applies results and emits BBDO events. Every
-//! change goes through this one task, so nothing is locked.
+//! change goes through this one task, so nothing is locked. Downtimes,
+//! comments and acknowledgements are in `core/downtimes.rs`, the retention
+//! file in `core/retention.rs`.
+
+mod downtimes;
+mod retention;
 
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap, VecDeque};
+use std::collections::{BTreeMap, BinaryHeap, HashMap, VecDeque};
+use std::path::PathBuf;
 use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 
+use crate::book::Book;
 use crate::cfg::{self, CheckParams, HostConf, MonitoringConfig, ServiceConf};
 use crate::client::{Notice, Outgoing, Target};
+use crate::crypto::Credentials;
 use crate::document::Parsed;
 use crate::extcmd::{self, ExtCommand};
 use crate::macros::{Context, HostView, ServiceView, StateView};
+use crate::recurring::Rule;
 use crate::runner::{self, PluginRun};
-use crate::state::{self, CheckState, CheckType, Next, Outcome, StateType, code};
+use crate::state::{self, AckType, CheckState, CheckType, Next, Outcome, StateType, code};
+use crate::timeperiod::Calc;
+use crate::tz::Zones;
 use crate::{Input, Status, broker_conf, cmdline, events, output};
 
 /// `(host_id, service_id)`; `service_id` 0 for a host.
@@ -29,6 +40,11 @@ pub(crate) struct CoreOptions {
     pub broker_address: Option<String>,
     pub max_concurrent_checks: usize,
     pub max_output_bytes: usize,
+    /// Where states, downtimes, comments and acknowledgements survive a
+    /// restart; none kept when unset.
+    pub retention_file: Option<PathBuf>,
+    /// `engine-context.json`: keys of the `encrypt::` values.
+    pub credentials_file: Option<PathBuf>,
 }
 
 /// What putting a configuration in force did.
@@ -131,6 +147,10 @@ struct Obj {
     due: Option<Instant>,
     /// A forced check asked while one was running: run again at once.
     rerun: bool,
+    /// The planned check is forced: it ignores the check period.
+    forced: bool,
+    /// Flexible downtimes waiting for a problem (`pending_flex_downtime`).
+    pending_flex: u32,
 }
 
 impl Obj {
@@ -143,6 +163,19 @@ impl Obj {
 
     fn is_host(&self) -> bool {
         matches!(self.conf, ObjConf::Host(_))
+    }
+
+    /// `timezone` of the object (a service has its host's).
+    fn timezone(&self) -> &str {
+        match &self.conf {
+            ObjConf::Host(host) => &host.timezone,
+            ObjConf::Service { conf, .. } => &conf.timezone,
+        }
+    }
+
+    /// OK or UP.
+    fn is_ok(&self) -> bool {
+        self.state.state == code::OK
     }
 }
 
@@ -160,6 +193,22 @@ struct Loaded {
     /// Digest of the structured document, `None` for files.
     digest: Option<String>,
 }
+
+/// Timed events (`timed_event`), by epoch second.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum Timer {
+    /// `EVENT_SCHEDULED_DOWNTIME`: handle downtime `id` (start or stop).
+    Downtime(u64),
+    /// `EVENT_EXPIRE_DOWNTIME`.
+    ExpireDowntimes,
+    /// `EVENT_RECURRING_DOWNTIME`, every 60 s.
+    Recurring,
+    /// `EVENT_RETENTION_SAVE`.
+    RetentionSave,
+}
+
+/// Recurring downtimes run every minute (`EVENT_RECURRING_DOWNTIME`).
+const RECURRING_PERIOD: i64 = 60;
 
 pub(crate) struct Core {
     options: CoreOptions,
@@ -184,6 +233,18 @@ pub(crate) struct Core {
     ever_connected: bool,
     start_time: i64,
     dropped: u64,
+    zones: Zones,
+    book: Book,
+    timers: BinaryHeap<Reverse<(i64, u64, Timer)>>,
+    timer_seq: u64,
+    /// Recurring downtime rules in force, by id.
+    rules: BTreeMap<u64, Rule>,
+    /// A configuration was put in force once: rules created later come
+    /// from a reload (`recurring_downtime::set_initial_load_done`).
+    initial_load_done: bool,
+    credentials: Option<Credentials>,
+    /// What the retention file kept, until the first configuration uses it.
+    retained: Option<retention::Retained>,
 }
 
 impl Core {
@@ -195,6 +256,7 @@ impl Core {
     ) -> Self {
         let (done_tx, done_rx) = mpsc::unbounded_channel();
         let clock = Clock::new();
+        let retained = options.retention_file.as_deref().and_then(retention::read);
         Self {
             options,
             clock,
@@ -216,6 +278,14 @@ impl Core {
             ever_connected: false,
             start_time: clock.now(),
             dropped: 0,
+            zones: Zones::system(),
+            book: Book::default(),
+            timers: BinaryHeap::new(),
+            timer_seq: 0,
+            rules: BTreeMap::new(),
+            initial_load_done: false,
+            credentials: None,
+            retained,
         }
     }
 
@@ -237,13 +307,34 @@ impl Core {
             .map(|loaded| (loaded.target.poller_id, loaded.target.poller_name.clone()))
     }
 
-    /// Instance, configuration and every state, as Engine sends them at start.
+    fn poller_id(&self) -> u64 {
+        self.loaded.as_ref().map_or(0, |l| l.target.poller_id)
+    }
+
+    fn add_timer(&mut self, at: i64, timer: Timer) {
+        self.timer_seq += 1;
+        self.timers.push(Reverse((at, self.timer_seq, timer)));
+    }
+
+    /// Instance, configuration and every state, as Engine sends them at
+    /// start (`send_initial_configuration`, `engine/src/broker.cc:4135`).
+    /// Downtimes and comments are sent with their current state: every
+    /// connection gets this dump, and its `pb_instance` makes the central
+    /// cancel the open downtimes and drop the comments of the poller
+    /// (`_clean_tables`), which the upserts restore.
     fn emit_snapshot(&mut self) {
         let Some((poller_id, name)) = self.poller() else {
             return;
         };
         let now = self.clock.now();
-        let mut frames = vec![events::instance(poller_id, &name, true, self.start_time, 0)];
+        let encryption = self.credentials.is_some();
+        let mut frames = vec![events::instance(
+            poller_id,
+            &name,
+            true,
+            (self.start_time, 0),
+            encryption,
+        )];
         for obj in &self.objs {
             frames.push(match &obj.conf {
                 ObjConf::Host(host) => events::host(poller_id, host, &obj.state, now, true),
@@ -251,6 +342,12 @@ impl Core {
                     events::service(poller_id, conf, &obj.state, now, true)
                 }
             });
+        }
+        for downtime in self.book.downtimes.values() {
+            frames.push(events::downtime(poller_id, downtime, None));
+        }
+        for comment in self.book.comments.values() {
+            frames.push(events::comment(poller_id, comment, None));
         }
         frames.push(events::instance_configuration(poller_id));
         for obj in &self.objs {
@@ -275,7 +372,7 @@ impl Core {
         });
         self.status.send_replace(Status {
             loaded: self.loaded.is_some(),
-            poller_id: self.loaded.as_ref().map_or(0, |l| l.target.poller_id),
+            poller_id: self.poller_id(),
             hosts,
             services,
             digest: self.loaded.as_ref().and_then(|l| l.digest.clone()),
@@ -303,6 +400,71 @@ impl Core {
         self.loaded
             .as_ref()
             .map_or(60, |l| u64::from(l.config.settings.interval_length.max(1)))
+    }
+
+    /// Calculator of the timeperiods of object `index`, in its zone (its
+    /// `timezone`, else `use_timezone`, else the zone of the process), and
+    /// its check period.
+    fn in_zone_of<T>(
+        &mut self,
+        index: usize,
+        work: impl FnOnce(&Calc<'_>, Option<&crate::timeperiod::Timeperiod>) -> T,
+    ) -> T {
+        let obj = &self.objs[index];
+        let loaded = self.loaded.as_ref();
+        let zone = match obj.timezone() {
+            "" => loaded.map_or("", |l| l.config.settings.use_timezone.as_str()),
+            zone => zone,
+        }
+        .to_owned();
+        let tz = self.zones.get(&zone);
+        let empty = HashMap::new();
+        let periods = loaded.map_or(&empty, |l| &l.config.timeperiods);
+        let period = periods.get(&obj.check().check_period);
+        work(&Calc { tz: &tz, periods }, period)
+    }
+
+    /// `get_next_valid_time` of the check period of object `index`.
+    fn next_valid_time(&mut self, index: usize, preferred: i64) -> i64 {
+        let now = self.clock.now();
+        self.in_zone_of(index, |calc, period| {
+            calc.next_valid(preferred, now, period)
+        })
+    }
+
+    /// `check_time_against_period` of the check period of object `index`.
+    fn in_check_period(&mut self, index: usize, time: i64) -> bool {
+        self.in_zone_of(index, |calc, period| calc.contains(time, period))
+    }
+
+    /// Plans the check of `index` at `at` or at the next valid time of its
+    /// check period after it.
+    fn schedule_valid(&mut self, index: usize, at: Instant) {
+        if self.objs[index].check().check_period.is_empty() {
+            return self.schedule(index, at);
+        }
+        let preferred = self.clock.epoch_of(at);
+        let valid = self.next_valid_time(index, preferred);
+        let at = if valid > preferred {
+            self.clock.instant_of(valid)
+        } else {
+            at
+        };
+        self.schedule(index, at);
+    }
+
+    /// Reads the keys of the `encrypt::` values, as each Engine apply does
+    /// (`applier/state.cc`): an absent file keeps the keys in force, an
+    /// invalid one is logged (never its content) and changes nothing.
+    fn load_credentials(&mut self) {
+        let Some(path) = self.options.credentials_file.clone() else {
+            return;
+        };
+        match crate::crypto::Credentials::from_file(&path) {
+            Ok(Some(keys)) => self.credentials = Some(keys),
+            Ok(None) => {}
+            Err(error) => tracing::error!("cannot read the credentials keys: {error}"),
+        }
     }
 
     /// Reads the Engine files and puts them in force; the running
@@ -387,7 +549,9 @@ impl Core {
             config.hosts.len(),
             config.services.len(),
         );
+        self.load_credentials();
         let same_target = self.loaded.as_ref().map(|l| &l.target) == Some(&target);
+        let first = self.loaded.is_none();
         let changes = self.rebuild(&config);
         let text = format!(
             "configuration loaded: {} commands, {} hosts, {} services, poller {} ({}); \
@@ -401,6 +565,8 @@ impl Core {
             changes.changed.len(),
             changes.removed.len(),
         );
+        let recurring = config.recurring.clone();
+        let retention_interval = i64::from(config.settings.retention_update_interval) * 60;
         self.loaded = Some(Loaded {
             config,
             target: target.clone(),
@@ -414,6 +580,18 @@ impl Core {
         if self.connected && same_target {
             self.emit_changes(&changes);
         }
+        let now = self.clock.now();
+        if first {
+            // Downtimes, comments and acknowledgements of the retention
+            // file, now that their objects exist.
+            self.restore_book(now);
+            self.add_timer(now, Timer::Recurring);
+            if retention_interval > 0 {
+                self.add_timer(now + retention_interval, Timer::RetentionSave);
+            }
+        }
+        self.apply_rules(recurring, now);
+        self.initial_load_done = true;
         self.publish_status();
         self.launch();
         Installed { text, counts }
@@ -473,7 +651,8 @@ impl Core {
     }
 
     /// Replaces the objects, keeping the state and the plan of those that
-    /// stay, and tells what changed.
+    /// stay, and tells what changed. New objects take their retained state
+    /// when the retention file has one.
     fn rebuild(&mut self, config: &MonitoringConfig) -> Changes {
         // Due but not started yet: they keep their time.
         for (index, seq, planned) in self.ready.drain(..) {
@@ -489,6 +668,15 @@ impl Core {
         self.ready.clear();
         let mut fresh = Vec::new();
         let mut changes = Changes::default();
+        let retained_states = self
+            .retained
+            .as_mut()
+            .map(|r| std::mem::take(&mut r.states));
+        let mut retained_states = retained_states.unwrap_or_default();
+        // Retained next checks still to come, used when Engine would.
+        let mut retained_next: Vec<(usize, i64)> = Vec::new();
+        let use_retained_next = config.settings.use_retained_scheduling_info;
+        let now_epoch = self.clock.now();
         let mut make = |key: Key, conf: ObjConf, objs: &mut Vec<Obj>| {
             let obj = match old.remove(&key) {
                 Some(mut previous) => {
@@ -500,15 +688,26 @@ impl Core {
                 }
                 None => {
                     changes.added.push(key);
+                    let mut state = CheckState::default();
+                    if let Some(mut kept) = retained_states.remove(&key) {
+                        if use_retained_next && kept.next_check > now_epoch {
+                            retained_next.push((objs.len(), kept.next_check));
+                        }
+                        kept.next_check = 0;
+                        kept.downtime_depth = 0;
+                        state = kept;
+                    }
                     fresh.push(objs.len());
                     Obj {
                         key,
                         conf,
-                        state: CheckState::default(),
+                        state,
                         running: false,
                         seq: 0,
                         due: None,
                         rerun: false,
+                        forced: false,
+                        pending_flex: 0,
                     }
                 }
             };
@@ -535,6 +734,7 @@ impl Core {
             );
         }
         self.objs = objs;
+        let removed: Vec<Key> = old.keys().copied().collect();
         changes.removed = old.into_values().map(|obj| obj.conf).collect();
         for (index, obj) in self.objs.iter().enumerate() {
             self.by_key.insert(obj.key, index);
@@ -548,8 +748,11 @@ impl Core {
                 }
             }
         }
+        // The configuration is needed by the timeperiod computations below.
         let interval_length = u64::from(config.settings.interval_length.max(1));
         let now = Instant::now();
+        // Downtimes and comments of removed objects go with them.
+        self.forget_objects(&removed);
         // Kept objects: same plan, brought forward if the interval shrank.
         for index in 0..self.objs.len() {
             if fresh.contains(&index) {
@@ -568,15 +771,26 @@ impl Core {
                 _ => {}
             }
         }
+        for (index, next_check) in retained_next {
+            fresh.retain(|f| *f != index);
+            let check = self.objs[index].check();
+            if check.active_checks && check.check_interval > 0 && !check.check_command.is_empty() {
+                let at = self.clock.instant_of(next_check);
+                self.schedule(index, at);
+            }
+        }
         // New objects: spread over min(interval, max spread), hosts and
-        // services apart, as Engine's inter-check delay.
+        // services apart, as Engine's inter-check delay, then moved into
+        // their check period (`applier/scheduler.cc`).
         let (hosts, services): (Vec<usize>, Vec<usize>) = fresh
             .into_iter()
             .partition(|index| self.objs[*index].is_host());
-        for (list, max_spread) in [
+        let pending: Vec<(usize, Instant)> = [
             (hosts, config.settings.max_host_check_spread),
             (services, config.settings.max_service_check_spread),
-        ] {
+        ]
+        .into_iter()
+        .flat_map(|(list, max_spread)| {
             let schedulable: Vec<usize> = list
                 .into_iter()
                 .filter(|index| {
@@ -587,12 +801,45 @@ impl Core {
                 })
                 .collect();
             let count = schedulable.len().max(1) as u64;
-            for (position, index) in schedulable.into_iter().enumerate() {
-                let interval = u64::from(self.objs[index].check().check_interval) * interval_length;
-                let window_ms = interval.min(u64::from(max_spread) * 60) * 1000;
-                let offset = Duration::from_millis(window_ms * position as u64 / count);
-                self.schedule(index, now + offset);
+            schedulable
+                .into_iter()
+                .enumerate()
+                .map(|(position, index)| {
+                    let interval =
+                        u64::from(self.objs[index].check().check_interval) * interval_length;
+                    let window_ms = interval.min(u64::from(max_spread) * 60) * 1000;
+                    let offset = Duration::from_millis(window_ms * position as u64 / count);
+                    (index, now + offset)
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+        // The timeperiods of this configuration, before it is in force.
+        let previous = self
+            .loaded
+            .as_mut()
+            .map(|l| std::mem::replace(&mut l.config.timeperiods, config.timeperiods.clone()));
+        let previous_zone = self.loaded.as_mut().map(|l| {
+            std::mem::replace(
+                &mut l.config.settings.use_timezone,
+                config.settings.use_timezone.clone(),
+            )
+        });
+        if self.loaded.is_none() {
+            for (index, at) in pending {
+                // No configuration in force yet: periods are checked when due.
+                self.schedule(index, at);
             }
+        } else {
+            for (index, at) in pending {
+                self.schedule_valid(index, at);
+            }
+        }
+        if let (Some(loaded), Some(previous), Some(zone)) =
+            (self.loaded.as_mut(), previous, previous_zone)
+        {
+            loaded.config.timeperiods = previous;
+            loaded.config.settings.use_timezone = zone;
         }
         changes
     }
@@ -630,8 +877,47 @@ impl Core {
                 self.objs[index].rerun = true;
                 continue;
             }
+            if !std::mem::take(&mut self.objs[index].forced) && !self.viable(index) {
+                continue;
+            }
             self.start_check(index, planned);
         }
+    }
+
+    /// `verify_check_viability` for the check period (`service.cc:3119`,
+    /// rescheduling `service.cc:2500-2560`, same for hosts): a check due
+    /// outside its period is not run but planned at the next valid time
+    /// after one check interval, or a week later when there is none.
+    fn viable(&mut self, index: usize) -> bool {
+        let now = self.clock.now();
+        if self.in_check_period(index, now) {
+            return true;
+        }
+        let check = self.objs[index].check().clone();
+        let interval = if check.check_interval == 0 {
+            300
+        } else {
+            i64::from(check.check_interval) * self.interval_length() as i64
+        };
+        let mut next = self.next_valid_time(index, now + interval);
+        if !self.in_check_period(index, next) {
+            next += 7 * 24 * 60 * 60;
+            tracing::warn!(
+                host_id = self.objs[index].key.0,
+                service_id = self.objs[index].key.1,
+                "check could not be rescheduled properly: scheduling it for next week"
+            );
+        }
+        let at = self.clock.instant_of(next);
+        self.schedule(index, at);
+        tracing::debug!(
+            host_id = self.objs[index].key.0,
+            service_id = self.objs[index].key.1,
+            next_check = next,
+            "outside the check period: check not run"
+        );
+        self.emit_status(index);
+        false
     }
 
     fn state_view(st: &CheckState, host: bool) -> StateView {
@@ -660,7 +946,8 @@ impl Core {
         }
     }
 
-    /// Processed command line of object `index`.
+    /// Processed command line of object `index`. It may hold decrypted
+    /// secrets: never logged.
     fn command_line(&self, index: usize) -> Result<Vec<String>, String> {
         let loaded = self.loaded.as_ref().ok_or("no configuration")?;
         let obj = &self.objs[index];
@@ -678,6 +965,11 @@ impl Core {
             .commands
             .get(name)
             .ok_or_else(|| format!("unknown command '{name}'"))?;
+        let secrets = if loaded.config.secret_prefixes {
+            self.credentials.as_ref()
+        } else {
+            None
+        };
         let mut ctx = Context::new(
             &loaded.config.users,
             HostView {
@@ -692,7 +984,8 @@ impl Core {
                 macros: Some(&conf.macros),
                 state: Self::state_view(&obj.state, false),
             }),
-        );
+        )
+        .with_secrets(secrets);
         let processed = ctx.check_command_line(check_command, line);
         cmdline::split(&processed).map_err(|error| format!("command '{name}': {error}"))
     }
@@ -739,6 +1032,37 @@ impl Core {
         });
     }
 
+    /// Status event of object `index`, then what `cbmod` does with an
+    /// acknowledgement that ended (`forward_pb_*_status`,
+    /// `engine/src/broker.cc:2672-2690`, `:4672-4690`): its deletion is
+    /// sent unless the object recovered or a normal acknowledgement saw
+    /// its state change.
+    fn emit_status(&mut self, index: usize) {
+        let obj = &self.objs[index];
+        let frame = match &obj.conf {
+            ObjConf::Host(host) => events::host_status(host, &obj.state),
+            ObjConf::Service { conf, .. } => events::service_status(conf, &obj.state),
+        };
+        self.emit(frame);
+        let obj = &self.objs[index];
+        if obj.state.acknowledgement != AckType::None {
+            return;
+        }
+        let Some(ack) = self.book.acknowledgements.remove(&obj.key) else {
+            return;
+        };
+        let state = if obj.state.checked {
+            obj.state.state
+        } else {
+            4
+        };
+        if !(state == code::OK || (!ack.sticky && state != ack.state)) {
+            let now = self.clock.now();
+            let frame = events::acknowledgement(self.poller_id(), &ack, Some(now));
+            self.emit(frame);
+        }
+    }
+
     /// Applies an active run (`Ok`) or a passive result (`Err((code, output))`).
     fn apply(
         &mut self,
@@ -771,6 +1095,7 @@ impl Core {
         };
         let check = self.objs[index].check().clone();
         let obj = &mut self.objs[index];
+        let before = (obj.state.state, obj.state.last_hard_state_change);
         let outcome = Outcome {
             state,
             check_type,
@@ -782,6 +1107,8 @@ impl Core {
             obj.state
                 .apply_service(&outcome, check.max_check_attempts, host_up)
         };
+        let state_change = obj.state.state != before.0;
+        let hard_change = obj.state.last_hard_state_change != before.1;
         obj.state.output = parsed.output;
         obj.state.long_output = parsed.long_output;
         obj.state.perfdata = parsed.perfdata;
@@ -792,27 +1119,27 @@ impl Core {
         let schedulable = check.active_checks && !check.check_command.is_empty();
         let base = Instant::now();
         match next {
-            _ if rerun => self.schedule(index, base),
+            _ if rerun => {
+                self.objs[index].forced = true;
+                self.schedule(index, base);
+            }
             Next::Unchanged => {}
             Next::Normal | Next::Retry if !schedulable || check.check_interval == 0 => {
                 self.unschedule(index);
             }
-            Next::Normal => self.schedule(
+            Next::Normal => self.schedule_valid(
                 index,
                 base + Duration::from_secs(u64::from(check.check_interval) * interval_length),
             ),
-            Next::Retry => self.schedule(
+            Next::Retry => self.schedule_valid(
                 index,
                 base + Duration::from_secs(
                     u64::from(check.retry_interval.max(1)) * interval_length,
                 ),
             ),
         }
+        self.acknowledgement_after_result(index, state_change, hard_change);
         let obj = &self.objs[index];
-        let frame = match &obj.conf {
-            ObjConf::Host(host) => events::host_status(host, &obj.state),
-            ObjConf::Service { conf, .. } => events::service_status(conf, &obj.state),
-        };
         tracing::debug!(
             host_id = obj.key.0,
             service_id = obj.key.1,
@@ -821,7 +1148,8 @@ impl Core {
             attempt = obj.state.attempt,
             "check result applied"
         );
-        self.emit(frame);
+        self.emit_status(index);
+        self.flexible_downtimes_after_result(index, state_change, hard_change);
     }
 
     fn finished(&mut self, done: Done) {
@@ -838,7 +1166,8 @@ impl Core {
         if self.loaded.is_none() {
             return Err("no configuration loaded yet".to_owned());
         }
-        let command = extcmd::parse(line).map_err(|error| error.to_string())?;
+        let (stamp, command) = extcmd::parse_stamped(line).map_err(|error| error.to_string())?;
+        let entry_time = stamp.unwrap_or_else(|| self.clock.now());
         let find_service = |core: &Self, host: &str, service: &str| {
             core.services_by_name
                 .get(&(host.to_owned(), service.to_owned()))
@@ -846,10 +1175,16 @@ impl Core {
         };
         let find_host = |core: &Self, host: &str| core.hosts_by_name.get(host).copied();
         // Engine accepts a command on an object it does not know and only
-        // logs it: so does the scheduler.
+        // logs it: so does the scheduler. The line is not logged: it may
+        // carry a comment.
         let ignored = |what: String| {
-            tracing::warn!(command = line, "{what}: command ignored");
+            tracing::warn!("{what}: command ignored");
             Ok(format!("{what}: command ignored"))
+        };
+        let find = |core: &Self, host: &str, service: Option<&str>| match service {
+            Some(service) => find_service(core, host, service)
+                .ok_or_else(|| format!("unknown service '{service}' on host '{host}'")),
+            None => find_host(core, host).ok_or_else(|| format!("unknown host '{host}'")),
         };
         match command {
             ExtCommand::ScheduleService {
@@ -889,6 +1224,124 @@ impl Core {
                 };
                 self.passive(index, code, output)
             }
+            ExtCommand::ScheduleDowntime {
+                target,
+                start,
+                end,
+                fixed,
+                triggered_by,
+                duration,
+                author,
+                comment,
+            } => {
+                let keys: Vec<Key> = match &target {
+                    extcmd::DowntimeTarget::Host(host) => match find(self, host, None) {
+                        Ok(index) => vec![self.objs[index].key],
+                        Err(what) => return ignored(what),
+                    },
+                    extcmd::DowntimeTarget::Service(host, service) => {
+                        match find(self, host, Some(service)) {
+                            Ok(index) => vec![self.objs[index].key],
+                            Err(what) => return ignored(what),
+                        }
+                    }
+                    extcmd::DowntimeTarget::HostServices(host) => match find(self, host, None) {
+                        Ok(index) => {
+                            let host_id = self.objs[index].key.0;
+                            self.objs
+                                .iter()
+                                .filter(|obj| obj.key.0 == host_id && obj.key.1 != 0)
+                                .map(|obj| obj.key)
+                                .collect()
+                        }
+                        Err(what) => return ignored(what),
+                    },
+                };
+                let request = downtimes::Request {
+                    entry_time,
+                    author,
+                    comment,
+                    start,
+                    end,
+                    fixed,
+                    triggered_by,
+                    duration,
+                };
+                let mut ids = Vec::new();
+                for key in keys {
+                    ids.push(self.schedule_downtime(key, &request)?);
+                }
+                Ok(format!("downtime scheduled: {ids:?}"))
+            }
+            ExtCommand::DeleteDowntime { id } => {
+                if self.unschedule_downtime(id) {
+                    Ok(format!("downtime {id} deleted"))
+                } else {
+                    ignored(format!("unknown downtime {id}"))
+                }
+            }
+            ExtCommand::Acknowledge {
+                host,
+                service,
+                sticky,
+                notify,
+                persistent,
+                author,
+                comment,
+            } => {
+                let index = match find(self, &host, service.as_deref()) {
+                    Ok(index) => index,
+                    Err(what) => return ignored(what),
+                };
+                Ok(self.acknowledge(index, &author, &comment, sticky, notify, persistent))
+            }
+            ExtCommand::RemoveAcknowledgement { host, service } => {
+                let index = match find(self, &host, service.as_deref()) {
+                    Ok(index) => index,
+                    Err(what) => return ignored(what),
+                };
+                self.remove_acknowledgement(index);
+                Ok("acknowledgement removed".to_owned())
+            }
+            ExtCommand::AddComment {
+                host,
+                service,
+                persistent,
+                author,
+                comment,
+            } => {
+                let index = match find(self, &host, service.as_deref()) {
+                    Ok(index) => index,
+                    Err(what) => return ignored(what),
+                };
+                let key = self.objs[index].key;
+                let id = self.add_comment(
+                    key,
+                    crate::book::EntryType::User,
+                    crate::book::Source::External,
+                    entry_time,
+                    &author,
+                    &comment,
+                    persistent,
+                );
+                Ok(format!("comment {id} added"))
+            }
+            ExtCommand::DeleteComment { id } => {
+                if self.delete_comment(id) {
+                    Ok(format!("comment {id} deleted"))
+                } else {
+                    ignored(format!("unknown comment {id}"))
+                }
+            }
+            ExtCommand::DeleteAllComments { host, service } => {
+                let index = match find(self, &host, service.as_deref()) {
+                    Ok(index) => index,
+                    Err(what) => return ignored(what),
+                };
+                let key = self.objs[index].key;
+                let count = self.delete_comments_of(key);
+                Ok(format!("{count} comments deleted"))
+            }
         }
     }
 
@@ -907,6 +1360,7 @@ impl Core {
             self.objs[index].rerun = true;
             return Ok("check running: it runs again once finished".to_owned());
         }
+        self.objs[index].forced = forced;
         self.schedule(index, at);
         self.launch();
         Ok(format!("check scheduled at {time}"))
@@ -918,6 +1372,35 @@ impl Core {
         }
         self.apply(index, Err((code, output)), CheckType::Passive);
         Ok("result processed".to_owned())
+    }
+
+    /// Runs the timed events that are due.
+    fn run_timers(&mut self) {
+        let now = self.clock.now();
+        while let Some(Reverse((at, _, timer))) = self.timers.peek().copied() {
+            if at > now {
+                break;
+            }
+            self.timers.pop();
+            match timer {
+                Timer::Downtime(id) => self.handle_downtime(id),
+                Timer::ExpireDowntimes => self.expire_downtimes(),
+                Timer::Recurring => {
+                    self.run_rules(now);
+                    self.add_timer(now + RECURRING_PERIOD, Timer::Recurring);
+                }
+                Timer::RetentionSave => {
+                    self.save_retention(false);
+                    let minutes = self
+                        .loaded
+                        .as_ref()
+                        .map_or(0, |l| l.config.settings.retention_update_interval);
+                    if minutes > 0 {
+                        self.add_timer(now + i64::from(minutes) * 60, Timer::RetentionSave);
+                    }
+                }
+            }
+        }
     }
 
     /// Runs until shut down or cancelled.
@@ -941,12 +1424,15 @@ impl Core {
         let mut status_due = Instant::now() + self.status_period();
         loop {
             let next_due = self.heap.peek().map(|Reverse((due, _, _))| *due);
-            let wake = match next_due {
+            let mut wake = match next_due {
                 Some(due) if self.in_flight < self.options.max_concurrent_checks => {
                     due.min(status_due)
                 }
                 _ => status_due,
             };
+            if let Some(Reverse((at, _, _))) = self.timers.peek() {
+                wake = wake.min(self.clock.instant_of(*at));
+            }
             tokio::select! {
                 () = cancel.cancelled() => return,
                 request = requests.recv() => match request {
@@ -1001,6 +1487,7 @@ impl Core {
                         }
                         status_due = Instant::now() + self.status_period();
                     }
+                    self.run_timers();
                     self.launch();
                 }
             }
@@ -1015,16 +1502,19 @@ impl Core {
         Duration::from_secs(u64::from(seconds))
     }
 
-    /// End of the poller: `pb_instance(running false)`, then `pb_stop`.
+    /// End of the poller: retention saved, `pb_instance(running false)`,
+    /// then `pb_stop`.
     async fn shutdown(&mut self) {
+        self.save_retention(true);
         if let Some((poller_id, name)) = self.poller() {
             let now = self.clock.now();
+            let encryption = self.credentials.is_some();
             self.emit(events::instance(
                 poller_id,
                 &name,
                 false,
-                self.start_time,
-                now,
+                (self.start_time, now),
+                encryption,
             ));
         }
         let (reply, done) = oneshot::channel();
@@ -1067,7 +1557,7 @@ mod tests {
         dir.join("centengine.cfg")
     }
 
-    fn core(
+    pub(super) fn core(
         dir: &Path,
         main: PathBuf,
     ) -> (
@@ -1087,6 +1577,8 @@ mod tests {
             // No check is started by these tests.
             max_concurrent_checks: 0,
             max_output_bytes: 1024,
+            retention_file: Some(dir.join("retention.json")),
+            credentials_file: None,
         };
         (Core::new(options, out, target, status), out_rx, target_rx)
     }
@@ -1180,7 +1672,7 @@ mod tests {
         assert!(answer.contains("earlier"), "{answer}");
 
         let refused = core
-            .command("ACKNOWLEDGE_SVC_PROBLEM;h;s1;1;1;1;me;x")
+            .command("DEL_SVC_DOWNTIME_FULL;h;s1;;;;;;")
             .unwrap_err();
         assert!(refused.contains("not supported"), "{refused}");
         let unknown = core.command("SCHEDULE_SVC_CHECK;h;nope;1").unwrap();

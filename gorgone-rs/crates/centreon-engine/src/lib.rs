@@ -7,19 +7,24 @@
 //! `docs/scheduler-design.md`.
 
 mod bbdo;
+mod book;
 mod broker_conf;
 mod cfg;
 mod client;
 mod cmdline;
 mod core;
+mod crypto;
 mod document;
 mod events;
 mod extcmd;
 mod macros;
 mod output;
+mod recurring;
 mod runner;
 mod snapshot;
 mod state;
+mod timeperiod;
+mod tz;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -73,7 +78,17 @@ pub struct Options {
     pub max_pending_events: usize,
     /// Cap on the output read from a plugin, in bytes.
     pub max_output_bytes: usize,
+    /// Retention file: states, downtimes, comments and acknowledgements
+    /// survive a restart; nothing is kept when `None`.
+    pub retention_file: Option<PathBuf>,
+    /// Keys of the `encrypt::` macro values (`engine-context.json`), read
+    /// at each configuration apply as Engine does.
+    pub credentials_file: Option<PathBuf>,
 }
+
+/// Where Engine reads the keys of the `encrypt::` values
+/// (`engine/src/configuration/applier/state.cc:69`).
+pub const DEFAULT_CREDENTIALS_FILE: &str = "/etc/centreon-engine/engine-context.json";
 
 impl Options {
     /// Defaults, configuration read from the Engine files of `main_file`.
@@ -98,6 +113,8 @@ impl Options {
             max_concurrent_checks: 256,
             max_pending_events: 100_000,
             max_output_bytes: 8192,
+            retention_file: None,
+            credentials_file: Some(PathBuf::from(DEFAULT_CREDENTIALS_FILE)),
         }
     }
 }
@@ -117,8 +134,24 @@ pub struct Status {
     pub digest: Option<String>,
 }
 
-/// Version reported as the engine version in the node state.
-pub const VERSION: &str = concat!("centreon-engine ", env!("CARGO_PKG_VERSION"));
+/// Version reported as the engine version in the node state, with the
+/// versions of the configuration document it reads: gorgone-server refuses
+/// a document this engine would refuse before submitting it.
+pub const VERSION: &str = concat!(
+    "centreon-engine ",
+    env!("CARGO_PKG_VERSION"),
+    " (configuration 1-2)"
+);
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn the_version_names_the_documents_read() {
+        assert!(
+            super::VERSION.ends_with(&format!("(configuration 1-{})", super::DOCUMENT_VERSION))
+        );
+    }
+}
 
 /// Handle on a running engine; clones share it.
 #[derive(Clone)]
@@ -168,6 +201,8 @@ impl Scheduler {
                 broker_address: options.broker_address,
                 max_concurrent_checks: options.max_concurrent_checks.max(1),
                 max_output_bytes: options.max_output_bytes.max(1),
+                retention_file: options.retention_file,
+                credentials_file: options.credentials_file,
             },
             out_tx,
             target_tx,

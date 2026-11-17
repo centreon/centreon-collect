@@ -169,12 +169,15 @@ async fn structured_configuration_and_incremental_reload() {
     // An invalid document is refused; the kept one and the one in force stay.
     let mut invalid: serde_json::Value =
         serde_json::from_slice(&document(dir.path(), port, "x", &[])).unwrap();
-    invalid["hosts"][0]["check_period"] = json!("24x7");
+    invalid["hosts"][0]["notification_period"] = json!("24x7");
     let report = scheduler
         .apply(serde_json::to_vec(&invalid).unwrap(), "bad".into())
         .await
         .unwrap_err();
-    assert!(report.contains("unknown field `check_period`"), "{report}");
+    assert!(
+        report.contains("unknown field `notification_period`"),
+        "{report}"
+    );
     assert_eq!(scheduler.status().digest.as_deref(), Some("d3"));
     assert_eq!(centreon_engine::kept_digest(&kept).as_deref(), Some("d3"));
     // A reload puts the kept document in force again: nothing changes.

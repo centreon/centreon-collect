@@ -1093,6 +1093,323 @@ pub struct InstanceConfiguration {
     #[prost(uint64, tag = "3")]
     pub poller_id: u64,
 }
+/// neb:pb_comment (element 35)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Comment {
+    #[prost(message, optional, tag = "1")]
+    pub header: ::core::option::Option<BbdoHeader>,
+    #[prost(string, tag = "2")]
+    pub author: ::prost::alloc::string::String,
+    #[prost(enumeration = "comment::Type", tag = "3")]
+    pub r#type: i32,
+    #[prost(string, tag = "4")]
+    pub data: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "5")]
+    pub deletion_time: u64,
+    #[prost(uint64, tag = "6")]
+    pub entry_time: u64,
+    #[prost(enumeration = "comment::EntryType", tag = "7")]
+    pub entry_type: i32,
+    #[prost(uint64, tag = "8")]
+    pub expire_time: u64,
+    #[prost(bool, tag = "9")]
+    pub expires: bool,
+    #[prost(uint64, tag = "10")]
+    pub host_id: u64,
+    #[prost(uint64, tag = "11")]
+    pub internal_id: u64,
+    #[prost(bool, tag = "12")]
+    pub persistent: bool,
+    #[prost(uint64, tag = "13")]
+    pub instance_id: u64,
+    #[prost(uint64, tag = "14")]
+    pub service_id: u64,
+    #[prost(enumeration = "comment::Src", tag = "15")]
+    pub source: i32,
+}
+/// Nested message and enum types in `Comment`.
+pub mod comment {
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Src {
+        Internal = 0,
+        External = 1,
+    }
+    impl Src {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Internal => "INTERNAL",
+                Self::External => "EXTERNAL",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "INTERNAL" => Some(Self::Internal),
+                "EXTERNAL" => Some(Self::External),
+                _ => None,
+            }
+        }
+    }
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Type {
+        NoType = 0,
+        Host = 1,
+        Service = 2,
+    }
+    impl Type {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::NoType => "NO_TYPE",
+                Self::Host => "HOST",
+                Self::Service => "SERVICE",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "NO_TYPE" => Some(Self::NoType),
+                "HOST" => Some(Self::Host),
+                "SERVICE" => Some(Self::Service),
+                _ => None,
+            }
+        }
+    }
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum EntryType {
+        NoEntryType = 0,
+        User = 1,
+        Downtime = 2,
+        Flapping = 3,
+        Acknowledgment = 4,
+    }
+    impl EntryType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::NoEntryType => "NO_ENTRY_TYPE",
+                Self::User => "USER",
+                Self::Downtime => "DOWNTIME",
+                Self::Flapping => "FLAPPING",
+                Self::Acknowledgment => "ACKNOWLEDGMENT",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "NO_ENTRY_TYPE" => Some(Self::NoEntryType),
+                "USER" => Some(Self::User),
+                "DOWNTIME" => Some(Self::Downtime),
+                "FLAPPING" => Some(Self::Flapping),
+                "ACKNOWLEDGMENT" => Some(Self::Acknowledgment),
+                _ => None,
+            }
+        }
+    }
+}
+/// neb:pb_downtime (element 36)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Downtime {
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    #[prost(uint64, tag = "2")]
+    pub instance_id: u64,
+    #[prost(uint64, tag = "3")]
+    pub host_id: u64,
+    #[prost(uint64, tag = "4")]
+    pub service_id: u64,
+    #[prost(string, tag = "5")]
+    pub author: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub comment_data: ::prost::alloc::string::String,
+    #[prost(enumeration = "downtime::DowntimeType", tag = "7")]
+    pub r#type: i32,
+    #[prost(uint32, tag = "8")]
+    pub duration: u32,
+    #[prost(uint64, tag = "9")]
+    pub triggered_by: u64,
+    #[prost(int64, tag = "10")]
+    pub entry_time: i64,
+    #[prost(uint64, tag = "11")]
+    pub actual_start_time: u64,
+    #[prost(uint64, tag = "12")]
+    pub actual_end_time: u64,
+    #[prost(uint64, tag = "13")]
+    pub start_time: u64,
+    #[prost(uint64, tag = "14")]
+    pub deletion_time: u64,
+    #[prost(uint64, tag = "15")]
+    pub end_time: u64,
+    #[prost(bool, tag = "16")]
+    pub started: bool,
+    #[prost(bool, tag = "17")]
+    pub cancelled: bool,
+    #[prost(bool, tag = "18")]
+    pub fixed: bool,
+}
+/// Nested message and enum types in `Downtime`.
+pub mod downtime {
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum DowntimeType {
+        NotUsed = 0,
+        Service = 1,
+        Host = 2,
+        Any = 3,
+    }
+    impl DowntimeType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::NotUsed => "NOT_USED",
+                Self::Service => "SERVICE",
+                Self::Host => "HOST",
+                Self::Any => "ANY",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "NOT_USED" => Some(Self::NotUsed),
+                "SERVICE" => Some(Self::Service),
+                "HOST" => Some(Self::Host),
+                "ANY" => Some(Self::Any),
+                _ => None,
+            }
+        }
+    }
+}
+/// neb:pb_acknowledgement (element 45)
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Acknowledgement {
+    #[prost(uint64, tag = "1")]
+    pub host_id: u64,
+    #[prost(uint64, tag = "2")]
+    pub service_id: u64,
+    #[prost(uint64, tag = "3")]
+    pub instance_id: u64,
+    #[prost(enumeration = "acknowledgement::ResourceType", tag = "4")]
+    pub r#type: i32,
+    #[prost(string, tag = "5")]
+    pub author: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub comment_data: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub sticky: bool,
+    #[prost(bool, tag = "8")]
+    pub notify_contacts: bool,
+    #[prost(uint64, tag = "9")]
+    pub entry_time: u64,
+    #[prost(uint64, tag = "10")]
+    pub deletion_time: u64,
+    #[prost(bool, tag = "11")]
+    pub persistent_comment: bool,
+    #[prost(uint32, tag = "12")]
+    pub state: u32,
+}
+/// Nested message and enum types in `Acknowledgement`.
+pub mod acknowledgement {
+    #[allow(clippy::all)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum ResourceType {
+        Host = 0,
+        Service = 1,
+    }
+    impl ResourceType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Host => "HOST",
+                Self::Service => "SERVICE",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "HOST" => Some(Self::Host),
+                "SERVICE" => Some(Self::Service),
+                _ => None,
+            }
+        }
+    }
+}
 /// `bbdo/common.proto`, package com.centreon.common upstream: an enum travels
 /// as its number, the package does not matter on the wire.
 #[allow(clippy::all)]

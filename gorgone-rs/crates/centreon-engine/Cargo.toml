@@ -6,8 +6,16 @@ license.workspace = true
 rust-version.workspace = true
 description = "centreon-engine: monitoring core of a Centreon poller; runs its checks from the Engine files or a structured configuration and sends the results to Centreon Broker over BBDO"
 
-# Only crates the workspace already builds: no new entry in Cargo.lock.
 [dependencies]
+# encrypt:: macros (AES-256-CBC, HMAC-SHA3-512, `common/crypto/aes256.cc`):
+# aes, cbc and sha3 are the only crates this one adds to Cargo.lock (with
+# cipher, inout and keccak), from the RustCrypto family the workspace
+# already builds (hmac, sha2, digest). Every other one was already there.
+aes = "0.8.4"
+base64 = "0.22"
+cbc = { version = "0.1.2", features = ["alloc"] }
+hmac = "0.12.1"
+sha3 = "0.10.8"
 gorgone-proto = { version = "0.1.0", path = "../gorgone-proto" }
 nix = { version = "0.31.3", default-features = false, features = ["signal"] }
 prost = "0.14"

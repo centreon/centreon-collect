@@ -628,7 +628,7 @@ sys.exit(0 if node["connected"] and (node["engine"] or {}).get("reachable") else
   [[ $(sql "SELECT COUNT(*) FROM centreon_storage.services s
             JOIN centreon_storage.hosts h ON h.host_id = s.host_id
             JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
-            WHERE i.name = 'centreon-engine' AND s.enabled = 1 AND h.enabled = 1") == 3 ]]
+            WHERE i.name = 'centreon-engine' AND s.enabled = 1 AND h.enabled = 1") == 5 ]]
 }
 
 # centreon_engine_status <host> <service> <state> <type>: the state the central
@@ -723,6 +723,209 @@ ok = (node["connected"] and node["applied"].get("engine") and node["engine"]["re
 sys.exit(0 if ok else 1)'
 }
 
+# Bench value, not a real secret: the value of the encrypted host macro.
+RUST_SECRET=bench-s3cr3t
+
+rust_host_id() {
+  sql "SELECT host_id FROM centreon_storage.hosts WHERE name = '$1' AND enabled = 1"
+}
+
+# Waits until the last structured configuration job of the centreon-engine
+# poller differs from $1 and succeeded.
+wait_new_engine_configuration() {
+  local before=$1
+  for _ in $(seq 1 60); do
+    if [[ -n "$(last_engine_configuration)" && "$(last_engine_configuration)" != "${before}" ]]; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+# One push for the next checks: a timeperiod that excludes the current
+# time (one hour a day, twelve hours from now, UTC) on rust-period, an
+# encrypted host macro used by rust-secret, and a recurring downtime on
+# rust-h1 starting in two minutes.
+centreon_engine_v2_configuration() {
+  local hour range before start end zone
+  hour=$(( (10#$(date -u +%H) + 12) % 24 ))
+  range=$(printf '%02d:00-%02d:00' "${hour}" "$((hour + 1))")
+  before=$(last_engine_configuration)
+  clapi ADD 'rust-later;Twelve hours later' TP > /dev/null
+  for day in sunday monday tuesday wednesday thursday friday saturday; do
+    clapi SETPARAM "rust-later;${day};${range}" TP > /dev/null
+  done
+  clapi SETPARAM 'rust-h2;rust-period;check_period;rust-later' SERVICE > /dev/null
+  clapi SETMACRO "rust-h1;SECRET;${RUST_SECRET};1;bench secret" HOST > /dev/null
+  RUST_RECURRING="bench-rust-recurring-$(date +%s)"
+  # The periods are in the zone of the poller (use_timezone of the document
+  # it runs), as for Engine; UTC when it has none.
+  zone=$("${COMPOSE[@]}" exec -T centreon-engine cat \
+    /var/lib/centreon-engine/engine-configuration/configuration \
+    | python3 -I -c 'import json,sys; sys.stdin.readline(); print(json.load(sys.stdin).get("settings", {}).get("use_timezone") or "UTC")')
+  start=$(TZ="${zone#:}" date -d '+2 minutes' +%H:%M)
+  end=$(TZ="${zone#:}" date -d '+30 minutes' +%H:%M)
+  if [[ "${end}" > "${start}" ]]; then
+    clapi ADD "${RUST_RECURRING};set by verify.sh" DOWNTIME > /dev/null
+    clapi ADDWEEKLYPERIOD "${RUST_RECURRING};${start};${end};1;;1,2,3,4,5,6,7" DOWNTIME > /dev/null
+    clapi ADDHOST "${RUST_RECURRING};rust-h1" DOWNTIME > /dev/null
+  fi
+  clapi POLLERGENERATE centreon-engine > /dev/null || return 1
+  clapi CFGMOVE centreon-engine | grep -q 'centreon-engine: done' || return 1
+  clapi POLLERRELOAD centreon-engine > /dev/null || return 1
+  wait_new_engine_configuration "${before}"
+}
+
+# The encrypted macro: the check output proves the plugin got the
+# decrypted value (its length and the start of its SHA-256, never the
+# value); the document kept by the engine and the one centreon-web sent
+# hold it encrypted, and no log of the engine has the value.
+centreon_engine_decrypts_secrets() {
+  local expected kept sent
+  expected="secret-length ${#RUST_SECRET} sha $(printf %s "${RUST_SECRET}" | sha256sum | cut -c1-12)"
+  # The central stores the output followed by a new line and the long output.
+  for _ in $(seq 1 36); do
+    [[ "$(rust_id s.output rust-h1 rust-secret)" == "${expected}"* ]] && break
+    sleep 5
+  done
+  [[ "$(rust_id s.output rust-h1 rust-secret)" == "${expected}"* ]] || return 1
+  kept=$("${COMPOSE[@]}" exec -T centreon-engine cat \
+    /var/lib/centreon-engine/engine-configuration/configuration) || return 1
+  grep -q '"SECRET": "encrypt::' <<< "${kept}" || return 1
+  ! grep -qF -- "${RUST_SECRET}" <<< "${kept}" || return 1
+  sent=$(docker cp "$("${COMPOSE[@]}" ps -q web):/var/cache/centreon/config/engine/$(node_of centreon-engine)/engine-configuration.json" - | tar -xOf -) || return 1
+  grep -q '"SECRET": "encrypt::' <<< "${sent}" || return 1
+  ! grep -qF -- "${RUST_SECRET}" <<< "${sent}" || return 1
+  ! "${COMPOSE[@]}" logs centreon-engine 2>&1 | grep -qF -- "${RUST_SECRET}"
+}
+
+# rust-period is outside its check period: its last check does not move
+# for more than two check intervals, and its next check is hours away.
+centreon_engine_check_period() {
+  local before
+  before=$(rust_id s.last_check rust-h2 rust-period)
+  sleep 150
+  [[ "$(rust_id s.last_check rust-h2 rust-period)" == "${before}" ]] || return 1
+  (( $(rust_id s.next_check rust-h2 rust-period) > $(date +%s) + 6 * 3600 ))
+}
+
+# The recurring downtime of rust-h1 is scheduled by centreon-engine.
+centreon_engine_recurring_downtime() {
+  local id host_id
+  [[ -n "${RUST_RECURRING:-}" ]] || return 1
+  id=$(sql "SELECT dt_id FROM centreon.downtime WHERE dt_name = '${RUST_RECURRING}'")
+  host_id=$(rust_host_id rust-h1)
+  [[ -n "${id}" && -n "${host_id}" ]] || return 1
+  for _ in $(seq 1 36); do
+    if [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.downtimes WHERE host_id = ${host_id}
+          AND COALESCE(service_id, 0) = 0 AND comment_data = '[Downtime cycle #${id}]'
+          AND deletion_time IS NULL")" == 1 ]]; then
+      "${COMPOSE[@]}" logs centreon-engine | grep -q "Recurring downtime #${id}: host downtime"
+      return
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+# A downtime set through the centreon-web API on rust-h2: in
+# centreon_storage.downtimes, started, and the host is in downtime.
+centreon_engine_api_downtime() {
+  local host_id start end
+  host_id=$(rust_host_id rust-h2) || return 1
+  start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  end=$(date -u -d '+2 hours' +%Y-%m-%dT%H:%M:%SZ)
+  curl -s -f -X POST -H 'Content-Type: application/json' -H "X-AUTH-TOKEN: $(web_token)" \
+    -d "{\"start_time\":\"${start}\",\"end_time\":\"${end}\",\"is_fixed\":true,\"duration\":7200,\"comment\":\"bench downtime\"}" \
+    "${WEB_URL}/api/latest/monitoring/hosts/${host_id}/downtimes" > /dev/null || return 1
+  for _ in $(seq 1 30); do
+    if [[ "$(sql "SELECT CONCAT(d.started, ' ', d.cancelled, ' ', h.scheduled_downtime_depth, ' ', r.in_downtime)
+          FROM centreon_storage.downtimes d
+          JOIN centreon_storage.hosts h ON h.host_id = d.host_id
+          JOIN centreon_storage.resources r ON r.id = h.host_id AND r.type = 1
+          WHERE d.host_id = ${host_id} AND d.comment_data = 'bench downtime'
+            AND d.deletion_time IS NULL")" == "1 0 1 1" ]]; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+# A sticky acknowledgement through the centreon-web API on rust-crit.
+centreon_engine_api_acknowledgement() {
+  local host_id service_id
+  host_id=$(rust_id s.host_id rust-h1 rust-crit) || return 1
+  service_id=$(rust_id s.service_id rust-h1 rust-crit) || return 1
+  curl -s -f -X POST -H 'Content-Type: application/json' -H "X-AUTH-TOKEN: $(web_token)" \
+    -d "{\"acknowledgement\":{\"comment\":\"bench ack\",\"is_sticky\":true,\"is_persistent_comment\":true,\"is_notify_contacts\":false},\"resources\":[{\"type\":\"service\",\"id\":${service_id},\"parent\":{\"id\":${host_id}}}]}" \
+    "${WEB_URL}/api/latest/monitoring/resources/acknowledge" > /dev/null || return 1
+  for _ in $(seq 1 30); do
+    if [[ "$(sql "SELECT CONCAT(s.acknowledged, ' ', r.acknowledged, ' ', COUNT(a.acknowledgement_id))
+          FROM centreon_storage.services s
+          JOIN centreon_storage.resources r ON r.id = s.service_id AND r.parent_id = s.host_id AND r.type = 0
+          LEFT JOIN centreon_storage.acknowledgements a ON a.host_id = s.host_id
+            AND a.service_id = s.service_id AND a.deletion_time IS NULL AND a.comment_data = 'bench ack'
+          WHERE s.host_id = ${host_id} AND s.service_id = ${service_id}
+          GROUP BY s.acknowledged, r.acknowledged")" == "1 1 1" ]]; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+# A comment through the centreon-web API on rust-h1.
+centreon_engine_api_comment() {
+  local host_id
+  host_id=$(rust_host_id rust-h1) || return 1
+  curl -s -f -X POST -H 'Content-Type: application/json' -H "X-AUTH-TOKEN: $(web_token)" \
+    -d '{"comment":"bench comment","date":null}' \
+    "${WEB_URL}/api/latest/monitoring/hosts/${host_id}/comments" > /dev/null || return 1
+  for _ in $(seq 1 30); do
+    if [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.comments WHERE host_id = ${host_id}
+          AND data = 'bench comment' AND deletion_time IS NULL")" == 1 ]]; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+# State of the services of the centreon-engine poller as the central
+# stores them: description, checked, state, type, attempt, acknowledged.
+rust_states() {
+  sql "SELECT CONCAT(s.description, ' ', s.checked, ' ', s.state, ' ', s.state_type, ' ',
+              s.check_attempt, ' ', s.acknowledged)
+       FROM centreon_storage.services s JOIN centreon_storage.hosts h ON h.host_id = s.host_id
+       JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
+       WHERE i.name = 'centreon-engine' AND s.enabled = 1 AND s.description <> 'rust-period'
+       ORDER BY s.description"
+}
+
+# A restart of the container keeps the states (none pending, same state,
+# type, attempt, acknowledgement), the downtime and the acknowledgement:
+# the engine reads its retention file before its first dump.
+centreon_engine_restart_keeps_states() {
+  local before host_id
+  before=$(rust_states) || return 1
+  [[ -n "${before}" ]] && ! grep -q ' 0 [0-9]* [0-9]* [0-9]* [0-9]*$' <<< "${before}" || return 1
+  "${COMPOSE[@]}" restart centreon-engine > /dev/null 2>&1 || return 1
+  for _ in $(seq 1 60); do
+    instance_running centreon-engine && break
+    sleep 2
+  done
+  "${COMPOSE[@]}" exec -T centreon-engine test -s /var/lib/centreon-engine/retention.json || return 1
+  sleep 10
+  [[ "$(rust_states)" == "${before}" ]] || return 1
+  host_id=$(rust_host_id rust-h2) || return 1
+  [[ "$(sql "SELECT CONCAT(d.started, ' ', d.cancelled, ' ', h.scheduled_downtime_depth)
+        FROM centreon_storage.downtimes d JOIN centreon_storage.hosts h ON h.host_id = d.host_id
+        WHERE d.host_id = ${host_id} AND d.comment_data = 'bench downtime'
+          AND d.deletion_time IS NULL")" == "1 0 1" ]]
+}
+
 check "the web image is a web server only: no shell, collect, Gorgone or plugin" web_image_is_slim
 check "the web image carries no rrdtool" web_image_has_no_rrdtool
 check "no volume is shared between containers" no_shared_volume
@@ -771,6 +974,21 @@ check "centreon-engine: no .cfg file, the applied digest is the last configurati
   centreon_engine_has_no_cfg_file
 check "centreon-engine: a changed service is reloaded alone, nothing is disabled meanwhile" \
   centreon_engine_incremental_reload
+check "centreon-engine: a timeperiod, an encrypted macro and a recurring downtime are pushed" \
+  centreon_engine_v2_configuration
+check "centreon-engine: an encrypt:: macro is decrypted by the engine and nowhere in clear" \
+  centreon_engine_decrypts_secrets
+check "centreon-engine: the recurring downtime of a host is scheduled by the engine" \
+  centreon_engine_recurring_downtime
+check "centreon-engine: a downtime from the centreon-web API is started, the host in downtime" \
+  centreon_engine_api_downtime
+check "centreon-engine: an acknowledgement from the centreon-web API is stored" \
+  centreon_engine_api_acknowledgement
+check "centreon-engine: a comment from the centreon-web API is stored" centreon_engine_api_comment
+check "centreon-engine: a service outside its check period is not checked" \
+  centreon_engine_check_period
+check "centreon-engine: a restart keeps states, attempts, downtime and acknowledgement" \
+  centreon_engine_restart_keeps_states
 check "centreon-engine: the configuration survives a container restart" \
   centreon_engine_survives_a_restart
 check "a job submitted to either gorgone-server replica reaches every node" jobs_cross_replicas

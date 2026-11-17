@@ -14,12 +14,30 @@ state_dir = "/var/lib/centreon-engine"
 allowlist = []
 
 [engine]
-# Handled by the engine: the forced and planned checks and the passive
-# results; the other ones the web may send are refused by the engine.
+# Handled by the engine: checks, passive results, downtimes,
+# acknowledgements and comments; the other ones the web may send are
+# refused by the engine.
 allowed_commands = [
   'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
   'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
+  'SCHEDULE_(HOST|SVC)_DOWNTIME',
+  'SCHEDULE_HOST_SVC_DOWNTIME',
+  'DEL_(HOST|SVC)_DOWNTIME',
+  'ACKNOWLEDGE_(HOST|SVC)_PROBLEM',
+  'REMOVE_(HOST|SVC)_ACKNOWLEDGEMENT',
+  'ADD_(HOST|SVC)_COMMENT',
+  'DEL_(HOST|SVC)_COMMENT',
+  'DEL_ALL_(HOST|SVC)_COMMENTS',
 ]
+
+# The key centreon-web encrypts credentials with, pushed before each
+# configuration: the engine decrypts the encrypt:: macro values with it
+# (scheduler.credentials_file, /etc/centreon-engine/engine-context.json by
+# default).
+[targets.engine_context]
+path = "/etc/centreon-engine"
+prune = false
+file_mode = "0640"
 
 [scheduler]
 # Always enabled for centreon-engine; "structured" is its default input.

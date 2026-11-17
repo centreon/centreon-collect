@@ -75,11 +75,13 @@ FROM debian:trixie-slim AS centreon-engine
 RUN apt-get update \
     && apt-get install -y --no-install-recommends monitoring-plugins-basic \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /var/log/apt/* /var/log/dpkg.log \
-    && install -d -m 755 /usr/lib64/nagios /etc/centreon-engine \
+    && install -d -m 755 /usr/lib64/nagios \
     && ln -s /usr/lib/nagios/plugins /usr/lib64/nagios/plugins \
     && useradd --system --home-dir /var/lib/centreon-engine --shell /usr/sbin/nologin \
        centreon-engine \
-    && install -d -o centreon-engine -g centreon-engine -m 750 /var/lib/centreon-engine
+    && install -d -o centreon-engine -g centreon-engine -m 750 /var/lib/centreon-engine \
+    && install -d -o root -g centreon-engine -m 775 /etc/centreon-engine
+# /etc/centreon-engine takes the key file of the engine_context target.
 COPY --from=build-engine /out/centreon-engine /usr/bin/centreon-engine
 COPY --chmod=644 deploy/centreon/centreon-engine/centreon-engine.toml /etc/centreon-engine/centreon-engine.toml
 USER centreon-engine

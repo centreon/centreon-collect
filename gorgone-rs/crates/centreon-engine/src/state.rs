@@ -3,8 +3,10 @@
 //! (`engine/src/service.cc:1255-2060`), without notifications, flapping,
 //! acknowledgements nor event handlers. Pure: no clock, no I/O.
 
+use serde::{Deserialize, Serialize};
+
 /// SOFT or HARD.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StateType {
     /// Not confirmed yet: retried at `retry_interval`.
     Soft,
@@ -27,7 +29,7 @@ pub mod code {
 }
 
 /// Whether a result came from a check the scheduler ran.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CheckType {
     /// Run by the scheduler.
     Active,
@@ -35,8 +37,21 @@ pub enum CheckType {
     Passive,
 }
 
-/// Everything a status event reports about one object.
-#[derive(Debug, Clone, PartialEq)]
+/// Acknowledgement of the current problem (`AckType`, `bbdo/neb.proto`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AckType {
+    /// Not acknowledged.
+    #[default]
+    None = 0,
+    /// Removed by the next change of state.
+    Normal = 1,
+    /// Removed by the recovery only.
+    Sticky = 2,
+}
+
+/// Everything a status event reports about one object, and what the
+/// retention file keeps of it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CheckState {
     /// Current state code.
     pub state: u32,
@@ -72,6 +87,12 @@ pub struct CheckState {
     pub latency: f64,
     /// The service's host was not UP at its last check (service only).
     host_problem_at_last_check: bool,
+    /// Acknowledgement of the current problem.
+    #[serde(default)]
+    pub acknowledgement: AckType,
+    /// Downtimes in effect on the object.
+    #[serde(skip)]
+    pub downtime_depth: i32,
 }
 
 impl Default for CheckState {
@@ -95,6 +116,8 @@ impl Default for CheckState {
             execution_time: 0.0,
             latency: 0.0,
             host_problem_at_last_check: false,
+            acknowledgement: AckType::None,
+            downtime_depth: 0,
         }
     }
 }

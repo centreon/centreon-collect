@@ -1001,9 +1001,35 @@ async fn engine_configuration_is_stored_compressed_and_counts_as_the_engine_push
     );
 
     // Not JSON, or another version: refused, nothing submitted.
-    for refused in ["not json", r#"{"version": 2}"#, r#"{"hosts": []}"#] {
+    for refused in ["not json", r#"{"version": 3}"#, r#"{"hosts": []}"#] {
         let (status, body) = Rest::json(rest.request("PUT", &path).body(refused.to_owned())).await;
         assert_eq!(status, 400, "{refused}: {body}");
+    }
+
+    // A version 2 document goes only to an engine that says it reads it.
+    let v2 = document.replace(r#""version": 1"#, r#""version": 2"#);
+    for (version, expected) in [
+        ("centreon-engine 0.1.0", 409),
+        ("centreon-engine 0.1.0 (configuration 1-2)", 202),
+    ] {
+        agent
+            .send(AgentFrameKind::Heartbeat(Heartbeat {
+                engine: Some(gorgone_proto::agent::EngineState {
+                    reachable: true,
+                    version: version.to_owned(),
+                }),
+                ..Heartbeat::default()
+            }))
+            .await;
+        for _ in 0..100 {
+            let (_, state) = rest.get(&format!("/v1/nodes/{node}")).await;
+            if state["engine"]["version"] == version {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        let (status, body) = Rest::json(rest.request("PUT", &path).body(v2.clone())).await;
+        assert_eq!(status, expected, "{version}: {body}");
     }
     server.shutdown().await;
 }
