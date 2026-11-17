@@ -332,7 +332,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d,
 
   switch (d->type()) {
     case storage::metric::static_type():
-      return write(neb::bbdo2_to_bbdo3(d), true);
+      return write(neb::bbdo2_to_bbdo3(d), throw_on_update_error);
     case storage::pb_metric::static_type():
       if (_write_metrics) {
         // Debug message.
@@ -465,7 +465,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d,
       }
       break;
     case storage::status::static_type():
-      return write(neb::bbdo2_to_bbdo3(d), true);
+      return write(neb::bbdo2_to_bbdo3(d), throw_on_update_error);
     case storage::pb_rebuild_message::static_type(): {
       SPDLOG_LOGGER_DEBUG(_logger, "RRD: RebuildMessage received");
       std::shared_ptr<storage::pb_rebuild_message> e{
