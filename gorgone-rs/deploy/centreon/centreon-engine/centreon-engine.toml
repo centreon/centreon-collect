@@ -14,9 +14,9 @@ state_dir = "/var/lib/centreon-engine"
 allowlist = []
 
 [engine]
-# Handled by the engine: checks, passive results, downtimes,
-# acknowledgements and comments; the other ones the web may send are
-# refused by the engine.
+# Handled by the engine: checks, passive results, downtimes, notification,
+# event handler and flap detection switches, acknowledgements and comments;
+# the other ones the web may send are refused by the engine.
 allowed_commands = [
   'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
   'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
@@ -28,6 +28,10 @@ allowed_commands = [
   'ADD_(HOST|SVC)_COMMENT',
   'DEL_(HOST|SVC)_COMMENT',
   'DEL_ALL_(HOST|SVC)_COMMENTS',
+  '(ENABLE|DISABLE)_(HOST_|SVC_|HOST_SVC_)?NOTIFICATIONS',
+  '(ENABLE|DISABLE)_(HOST|SVC)_EVENT_HANDLER',
+  '(ENABLE|DISABLE)_EVENT_HANDLERS',
+  '(ENABLE|DISABLE)_(HOST_|SVC_)?FLAP_DETECTION',
 ]
 
 # The key centreon-web encrypts credentials with, pushed before each

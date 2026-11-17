@@ -9,11 +9,12 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+mod notifications;
 mod relations;
 
 use crate::objects::{
-    self, DependencyConf, HostGroupConf, ServiceGroupConf, SeverityConf, SeverityType, TagConf,
-    TagType,
+    self, ContactConf, ContactGroupConf, DependencyConf, EscalationConf, HostGroupConf,
+    ServiceGroupConf, SeverityConf, SeverityType, TagConf, TagType,
 };
 use crate::recurring::RecurringConf;
 use crate::timeperiod::Timeperiod;
@@ -54,8 +55,31 @@ impl LogLevel {
     }
 }
 
+/// `date_format` (`state_helper.cc:98-110`): the dates of the macros.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum DateFormat {
+    #[default]
+    Us,
+    Euro,
+    Iso8601,
+    StrictIso8601,
+}
+
+impl DateFormat {
+    /// The value of `date_format`; Engine keeps `us` for an unknown one.
+    #[must_use]
+    pub fn parse(value: &str) -> Self {
+        match value.trim() {
+            "euro" => Self::Euro,
+            "iso8601" => Self::Iso8601,
+            "strict-iso8601" => Self::StrictIso8601,
+            _ => Self::Us,
+        }
+    }
+}
+
 /// Global settings of `centengine.cfg` the scheduler uses.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
     /// Seconds in one unit of `check_interval` and `retry_interval`.
     pub interval_length: u32,
@@ -101,6 +125,50 @@ pub struct Settings {
     pub enable_predictive_service_dependency_checks: bool,
     /// Seconds a host result stays fresh enough to skip an on-demand check.
     pub cached_host_check_horizon: u32,
+    /// Notifications are sent (`ENABLE_NOTIFICATIONS` toggles it).
+    pub enable_notifications: bool,
+    /// Seconds before a notification command is killed.
+    pub notification_timeout: u32,
+    /// `HOST NOTIFICATION` / `SERVICE NOTIFICATION` lines are written.
+    pub log_notifications: bool,
+    /// `log_level_notifications`: Engine's default `error` keeps the
+    /// notification lines out of the event log.
+    pub log_level_notifications: LogLevel,
+    /// `log_level_runtime`: flapping start and stale results (warnings).
+    pub log_level_runtime: LogLevel,
+    /// Format of `$SHORTDATETIME$` and `$DATE$`.
+    pub date_format: DateFormat,
+    /// Characters removed from the macros of notification and event
+    /// handler commands (`illegal_macro_output_chars`).
+    pub illegal_macro_output_chars: String,
+    /// `$ADMINEMAIL$`, `$ADMINPAGER$`.
+    pub admin_email: String,
+    pub admin_pager: String,
+    /// Event handlers run (`ENABLE_EVENT_HANDLERS` toggles it).
+    pub enable_event_handlers: bool,
+    /// `global_host_event_handler`, `global_service_event_handler`:
+    /// `command!args`, none when empty.
+    pub global_host_event_handler: String,
+    pub global_service_event_handler: String,
+    /// Seconds before an event handler is killed.
+    pub event_handler_timeout: u32,
+    /// `HOST EVENT HANDLER` / `SERVICE EVENT HANDLER` lines are written.
+    pub log_event_handlers: bool,
+    /// Flapping is detected (`ENABLE_FLAP_DETECTION` toggles it).
+    pub enable_flap_detection: bool,
+    /// Thresholds, in percent of state change, of the objects with none.
+    pub low_service_flap_threshold: f64,
+    pub high_service_flap_threshold: f64,
+    pub low_host_flap_threshold: f64,
+    pub high_host_flap_threshold: f64,
+    /// Freshness of the services and hosts with `check_freshness`.
+    pub check_service_freshness: bool,
+    pub check_host_freshness: bool,
+    /// Seconds between two freshness checks.
+    pub service_freshness_check_interval: u32,
+    pub host_freshness_check_interval: u32,
+    /// Seconds added to an automatic freshness threshold.
+    pub additional_freshness_latency: u32,
 }
 
 impl Default for Settings {
@@ -128,7 +196,120 @@ impl Default for Settings {
             enable_predictive_host_dependency_checks: true,
             enable_predictive_service_dependency_checks: true,
             cached_host_check_horizon: 15,
+            enable_notifications: true,
+            notification_timeout: 30,
+            log_notifications: true,
+            log_level_notifications: LogLevel::Error,
+            log_level_runtime: LogLevel::Error,
+            date_format: DateFormat::Us,
+            illegal_macro_output_chars: "`~$&|'\"<>".to_owned(),
+            admin_email: String::new(),
+            admin_pager: String::new(),
+            enable_event_handlers: true,
+            global_host_event_handler: String::new(),
+            global_service_event_handler: String::new(),
+            event_handler_timeout: 30,
+            log_event_handlers: true,
+            enable_flap_detection: false,
+            low_service_flap_threshold: 20.0,
+            high_service_flap_threshold: 30.0,
+            low_host_flap_threshold: 20.0,
+            high_host_flap_threshold: 30.0,
+            check_service_freshness: true,
+            check_host_freshness: false,
+            service_freshness_check_interval: 60,
+            host_freshness_check_interval: 60,
+            additional_freshness_latency: 15,
         }
+    }
+}
+
+impl Settings {
+    /// Reads one of the notification, event handler, flapping and
+    /// freshness keys of the main file (`state_helper::hook`); `None` when
+    /// `key` is not one of them, `Some(Err)` on an invalid value.
+    pub(crate) fn set_more(&mut self, key: &str, value: &str) -> Option<Result<(), String>> {
+        let invalid = || Err(format!("{key}: invalid value {value:?}"));
+        let flag = |slot: &mut bool| match parse_bool(value) {
+            Some(flag) => {
+                *slot = flag;
+                Ok(())
+            }
+            None => invalid(),
+        };
+        let number = |slot: &mut u32| match parse_u32(value) {
+            Some(number) => {
+                *slot = number;
+                Ok(())
+            }
+            None => invalid(),
+        };
+        let float = |slot: &mut f64| match value.trim().parse::<f64>() {
+            Ok(number) => {
+                *slot = number;
+                Ok(())
+            }
+            Err(_) => invalid(),
+        };
+        Some(match key {
+            "enable_notifications" => flag(&mut self.enable_notifications),
+            "notification_timeout" => number(&mut self.notification_timeout),
+            "log_notifications" => flag(&mut self.log_notifications),
+            "log_level_notifications" | "log_level_runtime" => match LogLevel::parse(value) {
+                Some(level) => {
+                    if key == "log_level_runtime" {
+                        self.log_level_runtime = level;
+                    } else {
+                        self.log_level_notifications = level;
+                    }
+                    Ok(())
+                }
+                None => Err(format!(
+                    "Log level '{key}' has value '{value}' but it cannot be a different string \
+                     than off, critical, error, err, warning, info, debug or trace"
+                )),
+            },
+            "date_format" => {
+                self.date_format = DateFormat::parse(value);
+                Ok(())
+            }
+            "illegal_macro_output_chars" | "illegal_output_chars" => {
+                self.illegal_macro_output_chars = value.to_owned();
+                Ok(())
+            }
+            "admin_email" => {
+                self.admin_email = value.trim().to_owned();
+                Ok(())
+            }
+            "admin_pager" => {
+                self.admin_pager = value.trim().to_owned();
+                Ok(())
+            }
+            "enable_event_handlers" => flag(&mut self.enable_event_handlers),
+            "global_host_event_handler" => {
+                self.global_host_event_handler = value.trim().to_owned();
+                Ok(())
+            }
+            "global_service_event_handler" => {
+                self.global_service_event_handler = value.trim().to_owned();
+                Ok(())
+            }
+            "event_handler_timeout" => number(&mut self.event_handler_timeout),
+            "log_event_handlers" => flag(&mut self.log_event_handlers),
+            "enable_flap_detection" => flag(&mut self.enable_flap_detection),
+            "low_service_flap_threshold" => float(&mut self.low_service_flap_threshold),
+            "high_service_flap_threshold" => float(&mut self.high_service_flap_threshold),
+            "low_host_flap_threshold" => float(&mut self.low_host_flap_threshold),
+            "high_host_flap_threshold" => float(&mut self.high_host_flap_threshold),
+            "check_service_freshness" => flag(&mut self.check_service_freshness),
+            "check_host_freshness" => flag(&mut self.check_host_freshness),
+            "service_freshness_check_interval" => {
+                number(&mut self.service_freshness_check_interval)
+            }
+            "host_freshness_check_interval" => number(&mut self.host_freshness_check_interval),
+            "additional_freshness_latency" => number(&mut self.additional_freshness_latency),
+            _ => return None,
+        })
     }
 }
 
@@ -152,8 +333,78 @@ pub struct CheckParams {
     pub check_period: String,
 }
 
+/// Notifications, event handler, flapping and freshness of a host or a
+/// service (`host_helper.cc:258-290`, `service_helper.cc:217-247`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct NotifyConf {
+    pub notifications_enabled: bool,
+    /// In units of `interval_length`; 0: no renotification. A service
+    /// with 0 takes its host's (`applier/service.cc:540-580`).
+    pub notification_interval: u32,
+    /// In units of `interval_length`.
+    pub first_notification_delay: u32,
+    pub recovery_notification_delay: u32,
+    /// [`objects::notify_on`] flags.
+    pub notification_options: u32,
+    /// Always when empty; a service without one takes its host's.
+    pub notification_period: String,
+    /// Contact names and contact group names; a service with neither
+    /// takes those of its host.
+    pub contacts: Vec<String>,
+    pub contact_groups: Vec<String>,
+    /// `command!args`, none when empty.
+    pub event_handler: String,
+    pub event_handler_enabled: bool,
+    pub flap_detection_enabled: bool,
+    /// States recorded in the state history ([`objects::notify_on`]).
+    pub flap_detection_options: u32,
+    /// Percent; 0 takes the global threshold.
+    pub low_flap_threshold: f64,
+    pub high_flap_threshold: f64,
+    pub check_freshness: bool,
+    /// Seconds; 0 computes it.
+    pub freshness_threshold: u32,
+    /// `is_volatile` (services only).
+    pub is_volatile: bool,
+}
+
+impl NotifyConf {
+    /// Engine's defaults for a host or a service.
+    #[must_use]
+    pub fn defaults(host: bool) -> Self {
+        use objects::notify_on;
+        Self {
+            notifications_enabled: true,
+            notification_interval: 0,
+            first_notification_delay: 0,
+            recovery_notification_delay: 0,
+            notification_options: if host {
+                notify_on::HOST_DEFAULT
+            } else {
+                notify_on::SERVICE_DEFAULT
+            },
+            notification_period: String::new(),
+            contacts: Vec::new(),
+            contact_groups: Vec::new(),
+            event_handler: String::new(),
+            event_handler_enabled: true,
+            flap_detection_enabled: true,
+            flap_detection_options: if host {
+                notify_on::UP | notify_on::DOWN | notify_on::UNREACHABLE
+            } else {
+                notify_on::OK | notify_on::WARNING | notify_on::CRITICAL | notify_on::UNKNOWN
+            },
+            low_flap_threshold: 0.0,
+            high_flap_threshold: 0.0,
+            check_freshness: false,
+            freshness_threshold: 0,
+            is_volatile: false,
+        }
+    }
+}
+
 /// A host to monitor.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HostConf {
     /// `host_name`.
     pub name: String,
@@ -179,10 +430,12 @@ pub struct HostConf {
     pub icon_id: u64,
     /// `acknowledgement_timeout`, in units of `interval_length`; 0: never.
     pub acknowledgement_timeout: u32,
+    /// Notifications, event handler, flapping, freshness.
+    pub notify: NotifyConf,
 }
 
 /// A service to monitor.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ServiceConf {
     /// `host_name` of its host.
     pub host_name: String,
@@ -208,10 +461,12 @@ pub struct ServiceConf {
     pub icon_id: u64,
     /// `acknowledgement_timeout`, in units of `interval_length`; 0: never.
     pub acknowledgement_timeout: u32,
+    /// Notifications, event handler, flapping, freshness.
+    pub notify: NotifyConf,
 }
 
 /// Everything the scheduler needs from one configuration.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct MonitoringConfig {
     /// Main file it was read from.
     pub main_file: PathBuf,
@@ -244,6 +499,12 @@ pub struct MonitoringConfig {
     pub host_dependencies: Vec<DependencyConf>,
     /// Service dependencies, expanded the same way.
     pub service_dependencies: Vec<DependencyConf>,
+    /// Contacts by name.
+    pub contacts: BTreeMap<String, ContactConf>,
+    /// Contact groups by name.
+    pub contactgroups: BTreeMap<String, ContactGroupConf>,
+    /// Host and service escalations, one per object.
+    pub escalations: Vec<EscalationConf>,
 }
 
 /// Findings of a read, in the words `centengine -v` uses.
@@ -292,6 +553,10 @@ pub(crate) enum Kind {
     Tag,
     HostDependency,
     ServiceDependency,
+    Contact,
+    ContactGroup,
+    HostEscalation,
+    ServiceEscalation,
 }
 
 /// One `define` block, keys already mapped to their canonical name.
@@ -324,6 +589,17 @@ fn canonical(kind: Kind, key: &str) -> Option<&str> {
         (Kind::Service, "description") => "service_description",
         (Kind::Service, "service_groups") => "servicegroups",
         (Kind::Host | Kind::Service, "severity") => "severity_id",
+        (Kind::Host | Kind::Service, "contactgroups") => "contact_groups",
+        (Kind::Contact, "contact_groups") => "contactgroups",
+        (Kind::HostEscalation | Kind::ServiceEscalation, key) => match key {
+            "contactgroups" => "contact_groups",
+            "host" => "host_name",
+            "hostgroup" | "hostgroups" => "hostgroup_name",
+            "servicegroup" | "servicegroups" => "servicegroup_name",
+            "description" => "service_description",
+            key if key.starts_with('_') => return None,
+            key => key,
+        },
         (Kind::Tag, "tag_id") | (Kind::Severity, "severity_id") => "id",
         (Kind::Tag, "tag_type") | (Kind::Severity, "severity_type") => "type",
         (Kind::Severity, "severity_level") => "level",
@@ -353,6 +629,9 @@ fn canonical(kind: Kind, key: &str) -> Option<&str> {
     };
     Some(key)
 }
+
+/// Lists a `+` makes additive over the templates.
+const ADDITIVE: [&str; 2] = ["contacts", "contact_groups"];
 
 /// Reader of one configuration: files, then objects, then templates.
 #[derive(Default)]
@@ -521,7 +800,11 @@ impl Reader {
                         )),
                     }
                 }
-                _ => {}
+                key => {
+                    if let Some(Err(error)) = self.settings.set_more(key, value) {
+                        self.error(error);
+                    }
+                }
             }
         }
         if self.settings.broker_module_cfg_file.is_none() {
@@ -692,6 +975,10 @@ impl Reader {
                         "tag" => Some(Kind::Tag),
                         "hostdependency" => Some(Kind::HostDependency),
                         "servicedependency" => Some(Kind::ServiceDependency),
+                        "contact" => Some(Kind::Contact),
+                        "contactgroup" => Some(Kind::ContactGroup),
+                        "hostescalation" => Some(Kind::HostEscalation),
+                        "serviceescalation" => Some(Kind::ServiceEscalation),
                         _ => None,
                     };
                     current = Some((
@@ -736,9 +1023,23 @@ impl Reader {
                 continue;
             };
             let parent = self.resolved(parent, templates, cache, stack);
-            // The first template that sets a field wins over the next ones.
+            // The first template that sets a field wins over the next ones;
+            // a list starting with `+` adds the template's to its own
+            // (`fill_string_group`, `parser::_merge`).
             for (key, value) in parent.fields {
-                object.fields.entry(key).or_insert(value);
+                match object.fields.entry(key) {
+                    std::collections::btree_map::Entry::Vacant(slot) => {
+                        slot.insert(value);
+                    }
+                    std::collections::btree_map::Entry::Occupied(mut slot)
+                        if ADDITIVE.contains(&slot.key().as_str())
+                            && slot.get().trim_start().starts_with('+') =>
+                    {
+                        let merged = format!("{},{}", slot.get(), value.trim_start_matches('+'));
+                        slot.insert(merged);
+                    }
+                    std::collections::btree_map::Entry::Occupied(_) => {}
+                }
             }
             for (key, value) in parent.custom {
                 object.custom.entry(key).or_insert(value);
@@ -775,6 +1076,7 @@ impl Reader {
         let mut service_ids = HashSet::new();
         let mut pending_services = Vec::new();
         let mut pending_relations = Vec::new();
+        let mut pending_notifications = Vec::new();
         // `hostgroups` of each host: (host id, group names, origin).
         let mut host_groups_of = Vec::new();
         let mut timeperiod_cache = vec![None; self.objects.len()];
@@ -850,6 +1152,10 @@ impl Reader {
                 | Kind::Tag
                 | Kind::HostDependency
                 | Kind::ServiceDependency => pending_relations.push((kind, object)),
+                Kind::Contact
+                | Kind::ContactGroup
+                | Kind::HostEscalation
+                | Kind::ServiceEscalation => pending_notifications.push((kind, object)),
             }
         }
         // Services last: they need their host whatever the file order.
@@ -857,6 +1163,11 @@ impl Reader {
             .hosts
             .iter()
             .map(|host| (host.name.clone(), host.timezone.clone()))
+            .collect();
+        let host_notify: HashMap<String, NotifyConf> = config
+            .hosts
+            .iter()
+            .map(|host| (host.name.clone(), host.notify.clone()))
             .collect();
         let mut service_groups_of = Vec::new();
         for object in pending_services {
@@ -866,6 +1177,9 @@ impl Reader {
                         .get(&service.host_name)
                         .cloned()
                         .unwrap_or_default();
+                }
+                if let Some(host) = host_notify.get(&service.host_name) {
+                    inherit_from_host(&mut service.notify, host);
                 }
                 if let Some(groups) = object.fields.get("servicegroups") {
                     service_groups_of.push((
@@ -908,6 +1222,7 @@ impl Reader {
             &host_groups_of,
             &service_groups_of,
         );
+        self.notifications(&mut config, pending_notifications);
         self.check_references(&config);
         (config, self.report)
     }
@@ -1162,6 +1477,7 @@ impl Reader {
             icon_id: self.number(object, "icon_id"),
             acknowledgement_timeout: u32::try_from(self.number(object, "acknowledgement_timeout"))
                 .unwrap_or(u32::MAX),
+            notify: self.notify_conf(object, true),
         })
     }
 
@@ -1250,7 +1566,26 @@ impl Reader {
             icon_id: self.number(object, "icon_id"),
             acknowledgement_timeout: u32::try_from(self.number(object, "acknowledgement_timeout"))
                 .unwrap_or(u32::MAX),
+            notify: self.notify_conf(object, false),
         })
+    }
+}
+
+/// What a service takes from its host (`applier/service.cc:540-580`):
+/// contacts and contact groups when it has neither, the notification
+/// interval when its own is 0, the notification period when it has none.
+fn inherit_from_host(service: &mut NotifyConf, host: &NotifyConf) {
+    if service.contacts.is_empty() && service.contact_groups.is_empty() {
+        service.contacts.clone_from(&host.contacts);
+        service.contact_groups.clone_from(&host.contact_groups);
+    }
+    if service.notification_interval == 0 {
+        service.notification_interval = host.notification_interval;
+    }
+    if service.notification_period.is_empty() {
+        service
+            .notification_period
+            .clone_from(&host.notification_period);
     }
 }
 
@@ -1307,6 +1642,7 @@ pub(crate) mod tests {
                  cfg_file=commands.cfg\ncfg_file={0}/timeperiods.cfg\n\
                  cfg_file={0}/groups.cfg\ncfg_file={0}/tags.cfg\n\
                  cfg_file={0}/severities.cfg\ncfg_file={0}/dependencies.cfg\n\
+                 cfg_file={0}/contacts.cfg\nenable_flap_detection=1\nnotification_timeout=12\n\
                  resource_file={0}/resource.cfg\ninterval_length=60\n\
                  service_check_timeout=20\nretention_update_interval=30\n\
                  log_service_retries=1\nlog_level_external_command=info\n\
@@ -1351,7 +1687,25 @@ pub(crate) mod tests {
         write(
             "commands.cfg",
             "define command {\n    command_name                   check_dummy\n    \
-             command_line                   $USER1$/check_dummy $ARG1$ \"$ARG2$\"\n}\n",
+             command_line                   $USER1$/check_dummy $ARG1$ \"$ARG2$\"\n}\n\
+             define command {\n    command_name notify\n    command_line /bin/true $CONTACTEMAIL$\n}\n",
+        );
+        write(
+            "contacts.cfg",
+            "define contact {\n    name tpl-contact\n    host_notification_commands notify\n    \
+             register 0\n}\n\
+             define contact {\n    contact_name admin\n    alias Administrator\n    \
+             email admin@localhost\n    service_notification_options w,c,r,f\n    \
+             service_notification_commands notify\n    contactgroups team\n}\n\
+             define contact {\n    contact_name guest\n    use tpl-contact\n}\n\
+             define contactgroup {\n    contactgroup_name ops\n    alias Operators\n    \
+             members guest\n    contactgroup_members team\n}\n\
+             define contactgroup {\n    contactgroup_name team\n    alias Team\n}\n\
+             define serviceescalation {\n    host_name h2\n    service_description Disk\n    \
+             first_notification 2\n    last_notification 0\n    notification_interval 5\n    \
+             escalation_options c,r\n    contact_groups ops\n}\n\
+             define hostescalation {\n    host_name h1\n    first_notification 1\n    \
+             escalation_options d\n    contact_groups team\n}\n",
         );
         write(
             "timeperiods.cfg",
@@ -1381,7 +1735,8 @@ pub(crate) mod tests {
              generic-host,other\n    _HOST_ID                       12\n    register 1\n    \
              check_period workhours\n    timezone :Europe/Paris\n    parents h2\n    \
              category_tags 7\n    group_tags 20\n    severity 3\n    \
-             acknowledgement_timeout 5\n}\n\
+             acknowledgement_timeout 5\n    contacts admin\n    notification_interval 10\n    \
+             notification_options d,r\n}\n\
              define host {\n    host_name h2\n    address 10.0.0.2\n    _HOST_ID 13\n}\n",
         );
         write(
@@ -1393,11 +1748,13 @@ pub(crate) mod tests {
         write(
             "services.cfg",
             "define service {\n    host_name h1\n    service_description Ping\n    use \
-             svc-tpl\n    _SERVICE_ID 101\n    register 1\n    group_tags 30\n    severity 4\n}\n\
+             svc-tpl\n    _SERVICE_ID 101\n    register 1\n    group_tags 30\n    severity 4\n    \
+             event_handler check_dummy!0!handled\n    check_freshness 1\n    \
+             high_flap_threshold 50\n}\n\
              define service {\n    host_name h2\n    service_description Disk\n    \
              check_command check_dummy!2!\\\n    ;a comment line is skipped\n    full\n    \
              active_checks_enabled 0\n    _SERVICE_ID 102\n    _CRIT 90\n    \
-             check_period 24x7\n}\n",
+             check_period 24x7\n    contact_groups ops\n}\n",
         );
         dir.join("centengine.cfg")
     }
@@ -1542,7 +1899,7 @@ pub(crate) mod tests {
         assert!(all.contains("unknown check command 'unknown'"), "{all}");
         assert!(all.contains("has no _SERVICE_ID"), "{all}");
         let rendered = report.render(None);
-        assert!(rendered.ends_with("Total Errors:   8\n"), "{rendered}");
+        assert!(rendered.ends_with("Total Errors:   9\n"), "{rendered}");
 
         std::fs::write(dir.path().join("services.cfg"), "service {\n").unwrap();
         let (_, report) = read(&main);

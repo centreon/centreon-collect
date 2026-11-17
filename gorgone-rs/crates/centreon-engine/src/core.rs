@@ -5,6 +5,9 @@
 //! file in `core/retention.rs`.
 
 mod downtimes;
+mod flapping;
+mod handlers;
+mod notify;
 mod relations;
 mod retention;
 
@@ -26,7 +29,7 @@ use crate::extcmd::{self, ExtCommand};
 use crate::macros::{Context, HostView, ServiceView, StateView};
 use crate::recurring::Rule;
 use crate::runner::{self, PluginRun};
-use crate::state::{self, AckType, CheckState, CheckType, Next, Outcome, StateType, code};
+use crate::state::{self, AckType, CheckState, CheckType, Next, Outcome, Reason, StateType, code};
 use crate::timeperiod::Calc;
 use crate::tz::Zones;
 use crate::{Input, Status, broker_conf, cmdline, events, output};
@@ -208,6 +211,17 @@ enum Timer {
     RetentionSave,
     /// `EVENT_EXPIRE_HOST_ACK`, `EVENT_EXPIRE_SERVICE_ACK`.
     AcknowledgementExpiry(Key),
+    /// `EVENT_SFRESHNESS_CHECK`, `EVENT_HFRESHNESS_CHECK`.
+    Freshness { hosts: bool },
+}
+
+/// Global switches changed by external commands
+/// (`modified_*_process_attributes`), kept across reloads and restarts.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct ProgramModified {
+    pub notifications: Option<bool>,
+    pub event_handlers: Option<bool>,
+    pub flap_detection: Option<bool>,
 }
 
 /// Recurring downtimes run every minute (`EVENT_RECURRING_DOWNTIME`).
@@ -252,6 +266,21 @@ pub(crate) struct Core {
     links: relations::Links,
     /// Event log entries made before the first connection.
     early_logs: Vec<Vec<u8>>,
+    /// Global switches changed by external commands.
+    program: ProgramModified,
+    /// Event log lines of the processes running off this task
+    /// (notification and event handler timeouts).
+    side_tx: mpsc::UnboundedSender<String>,
+    side_rx: mpsc::UnboundedReceiver<String>,
+    /// Freshness timers planned: services, hosts.
+    freshness_planned: [bool; 2],
+    /// `next_notification_id`.
+    next_notification_id: u64,
+    /// Settings while no configuration is loaded.
+    defaults: cfg::Settings,
+    /// Every event log line, for the tests.
+    #[cfg(test)]
+    logged: Vec<String>,
 }
 
 impl Core {
@@ -262,8 +291,10 @@ impl Core {
         status: watch::Sender<Status>,
     ) -> Self {
         let (done_tx, done_rx) = mpsc::unbounded_channel();
+        let (side_tx, side_rx) = mpsc::unbounded_channel();
         let clock = Clock::new();
         let retained = options.retention_file.as_deref().and_then(retention::read);
+        let program = retained.as_ref().map(|r| r.program).unwrap_or_default();
         Self {
             options,
             clock,
@@ -295,6 +326,35 @@ impl Core {
             retained,
             links: relations::Links::default(),
             early_logs: Vec::new(),
+            program,
+            side_tx,
+            side_rx,
+            freshness_planned: [false; 2],
+            next_notification_id: 0,
+            defaults: cfg::Settings::default(),
+            #[cfg(test)]
+            logged: Vec::new(),
+        }
+    }
+
+    /// The settings in force, Engine's defaults before any configuration.
+    fn settings(&self) -> &cfg::Settings {
+        self.loaded
+            .as_ref()
+            .map_or(&self.defaults, |l| &l.config.settings)
+    }
+
+    /// The global switches as `pb_instance_status` reports them.
+    fn program_status(&self) -> events::Program {
+        let settings = self.settings();
+        events::Program {
+            notifications: self.notifications_on(),
+            event_handlers: self.event_handlers_on(),
+            flap_detection: self.flap_detection_on(),
+            check_hosts_freshness: settings.check_host_freshness,
+            check_services_freshness: settings.check_service_freshness,
+            global_host_event_handler: settings.global_host_event_handler.clone(),
+            global_service_event_handler: settings.global_service_event_handler.clone(),
         }
     }
 
@@ -372,7 +432,11 @@ impl Core {
                 ObjConf::Service { conf, .. } => events::service_status(conf, &obj.state),
             });
         }
-        frames.push(events::instance_status(poller_id, now));
+        frames.push(events::instance_status(
+            poller_id,
+            now,
+            &self.program_status(),
+        ));
         // The event log made before the central was reached.
         frames.append(&mut self.early_logs);
         for frame in frames {
@@ -529,6 +593,7 @@ impl Core {
             poller_id: broker.poller_id,
             poller_name: broker.poller_name,
             broker_name: broker.broker_name,
+            tls: broker.tls,
         };
         let installed = self.install(config, target, None);
         Ok(format!(
@@ -540,6 +605,7 @@ impl Core {
 
     /// Puts a checked document in force.
     fn install_document(&mut self, parsed: Parsed, digest: String) -> Installed {
+        let tls = parsed.broker.tls_conf();
         let target = Target {
             address: self
                 .options
@@ -548,6 +614,7 @@ impl Core {
                 .unwrap_or(parsed.broker.address),
             poller_id: parsed.poller.id,
             poller_name: parsed.poller.name,
+            tls,
             broker_name: parsed.broker.name,
         };
         self.install(parsed.config, target, Some(digest))
@@ -615,6 +682,7 @@ impl Core {
             }
         }
         self.apply_rules(recurring, now);
+        self.plan_freshness(now);
         self.initial_load_done = true;
         self.publish_status();
         self.launch();
@@ -1194,6 +1262,7 @@ impl Core {
         };
         let state_change = obj.state.state != before.0;
         let hard_change = obj.state.last_hard_state_change != before.1;
+        obj.state.being_freshened = false;
         obj.state.output = parsed.output;
         obj.state.long_output = parsed.long_output;
         obj.state.perfdata = parsed.perfdata;
@@ -1235,8 +1304,12 @@ impl Core {
         );
         if is_host {
             self.log_host_alert(index, before.0, before_hard_state);
-        } else if service_logged {
-            self.log_service_alert(index);
+            self.host_after_result(index, before.0, before_hard_state);
+        } else {
+            if service_logged {
+                self.log_service_alert(index);
+            }
+            self.service_after_result(index, state_change, hard_change, host_up, service_logged);
         }
         self.emit_status(index);
         self.flexible_downtimes_after_result(index, state_change, hard_change);
@@ -1245,6 +1318,86 @@ impl Core {
         } else {
             self.propagate_service_checks(index, state_change);
         }
+    }
+
+    /// Notifications, flapping and event handler after a service result,
+    /// in the order of `handle_async_check_result` (`service.cc:1490-2091`).
+    fn service_after_result(
+        &mut self,
+        index: usize,
+        state_change: bool,
+        hard_change: bool,
+        host_up: bool,
+        logged: bool,
+    ) {
+        let ObjConf::Service { host, .. } = self.objs[index].conf else {
+            return;
+        };
+        if state_change || hard_change {
+            let n = &mut self.objs[index].state.notification;
+            n.last = 0;
+            n.next = 0;
+            n.no_more = false;
+        }
+        let st = &self.objs[index].state;
+        let ok = st.state == code::OK;
+        let hard = st.state_type == StateType::Hard;
+        let volatile = self.notify_conf(index).is_volatile;
+        let mut flapping_done = false;
+        if ok {
+            if hard_change {
+                self.service_flapping(index, true, true);
+                self.host_flapping(host, true, false, true);
+                flapping_done = true;
+                self.notify(index, Reason::Recovery, "", "", false);
+            }
+            if logged {
+                self.handle_event(index);
+            }
+            self.notify(index, Reason::Recovery, "", "", false);
+            let n = &mut self.objs[index].state.notification;
+            n.last = 0;
+            n.next = 0;
+            n.no_more = false;
+        } else {
+            if !host_up {
+                self.notify(host, Reason::Normal, "", "", false);
+            }
+            if hard && host_up {
+                self.service_flapping(index, true, true);
+                self.host_flapping(host, true, false, true);
+                flapping_done = true;
+                self.notify(index, Reason::Normal, "", "", false);
+            }
+            if logged || (hard && volatile) {
+                self.handle_event(index);
+            }
+        }
+        if !flapping_done {
+            self.service_flapping(index, true, true);
+            self.host_flapping(host, true, false, true);
+        }
+    }
+
+    /// Notifications, event handler and flapping after a host result
+    /// (`host::handle_state`, `host.cc:2358-2501`, then
+    /// `check_for_flapping`, `host.cc:3530`).
+    fn host_after_result(&mut self, index: usize, last_state: u32, last_hard_state: u32) {
+        let st = &self.objs[index].state;
+        let up = st.state == code::OK;
+        let changed = last_state != st.state
+            || last_hard_state != st.state
+            || (up && st.state_type == StateType::Soft);
+        if changed {
+            let n = &mut self.objs[index].state.notification;
+            n.last = 0;
+            n.next = 0;
+            n.no_more = false;
+            self.handle_event(index);
+        }
+        let reason = if up { Reason::Recovery } else { Reason::Normal };
+        self.notify(index, reason, "", "", false);
+        self.host_flapping(index, true, true, true);
     }
 
     fn finished(&mut self, done: Done) {
@@ -1460,6 +1613,42 @@ impl Core {
                     ignored(format!("unknown comment {id}"))
                 }
             }
+            ExtCommand::Switch {
+                what,
+                target,
+                enable,
+            } => {
+                let indexes: Vec<usize> = match &target {
+                    extcmd::SwitchTarget::Global => {
+                        self.switch_global(what, enable);
+                        return Ok("switched".to_owned());
+                    }
+                    extcmd::SwitchTarget::Host(host) => match find(self, host, None) {
+                        Ok(index) => vec![index],
+                        Err(what) => return ignored(what),
+                    },
+                    extcmd::SwitchTarget::Service(host, service) => {
+                        match find(self, host, Some(service)) {
+                            Ok(index) => vec![index],
+                            Err(what) => return ignored(what),
+                        }
+                    }
+                    extcmd::SwitchTarget::HostServices(host) => match find(self, host, None) {
+                        Ok(index) => {
+                            let host_id = self.objs[index].key.0;
+                            self.services_of(&[host_id])
+                                .iter()
+                                .filter_map(|key| self.by_key.get(key).copied())
+                                .collect()
+                        }
+                        Err(what) => return ignored(what),
+                    },
+                };
+                for index in indexes {
+                    self.switch_object(index, what, enable);
+                }
+                Ok("switched".to_owned())
+            }
             ExtCommand::DeleteAllComments { host, service } => {
                 let index = match find(self, &host, service.as_deref()) {
                     Ok(index) => index,
@@ -1469,6 +1658,71 @@ impl Core {
                 let count = self.delete_comments_of(key);
                 Ok(format!("{count} comments deleted"))
             }
+        }
+    }
+
+    /// `ENABLE_*` / `DISABLE_*` on an object: nothing when unchanged, else
+    /// the setting (kept across reloads and in the retention), then
+    /// `pb_adaptive_host` / `pb_adaptive_service` with it, and for flap
+    /// detection the flapping computed again or ended.
+    fn switch_object(&mut self, index: usize, what: extcmd::Switch, enable: bool) {
+        let current = match what {
+            extcmd::Switch::Notifications => self.notifier_enabled(index),
+            extcmd::Switch::EventHandler => self.event_handler_enabled(index),
+            extcmd::Switch::FlapDetection => self.flap_enabled(index),
+        };
+        if current == enable {
+            return;
+        }
+        let modified = &mut self.objs[index].state.modified;
+        let mut change = events::Adaptive::default();
+        match what {
+            extcmd::Switch::Notifications => {
+                modified.notifications_enabled = Some(enable);
+                change.notify = Some(enable);
+            }
+            extcmd::Switch::EventHandler => {
+                modified.event_handler_enabled = Some(enable);
+                change.event_handler_enabled = Some(enable);
+            }
+            extcmd::Switch::FlapDetection => {
+                modified.flap_detection_enabled = Some(enable);
+                change.flap_detection = Some(enable);
+            }
+        }
+        let key = self.objs[index].key;
+        let frame = if key.1 == 0 {
+            events::adaptive_host(key.0, change)
+        } else {
+            events::adaptive_service(key, change)
+        };
+        self.emit(frame);
+        if what == extcmd::Switch::FlapDetection {
+            if enable {
+                self.enable_flapping(index);
+            } else {
+                self.flap_detection_disabled(index);
+            }
+        }
+    }
+
+    /// `ENABLE_NOTIFICATIONS`, `ENABLE_EVENT_HANDLERS`,
+    /// `ENABLE_FLAP_DETECTION` and their `DISABLE_`: nothing when unchanged;
+    /// the next `pb_instance_status` reports it, as Engine's
+    /// `update_program_status`.
+    fn switch_global(&mut self, what: extcmd::Switch, enable: bool) {
+        match what {
+            extcmd::Switch::Notifications => {
+                if self.notifications_on() != enable {
+                    self.program.notifications = Some(enable);
+                }
+            }
+            extcmd::Switch::EventHandler => {
+                if self.event_handlers_on() != enable {
+                    self.program.event_handlers = Some(enable);
+                }
+            }
+            extcmd::Switch::FlapDetection => self.set_global_flap_detection(enable),
         }
     }
 
@@ -1524,6 +1778,7 @@ impl Core {
                 Timer::Downtime(id) => self.handle_downtime(id),
                 Timer::AcknowledgementExpiry(key) => self.expire_acknowledgement(key),
                 Timer::ExpireDowntimes => self.expire_downtimes(),
+                Timer::Freshness { hosts } => self.run_freshness(hosts, now),
                 Timer::Recurring => {
                     self.run_rules(now);
                     self.add_timer(now + RECURRING_PERIOD, Timer::Recurring);
@@ -1577,6 +1832,7 @@ impl Core {
                 request = requests.recv() => match request {
                     Some(Request::Reload(reply)) => {
                         let result = self.load();
+                        status_due = status_due.min(Instant::now() + self.status_period());
                         match &result {
                             Ok(summary) => tracing::info!("{}", crate::first_line(summary)),
                             Err(_) => tracing::warn!("reload refused: the configuration in force is kept"),
@@ -1588,6 +1844,8 @@ impl Core {
                         let installed = self.install_document(parsed, digest);
                         tracing::info!("{}", installed.text);
                         let _ = reply.send(installed);
+                        // The status_update_interval of this configuration.
+                        status_due = status_due.min(Instant::now() + self.status_period());
                     }
                     Some(Request::Command(line, reply)) => {
                         let _ = reply.send(self.command(&line));
@@ -1609,6 +1867,7 @@ impl Core {
                         self.launch();
                     }
                 }
+                Some(line) = self.side_rx.recv() => self.log(&line),
                 notice = notices.recv() => match notice {
                     Some(Notice::Connected) => {
                         self.connected = true;
@@ -1622,7 +1881,8 @@ impl Core {
                     if Instant::now() >= status_due {
                         if let Some((poller_id, _)) = self.poller() {
                             let now = self.clock.now();
-                            self.emit(events::instance_status(poller_id, now));
+                            let program = self.program_status();
+                            self.emit(events::instance_status(poller_id, now, &program));
                         }
                         status_due = Instant::now() + self.status_period();
                     }

@@ -91,11 +91,31 @@ fn wall_seconds(tm: &Tm) -> i64 {
     days * 86_400 + i64::from(tm.hour) * 3600 + i64::from(tm.min) * 60 + i64::from(tm.sec)
 }
 
-/// One local time type: offset east of UTC and DST flag.
+/// Abbreviation of a local time type (`tm_zone`), at most 8 bytes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct Abbr([u8; 8]);
+
+impl Abbr {
+    fn of(text: &[u8]) -> Self {
+        let mut abbr = [0u8; 8];
+        for (slot, byte) in abbr.iter_mut().zip(text) {
+            *slot = *byte;
+        }
+        Self(abbr)
+    }
+
+    fn text(&self) -> String {
+        let len = self.0.iter().position(|b| *b == 0).unwrap_or(8);
+        String::from_utf8_lossy(&self.0[..len]).into_owned()
+    }
+}
+
+/// One local time type: offset east of UTC, DST flag and abbreviation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Kind {
     offset: i32,
     isdst: bool,
+    abbr: Abbr,
 }
 
 /// When a POSIX rule switches: `Jn` (1 to 365, no Feb 29), `n` (0 to 365)
@@ -183,11 +203,12 @@ struct PosixParser<'a> {
 }
 
 impl PosixParser<'_> {
-    fn name(&mut self) -> Option<()> {
+    fn name(&mut self) -> Option<Abbr> {
         if self.rest.first() == Some(&b'<') {
             let end = self.rest.iter().position(|c| *c == b'>')?;
+            let abbr = Abbr::of(&self.rest[1..end]);
             self.rest = &self.rest[end + 1..];
-            return Some(());
+            return Some(abbr);
         }
         let len = self
             .rest
@@ -197,8 +218,9 @@ impl PosixParser<'_> {
         if len < 3 {
             return None;
         }
+        let abbr = Abbr::of(&self.rest[..len]);
         self.rest = &self.rest[len..];
-        Some(())
+        Some(abbr)
     }
 
     fn number(&mut self) -> Option<i64> {
@@ -262,17 +284,18 @@ impl PosixParser<'_> {
         let mut p = PosixParser {
             rest: text.as_bytes(),
         };
-        p.name()?;
+        let std_abbr = p.name()?;
         // POSIX offsets are west of UTC.
         let std_offset = -p.time()?;
         let std = Kind {
             offset: i32::try_from(std_offset).ok()?,
             isdst: false,
+            abbr: std_abbr,
         };
         if p.rest.is_empty() {
             return Some(Posix { std, dst: None });
         }
-        p.name()?;
+        let dst_abbr = p.name()?;
         let dst_offset = if p.rest.first().is_some_and(|c| *c != b',') {
             -p.time()?
         } else {
@@ -281,6 +304,7 @@ impl PosixParser<'_> {
         let dst = Kind {
             offset: i32::try_from(dst_offset).ok()?,
             isdst: true,
+            abbr: dst_abbr,
         };
         let (start, end) = if p.eat(b',') {
             let start = p.switch()?;
@@ -332,6 +356,7 @@ impl Tz {
             initial: Kind {
                 offset: 0,
                 isdst: false,
+                abbr: Abbr::of(b"UTC"),
             },
             footer: None,
         })
@@ -388,12 +413,20 @@ impl Tz {
             }
         };
         let types_at = time_count * time_size + time_count;
+        let chars_at = types_at + type_count * 6;
+        let chars = &body[chars_at..chars_at + counts[5]];
         let kinds: Vec<Kind> = (0..type_count)
             .map(|i| {
                 let at = types_at + i * 6;
+                let index = usize::from(body[at + 5]);
+                let abbr = chars.get(index..).map_or(Abbr::default(), |rest| {
+                    let end = rest.iter().position(|b| *b == 0).unwrap_or(rest.len());
+                    Abbr::of(&rest[..end])
+                });
                 Kind {
                     offset: i32::from_be_bytes(body[at..at + 4].try_into().unwrap_or_default()),
                     isdst: body[at + 4] != 0,
+                    abbr,
                 }
             })
             .collect();
@@ -433,6 +466,12 @@ impl Tz {
             },
             n => self.transitions[n - 1].1,
         }
+    }
+
+    /// `tm_zone` of `localtime_r` at `t`: the abbreviation of the zone.
+    #[must_use]
+    pub fn abbreviation(&self, t: i64) -> String {
+        self.kind_at(t).abbr.text()
     }
 
     /// `localtime_r`.

@@ -11,7 +11,7 @@ use crate::book::{Acknowledgement, Comment, Downtime, EntryType, Key, Source};
 use crate::events;
 use crate::logs::DowntimeAlert;
 use crate::recurring::{self, RecurringConf, Rule, Target};
-use crate::state::AckType;
+use crate::state::{AckType, Reason};
 use crate::tz::Tz;
 
 use super::{Core, Timer};
@@ -215,6 +215,14 @@ impl Core {
             }
             if stopped {
                 self.log_downtime_alert(index, DowntimeAlert::Stopped);
+                // `host_downtime.cc:352-388`, `service_downtime.cc:418-428`.
+                self.notify(
+                    index,
+                    Reason::DowntimeEnd,
+                    &downtime.author,
+                    &downtime.comment,
+                    false,
+                );
             }
             self.emit_status(index);
             // Downtimes this one triggered end with it.
@@ -243,6 +251,15 @@ impl Core {
             self.emit_downtime(id, None);
             if self.objs[index].state.downtime_depth == 0 {
                 self.log_downtime_alert(index, DowntimeAlert::Started);
+                // `host_downtime.cc:440-462`, `service_downtime.cc:498-510`:
+                // before the depth goes up.
+                self.notify(
+                    index,
+                    Reason::DowntimeStart,
+                    &downtime.author,
+                    &downtime.comment,
+                    false,
+                );
             }
             let obj = &mut self.objs[index];
             obj.state.downtime_depth += 1;
@@ -289,6 +306,8 @@ impl Core {
                 self.emit_status(index);
                 if self.objs[index].state.downtime_depth == 0 {
                     self.log_downtime_alert(index, DowntimeAlert::Cancelled);
+                    // `host_downtime.cc:168-195`, `service_downtime.cc:212-223`.
+                    self.notify(index, Reason::DowntimeCancelled, "", "", false);
                 }
             }
         }
@@ -449,6 +468,10 @@ impl Core {
         let frame = events::acknowledgement(self.poller_id(), &ack, None);
         self.book.acknowledgements.insert(key, ack);
         self.emit(frame);
+        // `acknowledge_*_problem` (`commands.cc:2513-2591`).
+        if notify {
+            self.notify(index, Reason::Acknowledgement, author, comment, false);
+        }
         self.emit_status(index);
         self.add_comment(
             key,

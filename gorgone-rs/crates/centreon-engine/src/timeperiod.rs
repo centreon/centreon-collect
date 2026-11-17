@@ -1070,6 +1070,16 @@ impl Calc<'_> {
         self.next_valid_impl(tp, t, false, 0) == t
     }
 
+    /// `check_time_against_period_for_notif`: as [`Self::contains`], but a
+    /// period with no valid time is never valid.
+    #[must_use]
+    pub fn contains_for_notification(&self, t: i64, tp: Option<&Timeperiod>) -> bool {
+        let Some(tp) = tp else {
+            return true;
+        };
+        self.next_valid_impl(tp, t, true, 0) == t
+    }
+
     /// `get_next_valid_time`: the first time of the period at or after
     /// `max(pref, now)`; that time itself when the period has none.
     #[must_use]

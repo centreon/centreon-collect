@@ -63,6 +63,10 @@ pub mod event {
     pub const SERVICE_GROUP: u32 = (NEB << 16) | 51;
     /// `neb::de_pb_service_group_member`.
     pub const SERVICE_GROUP_MEMBER: u32 = (NEB << 16) | 52;
+    /// `neb::de_pb_adaptive_service`.
+    pub const ADAPTIVE_SERVICE: u32 = (NEB << 16) | 28;
+    /// `neb::de_pb_adaptive_host`.
+    pub const ADAPTIVE_HOST: u32 = (NEB << 16) | 31;
     /// `neb::de_pb_host_parent`.
     pub const HOST_PARENT: u32 = (NEB << 16) | 53;
 }
@@ -139,6 +143,12 @@ impl Decoder {
     /// Adds received bytes.
     pub fn push(&mut self, data: &[u8]) {
         self.buffer.extend_from_slice(data);
+    }
+
+    /// Nothing received is left to decode.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.buffer.is_empty() && self.partial.is_none()
     }
 
     /// Next complete event: its type and payload.

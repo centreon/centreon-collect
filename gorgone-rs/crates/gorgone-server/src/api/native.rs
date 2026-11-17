@@ -566,10 +566,10 @@ async fn submit_config(
 }
 
 /// Versions of the structured configuration document this server accepts.
-const ENGINE_DOCUMENT_VERSIONS: std::ops::RangeInclusive<u64> = 1..=3;
+const ENGINE_DOCUMENT_VERSIONS: std::ops::RangeInclusive<u64> = 1..=4;
 
 /// Highest document version the engine of a node reads, from the version
-/// its heartbeat reports: `centreon-engine 0.1.0 (configuration 1-3)`. An
+/// its heartbeat reports: `centreon-engine 0.1.0 (configuration 1-4)`. An
 /// engine that reports no range reads version 1 only; `None` when the node
 /// reports no centreon-engine (yet): the engine checks it when it gets it.
 fn node_document_version(state: Option<&str>) -> Option<u64> {

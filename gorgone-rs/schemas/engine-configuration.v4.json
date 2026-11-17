@@ -1,0 +1,1340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/centreon/centreon-collect/gorgone-rs/schemas/engine-configuration.v4.json",
+  "title": "centreon-engine configuration, version 4",
+  "description": "Configuration of one poller run by centreon-engine (gorgone-rs/crates/centreon-engine), sent by centreon-web through gorgone-server instead of the Engine .cfg files. Field names are the Engine .cfg keys after their aliases are resolved (common/engine_conf/*_helper.cc). Templates are sent unresolved, with their `use` lists: centreon-engine merges them with Engine's rules. Every object accepts only the fields listed here: an unknown field makes the whole document refused, and the configuration in force stays. Version 2 adds timeperiods, check periods, time zones, recurring downtimes and retention settings to version 1, and reads macro values as Engine reads them in its files: `encrypt::` values are decrypted with the key of the engine_context target, `raw::` is removed. Version 3 adds host and service groups, severities, tags, parents, host and service dependencies, acknowledgement timeouts, a service's own time zone and the event log settings; nothing changes meaning, but an engine reading versions 1 to 2 refuses them. Version 4 adds notifications (contacts, contact templates, contact groups, host and service escalations, the notification keys of hosts and services), event handlers, flapping, freshness, their global settings and the TLS of the connection to the central broker; nothing changes meaning, but an engine reading versions 1 to 3 refuses them. Design: gorgone-rs/docs/scheduler-design.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "poller",
+    "broker"
+  ],
+  "properties": {
+    "version": {
+      "description": "Version of this document format. centreon-engine refuses a version it does not know; this one also reads versions 1 to 3 (schemas engine-configuration.v1.json to v3.json).",
+      "const": 4
+    },
+    "poller": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "description": "nagios_server.id: the BBDO instance_id of the poller.",
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "broker": {
+      "description": "Where the poller sends its events: what the cbmod file gives Engine.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "address"
+      ],
+      "properties": {
+        "address": {
+          "description": "host:port of the TCP (BBDO) input of the central broker; [v6]:port for an IPv6 address.",
+          "type": "string",
+          "pattern": "^.+:[0-9]{1,5}$"
+        },
+        "name": {
+          "description": "Name of the broker module of the poller (broker_name of the cbmod file).",
+          "type": "string"
+        },
+        "tls": {
+          "description": "TLS of the connection: the keys of the cbmod output (paths on the poller). Certificates are required: anonymous TLS (Broker without public_cert and private_key) is not supported.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tls"
+          ],
+          "properties": {
+            "tls": {
+              "description": "yes: mandatory; auto: used when the central broker offers it; no: never.",
+              "enum": [
+                "yes",
+                "auto",
+                "no"
+              ]
+            },
+            "private_key": {
+              "description": "PEM private key of the poller.",
+              "type": "string"
+            },
+            "public_cert": {
+              "description": "PEM certificate of the poller.",
+              "type": "string"
+            },
+            "ca_certificate": {
+              "description": "PEM CA the central broker certificate is checked against; no check without it.",
+              "type": "string"
+            },
+            "tls_hostname": {
+              "description": "Name the central broker certificate must hold; not checked without it.",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "settings": {
+      "description": "Global settings of centengine.cfg the engine uses; Engine's default when absent.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "interval_length": {
+          "$ref": "#/$defs/positive",
+          "default": 60
+        },
+        "service_check_timeout": {
+          "$ref": "#/$defs/count",
+          "default": 60
+        },
+        "host_check_timeout": {
+          "$ref": "#/$defs/count",
+          "default": 30
+        },
+        "max_service_check_spread": {
+          "$ref": "#/$defs/count",
+          "default": 5
+        },
+        "max_host_check_spread": {
+          "$ref": "#/$defs/count",
+          "default": 5
+        },
+        "status_update_interval": {
+          "$ref": "#/$defs/count",
+          "default": 60
+        },
+        "use_timezone": {
+          "description": "Zone of the timeperiods of the objects without timezone, in the TZ syntax (\":Europe/Paris\"); the zone of the engine process when absent.",
+          "type": "string"
+        },
+        "retention_update_interval": {
+          "description": "Minutes between two writes of the retention file (0: only at stop).",
+          "$ref": "#/$defs/count",
+          "default": 60
+        },
+        "use_retained_scheduling_info": {
+          "description": "After a restart, keep the retained next checks instead of spreading the checks again.",
+          "type": "boolean",
+          "default": false
+        },
+        "log_service_retries": {
+          "description": "SOFT service states are written to the event log.",
+          "type": "boolean",
+          "default": false
+        },
+        "log_host_retries": {
+          "description": "SOFT host states are written to the event log.",
+          "type": "boolean",
+          "default": false
+        },
+        "log_external_commands": {
+          "description": "External commands are written to the event log.",
+          "type": "boolean",
+          "default": true
+        },
+        "log_passive_checks": {
+          "description": "Passive check results are written to the event log.",
+          "type": "boolean",
+          "default": true
+        },
+        "soft_state_dependencies": {
+          "description": "A dependency looks at the current SOFT state of its master rather than at its last hard state.",
+          "type": "boolean",
+          "default": false
+        },
+        "enable_predictive_host_dependency_checks": {
+          "description": "Check the hosts a host depends on at its next to last attempt.",
+          "type": "boolean",
+          "default": true
+        },
+        "enable_predictive_service_dependency_checks": {
+          "description": "Check the services a service depends on at its next to last attempt.",
+          "type": "boolean",
+          "default": true
+        },
+        "log_level_events": {
+          "description": "Level of the Engine logger: only INFO and lower levels reach the event log.",
+          "enum": [
+            "trace",
+            "debug",
+            "info",
+            "warning",
+            "err",
+            "error",
+            "critical",
+            "off"
+          ],
+          "default": "info"
+        },
+        "log_level_checks": {
+          "description": "Level of the Engine logger: only INFO and lower levels reach the event log.",
+          "enum": [
+            "trace",
+            "debug",
+            "info",
+            "warning",
+            "err",
+            "error",
+            "critical",
+            "off"
+          ],
+          "default": "info"
+        },
+        "log_level_external_command": {
+          "description": "Level of the Engine logger: only INFO and lower levels reach the event log.",
+          "enum": [
+            "trace",
+            "debug",
+            "info",
+            "warning",
+            "err",
+            "error",
+            "critical",
+            "off"
+          ],
+          "default": "error"
+        },
+        "cached_host_check_horizon": {
+          "description": "Seconds a host result stays fresh enough to skip an on-demand check.",
+          "$ref": "#/$defs/count",
+          "default": 15
+        },
+        "enable_notifications": {
+          "type": "boolean",
+          "description": "Notifications are sent.",
+          "default": true
+        },
+        "notification_timeout": {
+          "$ref": "#/$defs/count",
+          "description": "Seconds before a notification command is killed.",
+          "default": 30
+        },
+        "log_notifications": {
+          "type": "boolean",
+          "description": "HOST NOTIFICATION and SERVICE NOTIFICATION lines are written.",
+          "default": true
+        },
+        "log_level_notifications": {
+          "description": "Level of the Engine logger: only INFO and lower levels reach the event log.",
+          "enum": [
+            "trace",
+            "debug",
+            "info",
+            "warning",
+            "err",
+            "error",
+            "critical",
+            "off"
+          ],
+          "default": "err"
+        },
+        "log_level_runtime": {
+          "description": "Level of the runtime logger (flapping start, stale results).",
+          "enum": [
+            "trace",
+            "debug",
+            "info",
+            "warning",
+            "err",
+            "error",
+            "critical",
+            "off"
+          ],
+          "default": "err"
+        },
+        "date_format": {
+          "description": "Format of the date macros.",
+          "enum": [
+            "us",
+            "euro",
+            "iso8601",
+            "strict-iso8601"
+          ],
+          "default": "us"
+        },
+        "illegal_macro_output_chars": {
+          "type": "string",
+          "description": "Characters removed from the macros of notification and event handler commands."
+        },
+        "admin_email": {
+          "type": "string",
+          "description": "$ADMINEMAIL$."
+        },
+        "admin_pager": {
+          "type": "string",
+          "description": "$ADMINPAGER$."
+        },
+        "enable_event_handlers": {
+          "type": "boolean",
+          "description": "Event handlers run.",
+          "default": true
+        },
+        "global_host_event_handler": {
+          "type": "string",
+          "description": "command!args run on every host state change."
+        },
+        "global_service_event_handler": {
+          "type": "string",
+          "description": "command!args run on every service state change."
+        },
+        "event_handler_timeout": {
+          "$ref": "#/$defs/count",
+          "description": "Seconds before an event handler is killed.",
+          "default": 30
+        },
+        "log_event_handlers": {
+          "type": "boolean",
+          "description": "EVENT HANDLER lines are written.",
+          "default": true
+        },
+        "enable_flap_detection": {
+          "type": "boolean",
+          "description": "Flapping is detected.",
+          "default": false
+        },
+        "low_service_flap_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 20
+        },
+        "high_service_flap_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 30
+        },
+        "low_host_flap_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 20
+        },
+        "high_host_flap_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 30
+        },
+        "check_service_freshness": {
+          "type": "boolean",
+          "default": true
+        },
+        "check_host_freshness": {
+          "type": "boolean",
+          "default": false
+        },
+        "service_freshness_check_interval": {
+          "$ref": "#/$defs/count",
+          "description": "Seconds between two freshness checks.",
+          "default": 60
+        },
+        "host_freshness_check_interval": {
+          "$ref": "#/$defs/count",
+          "description": "Seconds between two freshness checks.",
+          "default": 60
+        },
+        "additional_freshness_latency": {
+          "$ref": "#/$defs/count",
+          "description": "Seconds added to an automatic freshness threshold.",
+          "default": 15
+        }
+      }
+    },
+    "resource_macros": {
+      "description": "Resource macros by name without the dollars, e.g. {\"USER1\": \"/usr/lib64/nagios/plugins\"} (resource.cfg). A value may be \"encrypt::...\" (decrypted when a command uses it) or \"raw::...\".",
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1,
+        "pattern": "^[^$]+$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/command"
+      }
+    },
+    "host_templates": {
+      "description": "Host templates (register 0): `name` is required.",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/host"
+          }
+        ],
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "hosts": {
+      "description": "Monitored hosts (register 1).",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/host"
+          }
+        ],
+        "not": {
+          "required": [
+            "name"
+          ]
+        }
+      }
+    },
+    "service_templates": {
+      "description": "Service templates (register 0): `name` is required.",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/service"
+          }
+        ],
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "services": {
+      "description": "Monitored services (register 1).",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/service"
+          }
+        ],
+        "not": {
+          "required": [
+            "name"
+          ]
+        }
+      }
+    },
+    "timeperiods": {
+      "description": "Timeperiods. Each one is also a template, under its timeperiod_name, of those that `use` it.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/timeperiod"
+      }
+    },
+    "recurring_downtimes": {
+      "description": "Recurring downtimes (Centreon downtime cycles), scheduled by the engine.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/recurring_downtime"
+      }
+    },
+    "hostgroups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/hostgroup"
+      }
+    },
+    "servicegroups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/servicegroup"
+      }
+    },
+    "severities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/severity"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tag"
+      }
+    },
+    "host_dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dependency"
+      }
+    },
+    "service_dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dependency"
+      }
+    },
+    "contact_templates": {
+      "description": "Contact templates (register 0): `name` is required.",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/contact"
+          }
+        ],
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "contacts": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/contact"
+          }
+        ],
+        "required": [
+          "contact_name"
+        ]
+      }
+    },
+    "contactgroups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/contactgroup"
+      }
+    },
+    "host_escalations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/escalation"
+      }
+    },
+    "service_escalations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/escalation"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "positive": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "uses": {
+      "description": "Templates, in order: the first one that sets a field wins; custom macros are merged by name.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "macros": {
+      "description": "Custom macros by name without the leading underscore, e.g. {\"SNMPCOMMUNITY\": \"public\"} for _SNMPCOMMUNITY. Names are upper-cased by the engine. A value may be \"encrypt::...\" or \"raw::...\".",
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command_name",
+        "command_line"
+      ],
+      "properties": {
+        "command_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command_line": {
+          "type": "string",
+          "minLength": 1
+        },
+        "connector": {
+          "description": "Accepted for compatibility: the command runs as a plain process.",
+          "type": "string"
+        }
+      }
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Template name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "use": {
+          "$ref": "#/$defs/uses"
+        },
+        "host_name": {
+          "type": "string"
+        },
+        "host_id": {
+          "description": "_HOST_ID",
+          "$ref": "#/$defs/id"
+        },
+        "alias": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "check_command": {
+          "description": "command_name!arg1!arg2",
+          "type": "string"
+        },
+        "check_interval": {
+          "$ref": "#/$defs/count"
+        },
+        "retry_interval": {
+          "$ref": "#/$defs/count"
+        },
+        "max_check_attempts": {
+          "$ref": "#/$defs/count"
+        },
+        "active_checks_enabled": {
+          "type": "boolean"
+        },
+        "passive_checks_enabled": {
+          "type": "boolean"
+        },
+        "macros": {
+          "$ref": "#/$defs/macros"
+        },
+        "check_period": {
+          "description": "Timeperiod of the active checks; always when absent.",
+          "type": "string"
+        },
+        "timezone": {
+          "description": "Zone of the timeperiods of the host and of its services, TZ syntax (\":Europe/Paris\").",
+          "type": "string"
+        },
+        "parents": {
+          "description": "host_name of the parent hosts.",
+          "$ref": "#/$defs/names"
+        },
+        "hostgroups": {
+          "description": "Host groups the host is a member of.",
+          "$ref": "#/$defs/names"
+        },
+        "severity_id": {
+          "description": "Id of a severity of the same type.",
+          "$ref": "#/$defs/id"
+        },
+        "category_tags": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Ids of the category tags."
+        },
+        "group_tags": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Ids of the group tags."
+        },
+        "icon_id": {
+          "$ref": "#/$defs/count"
+        },
+        "acknowledgement_timeout": {
+          "description": "An acknowledgement ends after this many interval_length units; 0 or absent: never.",
+          "$ref": "#/$defs/count"
+        },
+        "notifications_enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "notification_interval": {
+          "$ref": "#/$defs/count",
+          "description": "Units of interval_length between two notifications of the same problem; 0: one. A service with 0 takes its host's."
+        },
+        "first_notification_delay": {
+          "$ref": "#/$defs/count",
+          "description": "Units of interval_length before the first notification."
+        },
+        "recovery_notification_delay": {
+          "$ref": "#/$defs/count",
+          "description": "Units of interval_length before a recovery notification."
+        },
+        "notification_options": {
+          "type": "string",
+          "description": "d,u,r,f,s for hosts, w,u,c,r,f,s for services, n (none) or a (all)."
+        },
+        "notification_period": {
+          "type": "string",
+          "description": "Notifications are sent in this timeperiod only; a service without one takes its host's."
+        },
+        "contacts": {
+          "$ref": "#/$defs/names",
+          "description": "A service with neither contacts nor contact_groups takes those of its host."
+        },
+        "contact_groups": {
+          "$ref": "#/$defs/names"
+        },
+        "event_handler": {
+          "type": "string",
+          "description": "command!args run on state changes."
+        },
+        "event_handler_enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "flap_detection_enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "flap_detection_options": {
+          "type": "string",
+          "description": "States recorded in the state history: o,d,u for hosts, o,w,c,u for services, n or a."
+        },
+        "low_flap_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "0: the global threshold."
+        },
+        "high_flap_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "0: the global threshold."
+        },
+        "check_freshness": {
+          "type": "boolean",
+          "default": false
+        },
+        "freshness_threshold": {
+          "$ref": "#/$defs/count",
+          "description": "Seconds; 0: computed from the check interval."
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Template name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "use": {
+          "$ref": "#/$defs/uses"
+        },
+        "host_name": {
+          "type": "string"
+        },
+        "service_description": {
+          "type": "string"
+        },
+        "service_id": {
+          "description": "_SERVICE_ID",
+          "$ref": "#/$defs/id"
+        },
+        "check_command": {
+          "description": "command_name!arg1!arg2",
+          "type": "string"
+        },
+        "check_interval": {
+          "$ref": "#/$defs/count"
+        },
+        "retry_interval": {
+          "$ref": "#/$defs/count"
+        },
+        "max_check_attempts": {
+          "$ref": "#/$defs/count"
+        },
+        "active_checks_enabled": {
+          "type": "boolean"
+        },
+        "passive_checks_enabled": {
+          "type": "boolean"
+        },
+        "macros": {
+          "$ref": "#/$defs/macros"
+        },
+        "check_period": {
+          "description": "Timeperiod of the active checks; always when absent.",
+          "type": "string"
+        },
+        "severity_id": {
+          "description": "Id of a severity of the same type.",
+          "$ref": "#/$defs/id"
+        },
+        "category_tags": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Ids of the category tags."
+        },
+        "group_tags": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Ids of the group tags."
+        },
+        "icon_id": {
+          "$ref": "#/$defs/count"
+        },
+        "acknowledgement_timeout": {
+          "description": "An acknowledgement ends after this many interval_length units; 0 or absent: never.",
+          "$ref": "#/$defs/count"
+        },
+        "timezone": {
+          "description": "Zone of the timeperiods of the service; the zone of its host when absent.",
+          "type": "string"
+        },
+        "servicegroups": {
+          "description": "Service groups the service is a member of.",
+          "$ref": "#/$defs/names"
+        },
+        "notifications_enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "notification_interval": {
+          "$ref": "#/$defs/count",
+          "description": "Units of interval_length between two notifications of the same problem; 0: one. A service with 0 takes its host's."
+        },
+        "first_notification_delay": {
+          "$ref": "#/$defs/count",
+          "description": "Units of interval_length before the first notification."
+        },
+        "recovery_notification_delay": {
+          "$ref": "#/$defs/count",
+          "description": "Units of interval_length before a recovery notification."
+        },
+        "notification_options": {
+          "type": "string",
+          "description": "d,u,r,f,s for hosts, w,u,c,r,f,s for services, n (none) or a (all)."
+        },
+        "notification_period": {
+          "type": "string",
+          "description": "Notifications are sent in this timeperiod only; a service without one takes its host's."
+        },
+        "contacts": {
+          "$ref": "#/$defs/names",
+          "description": "A service with neither contacts nor contact_groups takes those of its host."
+        },
+        "contact_groups": {
+          "$ref": "#/$defs/names"
+        },
+        "event_handler": {
+          "type": "string",
+          "description": "command!args run on state changes."
+        },
+        "event_handler_enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "flap_detection_enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "flap_detection_options": {
+          "type": "string",
+          "description": "States recorded in the state history: o,d,u for hosts, o,w,c,u for services, n or a."
+        },
+        "low_flap_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "0: the global threshold."
+        },
+        "high_flap_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "0: the global threshold."
+        },
+        "check_freshness": {
+          "type": "boolean",
+          "default": false
+        },
+        "freshness_threshold": {
+          "$ref": "#/$defs/count",
+          "description": "Seconds; 0: computed from the check interval."
+        },
+        "is_volatile": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "names": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "timeperiod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timeperiod_name"
+      ],
+      "properties": {
+        "timeperiod_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alias": {
+          "type": "string"
+        },
+        "use": {
+          "description": "Included timeperiods, in order (templates).",
+          "$ref": "#/$defs/uses"
+        },
+        "sunday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "monday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "tuesday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "wednesday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "thursday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "friday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "saturday": {
+          "description": "HH:MM-HH:MM[,HH:MM-HH:MM...]; 24:00 is the end of the day.",
+          "type": "string"
+        },
+        "exceptions": {
+          "description": "Exceptions, as the timeperiod_exceptions of centreon-web: the days in the Engine syntax (\"2026-12-25\", \"december 25\", \"day 1 - 15\", \"monday -1\", \"monday 1 january\"...) and the ranges.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "days",
+              "timerange"
+            ],
+            "properties": {
+              "days": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timerange": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "exclude": {
+          "description": "Excluded timeperiods.",
+          "$ref": "#/$defs/names"
+        }
+      }
+    },
+    "recurring_downtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "downtime_id",
+        "periods"
+      ],
+      "properties": {
+        "downtime_id": {
+          "description": "downtime.dt_id: the comment of its downtimes is [Downtime cycle #id].",
+          "$ref": "#/$defs/id"
+        },
+        "downtime_name": {
+          "type": "string"
+        },
+        "timezone": {
+          "description": "Zone of the periods; the zone of each host when absent.",
+          "type": "string"
+        },
+        "host_ids": {
+          "description": "Hosts put in downtime with all their services.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "service_ids": {
+          "description": "Services put in downtime, as [host_id, service_id].",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "periods": {
+          "description": "Periods in the Engine syntax: \"weekly:1,7 22:00-24:00 fixed\", \"monthly:1,15 08:00-09:00 flexible:3600\", \"nth:last:5 10:00-11:00 fixed\" (days 1 = Monday).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "hostgroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hostgroup_name"
+      ],
+      "properties": {
+        "hostgroup_id": {
+          "description": "hostgroup.hg_id: no event is sent without it.",
+          "$ref": "#/$defs/id"
+        },
+        "hostgroup_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alias": {
+          "type": "string"
+        },
+        "members": {
+          "description": "host_name of the members.",
+          "$ref": "#/$defs/names"
+        }
+      }
+    },
+    "servicegroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "servicegroup_name"
+      ],
+      "properties": {
+        "servicegroup_id": {
+          "$ref": "#/$defs/id"
+        },
+        "servicegroup_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alias": {
+          "type": "string"
+        },
+        "members": {
+          "description": "Members as [host_name, service_description].",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "servicegroup_members": {
+          "description": "Service groups whose members are members.",
+          "$ref": "#/$defs/names"
+        }
+      }
+    },
+    "severity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "severity_name",
+        "level",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "severity_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "level": {
+          "$ref": "#/$defs/positive"
+        },
+        "icon_id": {
+          "$ref": "#/$defs/count"
+        },
+        "type": {
+          "enum": [
+            "host",
+            "service"
+          ]
+        }
+      }
+    },
+    "tag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "tag_name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "tag_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "hostcategory",
+            "servicecategory",
+            "hostgroup",
+            "servicegroup"
+          ]
+        }
+      }
+    },
+    "dependency": {
+      "description": "A host dependency (host_name, hostgroup_name and their dependent_ forms) or a service dependency (the same with service_description, servicegroup_name and their dependent_ forms), with the keys of the .cfg generator; expanded to one dependency per dependent and master.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host_name": {
+          "$ref": "#/$defs/names"
+        },
+        "hostgroup_name": {
+          "$ref": "#/$defs/names"
+        },
+        "dependent_host_name": {
+          "$ref": "#/$defs/names"
+        },
+        "dependent_hostgroup_name": {
+          "$ref": "#/$defs/names"
+        },
+        "service_description": {
+          "$ref": "#/$defs/names"
+        },
+        "servicegroup_name": {
+          "$ref": "#/$defs/names"
+        },
+        "dependent_service_description": {
+          "$ref": "#/$defs/names"
+        },
+        "dependent_servicegroup_name": {
+          "$ref": "#/$defs/names"
+        },
+        "execution_failure_criteria": {
+          "description": "States of the master that skip the checks of the dependent: o,d,u,p for hosts, o,w,c,u,p for services, n (none) or a (all).",
+          "type": "string"
+        },
+        "notification_failure_criteria": {
+          "description": "States of the master that suppress the notifications of the dependent (kept for the notifications).",
+          "type": "string"
+        },
+        "inherits_parent": {
+          "type": "boolean"
+        },
+        "dependency_period": {
+          "description": "The dependency applies in this timeperiod only.",
+          "type": "string"
+        }
+      }
+    },
+    "contact": {
+      "description": "A contact (define contact): with `name`, a template.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Template name (contact_templates only)."
+        },
+        "use": {
+          "$ref": "#/$defs/uses"
+        },
+        "contact_name": {
+          "type": "string"
+        },
+        "alias": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "pager": {
+          "type": "string"
+        },
+        "address1": {
+          "type": "string"
+        },
+        "address2": {
+          "type": "string"
+        },
+        "address3": {
+          "type": "string"
+        },
+        "address4": {
+          "type": "string"
+        },
+        "address5": {
+          "type": "string"
+        },
+        "address6": {
+          "type": "string"
+        },
+        "host_notifications_enabled": {
+          "type": "boolean"
+        },
+        "service_notifications_enabled": {
+          "type": "boolean"
+        },
+        "host_notification_options": {
+          "type": "string",
+          "description": "d,u,r,f,s, n or a."
+        },
+        "service_notification_options": {
+          "type": "string",
+          "description": "w,u,c,r,f,s, n or a."
+        },
+        "host_notification_period": {
+          "type": "string"
+        },
+        "service_notification_period": {
+          "type": "string"
+        },
+        "host_notification_commands": {
+          "$ref": "#/$defs/names",
+          "description": "Command names, without arguments."
+        },
+        "service_notification_commands": {
+          "$ref": "#/$defs/names",
+          "description": "Command names, without arguments."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "Zone of its notification periods."
+        },
+        "contactgroups": {
+          "$ref": "#/$defs/names",
+          "description": "Contact groups it is a member of."
+        }
+      }
+    },
+    "contactgroup": {
+      "description": "A contact group (define contactgroup).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contactgroup_name"
+      ],
+      "properties": {
+        "contactgroup_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alias": {
+          "type": "string"
+        },
+        "members": {
+          "$ref": "#/$defs/names",
+          "description": "Contact names."
+        },
+        "contactgroup_members": {
+          "$ref": "#/$defs/names",
+          "description": "Contact groups whose members are members."
+        }
+      }
+    },
+    "escalation": {
+      "description": "A host escalation (host_name, hostgroup_name) or a service escalation (with service_description, servicegroup_name), with the keys of the .cfg generator; expanded to one escalation per object. Escalations have contact groups only.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host_name": {
+          "$ref": "#/$defs/names"
+        },
+        "hostgroup_name": {
+          "$ref": "#/$defs/names"
+        },
+        "service_description": {
+          "$ref": "#/$defs/names"
+        },
+        "servicegroup_name": {
+          "$ref": "#/$defs/names"
+        },
+        "contact_groups": {
+          "$ref": "#/$defs/names"
+        },
+        "first_notification": {
+          "$ref": "#/$defs/count",
+          "description": "Absent: the escalation never applies, as in Engine."
+        },
+        "last_notification": {
+          "$ref": "#/$defs/count",
+          "description": "0: no upper bound."
+        },
+        "notification_interval": {
+          "type": "number",
+          "minimum": 0
+        },
+        "escalation_period": {
+          "type": "string"
+        },
+        "escalation_options": {
+          "type": "string",
+          "description": "d,u,r for hosts, w,u,c,r for services, n or a."
+        }
+      }
+    }
+  }
+}

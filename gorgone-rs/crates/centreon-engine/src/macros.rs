@@ -61,6 +61,13 @@ pub struct Context<'a> {
     /// Keys of `encrypt::` values: with them, values are read as Engine
     /// reads them (`macros/grab_value.cc`), `raw::` stripped.
     secrets: Option<&'a Credentials>,
+    /// Macros of a notification or an event handler: notification,
+    /// contact, date, output and summary macros, by name.
+    extra: Option<&'a HashMap<String, String>>,
+    /// `STRIP_ILLEGAL_MACRO_CHARS` (`clean_macro_chars`, `macros.cc:692-719`):
+    /// these characters, control characters and DEL are removed from the
+    /// macro values.
+    strip: Option<&'a str>,
 }
 
 impl<'a> Context<'a> {
@@ -77,6 +84,33 @@ impl<'a> Context<'a> {
             service,
             args: Vec::new(),
             secrets: None,
+            extra: None,
+            strip: None,
+        }
+    }
+
+    /// Adds the macros of a notification or an event handler.
+    #[must_use]
+    pub fn with_extra(mut self, extra: &'a HashMap<String, String>) -> Self {
+        self.extra = Some(extra);
+        self
+    }
+
+    /// Removes `illegal` characters from the macro values, as notification
+    /// and event handler commands do.
+    #[must_use]
+    pub fn stripping(mut self, illegal: &'a str) -> Self {
+        self.strip = Some(illegal);
+        self
+    }
+
+    fn clean(&self, value: String) -> String {
+        match self.strip {
+            Some(illegal) => value
+                .chars()
+                .filter(|c| (*c as u32) >= 32 && *c != '\u{7f}' && !illegal.contains(*c))
+                .collect(),
+            None => value,
         }
     }
 
@@ -114,6 +148,9 @@ impl<'a> Context<'a> {
     fn grab_raw(&self, name: &str, depth: u32) -> Option<String> {
         let host = &self.host;
         let service = self.service.as_ref();
+        if let Some(value) = self.extra.and_then(|extra| extra.get(name)) {
+            return Some(value.clone());
+        }
         let value = match name {
             "HOSTNAME" | "HOSTDISPLAYNAME" => host.name.to_owned(),
             "HOSTALIAS" => host.alias.to_owned(),
@@ -182,6 +219,7 @@ impl<'a> Context<'a> {
             };
             let name = &after[..end];
             match self.grab(name, depth) {
+                Some(value) if depth == 0 => output.push_str(&self.clean(value)),
                 Some(value) => output.push_str(&value),
                 None if depth > 0 => {
                     output.push('$');
@@ -297,6 +335,33 @@ mod tests {
         );
         assert_eq!(ctx.expand("$_HOSTURL$"), "http://10.0.0.1/$NOPE$");
         assert_eq!(ctx.expand("no end $HOSTNAME"), "no end $HOSTNAME");
+    }
+
+    #[test]
+    fn notification_macros_and_stripping() {
+        let users = HashMap::new();
+        let macros = host_macros();
+        let host = HostView {
+            name: "h1",
+            alias: "Host one",
+            address: "10.0.0.1",
+            macros: Some(&macros),
+            state: StateView::default(),
+        };
+        let extra: HashMap<String, String> = [
+            ("NOTIFICATIONTYPE", "PROBLEM"),
+            ("HOSTOUTPUT", "down <now> & `x`"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+        .collect();
+        let ctx = Context::new(&users, host, None)
+            .with_extra(&extra)
+            .stripping("`~$&|'\"<>");
+        assert_eq!(
+            ctx.expand("$NOTIFICATIONTYPE$: $HOSTNAME$ $HOSTOUTPUT$"),
+            "PROBLEM: h1 down now  x"
+        );
     }
 
     #[test]

@@ -26,6 +26,8 @@ pub(super) struct Links {
     pub children: Vec<Vec<usize>>,
     /// Dependencies of each dependent object, with the index of its master.
     pub masters: Vec<Vec<(usize, DependencyConf)>>,
+    /// Escalations of each object: indexes in the configuration's list.
+    pub escalations: Vec<Vec<usize>>,
 }
 
 /// The configuration events of a reload, in Engine's order.
@@ -344,7 +346,13 @@ impl Core {
             parents: vec![Vec::new(); count],
             children: vec![Vec::new(); count],
             masters: vec![Vec::new(); count],
+            escalations: vec![Vec::new(); count],
         };
+        for (position, escalation) in config.escalations.iter().enumerate() {
+            if let Some(&index) = self.by_key.get(&escalation.key) {
+                links.escalations[index].push(position);
+            }
+        }
         for (index, obj) in self.objs.iter().enumerate() {
             let ObjConf::Host(host) = &obj.conf else {
                 continue;
@@ -391,6 +399,17 @@ impl Core {
     /// `host.cc:3706-3755`), quirks included: a dependency outside its
     /// period authorizes everything.
     pub(super) fn authorized_by_dependencies(&mut self, index: usize, depth: usize) -> bool {
+        self.authorized_by_dependencies_for(index, depth, false)
+    }
+
+    /// `authorized_by_dependencies` of the execution (`notification`
+    /// false) or the notification failure criteria.
+    pub(super) fn authorized_by_dependencies_for(
+        &mut self,
+        index: usize,
+        depth: usize,
+        notification: bool,
+    ) -> bool {
         if depth > self.objs.len() {
             return true;
         }
@@ -409,13 +428,20 @@ impl Core {
             } else {
                 st.state
             };
-            if dependency.execution.on(state) {
+            let criteria = if notification {
+                dependency.notification
+            } else {
+                dependency.execution
+            };
+            if criteria.on(state) {
                 return false;
             }
-            if state == code::OK && !st.checked && dependency.execution.pending {
+            if state == code::OK && !st.checked && criteria.pending {
                 return false;
             }
-            if dependency.inherits_parent && !self.authorized_by_dependencies(master, depth + 1) {
+            if dependency.inherits_parent
+                && !self.authorized_by_dependencies_for(master, depth + 1, notification)
+            {
                 return false;
             }
         }
@@ -547,6 +573,8 @@ impl Core {
         let Some((_, name)) = self.poller() else {
             return;
         };
+        #[cfg(test)]
+        self.logged.push(line.to_owned());
         let ids = |host: &str, service: Option<&str>| -> u64 {
             match service {
                 None => self

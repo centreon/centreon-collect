@@ -672,3 +672,46 @@ message TagInfo {
   uint64 id = 1;
   TagType type = 2;
 }
+
+// neb:pb_adaptive_service (element 28): what an external command changed.
+message AdaptiveService {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+
+  optional bool notify = 3;
+  optional bool active_checks = 4;
+  optional bool should_be_scheduled = 5;
+  optional bool passive_checks = 6;
+  optional bool event_handler_enabled = 7;
+  optional bool flap_detection_enabled = 8;
+  optional bool obsess_over_service = 9;
+  optional string event_handler = 10;
+  optional string check_command = 11;
+  optional uint32 check_interval = 12;
+  optional uint32 retry_interval = 13;
+  optional uint32 max_check_attempts = 14;
+  optional bool check_freshness = 15;
+  optional string check_period = 16;
+  optional string notification_period = 17;
+}
+
+// neb:pb_adaptive_host (element 31).
+message AdaptiveHost {
+  uint64 host_id = 1;
+
+  optional bool notify = 2;
+  optional bool active_checks = 3;
+  optional bool should_be_scheduled = 4;
+  optional bool passive_checks = 5;
+  optional bool event_handler_enabled = 6;
+  optional bool flap_detection = 7;
+  optional bool obsess_over_host = 8;
+  optional string event_handler = 9;
+  optional string check_command = 10;
+  optional uint32 check_interval = 11;
+  optional uint32 retry_interval = 12;
+  optional uint32 max_check_attempts = 13;
+  optional bool check_freshness = 14;
+  optional string check_period = 15;
+  optional string notification_period = 16;
+}

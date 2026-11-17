@@ -192,6 +192,185 @@ pub struct DependencyConf {
     pub period: String,
 }
 
+/// Notification flags of a notifier, a contact or an escalation
+/// (`notifier::notification_flag`, `engine/inc/com/centreon/engine/notifier.hh:62-79`);
+/// also the states of `flap_detection_options`.
+pub mod notify_on {
+    pub const UP: u32 = 1;
+    pub const DOWN: u32 = 2;
+    pub const UNREACHABLE: u32 = 4;
+    pub const OK: u32 = 8;
+    pub const WARNING: u32 = 16;
+    pub const CRITICAL: u32 = 32;
+    pub const UNKNOWN: u32 = 64;
+    pub const FLAPPING_START: u32 = 128;
+    pub const FLAPPING_STOP: u32 = 256;
+    pub const FLAPPING_DISABLED: u32 = 512;
+    pub const DOWNTIME: u32 = 1024;
+    /// The three flapping flags (`f`).
+    pub const FLAPPING: u32 = FLAPPING_START | FLAPPING_STOP | FLAPPING_DISABLED;
+    /// Default `notification_options` of a host (`host_helper.cc:276-279`).
+    pub const HOST_DEFAULT: u32 = UP | DOWN | UNREACHABLE | FLAPPING | DOWNTIME;
+    /// Default `notification_options` of a service (`service_helper.cc:237-240`).
+    pub const SERVICE_DEFAULT: u32 = OK | WARNING | CRITICAL | UNKNOWN | FLAPPING | DOWNTIME;
+
+    /// Flag of state `state` of a host or a service.
+    #[must_use]
+    pub fn state(host: bool, state: u32) -> u32 {
+        if host {
+            [UP, DOWN, UNREACHABLE]
+                .get(state as usize)
+                .copied()
+                .unwrap_or(UP)
+        } else {
+            [OK, WARNING, CRITICAL, UNKNOWN]
+                .get(state as usize)
+                .copied()
+                .unwrap_or(UNKNOWN)
+        }
+    }
+
+    /// `notification_options` (and the contact options), as
+    /// `message_helper.cc:187-253` reads them: `None` on an unknown token.
+    /// `r` is the recovery (UP or OK), `f` flapping, `s` downtime, `n`
+    /// none (resets), `a` all.
+    #[must_use]
+    pub fn parse(value: &str, host: bool) -> Option<u32> {
+        let mut flags = 0;
+        for item in value.split(',').map(str::trim).filter(|i| !i.is_empty()) {
+            flags |= match (host, item) {
+                (true, "d" | "down") => DOWN,
+                (true, "u" | "unreachable") => UNREACHABLE,
+                (true, "r" | "recovery") => UP,
+                (false, "u" | "unknown") => UNKNOWN,
+                (false, "w" | "warning") => WARNING,
+                (false, "c" | "critical") => CRITICAL,
+                (false, "r" | "recovery") => OK,
+                (_, "f" | "flapping") => FLAPPING,
+                (_, "s" | "downtime") => DOWNTIME,
+                (_, "n" | "none") => {
+                    flags = 0;
+                    0
+                }
+                (true, "a" | "all") => HOST_DEFAULT,
+                (false, "a" | "all") => SERVICE_DEFAULT,
+                _ => return None,
+            };
+        }
+        Some(flags)
+    }
+
+    /// `escalation_options` (`hostescalation_helper`, `serviceescalation_helper`
+    /// hooks; applier mapping `applier/hostescalation.cc:54-64`,
+    /// `applier/serviceescalation.cc:60-80`).
+    #[must_use]
+    pub fn parse_escalation(value: &str, host: bool) -> Option<u32> {
+        let mut flags = 0;
+        for item in value.split(',').map(str::trim).filter(|i| !i.is_empty()) {
+            flags |= match (host, item) {
+                (true, "d" | "down") => DOWN,
+                (true, "u" | "unreachable") => UNREACHABLE,
+                (true, "r" | "recovery") => UP,
+                (true, "a" | "all") => UP | DOWN | UNREACHABLE,
+                (false, "w" | "warning") => WARNING,
+                (false, "u" | "unknown") => UNKNOWN,
+                (false, "c" | "critical") => CRITICAL,
+                (false, "r" | "recovery") => OK,
+                (false, "a" | "all") => OK | WARNING | CRITICAL | UNKNOWN,
+                (_, "n" | "none") => {
+                    flags = 0;
+                    0
+                }
+                _ => return None,
+            };
+        }
+        Some(flags)
+    }
+
+    /// `flap_detection_options` (`service_helper.cc:71-95`,
+    /// `host_helper.cc:207-229`): the states recorded in the history. For
+    /// a service `n` adds nothing (it does not reset), for a host it resets.
+    #[must_use]
+    pub fn parse_flap(value: &str, host: bool) -> Option<u32> {
+        let mut flags = 0;
+        for item in value.split(',').map(str::trim).filter(|i| !i.is_empty()) {
+            flags |= match (host, item) {
+                (true, "o" | "up") => UP,
+                (true, "d" | "down") => DOWN,
+                (true, "u" | "unreachable") => UNREACHABLE,
+                (true, "a" | "all") => UP | DOWN | UNREACHABLE,
+                (true, "n" | "none") => {
+                    flags = 0;
+                    0
+                }
+                (false, "o" | "ok") => OK,
+                (false, "w" | "warning") => WARNING,
+                (false, "u" | "unknown") => UNKNOWN,
+                (false, "c" | "critical") => CRITICAL,
+                (false, "a" | "all") => OK | WARNING | CRITICAL | UNKNOWN,
+                (false, "n" | "none") => 0,
+                _ => return None,
+            };
+        }
+        Some(flags)
+    }
+}
+
+/// `define contact` (`contact_helper.cc`, `engine/src/contact.cc`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContactConf {
+    pub name: String,
+    /// The name when unset.
+    pub alias: String,
+    pub email: String,
+    pub pager: String,
+    /// `address1` to `address6`.
+    pub addresses: [String; 6],
+    pub host_notifications_enabled: bool,
+    pub service_notifications_enabled: bool,
+    /// [`notify_on`] flags; none by default.
+    pub host_notification_options: u32,
+    pub service_notification_options: u32,
+    /// Always when empty.
+    pub host_notification_period: String,
+    pub service_notification_period: String,
+    /// Command names, looked up as they are (no `!` arguments).
+    pub host_notification_commands: Vec<String>,
+    pub service_notification_commands: Vec<String>,
+    /// `timezone` of its notification periods.
+    pub timezone: String,
+    /// Contact groups it is a member of, sorted: the first is
+    /// `$CONTACTGROUPNAME$`.
+    pub groups: Vec<String>,
+}
+
+/// `define contactgroup`, members flattened (`applier/contactgroup.cc:201-232`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContactGroupConf {
+    pub name: String,
+    pub alias: String,
+    /// Contact names, sorted.
+    pub members: Vec<String>,
+}
+
+/// One escalation of a host or service (`engine/src/escalation.cc`,
+/// `hostescalation.cc`, `serviceescalation.cc`), expanded per object.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EscalationConf {
+    pub key: Key,
+    pub first_notification: u32,
+    /// 0: no upper bound.
+    pub last_notification: u32,
+    /// In units of `interval_length`; at least 0.
+    pub notification_interval: f64,
+    /// Always when empty.
+    pub escalation_period: String,
+    /// [`notify_on`] state flags.
+    pub escalate_on: u32,
+    /// Contact groups only: escalations have no contacts.
+    pub contact_groups: Vec<String>,
+}
+
 /// Comma-separated names, trimmed, empty ones dropped (`fill_string_group`).
 #[must_use]
 pub fn names(value: &str) -> Vec<String> {

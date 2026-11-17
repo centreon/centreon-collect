@@ -7,17 +7,17 @@ The architecture, the protocol and the migration path are in
 
 ## Layout
 
-| Path                     | Content                                                                                                                                                                                                                                                                                                                                           |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `proto/`                 | gRPC contracts                                                                                                                                                                                                                                                                                                                                    |
-| `crates/gorgone-proto`   | generated gRPC code                                                                                                                                                                                                                                                                                                                               |
-| `crates/gorgone-core`    | config bundles, command allowlist, legacy codes                                                                                                                                                                                                                                                                                                   |
-| `crates/gorgone-server`  | REST API, agent gateway, job store, dispatcher                                                                                                                                                                                                                                                                                                    |
-| `crates/gorgone-agent`   | job executors and session with the server                                                                                                                                                                                                                                                                                                         |
-| `crates/centreon-engine` | monitoring engine, in place of Engine and its broker module (checks, timeperiods, downtimes, acknowledgements, comments, retention, encrypted macros, groups, severities, tags, parents and UNREACHABLE, dependencies, event log); run by the `centreon-engine` program of `gorgone-agent` ([docs/scheduler-design.md](docs/scheduler-design.md)) |
-| `schemas/`               | JSON Schema of the structured engine configuration centreon-web sends                                                                                                                                                                                                                                                                             |
-| `crates/gorgone-e2e`     | tests running the real server and agent together                                                                                                                                                                                                                                                                                                  |
-| `deploy/`                | container images and a two-replica demo                                                                                                                                                                                                                                                                                                           |
+| Path                     | Content                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `proto/`                 | gRPC contracts                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `crates/gorgone-proto`   | generated gRPC code                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `crates/gorgone-core`    | config bundles, command allowlist, legacy codes                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `crates/gorgone-server`  | REST API, agent gateway, job store, dispatcher                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `crates/gorgone-agent`   | job executors and session with the server                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `crates/centreon-engine` | monitoring engine, in place of Engine and its broker module (checks, timeperiods, downtimes, acknowledgements, comments, retention, encrypted macros, groups, severities, tags, parents and UNREACHABLE, dependencies, event log, notifications and escalations, event handlers, flapping, freshness, TLS to the central broker); run by the `centreon-engine` program of `gorgone-agent` ([docs/scheduler-design.md](docs/scheduler-design.md)) |
+| `schemas/`               | JSON Schema of the structured engine configuration centreon-web sends                                                                                                                                                                                                                                                                                                                                                                            |
+| `crates/gorgone-e2e`     | tests running the real server and agent together                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `deploy/`                | container images and a two-replica demo                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## Build and test
 
@@ -79,6 +79,7 @@ alone in a slim image: no centreon-collect, Gorgone, plugin, Perl, Python or
 | `central-engine`                     | the engine of the "Central" poller and its `gorgone-agent`, in the same container                                                                                                                           |
 | `engine`                             | a second container-only poller, same image; registers and deploys itself                                                                                                                                    |
 | `centreon-engine`                    | a poller with no `centengine`, no `cbd` and no `.cfg`: the `centreon-engine` program takes a structured configuration, runs the checks and feeds the central broker over BBDO; registers and deploys itself |
+| `mailpit`                            | SMTP sink of the notifications of `centreon-engine`; `verify.sh` reads the mails through its API                                                                                                            |
 | `poller`                             | the Centreon poller test image, driven by `gorgone-agent`                                                                                                                                                   |
 
 Inside an engine container the agent drives the engine over its gRPC API on a
@@ -139,8 +140,15 @@ filters of the web resources API, that its alerts and initial states reach
 `logs` in Engine's format and the web timeline API, that the child of a
 DOWN parent is UNREACHABLE, that a service is not checked while the
 service it depends on fails, that a service outside its check period is
-not checked, that a restart keeps states, attempts, downtime and
-acknowledgement (retention), and that its configuration survives a
+not checked, that a version 4 document carries its contact and the
+notification, flapping and freshness settings, that a CRITICAL HARD service
+mails its contact once with its macros resolved (Mailpit), again after its
+notification interval, and its recovery, that a downtime set through the
+web API is mailed then suppresses the notifications, that an event handler
+runs on the state changes, that a service fed alternating results through
+the web API is flapping with its alert and comment, that a stale passive
+service gets an active check, that a restart keeps states, attempts,
+downtime and acknowledgement (retention), and that its configuration survives a
 container restart, and, last, that
 the agent of `engine` moves to the other replica when the one holding its
 session stops (the agents and centreon-web reach the replicas by the name
@@ -179,6 +187,7 @@ Set `GORGONE_TEST_DATABASE_URL` to measure on MariaDB.
 cargo build --release -p gorgone-agent --features scheduler --bin centreon-engine
 cargo run --release -p centreon-engine --example load -- 10000 300 330
 crates/centreon-engine/tests/real-cbd/run.sh   # the engine against a real cbd
+TLS=1 crates/centreon-engine/tests/real-cbd/run.sh   # the same, cbd requiring TLS
 ```
 
 `/bin/true` as the plugin, the scheduler and its BBDO connection on one
@@ -193,7 +202,7 @@ broker excluded; resident memory of the whole process. Same laptop:
 
 Images of the bench, layers summed (`docker history`) / `docker save`:
 `centreon-engine` (Debian slim, basic plugins, `centreon-engine` binary of
-6.5 MB) 113 MB / 39 MB,
+7.0 MB) 114 MB / 40 MB,
 against 313 MB / 87 MB for the engine image plus 160 MB / 54 MB for the
 broker image a poller needs today. The bench image adds Perl for its
 provisioning script (170 MB / 52 MB).

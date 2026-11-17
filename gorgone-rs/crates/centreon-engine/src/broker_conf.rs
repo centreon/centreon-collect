@@ -18,6 +18,45 @@ pub struct BrokerConf {
     pub broker_name: String,
     /// `host:port` of the first TCP output, if any.
     pub address: Option<String>,
+    /// TLS settings of that output.
+    pub tls: TlsConf,
+}
+
+/// The `tls` value of an output (`broker/tls/src/factory.cc:42-118`):
+/// `yes` makes the extension mandatory, `auto` offers it, `no` (or no
+/// value) does not.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum TlsMode {
+    #[default]
+    No,
+    Yes,
+    Auto,
+}
+
+impl TlsMode {
+    /// `tls` as Broker reads it: `SimpleAtob` for yes (`yes`, `true`,
+    /// `1`), `auto`, anything else no.
+    #[must_use]
+    pub fn parse(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "yes" | "true" | "1" | "y" | "t" => Some(Self::Yes),
+            "auto" => Some(Self::Auto),
+            "no" | "false" | "0" | "n" | "f" | "" => Some(Self::No),
+            _ => None,
+        }
+    }
+}
+
+/// TLS of the connection to the central broker: the `tls`,
+/// `private_key`, `public_cert`, `ca_certificate` and `tls_hostname` keys
+/// of the `cbmod` output (paths on the poller).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TlsConf {
+    pub mode: TlsMode,
+    pub private_key: Option<String>,
+    pub public_cert: Option<String>,
+    pub ca_certificate: Option<String>,
+    pub tls_hostname: Option<String>,
 }
 
 fn string_of(value: &Value) -> Option<String> {
@@ -48,6 +87,7 @@ pub fn parse(text: &str) -> Result<BrokerConf, String> {
         Some(other) => vec![other],
         None => Vec::new(),
     };
+    let mut tls = TlsConf::default();
     let address = outputs.iter().find_map(|output| {
         let kind = output.get("type").and_then(string_of)?;
         if !matches!(kind.as_str(), "ipv4" | "ipv6" | "tcp") {
@@ -58,6 +98,23 @@ pub fn parse(text: &str) -> Result<BrokerConf, String> {
         if host.is_empty() || port.is_empty() {
             return None;
         }
+        let path = |key: &str| {
+            output
+                .get(key)
+                .and_then(string_of)
+                .map(|value| value.trim().to_owned())
+                .filter(|value| !value.is_empty())
+        };
+        tls = TlsConf {
+            mode: path("tls")
+                .and_then(|value| TlsMode::parse(&value))
+                .unwrap_or_default(),
+            private_key: path("private_key"),
+            // `certificate` is the name of `bbdo_client` endpoints.
+            public_cert: path("public_cert").or_else(|| path("certificate")),
+            ca_certificate: path("ca_certificate"),
+            tls_hostname: path("tls_hostname"),
+        };
         Some(if host.contains(':') && !host.starts_with('[') {
             format!("[{host}]:{port}")
         } else {
@@ -69,6 +126,7 @@ pub fn parse(text: &str) -> Result<BrokerConf, String> {
         poller_name: text_of("poller_name"),
         broker_name: text_of("broker_name"),
         address,
+        tls,
     })
 }
 
@@ -100,6 +158,24 @@ mod tests {
                 poller_name: "rust-poller".into(),
                 broker_name: "rust-poller-module".into(),
                 address: Some("broker:5669".into()),
+                tls: TlsConf::default(),
+            }
+        );
+        let conf = parse(
+            r#"{"centreonBroker":{"poller_id":4,
+            "output":[{"type":"ipv4","host":"broker","port":"5669","tls":"auto",
+                       "private_key":"/etc/k.pem","public_cert":"/etc/c.pem",
+                       "ca_certificate":"/etc/ca.pem","tls_hostname":"central"}]}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            conf.tls,
+            TlsConf {
+                mode: TlsMode::Auto,
+                private_key: Some("/etc/k.pem".into()),
+                public_cert: Some("/etc/c.pem".into()),
+                ca_certificate: Some("/etc/ca.pem".into()),
+                tls_hostname: Some("central".into()),
             }
         );
     }

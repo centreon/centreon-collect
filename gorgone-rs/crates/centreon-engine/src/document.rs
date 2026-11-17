@@ -1,5 +1,5 @@
-//! The structured configuration document, versions 1 to 3
-//! (`gorgone-rs/schemas/engine-configuration.v3.json`): what centreon-web
+//! The structured configuration document, versions 1 to 4
+//! (`gorgone-rs/schemas/engine-configuration.v4.json`): what centreon-web
 //! sends instead of the `.cfg` files. Its objects become the raw objects of
 //! the file reader, so that templates are resolved and objects checked by
 //! the same code ([`cfg::build`]): both inputs give the same model.
@@ -16,6 +16,12 @@
 //! 1-2 would refuse every document using them: a new version lets
 //! gorgone-server refuse it up front (409) instead of a failed apply.
 //!
+//! Version 4 adds notifications (contacts, contact groups, escalations,
+//! the notification keys of hosts and services), event handlers,
+//! flapping, freshness and the TLS of the connection to the central
+//! broker. Nothing changes meaning; a new version for the same reason as
+//! version 3.
+//!
 //! Every object refuses a field it does not know: a field the engine would
 //! ignore is a behaviour it would silently not have (a check period, a
 //! downtime...), so the whole document is refused and the configuration in
@@ -29,7 +35,7 @@ use crate::cfg::{self, Kind, LogLevel, MonitoringConfig, RawObject, Report, Sett
 
 /// Latest version of the document format this engine reads; it also
 /// reads the previous ones.
-pub const VERSION: u32 = 3;
+pub const VERSION: u32 = 4;
 
 /// The whole document.
 #[derive(Debug, Clone, Deserialize)]
@@ -68,6 +74,81 @@ pub(crate) struct Document {
     pub host_dependencies: Vec<DependencyDoc>,
     #[serde(default)]
     pub service_dependencies: Vec<DependencyDoc>,
+    #[serde(default)]
+    pub contact_templates: Vec<ContactDoc>,
+    #[serde(default)]
+    pub contacts: Vec<ContactDoc>,
+    #[serde(default)]
+    pub contactgroups: Vec<ContactGroupDoc>,
+    #[serde(default)]
+    pub host_escalations: Vec<EscalationDoc>,
+    #[serde(default)]
+    pub service_escalations: Vec<EscalationDoc>,
+}
+
+/// A contact or a contact template (`define contact`).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ContactDoc {
+    pub name: Option<String>,
+    #[serde(default, rename = "use")]
+    pub uses: Vec<String>,
+    pub contact_name: Option<String>,
+    pub alias: Option<String>,
+    pub email: Option<String>,
+    pub pager: Option<String>,
+    pub address1: Option<String>,
+    pub address2: Option<String>,
+    pub address3: Option<String>,
+    pub address4: Option<String>,
+    pub address5: Option<String>,
+    pub address6: Option<String>,
+    pub host_notifications_enabled: Option<bool>,
+    pub service_notifications_enabled: Option<bool>,
+    pub host_notification_options: Option<String>,
+    pub service_notification_options: Option<String>,
+    pub host_notification_period: Option<String>,
+    pub service_notification_period: Option<String>,
+    #[serde(default)]
+    pub host_notification_commands: Vec<String>,
+    #[serde(default)]
+    pub service_notification_commands: Vec<String>,
+    pub timezone: Option<String>,
+    #[serde(default)]
+    pub contactgroups: Vec<String>,
+}
+
+/// A contact group (`define contactgroup`).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ContactGroupDoc {
+    pub contactgroup_name: String,
+    pub alias: Option<String>,
+    #[serde(default)]
+    pub members: Vec<String>,
+    #[serde(default)]
+    pub contactgroup_members: Vec<String>,
+}
+
+/// A host or service escalation, with the keys the .cfg generator writes.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct EscalationDoc {
+    #[serde(default)]
+    pub host_name: Vec<String>,
+    #[serde(default)]
+    pub hostgroup_name: Vec<String>,
+    #[serde(default)]
+    pub service_description: Vec<String>,
+    #[serde(default)]
+    pub servicegroup_name: Vec<String>,
+    #[serde(default)]
+    pub contact_groups: Vec<String>,
+    pub first_notification: Option<u32>,
+    pub last_notification: Option<u32>,
+    pub notification_interval: Option<f64>,
+    pub escalation_period: Option<String>,
+    pub escalation_options: Option<String>,
 }
 
 /// A host group (`define hostgroup`), members by host name.
@@ -202,6 +283,42 @@ pub(crate) struct Broker {
     pub address: String,
     #[serde(default)]
     pub name: String,
+    /// TLS of the connection, the keys of the `cbmod` output (version 4).
+    pub tls: Option<BrokerTlsDoc>,
+}
+
+/// `tls`, `private_key`, `public_cert`, `ca_certificate`, `tls_hostname`
+/// of the `cbmod` output: paths on the poller.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct BrokerTlsDoc {
+    pub tls: String,
+    pub private_key: Option<String>,
+    pub public_cert: Option<String>,
+    pub ca_certificate: Option<String>,
+    pub tls_hostname: Option<String>,
+}
+
+impl Broker {
+    /// The TLS settings of the connection (no TLS without them).
+    pub fn tls_conf(&self) -> crate::broker_conf::TlsConf {
+        let Some(tls) = &self.tls else {
+            return crate::broker_conf::TlsConf::default();
+        };
+        let path = |value: &Option<String>| {
+            value
+                .as_ref()
+                .map(|v| v.trim().to_owned())
+                .filter(|v| !v.is_empty())
+        };
+        crate::broker_conf::TlsConf {
+            mode: crate::broker_conf::TlsMode::parse(&tls.tls).unwrap_or_default(),
+            private_key: path(&tls.private_key),
+            public_cert: path(&tls.public_cert),
+            ca_certificate: path(&tls.ca_certificate),
+            tls_hostname: path(&tls.tls_hostname),
+        }
+    }
 }
 
 /// Global settings; Engine's default for each one absent.
@@ -228,9 +345,106 @@ pub(crate) struct SettingsDoc {
     pub enable_predictive_host_dependency_checks: Option<bool>,
     pub enable_predictive_service_dependency_checks: Option<bool>,
     pub cached_host_check_horizon: Option<u32>,
+    pub enable_notifications: Option<bool>,
+    pub notification_timeout: Option<u32>,
+    pub log_notifications: Option<bool>,
+    pub log_level_notifications: Option<String>,
+    pub log_level_runtime: Option<String>,
+    pub date_format: Option<String>,
+    pub illegal_macro_output_chars: Option<String>,
+    pub admin_email: Option<String>,
+    pub admin_pager: Option<String>,
+    pub enable_event_handlers: Option<bool>,
+    pub global_host_event_handler: Option<String>,
+    pub global_service_event_handler: Option<String>,
+    pub event_handler_timeout: Option<u32>,
+    pub log_event_handlers: Option<bool>,
+    pub enable_flap_detection: Option<bool>,
+    pub low_service_flap_threshold: Option<f64>,
+    pub high_service_flap_threshold: Option<f64>,
+    pub low_host_flap_threshold: Option<f64>,
+    pub high_host_flap_threshold: Option<f64>,
+    pub check_service_freshness: Option<bool>,
+    pub check_host_freshness: Option<bool>,
+    pub service_freshness_check_interval: Option<u32>,
+    pub host_freshness_check_interval: Option<u32>,
+    pub additional_freshness_latency: Option<u32>,
 }
 
 impl SettingsDoc {
+    /// The version 4 settings given, as the main file would write them.
+    fn version_4_values(&self) -> Vec<(&'static str, String)> {
+        let flag = |v: Option<bool>| v.map(|v| if v { "1" } else { "0" }.to_owned());
+        let num = |v: Option<u32>| v.map(|v| v.to_string());
+        let float = |v: Option<f64>| v.map(|v| v.to_string());
+        let text = |v: &Option<String>| v.clone();
+        [
+            ("enable_notifications", flag(self.enable_notifications)),
+            ("notification_timeout", num(self.notification_timeout)),
+            ("log_notifications", flag(self.log_notifications)),
+            (
+                "log_level_notifications",
+                text(&self.log_level_notifications),
+            ),
+            ("log_level_runtime", text(&self.log_level_runtime)),
+            ("date_format", text(&self.date_format)),
+            (
+                "illegal_macro_output_chars",
+                text(&self.illegal_macro_output_chars),
+            ),
+            ("admin_email", text(&self.admin_email)),
+            ("admin_pager", text(&self.admin_pager)),
+            ("enable_event_handlers", flag(self.enable_event_handlers)),
+            (
+                "global_host_event_handler",
+                text(&self.global_host_event_handler),
+            ),
+            (
+                "global_service_event_handler",
+                text(&self.global_service_event_handler),
+            ),
+            ("event_handler_timeout", num(self.event_handler_timeout)),
+            ("log_event_handlers", flag(self.log_event_handlers)),
+            ("enable_flap_detection", flag(self.enable_flap_detection)),
+            (
+                "low_service_flap_threshold",
+                float(self.low_service_flap_threshold),
+            ),
+            (
+                "high_service_flap_threshold",
+                float(self.high_service_flap_threshold),
+            ),
+            (
+                "low_host_flap_threshold",
+                float(self.low_host_flap_threshold),
+            ),
+            (
+                "high_host_flap_threshold",
+                float(self.high_host_flap_threshold),
+            ),
+            (
+                "check_service_freshness",
+                flag(self.check_service_freshness),
+            ),
+            ("check_host_freshness", flag(self.check_host_freshness)),
+            (
+                "service_freshness_check_interval",
+                num(self.service_freshness_check_interval),
+            ),
+            (
+                "host_freshness_check_interval",
+                num(self.host_freshness_check_interval),
+            ),
+            (
+                "additional_freshness_latency",
+                num(self.additional_freshness_latency),
+            ),
+        ]
+        .into_iter()
+        .filter_map(|(key, value)| value.map(|value| (key, value)))
+        .collect()
+    }
+
     /// The first version 3 setting given, if any.
     fn version_3_field(&self) -> Option<&'static str> {
         [
@@ -309,6 +523,24 @@ pub(crate) struct HostDoc {
     pub group_tags: Vec<u64>,
     pub icon_id: Option<u64>,
     pub acknowledgement_timeout: Option<u32>,
+    pub notifications_enabled: Option<bool>,
+    pub notification_interval: Option<u32>,
+    pub first_notification_delay: Option<u32>,
+    pub recovery_notification_delay: Option<u32>,
+    pub notification_options: Option<String>,
+    pub notification_period: Option<String>,
+    #[serde(default)]
+    pub contacts: Vec<String>,
+    #[serde(default)]
+    pub contact_groups: Vec<String>,
+    pub event_handler: Option<String>,
+    pub event_handler_enabled: Option<bool>,
+    pub flap_detection_enabled: Option<bool>,
+    pub flap_detection_options: Option<String>,
+    pub low_flap_threshold: Option<f64>,
+    pub high_flap_threshold: Option<f64>,
+    pub check_freshness: Option<bool>,
+    pub freshness_threshold: Option<u32>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -339,6 +571,25 @@ pub(crate) struct ServiceDoc {
     pub group_tags: Vec<u64>,
     pub icon_id: Option<u64>,
     pub acknowledgement_timeout: Option<u32>,
+    pub notifications_enabled: Option<bool>,
+    pub notification_interval: Option<u32>,
+    pub first_notification_delay: Option<u32>,
+    pub recovery_notification_delay: Option<u32>,
+    pub notification_options: Option<String>,
+    pub notification_period: Option<String>,
+    #[serde(default)]
+    pub contacts: Vec<String>,
+    #[serde(default)]
+    pub contact_groups: Vec<String>,
+    pub event_handler: Option<String>,
+    pub event_handler_enabled: Option<bool>,
+    pub flap_detection_enabled: Option<bool>,
+    pub flap_detection_options: Option<String>,
+    pub low_flap_threshold: Option<f64>,
+    pub high_flap_threshold: Option<f64>,
+    pub check_freshness: Option<bool>,
+    pub freshness_threshold: Option<u32>,
+    pub is_volatile: Option<bool>,
 }
 
 /// Only the version, read first so that a document of another version is
@@ -389,7 +640,61 @@ impl Fields {
     }
 }
 
+/// The notification fields of a host or a service, given.
+macro_rules! notify_given {
+    ($doc:expr) => {
+        $doc.notifications_enabled.is_some()
+            || $doc.notification_interval.is_some()
+            || $doc.first_notification_delay.is_some()
+            || $doc.recovery_notification_delay.is_some()
+            || $doc.notification_options.is_some()
+            || $doc.notification_period.is_some()
+            || !$doc.contacts.is_empty()
+            || !$doc.contact_groups.is_empty()
+            || $doc.event_handler.is_some()
+            || $doc.event_handler_enabled.is_some()
+            || $doc.flap_detection_enabled.is_some()
+            || $doc.flap_detection_options.is_some()
+            || $doc.low_flap_threshold.is_some()
+            || $doc.high_flap_threshold.is_some()
+            || $doc.check_freshness.is_some()
+            || $doc.freshness_threshold.is_some()
+    };
+}
+
+/// The notification fields as raw-object fields.
+macro_rules! notify_fields {
+    ($fields:expr, $doc:expr) => {
+        $fields.flag("notifications_enabled", $doc.notifications_enabled);
+        $fields.number("notification_interval", $doc.notification_interval);
+        $fields.number("first_notification_delay", $doc.first_notification_delay);
+        $fields.number(
+            "recovery_notification_delay",
+            $doc.recovery_notification_delay,
+        );
+        $fields.text("notification_options", $doc.notification_options.as_ref());
+        $fields.text("notification_period", $doc.notification_period.as_ref());
+        $fields.list("contacts", &$doc.contacts);
+        $fields.list("contact_groups", &$doc.contact_groups);
+        $fields.text("event_handler", $doc.event_handler.as_ref());
+        $fields.flag("event_handler_enabled", $doc.event_handler_enabled);
+        $fields.flag("flap_detection_enabled", $doc.flap_detection_enabled);
+        $fields.text(
+            "flap_detection_options",
+            $doc.flap_detection_options.as_ref(),
+        );
+        $fields.number("low_flap_threshold", $doc.low_flap_threshold);
+        $fields.number("high_flap_threshold", $doc.high_flap_threshold);
+        $fields.flag("check_freshness", $doc.check_freshness);
+        $fields.number("freshness_threshold", $doc.freshness_threshold);
+    };
+}
+
 impl HostDoc {
+    fn uses_version_4(&self) -> bool {
+        notify_given!(self)
+    }
+
     fn uses_version_3(&self) -> bool {
         !self.parents.is_empty()
             || !self.hostgroups.is_empty()
@@ -402,6 +707,10 @@ impl HostDoc {
 }
 
 impl ServiceDoc {
+    fn uses_version_4(&self) -> bool {
+        notify_given!(self) || self.is_volatile.is_some()
+    }
+
     fn uses_version_3(&self) -> bool {
         self.timezone.is_some()
             || !self.servicegroups.is_empty()
@@ -440,6 +749,7 @@ fn host_object(host: &HostDoc, register: bool, origin: String) -> RawObject {
     fields.list("group_tags", &host.group_tags);
     fields.number("icon_id", host.icon_id);
     fields.number("acknowledgement_timeout", host.acknowledgement_timeout);
+    notify_fields!(fields, host);
     RawObject {
         fields: fields.0,
         custom: macros(&host.macros),
@@ -470,6 +780,8 @@ fn service_object(service: &ServiceDoc, register: bool, origin: String) -> RawOb
     fields.list("group_tags", &service.group_tags);
     fields.number("icon_id", service.icon_id);
     fields.number("acknowledgement_timeout", service.acknowledgement_timeout);
+    notify_fields!(fields, service);
+    fields.flag("is_volatile", service.is_volatile);
     RawObject {
         fields: fields.0,
         custom: macros(&service.macros),
@@ -594,6 +906,124 @@ fn dependency_object(dependency: &DependencyDoc, origin: String) -> RawObject {
     registered(fields, origin)
 }
 
+fn contact_object(contact: &ContactDoc, register: bool, origin: String) -> RawObject {
+    let mut fields = Fields::default();
+    fields.text("contact_name", contact.contact_name.as_ref());
+    fields.text("alias", contact.alias.as_ref());
+    fields.text("email", contact.email.as_ref());
+    fields.text("pager", contact.pager.as_ref());
+    for (key, value) in [
+        ("address1", &contact.address1),
+        ("address2", &contact.address2),
+        ("address3", &contact.address3),
+        ("address4", &contact.address4),
+        ("address5", &contact.address5),
+        ("address6", &contact.address6),
+    ] {
+        fields.text(key, value.as_ref());
+    }
+    fields.flag(
+        "host_notifications_enabled",
+        contact.host_notifications_enabled,
+    );
+    fields.flag(
+        "service_notifications_enabled",
+        contact.service_notifications_enabled,
+    );
+    fields.text(
+        "host_notification_options",
+        contact.host_notification_options.as_ref(),
+    );
+    fields.text(
+        "service_notification_options",
+        contact.service_notification_options.as_ref(),
+    );
+    fields.text(
+        "host_notification_period",
+        contact.host_notification_period.as_ref(),
+    );
+    fields.text(
+        "service_notification_period",
+        contact.service_notification_period.as_ref(),
+    );
+    fields.list(
+        "host_notification_commands",
+        &contact.host_notification_commands,
+    );
+    fields.list(
+        "service_notification_commands",
+        &contact.service_notification_commands,
+    );
+    fields.text("timezone", contact.timezone.as_ref());
+    fields.list("contactgroups", &contact.contactgroups);
+    RawObject {
+        fields: fields.0,
+        uses: contact.uses.clone(),
+        name: contact.name.clone(),
+        register,
+        origin,
+        ..RawObject::default()
+    }
+}
+
+fn escalation_object(escalation: &EscalationDoc, origin: String) -> RawObject {
+    let mut fields = Fields::default();
+    fields.list("host_name", &escalation.host_name);
+    fields.list("hostgroup_name", &escalation.hostgroup_name);
+    fields.list("service_description", &escalation.service_description);
+    fields.list("servicegroup_name", &escalation.servicegroup_name);
+    fields.list("contact_groups", &escalation.contact_groups);
+    fields.number("first_notification", escalation.first_notification);
+    fields.number("last_notification", escalation.last_notification);
+    fields.number("notification_interval", escalation.notification_interval);
+    fields.text("escalation_period", escalation.escalation_period.as_ref());
+    fields.text("escalation_options", escalation.escalation_options.as_ref());
+    registered(fields, origin)
+}
+
+/// Contacts, contact groups and escalations of a document (version 4).
+fn notification_objects(
+    document: &Document,
+    objects: &mut Vec<(Kind, RawObject)>,
+    report: &mut Report,
+) {
+    for (index, contact) in document.contact_templates.iter().enumerate() {
+        if contact.name.as_deref().is_none_or(str::is_empty) {
+            report.errors.push(format!(
+                "contact_templates[{index}]: a template needs a name"
+            ));
+        }
+        let at = origin("contact_templates", index, contact.name.as_ref());
+        objects.push((Kind::Contact, contact_object(contact, false, at)));
+    }
+    for (index, contact) in document.contacts.iter().enumerate() {
+        let at = origin("contacts", index, contact.contact_name.as_ref());
+        if contact.name.is_some() {
+            report
+                .errors
+                .push(format!("{at}: name is for contact_templates"));
+        }
+        objects.push((Kind::Contact, contact_object(contact, true, at)));
+    }
+    for (index, group) in document.contactgroups.iter().enumerate() {
+        let mut fields = Fields::default();
+        fields.text("contactgroup_name", Some(&group.contactgroup_name));
+        fields.text("alias", group.alias.as_ref());
+        fields.list("members", &group.members);
+        fields.list("contactgroup_members", &group.contactgroup_members);
+        let at = origin("contactgroups", index, Some(&group.contactgroup_name));
+        objects.push((Kind::ContactGroup, registered(fields, at)));
+    }
+    for (index, escalation) in document.host_escalations.iter().enumerate() {
+        let at = origin("host_escalations", index, None);
+        objects.push((Kind::HostEscalation, escalation_object(escalation, at)));
+    }
+    for (index, escalation) in document.service_escalations.iter().enumerate() {
+        let at = origin("service_escalations", index, None);
+        objects.push((Kind::ServiceEscalation, escalation_object(escalation, at)));
+    }
+}
+
 /// The relation objects of a document (version 3).
 fn relation_objects(document: &Document, objects: &mut Vec<(Kind, RawObject)>) {
     for (index, group) in document.hostgroups.iter().enumerate() {
@@ -708,6 +1138,13 @@ pub(crate) fn parse(bytes: &[u8]) -> Result<(Parsed, Report), String> {
             "{field} needs version 3 of the configuration document"
         ));
     }
+    if document.version < 4
+        && let Some(field) = version_4_field(&document)
+    {
+        return refuse(format!(
+            "{field} needs version 4 of the configuration document"
+        ));
+    }
     let (mut config, report) = model(&document);
     // Version 1 values are literal: centreon-web decrypted them.
     config.secret_prefixes = document.version >= 2;
@@ -768,6 +1205,46 @@ fn version_2_field(document: &Document) -> Option<&'static str> {
     let services = document.service_templates.iter().chain(&document.services);
     if services.into_iter().any(|s| s.check_period.is_some()) {
         return Some("check_period of a service");
+    }
+    None
+}
+
+/// The first version 4 field a document uses, if any.
+fn version_4_field(document: &Document) -> Option<&'static str> {
+    if let Some((key, _)) = document.settings.version_4_values().first() {
+        return Some(key);
+    }
+    if document.broker.tls.is_some() {
+        return Some("broker.tls");
+    }
+    let lists = [
+        ("contact_templates", document.contact_templates.is_empty()),
+        ("contacts", document.contacts.is_empty()),
+        ("contactgroups", document.contactgroups.is_empty()),
+        ("host_escalations", document.host_escalations.is_empty()),
+        (
+            "service_escalations",
+            document.service_escalations.is_empty(),
+        ),
+    ];
+    if let Some((name, _)) = lists.into_iter().find(|(_, empty)| !empty) {
+        return Some(name);
+    }
+    if document
+        .host_templates
+        .iter()
+        .chain(&document.hosts)
+        .any(HostDoc::uses_version_4)
+    {
+        return Some("notification, event handler, flapping or freshness field of a host");
+    }
+    if document
+        .service_templates
+        .iter()
+        .chain(&document.services)
+        .any(ServiceDoc::uses_version_4)
+    {
+        return Some("notification, event handler, flapping or freshness field of a service");
     }
     None
 }
@@ -887,7 +1364,14 @@ fn model(document: &Document) -> (MonitoringConfig, Report) {
         cached_host_check_horizon: given
             .cached_host_check_horizon
             .unwrap_or(defaults.cached_host_check_horizon),
+        ..defaults.clone()
     };
+    let mut settings = settings;
+    for (key, value) in given.version_4_values() {
+        if let Some(Err(error)) = settings.set_more(key, &value) {
+            report.errors.push(format!("settings.{error}"));
+        }
+    }
     let mut users = HashMap::new();
     for (name, value) in &document.resource_macros {
         if name.is_empty() || name.contains('$') {
@@ -959,6 +1443,7 @@ fn model(document: &Document) -> (MonitoringConfig, Report) {
         objects.push((Kind::RecurringDowntime, recurring_object(rule, at)));
     }
     relation_objects(document, &mut objects);
+    notification_objects(document, &mut objects, &mut report);
     cfg::build(settings, users, objects, report)
 }
 
@@ -985,13 +1470,31 @@ pub(crate) mod tests {
     /// The objects of `cfg::tests::web_like`, as centreon-web sends them in
     /// a document.
     pub(crate) const WEB_LIKE: &str = r#"{
-      "version": 3,
+      "version": 4,
       "poller": {"id": 4, "name": "rust-poller"},
       "broker": {"address": "broker:5669", "name": "rust-poller-module"},
       "settings": {"interval_length": 60, "service_check_timeout": 20, "retention_update_interval": 30,
-                   "log_service_retries": true, "log_level_external_command": "info"},
+                   "log_service_retries": true, "log_level_external_command": "info",
+                   "enable_flap_detection": true, "notification_timeout": 12},
       "resource_macros": {"USER1": "/usr/lib/nagios/plugins", "CENTREONPLUGINS": "/usr/lib/centreon/plugins"},
-      "commands": [{"command_name": "check_dummy", "command_line": "$USER1$/check_dummy $ARG1$ \"$ARG2$\""}],
+      "commands": [{"command_name": "check_dummy", "command_line": "$USER1$/check_dummy $ARG1$ \"$ARG2$\""},
+                   {"command_name": "notify", "command_line": "/bin/true $CONTACTEMAIL$"}],
+      "contact_templates": [{"name": "tpl-contact", "host_notification_commands": ["notify"]}],
+      "contacts": [
+        {"contact_name": "admin", "alias": "Administrator", "email": "admin@localhost",
+         "service_notification_options": "w,c,r,f", "service_notification_commands": ["notify"],
+         "contactgroups": ["team"]},
+        {"contact_name": "guest", "use": ["tpl-contact"]}
+      ],
+      "contactgroups": [
+        {"contactgroup_name": "ops", "alias": "Operators", "members": ["guest"], "contactgroup_members": ["team"]},
+        {"contactgroup_name": "team", "alias": "Team"}
+      ],
+      "service_escalations": [{"host_name": ["h2"], "service_description": ["Disk"], "first_notification": 2,
+                               "last_notification": 0, "notification_interval": 5, "escalation_options": "c,r",
+                               "contact_groups": ["ops"]}],
+      "host_escalations": [{"host_name": ["h1"], "first_notification": 1, "escalation_options": "d",
+                            "contact_groups": ["team"]}],
       "host_templates": [
         {"name": "generic-host", "check_command": "check_dummy!0!up", "max_check_attempts": 2,
          "macros": {"SNMPCOMMUNITY": "public"}},
@@ -1001,7 +1504,8 @@ pub(crate) mod tests {
       "hosts": [
         {"host_name": "h1", "alias": "First", "address": "10.0.0.1", "use": ["generic-host", "other"], "host_id": 12,
          "check_period": "workhours", "timezone": ":Europe/Paris", "parents": ["h2"], "category_tags": [7],
-         "group_tags": [20], "severity_id": 3, "acknowledgement_timeout": 5},
+         "group_tags": [20], "severity_id": 3, "acknowledgement_timeout": 5,
+         "contacts": ["admin"], "notification_interval": 10, "notification_options": "d,r"},
         {"host_name": "h2", "address": "10.0.0.2", "host_id": 13}
       ],
       "service_templates": [
@@ -1010,10 +1514,11 @@ pub(crate) mod tests {
       ],
       "services": [
         {"host_name": "h1", "service_description": "Ping", "use": ["svc-tpl"], "service_id": 101,
-         "group_tags": [30], "severity_id": 4},
+         "group_tags": [30], "severity_id": 4, "event_handler": "check_dummy!0!handled",
+         "check_freshness": true, "high_flap_threshold": 50},
         {"host_name": "h2", "service_description": "Disk", "check_command": "check_dummy!2!full",
          "active_checks_enabled": false, "service_id": 102, "macros": {"CRIT": "90"},
-         "check_period": "24x7"}
+         "check_period": "24x7", "contact_groups": ["ops"]}
       ],
       "timeperiods": [
         {"timeperiod_name": "24x7", "alias": "Always", "sunday": "00:00-24:00", "monday": "00:00-24:00"},
@@ -1076,35 +1581,33 @@ pub(crate) mod tests {
         assert!(report.contains("'nope', which does not exist"), "{report}");
         assert!(report.contains("'missing': no such template"), "{report}");
         assert!(report.contains("services[0] 'Ping'"), "{report}");
-        // The group and the dependency of the removed services are refused too.
-        assert!(report.ends_with("Total Errors:   7\n"), "{report}");
+        // The group, the dependency and the escalation of the removed
+        // services are refused too.
+        assert!(report.ends_with("Total Errors:   8\n"), "{report}");
     }
 
     #[test]
     fn refuses_unknown_fields_and_versions() {
-        let unknown = WEB_LIKE.replace(
-            r#""host_id": 13"#,
-            r#""host_id": 13, "notification_period": "24x7""#,
-        );
+        let unknown = WEB_LIKE.replace(r#""host_id": 13"#, r#""host_id": 13, "notes_url": "x""#);
         let report = parse(unknown.as_bytes()).unwrap_err();
-        assert!(
-            report.contains("unknown field `notification_period`"),
-            "{report}"
-        );
+        assert!(report.contains("unknown field `notes_url`"), "{report}");
         assert!(report.contains("Total Errors:   1"), "{report}");
 
-        let newer = unknown.replace(r#""version": 3"#, r#""version": 4"#);
+        let newer = unknown.replace(r#""version": 4"#, r#""version": 5"#);
         let report = parse(newer.as_bytes()).unwrap_err();
-        assert!(report.contains("version 4 is not supported"), "{report}");
+        assert!(report.contains("version 5 is not supported"), "{report}");
 
         // Version 1 takes no version 2 field, and keeps its values literal.
-        let old = WEB_LIKE.replace(r#""version": 3"#, r#""version": 1"#);
+        let old = WEB_LIKE.replace(r#""version": 4"#, r#""version": 1"#);
         let report = parse(old.as_bytes()).unwrap_err();
         assert!(report.contains("needs version 2"), "{report}");
-        // Version 2 takes no version 3 field.
-        let v2 = WEB_LIKE.replace(r#""version": 3"#, r#""version": 2"#);
+        // Version 2 takes no version 3 field, version 3 no version 4 field.
+        let v2 = WEB_LIKE.replace(r#""version": 4"#, r#""version": 2"#);
         let report = parse(v2.as_bytes()).unwrap_err();
-        assert!(report.contains("needs version 3"), "{report}");
+        assert!(report.contains("needs version"), "{report}");
+        let v3 = WEB_LIKE.replace(r#""version": 4"#, r#""version": 3"#);
+        let report = parse(v3.as_bytes()).unwrap_err();
+        assert!(report.contains("needs version 4"), "{report}");
         let level = WEB_LIKE.replace(
             r#""log_level_external_command": "info""#,
             r#""log_level_external_command": "loud""#,
@@ -1143,7 +1646,7 @@ pub(crate) mod tests {
         // The schema is the contract of centreon-web: same objects, same
         // field names as the model.
         let schema = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../schemas/engine-configuration.v3.json");
+            .join("../../schemas/engine-configuration.v4.json");
         let schema: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(schema).unwrap()).unwrap();
         let keys = |value: &serde_json::Value| -> Vec<String> {
@@ -1161,7 +1664,11 @@ pub(crate) mod tests {
             [
                 "broker",
                 "commands",
+                "contact_templates",
+                "contactgroups",
+                "contacts",
                 "host_dependencies",
+                "host_escalations",
                 "host_templates",
                 "hostgroups",
                 "hosts",
@@ -1169,6 +1676,7 @@ pub(crate) mod tests {
                 "recurring_downtimes",
                 "resource_macros",
                 "service_dependencies",
+                "service_escalations",
                 "service_templates",
                 "servicegroups",
                 "services",
@@ -1192,6 +1700,13 @@ pub(crate) mod tests {
             let _: ServiceDoc =
                 serde_json::from_value(one).unwrap_or_else(|e| panic!("service.{key}: {e}"));
         }
+        let tls = &schema["properties"]["broker"]["properties"]["tls"];
+        for key in keys(tls) {
+            let mut one = serde_json::json!({"tls": "yes"});
+            one[&key] = sample(&tls["properties"][&key]);
+            serde_json::from_value::<BrokerTlsDoc>(one)
+                .unwrap_or_else(|e| panic!("tls.{key}: {e}"));
+        }
         for key in keys(&schema["properties"]["settings"]) {
             let one = serde_json::json!({ key.clone(): sample(&schema["properties"]["settings"]["properties"][&key]) });
             let _: SettingsDoc =
@@ -1214,6 +1729,12 @@ pub(crate) mod tests {
                 serde_json::json!({"id": 1, "tag_name": "t", "type": "hostgroup"}),
             ),
             ("dependency", serde_json::json!({})),
+            ("contact", serde_json::json!({})),
+            (
+                "contactgroup",
+                serde_json::json!({"contactgroup_name": "g"}),
+            ),
+            ("escalation", serde_json::json!({})),
         ] {
             for key in keys(&schema["$defs"][def]) {
                 let mut one = required.clone();
@@ -1225,6 +1746,9 @@ pub(crate) mod tests {
                     "servicegroup" => serde_json::from_value::<ServiceGroupDoc>(one).map(drop),
                     "severity" => serde_json::from_value::<SeverityDoc>(one).map(drop),
                     "tag" => serde_json::from_value::<TagDoc>(one).map(drop),
+                    "contact" => serde_json::from_value::<ContactDoc>(one).map(drop),
+                    "contactgroup" => serde_json::from_value::<ContactGroupDoc>(one).map(drop),
+                    "escalation" => serde_json::from_value::<EscalationDoc>(one).map(drop),
                     _ => serde_json::from_value::<DependencyDoc>(one).map(drop),
                 };
                 read.unwrap_or_else(|e| panic!("{def}.{key}: {e}"));

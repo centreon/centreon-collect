@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use crate::book::{Acknowledgement, Comment, Downtime, Key};
 use crate::state::CheckState;
 
-use super::Core;
+use super::{Core, ProgramModified};
 
 /// Version of the file format.
 const FORMAT: u32 = 1;
@@ -38,6 +38,9 @@ struct File_ {
     comments: Vec<Comment>,
     acknowledgements: Vec<Acknowledgement>,
     last_downtime_id: u64,
+    /// Global switches the external commands changed.
+    #[serde(default)]
+    program: ProgramModified,
 }
 
 /// What a retention file holds, until the objects exist again.
@@ -48,6 +51,7 @@ pub(crate) struct Retained {
     pub comments: Vec<Comment>,
     pub acknowledgements: Vec<Acknowledgement>,
     pub last_downtime_id: u64,
+    pub program: ProgramModified,
 }
 
 /// Reads the retention file; nothing when it is absent or unreadable (the
@@ -88,6 +92,7 @@ pub(crate) fn read(path: &Path) -> Option<Retained> {
         comments: file.comments,
         acknowledgements: file.acknowledgements,
         last_downtime_id: file.last_downtime_id,
+        program: file.program,
     })
 }
 
@@ -136,6 +141,7 @@ impl Core {
             comments: self.book.comments.values().cloned().collect(),
             acknowledgements: self.book.acknowledgements.values().cloned().collect(),
             last_downtime_id: self.book.last_downtime_id(),
+            program: self.program,
         };
         let bytes = match serde_json::to_vec(&file) {
             Ok(bytes) => bytes,

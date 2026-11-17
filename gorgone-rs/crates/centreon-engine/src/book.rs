@@ -71,6 +71,8 @@ pub enum EntryType {
     User,
     Downtime,
     Acknowledgement,
+    /// The comment of a flapping object (`comment::flapping`).
+    Flapping,
 }
 
 /// A comment (`comment`).

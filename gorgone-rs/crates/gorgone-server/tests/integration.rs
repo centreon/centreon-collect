@@ -1001,19 +1001,22 @@ async fn engine_configuration_is_stored_compressed_and_counts_as_the_engine_push
     );
 
     // Not JSON, or another version: refused, nothing submitted.
-    for refused in ["not json", r#"{"version": 4}"#, r#"{"hosts": []}"#] {
+    for refused in ["not json", r#"{"version": 5}"#, r#"{"hosts": []}"#] {
         let (status, body) = Rest::json(rest.request("PUT", &path).body(refused.to_owned())).await;
         assert_eq!(status, 400, "{refused}: {body}");
     }
 
-    // A version 2 or 3 document goes only to an engine that says it reads it.
+    // A version 2 to 4 document goes only to an engine that says it reads it.
     let v2 = document.replace(r#""version": 1"#, r#""version": 2"#);
     let v3 = document.replace(r#""version": 1"#, r#""version": 3"#);
+    let v4 = document.replace(r#""version": 1"#, r#""version": 4"#);
     for (sent, version, expected) in [
         (&v2, "centreon-engine 0.1.0", 409),
         (&v2, "centreon-engine 0.1.0 (configuration 1-2)", 202),
         (&v3, "centreon-engine 0.1.0 (configuration 1-2)", 409),
         (&v3, "centreon-engine 0.1.0 (configuration 1-3)", 202),
+        (&v4, "centreon-engine 0.1.0 (configuration 1-3)", 409),
+        (&v4, "centreon-engine 0.1.0 (configuration 1-4)", 202),
     ] {
         agent
             .send(AgentFrameKind::Heartbeat(Heartbeat {

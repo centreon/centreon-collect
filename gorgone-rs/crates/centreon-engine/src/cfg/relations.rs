@@ -381,7 +381,7 @@ impl Reader {
     }
 
     /// Hosts of a `hosts` list and of the members of a `hostgroups` list.
-    fn dependency_hosts(
+    pub(super) fn dependency_hosts(
         config: &MonitoringConfig,
         object: &RawObject,
         names_key: &str,

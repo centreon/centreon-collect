@@ -1,7 +1,9 @@
 //! State of a host or service and how a check result changes it: the
 //! Nagios 3 rules of `service::handle_async_check_result`
-//! (`engine/src/service.cc:1255-2060`), without notifications, flapping,
-//! acknowledgements nor event handlers. Pure: no clock, no I/O.
+//! (`engine/src/service.cc:1255-2060`); notifications, flapping and event
+//! handlers are applied by the core on top of it. Pure: no clock, no I/O.
+
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -96,6 +98,176 @@ pub struct CheckState {
     /// Downtimes in effect on the object.
     #[serde(skip)]
     pub downtime_depth: i32,
+    /// Notifications sent and their numbers.
+    #[serde(default)]
+    pub notification: NotificationState,
+    /// State history and flapping.
+    #[serde(default)]
+    pub flap: FlapState,
+    /// What the external commands changed (`modified_attributes`).
+    #[serde(default)]
+    pub modified: Modified,
+    /// A freshness check is running (`is_being_freshened`).
+    #[serde(skip)]
+    pub being_freshened: bool,
+}
+
+/// Why a notification is sent (`notifier::reason_type`,
+/// `engine/inc/com/centreon/engine/notifier.hh:87-97`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Reason {
+    Normal,
+    Recovery,
+    Acknowledgement,
+    FlappingStart,
+    FlappingStop,
+    FlappingDisabled,
+    DowntimeStart,
+    DowntimeEnd,
+    DowntimeCancelled,
+    Custom,
+}
+
+impl Reason {
+    /// `notification_category` (`notifier.cc:945-953`): normal,
+    /// recovery, acknowledgement, flapping, downtime, custom.
+    #[must_use]
+    pub fn category(self) -> u8 {
+        match self {
+            Self::Normal => 0,
+            Self::Recovery => 1,
+            Self::Acknowledgement => 2,
+            Self::FlappingStart | Self::FlappingStop | Self::FlappingDisabled => 3,
+            Self::DowntimeStart | Self::DowntimeEnd | Self::DowntimeCancelled => 4,
+            Self::Custom => 5,
+        }
+    }
+
+    /// `tab_notification_str` (`notifier.cc:37-47`).
+    #[must_use]
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Normal => "NORMAL",
+            Self::Recovery => "RECOVERY",
+            Self::Acknowledgement => "ACKNOWLEDGEMENT",
+            Self::FlappingStart => "FLAPPINGSTART",
+            Self::FlappingStop => "FLAPPINGSTOP",
+            Self::FlappingDisabled => "FLAPPINGDISABLED",
+            Self::DowntimeStart => "DOWNTIMESTART",
+            Self::DowntimeEnd => "DOWNTIMEEND",
+            Self::DowntimeCancelled => "DOWNTIMECANCELLED",
+            Self::Custom => "CUSTOM",
+        }
+    }
+
+    /// `$NOTIFICATIONTYPE$` (`notification.cc:100-131`): PROBLEM for a
+    /// normal notification.
+    #[must_use]
+    pub fn macro_name(self) -> &'static str {
+        match self {
+            Self::Normal => "PROBLEM",
+            other => other.name(),
+        }
+    }
+}
+
+/// A notification sent, kept per category (`notifier::_notification`):
+/// the recovery goes to the contacts the problem went to, the interval of
+/// the last one plans the next.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Sent {
+    pub reason: Reason,
+    pub number: u32,
+    /// In units of `interval_length`.
+    pub interval: f64,
+    pub escalated: bool,
+    pub contacts: BTreeSet<String>,
+}
+
+/// Notification state of a notifier (`notifier.cc:121-155`).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct NotificationState {
+    /// `current_notification_number`.
+    pub number: u32,
+    /// Time of the last notification sent to someone (0: none since the
+    /// last change of state).
+    pub last: i64,
+    /// `next_notification`: informational, as in Engine.
+    pub next: i64,
+    pub no_more: bool,
+    /// `current_notification_id`.
+    pub id: u64,
+    /// By category ([`Reason::category`]).
+    pub sent: BTreeMap<u8, Sent>,
+}
+
+/// Number of states kept (`MAX_STATE_HISTORY_ENTRIES`, `common.hh:37`).
+pub const HISTORY: usize = 21;
+
+/// State history and flapping (`notifier.cc:1223-1228`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FlapState {
+    /// The last [`HISTORY`] states recorded, a ring.
+    pub history: Vec<u32>,
+    pub index: usize,
+    pub percent_state_change: f64,
+    pub is_flapping: bool,
+    /// The comment of the flapping, 0 for none.
+    pub comment_id: u64,
+    /// Host: last time a state was recorded by a service result.
+    pub last_history_update: i64,
+}
+
+impl Default for FlapState {
+    fn default() -> Self {
+        Self {
+            history: vec![0; HISTORY],
+            index: 0,
+            percent_state_change: 0.0,
+            is_flapping: false,
+            comment_id: 0,
+            last_history_update: 0,
+        }
+    }
+}
+
+impl FlapState {
+    /// Records `state` when `record`, then the weighted percent of state
+    /// change of the history, oldest first, recent changes weighing more
+    /// (`check_for_flapping`, `service.cc:2214-2252`).
+    pub fn update(&mut self, state: u32, record: bool) -> f64 {
+        if self.history.len() != HISTORY {
+            self.history = vec![0; HISTORY];
+            self.index = 0;
+        }
+        if record {
+            self.history[self.index] = state;
+            self.index = (self.index + 1) % HISTORY;
+        }
+        let mut curved_changes = 0.0;
+        let mut y = self.index;
+        let mut last = self.history[y];
+        for x in 1..HISTORY {
+            y = (y + 1) % HISTORY;
+            if self.history[y] != last {
+                curved_changes +=
+                    ((x as f64 - 1.0) * (1.25 - 0.75)) / (HISTORY as f64 - 2.0) + 0.75;
+            }
+            last = self.history[y];
+        }
+        let percent = curved_changes * 100.0 / (HISTORY as f64 - 1.0);
+        self.percent_state_change = percent;
+        percent
+    }
+}
+
+/// Settings changed by external commands, kept across reloads and in the
+/// retention file (`modified_attributes`); `None`: the configuration's.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Modified {
+    pub notifications_enabled: Option<bool>,
+    pub event_handler_enabled: Option<bool>,
+    pub flap_detection_enabled: Option<bool>,
 }
 
 impl Default for CheckState {
@@ -121,6 +293,10 @@ impl Default for CheckState {
             host_problem_at_last_check: false,
             acknowledgement: AckType::None,
             downtime_depth: 0,
+            notification: NotificationState::default(),
+            flap: FlapState::default(),
+            modified: Modified::default(),
+            being_freshened: false,
         }
     }
 }
@@ -427,6 +603,25 @@ mod tests {
         // Host down: only the hard change is logged.
         assert!(s.apply_service_logged(&active(2, 12), 3, false).1);
         assert!(!s.apply_service_logged(&active(2, 13), 3, false).1);
+    }
+
+    #[test]
+    fn percent_state_change_weighs_recent_changes_more() {
+        let mut flap = FlapState::default();
+        // Stable: no change.
+        assert_eq!(flap.update(0, true), 0.0);
+        // One change, the most recent one: weight 1.25 of 20.
+        let percent = flap.update(2, true);
+        assert!((percent - 1.25 * 100.0 / 20.0).abs() < 1e-9, "{percent}");
+        // Alternating over the whole history: every change counts.
+        let mut flap = FlapState::default();
+        let mut percent = 0.0;
+        for i in 0..HISTORY {
+            percent = flap.update(if i % 2 == 0 { 2 } else { 0 }, true);
+        }
+        assert!((percent - 100.0).abs() < 1e-9, "{percent}");
+        // Not recorded: computed on the same history.
+        assert_eq!(flap.update(2, false), percent);
     }
 
     #[test]

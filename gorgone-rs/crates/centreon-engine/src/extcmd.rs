@@ -20,6 +20,25 @@ pub enum DowntimeTarget {
     ServiceGroup { name: String, services: bool },
 }
 
+/// What an `ENABLE_*` / `DISABLE_*` command switches.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Switch {
+    Notifications,
+    EventHandler,
+    FlapDetection,
+}
+
+/// Where it switches it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SwitchTarget {
+    /// The whole engine (`ENABLE_NOTIFICATIONS`...).
+    Global,
+    Host(String),
+    Service(String, String),
+    /// Every service of a host (`ENABLE_HOST_SVC_NOTIFICATIONS`).
+    HostServices(String),
+}
+
 /// A supported external command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExtCommand {
@@ -109,6 +128,15 @@ pub enum ExtCommand {
     DeleteAllComments {
         host: String,
         service: Option<String>,
+    },
+    /// `ENABLE_*` / `DISABLE_*` of notifications, event handlers and flap
+    /// detection (`commands.cc:2234-2350`, `:2855-2954`, `flapping.cc`,
+    /// `service.cc:3027-3093`, `host.cc:2743-2803`). Arguments after the
+    /// object (the legacy pages add a time) are ignored, as Engine does.
+    Switch {
+        what: Switch,
+        target: SwitchTarget,
+        enable: bool,
     },
 }
 
@@ -323,9 +351,55 @@ fn parse_body(body: &str) -> Result<ExtCommand, ParseError> {
             };
             Ok(ExtCommand::DeleteAllComments { host, service })
         }
+        _ if switch(name).is_some() => {
+            let (what, kind, enable) = switch(name).unwrap_or((Switch::Notifications, 0, true));
+            let mut parts = args.split(';');
+            let mut next = |what: &str| {
+                parts
+                    .next()
+                    .filter(|part| !part.is_empty())
+                    .map(str::to_owned)
+                    .ok_or_else(|| ParseError::Invalid(format!("{name}: no {what}")))
+            };
+            let target = match kind {
+                0 => SwitchTarget::Global,
+                1 => SwitchTarget::Host(next("host")?),
+                2 => SwitchTarget::Service(next("host")?, next("service")?),
+                _ => SwitchTarget::HostServices(next("host")?),
+            };
+            Ok(ExtCommand::Switch {
+                what,
+                target,
+                enable,
+            })
+        }
         "" => Err(ParseError::Invalid("no command name".to_owned())),
         other => Err(ParseError::Unsupported(other.to_owned())),
     }
+}
+
+/// The switch commands: what, target kind (0 global, 1 host, 2 service,
+/// 3 services of a host), enable.
+fn switch(name: &str) -> Option<(Switch, u8, bool)> {
+    let (enable, rest) = if let Some(rest) = name.strip_prefix("ENABLE_") {
+        (true, rest)
+    } else {
+        (false, name.strip_prefix("DISABLE_")?)
+    };
+    let (what, kind) = match rest {
+        "NOTIFICATIONS" => (Switch::Notifications, 0),
+        "HOST_NOTIFICATIONS" => (Switch::Notifications, 1),
+        "SVC_NOTIFICATIONS" => (Switch::Notifications, 2),
+        "HOST_SVC_NOTIFICATIONS" => (Switch::Notifications, 3),
+        "EVENT_HANDLERS" => (Switch::EventHandler, 0),
+        "HOST_EVENT_HANDLER" => (Switch::EventHandler, 1),
+        "SVC_EVENT_HANDLER" => (Switch::EventHandler, 2),
+        "FLAP_DETECTION" => (Switch::FlapDetection, 0),
+        "HOST_FLAP_DETECTION" => (Switch::FlapDetection, 1),
+        "SVC_FLAP_DETECTION" => (Switch::FlapDetection, 2),
+        _ => return None,
+    };
+    Some((what, kind, enable))
 }
 
 /// `cmd_schedule_downtime`: every argument is one `;` piece, the comment
@@ -508,6 +582,48 @@ mod tests {
                 service: Some("s".into())
             })
         );
+    }
+
+    #[test]
+    fn parses_the_switches() {
+        assert_eq!(
+            parse("ENABLE_NOTIFICATIONS").unwrap(),
+            ExtCommand::Switch {
+                what: Switch::Notifications,
+                target: SwitchTarget::Global,
+                enable: true
+            }
+        );
+        // The legacy pages add a time after the object.
+        assert_eq!(
+            parse("[1] DISABLE_SVC_NOTIFICATIONS;h;s;1700000000").unwrap(),
+            ExtCommand::Switch {
+                what: Switch::Notifications,
+                target: SwitchTarget::Service("h".into(), "s".into()),
+                enable: false
+            }
+        );
+        assert_eq!(
+            parse("DISABLE_HOST_FLAP_DETECTION;h").unwrap(),
+            ExtCommand::Switch {
+                what: Switch::FlapDetection,
+                target: SwitchTarget::Host("h".into()),
+                enable: false
+            }
+        );
+        assert_eq!(
+            parse("ENABLE_HOST_SVC_NOTIFICATIONS;h").unwrap(),
+            ExtCommand::Switch {
+                what: Switch::Notifications,
+                target: SwitchTarget::HostServices("h".into()),
+                enable: true
+            }
+        );
+        assert!(parse("ENABLE_SVC_EVENT_HANDLER;h").is_err());
+        assert!(matches!(
+            parse("SEND_CUSTOM_SVC_NOTIFICATION;h;s;0;a;c"),
+            Err(ParseError::Unsupported(_))
+        ));
     }
 
     #[test]

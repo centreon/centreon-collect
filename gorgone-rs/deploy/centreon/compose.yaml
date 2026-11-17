@@ -22,6 +22,7 @@
 #   centreon-engine  a poller without centengine nor cbd: the centreon-engine
 #                    program takes a structured configuration (no .cfg) and
 #                    sends the results to the central broker
+#   mailpit          SMTP sink of the notifications of centreon-engine
 #   poller           the Centreon poller test image, driven by gorgone-agent
 #
 # The database and VictoriaMetrics keep their data in their own volume. Local
@@ -310,6 +311,12 @@ services:
       POLLER_NAME: centreon-engine
       GORGONE_DEPLOY: "true"
       CENTREON_ENGINE_LOG: info
+
+  # SMTP sink of the notifications of centreon-engine (notify-mail.pl);
+  # verify.sh reads the mails through its API.
+  mailpit:
+    image: ${MAILPIT_IMAGE:-axllent/mailpit:v1.21.8}
+    ports: ["127.0.0.1:8025:8025"]
 
   poller:
     build:

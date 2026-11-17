@@ -9,13 +9,20 @@ use std::time::Duration;
 
 use gorgone_proto::bbdo::{Ack, Bbdo, PeerType, Stop, Welcome};
 use prost::Message;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadHalf, WriteHalf};
 use tokio::net::TcpStream;
-use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 
 use crate::bbdo::{self, Decoder, event};
+use crate::broker_conf::TlsConf;
+use crate::tls;
+
+/// The connection to the central broker: TCP, or TLS over it.
+trait Io: AsyncRead + AsyncWrite + Send + Unpin {}
+impl<T: AsyncRead + AsyncWrite + Send + Unpin> Io for T {}
+type Reader = ReadHalf<Box<dyn Io>>;
+type Writer = WriteHalf<Box<dyn Io>>;
 
 /// Version announced in the welcome; centreon-web configures 3.0.1.
 const BBDO_VERSION: (u32, u32, u32) = (3, 0, 1);
@@ -41,6 +48,9 @@ pub struct Target {
     pub poller_name: String,
     /// Name of the broker module of the poller.
     pub broker_name: String,
+    /// TLS of the connection (`tls` and the certificates of the `cbmod`
+    /// output).
+    pub tls: TlsConf,
 }
 
 /// What the scheduler gives the connection.
@@ -154,9 +164,9 @@ pub struct Client {
     pub cancel: CancellationToken,
 }
 
-/// Encodes the welcome of `target`.
+/// Encodes the welcome of `target`; `tls` announces the TLS extension.
 #[must_use]
-pub fn welcome(target: &Target) -> Vec<u8> {
+pub fn welcome(target: &Target, tls: bool) -> Vec<u8> {
     let (major, minor, patch) = BBDO_VERSION;
     bbdo::frame(
         event::WELCOME,
@@ -166,8 +176,12 @@ pub fn welcome(target: &Target) -> Vec<u8> {
                 minor,
                 patch,
             }),
-            // No compression, no TLS.
-            extensions: String::new(),
+            // No compression; TLS when it can be done (`tls.rs`).
+            extensions: if tls {
+                tls::EXTENSION.to_owned()
+            } else {
+                String::new()
+            },
             poller_id: target.poller_id,
             poller_name: target.poller_name.clone(),
             broker_name: target.broker_name.clone(),
@@ -190,11 +204,7 @@ fn ack_count(event_type: u32, payload: &[u8]) -> Option<u32> {
 }
 
 /// Reads the socket for acknowledgements until it closes.
-async fn read_acks(
-    mut reader: OwnedReadHalf,
-    mut decoder: Decoder,
-    acks: mpsc::UnboundedSender<u32>,
-) {
+async fn read_acks(mut reader: Reader, mut decoder: Decoder, acks: mpsc::UnboundedSender<u32>) {
     let mut chunk = vec![0u8; 4096];
     loop {
         while let Some((event_type, payload)) = decoder.next_event() {
@@ -324,19 +334,21 @@ impl Client {
 async fn connect(
     target: &Target,
     cancel: &CancellationToken,
-) -> Result<(OwnedReadHalf, OwnedWriteHalf, Decoder), String> {
+) -> Result<(Reader, Writer, Decoder), String> {
     {
         let exchange = async {
+            let offered = tls::offered(&target.tls)?;
             let mut stream = TcpStream::connect(&target.address)
                 .await
                 .map_err(|error| format!("{}: {error}", target.address))?;
             let _ = stream.set_nodelay(true);
             stream
-                .write_all(&welcome(target))
+                .write_all(&welcome(target, offered))
                 .await
                 .map_err(|error| format!("sending the welcome: {error}"))?;
             let mut decoder = Decoder::default();
             let mut chunk = vec![0u8; 4096];
+            let mut peer_extensions = String::new();
             loop {
                 if let Some((event_type, payload)) = decoder.next_event() {
                     match event_type {
@@ -353,8 +365,10 @@ async fn connect(
                             tracing::debug!(
                                 peer = %peer.broker_name,
                                 version = %format!("{}.{}.{}", version.major, version.minor, version.patch),
+                                extensions = %peer.extensions,
                                 "BBDO welcome received"
                             );
+                            peer_extensions = peer.extensions;
                             break;
                         }
                         // A BBDO 3.0.0 peer answers with the legacy welcome.
@@ -375,7 +389,24 @@ async fn connect(
                 }
                 decoder.push(&chunk[..n]);
             }
-            let (reader, writer) = stream.into_split();
+            let io: Box<dyn Io> = if tls::negotiated(&target.tls, offered, &peer_extensions)? {
+                // The central sends nothing between its welcome and the
+                // TLS handshake (`tls/src/stream.cc:63-92`).
+                if !decoder.is_empty() {
+                    return Err("data after the welcome, before the TLS handshake".to_owned());
+                }
+                let (config, name) = tls::client(&target.tls, &target.address)?;
+                let connector = tokio_rustls::TlsConnector::from(Arc::new(config));
+                let stream = connector
+                    .connect(name, stream)
+                    .await
+                    .map_err(|error| format!("TLS handshake: {error}"))?;
+                tracing::info!(address = %target.address, "TLS with the central broker");
+                Box::new(stream)
+            } else {
+                Box::new(stream)
+            };
+            let (reader, writer) = tokio::io::split(io);
             Ok((reader, writer, decoder))
         };
         tokio::select! {
@@ -392,8 +423,8 @@ impl Client {
     async fn session(
         &mut self,
         target: &Target,
-        reader: OwnedReadHalf,
-        mut writer: OwnedWriteHalf,
+        reader: Reader,
+        mut writer: Writer,
         decoder: Decoder,
         queue: &mut Queue,
         stop_reply: &mut Option<oneshot::Sender<()>>,
@@ -473,7 +504,7 @@ impl Client {
     async fn stop(
         &self,
         target: &Target,
-        writer: &mut OwnedWriteHalf,
+        writer: &mut Writer,
         acks: &mut mpsc::UnboundedReceiver<u32>,
         queue: &mut Queue,
     ) -> End {

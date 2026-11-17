@@ -98,7 +98,7 @@ RUN apt-get update \
     && install -d -m 755 /usr/local/lib/gorgone
 # Created first: a COPY --chmod would give its mode to a directory it creates.
 COPY --chmod=644 deploy/centreon/engine/register.pl deploy/centreon/centreon-engine/objects.clapi \
-     /usr/local/lib/gorgone/
+     deploy/centreon/centreon-engine/notify-mail.pl /usr/local/lib/gorgone/
 COPY --chmod=755 deploy/centreon/centreon-engine/entrypoint.sh /usr/local/lib/gorgone/entrypoint.sh
 USER centreon-engine
 ENTRYPOINT ["/usr/local/lib/gorgone/entrypoint.sh"]

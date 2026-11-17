@@ -42,9 +42,9 @@ exchange(stream CentreonEvent) returns (stream CentreonEvent) }`) whose
   workspace already builds. No new dependency.
 
 Compression and TLS are BBDO _extensions_ negotiated in the welcome
-(`stream.cc:932-1003`): we announce none, so `cbd` applies none unless its
-input says `tls = yes` (mandatory), in which case it refuses the connection
-(`stream.cc:976-986`). TLS is out of scope for the POC (see risks).
+(`stream.cc:932-1003`). The engine never announces `COMPRESSION` (a peer
+that requires it only logs an error, `stream.cc:983-989`), and announces
+`TLS` as the section "TLS to the central broker" below says.
 
 ### Framing (`broker/core/bbdo/stream.cc:402-540`, `_read_any` `:1264-1450`)
 
@@ -96,6 +96,8 @@ Event types used (`bbdo/events.hh`): category `neb` = 1, `bbdo` = 2.
 | `neb:pb_service_group`          | 51      | `ServiceGroup`                |
 | `neb:pb_service_group_member`   | 52      | `ServiceGroupMember`          |
 | `neb:pb_host_parent`            | 53      | `HostParent`                  |
+| `neb:pb_adaptive_service`       | 28      | `AdaptiveService`             |
+| `neb:pb_adaptive_host`          | 31      | `AdaptiveHost`                |
 
 There is no dependency event: `de_pb_host_dependency` and
 `de_pb_service_dependency` are "Not used" (`bbdo/events.hh:149-150`), and
@@ -118,7 +120,9 @@ broker_name, peer_type ENGINE, extended_negotiation false}`. Above BBDO
    `stream.cc:870-880`), downgrades minor/patch to ours if lower, answers
    with its own `Welcome` (`stream.cc:886-915`) and registers the peer
    (`add_peer`, `stream.cc:1012-1016`).
-3. Nothing else: with `extended_negotiation` false, and no engine
+3. With TLS in force (both welcomes list `TLS`), the TLS handshake, then
+   everything else inside TLS (below).
+4. Nothing else: with `extended_negotiation` false, and no engine
    configuration directory, Engine itself sends no `pb_engine_configuration`
    (`_negotiate_engine_conf`, `stream.cc:1539-1613`, legacy branch
    `:1609-1612`).
@@ -132,6 +136,50 @@ only when the central broker has `cache_config_directory`
 (`broker/core/src/config/parser.cc:281-288`, `stream_sql.cc:1762-1763`),
 which centreon-web does not generate. The scheduler therefore sends the full
 configuration as Engine does by default, which works with every central.
+
+### TLS to the central broker
+
+`src/tls.rs`, `src/client.rs`; Broker's side: `broker/tls/` (GnuTLS),
+`stream::negotiate` (`broker/core/bbdo/stream.cc:713-1010`).
+
+- **Settings**: the `tls` (`yes` mandatory, `auto` offered, `no`),
+  `private_key`, `public_cert` (`certificate` for a `bbdo_client`),
+  `ca_certificate` and `tls_hostname` keys of the `cbmod` output
+  (`broker/tls/src/factory.cc:42-118`), from the `cbmod` file or
+  `broker.tls` of the document (version 4). Paths on the poller.
+- **Negotiation** (`stream.cc:947-982`): the engine lists `TLS` in its
+  welcome when it can do it; TLS is in force when the welcome of `cbd` lists
+  it too. With `tls = yes` and a `cbd` that does not list it, the engine
+  refuses the connection, as Broker does; `cbd` refuses an engine that does
+  not list it when its input says `yes`.
+- **Handshake**: on the same TCP connection, right after the welcomes
+  (`set_substream`, `stream.cc:962-965`); `cbd` is the TLS server, the
+  engine the client (`tls/src/connector.cc`). The engine checks that `cbd`
+  sent nothing after its welcome. Every BBDO frame then goes inside TLS,
+  same framing; no second negotiation.
+- **Certificates only.** Broker uses certificates when both `public_cert`
+  and `private_key` are set, else anonymous Diffie-Hellman (`+ANON-DH`,
+  `params.cc:58-91`, `internal.cc:36-46`). rustls (the TLS stack of the
+  workspace: gorgone-server and tonic's `tls-ring`) has no anonymous suite
+  and the `openssl` crate would link the system library into the static
+  binary: without a certificate and a key the engine does not offer the
+  extension (`auto`, clear text) or refuses to start the connection
+  (`yes`, with that reason). centreon-web's defaults (`tls` `no` on the
+  module output, `auto` on the central input, no certificate) give clear
+  text, as with Engine.
+- **Verification** as `params.cc:226-270`: with `ca_certificate`, the
+  certificate of `cbd` is checked against it, and its name against
+  `tls_hostname` only when set (`verify_peers3`; `verify_peers2` checks the
+  chain only); without a CA, nothing is checked, as Broker. The engine
+  presents its certificate: `cbd` asks for one when it has a CA
+  (`GNUTLS_CERT_REQUEST`) and checks it the same way.
+- **Tests**: `tests/tls.rs` (a fake central broker with rustls, client
+  certificate required); `tests/real-cbd/run.sh` with `TLS=1` makes the
+  `cbd` input `tls: yes` with certificates of a CA made with `openssl`, and
+  checks that `cbd` negotiates TLS, completes the handshake and stores the
+  events. The integration bench keeps its plain input.
+- No new crate: `rustls` and `tokio-rustls` (ring) were in `Cargo.lock`;
+  `rcgen` for the test certificates too.
 
 ### Acknowledgements and retention
 
@@ -293,7 +341,8 @@ reads:
   `key value` lines (key up to the first blank, value trimmed), comment lines
   starting with `#` or `;`, `\` line continuation. Types read: `command`,
   `host`, `service`, `timeperiod`, `recurringdowntime`, `hostgroup`,
-  `servicegroup`, `severity`, `tag`, `hostdependency`, `servicedependency`;
+  `servicegroup`, `severity`, `tag`, `hostdependency`, `servicedependency`,
+  `contact`, `contactgroup`, `hostescalation`, `serviceescalation`;
   every other type is skipped. Host keys add `check_period`, `timezone`,
   `parents`, `hostgroups`, `severity` (`severity_id`), `category_tags`,
   `group_tags`, `icon_id`, `acknowledgement_timeout`; service keys
@@ -306,7 +355,10 @@ reads:
   `enable_predictive_host_dependency_checks`,
   `enable_predictive_service_dependency_checks`,
   `cached_host_check_horizon`, with Engine's defaults
-  (`common/engine_conf/state_helper.cc:242-346`).
+  (`common/engine_conf/state_helper.cc:242-346`). Batch 3 adds the global
+  notification, event handler, flapping and freshness keys of the document
+  version 4 below, and the notification, event handler, flapping and
+  freshness keys of hosts and services.
 - **Templates** (`parser.cc:280-300`, `:636-656`, `_merge` `:695-…`): an
   object with `name` is a template (also when registered); `register 0`
   objects are templates only. `use a,b` resolves `a` (recursively), merges it,
@@ -348,7 +400,9 @@ configuration is one JSON document, never a file on the poller.
   (`$USERn$`), `commands`, `host_templates`, `hosts`, `service_templates`,
   `services`, `timeperiods` and `recurring_downtimes` (version 2),
   `hostgroups`, `servicegroups`, `severities`, `tags`, `host_dependencies`
-  and `service_dependencies` (version 3). Field names are the Engine keys after alias resolution
+  and `service_dependencies` (version 3), `contact_templates`, `contacts`,
+  `contactgroups`, `host_escalations` and `service_escalations` (version
+  4). Field names are the Engine keys after alias resolution
   (`check_interval`, `active_checks_enabled`…), `host_id`/`service_id` for
   `_HOST_ID`/`_SERVICE_ID`, custom macros in `macros` without the leading
   underscore.
@@ -378,7 +432,7 @@ configuration is one JSON document, never a file on the poller.
   engine of version 1 would run the plugins with the ciphertext. A version
   1 document using a version 2 field is refused by name. The engine
   reports the versions it reads in its heartbeat (`centreon-engine 0.1.0
-(configuration 1-3)`), and gorgone-server refuses (409) a document newer
+(configuration 1-4)`), and gorgone-server refuses (409) a document newer
   than what the node reads before submitting the job; an engine that
   reports no range reads version 1.
 - **Version 3** (batch 2b): host and service groups, severities, tags,
@@ -393,7 +447,29 @@ configuration is one JSON document, never a file on the poller.
   gorgone-server refuses it up front (409, the node reports `configuration
 1-2`) and the operator sees why. The engine reports `configuration 1-3`;
   gorgone-server accepts versions 1 to 3; a version 1 or 2 document using a
-  version 3 field is refused by name; centreon-web sends version 3.
+  version 3 field is refused by name.
+- **Version 4** (batch 3): contacts and contact templates, contact groups,
+  host and service escalations, the notification keys of hosts and
+  services (`notifications_enabled`, `notification_interval`,
+  `first_notification_delay`, `recovery_notification_delay`,
+  `notification_options`, `notification_period`, `contacts`,
+  `contact_groups`), event handlers (`event_handler`,
+  `event_handler_enabled`), flapping (`flap_detection_enabled`,
+  `flap_detection_options`, `low_flap_threshold`, `high_flap_threshold`),
+  freshness (`check_freshness`, `freshness_threshold`), `is_volatile`, the
+  global settings of all of these (`enable_notifications`,
+  `notification_timeout`, `log_notifications`, `log_level_notifications`,
+  `log_level_runtime`, `date_format`, `illegal_macro_output_chars`,
+  `admin_email`, `admin_pager`, `enable_event_handlers`,
+  `global_host_event_handler`, `global_service_event_handler`,
+  `event_handler_timeout`, `log_event_handlers`, `enable_flap_detection`,
+  the four flap thresholds, `check_service_freshness`,
+  `check_host_freshness`, the two freshness intervals,
+  `additional_freshness_latency`) and `broker.tls`. Nothing changes
+  meaning; a new version for the reason of version 3 (centreon-web sends
+  contacts for nearly every poller). The engine reports `configuration
+1-4`; gorgone-server accepts versions 1 to 4; a version 1 to 3 document
+  using a version 4 field is refused by name; centreon-web sends version 4.
 - **Relations in the document**: groups as the generator writes them
   (`hostgroup_id`, `hostgroup_name`, `alias`, `members` as host names;
   `servicegroup_id`, `servicegroup_name`, `alias`, `members` as `[host,
@@ -408,6 +484,21 @@ service]`, `servicegroup_members`); severities (`id`, `severity_name`,
   `inherits_parent`, `dependency_period`. They become the raw objects of
   the file reader. centreon-web leaves out what refers to the meta-service
   host `_Module_Meta`, absent from the document.
+- **Contacts in the document**: as the generator writes them
+  (`contact.class.php`, `contactgroup.class.php`, `escalation.class.php`):
+  contacts with their keys (`host_notification_commands` and
+  `service_notification_commands` as lists of command names), templates
+  (`register 0`, with `name`, one `use`) in `contact_templates`, contact
+  groups with `members` (contact names), escalations with the lists of the
+  generator (one service escalation per host and service, as it writes
+  them) and only `contact_groups` (escalations have no contacts, in the
+  generator as in Engine's model). The web resolves the inheritance of
+  contacts itself (`inheritance_mode`, `contact_additive_inheritance`):
+  hosts and services carry their resolved `contacts` and
+  `contact_groups`, templates none. The files' `+` (additive lists of
+  `contacts` and `contact_groups` over the templates, `fill_string_group`)
+  is read by the file input; a document list is a plain list. What refers
+  to the meta-service host is left out, as for the dependencies.
 - **Timeperiods in the document**: `timeperiod_name`, `alias`, `use`
   (included periods: each timeperiod is the template, under its name, of
   those that use it, as the web writes `name` = `timeperiod_name`), the
@@ -457,7 +548,12 @@ type, a group member, parent, group of an object, tag or severity that does
 not exist (`hostgroup::resolve`, `servicegroup::resolve`, `host::resolve`,
 `applier::host::add_object`), a dependency without master or dependent, on
 an unknown object, group or `dependency_period`, invalid failure criteria,
-an invalid `log_level_*`. The report ends with `Total Warnings:` / `Total
+an invalid `log_level_*`, a contact without name, a contact, contact group
+or notification period of an object, a notification command or period of a
+contact, a contact group or period of an escalation, an event handler that
+does not exist (`applier::contact::resolve_object`, `host::resolve`,
+`service::resolve`, `escalation::resolve`), an escalation without object,
+invalid notification, escalation or flap detection options. The report ends with `Total Warnings:` / `Total
 Errors:` like `centengine -v`, which the agent already reads.
 
 ### Macros and command line
@@ -472,7 +568,8 @@ Errors:` like `centengine -v`, which the agent already reads.
   `$HOSTSTATETYPE$`, `$HOSTATTEMPT$`, `$SERVICEDESC$`, `$SERVICESTATE$`,
   `$SERVICESTATEID$`, `$SERVICESTATETYPE$`, `$SERVICEATTEMPT$`, `$ARGn$`,
   `$USERn$`, `$_HOSTxxx$`, `$_SERVICExxx$` (values expanded once more).
-  `{{$…$}}` tags are not supported.
+  Notification and event handler commands also have the macros of section
+  "Notifications" below. `{{$…$}}` tags are not supported.
 - **Secrets** (`engine/src/macros/grab_value.cc:1105-1119`): with a valid
   key file, a macro value starting with `encrypt::` is decrypted when a
   command uses it, `raw::` is removed; a value that does not decrypt stays
@@ -532,10 +629,8 @@ Errors:` like `centengine -v`, which the agent already reads.
   with `check_type PASSIVE`.
 - **Timeouts**: `service_check_timeout`, `host_check_timeout`; the plugin's
   process group gets SIGKILL.
-- **Out of scope** (not done, nothing emulated): notifications and
-  escalations (and so `notification_period`, the notification criteria of
-  dependencies, the notify flag of acknowledgements and the notifications
-  of downtimes), event handlers, OCSP/OCHP, flapping, freshness,
+- **Out of scope** (not done, nothing emulated; the full list is in
+  section 7): OCSP/OCHP,
   connectors (the command line runs as a process), CMA/OpenTelemetry,
   anomaly detection, meta-services, BAM virtual hosts, custom variables
   events, whitelist, environment macros, comments that expire, state
@@ -544,6 +639,216 @@ Errors:` like `centengine -v`, which the agent already reads.
   `DEL_*_DOWNTIME_FULL` and `DEL_DOWNTIME_BY_*` (centreon-web sends none),
   propagated downtimes (`SCHEDULE_AND_PROPAGATE_*`), `CURRENT` states
   (this Engine never logs them: `CURRENT_STATES` has no caller).
+
+### Notifications
+
+`src/core/notify.rs` (and `src/cfg/notifications.rs` for the model), a
+port of `notifier::notify` (`engine/src/notifier.cc:961-1041`), the
+viability checks of each category (`:222-865`), `get_contacts_to_notify`
+(`:878-943`), `notification::execute` (`engine/src/notification.cc:61-189`),
+`contact::should_be_notified` (`engine/src/contact.cc:815-1020`) and
+`notify_contact` (`host.cc:2602-2732`, `service.cc:3207-3335`).
+
+- **Model**: contacts (options, periods and commands per host and service,
+  `email`, `pager`, `address1-6`, `timezone`, groups), contact groups
+  (members flattened with `contactgroup_members` and the contacts'
+  `contactgroups`), escalations expanded per object
+  (`applier/hostescalation.cc:79-128`; `first_notification` defaults to
+  -2 as the helpers: one without it never applies). Notification flags as
+  `notifier::notification_flag`, letters as `message_helper.cc:187-253`
+  (`r` recovery, `f` the three flapping flags, `s` downtime). A service
+  with neither contacts nor contact groups takes those of its host, its
+  notification interval when its own is 0, its notification period when it
+  has none (`applier/service.cc:540-580`).
+- **Viability** (each reason): forced bypasses everything but the
+  recovery; then `enable_notifications` (as `ENABLE_NOTIFICATIONS` left it)
+  and the object's `notifications_enabled`. Normal: not in downtime (a
+  service also not in its host's), in its notification period (the
+  `_for_notif` variant: a period with no valid time is invalid), not
+  flapping, volatile passes, HARD, not acknowledged, not OK, the current
+  state in its options (a service whose host is not UP and HARD gets
+  none), `first_notification_delay` since the hard change, the
+  notification failure criteria of its dependencies (batch 2b, same rules
+  as execution, quirks included), and no renotification before the
+  interval of the last notification (that of its escalation, if any),
+  none when it is 0. Recovery: period, downtime, flapping, SOFT and not OK
+  wait (`send_later`); not configured, no notification number or no problem
+  notified forget the problem. Acknowledgement: not OK. Flapping: the flag
+  of its option, one start, a stop or disabled after a start, not in
+  downtime. Downtime: its option, the object's own depth 0. Custom: not in
+  downtime.
+- **Numbers**: a notification other than a recovery increments
+  `current_notification_number`, even with nobody to notify; a recovery,
+  flapping or custom notification sets it to 0 afterwards; acknowledgement
+  and downtime notifications keep it. `last_notification` is set when
+  someone was notified, and reset by every change of state (so a change
+  passes the interval). The normal notification keeps the contacts it
+  reached: the recovery goes to them only (`contact.cc:897-930`).
+  Quirks kept: after a flapping notification the number is 0, so the next
+  recovery is not sent; `next_notification` and `no_more_notifications`
+  are reported but, as in Engine, never computed outside the retention
+  (always 0/false here, the retention keeping them).
+- **Contacts**: those of the escalations in force (number within
+  `first_notification`..`last_notification`, 0 unbounded; state in
+  `escalation_options`; in `escalation_period`, process zone), their
+  smallest interval becoming the next one; else the object's contacts and
+  the members of its contact groups. Each one passes
+  `should_be_notified`: its host or service switch, its notification
+  period (its zone, `_for_notif`) and its options for the reason. Engine's
+  set has no order; the engine sorts the names.
+- **Commands**: per contact, each of its host or service notification
+  commands, looked up by exact name (no `!` arguments, as Engine), macros
+  expanded with `STRIP_ILLEGAL_MACRO_CHARS` (`illegal_macro_output_chars`,
+  control characters and DEL removed from the macro values,
+  `clean_macro_chars`), split without shell as the checks
+  (`process_args`), killed at `notification_timeout`. Deviation: Engine runs
+  them synchronously (`my_system_r`, the loop waits); the engine spawns
+  them and goes on. The exit code and the output are ignored, as in Engine;
+  a timeout gives `Warning: Contact '…' service notification command '…'
+timed out after N seconds` (a warning of the notifications logger).
+  Centreon's default `host-notify-by-email` / `service-notify-by-email`
+  (`/usr/bin/printf … | /bin/mail …`) need a shell, in Engine as here; the
+  bench uses a Perl script (`deploy/centreon/centreon-engine/notify-mail.pl`).
+- **Macros**: `$NOTIFICATIONTYPE$` (`PROBLEM` for a normal one, else the
+  reason: `RECOVERY`, `ACKNOWLEDGEMENT`, `FLAPPINGSTART`…),
+  `$NOTIFICATIONNUMBER$`, `$NOTIFICATIONRECIPIENTS$` (the contacts notified
+  before this one, as Engine), `$NOTIFICATIONISESCALATED$`,
+  `$NOTIFICATIONAUTHOR$` (`NAME`, `ALIAS`), `$NOTIFICATIONCOMMENT$`,
+  `$HOST|SERVICENOTIFICATIONNUMBER$`, `…NOTIFICATIONID$`, `$CONTACTNAME$`,
+  `$CONTACTALIAS$`, `$CONTACTEMAIL$`, `$CONTACTPAGER$`, `$CONTACTADDRESSn$`,
+  `$CONTACTGROUPNAME$`, `$CONTACTGROUPNAMES$`, `$CONTACTTIMEZONE$`,
+  `$HOSTOUTPUT$`, `$LONGHOSTOUTPUT$`, `$HOSTPERFDATA$`, `$SERVICEOUTPUT$`,
+  `$LONGSERVICEOUTPUT$`, `$SERVICEPERFDATA$`, `$LASTHOSTSTATECHANGE$`,
+  `$LASTSERVICESTATECHANGE$`, `$LASTHOSTCHECK$`, `$LASTSERVICECHECK$`,
+  `$TOTALHOSTSERVICES$` (`OK`, `WARNING`, `CRITICAL`, `UNKNOWN`),
+  `$ADMINEMAIL$`, `$ADMINPAGER$`, and the dates of `get_datetime_string`
+  (`engine/src/shared.cc:116-190`) in the zone of the process:
+  `$LONGDATETIME$` (`Tue Nov 17 14:03:05 CET 2026`, `Sept` as Engine),
+  `$SHORTDATETIME$`, `$DATE$` in `date_format`, `$TIME$`, `$TIMET$`. The
+  zone abbreviation is read from the TZif file or the POSIX rule
+  (`src/tz.rs`). Not done: the summary macros of all hosts and services
+  (`$TOTALHOSTSUP$`…), on-demand macros (`$CONTACTEMAIL:name$`),
+  environment macros.
+- **When** (`handle_async_check_result`, `host::handle_state`): a service
+  HARD problem with its host UP (each result: the interval decides), the
+  host of a service not UP, a recovery (twice for a hard one, as Engine:
+  the second is dropped); a host on each result (`RECOVERY` when UP);
+  `ACKNOWLEDGE_*` with notify; a downtime start (before the depth goes
+  up), end (depth back to 0) and cancellation; flapping start, stop and
+  disabled (then a recovery).
+- **Log lines** (notifications logger, `log_notifications`; Engine's
+  default level `error` keeps them out of the event log; centreon-web writes
+  the level of its poller logger settings):
+  `HOST NOTIFICATION: contact;host;STATE;command;output` and
+  `SERVICE NOTIFICATION: contact;host;service;STATE;command;output;` (the
+  extra `;` of `service.cc:3286`), `TYPE (STATE)` for another reason,
+  `;author;comment` added to an acknowledgement. `cbmod` parses them into
+  `pb_log_entry` (contact, command, `status` 0 for another reason: its
+  bug, kept).
+- **BBDO**: no notification event (Engine sends none); the fields of
+  `pb_host_status` / `pb_service_status` (`notification_number`,
+  `last_notification`, `next_[host_]notification`,
+  `no_more_notifications`), of `pb_host` / `pb_service` (`notify`,
+  `default_notify`, intervals, period, `notify_on_*`), and the
+  `notifications` switch of `pb_instance_status`.
+- **Commands** the web sends: `ENABLE_NOTIFICATIONS`,
+  `DISABLE_NOTIFICATIONS` (the next `pb_instance_status` reports it, as
+  `update_program_status`), `ENABLE|DISABLE_HOST_NOTIFICATIONS;host`,
+  `…_SVC_NOTIFICATIONS;host;service`, `…_HOST_SVC_NOTIFICATIONS;host`
+  (its services): nothing when unchanged, else the switch (kept across
+  reloads and in the retention, `modified_attributes`) and
+  `pb_adaptive_host` / `pb_adaptive_service` with `notify`
+  (`broker.cc:489-520`, `:944-1000`). Arguments after the object (the
+  legacy pages add a time) are ignored. `SEND_CUSTOM_*_NOTIFICATION` is
+  not sent by centreon-web: not done (the custom reason exists in the
+  logic). `SET_*_NOTIFICATION_NUMBER`, `DELAY_*_NOTIFICATION`, the contact
+  and contact group switches, `*_ALL_NOTIFICATIONS_BEYOND_HOST`: not done.
+- **Retention**: the number, times, id and the notifications kept per
+  category (with their contacts) are in the retention file; Engine keeps
+  the same (`notification_N` of `retention.dat`).
+
+### Event handlers
+
+`src/core/handlers.rs`, `sehandlers.cc`. A service runs its handlers on a
+hard change, a soft recovery, each soft retry while its host is UP, a
+problem while its host is not UP that changed the hard state
+(`service.cc:1646`, `:1665`, `:1882`, `:1901`, `:1998`; the places of
+`log_event`), and a volatile HARD problem; a host when its state changes
+(`host.cc:2404-2476`). `enable_event_handlers` (as `ENABLE_EVENT_HANDLERS`
+left it) and the object's `event_handler_enabled` (which also stops the
+global one) allow it; the global handler runs first, then the object's
+(`command!args`). Macros as the notifications (without the notification
+and contact ones), stripped the same way; no shell; killed at
+`event_handler_timeout`, spawned (Engine waits for it). Lines (events
+logger, `log_event_handlers`): `SERVICE EVENT HANDLER:
+host;service;STATE;TYPE;attempt;handler`, `HOST EVENT HANDLER:
+host;STATE;TYPE;attempt;handler`, `GLOBAL HOST EVENT HANDLER:
+hostSTATE;…` (the missing `;` of `sehandlers.cc:483`); the global service
+line is a debug one in Engine, not sent. A timeout gives `Warning: Service
+event handler command '…' timed out after N seconds` with the command
+name: Engine prints the processed line, which may hold a decrypted
+secret. No BBDO event (`NEBTYPE_EVENTHANDLER_*` are never emitted).
+`ENABLE|DISABLE_EVENT_HANDLERS`, `…_HOST_EVENT_HANDLER;host`,
+`…_SVC_EVENT_HANDLER;host;service` as the notification switches
+(`pb_adaptive_*` with `event_handler_enabled`).
+
+### Flapping
+
+`src/core/flapping.rs`, `src/state.rs` (`FlapState`), `flapping.cc`,
+`service.cc:2155-2304`, `host.cc:2071-2234`.
+
+- A history of 21 states (`MAX_STATE_HISTORY_ENTRIES`), the percent of
+  state change weighted from 0.75 (oldest) to 1.25 (newest)
+  (`service.cc:2225-2252`), computed even when detection is off.
+- Services: each result records its state when its option
+  (`flap_detection_options`, all by default) holds and its host is UP; the
+  host then records its own state at most once per average check interval
+  of its services (`host.cc:2110-2135`). Hosts: each check result;
+  UNREACHABLE never recorded.
+- Thresholds of the object, else `low|high_*_flap_threshold` (20 and 30).
+  With `enable_flap_detection` (off by default) and the object's switch:
+  between the thresholds nothing changes; below the low one (at or below
+  for a host, as Engine) it stops; at or above the high one it starts,
+  unless OK/UP and not flapping yet.
+- Start: `SERVICE FLAPPING ALERT: host;service;STARTED; Service appears to
+have started flapping (x% change >= y% threshold)` (`>` for a host) — a
+  warning of the runtime logger, out of the event log with Engine's default
+  `log_level_runtime` —, a non-persistent comment of `(Centreon Engine
+Process)` (`pb_comment`, entry type FLAPPING), FLAPPINGSTART. Stop: the
+  `STOPPED` line (events logger), the comment deleted, FLAPPINGSTOP then
+  RECOVERY. Normal notifications are suppressed while flapping, recoveries
+  wait.
+- `ENABLE|DISABLE_FLAP_DETECTION`, `…_HOST_FLAP_DETECTION`,
+  `…_SVC_FLAP_DETECTION`: enabling computes again without recording,
+  disabling ends a flapping (FLAPPINGDISABLED then RECOVERY, the host
+  `DISABLED` line; the service one is a debug line in Engine), as
+  `handle_flap_detection_disabled`. Statuses carry `flapping` and
+  `percent_state_change`; the history is in the retention.
+
+### Freshness
+
+`src/core/handlers.rs`, `service::check_result_freshness`,
+`is_result_fresh` (`service.cc:3416-3810`, `host.cc:2870-3819`).
+
+- `EVENT_SFRESHNESS_CHECK` / `EVENT_HFRESHNESS_CHECK` every
+  `service|host_freshness_check_interval` seconds (60), created when a
+  configuration with `check_service_freshness` (default on) or
+  `check_host_freshness` (off) is put in force (`applier/scheduler.cc:342-404`).
+- An object with `check_freshness`, not running, with active or passive
+  checks, not being freshened, in its check period (and for a service a
+  check interval or a threshold) is stale when its expiration is past:
+  its threshold (`freshness_threshold`, else one check interval — the
+  retry interval while SOFT and not OK — plus its latency plus
+  `additional_freshness_latency`, 15 s), from the start of the engine while
+  never checked, plus `max_*_check_spread` for an active object checked
+  before the start, else from its last check plus its execution time.
+- Stale: `Warning: The results of service '…' on host '…' are stale by
+…d …h …m …s (threshold=…).  I'm forcing an immediate check of the
+service.` (runtime warning), then a forced active check now, which runs
+  the check command even when active checks are disabled
+  (`CHECK_OPTION_FORCE_EXECUTION`). Not again until a result comes.
+  Not done: Engine drops the result of the forced check if a passive
+  result made the object fresh meanwhile.
 
 ### Groups, severities and tags
 
@@ -598,6 +903,8 @@ line). Lines sent, each when its logger logs INFO (`log_level_*`):
   `:420`, `:502`) when the downtime depth leaves or reaches 0.
 - `Acknowledgement of host '…' just expired`, `Acknowledgement of service
 '…' on host '…' just expired` (`host.cc:2347`, `service.cc:835`).
+- The notification, event handler, flapping and freshness lines of the
+  sections above.
 
 Lines made before the first connection (the initial states of the first
 configuration) are kept, at most 10 000, and sent after the dump, as
@@ -650,7 +957,8 @@ the zone of the process) authorizes everything. The check is planned one
 interval later (the retry interval while SOFT, `service.cc:3130-3134`) at
 the next valid time, and a status is sent; `last_check` does not move.
 Forced checks ignore it (`CHECK_OPTION_FORCE_EXECUTION`). Notification
-criteria are kept for batch 3. No BBDO event (see section 1).
+criteria suppress notifications by the same rules (section "Notifications"). No
+BBDO event (see section 1).
 
 ### Acknowledgement expiry
 
@@ -778,7 +1086,8 @@ changing or removing a rule deletes its downtimes not started.
   type 2 is sticky, else normal; `pb_acknowledgement`, a status with
   `acknowledgement_type` (the central sets `acknowledged` in `services`,
   `hosts`, `resources`), then a comment (`entry_type` acknowledgement,
-  internal, persistent as asked). Notify is recorded, not acted on.
+  internal, persistent as asked). With notify, the ACKNOWLEDGEMENT
+  notification is sent before the status (section "Notifications").
 - `REMOVE_*_ACKNOWLEDGEMENT` (`:2594-2617`): type none, a status, the
   non-persistent acknowledgement comments deleted.
 - Automatic end (`service.cc:1488-1515`, `host.cc:2438-2450`): a normal
@@ -902,7 +1211,11 @@ restart = "scheduler:reload"
   `DEL_SVC_DOWNTIME`, `ACKNOWLEDGE_HOST_PROBLEM`, `ACKNOWLEDGE_SVC_PROBLEM`,
   `REMOVE_HOST_ACKNOWLEDGEMENT`, `REMOVE_SVC_ACKNOWLEDGEMENT`,
   `ADD_HOST_COMMENT`, `ADD_SVC_COMMENT`, `DEL_HOST_COMMENT`,
-  `DEL_SVC_COMMENT`, `DEL_ALL_HOST_COMMENTS`, `DEL_ALL_SVC_COMMENTS`. Any
+  `DEL_SVC_COMMENT`, `DEL_ALL_HOST_COMMENTS`, `DEL_ALL_SVC_COMMENTS`,
+  `ENABLE|DISABLE_NOTIFICATIONS`, `…_HOST_NOTIFICATIONS`,
+  `…_SVC_NOTIFICATIONS`, `…_HOST_SVC_NOTIFICATIONS`,
+  `…_EVENT_HANDLERS`, `…_HOST_EVENT_HANDLER`, `…_SVC_EVENT_HANDLER`,
+  `…_FLAP_DETECTION`, `…_HOST_FLAP_DETECTION`, `…_SVC_FLAP_DETECTION`. Any
   other command fails the job with "not supported by the built-in
   scheduler"; lines after it are not run. The lines are not written to
   the engine's own log (they carry comments); they go to the event log as
@@ -914,7 +1227,7 @@ restart = "scheduler:reload"
   The retention file is `<state_dir>/retention.json`.
 - **Node state**: the heartbeat reports the engine state as
   `reachable = configuration loaded`, version `centreon-engine <version>
-(configuration 1-3)`,
+(configuration 1-4)`,
   and, with the structured input, the digest of the document in force as
   applied to `target`.
 - The crate is a separate library; without the feature the agent binary
@@ -926,11 +1239,58 @@ Done in batch 2a: timeperiods, check periods and zones, downtimes,
 recurring downtimes, acknowledgements, comments, retention, `encrypt::`
 macros. Done in batch 2b: groups, severities, tags, the event log, parents
 and UNREACHABLE, dependencies (execution), acknowledgement expiry, group
-downtimes, a service's own zone (sections 3 and 4). Next (batch 3):
+downtimes, a service's own zone (sections 3 and 4). Done in batch 3:
 notifications (contacts, contact groups, escalations, notification
-commands and macros, the notification criteria of dependencies), event
-handlers, flapping, freshness, TLS to `cbd`; then what section 4 lists as
-out of scope.
+commands and macros, the notification criteria of dependencies, the notify
+flag of acknowledgements, downtime and flapping notifications), event
+handlers, flapping, freshness, the notification, event handler and flap
+detection switches, TLS to `cbd` (certificates).
+
+What the C++ Engine (with `cbmod`) does that this engine still does not:
+
+- **Commands**: connectors (Perl and SSH connectors; the command line runs
+  as a process), the command whitelist (`/etc/centreon-engine-whitelist`),
+  environment macros (`enable_environment_macros`), on-demand and summary
+  macros, `{{$…$}}` tags, OCSP/OCHP (`obsess_over_*`, `ocsp_command`,
+  `ochp_command`: centreon-web does not even write them; its
+  `START|STOP_OBSESSING_*` commands are refused), `PROCESS_FILE`.
+- **CMA / OpenTelemetry**: the OpenTelemetry module (OTLP, Telegraf, the
+  Centreon Monitoring Agent and its configuration, `-k` CA), so no agent
+  host or service.
+- **Anomaly detection** services (`type` anomaly detection, thresholds
+  from the central), **meta-services** (the `_Module_Meta` host and its
+  virtual services: left out of the document by centreon-web) and **BAM**
+  virtual hosts and services, which Engine carries for the central.
+- **External commands** not handled (refused): checks and passive checks
+  switches (`ENABLE|DISABLE_SVC_CHECK`, `…_HOST_CHECK`,
+  `…_PASSIVE_*_CHECKS`, `START|STOP_EXECUTING_*`,
+  `START|STOP_ACCEPTING_PASSIVE_*`, `…_HOST_SVC_CHECKS`), which the
+  legacy pages and widgets send; freshness switches; `CHANGE_*` commands;
+  `SEND_CUSTOM_*_NOTIFICATION`, `SET_*_NOTIFICATION_NUMBER`,
+  `DELAY_*_NOTIFICATION`, contact and contact group switches,
+  `*_ALL_NOTIFICATIONS_BEYOND_HOST`, `*_HOST_AND_CHILD_NOTIFICATIONS`;
+  `DEL_*_DOWNTIME_FULL`, `DEL_DOWNTIME_BY_*`, propagated downtimes
+  (`SCHEDULE_AND_PROPAGATE_*`); `PROCESS_FILE`. The enginerpc gRPC API.
+- **Scheduling details**: the synchronous parent checks of a host with one
+  attempt, on-demand checks beside the plan, the inter-check delay and
+  interleave methods (`service_inter_check_delay_method`…), the reaper,
+  `host_down_disable_service_checks`, state stalking, volatile services
+  beyond notifications and event handlers, comments that expire, custom
+  variables events, `CURRENT` states, the discard of a freshness result
+  made stale meanwhile.
+- **Notifications**: the summary macros, `next_notification` /
+  `no_more_notifications` (computed by Engine only at retention load),
+  the synchronous run (the loop waits in Engine; the engine does not),
+  `notification_N` retention in Engine's format, the whitelist.
+- **Transport**: anonymous TLS (Broker's `ANON-DH`, centreon-web's
+  default when TLS is on without certificates), BBDO compression, the gRPC
+  transport, the `bbdo_server` outputs, the extended negotiation (Broker
+  reading the poller configuration itself), several outputs (one central
+  per poller, failover).
+- **Files and operations**: `status.dat`, `retention.dat` in Engine's
+  format (the engine keeps its own JSON file), the command file (FIFO),
+  `centengine -v` on a running poller (the engine checks its own
+  configuration), `centenginestats`, the NEB module API.
 
 - **Document**: a new object type is a new top-level list (`timeperiods`,
   `hostgroups`, `severities`…) with its own `$defs` entry in the schema and

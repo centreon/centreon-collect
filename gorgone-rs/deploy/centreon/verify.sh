@@ -628,7 +628,7 @@ sys.exit(0 if node["connected"] and (node["engine"] or {}).get("reachable") else
   [[ $(sql "SELECT COUNT(*) FROM centreon_storage.services s
             JOIN centreon_storage.hosts h ON h.host_id = s.host_id
             JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
-            WHERE i.name = 'centreon-engine' AND s.enabled = 1 AND h.enabled = 1") == 6 ]]
+            WHERE i.name = 'centreon-engine' AND s.enabled = 1 AND h.enabled = 1") == 9 ]]
 }
 
 # centreon_engine_status <host> <service> <state> <type>: the state the central
@@ -902,7 +902,7 @@ rust_states() {
        FROM centreon_storage.services s JOIN centreon_storage.hosts h ON h.host_id = s.host_id
        JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
        WHERE i.name = 'centreon-engine' AND s.enabled = 1
-         AND s.description NOT IN ('rust-period', 'rust-dependent')
+         AND s.description NOT IN (${RUST_MOVING})
        ORDER BY s.description"
 }
 
@@ -1032,6 +1032,196 @@ centreon_engine_dependency_suppresses_checks() {
   [[ "$(rust_id "${master}" rust-h1 rust-crit)" == "2 1" ]]
 }
 
+# rust-notify, rust-flap and rust-fresh change state on purpose.
+RUST_MOVING="'rust-period', 'rust-dependent', 'rust-notify', 'rust-flap', 'rust-fresh'"
+
+MAILPIT_URL=http://127.0.0.1:8025
+
+# mails <subject part>: "subject | recipients | snippet" of each mail
+# Mailpit received whose subject holds it, newest first.
+mails() {
+  curl -s "${MAILPIT_URL}/api/v1/messages?limit=500" | python3 -I -c '
+import json, sys
+for m in json.load(sys.stdin)["messages"]:
+    if sys.argv[1] in m["Subject"]:
+        print(m["Subject"], "|", ",".join(t["Address"] for t in m["To"]), "|", m["Snippet"])' "$1"
+}
+
+# A version 4 document: the contact, the notification settings, flap
+# detection, the notification and runtime lines in the event log (Engine's
+# defaults keep them out).
+centreon_engine_v4_configuration() {
+  local before
+  before=$(last_engine_configuration)
+  sql "UPDATE centreon.cfg_nagios c JOIN centreon.nagios_server n ON n.id = c.nagios_server_id
+       SET c.enable_flap_detection = '1', c.check_service_freshness = '1'
+       WHERE n.name = 'centreon-engine'" || return 1
+  sql "UPDATE centreon.cfg_nagios_logger l JOIN centreon.cfg_nagios c ON c.nagios_id = l.cfg_nagios_id
+       JOIN centreon.nagios_server n ON n.id = c.nagios_server_id
+       SET l.log_level_notifications = 'info', l.log_level_runtime = 'warning'
+       WHERE n.name = 'centreon-engine'" || return 1
+  clapi POLLERGENERATE centreon-engine > /dev/null || return 1
+  clapi CFGMOVE centreon-engine | grep -q 'centreon-engine: done' || return 1
+  clapi POLLERRELOAD centreon-engine > /dev/null || return 1
+  wait_new_engine_configuration "${before}" || return 1
+  "${COMPOSE[@]}" exec -T centreon-engine cat \
+    /var/lib/centreon-engine/engine-configuration/configuration | python3 -I -c '
+import json, sys
+sys.stdin.readline()
+d = json.load(sys.stdin)
+notify = [s for s in d["services"] if s["service_description"] == "rust-notify"][0]
+ok = (d["version"] == 4 and d["settings"].get("enable_flap_detection") is True
+      and d["settings"].get("check_service_freshness") is True
+      and any(c.get("contact_name") == "rust-admin" and c.get("email") == "rust-admin@bench.local"
+              for c in d.get("contacts", []))
+      and notify.get("contacts") == ["rust-admin"] and notify.get("notification_interval") == 1
+      and notify.get("event_handler") == "rust-handler"
+      and d["settings"].get("log_level_runtime") == "warning")
+sys.exit(0 if ok else 1)'
+}
+
+# rust-notify, CRITICAL HARD: one mail to its contact, the macros resolved
+# (type, number, contact, date, output).
+centreon_engine_notifies_problem() {
+  local first
+  for _ in $(seq 1 36); do
+    first=$(mails 'PROBLEM Service Alert: rust-notif/rust-notify is CRITICAL' | grep -F '| number 1,')
+    if [[ -n "${first}" ]]; then
+      [[ $(wc -l <<< "${first}") == 1 ]] || return 1
+      grep -qE '^\*\* PROBLEM Service Alert: rust-notif/rust-notify is CRITICAL \*\* \| rust-admin@bench.local \| number 1, contact rust-admin, date [A-Z][a-z]{2} [A-Z][a-z]{2,3} [0-9]+ [0-9:]{8} [A-Z+0-9-]+ 20[0-9]{2}, output: CRITICAL: notify me' \
+        <<< "${first}"
+      return
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+# notification_interval 1: the next notification a minute later, number 2;
+# the central stores the notification line as a log entry of its contact.
+centreon_engine_renotifies() {
+  for _ in $(seq 1 30); do
+    if mails 'PROBLEM Service Alert: rust-notif/rust-notify is CRITICAL' | grep -qF '| number 2,'; then
+      break
+    fi
+    sleep 5
+  done
+  mails 'PROBLEM Service Alert: rust-notif/rust-notify is CRITICAL' | grep -qF '| number 2,' || return 1
+  for _ in $(seq 1 30); do
+    [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.logs WHERE instance_name = 'centreon-engine'
+          AND msg_type = 2 AND notification_contact = 'rust-admin'
+          AND notification_cmd = 'rust-notify-mail' AND service_description = 'rust-notify'
+          AND status = 2")" -ge 1 ]] && return 0
+    sleep 5
+  done
+  return 1
+}
+
+# submit_service <host> <service> <status> <output>: a passive result
+# through the centreon-web API.
+submit_service() {
+  local host_id service_id
+  host_id=$(rust_id s.host_id "$1" "$2") || return 1
+  service_id=$(rust_id s.service_id "$1" "$2") || return 1
+  curl -s -f -X POST -H 'Content-Type: application/json' -H "X-AUTH-TOKEN: $(web_token)" \
+    -d "{\"status\":$3,\"output\":\"$4\",\"performance_data\":\"\"}" \
+    "${WEB_URL}/api/latest/monitoring/hosts/${host_id}/services/${service_id}/submit" > /dev/null
+}
+
+# An OK result: the recovery is mailed to the contact.
+centreon_engine_notifies_recovery() {
+  submit_service rust-notif rust-notify 0 'back to normal' || return 1
+  for _ in $(seq 1 30); do
+    mails 'RECOVERY Service Alert: rust-notif/rust-notify is OK' | grep -qF 'output: back to normal' \
+      && return 0
+    sleep 2
+  done
+  return 1
+}
+
+# A downtime on rust-notify, set through the centreon-web API: its start is
+# mailed (option s), then the problem that follows is not notified.
+centreon_engine_downtime_suppresses_notifications() {
+  local host_id service_id start end problems
+  host_id=$(rust_id s.host_id rust-notif rust-notify) || return 1
+  service_id=$(rust_id s.service_id rust-notif rust-notify) || return 1
+  start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  end=$(date -u -d '+2 hours' +%Y-%m-%dT%H:%M:%SZ)
+  curl -s -f -X POST -H 'Content-Type: application/json' -H "X-AUTH-TOKEN: $(web_token)" \
+    -d "{\"start_time\":\"${start}\",\"end_time\":\"${end}\",\"is_fixed\":true,\"duration\":7200,\"comment\":\"bench quiet\"}" \
+    "${WEB_URL}/api/latest/monitoring/hosts/${host_id}/services/${service_id}/downtimes" > /dev/null \
+    || return 1
+  for _ in $(seq 1 30); do
+    mails 'DOWNTIMESTART Service Alert: rust-notif/rust-notify' | grep -q . && break
+    sleep 2
+  done
+  mails 'DOWNTIMESTART Service Alert: rust-notif/rust-notify' | grep -q . || return 1
+  problems=$(mails 'PROBLEM Service Alert: rust-notif/rust-notify' | wc -l)
+  # Its active check is CRITICAL again: SOFT, then HARD a minute later.
+  sleep 150
+  [[ "$(rust_id "CONCAT(s.state, ' ', s.state_type, ' ', s.scheduled_downtime_depth)" rust-notif rust-notify)" \
+    == "2 1 1" ]] || return 1
+  [[ "$(mails 'PROBLEM Service Alert: rust-notif/rust-notify' | wc -l)" == "${problems}" ]]
+}
+
+# The event handler of rust-notify ran on its state changes: what it wrote
+# in the container, and the lines of the event log.
+centreon_engine_event_handler() {
+  local handled
+  handled=$("${COMPOSE[@]}" exec -T centreon-engine cat /var/lib/centreon-engine/handled) || return 1
+  grep -qx 'rust-notif rust-notify CRITICAL SOFT 1' <<< "${handled}" || return 1
+  grep -qx 'rust-notif rust-notify CRITICAL HARD 2' <<< "${handled}" || return 1
+  grep -qx 'rust-notif rust-notify OK HARD 1' <<< "${handled}" || return 1
+  [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.logs WHERE instance_name = 'centreon-engine'
+        AND msg_type = 12 AND service_description = 'rust-notify' AND output = 'rust-handler'")" -ge 3 ]]
+}
+
+# rust-flap gets alternating passive results: it is flapping in services,
+# with the alert in the event log and the comment of the engine.
+centreon_engine_flapping() {
+  local i
+  for i in $(seq 0 12); do
+    submit_service rust-notif rust-flap $(( i % 2 == 0 ? 2 : 0 )) "flap ${i}" || return 1
+    sleep 1
+  done
+  for _ in $(seq 1 30); do
+    if [[ "$(rust_id "CONCAT(s.flapping, ' ', s.percent_state_change > 30)" rust-notif rust-flap)" == "1 1" ]]; then
+      [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.logs WHERE instance_name = 'centreon-engine'
+            AND output LIKE 'SERVICE FLAPPING ALERT: rust-notif;rust-flap;STARTED; Service appears to have started flapping (%'")" -ge 1 ]] \
+        || return 1
+      [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.comments c
+            JOIN centreon_storage.services s ON s.host_id = c.host_id AND s.service_id = c.service_id
+            WHERE s.description = 'rust-flap' AND c.entry_type = 3 AND c.deletion_time IS NULL
+              AND c.author = '(Centreon Engine Process)'")" == 1 ]]
+      return
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+# rust-fresh, passive only: once its passive result is older than its
+# freshness threshold (30 s), the engine runs its check (active result),
+# with the stale warning in the event log (cbmod keeps a warning without its
+# "Warning: " prefix).
+centreon_engine_freshness() {
+  submit_service rust-notif rust-fresh 0 'passive result' || return 1
+  for _ in $(seq 1 30); do
+    [[ "$(rust_id s.output rust-notif rust-fresh)" == 'passive result'* ]] && break
+    sleep 2
+  done
+  for _ in $(seq 1 60); do
+    if [[ "$(rust_id "CONCAT(s.check_type, ' ', s.output)" rust-notif rust-fresh)" == '0 OK: refreshed by the engine'* ]]; then
+      [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.logs WHERE instance_name = 'centreon-engine'
+            AND msg_type = 4
+            AND output LIKE 'The results of service ''rust-fresh'' on host ''rust-notif'' are stale by %'")" -ge 1 ]]
+      return
+    fi
+    sleep 3
+  done
+  return 1
+}
+
 # A restart of the container keeps the states (none pending, same state,
 # type, attempt, acknowledgement), the downtime and the acknowledgement:
 # the engine reads its retention file before its first dump.
@@ -1127,6 +1317,19 @@ check "centreon-engine: a service is not checked while its master fails" \
   centreon_engine_dependency_suppresses_checks
 check "centreon-engine: a service outside its check period is not checked" \
   centreon_engine_check_period
+check "centreon-engine: contacts, notification, flapping and freshness settings are pushed (version 4)" \
+  centreon_engine_v4_configuration
+check "centreon-engine: a CRITICAL HARD service mails its contact once, macros resolved" \
+  centreon_engine_notifies_problem
+check "centreon-engine: the notification is sent again after notification_interval" \
+  centreon_engine_renotifies
+check "centreon-engine: a recovery is mailed to the contact" centreon_engine_notifies_recovery
+check "centreon-engine: a downtime from the web API is mailed, then suppresses notifications" \
+  centreon_engine_downtime_suppresses_notifications
+check "centreon-engine: the event handler runs on state changes" centreon_engine_event_handler
+check "centreon-engine: a flapping service is flapping, with its alert and comment" \
+  centreon_engine_flapping
+check "centreon-engine: a stale passive service gets an active check" centreon_engine_freshness
 check "centreon-engine: a restart keeps states, attempts, downtime and acknowledgement" \
   centreon_engine_restart_keeps_states
 check "centreon-engine: the configuration survives a container restart" \

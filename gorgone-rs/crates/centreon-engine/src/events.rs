@@ -2,16 +2,16 @@
 //! them for the fields the scheduler knows.
 
 use gorgone_proto::bbdo::{
-    AckType, Acknowledgement, Comment, Downtime, Host, HostGroup, HostGroupMember, HostParent,
-    HostStatus, Instance, InstanceConfiguration, InstanceStatus, Service, ServiceGroup,
-    ServiceGroupMember, ServiceStatus, ServiceType, Severity, Tag, TagInfo, acknowledgement,
-    comment, downtime, host, host_status, service, service_status, severity, tag,
+    AckType, Acknowledgement, AdaptiveHost, AdaptiveService, Comment, Downtime, Host, HostGroup,
+    HostGroupMember, HostParent, HostStatus, Instance, InstanceConfiguration, InstanceStatus,
+    Service, ServiceGroup, ServiceGroupMember, ServiceStatus, ServiceType, Severity, Tag, TagInfo,
+    acknowledgement, comment, downtime, host, host_status, service, service_status, severity, tag,
 };
 
 use crate::bbdo::{event, frame};
 use crate::book;
-use crate::cfg::{HostConf, ServiceConf};
-use crate::objects::{self, HostGroupConf, ServiceGroupConf, SeverityConf, TagConf};
+use crate::cfg::{HostConf, NotifyConf, ServiceConf};
+use crate::objects::{self, HostGroupConf, ServiceGroupConf, SeverityConf, TagConf, notify_on};
 use crate::state::{self, CheckState, CheckType, StateType};
 
 /// Name the instance reports in `instances.engine`.
@@ -125,6 +125,7 @@ pub fn comment(poller_id: u64, c: &book::Comment, deletion: Option<i64>) -> Vec<
                 book::EntryType::User => comment::EntryType::User,
                 book::EntryType::Downtime => comment::EntryType::Downtime,
                 book::EntryType::Acknowledgement => comment::EntryType::Acknowledgment,
+                book::EntryType::Flapping => comment::EntryType::Flapping,
             }
             .into(),
             expire_time: 0,
@@ -176,12 +177,32 @@ pub fn acknowledgement(
     )
 }
 
+/// The global switches `pb_instance_status` reports
+/// (`broker_program_status`, `engine/src/broker.cc:4333-4347`).
+#[derive(Debug, Clone, Default)]
+pub struct Program {
+    pub notifications: bool,
+    pub event_handlers: bool,
+    pub flap_detection: bool,
+    pub check_hosts_freshness: bool,
+    pub check_services_freshness: bool,
+    pub global_host_event_handler: String,
+    pub global_service_event_handler: String,
+}
+
 /// `pb_instance_status`: the poller is alive.
 #[must_use]
-pub fn instance_status(poller_id: u64, now: i64) -> Vec<u8> {
+pub fn instance_status(poller_id: u64, now: i64, program: &Program) -> Vec<u8> {
     frame(
         event::INSTANCE_STATUS,
         &InstanceStatus {
+            notifications: program.notifications,
+            event_handlers: program.event_handlers,
+            flap_detection: program.flap_detection,
+            check_hosts_freshness: program.check_hosts_freshness,
+            check_services_freshness: program.check_services_freshness,
+            global_host_event_handler: program.global_host_event_handler.clone(),
+            global_service_event_handler: program.global_service_event_handler.clone(),
             active_host_checks: true,
             active_service_checks: true,
             passive_host_checks: true,
@@ -217,6 +238,72 @@ fn active(check_type: CheckType) -> bool {
 
 fn should_be_scheduled(st: &CheckState) -> bool {
     st.next_check != 0
+}
+
+fn on(notify: &NotifyConf, flag: u32) -> bool {
+    notify.notification_options & flag != 0
+}
+
+fn notifications_enabled(notify: &NotifyConf, st: &CheckState) -> bool {
+    st.modified
+        .notifications_enabled
+        .unwrap_or(notify.notifications_enabled)
+}
+
+fn event_handler_enabled(notify: &NotifyConf, st: &CheckState) -> bool {
+    st.modified
+        .event_handler_enabled
+        .unwrap_or(notify.event_handler_enabled)
+}
+
+fn flap_detection_enabled(notify: &NotifyConf, st: &CheckState) -> bool {
+    st.modified
+        .flap_detection_enabled
+        .unwrap_or(notify.flap_detection_enabled)
+}
+
+fn number(value: u32) -> i32 {
+    i32::try_from(value).unwrap_or(i32::MAX)
+}
+
+/// What an external command changed on an object
+/// (`broker_adaptive_*_data`, `engine/src/broker.cc:489-520`, `:944-1000`).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Adaptive {
+    pub notify: Option<bool>,
+    pub event_handler_enabled: Option<bool>,
+    pub flap_detection: Option<bool>,
+}
+
+/// `pb_adaptive_host`.
+#[must_use]
+pub fn adaptive_host(host_id: u64, change: Adaptive) -> Vec<u8> {
+    frame(
+        event::ADAPTIVE_HOST,
+        &AdaptiveHost {
+            host_id,
+            notify: change.notify,
+            event_handler_enabled: change.event_handler_enabled,
+            flap_detection: change.flap_detection,
+            ..AdaptiveHost::default()
+        },
+    )
+}
+
+/// `pb_adaptive_service`.
+#[must_use]
+pub fn adaptive_service((host_id, service_id): (u64, u64), change: Adaptive) -> Vec<u8> {
+    frame(
+        event::ADAPTIVE_SERVICE,
+        &AdaptiveService {
+            host_id,
+            service_id,
+            notify: change.notify,
+            event_handler_enabled: change.event_handler_enabled,
+            flap_detection_enabled: change.flap_detection,
+            ..AdaptiveService::default()
+        },
+    )
 }
 
 fn tag_type(kind: objects::TagType) -> gorgone_proto::bbdo::TagType {
@@ -441,6 +528,32 @@ pub fn host(poller_id: u64, conf: &HostConf, st: &CheckState, now: i64, enabled:
         severity_id: conf.severity_id,
         tags: tag_infos(&conf.tags),
         icon_id: conf.icon_id,
+        // `forward_pb_host`, `broker.cc:569-640`.
+        last_notification: st.notification.last,
+        notification_number: number(st.notification.number),
+        next_host_notification: st.notification.next,
+        no_more_notifications: st.notification.no_more,
+        notify: notifications_enabled(&conf.notify, st),
+        default_notify: conf.notify.notifications_enabled,
+        first_notification_delay: f64::from(conf.notify.first_notification_delay),
+        notification_interval: f64::from(conf.notify.notification_interval),
+        notification_period: conf.notify.notification_period.clone(),
+        notify_on_down: on(&conf.notify, notify_on::DOWN),
+        notify_on_downtime: on(&conf.notify, notify_on::DOWNTIME),
+        notify_on_flapping: on(&conf.notify, notify_on::FLAPPING_START),
+        notify_on_recovery: on(&conf.notify, notify_on::UP),
+        notify_on_unreachable: on(&conf.notify, notify_on::UNREACHABLE),
+        event_handler: conf.notify.event_handler.clone(),
+        event_handler_enabled: event_handler_enabled(&conf.notify, st),
+        default_event_handler_enabled: conf.notify.event_handler_enabled,
+        flap_detection: flap_detection_enabled(&conf.notify, st),
+        default_flap_detection: conf.notify.flap_detection_enabled,
+        flapping: st.flap.is_flapping,
+        percent_state_change: st.flap.percent_state_change,
+        check_freshness: conf.notify.check_freshness,
+        freshness_threshold: f64::from(conf.notify.freshness_threshold),
+        low_flap_threshold: conf.notify.low_flap_threshold,
+        high_flap_threshold: conf.notify.high_flap_threshold,
         ..Host::default()
     };
     frame(event::HOST, &message)
@@ -484,7 +597,12 @@ pub fn host_status(conf: &HostConf, st: &CheckState) -> Vec<u8> {
             check_attempt: i32::try_from(st.attempt).unwrap_or(i32::MAX),
             acknowledgement_type: ack_type(st).into(),
             scheduled_downtime_depth: st.downtime_depth,
-            ..HostStatus::default()
+            flapping: st.flap.is_flapping,
+            percent_state_change: st.flap.percent_state_change,
+            notification_number: number(st.notification.number),
+            no_more_notifications: st.notification.no_more,
+            last_notification: st.notification.last,
+            next_host_notification: st.notification.next,
         },
     )
 }
@@ -555,6 +673,34 @@ pub fn service(
         severity_id: conf.severity_id,
         tags: tag_infos(&conf.tags),
         icon_id: conf.icon_id,
+        // `forward_pb_service`, `broker.cc:1054-1125`.
+        last_notification: st.notification.last,
+        notification_number: number(st.notification.number),
+        next_notification: st.notification.next,
+        no_more_notifications: st.notification.no_more,
+        notify: notifications_enabled(&conf.notify, st),
+        default_notify: conf.notify.notifications_enabled,
+        first_notification_delay: f64::from(conf.notify.first_notification_delay),
+        notification_interval: f64::from(conf.notify.notification_interval),
+        notification_period: conf.notify.notification_period.clone(),
+        notify_on_critical: on(&conf.notify, notify_on::CRITICAL),
+        notify_on_downtime: on(&conf.notify, notify_on::DOWNTIME),
+        notify_on_flapping: on(&conf.notify, notify_on::FLAPPING_START),
+        notify_on_recovery: on(&conf.notify, notify_on::OK),
+        notify_on_unknown: on(&conf.notify, notify_on::UNKNOWN),
+        notify_on_warning: on(&conf.notify, notify_on::WARNING),
+        event_handler: conf.notify.event_handler.clone(),
+        event_handler_enabled: event_handler_enabled(&conf.notify, st),
+        default_event_handler_enabled: conf.notify.event_handler_enabled,
+        flap_detection: flap_detection_enabled(&conf.notify, st),
+        default_flap_detection: conf.notify.flap_detection_enabled,
+        flapping: st.flap.is_flapping,
+        percent_state_change: st.flap.percent_state_change,
+        check_freshness: conf.notify.check_freshness,
+        freshness_threshold: f64::from(conf.notify.freshness_threshold),
+        low_flap_threshold: conf.notify.low_flap_threshold,
+        high_flap_threshold: conf.notify.high_flap_threshold,
+        is_volatile: conf.notify.is_volatile,
         ..Service::default()
     };
     frame(event::SERVICE, &message)
@@ -601,6 +747,12 @@ pub fn service_status(conf: &ServiceConf, st: &CheckState) -> Vec<u8> {
             r#type: ServiceType::Service.into(),
             acknowledgement_type: ack_type(st).into(),
             scheduled_downtime_depth: st.downtime_depth,
+            flapping: st.flap.is_flapping,
+            percent_state_change: st.flap.percent_state_change,
+            notification_number: number(st.notification.number),
+            no_more_notifications: st.notification.no_more,
+            last_notification: st.notification.last,
+            next_notification: st.notification.next,
             ..ServiceStatus::default()
         },
     )

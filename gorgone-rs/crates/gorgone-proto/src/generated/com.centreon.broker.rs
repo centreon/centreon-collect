@@ -1807,6 +1807,82 @@ pub struct TagInfo {
     #[prost(enumeration = "TagType", tag = "2")]
     pub r#type: i32,
 }
+/// neb:pb_adaptive_service (element 28): what an external command changed.
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdaptiveService {
+    #[prost(uint64, tag = "1")]
+    pub host_id: u64,
+    #[prost(uint64, tag = "2")]
+    pub service_id: u64,
+    #[prost(bool, optional, tag = "3")]
+    pub notify: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "4")]
+    pub active_checks: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "5")]
+    pub should_be_scheduled: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "6")]
+    pub passive_checks: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "7")]
+    pub event_handler_enabled: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "8")]
+    pub flap_detection_enabled: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "9")]
+    pub obsess_over_service: ::core::option::Option<bool>,
+    #[prost(string, optional, tag = "10")]
+    pub event_handler: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "11")]
+    pub check_command: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "12")]
+    pub check_interval: ::core::option::Option<u32>,
+    #[prost(uint32, optional, tag = "13")]
+    pub retry_interval: ::core::option::Option<u32>,
+    #[prost(uint32, optional, tag = "14")]
+    pub max_check_attempts: ::core::option::Option<u32>,
+    #[prost(bool, optional, tag = "15")]
+    pub check_freshness: ::core::option::Option<bool>,
+    #[prost(string, optional, tag = "16")]
+    pub check_period: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "17")]
+    pub notification_period: ::core::option::Option<::prost::alloc::string::String>,
+}
+/// neb:pb_adaptive_host (element 31).
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdaptiveHost {
+    #[prost(uint64, tag = "1")]
+    pub host_id: u64,
+    #[prost(bool, optional, tag = "2")]
+    pub notify: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "3")]
+    pub active_checks: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "4")]
+    pub should_be_scheduled: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "5")]
+    pub passive_checks: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "6")]
+    pub event_handler_enabled: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "7")]
+    pub flap_detection: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "8")]
+    pub obsess_over_host: ::core::option::Option<bool>,
+    #[prost(string, optional, tag = "9")]
+    pub event_handler: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "10")]
+    pub check_command: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "11")]
+    pub check_interval: ::core::option::Option<u32>,
+    #[prost(uint32, optional, tag = "12")]
+    pub retry_interval: ::core::option::Option<u32>,
+    #[prost(uint32, optional, tag = "13")]
+    pub max_check_attempts: ::core::option::Option<u32>,
+    #[prost(bool, optional, tag = "14")]
+    pub check_freshness: ::core::option::Option<bool>,
+    #[prost(string, optional, tag = "15")]
+    pub check_period: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "16")]
+    pub notification_period: ::core::option::Option<::prost::alloc::string::String>,
+}
 /// `bbdo/common.proto`, package com.centreon.common upstream: an enum travels
 /// as its number, the package does not matter on the wire.
 #[allow(clippy::all)]

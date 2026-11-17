@@ -14,6 +14,25 @@ use serde_json::Value;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
+/// `module.json` of the poller: its identity and, with `tls` (the
+/// directory of the certificates `run.sh` made), the TLS keys of its
+/// output, as centreon-web writes them.
+fn module(address: &str, tls: Option<&str>) -> String {
+    let (host, port) = address.rsplit_once(':').unwrap();
+    let mut output = serde_json::json!({"name": "central-module-master-output", "type": "ipv4",
+        "host": host, "port": port, "protocol": "bbdo", "negotiation": "yes"});
+    if let Some(dir) = tls {
+        output["tls"] = "yes".into();
+        output["public_cert"] = format!("{dir}/poller.pem").into();
+        output["private_key"] = format!("{dir}/poller.key").into();
+        output["ca_certificate"] = format!("{dir}/ca.pem").into();
+        output["tls_hostname"] = "central".into();
+    }
+    serde_json::json!({"centreonBroker": {"poller_id": 42, "poller_name": "rust-poller",
+        "broker_name": "rust-poller-module", "output": [output]}})
+    .to_string()
+}
+
 fn write_config(dir: &Path) -> PathBuf {
     let plugin = dir.join("plugin.sh");
     std::fs::write(&plugin, "#!/bin/sh\necho \"$2 | value=$1;1;2\"\nexit $1\n").unwrap();
@@ -37,11 +56,6 @@ fn write_config(dir: &Path) -> PathBuf {
              max_check_attempts 3\n _SERVICE_ID 2\n}}\n",
             plugin.display()
         ),
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("module.json"),
-        r#"{"centreonBroker":{"poller_id":42,"poller_name":"rust-poller","broker_name":"rust-poller-module"}}"#,
     )
     .unwrap();
     dir.join("centengine.cfg")
@@ -121,6 +135,12 @@ async fn real_cbd_decodes_and_stores_the_events() {
 
     let dir = tempfile::tempdir().unwrap();
     let main = write_config(dir.path());
+    let tls = std::env::var("GORGONE_TEST_CBD_TLS").ok();
+    std::fs::write(
+        dir.path().join("module.json"),
+        module(&address, tls.as_deref()),
+    )
+    .unwrap();
     let mut options = Options::new(main);
     options.broker_address = Some(address);
     let scheduler = Scheduler::start(options);
@@ -191,4 +211,10 @@ async fn real_cbd_decodes_and_stores_the_events() {
         log.contains("received stop from peer with ID 42"),
         "no pb_stop seen by cbd"
     );
+    if tls.is_some() {
+        assert!(
+            log.contains("and peer has 'TLS'") && log.contains("TLS: successful handshake"),
+            "cbd did not negotiate TLS"
+        );
+    }
 }
