@@ -94,7 +94,6 @@ enum data_element {
   de_welcome = 7,
   de_pb_ack = 8,
   de_pb_stop = 9,
-  de_pb_engine_configuration = 10,
 };
 }
 namespace neb {
