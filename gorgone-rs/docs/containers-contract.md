@@ -14,28 +14,41 @@ database, VictoriaMetrics), never one shared with another container.
   container restart policy starts both again; the agent's durable journal
   (`state_dir`, on the container's own filesystem) resends the result of that
   job after the restart.
-- A broker container runs `cbd` behind its control API. It receives its
-  configuration and the encryption key through that API, pushed by the agent
-  of its poller.
+- An engine container has no external command file: no `externalcmd.so`, and
+  the Engine configuration of its poller in centreon-web has neither that
+  module nor `command_file` (the bench removes both when it registers or
+  deploys the poller). External commands go through the engine gRPC API
+  (`ProcessExternalCommand`) only. Anything that writes to `centengine.cmd`
+  on such a poller (`centreontrapd`, event handler or custom scripts) must
+  call that API instead.
+- A broker container runs `cbd` and its own `gorgone-agent`, the `broker`
+  component of its poller (see "Components of a node" in `DESIGN.md`),
+  connected to gorgone-server like any agent: no port is open for control.
+  The agent receives the broker configuration and the encryption key, and
+  reloads or stops `cbd` with a signal.
 
-## Broker control API (broker container image)
+## Broker container image
 
-- `PUT /files/{target}` writes the files of a plain tar body
-  (`Content-Type: application/x-tar`) into a destination directory: regular
-  files only (no link, no absolute path, no `..`), 64 MiB at most, each file
-  written atomically. Targets:
-  - `broker`: `/etc/centreon-broker`;
-  - `engine_context`: `/etc/centreon-engine`, for the key file
-    `engine-context.json`, written with mode 0640.
-- It answers `204` on success, `400` on a bad archive or target, `401` without
-  the token and `413` above the size limit.
-- `POST /reload`, `POST /restart`, `GET /health` as today.
-- When `BROKER_CONTROL_TOKEN` is set, every endpoint except `GET /health`
-  requires `Authorization: Bearer <token>` (constant-time comparison).
-- When `BROKER_WAIT_FOR_CONFIG=true`, the container starts the control API
-  without `cbd` while the configuration file is still the packaged default,
-  and starts `cbd` as soon as a configuration has been pushed. `GET /health`
-  answers `503 {"state": "waiting_for_config"}` meanwhile.
+- `cbd` is the main process; the entrypoint writes its pid to
+  `/var/lib/centreon-broker/cbd.pid` just before starting it. SIGHUP reloads
+  the configuration and `/etc/centreon-engine/engine-context.json`; SIGTERM
+  stops `cbd`, and the container with it, which its restart policy starts
+  again. The image has no Python, no RRD output (graphs come from
+  VictoriaMetrics) and no legacy `sql`/`storage` output.
+- The entrypoint starts `/usr/bin/gorgone-agent` with
+  `/usr/local/lib/centreon-broker/gorgone-agent.toml` (or
+  `GORGONE_AGENT_CONFIG`) when both exist, and starts it again if it ends.
+  The bench adds them (`deploy/centreon/broker/agent.toml`):
+  - targets `broker` (`/etc/centreon-broker`) and `engine_context`
+    (`/etc/centreon-engine`, files written with mode 0640);
+  - service `broker`: `reload = "signal:HUP:/var/lib/centreon-broker/cbd.pid"`,
+    `restart = "signal:TERM:…"`;
+  - `state_dir` on the container's own filesystem, so that the result of a
+    restart is sent once the container is back.
+- When `BROKER_WAIT_FOR_CONFIG=true`, the entrypoint does not start `cbd`
+  while the configuration file is still the packaged default, and starts it
+  as soon as another one is there (checked every second). Without it, it
+  refuses the packaged default.
 
 ## gorgone-agent
 
@@ -50,14 +63,19 @@ database, VictoriaMetrics), never one shared with another container.
 - The applied digest of a remote destination is the last one it accepted,
   kept by the agent (durable with `state_dir`), and reported in heartbeats
   like a local one.
+- `component` (default `engine`) names the part of the node the agent drives;
+  the agent declares it with the names of its targets.
+- A service operation `signal:<HUP|INT|TERM|USR1|USR2>:/absolute/pid/file`
+  sends that signal to the process whose pid the file holds.
 
 ## Encryption key distribution
 
 The key centreon-web encrypts credentials with (`engine-context.json`) is a
 configuration target like the others, `engine_context`: with the
 `gorgone_api_commands` flag on, every configuration push of a poller sends it
-first. Each agent maps that target to its engine directory, and the central
-poller's agent also to its broker container.
+first. Each engine agent maps that target to its engine directory, and the
+broker agent of the central poller to the key file of its container:
+gorgone-server sends the push to both components of that poller.
 
 centreon-web does not create the key when it runs as several replicas: each
 replica would encrypt with its own. The key comes from outside, identical in

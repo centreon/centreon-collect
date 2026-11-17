@@ -27,7 +27,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use super::{ApiError, ApiState, Shared};
 use crate::dispatcher::{CancelOutcome, SubmitOptions};
 use crate::hub::job_notified;
-use crate::store::{EventRow, JobRow, LatestConfig, NodeRow, SessionRow, state};
+use crate::store::{ComponentRow, EventRow, JobRow, LatestConfig, NodeRow, SessionRow, state};
 
 /// Longest long-poll accepted by `GET /v1/jobs/{id}?wait=`.
 const MAX_WAIT: Duration = Duration::from_secs(60);
@@ -179,6 +179,8 @@ fn job_json(job: &JobRow, events: &[EventRow]) -> Value {
     json!({
         "id": job.id,
         "node_id": job.node_id,
+        // Component of the node whose agent runs it.
+        "component": job.component,
         "kind": job.kind,
         "state": job.state,
         "attempts": job.attempts,
@@ -562,47 +564,100 @@ pub(super) async fn validate_config(
     submit_config(&state, ConfigJob::Validate, path, &query, &headers, body).await
 }
 
-/// JSON view of a node: connection status, and what its agent last
-/// reported (kept when the node disconnects).
-fn node_json(node: &NodeRow, session: Option<&SessionRow>) -> Value {
-    let reported: Value = node
-        .state
-        .as_deref()
+fn session_json(session: &SessionRow) -> Value {
+    json!({
+        "session_id": session.session_id,
+        "replica_id": session.replica_id,
+        "agent_version": session.agent_version,
+        "connected_at": session.connected_at,
+        "last_seen": session.last_seen,
+    })
+}
+
+/// `applied` and `engine` of a stored agent report.
+fn reported_json(state: Option<&str>) -> (Value, Value) {
+    let reported: Value = state
         .and_then(|state| serde_json::from_str(state).ok())
         .unwrap_or_default();
+    (
+        // Digest of the bundle applied to each target.
+        reported
+            .get("applied")
+            .cloned()
+            .unwrap_or_else(|| json!({})),
+        // `null` when the agent does not reach the engine through its API.
+        reported.get("engine").cloned().unwrap_or_default(),
+    )
+}
+
+/// JSON view of a node: connection status, and what its agents last
+/// reported (kept when they disconnect). The top-level session and state
+/// are those of the engine component; `components` lists every component
+/// with its own.
+fn node_json(node: &NodeRow, sessions: &[&SessionRow], components: &[&ComponentRow]) -> Value {
+    let (applied, engine) = reported_json(node.state.as_deref());
+    let engine_session = sessions
+        .iter()
+        .find(|s| s.component == gorgone_core::DEFAULT_COMPONENT);
+    let mut names: Vec<&str> = components
+        .iter()
+        .map(|c| c.component.as_str())
+        .chain(sessions.iter().map(|s| s.component.as_str()))
+        .collect();
+    names.sort_unstable();
+    names.dedup();
+    let components: Vec<Value> = names
+        .into_iter()
+        .map(|name| {
+            let session = sessions.iter().find(|s| s.component == name);
+            let row = components.iter().find(|c| c.component == name);
+            let (applied, engine) = reported_json(row.and_then(|c| c.state.as_deref()));
+            json!({
+                "component": name,
+                "connected": session.is_some(),
+                "session": session.map(|s| session_json(s)),
+                "targets": row.map_or(&[][..], |c| c.targets.as_slice()),
+                "applied": applied,
+                "engine": engine,
+                "state_changed_at": row.and_then(|c| c.state_at),
+            })
+        })
+        .collect();
     json!({
         "id": node.id,
         "name": node.name,
         "created_at": node.created_at,
-        "connected": session.is_some(),
-        "session": session.map(|s| json!({
-            "session_id": s.session_id,
-            "replica_id": s.replica_id,
-            "agent_version": s.agent_version,
-            "connected_at": s.connected_at,
-            "last_seen": s.last_seen,
-        })),
-        // Digest of the bundle applied to each target.
-        "applied": reported.get("applied").cloned().unwrap_or_else(|| json!({})),
-        // `null` when the agent does not reach the engine through its API.
-        "engine": reported.get("engine").cloned().unwrap_or_default(),
+        "connected": !sessions.is_empty(),
+        "session": engine_session.map(|s| session_json(s)),
+        "applied": applied,
+        "engine": engine,
         "state_changed_at": node.state_at,
+        "components": components,
     })
 }
 
 /// `GET /v1/nodes`: enrolled nodes with their connection status and state.
 pub(super) async fn list_nodes(State(state): State<Shared>) -> Result<Json<Value>, ApiError> {
     let nodes = state.store.list_nodes().await?;
-    let sessions: HashMap<String, _> = state
-        .store
-        .list_sessions()
-        .await?
-        .into_iter()
-        .map(|s| (s.node_id.clone(), s))
-        .collect();
+    let mut sessions: HashMap<String, Vec<SessionRow>> = HashMap::new();
+    for session in state.store.list_sessions().await? {
+        sessions
+            .entry(session.node_id.clone())
+            .or_default()
+            .push(session);
+    }
+    let mut components: HashMap<String, Vec<ComponentRow>> = HashMap::new();
+    for (node_id, component) in state.store.all_components().await? {
+        components.entry(node_id).or_default().push(component);
+    }
     let nodes: Vec<Value> = nodes
         .iter()
-        .map(|node| node_json(node, sessions.get(&node.id)))
+        .map(|node| {
+            let sessions: Vec<&SessionRow> = sessions.get(&node.id).into_iter().flatten().collect();
+            let components: Vec<&ComponentRow> =
+                components.get(&node.id).into_iter().flatten().collect();
+            node_json(node, &sessions, &components)
+        })
         .collect();
     Ok(Json(json!({ "nodes": nodes })))
 }
@@ -617,8 +672,13 @@ pub(super) async fn get_node(
         .node(&node)
         .await?
         .ok_or_else(|| ApiError::not_found("unknown node"))?;
-    let session = state.store.session(&node).await?;
-    Ok(Json(node_json(&row, session.as_ref())))
+    let sessions = state.store.sessions_of(&node).await?;
+    let components = state.store.components(&node).await?;
+    Ok(Json(node_json(
+        &row,
+        &sessions.iter().collect::<Vec<_>>(),
+        &components.iter().collect::<Vec<_>>(),
+    )))
 }
 
 #[derive(Debug, Default, Deserialize)]

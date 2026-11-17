@@ -32,6 +32,12 @@ message Hello {
   string agent_version = 2;
   // Action kinds the agent accepts: run_commands, engine_commands, ...
   repeated string capabilities = 3;
+  // Part of the node this agent drives: one session per node and component.
+  // Empty means "engine", the agent next to the engine.
+  string component = 4;
+  // Configuration targets the agent maps locally. Configuration pushes are
+  // routed to the components that declare their target.
+  repeated string targets = 5;
 }
 
 message Welcome {

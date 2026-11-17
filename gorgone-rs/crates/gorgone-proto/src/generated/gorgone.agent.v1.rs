@@ -49,6 +49,14 @@ pub struct Hello {
     /// Action kinds the agent accepts: run_commands, engine_commands, ...
     #[prost(string, repeated, tag = "3")]
     pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Part of the node this agent drives: one session per node and component.
+    /// Empty means "engine", the agent next to the engine.
+    #[prost(string, tag = "4")]
+    pub component: ::prost::alloc::string::String,
+    /// Configuration targets the agent maps locally. Configuration pushes are
+    /// routed to the components that declare their target.
+    #[prost(string, repeated, tag = "5")]
+    pub targets: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

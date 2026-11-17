@@ -79,6 +79,10 @@ impl Backoff {
 pub(crate) struct Session {
     pub client: GatewayClient,
     pub node_id: String,
+    /// Part of the node this agent drives, announced in `Hello`.
+    pub component: String,
+    /// Configured target names, announced in `Hello`.
+    pub targets: Vec<String>,
     pub journal: Arc<Journal>,
     pub scheduler: Arc<Scheduler>,
     pub state: Arc<NodeState>,
@@ -131,6 +135,8 @@ impl Session {
             ]
             .map(str::to_owned)
             .to_vec(),
+            component: self.component.clone(),
+            targets: self.targets.clone(),
         };
         // Queued before the call: the server reads it before answering.
         outbound

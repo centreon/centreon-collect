@@ -172,6 +172,7 @@ impl Gateway {
     pub(crate) async fn record_events(
         &self,
         node_id: &str,
+        component: &str,
         batch: &[JobEvent],
     ) -> Result<Vec<Verdict>, Error> {
         let mut ids: Vec<&str> = batch.iter().map(|event| event.job_id.as_str()).collect();
@@ -203,6 +204,10 @@ impl Gateway {
                 else {
                     break 'verdict Verdict::Dropped("not a job of this node");
                 };
+                // An agent posts events for the jobs of its own component only.
+                if job.component != component {
+                    break 'verdict Verdict::Dropped("not a job of this component");
+                }
                 if state::is_terminal(&job.state) {
                     break 'verdict Verdict::Dropped("job already finished");
                 }
@@ -282,9 +287,13 @@ impl Gateway {
             self.hub.notify_job(job_id, terminal);
             finished |= terminal;
         }
-        // A job of the node ended: what waited for it may go, or must fail.
-        if finished && self.hub.blocked(node_id) {
-            self.dispatcher.trigger(node_id, false);
+        // A job of the node ended: what waited for it may go, or must fail,
+        // on any component whose drain is here. A component held by another
+        // replica sees it at its next sweep.
+        if finished {
+            for blocked in self.hub.blocked(node_id) {
+                self.dispatcher.trigger_component(node_id, &blocked, false);
+            }
         }
         Ok(verdicts)
     }
@@ -299,14 +308,14 @@ impl Gateway {
         handle: &SessionHandle,
         batch: Vec<JobEvent>,
     ) -> Result<(), &'static str> {
-        let verdicts = match self.record_events(node_id, &batch).await {
+        let verdicts = match self.record_events(node_id, &handle.component, &batch).await {
             Ok(verdicts) => verdicts,
             Err(err) => {
                 warn!(node = node_id, events = batch.len(), error = %err, "event batch not committed, retrying one by one");
                 let mut verdicts = Vec::with_capacity(batch.len());
                 for event in &batch {
                     match self
-                        .record_events(node_id, std::slice::from_ref(event))
+                        .record_events(node_id, &handle.component, std::slice::from_ref(event))
                         .await
                     {
                         Ok(single) => verdicts.extend(single),
@@ -369,7 +378,17 @@ impl Gateway {
         if reported().as_deref() == Some(state.as_str()) {
             return Ok(());
         }
-        match self.store.set_node_state(node_id, &state).await {
+        // The node keeps the state of its engine component, as before
+        // components; each component keeps its own.
+        let recorded = async {
+            if handle.component == gorgone_core::DEFAULT_COMPONENT {
+                self.store.set_node_state(node_id, &state).await?;
+            }
+            self.store
+                .set_component_state(node_id, &handle.component, &state)
+                .await
+        };
+        match recorded.await {
             Ok(()) => *reported() = Some(state),
             // Not remembered: the next heartbeat writes it.
             Err(err) => warn!(node = node_id, error = %err, "node state not recorded"),
@@ -386,7 +405,8 @@ impl Gateway {
     ) {
         // Deliver what was queued while the node was away, without blocking
         // the read loop.
-        self.dispatcher.trigger(&node_id, true);
+        self.dispatcher
+            .trigger_component(&node_id, &handle.component, true);
 
         let idle = self.heartbeat_interval * 3;
         let reason = 'session: loop {
@@ -462,9 +482,10 @@ impl Gateway {
                 break reason;
             }
         };
-        info!(node = %node_id, session = %handle.session_id, reason, "agent session ended");
+        info!(node = %node_id, component = %handle.component, session = %handle.session_id, reason, "agent session ended");
         handle.closed.cancel();
-        self.hub.remove(&node_id, &handle.session_id);
+        self.hub
+            .remove(&node_id, &handle.component, &handle.session_id);
         if let Err(err) = self
             .store
             .remove_session(&node_id, &handle.session_id)
@@ -508,10 +529,31 @@ impl AgentGateway for GatewayService {
                 "Hello node id differs from the authenticated node id",
             ));
         }
+        // An agent from before components drives the engine.
+        let component = if hello.component.is_empty() {
+            gorgone_core::DEFAULT_COMPONENT.to_owned()
+        } else {
+            hello.component.clone()
+        };
+        if !gorgone_core::valid_component(&component) {
+            return Err(Status::invalid_argument(
+                "component must be 1 to 32 characters among a-z, 0-9, _ and -",
+            ));
+        }
+        // Stored as one JSON text: bounded like the targets of a heartbeat.
+        let mut targets: Vec<String> = hello
+            .targets
+            .iter()
+            .filter(|target| !target.is_empty())
+            .take(MAX_APPLIED_TARGETS)
+            .map(|target| bounded(target).to_owned())
+            .collect();
+        targets.sort_unstable();
+        targets.dedup();
         drop(opening);
 
         let (tx, rx) = mpsc::channel(SESSION_BUFFER);
-        let handle = SessionHandle::new(crate::random_id().map_err(internal)?, tx);
+        let handle = SessionHandle::new(crate::random_id().map_err(internal)?, component, tx);
         let welcome = ServerFrame {
             frame: Some(Frame::Welcome(Welcome {
                 session_id: handle.session_id.clone(),
@@ -526,10 +568,18 @@ impl AgentGateway for GatewayService {
             .send(Ok(welcome))
             .await
             .map_err(|_| Status::internal("session channel closed"))?;
+        // The component first: jobs submitted once the session is visible
+        // are routed knowing it.
+        gateway
+            .store
+            .upsert_component(&node_id, &handle.component, &targets)
+            .await
+            .map_err(internal)?;
         gateway
             .store
             .upsert_session(
                 &node_id,
+                &handle.component,
                 &handle.session_id,
                 &gateway.replica_id,
                 &hello.agent_version,
@@ -539,6 +589,8 @@ impl AgentGateway for GatewayService {
         gateway.hub.register(&node_id, handle.clone());
         info!(
             node = %node_id,
+            component = %handle.component,
+            ?targets,
             session = %handle.session_id,
             agent_version = %hello.agent_version,
             "agent session opened"
@@ -602,7 +654,7 @@ mod tests {
     use super::*;
     use crate::dispatcher::DispatcherConfig;
     use crate::peer::PeerClients;
-    use crate::store::testing::{self, unique};
+    use crate::store::testing::{self, ENGINE, unique};
 
     async fn gateway() -> (Arc<Gateway>, tempfile::TempDir) {
         let (store, dir) = testing::store().await;
@@ -670,7 +722,7 @@ mod tests {
             for id in ids {
                 store.queue(id, node, 60_000).await;
             }
-            let claim = store.claim_jobs(node, session, 10).await.unwrap();
+            let claim = store.claim_jobs(node, ENGINE, session, 10).await.unwrap();
             assert_eq!(claim.jobs.len(), ids.len());
         }
         (node, jobs, foreign)
@@ -696,7 +748,7 @@ mod tests {
             event("no-such-job", 1, output("x")),
             event(&second, 0, output("reserved")),
         ];
-        let verdicts = gateway.record_events(&node, &batch).await.unwrap();
+        let verdicts = gateway.record_events(&node, ENGINE, &batch).await.unwrap();
         assert_eq!(
             verdicts,
             [
@@ -743,13 +795,16 @@ mod tests {
         assert_eq!((told[&first], told[&second]), (true, false));
 
         // The same batch resent after a reconnection changes nothing.
-        let again = gateway.record_events(&node, &batch[..3]).await.unwrap();
+        let again = gateway
+            .record_events(&node, ENGINE, &batch[..3])
+            .await
+            .unwrap();
         assert_eq!(again, [Verdict::Dropped("job already finished"); 3]);
         assert_eq!(store.events(&first, 0).await.unwrap().len(), 3);
         // A resend to a job still running is a stored duplicate.
         let resent = [event(&second, 1, output("resent"))];
         assert_eq!(
-            gateway.record_events(&node, &resent).await.unwrap(),
+            gateway.record_events(&node, ENGINE, &resent).await.unwrap(),
             [Verdict::Stored]
         );
         assert!(
@@ -769,7 +824,7 @@ mod tests {
             event(&first, 1, output("after the cap")),
             event(&second, 1, finished(Outcome::Failed)),
         ];
-        let verdicts = gateway.record_events(&node, &batch).await.unwrap();
+        let verdicts = gateway.record_events(&node, ENGINE, &batch).await.unwrap();
         assert_eq!(
             verdicts,
             [

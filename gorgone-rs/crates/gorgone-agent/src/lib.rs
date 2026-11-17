@@ -185,6 +185,8 @@ pub async fn run(
     let session = Session {
         client,
         node_id: config.node_id.clone(),
+        component: config.component.clone(),
+        targets: config.targets.keys().cloned().collect(),
         journal: journal.clone(),
         scheduler: scheduler.clone(),
         state,
@@ -194,7 +196,12 @@ pub async fn run(
         ),
     };
 
-    tracing::info!(node_id = %config.node_id, server_url = %config.server_url, "agent started");
+    tracing::info!(
+        node_id = %config.node_id,
+        component = %config.component,
+        server_url = %config.server_url,
+        "agent started"
+    );
     let mut session = tokio::spawn(session.run(stop.clone()));
     tokio::pin!(shutdown);
     tokio::select! {

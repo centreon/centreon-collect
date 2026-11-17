@@ -1,0 +1,36 @@
+# gorgone-agent running inside the broker container of the bench, as the
+# "broker" component of its poller: gorgone-server sends it the pushes of
+# the targets below and the control of the "broker" service, and the engine
+# component of the same poller the rest. The node id comes from the
+# environment (GORGONE_AGENT__NODE_ID), see compose.yaml.
+component = "broker"
+server_url = "http://gorgone:5556"
+# Bench value: gorgone-server enrols nodes automatically here.
+token = "integration-test"
+# On the container's own filesystem, which a restart keeps: the result of a
+# "restart" job is sent once the container is back.
+state_dir = "/var/lib/centreon-broker/gorgone-agent"
+
+# Nothing to run: no plugin in this image, no engine.
+[commands]
+allowlist = []
+
+# The key cbd decrypts db_password with, pushed before the rest. cbd reads it
+# when it starts and on each reload.
+[targets.engine_context]
+path = "/etc/centreon-engine"
+prune = false
+file_mode = "0640"
+
+# The broker configuration. container.sh starts cbd once central-broker.json
+# is no longer the packaged default (BROKER_WAIT_FOR_CONFIG=true).
+[targets.broker]
+path = "/etc/centreon-broker"
+prune = false
+
+# cbd is the main process of the container (pid file written by
+# container.sh): SIGHUP reloads it, SIGTERM stops it, and the container with
+# it, which the restart policy starts again.
+[services.broker]
+reload = "signal:HUP:/var/lib/centreon-broker/cbd.pid"
+restart = "signal:TERM:/var/lib/centreon-broker/cbd.pid"

@@ -73,14 +73,17 @@ alone in a slim image: no centreon-collect, Gorgone, plugin, Perl, Python or
 | `valkey`                             | the PHP session store of the web replicas, in memory, no volume                                                       |
 | `web-cron`, `web-cron-b`             | two replicas of the centreon-web scheduled tasks, same image; MariaDB locks run each job once per schedule            |
 | `victoria-metrics`                   | the time series store; centreon-web reads its graphs from it                                                          |
-| `broker`                             | the central broker; receives its configuration and key through its control API                                        |
+| `broker`                             | the central broker and its `gorgone-agent`, the `broker` component of the Central poller                              |
 | `central-engine`                     | the engine of the "Central" poller and its `gorgone-agent`, in the same container                                     |
 | `engine`                             | a second container-only poller, same image; registers and deploys itself                                              |
 | `poller`                             | the Centreon poller test image, driven by `gorgone-agent`                                                             |
 
 Inside an engine container the agent drives the engine over its gRPC API on a
-local Unix socket. The Central agent pushes the broker configuration and the
-encryption key to the broker container and reloads it through its control API.
+local Unix socket. The Central poller has two agents, each with its own
+session to gorgone-server: the `engine` component in `central-engine` and the
+`broker` component in `broker`. gorgone-server sends the broker configuration
+and the encryption key to both, and a broker reload to the broker agent,
+which signals `cbd` (no Python, no control API in the broker image).
 centreon-web pushes the key (`engine_context`) before every configuration;
 both replicas get the same key from their environment
 (`CENTREON_ENGINE_CONTEXT`, a bench-only value) and their sessions from Valkey
@@ -104,8 +107,10 @@ docker compose -f deploy/centreon/compose.yaml down -v
 
 `verify.sh` runs from the host and checks, among other things, that the web
 image carries no collect, Gorgone, plugin package nor `rrdtool`, that no volume
-is shared between containers, that the central broker sees every engine
-running, that a forced check sent through the centreon-web API reaches the
+is shared between containers, that the broker image carries no Python nor RRD
+output, that the Central poller has an engine and a broker session and that a
+broker configuration push and reload reach `cbd` through its agent, that the
+central broker sees every engine running, that a forced check sent through the centreon-web API reaches the
 engine, that the engine API is not reachable over the network, that a reload
 asked on top of a failed configuration push is not sent, that a configuration
 is verified by the poller's own engine and refused when invalid, and that

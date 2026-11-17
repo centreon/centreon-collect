@@ -148,6 +148,11 @@ pub struct AgentConfig {
     /// Identifier of this poller on the central (`nagios_server.id`).
     #[serde(deserialize_with = "lenient::string")]
     pub node_id: String,
+    /// Part of the node this agent drives, `engine` by default: a node may
+    /// have one agent per component (an engine and its broker in separate
+    /// containers), each with its own session.
+    #[serde(default = "default_component", deserialize_with = "lenient::string")]
+    pub component: String,
     /// URL of the server gateway, `https://host:port` (`http://` disables TLS).
     pub server_url: String,
     /// Enrolment token, sent as bearer metadata.
@@ -535,6 +540,52 @@ impl EngineRpc {
     }
 }
 
+/// Signal a `signal:` service operation sends.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProcessSignal {
+    /// `HUP`: reload, for `cbd` and `centengine`.
+    Hup,
+    /// `INT`.
+    Int,
+    /// `TERM`: clean stop.
+    Term,
+    /// `USR1`.
+    Usr1,
+    /// `USR2`.
+    Usr2,
+}
+
+impl ProcessSignal {
+    /// Prefix of an operation sending a signal to the process of a pid file.
+    pub const PREFIX: &'static str = "signal:";
+
+    fn parse(name: &str) -> Option<Self> {
+        match name {
+            "HUP" => Some(Self::Hup),
+            "INT" => Some(Self::Int),
+            "TERM" => Some(Self::Term),
+            "USR1" => Some(Self::Usr1),
+            "USR2" => Some(Self::Usr2),
+            _ => None,
+        }
+    }
+
+    /// Signal and absolute pid file of `HUP:/run/cbd.pid`, the text after
+    /// [`Self::PREFIX`]; the error says what is wrong.
+    pub fn parse_action(text: &str) -> Result<(Self, &Path), String> {
+        let (name, path) = text
+            .split_once(':')
+            .ok_or_else(|| format!("{text:?}: expected NAME:/absolute/pid/file"))?;
+        let signal = Self::parse(name)
+            .ok_or_else(|| format!("{name:?}: expected HUP, INT, TERM, USR1 or USR2"))?;
+        let path = Path::new(path);
+        if !path.is_absolute() {
+            return Err(format!("{}: the pid file must be absolute", path.display()));
+        }
+        Ok((signal, path))
+    }
+}
+
 /// What the agent does for one operation of a service.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ServiceAction<'a> {
@@ -545,12 +596,15 @@ pub enum ServiceAction<'a> {
     /// Sends a bodiless HTTP `POST` to each of these `http://` URLs, as
     /// written: separated by white space, called in order.
     HttpPost(&'a str),
+    /// Sends a signal to the process whose pid this file holds.
+    Signal(ProcessSignal, &'a Path),
 }
 
 /// Actions controlling one service; an unset operation is refused. A value is
-/// a command line, `grpc:reload` / `grpc:shutdown` (see [`EngineRpc`]), or
+/// a command line, `grpc:reload` / `grpc:shutdown` (see [`EngineRpc`]),
 /// `http-post:` followed by one or several `http://` URLs separated by white
-/// space (see [`ServiceConfig::HTTP_POST_PREFIX`]).
+/// space (see [`ServiceConfig::HTTP_POST_PREFIX`]), or `signal:NAME:/pid/file`
+/// (see [`ProcessSignal`]).
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ServiceConfig {
@@ -588,12 +642,17 @@ impl ServiceConfig {
     }
 
     /// What `operation` does, if the administrator mapped it. `None` as well
-    /// for an unknown `grpc:` name, which the configuration check refuses.
+    /// for an unknown `grpc:` name or a malformed `signal:` value, which the
+    /// configuration check refuses.
     #[must_use]
     pub fn action(&self, operation: Operation) -> Option<ServiceAction<'_>> {
         let value = self.command(operation)?;
         if let Some(urls) = value.strip_prefix(Self::HTTP_POST_PREFIX) {
             return Some(ServiceAction::HttpPost(urls));
+        }
+        if let Some(signal) = value.strip_prefix(ProcessSignal::PREFIX) {
+            let (signal, pid_file) = ProcessSignal::parse_action(signal).ok()?;
+            return Some(ServiceAction::Signal(signal, pid_file));
         }
         match value.strip_prefix(EngineRpc::PREFIX) {
             Some(name) => EngineRpc::parse(name).map(ServiceAction::Engine),
@@ -616,6 +675,21 @@ impl ServiceConfig {
         })
     }
 
+    /// `signal:` values of the four operations, with the key holding each.
+    fn signals(&self) -> impl Iterator<Item = (&'static str, &str)> {
+        [
+            ("start", &self.start),
+            ("stop", &self.stop),
+            ("reload", &self.reload),
+            ("restart", &self.restart),
+        ]
+        .into_iter()
+        .filter_map(|(key, value)| {
+            let signal = value.as_deref()?.strip_prefix(ProcessSignal::PREFIX)?;
+            Some((key, signal))
+        })
+    }
+
     /// Names of the engine API calls the four operations are mapped to.
     fn engine_calls(&self) -> impl Iterator<Item = &str> {
         [&self.start, &self.stop, &self.reload, &self.restart]
@@ -624,6 +698,9 @@ impl ServiceConfig {
     }
 }
 
+fn default_component() -> String {
+    gorgone_core::DEFAULT_COMPONENT.to_owned()
+}
 fn default_kill_grace_ms() -> u64 {
     2000
 }
@@ -783,6 +860,9 @@ impl AgentConfig {
         if self.node_id.trim().is_empty() {
             return invalid("node_id must not be empty");
         }
+        if !gorgone_core::valid_component(&self.component) {
+            return invalid("component must be 1 to 32 characters among a-z, 0-9, _ and -");
+        }
         if !(self.server_url.starts_with("https://") || self.server_url.starts_with("http://")) {
             return invalid("server_url must start with https:// or http://");
         }
@@ -866,6 +946,14 @@ impl AgentConfig {
                     ConfigError::Invalid(format!(
                         "services.{service}.{key}: {}{reason}",
                         ServiceConfig::HTTP_POST_PREFIX
+                    ))
+                })?;
+            }
+            for (key, signal) in config.signals() {
+                ProcessSignal::parse_action(signal).map_err(|reason| {
+                    ConfigError::Invalid(format!(
+                        "services.{service}.{key}: {}{reason}",
+                        ProcessSignal::PREFIX
                     ))
                 })?;
             }
@@ -1165,6 +1253,49 @@ mod tests {
         );
         assert_eq!(engine.action(Operation::Start), None);
         assert_eq!(engine.command(Operation::Reload), Some("grpc:reload"));
+    }
+
+    #[test]
+    fn service_operation_can_signal_a_pid_file_and_component_is_checked() {
+        let with = |tail: &str| AgentConfig::from_toml(&format!("{MINIMAL}{tail}"));
+        let config = with(
+            "component = \"broker\"\n[services.broker]\n\
+             reload = \"signal:HUP:/var/lib/centreon-broker/cbd.pid\"\n\
+             restart = \"signal:TERM:/var/lib/centreon-broker/cbd.pid\"",
+        )
+        .unwrap();
+        assert_eq!(config.component, "broker");
+        let broker = &config.services["broker"];
+        let pid_file = Path::new("/var/lib/centreon-broker/cbd.pid");
+        assert_eq!(
+            broker.action(Operation::Reload),
+            Some(ServiceAction::Signal(ProcessSignal::Hup, pid_file))
+        );
+        assert_eq!(
+            broker.action(Operation::Restart),
+            Some(ServiceAction::Signal(ProcessSignal::Term, pid_file))
+        );
+        assert_eq!(AgentConfig::from_toml(MINIMAL).unwrap().component, "engine");
+
+        for (tail, needle) in [
+            (
+                "[services.broker]\nreload = \"signal:KILL:/run/cbd.pid\"",
+                "services.broker.reload: signal:\"KILL\": expected HUP",
+            ),
+            (
+                "[services.broker]\nreload = \"signal:HUP:run/cbd.pid\"",
+                "the pid file must be absolute",
+            ),
+            (
+                "[services.broker]\nreload = \"signal:HUP\"",
+                "expected NAME:/absolute/pid/file",
+            ),
+            ("component = \"Broker\"", "component must be"),
+            ("component = \"\"", "component must be"),
+        ] {
+            let message = with(tail).unwrap_err().to_string();
+            assert!(message.contains(needle), "{message}");
+        }
     }
 
     #[test]

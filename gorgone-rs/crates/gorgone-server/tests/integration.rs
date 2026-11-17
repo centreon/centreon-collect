@@ -127,12 +127,41 @@ impl FakeAgent {
         node_id: &str,
         token: Option<&str>,
     ) -> Result<Self, Status> {
+        // An agent from before components: no component, no target.
+        Self::open_as(channel, metadata_node, node_id, token, "", &[]).await
+    }
+
+    /// Agent of one component of the node, declaring its targets.
+    async fn connect_component(
+        addr: SocketAddr,
+        node_id: &str,
+        component: &str,
+        targets: &[&str],
+    ) -> Result<Self, Status> {
+        let channel = Channel::from_shared(format!("http://{addr}"))
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        Self::open_as(channel, Some(node_id), node_id, None, component, targets).await
+    }
+
+    async fn open_as(
+        channel: Channel,
+        metadata_node: Option<&str>,
+        node_id: &str,
+        token: Option<&str>,
+        component: &str,
+        targets: &[&str],
+    ) -> Result<Self, Status> {
         let mut client = AgentGatewayClient::new(channel);
         let (tx, rx) = mpsc::channel(64);
         let hello = Hello {
             node_id: node_id.to_owned(),
             agent_version: "fake-1.0".into(),
             capabilities: vec!["run_commands".into()],
+            component: component.to_owned(),
+            targets: targets.iter().map(|t| (*t).to_owned()).collect(),
         };
         tx.send(AgentFrame {
             frame: Some(AgentFrameKind::Hello(hello)),
@@ -3047,6 +3076,193 @@ async fn validate_config_action_is_accepted_as_json() {
         text.contains("gorgone_jobs_submitted_total{kind=\"validate_config\"}"),
         "{text}"
     );
+
+    server.shutdown().await;
+}
+
+/// The node once `ready` holds, read from the REST API.
+async fn node_until(rest: &Rest, node: &str, ready: impl Fn(&Value) -> bool) -> Value {
+    let until = Instant::now() + STEP;
+    loop {
+        let (status, body) = rest.get(&format!("/v1/nodes/{node}")).await;
+        assert_eq!(status, 200, "{body}");
+        if ready(&body) {
+            return body;
+        }
+        assert!(Instant::now() < until, "node not as expected: {body}");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
+/// Session id of a component in a node read from the REST API.
+fn component_session(node: &Value, component: &str) -> Value {
+    node["components"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["component"] == component)
+        .map_or(Value::Null, |c| c["session"]["session_id"].clone())
+}
+
+fn has_components(node: &Value, count: usize) -> bool {
+    node["components"]
+        .as_array()
+        .is_some_and(|c| c.iter().filter(|c| c["connected"] == true).count() == count)
+}
+
+#[tokio::test]
+async fn components_of_a_node_have_their_own_session_and_their_own_jobs() {
+    let db = TestDb::new();
+    // Slow sweep: only commits and submits move the jobs.
+    let server = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let addr = server.agent_addr;
+    let mut engine = FakeAgent::connect_component(
+        addr,
+        &node,
+        "engine",
+        &["engine", "engine_context", "broker"],
+    )
+    .await
+    .unwrap();
+    let mut broker =
+        FakeAgent::connect_component(addr, &node, "broker", &["broker", "engine_context"])
+            .await
+            .unwrap();
+    let seen = node_until(&rest, &node, |n| has_components(n, 2)).await;
+    assert_eq!(seen["connected"], true);
+    assert_eq!(seen["session"]["session_id"], engine.welcome.session_id);
+    assert_eq!(
+        component_session(&seen, "broker"),
+        json!(broker.welcome.session_id)
+    );
+    assert_eq!(
+        seen["components"][0]["targets"],
+        json!(["broker", "engine_context"])
+    );
+
+    // A target both declare: the broker gets a copy first, the engine the
+    // job itself once the copy succeeded.
+    let key = push(&rest, &node, "engine_context").await;
+    let copy = format!("{key}.broker");
+    assert_eq!(broker.next_dispatch().await.id, copy);
+    assert_nothing_received(&mut engine).await;
+    broker.event(&copy, 1, finished(Outcome::Ok, "")).await;
+    let job = engine.next_dispatch().await;
+    assert_eq!(
+        (job.id.as_str(), &job.requires),
+        (key.as_str(), &vec![copy.clone()])
+    );
+    engine.event(&key, 1, finished(Outcome::Ok, "")).await;
+    let done = finished_job(&rest, &key).await;
+    assert_eq!(
+        (&done["state"], &done["component"]),
+        (&json!("succeeded"), &json!("engine"))
+    );
+    let done = finished_job(&rest, &copy).await;
+    assert_eq!(
+        (&done["state"], &done["component"]),
+        (&json!("succeeded"), &json!("broker"))
+    );
+
+    // A target only the engine declares.
+    let config = push(&rest, &node, "engine").await;
+    assert_eq!(engine.next_dispatch().await.id, config);
+    assert_nothing_received(&mut broker).await;
+    engine.event(&config, 1, finished(Outcome::Ok, "")).await;
+
+    // A service goes to the component of its name, engine commands to the
+    // engine.
+    let reload = submit(
+        &rest,
+        &node,
+        &json!({ "service_control": { "service": "broker", "operation": "reload" } }),
+    )
+    .await;
+    assert_eq!(broker.next_dispatch().await.id, reload);
+    let commands = submit(
+        &rest,
+        &node,
+        &json!({ "engine_commands": { "commands": ["[1] SCHEDULE_FORCED_SVC_CHECK;h;s;1"] } }),
+    )
+    .await;
+    assert_eq!(engine.next_dispatch().await.id, commands);
+    // An agent cannot end the job of another component of its node.
+    engine.event(&reload, 1, finished(Outcome::Ok, "")).await;
+    let (_, job) = rest.get(&format!("/v1/jobs/{reload}")).await;
+    assert_eq!(job["state"], "dispatched", "{job}");
+
+    // A failed copy fails the job, which the engine never gets.
+    let pushed = push(&rest, &node, "broker").await;
+    let copy = format!("{pushed}.broker");
+    assert_eq!(broker.next_dispatch().await.id, copy);
+    broker
+        .event(&copy, 1, finished(Outcome::Failed, "bad"))
+        .await;
+    assert_failed_on(&rest, &pushed, &copy, "failed").await;
+    assert_nothing_received(&mut engine).await;
+
+    // A newer broker session replaces the broker session only, and gets the
+    // broker job its predecessor left; the engine job stays where it is.
+    let mut newer =
+        FakeAgent::connect_component(addr, &node, "broker", &["broker", "engine_context"])
+            .await
+            .unwrap();
+    broker.expect_closed(STEP).await;
+    assert_eq!(newer.next_dispatch().await.id, reload);
+    let (_, job) = rest.get(&format!("/v1/jobs/{commands}")).await;
+    assert_eq!(job["state"], "dispatched", "{job}");
+    let later = submit(&rest, &node, &run_commands("echo later")).await;
+    assert_eq!(engine.next_dispatch().await.id, later);
+    let session = json!(newer.welcome.session_id);
+    node_until(&rest, &node, |n| component_session(n, "broker") == session).await;
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn engine_agent_without_component_still_gets_every_push() {
+    let db = TestDb::new();
+    let server = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    // An agent from before components declares no target.
+    let mut engine = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let mut broker = FakeAgent::connect_component(server.agent_addr, &node, "broker", &["broker"])
+        .await
+        .unwrap();
+    node_until(&rest, &node, |n| has_components(n, 2)).await;
+
+    let pushed = push(&rest, &node, "broker").await;
+    let copy = format!("{pushed}.broker");
+    assert_eq!(broker.next_dispatch().await.id, copy);
+    broker.event(&copy, 1, finished(Outcome::Ok, "")).await;
+    assert_eq!(engine.next_dispatch().await.id, pushed);
+    engine.event(&pushed, 1, finished(Outcome::Ok, "")).await;
+    // A target the broker does not declare goes to the engine alone.
+    let other = push(&rest, &node, "vmware").await;
+    assert_eq!(engine.next_dispatch().await.id, other);
+    assert_nothing_received(&mut broker).await;
+    // A service without a component of its name goes to the engine.
+    let trapd = submit(
+        &rest,
+        &node,
+        &json!({ "service_control": { "service": "centreontrapd", "operation": "reload" } }),
+    )
+    .await;
+    assert_eq!(engine.next_dispatch().await.id, trapd);
+
+    // Cancelling a push cancels its copies, even with the broker away.
+    drop(broker);
+    let pushed = push(&rest, &node, "broker").await;
+    let (status, body) = delete(&rest, &format!("/v1/jobs/{pushed}")).await;
+    assert!(status < 300, "{status} {body}");
+    for id in [pushed.clone(), format!("{pushed}.broker")] {
+        assert_eq!(finished_job(&rest, &id).await["state"], "cancelled", "{id}");
+    }
 
     server.shutdown().await;
 }

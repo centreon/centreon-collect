@@ -90,6 +90,67 @@ all_nodes_connected() {
     | python3 -I -c 'import json,sys; n=json.load(sys.stdin)["nodes"]; sys.exit(0 if len(n) >= 3 and all(x["connected"] for x in n) else 1)'
 }
 
+# The broker container runs cbd and its agent only: no Python, no control
+# API, no RRD output nor legacy SQL outputs.
+broker_image_is_slim() {
+  "${COMPOSE[@]}" exec -T broker sh -c '
+    ! command -v python3 && [ ! -e /opt/centreon ] \
+      && [ ! -e /usr/local/lib/centreon-broker/api_control.py ] \
+      && cd /usr/share/centreon/lib/centreon-broker \
+      && [ ! -e 70-rrd.so ] && [ ! -e 20-storage.so ] && [ ! -e 80-sql.so ]'
+}
+
+# Node 1 has two agents: the engine of central-engine and the broker of the
+# broker container, each with its own session.
+central_has_engine_and_broker_sessions() {
+  gorgone_api GET /v1/nodes/1 | python3 -I -c '
+import json, sys
+node = json.load(sys.stdin)
+components = {c["component"]: c for c in node["components"]}
+broker, engine = components["broker"], components["engine"]
+ok = (broker["connected"] and engine["connected"]
+      and broker["session"]["session_id"] != engine["session"]["session_id"]
+      and {"broker", "engine_context"} <= set(broker["targets"]))
+sys.exit(0 if ok else 1)'
+}
+
+# Pid of the cbd of the broker container, which is its main process.
+broker_cbd_pid() {
+  "${COMPOSE[@]}" exec -T broker sh -c 'pid=$(cat /var/lib/centreon-broker/cbd.pid) && kill -0 "$pid" && echo "$pid"'
+}
+
+# A configuration push reaches cbd: the broker agent applied the same broker
+# configuration as the engine agent (the deployment pushed both), and a
+# broker reload, routed to the broker agent, has cbd read it again (SIGHUP,
+# same process).
+broker_push_reaches_cbd() {
+  local pid reloads job
+  gorgone_api GET /v1/nodes/1 | python3 -I -c '
+import json, sys
+node = json.load(sys.stdin)
+applied = {c["component"]: c["applied"] for c in node["components"]}
+digest = applied["broker"].get("broker")
+ok = digest and digest == applied["engine"].get("broker") and applied["broker"].get("engine_context")
+sys.exit(0 if ok else 1)' || return 1
+  pid=$(broker_cbd_pid) || return 1
+  reloads=$("${COMPOSE[@]}" logs broker | grep -c 'configuration update requested' || true)
+  job=$(gorgone_api POST /v1/nodes/1/jobs -H 'Content-Type: application/json' \
+    -d '{"service_control":{"service":"broker","operation":"reload"},"requires_latest_config":["broker"]}' \
+    | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["id"])') || return 1
+  gorgone_api GET "/v1/jobs/${job}?wait=30" | python3 -I -c '
+import json, sys
+job = json.load(sys.stdin)
+sys.exit(0 if job["state"] == "succeeded" and job["component"] == "broker" else 1)' || return 1
+  for _ in $(seq 15); do
+    if (($("${COMPOSE[@]}" logs broker | grep -c 'configuration update requested' || true) > reloads)); then
+      [[ "$(broker_cbd_pid)" == "${pid}" ]]
+      return
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 # Written by the central broker container, from what each engine sends it.
 instance_running() {
   sql "SELECT running FROM centreon_storage.instances WHERE name = '$1'" | grep -qx 1
@@ -117,13 +178,9 @@ grpc_command_reaches_engine() {
 # The engine API must only be reachable through the socket shared with the
 # sidecar.
 engine_api_not_on_network() {
-  "${COMPOSE[@]}" exec -T engine python3 -c '
-import socket, sys
-try:
-    socket.create_connection(("127.0.0.1", 50155), timeout=2)
-except OSError:
-    sys.exit(0)
-sys.exit(1)'
+  # Perl: the engine image has no Python. Exit 0 when nothing listens.
+  "${COMPOSE[@]}" exec -T engine perl -MIO::Socket::INET -e '
+exit(IO::Socket::INET->new(PeerAddr => "127.0.0.1", PeerPort => 50155, Timeout => 2) ? 1 : 0)'
 }
 
 # What the agent reports must match what was pushed: applied configuration
@@ -455,6 +512,9 @@ check "the web image is a web server only: no shell, collect, Gorgone or plugin"
 check "the web image carries no rrdtool" web_image_has_no_rrdtool
 check "no volume is shared between containers" no_shared_volume
 check "the three agents are connected to gorgone-server" all_nodes_connected
+check "the broker image carries no Python, control API, RRD nor legacy SQL output" broker_image_is_slim
+check "the Central poller has an engine and a broker session" central_has_engine_and_broker_sessions
+check "a broker configuration push and reload reach cbd through its agent" broker_push_reaches_cbd
 check "the central broker sees the Central engine running" instance_running Central
 check "the central broker sees the poller's engine running" instance_running poller
 check "the central broker sees the engine container running" instance_running engine

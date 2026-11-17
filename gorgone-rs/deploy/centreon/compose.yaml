@@ -14,8 +14,9 @@
 #   web-cron,        two replicas of the centreon-web scheduled tasks, same
 #   web-cron-b       image: each job runs once per schedule (MariaDB locks)
 #   victoria-metrics the time series store graphs are read from
-#   broker           the central broker (cbd): SQL and VictoriaMetrics outputs;
-#                    it receives its configuration through its control API
+#   broker           the central broker (cbd): SQL and VictoriaMetrics outputs,
+#                    with the gorgone-agent of the "broker" component of the
+#                    Central poller, which receives its configuration and key
 #   central-engine   the engine of the "Central" poller with its gorgone-agent
 #   engine           a second container-only poller, same image
 #   poller           the Centreon poller test image, driven by gorgone-agent
@@ -235,31 +236,44 @@ services:
     entrypoint: ["bash", "-c", "mariadb --skip-ssl -hdb -uroot -pcentreon centreon < /setup.sql"]
 
   broker:
-    # Built from this branch: broker/README.md.
-    image: ${BROKER_IMAGE:-centreon-broker-trixie:gorgone-poc}
+    # The broker image of this branch (broker/README.md) with its agent.
+    build:
+      context: ../..
+      dockerfile: deploy/centreon/Dockerfile
+      target: broker
+      args:
+        BROKER_IMAGE: ${BROKER_IMAGE:-centreon-broker-trixie:gorgone-poc}
     hostname: broker
+    # "restart" is: the agent stops cbd, docker starts the container again;
+    # its filesystem, and so the configuration and the agent journal, is kept.
     restart: always
+    depends_on:
+      gorgone-server:
+        condition: service_started
+      gorgone-server-b:
+        condition: service_started
     environment:
-      # Its configuration and key are pushed by the Central agent; cbd starts
-      # once the first configuration arrives.
+      # The "broker" component of the Central poller (agent.toml): its own
+      # session, the pushes of the broker configuration and of the key, and
+      # the broker service. cbd starts once the first configuration arrives.
+      GORGONE_AGENT__NODE_ID: "1"
       BROKER_WAIT_FOR_CONFIG: "true"
-      BROKER_CONTROL_TOKEN: bench-broker-token
 
   central-engine:
     <<: *engine
     hostname: central-engine
+    # Its broker registers its component first: the configuration pushes of
+    # the deployment are then routed to both.
+    depends_on:
+      central-setup:
+        condition: service_completed_successfully
+      broker:
+        condition: service_started
     environment:
       <<: *engine-env
       # The "Central" poller exists from the installation: no registration.
       POLLER_NAME: Central
       GORGONE_AGENT__NODE_ID: "1"
-      # Its broker is another container, reached through its control API.
-      GORGONE_AGENT__HTTP_BEARER_TOKEN: bench-broker-token
-      GORGONE_AGENT__TARGETS__BROKER__URLS: '["http://broker:8080/files/broker"]'
-      GORGONE_AGENT__TARGETS__ENGINE_CONTEXT__URLS: '["http://broker:8080/files/engine_context"]'
-      GORGONE_AGENT__SERVICES__BROKER__RELOAD: http-post:http://broker:8080/reload
-      # Restart only once the broker runs the configuration just pushed.
-      WAIT_FOR_URLS: http://broker:8080/health
 
   engine:
     <<: *engine

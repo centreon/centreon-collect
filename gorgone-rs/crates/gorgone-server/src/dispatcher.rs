@@ -255,6 +255,7 @@ impl Dispatcher {
         } else {
             self.config.default_deadline
         };
+        let (component, copies) = self.route(node_id, &action).await?;
         let created = self
             .store
             .insert_job(NewJob {
@@ -269,16 +270,68 @@ impl Dispatcher {
                 requires: &requires,
                 latest_config: options.latest_config,
                 config_target,
+                component: &component,
+                copies: &copies,
             })
             .await?;
         if created {
             metrics::JOBS_SUBMITTED.add(kind, 1);
-            debug!(job = %id, node = node_id, kind, "job queued");
+            debug!(job = %id, node = node_id, kind, component, ?copies, "job queued");
             // The job is committed: delivery happens aside, so that a slow
             // agent never delays the submitter.
-            self.trigger(node_id, false);
+            for component in copies.iter().chain(std::iter::once(&component)) {
+                self.trigger_component(node_id, component, false);
+            }
         }
         Ok((id, created))
+    }
+
+    /// Component of the node that runs `action`, and the other components
+    /// getting a copy of it (see [`NewJob::copies`]):
+    /// - a configuration push goes to every component that declared its
+    ///   target, and to the engine unless the engine declared a list of
+    ///   targets without it while another component declared it (an engine
+    ///   that never connected, or did not declare its targets, gets every
+    ///   push, as before components existed);
+    /// - a validation goes to the first of these, the engine when it is one;
+    /// - a service control goes to the component named like the service when
+    ///   the node has one, to the engine otherwise;
+    /// - commands and engine commands go to the engine.
+    async fn route(&self, node_id: &str, action: &Action) -> Result<(String, Vec<String>), Error> {
+        let engine = gorgone_core::DEFAULT_COMPONENT;
+        let (target, copied) = match &action.kind {
+            Some(Kind::ApplyConfig(apply)) => (apply.target.as_str(), true),
+            Some(Kind::ValidateConfig(validate)) => (validate.target.as_str(), false),
+            Some(Kind::ServiceControl(control)) if control.service != engine => {
+                let components = self.store.components(node_id).await?;
+                if components.iter().any(|c| c.component == control.service) {
+                    return Ok((control.service.clone(), Vec::new()));
+                }
+                return Ok((engine.to_owned(), Vec::new()));
+            }
+            _ => return Ok((engine.to_owned(), Vec::new())),
+        };
+        let components = self.store.components(node_id).await?;
+        let declares = |targets: &[String]| targets.iter().any(|t| t == target);
+        let mut others: Vec<String> = components
+            .iter()
+            .filter(|c| c.component != engine && declares(&c.targets))
+            .map(|c| c.component.clone())
+            .collect();
+        let engine_takes = others.is_empty()
+            || components
+                .iter()
+                .find(|c| c.component == engine)
+                .is_none_or(|c| c.targets.is_empty() || declares(&c.targets));
+        let first = if engine_takes {
+            engine.to_owned()
+        } else {
+            others.remove(0)
+        };
+        if !copied {
+            others.clear();
+        }
+        Ok((first, others))
     }
 
     /// The prerequisites without repetition, once each is known to be a job
@@ -353,79 +406,123 @@ impl Dispatcher {
             .remove(node_id);
     }
 
-    /// Starts, in the background, the delivery work of a node: a drain when
-    /// its session is here, a wake-up of the replica holding it otherwise.
-    /// `full` also looks at cancellations and at jobs of a former session.
-    pub(crate) fn trigger(self: &Arc<Self>, node_id: &str, full: bool) {
-        let this = Arc::clone(self);
-        let node_id = node_id.to_owned();
-        if self.holds(&node_id) {
-            // No task when a drain is already under way: it goes again.
-            if let Some(role) = DrainRole::take(self.hub.node_state(&node_id), full) {
-                tokio::spawn(async move { this.run_drain(role, &node_id).await });
-            }
-        } else {
-            tokio::spawn(async move { this.wake_owner(&node_id).await });
+    /// Starts, in the background, the delivery work of one component of a
+    /// node: a drain when its session is here, a wake-up of the replica
+    /// holding it otherwise. `full` also looks at cancellations and at jobs
+    /// of a former session.
+    pub(crate) fn trigger_component(self: &Arc<Self>, node_id: &str, component: &str, full: bool) {
+        if !self.drain_local(node_id, component, full) {
+            let this = Arc::clone(self);
+            let (node_id, component) = (node_id.to_owned(), component.to_owned());
+            tokio::spawn(async move { this.wake_owners(&node_id, Some(&component)).await });
         }
     }
 
-    /// True when this replica holds the session of the node.
-    pub(crate) fn holds(&self, node_id: &str) -> bool {
-        self.hub.get(node_id).is_some()
+    /// Same as [`Self::trigger_component`] for every component of the node.
+    pub(crate) fn trigger(self: &Arc<Self>, node_id: &str, full: bool) {
+        self.trigger_local(node_id, full);
+        let this = Arc::clone(self);
+        let node_id = node_id.to_owned();
+        tokio::spawn(async move { this.wake_owners(&node_id, None).await });
     }
 
-    /// Session on a peer: wake it. No session: the job stays queued.
-    async fn wake_owner(&self, node_id: &str) {
-        let session = match self.store.session(node_id).await {
-            Ok(session) => session,
+    /// Starts a drain of every component of the node held here; false when
+    /// this replica holds none.
+    pub(crate) fn trigger_local(self: &Arc<Self>, node_id: &str, full: bool) -> bool {
+        let components = self.hub.components(node_id);
+        for component in &components {
+            self.drain_local(node_id, component, full);
+        }
+        !components.is_empty()
+    }
+
+    /// Starts a drain of a component of the node if its session is here.
+    fn drain_local(self: &Arc<Self>, node_id: &str, component: &str, full: bool) -> bool {
+        if !self.holds(node_id, component) {
+            return false;
+        }
+        // No task when a drain is already under way: it goes again.
+        if let Some(role) = DrainRole::take(self.hub.node_state(node_id, component), full) {
+            let this = Arc::clone(self);
+            let (node_id, component) = (node_id.to_owned(), component.to_owned());
+            tokio::spawn(async move { this.run_drain(role, &node_id, &component).await });
+        }
+        true
+    }
+
+    /// True when this replica holds the session of a component of the node.
+    pub(crate) fn holds(&self, node_id: &str, component: &str) -> bool {
+        self.hub.get(node_id, component).is_some()
+    }
+
+    /// Wakes the peers holding the session of `component` of the node, or
+    /// of any of its components. No session: the jobs stay queued.
+    async fn wake_owners(&self, node_id: &str, component: Option<&str>) {
+        let sessions = match component {
+            Some(component) => self
+                .store
+                .session(node_id, component)
+                .await
+                .map(Vec::from_iter),
+            None => self.store.sessions_of(node_id).await,
+        };
+        let sessions = match sessions {
+            Ok(sessions) => sessions,
             Err(err) => {
                 warn!(node = node_id, error = %err, "session lookup failed");
                 return;
             }
         };
-        let Some(session) = session.filter(|s| s.replica_id != self.config.replica_id) else {
-            return;
-        };
-        let woke = async {
-            let addr = self.store.replica_addr(&session.replica_id).await?;
-            match addr {
-                Some(addr) => self.peers.wake(&addr, node_id).await,
-                None => Ok(false),
+        let mut replicas: Vec<String> = sessions
+            .into_iter()
+            .map(|s| s.replica_id)
+            .filter(|replica| *replica != self.config.replica_id)
+            .collect();
+        replicas.sort_unstable();
+        replicas.dedup();
+        for replica in replicas {
+            let woke = async {
+                let addr = self.store.replica_addr(&replica).await?;
+                match addr {
+                    // The peer drains every component of the node it holds.
+                    Some(addr) => self.peers.wake(&addr, node_id).await,
+                    None => Ok(false),
+                }
+            };
+            match woke.await {
+                Ok(true) => {}
+                // The owner sweeps its nodes anyway.
+                Ok(false) => debug!(node = node_id, "peer does not hold the node any more"),
+                Err(err) => warn!(node = node_id, error = %err, "peer wake-up failed"),
             }
-        };
-        match woke.await {
-            Ok(true) => {}
-            // The owner sweeps its nodes anyway.
-            Ok(false) => debug!(node = node_id, "peer does not hold the node any more"),
-            Err(err) => warn!(node = node_id, error = %err, "peer wake-up failed"),
         }
     }
 
-    /// Drains the node now, unless another task is doing it (it will then
-    /// run one more pass). Used by the sweep.
-    async fn drain(&self, node_id: &str, full: bool) {
-        if let Some(role) = DrainRole::take(self.hub.node_state(node_id), full) {
-            self.run_drain(role, node_id).await;
+    /// Drains a component of the node now, unless another task is doing it
+    /// (it will then run one more pass). Used by the sweep.
+    async fn drain(&self, node_id: &str, component: &str, full: bool) {
+        if let Some(role) = DrainRole::take(self.hub.node_state(node_id, component), full) {
+            self.run_drain(role, node_id, component).await;
         }
     }
 
     /// Runs passes until no request is left: requests arriving while a pass
     /// commits are served together by the next one (group commit).
-    async fn run_drain(&self, mut role: DrainRole, node_id: &str) {
+    async fn run_drain(&self, mut role: DrainRole, node_id: &str, component: &str) {
         loop {
             let full = role.begin_pass();
-            self.drain_pass(node_id, full).await;
+            self.drain_pass(node_id, component, full).await;
             if !role.again() {
                 return;
             }
         }
     }
 
-    /// One pass: sends to the session of the node the pending cancellations
-    /// (full pass), then the queued jobs in submission order.
-    async fn drain_pass(&self, node_id: &str, full: bool) {
+    /// One pass: sends to the session of a component of the node the pending
+    /// cancellations (full pass), then its queued jobs in submission order.
+    async fn drain_pass(&self, node_id: &str, component: &str, full: bool) {
         // Read while holding the drain role: this is the session to serve.
-        let Some(session) = self.hub.get(node_id) else {
+        let Some(session) = self.hub.get(node_id, component) else {
             return;
         };
         // A new session first gets what its predecessor left.
@@ -434,7 +531,7 @@ impl Dispatcher {
             // Jobs handed to a former session that never answered go first.
             match self
                 .store
-                .requeue_stale_dispatched(node_id, &session.session_id)
+                .requeue_stale_dispatched(node_id, component, &session.session_id)
                 .await
             {
                 Ok(0) => {}
@@ -448,7 +545,7 @@ impl Dispatcher {
             }
             self.send_cancels(node_id, &session).await;
         }
-        let waiting = self.hub.node_state(node_id);
+        let waiting = self.hub.node_state(node_id, component);
         loop {
             if session.closed.is_cancelled() {
                 return;
@@ -456,7 +553,7 @@ impl Dispatcher {
             // One statement claims the whole batch, in order.
             let claim = match self
                 .store
-                .claim_jobs(node_id, &session.session_id, DRAIN_BATCH)
+                .claim_jobs(node_id, component, &session.session_id, DRAIN_BATCH)
                 .await
             {
                 Ok(claim) => claim,
@@ -548,7 +645,7 @@ impl Dispatcher {
     /// False, after closing the local session, when the store no longer
     /// knows it: the node reconnected elsewhere, or the session was dropped.
     async fn still_current(&self, node_id: &str, session: &SessionHandle) -> bool {
-        match self.store.session(node_id).await {
+        match self.store.session(node_id, &session.component).await {
             Ok(current)
                 if current
                     .as_ref()
@@ -572,7 +669,7 @@ impl Dispatcher {
     async fn send_cancels(&self, node_id: &str, session: &SessionHandle) {
         let pending = match self
             .store
-            .pending_cancels(node_id, &session.session_id)
+            .pending_cancels(node_id, &session.component, &session.session_id)
             .await
         {
             Ok(pending) => pending,
@@ -603,11 +700,22 @@ impl Dispatcher {
     }
 
     /// Cancels a job: at once when still queued, otherwise by asking the
-    /// agent through the replica holding its session.
+    /// agent through the replica holding its session. The copies of a
+    /// configuration push (see [`NewJob::copies`]) are cancelled with it.
     pub(crate) async fn cancel(self: &Arc<Self>, id: &str) -> Result<CancelOutcome, Error> {
         let Some(job) = self.store.job(id).await? else {
             return Ok(CancelOutcome::NotFound);
         };
+        for copy in self.store.copies_of(id).await? {
+            if let Some(copy) = self.store.job(&copy).await? {
+                self.cancel_one(&copy).await?;
+            }
+        }
+        self.cancel_one(&job).await
+    }
+
+    async fn cancel_one(self: &Arc<Self>, job: &JobRow) -> Result<CancelOutcome, Error> {
+        let id = job.id.as_str();
         if self
             .store
             .cancel_queued(id, &events::cancelled().to_string())
@@ -615,13 +723,13 @@ impl Dispatcher {
         {
             metrics::JOBS_FINISHED.add(state::CANCELLED, 1);
             self.hub.notify_job(id, true);
-            // Jobs requiring it are now to be failed.
+            // Jobs requiring it are now to be failed, on any component.
             self.trigger(&job.node_id, false);
             return Ok(CancelOutcome::Cancelled);
         }
         if self.store.request_cancel(id).await? {
             // Local session: sent now. Peer: woken up, or its next sweep.
-            self.trigger(&job.node_id, true);
+            self.trigger_component(&job.node_id, &job.component, true);
             return Ok(CancelOutcome::Requested);
         }
         Ok(CancelOutcome::AlreadyFinished)
@@ -686,7 +794,7 @@ impl Dispatcher {
             }
             // Only a job whose events are committed elsewhere needs the
             // shared poller; re-evaluated at each wake-up, the session may move.
-            if watch.is_none() && !self.holds(&job.node_id) {
+            if watch.is_none() && !self.holds(&job.node_id, &job.component) {
                 watch = Some(self.hub.watch(id));
             }
             let nap = left.min(WAIT_RECHECK);
@@ -788,9 +896,9 @@ impl Dispatcher {
             }
         }
         // Concurrently: one slow node does not delay the others.
-        futures_util::stream::iter(self.hub.nodes())
-            .for_each_concurrent(DRAIN_CONCURRENCY, |node_id| async move {
-                self.drain(&node_id, true).await;
+        futures_util::stream::iter(self.hub.keys())
+            .for_each_concurrent(DRAIN_CONCURRENCY, |(node_id, component)| async move {
+                self.drain(&node_id, &component, true).await;
             })
             .await;
     }

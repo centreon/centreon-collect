@@ -109,6 +109,7 @@ pub(crate) struct NodeRow {
 #[derive(Debug, Clone)]
 pub(crate) struct SessionRow {
     pub(crate) node_id: String,
+    pub(crate) component: String,
     pub(crate) session_id: String,
     pub(crate) replica_id: String,
     pub(crate) agent_version: String,
@@ -135,6 +136,19 @@ pub(crate) struct JobRow {
     pub(crate) seq: i64,
     /// Jobs of the node that must succeed before this one is dispatched.
     pub(crate) requires: Vec<String>,
+    /// Component of the node whose agent runs the job.
+    pub(crate) component: String,
+}
+
+/// Component of a node, as its agent last declared it.
+#[derive(Debug, Clone)]
+pub(crate) struct ComponentRow {
+    pub(crate) component: String,
+    /// Configuration targets the agent maps.
+    pub(crate) targets: Vec<String>,
+    /// JSON document of what the agent last reported, when it ever did.
+    pub(crate) state: Option<String>,
+    pub(crate) state_at: Option<i64>,
 }
 
 /// Which configuration pushes of its node a new job also requires.
@@ -172,6 +186,19 @@ pub(crate) struct NewJob<'a> {
     pub(crate) latest_config: LatestConfig<'a>,
     /// Target of an `ApplyConfig` job, which becomes the latest one for it.
     pub(crate) config_target: Option<&'a str>,
+    /// Component of the node whose agent runs the job.
+    pub(crate) component: &'a str,
+    /// Other components getting a copy of the job (a configuration push to
+    /// a target several components map). Each copy `<id>.<component>` is
+    /// committed first, with the same prerequisites, and the job requires
+    /// them all: it succeeds only once every copy did.
+    pub(crate) copies: &'a [String],
+}
+
+/// Id of the copy of job `id` for `component`. A caller-chosen id has no
+/// `.`, so a copy never takes the id of another job.
+pub(crate) fn copy_id(id: &str, component: &str) -> String {
+    format!("{id}.{component}")
 }
 
 /// Owned copy of a [`NewJob`], waiting for the group commit.
@@ -186,6 +213,7 @@ struct QueuedJob {
     accepted_data: String,
     requires: Vec<String>,
     config_target: Option<String>,
+    component: String,
 }
 
 impl QueuedJob {
@@ -202,6 +230,8 @@ impl QueuedJob {
             requires: &self.requires,
             latest_config: LatestConfig::None,
             config_target: self.config_target.as_deref(),
+            component: &self.component,
+            copies: &[],
         }
     }
 }
@@ -241,6 +271,7 @@ pub(crate) struct Claim {
 #[derive(Debug, Clone)]
 pub(crate) struct JobHead {
     pub(crate) node_id: String,
+    pub(crate) component: String,
     pub(crate) state: String,
     pub(crate) attempts: i64,
 }
@@ -306,12 +337,12 @@ pub(crate) struct Store {
 }
 
 const JOB_COLUMNS: &str = "id, node_id, kind, action, state, attempts, created_at, updated_at, \
-     deadline_at, cancel_requested, seq, requires";
+     deadline_at, cancel_requested, seq, requires, component";
 
 const NODE_COLUMNS: &str = "id, name, created_at, state, state_at";
 
 const SESSION_COLUMNS: &str =
-    "node_id, session_id, replica_id, agent_version, connected_at, last_seen";
+    "node_id, component, session_id, replica_id, agent_version, connected_at, last_seen";
 
 /// Reads a text column. The `Any` driver reports MariaDB `TEXT` types as
 /// byte strings, SQLite ones as strings.
@@ -381,12 +412,14 @@ fn job_from_row(row: &AnyRow) -> Result<JobRow, sqlx::Error> {
         cancel_requested: row.try_get::<i64, _>("cancel_requested")? != 0,
         seq: row.try_get("seq")?,
         requires,
+        component: row.try_get("component")?,
     })
 }
 
 fn session_from_row(row: &AnyRow) -> Result<SessionRow, sqlx::Error> {
     Ok(SessionRow {
         node_id: row.try_get("node_id")?,
+        component: row.try_get("component")?,
         session_id: row.try_get("session_id")?,
         replica_id: row.try_get("replica_id")?,
         agent_version: row.try_get("agent_version")?,
@@ -542,14 +575,30 @@ impl Store {
                 peer_addr VARCHAR(255) NOT NULL,
                 last_seen BIGINT NOT NULL)"
                 .to_owned(),
-            "CREATE TABLE IF NOT EXISTS sessions (
-                node_id VARCHAR(191) NOT NULL PRIMARY KEY,
+            // One session per node and component; replaces `sessions`,
+            // keyed by node only (see `migrate_sessions`).
+            "CREATE TABLE IF NOT EXISTS agent_sessions (
+                node_id VARCHAR(191) NOT NULL,
+                component VARCHAR(32) NOT NULL,
                 session_id VARCHAR(191) NOT NULL,
                 replica_id VARCHAR(191) NOT NULL,
                 agent_version VARCHAR(191) NOT NULL,
                 connected_at BIGINT NOT NULL,
-                last_seen BIGINT NOT NULL)"
+                last_seen BIGINT NOT NULL,
+                PRIMARY KEY (node_id, component))"
                 .to_owned(),
+            // Components that ever connected for a node, kept when they
+            // disconnect: the routing of the jobs depends on them.
+            format!(
+                "CREATE TABLE IF NOT EXISTS node_components (
+                node_id VARCHAR(191) NOT NULL,
+                component VARCHAR(32) NOT NULL,
+                targets {text} NOT NULL,
+                state {text} NULL,
+                state_at BIGINT NULL,
+                updated_at BIGINT NOT NULL,
+                PRIMARY KEY (node_id, component))"
+            ),
             format!(
                 "CREATE TABLE IF NOT EXISTS jobs (
                 id VARCHAR(191) NOT NULL PRIMARY KEY,
@@ -566,7 +615,9 @@ impl Store {
                 seq BIGINT NOT NULL DEFAULT 0,
                 blob_digest VARCHAR(64) NULL,
                 cancel_sent_session VARCHAR(191) NULL,
-                requires {text} NULL)"
+                requires {text} NULL,
+                component VARCHAR(32) NOT NULL DEFAULT 'engine',
+                parent_id VARCHAR(191) NULL)"
             ),
             format!(
                 "CREATE TABLE IF NOT EXISTS job_events (
@@ -624,6 +675,9 @@ impl Store {
             ("jobs", "requires", nullable_text.as_str()),
             ("nodes", "state", nullable_text.as_str()),
             ("nodes", "state_at", "BIGINT NULL"),
+            // Jobs queued before components existed belong to the engine.
+            ("jobs", "component", "VARCHAR(32) NOT NULL DEFAULT 'engine'"),
+            ("jobs", "parent_id", "VARCHAR(191) NULL"),
         ] {
             let probe = format!("SELECT {column} FROM {table} LIMIT 1");
             if sqlx::query(&probe).fetch_optional(&self.pool).await.is_ok() {
@@ -652,7 +706,14 @@ impl Store {
             // Blob still needed by an active job.
             ("idx_jobs_blob", "jobs (blob_digest)"),
             ("idx_blobs_created", "blobs (created_at)"),
-            ("idx_sessions_session", "sessions (session_id)"),
+            ("idx_agent_sessions_session", "agent_sessions (session_id)"),
+            // Queued jobs of one component of a node in submission order.
+            (
+                "idx_jobs_node_component_state_seq",
+                "jobs (node_id, component, state, seq)",
+            ),
+            // Copies of a configuration push, for its cancellation.
+            ("idx_jobs_parent", "jobs (parent_id)"),
         ] {
             let create = format!("CREATE INDEX IF NOT EXISTS {name} ON {target}");
             if sqlx::query(&create).execute(&self.pool).await.is_err() {
@@ -664,6 +725,36 @@ impl Store {
                 }
             }
         }
+        self.migrate_sessions().await
+    }
+
+    /// Moves the rows of `sessions` (one session per node, written before
+    /// components) to `agent_sessions` as engine sessions, then drops it.
+    async fn migrate_sessions(&self) -> Result<(), Error> {
+        let probe = "SELECT node_id FROM sessions LIMIT 1";
+        if sqlx::query(probe).fetch_optional(&self.pool).await.is_err() {
+            return Ok(());
+        }
+        let copy = format!(
+            "{} INTO agent_sessions
+             (node_id, component, session_id, replica_id, agent_version, connected_at, last_seen)
+             SELECT node_id, ?, session_id, replica_id, agent_version, connected_at, last_seen
+             FROM sessions",
+            self.insert_ignore()
+        );
+        let copied = sqlx::query(&copy)
+            .bind(gorgone_core::DEFAULT_COMPONENT)
+            .execute(&self.pool)
+            .await;
+        // Another replica starting at the same time may have dropped it.
+        if let Err(err) = copied
+            && sqlx::query(probe).fetch_optional(&self.pool).await.is_ok()
+        {
+            return Err(err.into());
+        }
+        sqlx::query("DROP TABLE IF EXISTS sessions")
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 
@@ -745,7 +836,7 @@ impl Store {
             .bind(self.now_ms())
             .execute(&self.pool)
             .await?;
-        sqlx::query("DELETE FROM sessions WHERE node_id = ?")
+        sqlx::query("DELETE FROM agent_sessions WHERE node_id = ?")
             .bind(id)
             .execute(&self.pool)
             .await?;
@@ -776,9 +867,10 @@ impl Store {
         Ok(row.map(|r| r.try_get("token_hash")).transpose()?)
     }
 
-    /// Removes a node and its session. False when it did not exist.
+    /// Removes a node, its sessions and its components. False when it did
+    /// not exist.
     pub(crate) async fn delete_node(&self, id: &str) -> Result<bool, Error> {
-        for table in ["sessions", "node_config"] {
+        for table in ["agent_sessions", "node_config", "node_components"] {
             let sql = format!("DELETE FROM {table} WHERE node_id = ?");
             sqlx::query(&sql).bind(id).execute(&self.pool).await?;
         }
@@ -818,6 +910,108 @@ impl Store {
         Ok(())
     }
 
+    // ---- components ----
+
+    /// Records the component an agent of the node declared in its `Hello`,
+    /// with the configuration targets it maps; keeps its reported state.
+    pub(crate) async fn upsert_component(
+        &self,
+        node_id: &str,
+        component: &str,
+        targets: &[String],
+    ) -> Result<(), Error> {
+        let targets = serde_json::Value::from(targets).to_string();
+        let now = self.now_ms();
+        let updated = sqlx::query(
+            "UPDATE node_components SET targets = ?, updated_at = ?
+             WHERE node_id = ? AND component = ?",
+        )
+        .bind(&targets)
+        .bind(now)
+        .bind(node_id)
+        .bind(component)
+        .execute(&self.pool)
+        .await?;
+        if updated.rows_affected() > 0 {
+            return Ok(());
+        }
+        let sql = format!(
+            "{} INTO node_components (node_id, component, targets, updated_at) VALUES (?, ?, ?, ?)",
+            self.insert_ignore()
+        );
+        sqlx::query(&sql)
+            .bind(node_id)
+            .bind(component)
+            .bind(&targets)
+            .bind(now)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Components that ever connected for the node, by name.
+    pub(crate) async fn components(&self, node_id: &str) -> Result<Vec<ComponentRow>, Error> {
+        let rows = sqlx::query(
+            "SELECT node_id, component, targets, state, state_at FROM node_components
+             WHERE node_id = ? ORDER BY component",
+        )
+        .bind(node_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(Self::component_rows(&rows)?
+            .into_iter()
+            .map(|(_, row)| row)
+            .collect())
+    }
+
+    /// Components of every node, with their node id.
+    pub(crate) async fn all_components(&self) -> Result<Vec<(String, ComponentRow)>, Error> {
+        let rows = sqlx::query(
+            "SELECT node_id, component, targets, state, state_at FROM node_components
+             ORDER BY node_id, component",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(Self::component_rows(&rows)?)
+    }
+
+    fn component_rows(rows: &[AnyRow]) -> Result<Vec<(String, ComponentRow)>, sqlx::Error> {
+        let mut components = Vec::with_capacity(rows.len());
+        for row in rows {
+            let targets = text(row, "targets")?;
+            components.push((
+                row.try_get("node_id")?,
+                ComponentRow {
+                    component: row.try_get("component")?,
+                    // Written by this store: unreadable means none.
+                    targets: serde_json::from_str(&targets).unwrap_or_default(),
+                    state: opt_text(row, "state")?,
+                    state_at: row.try_get("state_at")?,
+                },
+            ));
+        }
+        Ok(components)
+    }
+
+    /// Records what the agent of one component reports (JSON document).
+    pub(crate) async fn set_component_state(
+        &self,
+        node_id: &str,
+        component: &str,
+        state: &str,
+    ) -> Result<(), Error> {
+        sqlx::query(
+            "UPDATE node_components SET state = ?, state_at = ? WHERE node_id = ? AND component = ?",
+        )
+        .bind(state)
+        .bind(self.now_ms())
+        .bind(node_id)
+        .bind(component)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     // ---- replicas ----
 
     /// Records that `id` is alive and reachable by its peers at `peer_addr`.
@@ -851,7 +1045,7 @@ impl Store {
     /// Removes the sessions recorded for a replica: on graceful shutdown, and
     /// at startup when a former incarnation with the same id left some.
     pub(crate) async fn remove_replica_sessions(&self, replica_id: &str) -> Result<u64, Error> {
-        let done = sqlx::query("DELETE FROM sessions WHERE replica_id = ?")
+        let done = sqlx::query("DELETE FROM agent_sessions WHERE replica_id = ?")
             .bind(replica_id)
             .execute(&self.pool)
             .await?;
@@ -876,7 +1070,7 @@ impl Store {
             .execute(&self.pool)
             .await?;
         // Two reads then deletes by key: no subquery on a table being written.
-        let holders = sqlx::query("SELECT DISTINCT replica_id FROM sessions")
+        let holders = sqlx::query("SELECT DISTINCT replica_id FROM agent_sessions")
             .fetch_all(&self.pool)
             .await?;
         let alive = sqlx::query("SELECT id FROM replicas")
@@ -894,21 +1088,24 @@ impl Store {
 
     // ---- sessions ----
 
-    /// Registers the session of a node, replacing any older one.
+    /// Registers the session of a component of a node, replacing the older
+    /// session of the same component only.
     pub(crate) async fn upsert_session(
         &self,
         node_id: &str,
+        component: &str,
         session_id: &str,
         replica_id: &str,
         agent_version: &str,
     ) -> Result<(), Error> {
         let now = self.now_ms();
         sqlx::query(
-            "REPLACE INTO sessions
-             (node_id, session_id, replica_id, agent_version, connected_at, last_seen)
-             VALUES (?, ?, ?, ?, ?, ?)",
+            "REPLACE INTO agent_sessions
+             (node_id, component, session_id, replica_id, agent_version, connected_at, last_seen)
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(node_id)
+        .bind(component)
         .bind(session_id)
         .bind(replica_id)
         .bind(agent_version)
@@ -925,13 +1122,14 @@ impl Store {
         node_id: &str,
         session_id: &str,
     ) -> Result<bool, Error> {
-        let done =
-            sqlx::query("UPDATE sessions SET last_seen = ? WHERE node_id = ? AND session_id = ?")
-                .bind(self.now_ms())
-                .bind(node_id)
-                .bind(session_id)
-                .execute(&self.pool)
-                .await?;
+        let done = sqlx::query(
+            "UPDATE agent_sessions SET last_seen = ? WHERE node_id = ? AND session_id = ?",
+        )
+        .bind(self.now_ms())
+        .bind(node_id)
+        .bind(session_id)
+        .execute(&self.pool)
+        .await?;
         Ok(done.rows_affected() > 0)
     }
 
@@ -941,7 +1139,7 @@ impl Store {
         node_id: &str,
         session_id: &str,
     ) -> Result<(), Error> {
-        sqlx::query("DELETE FROM sessions WHERE node_id = ? AND session_id = ?")
+        sqlx::query("DELETE FROM agent_sessions WHERE node_id = ? AND session_id = ?")
             .bind(node_id)
             .bind(session_id)
             .execute(&self.pool)
@@ -949,19 +1147,42 @@ impl Store {
         Ok(())
     }
 
-    /// Current session of a node.
-    pub(crate) async fn session(&self, node_id: &str) -> Result<Option<SessionRow>, Error> {
-        let sql = format!("SELECT {SESSION_COLUMNS} FROM sessions WHERE node_id = ?");
+    /// Current session of a component of a node.
+    pub(crate) async fn session(
+        &self,
+        node_id: &str,
+        component: &str,
+    ) -> Result<Option<SessionRow>, Error> {
+        let sql = format!(
+            "SELECT {SESSION_COLUMNS} FROM agent_sessions WHERE node_id = ? AND component = ?"
+        );
         let row = sqlx::query(&sql)
             .bind(node_id)
+            .bind(component)
             .fetch_optional(&self.pool)
             .await?;
         Ok(row.as_ref().map(session_from_row).transpose()?)
     }
 
+    /// Current sessions of every component of a node.
+    pub(crate) async fn sessions_of(&self, node_id: &str) -> Result<Vec<SessionRow>, Error> {
+        let sql = format!(
+            "SELECT {SESSION_COLUMNS} FROM agent_sessions WHERE node_id = ? ORDER BY component"
+        );
+        let rows = sqlx::query(&sql)
+            .bind(node_id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(rows
+            .iter()
+            .map(session_from_row)
+            .collect::<Result<_, _>>()?)
+    }
+
     /// Every session, all replicas included.
     pub(crate) async fn list_sessions(&self) -> Result<Vec<SessionRow>, Error> {
-        let sql = format!("SELECT {SESSION_COLUMNS} FROM sessions ORDER BY node_id");
+        let sql =
+            format!("SELECT {SESSION_COLUMNS} FROM agent_sessions ORDER BY node_id, component");
         let rows = sqlx::query(&sql).fetch_all(&self.pool).await?;
         Ok(rows
             .iter()
@@ -980,8 +1201,11 @@ impl Store {
     /// nothing waits for more submits, the transaction just takes those that
     /// queued up while the previous one was committing.
     pub(crate) async fn insert_job(&self, job: NewJob<'_>) -> Result<bool, Error> {
-        // Prerequisites resolved in the transaction need one of their own.
-        let alone = job.may_exist || !matches!(job.latest_config, LatestConfig::None);
+        // Prerequisites resolved in the transaction, and copies committed
+        // with the job, need one of their own.
+        let alone = job.may_exist
+            || !matches!(job.latest_config, LatestConfig::None)
+            || !job.copies.is_empty();
         let Some(submits) = self.submits.as_ref().filter(|_| !alone) else {
             return self.insert_job_alone(job).await;
         };
@@ -997,6 +1221,7 @@ impl Store {
                 accepted_data: job.accepted_data.to_owned(),
                 requires: job.requires.to_vec(),
                 config_target: job.config_target.map(str::to_owned),
+                component: job.component.to_owned(),
             },
             reply,
         };
@@ -1129,11 +1354,11 @@ impl Store {
             let (chunk, tail) = rest.split_at(take);
             rest = tail;
             let row = "(?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, 0, \
-                       (SELECT next_seq FROM node_seq WHERE node_id = ?) - ?, ?, ?)";
+                       (SELECT next_seq FROM node_seq WHERE node_id = ?) - ?, ?, ?, ?)";
             let sql = format!(
                 "INSERT INTO jobs
                  (id, node_id, kind, action, state, attempts, session_id, created_at, updated_at,
-                  deadline_at, cancel_requested, seq, blob_digest, requires)
+                  deadline_at, cancel_requested, seq, blob_digest, requires, component)
                  VALUES {}",
                 vec![row; chunk.len()].join(", ")
             );
@@ -1155,7 +1380,8 @@ impl Store {
                     .bind(job.node_id)
                     .bind(following)
                     .bind(job.blob_digest)
-                    .bind(encode_requires(job.requires));
+                    .bind(encode_requires(job.requires))
+                    .bind(job.component);
             }
             insert.execute(&mut *tx).await?;
             // In batch order: the last push of a target is the latest one.
@@ -1202,15 +1428,15 @@ impl Store {
     /// False, committing nothing, when the prerequisites resolved here make
     /// the job exceed [`MAX_REQUIRES`].
     async fn insert_job_tx(&self, job: NewJob<'_>) -> Result<bool, sqlx::Error> {
-        let now = self.now_ms();
         let mut tx = self.pool.begin().await?;
         // The counter row lock orders the submits of a node: the rank order
-        // is the commit order, whatever the clocks say.
-        sqlx::query("UPDATE node_seq SET next_seq = next_seq + 1 WHERE node_id = ?")
+        // is the commit order, whatever the clocks say. Taken first, by an
+        // update that changes nothing; each row inserted below moves it.
+        sqlx::query("UPDATE node_seq SET next_seq = next_seq + 0 WHERE node_id = ?")
             .bind(job.node_id)
             .execute(&mut *tx)
             .await?;
-        let mut requires = encode_requires(job.requires);
+        let mut requires = job.requires.to_vec();
         let targets = match job.latest_config {
             LatestConfig::None | LatestConfig::Targets([]) => None,
             LatestConfig::All => Some(&[][..]),
@@ -1243,16 +1469,50 @@ impl Store {
             if all.len() > MAX_REQUIRES {
                 return Ok(false);
             }
-            requires = encode_requires(&all);
+            requires = all;
         }
+        // Copies first: each goes before the job in the order of the node,
+        // with the same prerequisites, and the job waits for all of them.
+        let mut own = requires.clone();
+        for component in job.copies {
+            let id = copy_id(job.id, component);
+            self.insert_row(&mut tx, &job, &id, component, &requires, Some(job.id))
+                .await?;
+            own.push(id);
+        }
+        self.insert_row(&mut tx, &job, job.id, job.component, &own, None)
+            .await?;
+        if let Some(target) = job.config_target {
+            Self::set_latest_config(&mut tx, job.node_id, target, job.id).await?;
+        }
+        tx.commit().await?;
+        Ok(true)
+    }
+
+    /// Inserts one row of [`Self::insert_job_tx`], next in the order of the
+    /// node, with its "accepted" event.
+    async fn insert_row(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Any>,
+        job: &NewJob<'_>,
+        id: &str,
+        component: &str,
+        requires: &[String],
+        parent_id: Option<&str>,
+    ) -> Result<(), sqlx::Error> {
+        let now = self.now_ms();
+        sqlx::query("UPDATE node_seq SET next_seq = next_seq + 1 WHERE node_id = ?")
+            .bind(job.node_id)
+            .execute(&mut **tx)
+            .await?;
         sqlx::query(
             "INSERT INTO jobs
              (id, node_id, kind, action, state, attempts, session_id, created_at, updated_at,
-              deadline_at, cancel_requested, seq, blob_digest, requires)
+              deadline_at, cancel_requested, seq, blob_digest, requires, component, parent_id)
              VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?, ?, 0,
-                     (SELECT next_seq FROM node_seq WHERE node_id = ?), ?, ?)",
+                     (SELECT next_seq FROM node_seq WHERE node_id = ?), ?, ?, ?, ?)",
         )
-        .bind(job.id)
+        .bind(id)
         .bind(job.node_id)
         .bind(job.kind)
         .bind(job.action)
@@ -1263,23 +1523,30 @@ impl Store {
         // Read in the statement itself: one round trip less.
         .bind(job.node_id)
         .bind(job.blob_digest)
-        .bind(requires)
-        .execute(&mut *tx)
+        .bind(encode_requires(requires))
+        .bind(component)
+        .bind(parent_id)
+        .execute(&mut **tx)
         .await?;
-        if let Some(target) = job.config_target {
-            Self::set_latest_config(&mut tx, job.node_id, target, job.id).await?;
-        }
         sqlx::query(
             "INSERT INTO job_events (job_id, seq, time_ms, code, data) VALUES (?, 0, ?, ?, ?)",
         )
-        .bind(job.id)
+        .bind(id)
         .bind(now)
         .bind(i64::from(gorgone_core::legacy::ACTION_BEGIN))
         .bind(job.accepted_data)
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
-        tx.commit().await?;
-        Ok(true)
+        Ok(())
+    }
+
+    /// Copies of a job (see [`NewJob::copies`]).
+    pub(crate) async fn copies_of(&self, id: &str) -> Result<Vec<String>, Error> {
+        let rows = sqlx::query("SELECT id FROM jobs WHERE parent_id = ? ORDER BY seq")
+            .bind(id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(strings(&rows, "id")?)
     }
 
     /// True when the node is enrolled.
@@ -1325,20 +1592,23 @@ impl Store {
         Ok(versions)
     }
 
-    /// First `queued` jobs of a node in submission order, skipping those
-    /// past their deadline or being cancelled.
+    /// First `queued` jobs of a component of a node in submission order,
+    /// skipping those past their deadline or being cancelled.
     pub(crate) async fn queued_jobs(
         &self,
         node_id: &str,
+        component: &str,
         limit: i64,
     ) -> Result<Vec<JobRow>, Error> {
         let sql = format!(
             "SELECT {JOB_COLUMNS} FROM jobs
-             WHERE node_id = ? AND state = ? AND deadline_at > ? AND cancel_requested = 0
+             WHERE node_id = ? AND component = ? AND state = ? AND deadline_at > ?
+               AND cancel_requested = 0
              ORDER BY seq LIMIT ?"
         );
         let rows = sqlx::query(&sql)
             .bind(node_id)
+            .bind(component)
             .bind(state::QUEUED)
             .bind(self.now_ms())
             .bind(limit)
@@ -1360,7 +1630,7 @@ impl Store {
             sqlx::query(
                 "UPDATE jobs SET state = ?, session_id = ?, attempts = attempts + 1, updated_at = ?
                  WHERE id = ? AND state = ?
-                   AND EXISTS (SELECT 1 FROM sessions WHERE node_id = ? AND session_id = ?)",
+                   AND EXISTS (SELECT 1 FROM agent_sessions WHERE node_id = ? AND session_id = ?)",
             )
             .bind(state::DISPATCHED)
             .bind(session_id)
@@ -1430,18 +1700,20 @@ impl Store {
         Ok((ready, unmet, false))
     }
 
-    /// Claims, in one statement, up to `limit` queued jobs of the node in
-    /// submission order for `session_id`, which must still be the session
-    /// of the node. Jobs tried but not won were taken or cancelled meanwhile,
-    /// or the session is not current any more. A job is only claimed once
-    /// its prerequisites succeeded; see [`Claim`] for the other cases.
+    /// Claims, in one statement, up to `limit` queued jobs of a component of
+    /// the node in submission order for `session_id`, which must still be
+    /// the session of that component. Jobs tried but not won were taken or
+    /// cancelled meanwhile, or the session is not current any more. A job is
+    /// only claimed once its prerequisites succeeded, whatever component
+    /// ran them; see [`Claim`] for the other cases.
     pub(crate) async fn claim_jobs(
         &self,
         node_id: &str,
+        component: &str,
         session_id: &str,
         limit: i64,
     ) -> Result<Claim, Error> {
-        let queued = self.queued_jobs(node_id, limit).await?;
+        let queued = self.queued_jobs(node_id, component, limit).await?;
         let listed = queued.len();
         let (mut jobs, unmet, blocked) = self.ready(queued).await?;
         let tried = jobs.len();
@@ -1457,8 +1729,9 @@ impl Store {
         }
         let sql = format!(
             "UPDATE jobs SET state = ?, session_id = ?, attempts = attempts + 1, updated_at = ?
-             WHERE id IN ({}) AND state = ? AND cancel_requested = 0
-               AND EXISTS (SELECT 1 FROM sessions WHERE node_id = ? AND session_id = ?)",
+             WHERE id IN ({}) AND state = ? AND cancel_requested = 0 AND component = ?
+               AND EXISTS (SELECT 1 FROM agent_sessions
+                           WHERE node_id = ? AND component = ? AND session_id = ?)",
             placeholders(tried)
         );
         let done = with_retry(|| {
@@ -1471,7 +1744,9 @@ impl Store {
             }
             update
                 .bind(state::QUEUED)
+                .bind(component)
                 .bind(node_id)
+                .bind(component)
                 .bind(session_id)
                 .execute(&self.pool)
         })
@@ -1503,7 +1778,7 @@ impl Store {
         let mut heads = HashMap::with_capacity(ids.len());
         for chunk in ids.chunks(100) {
             let sql = format!(
-                "SELECT id, node_id, state, attempts FROM jobs WHERE id IN ({})",
+                "SELECT id, node_id, component, state, attempts FROM jobs WHERE id IN ({})",
                 placeholders(chunk.len())
             );
             let mut query = sqlx::query(&sql);
@@ -1515,6 +1790,7 @@ impl Store {
                     row.try_get("id")?,
                     JobHead {
                         node_id: row.try_get("node_id")?,
+                        component: row.try_get("component")?,
                         state: row.try_get("state")?,
                         attempts: row.try_get("attempts")?,
                     },
@@ -1722,29 +1998,33 @@ impl Store {
         Ok(requeued)
     }
 
-    /// Requeues the jobs of `node_id` that were dispatched to a session other
-    /// than `current_session` and never produced an agent event: the agent
-    /// that got them is gone, they must go first to the new session.
+    /// Requeues the jobs of a component of `node_id` that were dispatched to
+    /// a session other than `current_session` and never produced an agent
+    /// event: the agent that got them is gone, they must go first to the new
+    /// session. Jobs of the other components are not touched.
     pub(crate) async fn requeue_stale_dispatched(
         &self,
         node_id: &str,
+        component: &str,
         current_session: &str,
     ) -> Result<u64, Error> {
         let rows = sqlx::query(
             "SELECT j.id, j.session_id FROM jobs j
-             WHERE j.node_id = ? AND j.state = ? AND j.session_id <> ?
+             WHERE j.node_id = ? AND j.component = ? AND j.state = ? AND j.session_id <> ?
                AND NOT EXISTS (SELECT 1 FROM job_events e
                                WHERE e.job_id = j.id AND e.seq > 0 AND e.seq < ?)
-               AND EXISTS (SELECT 1 FROM sessions s
-                           WHERE s.node_id = ? AND s.session_id = ?)",
+               AND EXISTS (SELECT 1 FROM agent_sessions s
+                           WHERE s.node_id = ? AND s.component = ? AND s.session_id = ?)",
         )
         .bind(node_id)
+        .bind(component)
         .bind(state::DISPATCHED)
         .bind(current_session)
         .bind(SERVER_SEQ_FLOOR)
         // Only the current session may take over: a pass still running for
         // a replaced one must not requeue what its successor was given.
         .bind(node_id)
+        .bind(component)
         .bind(current_session)
         .fetch_all(&self.pool)
         .await?;
@@ -1757,7 +2037,7 @@ impl Store {
         let rows = sqlx::query(
             "SELECT j.id, j.session_id FROM jobs j
              WHERE j.state = ?
-               AND NOT EXISTS (SELECT 1 FROM sessions s WHERE s.session_id = j.session_id)
+               AND NOT EXISTS (SELECT 1 FROM agent_sessions s WHERE s.session_id = j.session_id)
                AND NOT EXISTS (SELECT 1 FROM job_events e
                                WHERE e.job_id = j.id AND e.seq > 0 AND e.seq < ?)
              LIMIT ?",
@@ -1839,19 +2119,22 @@ impl Store {
         Ok(row.try_get::<i64, _>("n")? > 0)
     }
 
-    /// Jobs of a node whose `Cancel` frame was not sent to `session_id` yet:
-    /// a new session of the node gets it again while the job is not terminal.
+    /// Jobs of a component of a node whose `Cancel` frame was not sent to
+    /// `session_id` yet: a new session of the component gets it again while
+    /// the job is not terminal.
     pub(crate) async fn pending_cancels(
         &self,
         node_id: &str,
+        component: &str,
         session_id: &str,
     ) -> Result<Vec<String>, Error> {
         let rows = sqlx::query(
             "SELECT id FROM jobs
-             WHERE node_id = ? AND cancel_requested <> 0 AND state IN (?, ?)
+             WHERE node_id = ? AND component = ? AND cancel_requested <> 0 AND state IN (?, ?)
                AND (cancel_sent_session IS NULL OR cancel_sent_session <> ?)",
         )
         .bind(node_id)
+        .bind(component)
         .bind(state::DISPATCHED)
         .bind(state::RUNNING)
         .bind(session_id)
@@ -2187,6 +2470,9 @@ impl Store {
 pub(crate) mod testing {
     use super::*;
 
+    /// Component of the agents of the tests that do not name one.
+    pub(crate) const ENGINE: &str = gorgone_core::DEFAULT_COMPONENT;
+
     /// Store on a fresh SQLite file, or on `GORGONE_TEST_DATABASE_URL`.
     pub(crate) async fn store() -> (Store, tempfile::TempDir) {
         let dir = tempfile::tempdir().unwrap();
@@ -2205,7 +2491,7 @@ pub(crate) mod testing {
             self.heartbeat_replica("test-replica", "http://127.0.0.1:1")
                 .await
                 .unwrap();
-            self.upsert_session(node, session, "test-replica", "v")
+            self.upsert_session(node, ENGINE, session, "test-replica", "v")
                 .await
                 .unwrap();
         }
@@ -2243,6 +2529,8 @@ pub(crate) mod testing {
                 requires: &[],
                 latest_config: LatestConfig::None,
                 config_target: None,
+                component: gorgone_core::DEFAULT_COMPONENT,
+                copies: &[],
             };
             assert!(self.insert_job(job).await.unwrap());
         }
@@ -2251,7 +2539,7 @@ pub(crate) mod testing {
 
 #[cfg(test)]
 mod tests {
-    use super::testing::{store, unique};
+    use super::testing::{ENGINE, store, unique};
     use super::*;
 
     #[tokio::test]
@@ -2279,7 +2567,13 @@ mod tests {
 
         let row = store.job(&job).await.unwrap().unwrap();
         assert_eq!((row.state.as_str(), row.attempts), (state::DISPATCHED, 1));
-        assert!(store.queued_jobs(&node, 10).await.unwrap().is_empty());
+        assert!(
+            store
+                .queued_jobs(&node, ENGINE, 10)
+                .await
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[tokio::test]
@@ -2302,7 +2596,7 @@ mod tests {
         let ranks: Vec<i64> = jobs.iter().map(|job| job.seq).collect();
         assert_eq!(ranks, (1..=25).collect::<Vec<i64>>());
         assert_eq!(jobs[24].id, last);
-        let queued = store.queued_jobs(&node, 100).await.unwrap();
+        let queued = store.queued_jobs(&node, ENGINE, 100).await.unwrap();
         assert_eq!(queued.iter().map(|job| job.seq).collect::<Vec<_>>(), ranks);
 
         // The same id twice changes nothing.
@@ -2318,6 +2612,8 @@ mod tests {
             requires: &[],
             latest_config: LatestConfig::None,
             config_target: None,
+            component: gorgone_core::DEFAULT_COMPONENT,
+            copies: &[],
         };
         assert!(!store.insert_job(again).await.unwrap());
         assert_eq!(store.jobs_of_node(&node).await.unwrap().len(), 25);
@@ -2349,6 +2645,8 @@ mod tests {
                 requires: &[],
                 latest_config: LatestConfig::None,
                 config_target: None,
+                component: gorgone_core::DEFAULT_COMPONENT,
+                copies: &[],
             })
             .collect();
         store.insert_jobs(&jobs).await.unwrap();
@@ -2400,14 +2698,14 @@ mod tests {
         }
 
         // No session, then a former session: listed, nothing won.
-        let claim = store.claim_jobs(&node, "s0", 3).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s0", 3).await.unwrap();
         assert_eq!((claim.jobs.len(), claim.tried), (0, 3));
         store.open_session(&node, "s1").await;
-        let claim = store.claim_jobs(&node, "s0", 3).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s0", 3).await.unwrap();
         assert_eq!((claim.jobs.len(), claim.tried), (0, 3));
 
         // The current session takes the first three, in submission order.
-        let claim = store.claim_jobs(&node, "s1", 3).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s1", 3).await.unwrap();
         assert_eq!((claim.listed, claim.tried), (3, 3));
         let won = claim.jobs;
         assert_eq!(
@@ -2421,10 +2719,10 @@ mod tests {
 
         // A cancelled job is neither listed nor claimed.
         assert!(store.cancel_queued(&ids[3], "{}").await.unwrap());
-        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s1", 10).await.unwrap();
         assert_eq!((claim.jobs.len(), claim.listed), (1, 1));
         assert_eq!(claim.jobs[0].id, ids[4]);
-        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s1", 10).await.unwrap();
         assert_eq!((claim.jobs.len(), claim.listed), (0, 0));
     }
 
@@ -2437,7 +2735,7 @@ mod tests {
         for id in [&first, &second] {
             store.queue(id, &node, 60_000).await;
         }
-        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s1", 10).await.unwrap();
         assert_eq!(claim.jobs.len(), 2);
         let heads = store
             .job_heads(&[&first, &second, "missing"])
@@ -2552,15 +2850,24 @@ mod tests {
         // A pass still running for the replaced session requeues nothing,
         // in particular not what the new session was given.
         assert_eq!(
-            store.requeue_stale_dispatched(&node, &old).await.unwrap(),
+            store
+                .requeue_stale_dispatched(&node, ENGINE, &old)
+                .await
+                .unwrap(),
             0
         );
         assert_eq!(
             store.job(&kept).await.unwrap().unwrap().state,
             state::DISPATCHED
         );
-        assert!(store.requeue_stale_dispatched(&node, &new).await.unwrap() <= 1);
-        let queued = store.queued_jobs(&node, 10).await.unwrap();
+        assert!(
+            store
+                .requeue_stale_dispatched(&node, ENGINE, &new)
+                .await
+                .unwrap()
+                <= 1
+        );
+        let queued = store.queued_jobs(&node, ENGINE, 10).await.unwrap();
         assert_eq!(queued.len(), 1);
         assert_eq!(queued[0].id, lost);
     }
@@ -2663,6 +2970,8 @@ mod tests {
             requires: &[],
             latest_config: LatestConfig::None,
             config_target: None,
+            component: gorgone_core::DEFAULT_COMPONENT,
+            copies: &[],
         };
         assert!(store.insert_job(job).await.unwrap());
         assert!(store.blob_needed(Some(&node), &needed).await.unwrap());
@@ -2695,7 +3004,7 @@ mod tests {
 
         store.open_session(&node, "s1").await;
         assert_ne!(store.enrol_node(&node, "poller").await.unwrap(), token);
-        assert!(store.session(&node).await.unwrap().is_none());
+        assert!(store.session(&node, ENGINE).await.unwrap().is_none());
 
         assert!(store.delete_node(&node).await.unwrap());
         assert!(!store.node_exists(&node).await.unwrap());
@@ -2707,16 +3016,19 @@ mod tests {
         let (dead, alive) = (unique("replica"), unique("replica"));
         let (lost, kept) = (unique("node"), unique("node"));
         store.heartbeat_replica(&alive, "http://a").await.unwrap();
-        store.upsert_session(&lost, "s1", &dead, "v").await.unwrap();
         store
-            .upsert_session(&kept, "s2", &alive, "v")
+            .upsert_session(&lost, ENGINE, "s1", &dead, "v")
+            .await
+            .unwrap();
+        store
+            .upsert_session(&kept, ENGINE, "s2", &alive, "v")
             .await
             .unwrap();
         // The dead replica has no row at all; a generous delay keeps the
         // replicas of concurrent tests alive.
         assert!(store.drop_dead_replicas(3_600_000).await.unwrap() >= 1);
-        assert!(store.session(&lost).await.unwrap().is_none());
-        assert!(store.session(&kept).await.unwrap().is_some());
+        assert!(store.session(&lost, ENGINE).await.unwrap().is_none());
+        assert!(store.session(&kept, ENGINE).await.unwrap().is_some());
         assert_eq!(
             store.remove_replica_sessions(&alive).await.unwrap(),
             1,
@@ -2745,6 +3057,8 @@ mod tests {
             requires,
             latest_config,
             config_target,
+            component: gorgone_core::DEFAULT_COMPONENT,
+            copies: &[],
         };
         store.insert_job(job).await
     }
@@ -2776,18 +3090,18 @@ mod tests {
         assert_eq!(store.job(&b).await.unwrap().unwrap().requires, [a.as_str()]);
 
         // `b` waits for `a`, and `c` for its turn behind `b`.
-        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s1", 10).await.unwrap();
         assert_eq!(ids(&claim.jobs), [a.as_str()]);
         assert_eq!((claim.listed, claim.tried, claim.blocked), (3, 1, true));
-        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s1", 10).await.unwrap();
         assert!(claim.jobs.is_empty() && claim.unmet.is_empty() && claim.blocked);
         assert_eq!((claim.listed, claim.tried), (2, 0));
 
         assert!(store.finish_job(&a, state::SUCCEEDED).await.unwrap());
         // Still bound to the current session.
-        let claim = store.claim_jobs(&node, "s0", 10).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s0", 10).await.unwrap();
         assert_eq!((claim.jobs.len(), claim.tried), (0, 2));
-        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s1", 10).await.unwrap();
         assert_eq!(ids(&claim.jobs), [b.as_str(), c.as_str()]);
         assert!(!claim.blocked && claim.unmet.is_empty());
     }
@@ -2819,7 +3133,7 @@ mod tests {
 
         // `e` fails on `d`, `f` on `e` in the same walk, `h` on a job that
         // no longer exists; `g` goes on.
-        let claim = store.claim_jobs(&node, "s1", 10).await.unwrap();
+        let claim = store.claim_jobs(&node, ENGINE, "s1", 10).await.unwrap();
         assert_eq!(ids(&claim.jobs), [g.as_str()]);
         assert!(!claim.blocked);
         let unmet: Vec<(&str, &str, &str)> = claim
@@ -2953,6 +3267,139 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn components_claim_their_own_jobs_and_copies_go_first() {
+        let (store, _dir) = store().await;
+        let node = unique("node");
+        store.open_session(&node, "s-engine").await;
+        store
+            .upsert_session(&node, "broker", "s-broker", "test-replica", "v")
+            .await
+            .unwrap();
+        // One session per component: the broker one replaced nothing.
+        assert!(store.session(&node, ENGINE).await.unwrap().is_some());
+        assert_eq!(store.sessions_of(&node).await.unwrap().len(), 2);
+
+        let before = unique("job");
+        store.queue(&before, &node, 60_000).await;
+        let (id, copies, requires) = (unique("push"), ["broker".to_owned()], [before.clone()]);
+        let push = NewJob {
+            id: &id,
+            node_id: &node,
+            kind: "apply_config",
+            action: b"x",
+            ttl_ms: 60_000,
+            blob_digest: None,
+            accepted_data: "{}",
+            may_exist: true,
+            requires: &requires,
+            latest_config: LatestConfig::None,
+            config_target: Some("broker"),
+            component: ENGINE,
+            copies: &copies,
+        };
+        assert!(store.insert_job(push).await.unwrap());
+        assert!(
+            !store.insert_job(push).await.unwrap(),
+            "same id: nothing new"
+        );
+        let copy = copy_id(&id, "broker");
+        let (job, copied) = (
+            store.job(&id).await.unwrap().unwrap(),
+            store.job(&copy).await.unwrap().unwrap(),
+        );
+        assert_eq!(
+            (copied.component.as_str(), job.component.as_str()),
+            ("broker", ENGINE)
+        );
+        assert!(copied.seq < job.seq, "the copy goes first");
+        assert_eq!(copied.requires, std::slice::from_ref(&before));
+        assert_eq!(job.requires, [before.clone(), copy.clone()]);
+        assert_eq!(
+            store.copies_of(&id).await.unwrap(),
+            std::slice::from_ref(&copy)
+        );
+        assert!(store.copies_of(&copy).await.unwrap().is_empty());
+
+        // A session claims the jobs of its own component only.
+        let claim = store
+            .claim_jobs(&node, "broker", "s-engine", 10)
+            .await
+            .unwrap();
+        assert!(claim.jobs.is_empty());
+        let claim = store
+            .claim_jobs(&node, ENGINE, "s-engine", 10)
+            .await
+            .unwrap();
+        assert_eq!(
+            claim.jobs.iter().map(|j| &j.id).collect::<Vec<_>>(),
+            [&before]
+        );
+        // The copy waits for the engine job it requires.
+        let claim = store
+            .claim_jobs(&node, "broker", "s-broker", 10)
+            .await
+            .unwrap();
+        assert!(claim.jobs.is_empty() && claim.blocked);
+        assert!(store.finish_job(&before, state::SUCCEEDED).await.unwrap());
+        let claim = store
+            .claim_jobs(&node, "broker", "s-broker", 10)
+            .await
+            .unwrap();
+        assert_eq!(
+            claim.jobs.iter().map(|j| &j.id).collect::<Vec<_>>(),
+            [&copy]
+        );
+        let claim = store
+            .claim_jobs(&node, ENGINE, "s-engine", 10)
+            .await
+            .unwrap();
+        assert!(claim.jobs.is_empty() && claim.blocked);
+
+        // A broker session that replaced the former one requeues the broker
+        // job left behind, never an engine one.
+        let engine_job = unique("job");
+        store.queue(&engine_job, &node, 60_000).await;
+        assert!(store.finish_job(&copy, state::SUCCEEDED).await.unwrap());
+        let claim = store
+            .claim_jobs(&node, ENGINE, "s-engine", 10)
+            .await
+            .unwrap();
+        assert_eq!(claim.jobs.len(), 2);
+        store
+            .upsert_session(&node, "broker", "s-broker-2", "test-replica", "v")
+            .await
+            .unwrap();
+        assert_eq!(
+            store
+                .requeue_stale_dispatched(&node, "broker", "s-broker-2")
+                .await
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            store.job(&engine_job).await.unwrap().unwrap().state,
+            state::DISPATCHED
+        );
+
+        // Components and their reported state survive their sessions.
+        store
+            .upsert_component(&node, "broker", &["broker".to_owned()])
+            .await
+            .unwrap();
+        store
+            .set_component_state(&node, "broker", "{\"applied\":{}}")
+            .await
+            .unwrap();
+        store.remove_session(&node, "s-broker-2").await.unwrap();
+        let components = store.components(&node).await.unwrap();
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].targets, ["broker"]);
+        assert_eq!(components[0].state.as_deref(), Some("{\"applied\":{}}"));
+        store.delete_node(&node).await.unwrap();
+        assert!(store.components(&node).await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
     async fn store_created_before_the_new_columns_is_migrated() {
         // Needs a database of its own; the shared one is already migrated.
         if std::env::var("GORGONE_TEST_DATABASE_URL").is_ok() {
@@ -2969,14 +3416,35 @@ mod tests {
              node_id VARCHAR(191) NOT NULL, kind VARCHAR(32) NOT NULL, action BLOB NOT NULL,
              state VARCHAR(16) NOT NULL, attempts BIGINT NOT NULL, session_id VARCHAR(191) NULL,
              created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, deadline_at BIGINT NOT NULL)",
+            // One session per node, before components.
+            "CREATE TABLE sessions (node_id VARCHAR(191) NOT NULL PRIMARY KEY,
+             session_id VARCHAR(191) NOT NULL, replica_id VARCHAR(191) NOT NULL,
+             agent_version VARCHAR(191) NOT NULL, connected_at BIGINT NOT NULL,
+             last_seen BIGINT NOT NULL)",
             "INSERT INTO nodes VALUES ('n', 'n', '', 1)",
             "INSERT INTO jobs VALUES ('j', 'n', 'run_commands', x'78', 'queued', 0, NULL, 1, 1, 2)",
+            "INSERT INTO sessions VALUES ('n', 's', 'r', 'v', 1, 2)",
         ] {
             sqlx::query(statement).execute(&pool).await.unwrap();
         }
         pool.close().await;
 
         let store = Store::connect(&url).await.unwrap();
+        // Jobs and sessions from before components belong to the engine.
+        assert_eq!(store.job("j").await.unwrap().unwrap().component, ENGINE);
+        let session = store.session("n", ENGINE).await.unwrap().unwrap();
+        assert_eq!((session.session_id.as_str(), session.last_seen), ("s", 2));
+        assert!(
+            sqlx::query("SELECT 1 FROM sessions")
+                .fetch_optional(&store.pool)
+                .await
+                .is_err(),
+            "the former table is dropped"
+        );
+        // Migrating again changes nothing.
+        drop(store);
+        let store = Store::connect(&url).await.unwrap();
+        assert!(store.session("n", ENGINE).await.unwrap().is_some());
         assert!(store.job("j").await.unwrap().unwrap().requires.is_empty());
         assert_eq!(store.node("n").await.unwrap().unwrap().state, None);
         store.set_node_state("n", "{}").await.unwrap();

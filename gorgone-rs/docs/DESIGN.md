@@ -64,13 +64,13 @@ pollers (ZMQ, SSH, pull, pullwss are dropped), and being a broker module
 
 ### Actions
 
-| Action           | Payload                                                        | Agent behaviour                                                                                                                                                                                                 |
-| ---------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RunCommands`    | list of `{command, timeout_s, continue_on_error}`              | each command must match the agent allowlist entirely, hold no control character, and name its program with an absolute path free of `.`/`..`; executed without a shell unless the agent is configured otherwise |
-| `EngineCommands` | list of external command lines                                 | each command name must match the agent's list of allowed external commands; sent to the engine gRPC API when the agent has its address, else written to the engine command pipe                                 |
-| `ApplyConfig`    | `target` (e.g. `engine`, `broker`, `vmware`), `digest`, `size` | fetch blob, verify digest, have an engine configuration checked, then sync into the directory the agent maps to `target`; no-op when the digest is already applied                                              |
-| `ValidateConfig` | `target`, `digest`, `size`                                     | same check as `ApplyConfig`, nothing applied                                                                                                                                                                    |
-| `ServiceControl` | `service`, `operation` (start, stop, reload, restart)          | runs what the agent maps to `(service, operation)`: a local command, an engine gRPC call (reload, shutdown), or HTTP POSTs to a control API (broker container image)                                            |
+| Action           | Payload                                                        | Agent behaviour                                                                                                                                                                                                  |
+| ---------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RunCommands`    | list of `{command, timeout_s, continue_on_error}`              | each command must match the agent allowlist entirely, hold no control character, and name its program with an absolute path free of `.`/`..`; executed without a shell unless the agent is configured otherwise  |
+| `EngineCommands` | list of external command lines                                 | each command name must match the agent's list of allowed external commands; sent to the engine gRPC API when the agent has its address, else written to the engine command pipe                                  |
+| `ApplyConfig`    | `target` (e.g. `engine`, `broker`, `vmware`), `digest`, `size` | fetch blob, verify digest, have an engine configuration checked, then sync into the directory the agent maps to `target`; no-op when the digest is already applied                                               |
+| `ValidateConfig` | `target`, `digest`, `size`                                     | same check as `ApplyConfig`, nothing applied                                                                                                                                                                     |
+| `ServiceControl` | `service`, `operation` (start, stop, reload, restart)          | runs what the agent maps to `(service, operation)`: a local command, an engine gRPC call (reload, shutdown), HTTP POSTs to a control API, or a signal to the process of a pid file (`cbd` in a broker container) |
 
 ### Job state machine
 
@@ -85,16 +85,17 @@ queued ──► dispatched ──► running ──► succeeded | failed
 from `dispatched`/`running` through a `Cancel` frame.
 
 A job is claimed with a compare-and-set (`queued → dispatched`) that also
-checks the claiming session is still the current one of the node, so that two
-replicas never dispatch it twice and a replaced session claims nothing. A
-terminal event from the agent sets the final state. Jobs past their deadline
-become `expired` (sweeper). A job that is `dispatched` to a session that no
-longer exists goes back to `queued`; this happens before anything else is
-dispatched to the node.
+checks the claiming session is still the current one of the node and
+component the job is for, so that two replicas never dispatch it twice and a
+replaced session claims nothing. A terminal event from the agent sets the
+final state. Jobs past their deadline become `expired` (sweeper). A job that
+is `dispatched` to a session that no longer exists goes back to `queued`;
+this happens before anything else is dispatched to that component of the
+node.
 
 **Order.** The store gives every job a per-node sequence number inside the
-submit transaction. Jobs of a node are claimed and sent in that order, one
-drain at a time per node.
+submit transaction. Jobs of a component of a node are claimed and sent in
+that order, one drain at a time per node and component.
 
 **Prerequisites.** A job can name jobs of the same node that must have
 succeeded (`requires`), or ask for the latest configuration push of each
@@ -123,13 +124,16 @@ event written by the server.
 
 `Session` is a bidirectional stream:
 
-1. Agent sends `Hello {node_id, agent_version, capabilities}`. The enrolment
-   token travels in the `authorization: Bearer` metadata and always identifies
-   the node. With mTLS, the client certificate additionally proves the agent
-   is trusted by the CA; it is not read for identity.
+1. Agent sends `Hello {node_id, agent_version, capabilities, component,
+targets}`. The enrolment token travels in the `authorization: Bearer`
+   metadata and always identifies the node. With mTLS, the client certificate
+   additionally proves the agent is trusted by the CA; it is not read for
+   identity. `component` (empty: `engine`) and `targets` (the configuration
+   targets the agent maps) are described in [Components](#components-of-a-node).
 2. Server answers `Welcome {session_id, heartbeat_interval_s}` and registers
-   the session in the store (`node_id → replica`). A newer session for the same
-   node replaces the older one.
+   the session in the store (`(node_id, component) → replica`). A newer
+   session for the same node and component replaces the older one; the
+   sessions of the other components of the node are kept.
 3. Server sends `Dispatch {job}`. Agent emits `JobEvent`s; the last one has a
    `finished` body. Server answers `EventAck {job_id, seq}` once the event is
    committed. The agent keeps unacknowledged events and resends them after a
@@ -149,6 +153,50 @@ overtakes the configuration push submitted before it; `RunCommands` jobs run
 concurrently.
 
 `FetchBlob {digest}` streams the blob in chunks (≤ 1 MiB). Same authentication.
+
+## Components of a node
+
+A node may be driven by several agents, one per component, each with its own
+session: on a central whose broker runs in its own container, the agent next
+to the engine is the `engine` component and the agent next to `cbd` the
+`broker` component. An agent declares its component (`engine` by default)
+and the names of the configuration targets it maps; the server keeps both per
+node (`node_components`), also while the agent is away, since they decide
+where jobs go. One agent per node, without a component, is the `engine`
+component and works as before.
+
+Each job is for one component, chosen at submission from the components the
+node had then:
+
+| Job                             | Component                                                                                                                                |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `ApplyConfig`                   | every component that declared the target; the engine too unless it declared targets without this one while another component declared it |
+| `ValidateConfig`                | the first of these, the engine when it is one: one check is enough                                                                       |
+| `ServiceControl`                | the component named like the service when the node has one (`broker` reload goes to the broker component), the engine otherwise          |
+| `RunCommands`, `EngineCommands` | the engine                                                                                                                               |
+
+A configuration push that goes to several components is one job for the
+first one (the engine when it is one) and a copy `<id>.<component>` for each
+other one, committed in the same transaction and ahead of it in the order of
+the node. Each copy has the prerequisites of the job; the job also requires
+every copy. So the push succeeds only when every component applied it, as an
+`ApplyConfig` to several destinations of one agent did, a restart that
+requires the latest push waits for all of them, and a failed copy fails the
+job without sending it. Cancelling the job cancels its copies. Both
+`engine_context` (the engine and `cbd` decrypt with it) and `broker` (the
+engine module and `cbd` read it) are pushed this way to the central's two
+containers. A component must have connected once for pushes to be routed to
+it: a push submitted before goes to the components known then.
+
+Order and holding are per node and component: a job waiting for a
+prerequisite holds the jobs after it of its own component, and a component
+whose agent is away holds nothing of the others. Prerequisites (`requires`,
+`requires_latest_config`) may be jobs of any component of the node. When a
+prerequisite ends, the drains of the node held by this replica resume at
+once; a component held by another replica resumes at its next sweep.
+
+An agent posts events for the jobs of its own component only, and a session
+that replaces another one requeues only the jobs of its component.
 
 ## Configuration validation
 
@@ -172,15 +220,18 @@ engine version that will run it.
 Each heartbeat reports what the node really runs: the digest applied for every
 configuration target, and whether the engine answers on its API, with its
 version. The server stores it when it changes and serves it with the node, so
-that a pushed configuration can be told from an applied one.
+that a pushed configuration can be told from an applied one. Each component
+reports its own; the node shows the engine's, and every component's under
+`components`.
 
 ## Multi-replica operation
 
-- Tables: `replicas` (id, peer address, last seen), `sessions` (node →
-  replica), `leases` (named, time-bound leader locks).
-- **Submit path**: API replica commits the job, then: session is local → push
-  now; session on another replica → `Peer.Wake(node_id)` to its peer address;
-  no session → stays `queued`.
+- Tables: `replicas` (id, peer address, last seen), `agent_sessions` (node
+  and component → replica), `leases` (named, time-bound leader locks).
+- **Submit path**: API replica commits the job, then: session of its
+  component is local → push now; session on another replica →
+  `Peer.Wake(node_id)` to its peer address, which drains every component of
+  the node it holds; no session → stays `queued`.
 - **Owner replica** on wake-up, on agent connection and every few seconds:
   claims and dispatches the queued jobs of the nodes it holds.
 - **Result path**: the owner replica commits events. A REST replica waiting for
@@ -200,9 +251,14 @@ Portable SQL (MariaDB and SQLite), times in Unix milliseconds.
 ```
 nodes       (id PK, name, token_hash, created_at)
 replicas    (id PK, peer_addr, last_seen)
-sessions    (node_id PK, session_id, replica_id, agent_version, connected_at, last_seen)
-jobs        (id PK, node_id, seq, kind, action BLOB, state, attempts,
-             session_id NULL, cancel_requested, created_at, updated_at, deadline_at)
+agent_sessions (node_id, component, session_id, replica_id, agent_version,
+             connected_at, last_seen, PRIMARY KEY (node_id, component))
+             -- replaces `sessions` (node_id PK): its rows move as engine sessions
+node_components (node_id, component, targets TEXT(JSON), state TEXT(JSON) NULL,
+             state_at NULL, updated_at, PRIMARY KEY (node_id, component))
+jobs        (id PK, node_id, component DEFAULT 'engine', seq, kind, action BLOB,
+             state, attempts, session_id NULL, cancel_requested, created_at,
+             updated_at, deadline_at, parent_id NULL -- job a copy belongs to)
 job_events  (job_id, seq, time_ms, code, data TEXT(JSON), PRIMARY KEY (job_id, seq))
 blobs       (digest PK, size, created_at)
 blob_chunks (digest, idx, data BLOB, PRIMARY KEY (digest, idx))
@@ -222,7 +278,7 @@ meta        (name PK, value)   -- stable server id, shared by all replicas
 | `DELETE`         | `/v1/jobs/{id}`                               | cancel: immediate when queued, `Cancel` frame through the owner replica otherwise                                                                                                                                    |
 | `PUT`            | `/v1/nodes/{node}/config/{target}`            | body is a `tar.zst` bundle, or a plain tar with `Content-Type: application/x-tar`; stores the blob and submits `ApplyConfig`; optional `?id=` and `?requires=`; `?digest=` with an empty body reuses a stored bundle |
 | `POST`           | `/v1/nodes/{node}/config/{target}/validation` | same body; submits `ValidateConfig`                                                                                                                                                                                  |
-| `GET`            | `/v1/nodes`, `/v1/nodes/{node}`               | nodes with connection status, applied configuration digests and engine state                                                                                                                                         |
+| `GET`            | `/v1/nodes`, `/v1/nodes/{node}`               | nodes with connection status, applied configuration digests and engine state (of the engine component), and `components`: each one's session, declared targets and reported state                                    |
 | `PUT` / `DELETE` | `/v1/nodes/{node}`                            | enrol (returns the token once) / remove a node                                                                                                                                                                       |
 | `GET`            | `/healthz`, `/readyz`, `/metrics`             | probes and Prometheus metrics                                                                                                                                                                                        |
 

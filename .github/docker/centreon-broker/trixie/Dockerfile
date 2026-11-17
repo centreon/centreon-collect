@@ -30,6 +30,11 @@ for deb in *.deb; do
     esac
     dpkg-deb -x "$deb" /extracted/
 done
+# Not shipped: the RRD output (graphs come from VictoriaMetrics) and the
+# legacy SQL outputs replaced by unified_sql.
+rm -f /extracted/usr/share/centreon/lib/centreon-broker/70-rrd.so \
+      /extracted/usr/share/centreon/lib/centreon-broker/20-storage.so \
+      /extracted/usr/share/centreon/lib/centreon-broker/80-sql.so
 rm -rf /extracted/usr/share/doc/* \
        /extracted/usr/share/man/* \
        /extracted/usr/share/info/* \
@@ -85,10 +90,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     bash -e <<EOF
 apt-get update
 apt-get install -y --no-install-recommends \
-    python3-minimal \
-    python3-venv \
     libmariadb3 \
-    librrd8t64 \
     libgnutls30t64 \
     liblua5.4-0 \
     libssl3 \
@@ -180,18 +182,6 @@ ls /etc/centreon-broker/*.json >/dev/null
 ! ldd /usr/sbin/cbwd | grep -q "not found"
 EOF
 
-# Deps for api_control.py (reload/restart shim). Unpinned: internal shim, not a published library.
-RUN bash -e <<EOF
-python3 -m venv /opt/centreon/venv
-/opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip
-/opt/centreon/venv/bin/pip install --no-cache-dir \
-    fastapi \
-    uvicorn
-chown -R centreon-broker:centreon-broker /opt/centreon/venv
-EOF
-
-ENV PATH="/opt/centreon/venv/bin:$PATH"
-
 # OCI image metadata for supply chain traceability (used by Scout, registries, and auditing)
 ARG BUILD_DATE
 ARG BUILD_VERSION=unknown
@@ -217,12 +207,6 @@ EXPOSE 51003
 EXPOSE 5669
 # gRPC central-broker
 EXPOSE 51001
-# bbdo central-rrd
-EXPOSE 5670
-# gRPC central-rrd
-EXPOSE 51002
-# api_control.py (reload/restart shim)
-EXPOSE 8080
 
 WORKDIR /var/lib/centreon-broker
 
@@ -234,12 +218,11 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
 
 ENTRYPOINT ["/usr/local/lib/centreon-broker/container.sh"]
 
-# Runs cbd under the reload/restart shim by default (POST /reload, POST
-# /restart, GET /health on :8080). Override CMD with
-# ["cbd", "/etc/centreon-broker/central-broker.json"] to run cbd directly.
-# Note: cbd's `-c`/`--check` validates and exits, it is not a config-path flag.
-# A real config must be mounted over central-broker.json - container.sh
-# refuses to start on the untouched package default - or, with
-# BROKER_WAIT_FOR_CONFIG=true, pushed with PUT /files/broker (see
-# gorgone-rs/docs/containers-contract.md, "Broker control API").
-CMD ["/opt/centreon/venv/bin/python3", "/usr/local/lib/centreon-broker/api_control.py", "/etc/centreon-broker/central-broker.json"]
+# cbd is the main process; its pid is in /var/lib/centreon-broker/cbd.pid:
+# SIGHUP reloads the configuration (and engine-context.json), SIGTERM stops
+# it and the container. Note: cbd's `-c`/`--check` validates and exits, it
+# is not a config-path flag. A real config must be mounted over
+# central-broker.json - container.sh refuses to start on the untouched
+# package default - or, with BROKER_WAIT_FOR_CONFIG=true, pushed by a
+# gorgone-agent in the container (see gorgone-rs/docs/containers-contract.md).
+CMD ["/usr/sbin/cbd", "/etc/centreon-broker/central-broker.json"]

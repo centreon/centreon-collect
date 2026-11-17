@@ -32,11 +32,9 @@ impl Peer for PeerService {
             }
         }
         let node_id = &request.get_ref().node_id;
-        let held = self.dispatcher.holds(node_id);
-        if held {
-            // Answer now: the drain may wait for a slow agent.
-            self.dispatcher.trigger(node_id, true);
-        }
+        // Every component of the node held here; answers now: the drain may
+        // wait for a slow agent.
+        let held = self.dispatcher.trigger_local(node_id, true);
         Ok(Response::new(WakeReply { held }))
     }
 }

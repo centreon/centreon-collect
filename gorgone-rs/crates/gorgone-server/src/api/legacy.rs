@@ -232,6 +232,8 @@ async fn constatus(State(state): State<Shared>) -> Result<Json<Value>, ApiError>
         .list_sessions()
         .await?
         .into_iter()
+        // One entry per node: the session of its engine, the poller itself.
+        .filter(|session| session.component == gorgone_core::DEFAULT_COMPONENT)
         .map(|session| {
             let status = json!({
                 "last_ping_sent": session.last_seen / 1000,

@@ -20,6 +20,8 @@ use crate::metrics;
 #[derive(Debug, Clone)]
 pub(crate) struct SessionHandle {
     pub(crate) session_id: String,
+    /// Component of the node the agent drives.
+    pub(crate) component: String,
     pub(crate) tx: mpsc::Sender<Result<ServerFrame, Status>>,
     /// Cancelled when the session is replaced, kicked or the server stops.
     pub(crate) closed: CancellationToken,
@@ -32,9 +34,14 @@ pub(crate) struct SessionHandle {
 }
 
 impl SessionHandle {
-    pub(crate) fn new(session_id: String, tx: mpsc::Sender<Result<ServerFrame, Status>>) -> Self {
+    pub(crate) fn new(
+        session_id: String,
+        component: String,
+        tx: mpsc::Sender<Result<ServerFrame, Status>>,
+    ) -> Self {
         Self {
             session_id,
+            component,
             tx,
             closed: CancellationToken::new(),
             primed: Arc::default(),
@@ -50,9 +57,16 @@ const DRAINING: u8 = 1;
 /// One task drains the node and must run one more pass.
 const DRAINING_AGAIN: u8 = 2;
 
-/// Dispatch state of one node on this replica: at most one task drains it,
-/// which is what keeps the order, and requests made meanwhile are coalesced
-/// into one more pass of that task.
+/// A session and a dispatch queue exist per node and component.
+pub(crate) type Key = (String, String);
+
+fn key(node_id: &str, component: &str) -> Key {
+    (node_id.to_owned(), component.to_owned())
+}
+
+/// Dispatch state of one component of a node on this replica: at most one
+/// task drains it, which is what keeps the order, and requests made
+/// meanwhile are coalesced into one more pass of that task.
 #[derive(Debug, Default)]
 pub(crate) struct NodeState {
     phase: AtomicU8,
@@ -95,8 +109,8 @@ struct Watched {
 /// Local sessions and job notifications.
 #[derive(Debug)]
 pub(crate) struct Hub {
-    sessions: Mutex<HashMap<String, SessionHandle>>,
-    nodes: Mutex<HashMap<String, Arc<NodeState>>>,
+    sessions: Mutex<HashMap<Key, SessionHandle>>,
+    nodes: Mutex<HashMap<Key, Arc<NodeState>>>,
     job_updates: broadcast::Sender<JobUpdate>,
     watched: Mutex<HashMap<String, Watched>>,
     send_timeout: Duration,
@@ -119,52 +133,70 @@ impl Hub {
         }
     }
 
-    fn publish_gauge(sessions: &HashMap<String, SessionHandle>) {
+    fn publish_gauge(sessions: &HashMap<Key, SessionHandle>) {
         metrics::AGENT_SESSIONS.set(sessions.len() as u64);
     }
 
-    /// Makes `handle` the session of `node_id`; a previous one is closed.
+    /// Makes `handle` the session of its component of `node_id`; the
+    /// previous session of that component is closed, not those of the others.
     pub(crate) fn register(&self, node_id: &str, handle: SessionHandle) {
         let mut sessions = lock(&self.sessions);
-        if let Some(old) = sessions.insert(node_id.to_owned(), handle) {
+        if let Some(old) = sessions.insert(key(node_id, &handle.component), handle) {
             old.closed.cancel();
         }
         Self::publish_gauge(&sessions);
     }
 
-    /// Forgets the session of `node_id` if it is still `session_id`.
-    pub(crate) fn remove(&self, node_id: &str, session_id: &str) {
+    /// Forgets the session of a component of `node_id` if it is still
+    /// `session_id`.
+    pub(crate) fn remove(&self, node_id: &str, component: &str, session_id: &str) {
         let mut sessions = lock(&self.sessions);
+        let key = key(node_id, component);
         if sessions
-            .get(node_id)
+            .get(&key)
             .is_some_and(|h| h.session_id == session_id)
         {
-            sessions.remove(node_id);
+            sessions.remove(&key);
         }
         Self::publish_gauge(&sessions);
     }
 
-    /// Closes and forgets the session of `node_id`, whatever it is.
+    /// Closes and forgets every session of `node_id`, whatever they are.
     pub(crate) fn kick(&self, node_id: &str) {
         let mut sessions = lock(&self.sessions);
-        if let Some(old) = sessions.remove(node_id) {
-            old.closed.cancel();
-        }
+        sessions.retain(|(node, _), old| {
+            let kept = node != node_id;
+            if !kept {
+                old.closed.cancel();
+            }
+            kept
+        });
         Self::publish_gauge(&sessions);
     }
 
-    /// Closes `session`, and forgets it if it is still the one of the node.
+    /// Closes `session`, and forgets it if it is still the one of its
+    /// component of the node.
     pub(crate) fn kick_session(&self, node_id: &str, session: &SessionHandle) {
         session.closed.cancel();
-        self.remove(node_id, &session.session_id);
+        self.remove(node_id, &session.component, &session.session_id);
     }
 
-    pub(crate) fn get(&self, node_id: &str) -> Option<SessionHandle> {
-        lock(&self.sessions).get(node_id).cloned()
+    /// Session of a component of the node, when this replica holds it.
+    pub(crate) fn get(&self, node_id: &str, component: &str) -> Option<SessionHandle> {
+        lock(&self.sessions).get(&key(node_id, component)).cloned()
     }
 
-    /// Nodes with a session on this replica.
-    pub(crate) fn nodes(&self) -> Vec<String> {
+    /// Components of the node whose session this replica holds.
+    pub(crate) fn components(&self, node_id: &str) -> Vec<String> {
+        lock(&self.sessions)
+            .keys()
+            .filter(|(node, _)| node == node_id)
+            .map(|(_, component)| component.clone())
+            .collect()
+    }
+
+    /// Nodes and components with a session on this replica.
+    pub(crate) fn keys(&self) -> Vec<Key> {
         lock(&self.sessions).keys().cloned().collect()
     }
 
@@ -175,8 +207,8 @@ impl Hub {
         }
     }
 
-    /// Dispatch state of one node on this replica.
-    pub(crate) fn node_state(&self, node_id: &str) -> Arc<NodeState> {
+    /// Dispatch state of one component of a node on this replica.
+    pub(crate) fn node_state(&self, node_id: &str, component: &str) -> Arc<NodeState> {
         let mut nodes = lock(&self.nodes);
         // Bounded by the nodes seen; drop the entries nobody uses.
         if nodes.len() > 4096 {
@@ -184,14 +216,16 @@ impl Hub {
                 Arc::strong_count(state) > 1 || state.blocked.load(Ordering::SeqCst)
             });
         }
-        Arc::clone(nodes.entry(node_id.to_owned()).or_default())
+        Arc::clone(nodes.entry(key(node_id, component)).or_default())
     }
 
-    /// True when the drain of the node waits for a prerequisite.
-    pub(crate) fn blocked(&self, node_id: &str) -> bool {
+    /// Components of the node whose drain waits for a prerequisite here.
+    pub(crate) fn blocked(&self, node_id: &str) -> Vec<String> {
         lock(&self.nodes)
-            .get(node_id)
-            .is_some_and(|state| state.blocked.load(Ordering::SeqCst))
+            .iter()
+            .filter(|((node, _), state)| node == node_id && state.blocked.load(Ordering::SeqCst))
+            .map(|((_, component), _)| component.clone())
+            .collect()
     }
 
     /// Queues `frame` for the agent. A session that does not take it within
@@ -420,13 +454,13 @@ mod tests {
     async fn stalled_session_is_kicked_by_the_send_timeout() {
         let hub = Hub::new(Duration::from_millis(50));
         let (tx, _rx) = mpsc::channel(1);
-        let session = SessionHandle::new("s".into(), tx);
+        let session = SessionHandle::new("s".into(), "engine".into(), tx);
         hub.register("node", session.clone());
         // The buffer takes one frame; nobody reads the second one.
         assert!(hub.send("node", &session, ServerFrame::default()).await);
         assert!(!hub.send("node", &session, ServerFrame::default()).await);
         assert!(session.closed.is_cancelled());
-        assert!(hub.get("node").is_none());
+        assert!(hub.get("node", "engine").is_none());
     }
 
     #[test]

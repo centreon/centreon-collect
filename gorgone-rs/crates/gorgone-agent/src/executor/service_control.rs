@@ -3,15 +3,18 @@
 //! Nothing of it comes from the central.
 
 use std::collections::BTreeMap;
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 use gorgone_proto::agent::job_event::Body;
 use gorgone_proto::agent::job_finished::Outcome;
 use gorgone_proto::agent::service_control::Operation;
 use gorgone_proto::agent::{CommandResult, JobFinished, ServiceControl};
+use nix::sys::signal::{Signal, kill};
+use nix::unistd::Pid;
 
 use super::{Executor, JobContext, command_result, finished};
-use crate::config::{EngineRpc, Secret, ServiceAction, ServiceConfig};
+use crate::config::{EngineRpc, ProcessSignal, Secret, ServiceAction, ServiceConfig};
 use crate::engine_api::EngineApi;
 use crate::http_post::{self, HttpTarget, PostError};
 use crate::process::{self, CommandSpec};
@@ -108,6 +111,28 @@ impl ServiceControlExecutor {
     }
 }
 
+/// Sends `signal` to the process whose pid `pid_file` holds; says what it did.
+fn send_signal(signal: ProcessSignal, pid_file: &Path) -> Result<String, String> {
+    let text = std::fs::read_to_string(pid_file)
+        .map_err(|error| format!("{}: {error}", pid_file.display()))?;
+    let pid = text
+        .trim()
+        .parse::<i32>()
+        .ok()
+        .filter(|pid| *pid > 0)
+        .ok_or_else(|| format!("{}: no process id in the file", pid_file.display()))?;
+    let signal = match signal {
+        ProcessSignal::Hup => Signal::SIGHUP,
+        ProcessSignal::Int => Signal::SIGINT,
+        ProcessSignal::Term => Signal::SIGTERM,
+        ProcessSignal::Usr1 => Signal::SIGUSR1,
+        ProcessSignal::Usr2 => Signal::SIGUSR2,
+    };
+    let name = signal.as_str();
+    kill(Pid::from_raw(pid), signal).map_err(|error| format!("{name} to pid {pid}: {error}"))?;
+    Ok(format!("{name} sent to pid {pid}"))
+}
+
 impl Executor for ServiceControlExecutor {
     type Action = ServiceControl;
 
@@ -141,6 +166,13 @@ impl Executor for ServiceControlExecutor {
                 return self
                     .post_all(&format!("{name} {service_name}"), urls, ctx)
                     .await;
+            }
+            ServiceAction::Signal(signal, pid_file) => {
+                let (outcome, done) = match send_signal(signal, pid_file) {
+                    Ok(done) => (Outcome::Ok, done),
+                    Err(error) => (Outcome::Failed, error),
+                };
+                return finished(outcome, format!("{name} {service_name}: {done}"));
             }
             ServiceAction::Engine(rpc) => {
                 let asked = match rpc {
@@ -230,6 +262,36 @@ mod tests {
         let results = sink.command_results();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].stdout, "reloaded\n");
+    }
+
+    #[tokio::test]
+    async fn signals_the_process_of_the_pid_file() {
+        use std::os::unix::process::ExitStatusExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("cbd.pid");
+        let mut child = std::process::Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .unwrap();
+        std::fs::write(&pid_file, format!("{}\n", child.id())).unwrap();
+        let exec = executor(&format!("signal:TERM:{}", pid_file.display()));
+        let (done, sink) = run(&exec, reload()).await;
+        assert_eq!(done.outcome(), Outcome::Ok, "{done:?}");
+        assert_eq!(
+            done.message,
+            format!("reload engine: SIGTERM sent to pid {}", child.id())
+        );
+        assert!(sink.command_results().is_empty());
+        assert_eq!(child.wait().unwrap().signal(), Some(Signal::SIGTERM as i32));
+
+        // No pid file, or one without a pid: failed, nothing signalled.
+        std::fs::write(&pid_file, "none").unwrap();
+        let (done, _) = run(&exec, reload()).await;
+        assert_eq!(done.outcome(), Outcome::Failed, "{done:?}");
+        let missing = executor(&format!("signal:HUP:{}", dir.path().join("x").display()));
+        let (done, _) = run(&missing, reload()).await;
+        assert_eq!(done.outcome(), Outcome::Failed, "{done:?}");
     }
 
     #[tokio::test]

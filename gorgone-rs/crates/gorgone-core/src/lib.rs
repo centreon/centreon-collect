@@ -17,3 +17,15 @@ pub mod kind {
     /// Start, stop, reload or restart a local service.
     pub const SERVICE_CONTROL: &str = "service_control";
 }
+
+/// Component of an agent that does not name one: the agent next to the engine.
+pub const DEFAULT_COMPONENT: &str = "engine";
+
+/// True for a component name: `[a-z0-9_-]{1,32}`.
+#[must_use]
+pub fn valid_component(name: &str) -> bool {
+    (1..=32).contains(&name.len())
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_' || b == b'-')
+}
