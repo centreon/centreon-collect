@@ -1,4 +1,11 @@
 name: gorgone
+run-name: |
+  ${{
+    (github.event_name == 'schedule' ||
+     (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true'))
+    && format('gorgone nightly {0}', github.ref_name)
+    || ''
+  }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -7,11 +14,18 @@ concurrency:
 on:
   workflow_dispatch:
     inputs:
+      nightly_manual_trigger:
+        description: "Set to true for nightly run"
+        required: false
+        default: false
+        type: boolean
       labels:
         description: "Labels to add to the run (comma separated)"
         required: false
         default: ""
         type: string
+  schedule:
+    - cron: "0 1 * * 1-5"
   pull_request:
     paths:
       - ".github/workflows/gorgone.yml"
@@ -47,6 +61,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: .version.centreon-gorgone
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
       labels: ${{ inputs.labels || '' }}
 
   changes:
@@ -463,14 +478,17 @@ jobs:
   deliver-rpm-pulp:
     runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, unit-test-perl, robot-test, changes]
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.changes.outputs.trigger_delivery == 'true' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      needs.get-environment.result == 'success' &&
+      needs.changes.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled')))
 
     strategy:
       fail-fast: false
@@ -505,13 +523,16 @@ jobs:
   deliver-deb-pulp:
     runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, unit-test-perl, robot-test, changes]
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.changes.outputs.trigger_delivery == 'true' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
+      needs.get-environment.result == 'success' &&
+      needs.changes.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled'))) &&
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     strategy:

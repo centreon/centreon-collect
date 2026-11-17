@@ -495,15 +495,17 @@ jobs:
 
   deliver-rpm-pulp:
     # the one delivery job not gated on a trigger_* output, so the publish-only dispatch
-    # condition has to be spelled out here or its cache restore fails the run
+    # condition has to be spelled out here or its cache restore fails the run.
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       inputs.publish_cma_version == '' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
+      needs.get-environment.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled'))) &&
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
@@ -545,13 +547,16 @@ jobs:
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
   deliver-deb-pulp:
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
+      needs.get-environment.result == 'success' &&
+      needs.changes.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled'))) &&
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
@@ -604,14 +609,17 @@ jobs:
   # Blocking, like every other Pulp job since #3705. Delivery also fails closed when the major is
   # not provisioned — run create-repos-installers.yml in centreon/delivery-tooling for every new
   # major, including the cloud ones the nightly builds.
+  # Nightly: deliver the installer once built, even if other jobs failed; those jobs keep the run red.
   deliver-windows-pulp:
     if: |
       needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
+      needs.get-environment.result == 'success' &&
+      needs.changes.result == 'success' &&
+      ((needs.get-environment.outputs.is_nightly == 'true' && needs.build-and-test-agent-windows.result == 'success') ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled'))) &&
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
