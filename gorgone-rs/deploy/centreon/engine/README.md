@@ -4,6 +4,8 @@
 
 `recurringdowntime` adds messages to `common/engine_conf/state.proto`, so the image also replaces the configuration library `libcentreon_engine_conf.so` (`/usr/lib`) and the two modules compiled against its classes, `externalcmd.so` and `libopentelemetry.so` (`/usr/lib64/centreon-engine/`). `cbmod.so` and `libcentreon_clib.so` still come from the image packages (`cbmod.so` does not use the configuration classes), so the branch must not diverge from `develop` in `clib/`, `bbdo/` or `broker/neb/`. A Broker that parses the Engine configuration (`unified_sql`) needs the same `libcentreon_engine_conf.so` to read a configuration that contains `recurringdowntime` objects.
 
+The image is a single layer: the base image already ships about 140 MB of files that its later layers replace or delete, and replacing the binaries above adds more. It also swaps `mailutils` for `bsd-mailx`: the same `mail` command in front of the same `msmtp` (checked: the same message reaches an SMTP server from both), without the Guile runtime mailutils pulls in. Plugins, the `plugins.json` installer, Perl and Python are kept. Sizes, from the published base to this image: layers 432 MB → 343 MB, download (compressed) 113 MB → 95 MB.
+
 ## Build
 
 All commands run from the repository root. The build tree lives in a docker volume, never in the working tree.
