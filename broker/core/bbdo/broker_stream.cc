@@ -298,17 +298,18 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   const uint64_t generation = _state.config_generation();
   if (generation != _last_config_generation) {
     /* The generation is read before the scans: a change done during them
-     * makes the next read() scan again, so nothing is missed. The snapshot is
-     * saved after the scans, so if an exception is thrown, the next read()
-     * scans again. Beware: messages already popped from broker_state before
-     * the failing write are lost, a rescan won't find them. */
+     * makes the next read() scan again, so nothing is missed. */
     try {
       _push_pending_config_messages();
-      _last_config_generation = generation;
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(_logger, "Fail to send config messages: {}",
-                          e.what());
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "Fail to send config messages to poller {}: {}",
+                          poller_id(), e.what());
     }
+    // even if an error occurs, we update _last_config_generation, an error
+    // message is logged
+    // Unreadable prot file will remain unreadable
+    _last_config_generation = generation;
   }
 
   return retval;
