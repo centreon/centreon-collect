@@ -47,12 +47,15 @@ Ctn Config BBDO3
 
 Ctn Clean Before Suite
     Ctn Clear Db    resources
+    Ctn Clear Db    instances
     Ctn Clear Db    hosts
     Ctn Clear Db    services
     Ctn Clear Db    tags
+    Ctn Clear Db    customvariables
     Ctn Stop Processes
     Ctn Clear Engine Logs
     Ctn Clear Broker Logs
+    Ctn Clear Commands Status
 
 Ctn Clean Before Suite With rrdcached
     Ctn Clean Before Suite
