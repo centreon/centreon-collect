@@ -323,7 +323,8 @@ bool stream<T>::append_status_to_rrd(const Status& s) {
  *  @return Number of events acknowledged.
  */
 template <typename T>
-uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream<T>::write(std::shared_ptr<io::data> const& d,
+                          bool throw_on_update_error) {
   SPDLOG_LOGGER_TRACE(_logger, "RRD: stream::write.");
   // Check that data exists.
   if (!validate(d, "RRD"))
@@ -331,7 +332,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
 
   switch (d->type()) {
     case storage::metric::static_type():
-      return write(neb::bbdo2_to_bbdo3(d));
+      return write(neb::bbdo2_to_bbdo3(d), true);
     case storage::pb_metric::static_type():
       if (_write_metrics) {
         // Debug message.
@@ -368,8 +369,9 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         if (!last_update || last_update < m.time()) {
           try {
             written = append_metric_to_rrd(m);
-          } catch (const std::exception&) {  // Case of we add a event older
-                                             // than the last ones inserted
+          } catch (const std::exception&) {  // Case of IO issue
+            if (throw_on_update_error)
+              throw;
             break;
           }
         }
@@ -433,8 +435,9 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         if (!last_update || last_update < s.time()) {
           try {
             written = append_status_to_rrd(s);
-          } catch (const std::exception&) {  // Case of we add a event older
-                                             // than the last ones inserted
+          } catch (const std::exception&) {  // Case of IO issue
+            if (throw_on_update_error)
+              throw;
             break;
           }
         }
@@ -462,7 +465,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
       }
       break;
     case storage::status::static_type():
-      return write(neb::bbdo2_to_bbdo3(d));
+      return write(neb::bbdo2_to_bbdo3(d), true);
     case storage::pb_rebuild_message::static_type(): {
       SPDLOG_LOGGER_DEBUG(_logger, "RRD: RebuildMessage received");
       std::shared_ptr<storage::pb_rebuild_message> e{
@@ -627,7 +630,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         // the rrd file has been replaced by the merge
         _metric_latest_current.erase(end_merge.metric_id());
         for (auto evt : events_to_play) {
-          write(evt);
+          write(evt, false);
         }
       }
     } break;
@@ -646,7 +649,7 @@ uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
         // the rrd file has been replaced by the merge
         _status_latest_current.erase(end_merge.index_id());
         for (auto evt : events_to_play) {
-          write(evt);
+          write(evt, false);
         }
       }
     } break;
@@ -869,7 +872,7 @@ void stream<T>::_write_postponed(rebuild_entry& entry,
                           entry.last_rebuilt_time);
       continue;
     }
-    write(d);
+    write(d, false);
   }
 }
 
