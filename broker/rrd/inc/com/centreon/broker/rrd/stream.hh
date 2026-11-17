@@ -114,7 +114,11 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void update() override;
-  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override {
+    return write(d, true);
+  }
+  uint32_t write(std::shared_ptr<io::data> const& d,
+                 bool throw_on_update_error);
   uint32_t stop() override { return 0; }
 
   bool append_metric_to_rrd(const Metric& metric);

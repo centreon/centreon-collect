@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include "broker/core/bbdo/broker_stream.hh"
+#include <exception>
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
@@ -291,6 +292,37 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
 bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   bool retval = stream::read(d, deadline);
 
+  /* The check is done on every read(), including timeouts, so that pending
+   * configuration messages are sent even on a silent stream. But the locked
+   * scans of broker_state are only done when something changed since the
+   * previous check: the generation is read lock-free. */
+  const uint64_t generation = _state.config_generation();
+  if (generation != _last_config_generation) {
+    /* The generation is read before the scans: a change done during them
+     * makes the next read() scan again, so nothing is missed. */
+    try {
+      _push_pending_config_messages();
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "Failed to send config messages to poller {}: {}",
+                          poller_id(), e.what());
+    }
+    // even if an error occurs, we update _last_config_generation, an error
+    // message is logged
+    // Unreadable prot file will remain unreadable
+    _last_config_generation = generation;
+  }
+
+  return retval;
+}
+
+/**
+ * @brief Sends to the peer the configuration messages waiting for it in
+ * broker_state: DiffState for an Engine (directly or forwarded by a relay),
+ * ConfigRevoke and DiffStates for a relay (from the central), ConfigRequests
+ * and DiffStateAcks for the central (from a relay).
+ */
+void broker_stream::_push_pending_config_messages() {
   if (peer_type() == common::ENGINE &&
       _state.engine_peer_needs_update(poller_id())) {
     SPDLOG_LOGGER_DEBUG(
@@ -328,7 +360,15 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       // config update, push the DiffState to the relay.
       for (uint64_t engine_id :
            _state.engine_peers_via_relay_needing_update(poller_id())) {
-        _send_diff_state_for_poller(engine_id);
+        // a prot file on a poller must not block other updates => ignore
+        // exception
+        try {
+          _send_diff_state_for_poller(engine_id);
+        } catch (const std::exception& e) {
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "Failed to send config messages to poller {}: {}",
+                              engine_id, e.what());
+        }
       }
     }
     /* When this broker is a relay (no pollers_config_dir), forward any pending
@@ -359,8 +399,6 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       }
     }
   }
-
-  return retval;
 }
 
 /**
