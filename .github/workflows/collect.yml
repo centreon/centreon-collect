@@ -1225,14 +1225,17 @@ jobs:
           minor_version: ${{ needs.get-environment.outputs.minor_version }}
 
   deliver-rpm-pulp:
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
+      needs.get-environment.result == 'success' &&
+      needs.changes.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled'))) &&
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, robot-test]
@@ -1255,8 +1258,25 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Check that the packages were built
+        id: packages_cache
+        if: needs.get-environment.outputs.is_nightly == 'true'
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ./*.rpm
+          key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          lookup-only: true
+
+      - name: Report packages not built
+        if: steps.packages_cache.outcome == 'success' && steps.packages_cache.outputs.cache-hit != 'true'
+        run: echo "::warning::No $DISTRIB $ARCH packages were built in this run, nothing to deliver."
+        env:
+          DISTRIB: ${{ matrix.distrib }}
+          ARCH: ${{ matrix.arch }}
+
       - name: Deliver packages on Pulp
         id: deliver_rpm_pulp
+        if: steps.packages_cache.outcome == 'skipped' || steps.packages_cache.outputs.cache-hit == 'true'
         uses: ./.github/actions/package-delivery-pulp
         with:
           module_name: collect
@@ -1273,13 +1293,16 @@ jobs:
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-deb-pulp:
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
+      needs.get-environment.result == 'success' &&
+      needs.changes.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled'))) &&
       github.repository == 'centreon/centreon-collect' &&
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
@@ -1303,8 +1326,25 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Check that the packages were built
+        id: packages_cache
+        if: needs.get-environment.outputs.is_nightly == 'true'
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ./*.deb
+          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          lookup-only: true
+
+      - name: Report packages not built
+        if: steps.packages_cache.outcome == 'success' && steps.packages_cache.outputs.cache-hit != 'true'
+        run: echo "::warning::No $DISTRIB $ARCH packages were built in this run, nothing to deliver."
+        env:
+          DISTRIB: ${{ matrix.distrib }}
+          ARCH: ${{ matrix.arch }}
+
       - name: Deliver packages on Pulp
         id: deliver_deb_pulp
+        if: steps.packages_cache.outcome == 'skipped' || steps.packages_cache.outputs.cache-hit == 'true'
         uses: ./.github/actions/package-delivery-pulp
         with:
           module_name: collect
