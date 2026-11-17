@@ -3,14 +3,14 @@
 # with a TCP input and a Lua output that dumps every decoded event, then the
 # ignored test `real_cbd`, which reads the dump. Removes the container after.
 #
-#   crates/gorgone-scheduler/tests/real-cbd/run.sh   # from gorgone-rs/
+#   crates/centreon-engine/tests/real-cbd/run.sh   # from gorgone-rs/
 #
 # BROKER_IMAGE overrides the image (default centreon-broker-trixie:gorgone-poc).
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
 image=${BROKER_IMAGE:-centreon-broker-trixie:gorgone-poc}
-name=gorgone-scheduler-cbd-$$
+name=centreon-engine-cbd-$$
 work=$(mktemp -d)
 cleanup() {
   docker rm -f "$name" >/dev/null 2>&1 || true
@@ -36,7 +36,7 @@ sleep 1
 
 status=0
 GORGONE_TEST_CBD_ADDRESS="127.0.0.1:$port" GORGONE_TEST_CBD_EVENTS="$work/events.json" \
-  cargo test -p gorgone-scheduler --test real_cbd -- --ignored --nocapture || status=$?
+  cargo test -p centreon-engine --test real_cbd -- --ignored --nocapture || status=$?
 if [ "$status" -ne 0 ]; then
   echo "--- cbd log (end) ---"
   tail -n 80 "$work/cbd.log" || true

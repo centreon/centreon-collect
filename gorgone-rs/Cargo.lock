@@ -205,6 +205,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "centreon-engine"
+version = "0.1.0"
+dependencies = [
+ "gorgone-proto",
+ "nix",
+ "prost",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -561,9 +577,9 @@ name = "gorgone-agent"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "centreon-engine",
  "gorgone-core",
  "gorgone-proto",
- "gorgone-scheduler",
  "nix",
  "prost",
  "rcgen",
@@ -612,21 +628,6 @@ dependencies = [
  "prost",
  "tonic",
  "tonic-prost",
-]
-
-[[package]]
-name = "gorgone-scheduler"
-version = "0.1.0"
-dependencies = [
- "gorgone-proto",
- "nix",
- "prost",
- "serde_json",
- "tempfile",
- "thiserror",
- "tokio",
- "tokio-util",
- "tracing",
 ]
 
 [[package]]

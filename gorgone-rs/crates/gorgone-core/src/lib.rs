@@ -2,6 +2,7 @@
 
 pub mod allowlist;
 pub mod bundle;
+pub mod document;
 pub mod legacy;
 
 /// Action kind names, used as agent capabilities and as the `kind` job column.
@@ -16,6 +17,8 @@ pub mod kind {
     pub const VALIDATE_CONFIG: &str = "validate_config";
     /// Start, stop, reload or restart a local service.
     pub const SERVICE_CONTROL: &str = "service_control";
+    /// Put a structured configuration in force on the built-in engine.
+    pub const APPLY_ENGINE_CONFIGURATION: &str = "apply_engine_configuration";
 }
 
 /// Component of an agent that does not name one: the agent next to the engine.

@@ -1,0 +1,39 @@
+# centreon-engine of the centreon-engine container: the whole poller. It takes
+# the structured configuration centreon-web sends through gorgone-server
+# (apply_engine_configuration jobs, no file), runs the checks and sends the
+# results to the central broker over BBDO: no centengine, no cbd, no .cfg.
+# The node id comes from the environment (CENTREON_ENGINE__NODE_ID).
+server_url = "http://gorgone:5556"
+# Bench value: gorgone-server enrols nodes automatically here.
+token = "integration-test"
+# On the container's own filesystem: job journal and the configuration in
+# force (engine-configuration/), which a restart loads again.
+state_dir = "/var/lib/centreon-engine"
+
+[commands]
+allowlist = []
+
+[engine]
+# Handled by the engine: the forced and planned checks and the passive
+# results; the other ones the web may send are refused by the engine.
+allowed_commands = [
+  'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
+  'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
+]
+
+[scheduler]
+# Always enabled for centreon-engine; "structured" is its default input.
+input = "structured"
+# Target the applied configuration is reported under, as an Engine push.
+target = "engine"
+# Plugins running at once.
+max_concurrent_checks = 64
+
+# Reload and restart: the engine puts the configuration it keeps in force
+# again (the changes come with the apply_engine_configuration jobs).
+[services.engine]
+reload = "scheduler:reload"
+restart = "scheduler:reload"
+
+[services.broker]
+reload = "scheduler:reload"

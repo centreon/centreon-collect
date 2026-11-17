@@ -127,7 +127,7 @@ impl Histogram {
 pub(crate) static AGENT_SESSIONS: Family<1> = Family::gauge("gorgone_agent_sessions");
 pub(crate) static AGENT_SESSIONS_STALLED: Family<1> =
     Family::counter("gorgone_agent_sessions_stalled_total");
-pub(crate) static JOBS_SUBMITTED: Family<5> = Family::labelled(
+pub(crate) static JOBS_SUBMITTED: Family<6> = Family::labelled(
     "gorgone_jobs_submitted_total",
     "kind",
     [
@@ -136,6 +136,7 @@ pub(crate) static JOBS_SUBMITTED: Family<5> = Family::labelled(
         kind::APPLY_CONFIG,
         kind::SERVICE_CONTROL,
         kind::VALIDATE_CONFIG,
+        kind::APPLY_ENGINE_CONFIGURATION,
     ],
 );
 pub(crate) static JOBS_DISPATCHED: Family<1> = Family::counter("gorgone_jobs_dispatched_total");

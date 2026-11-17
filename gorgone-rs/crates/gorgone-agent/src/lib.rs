@@ -1,6 +1,7 @@
 //! Gorgone agent: dials `gorgone-server`, keeps one control stream and runs
 //! the typed jobs it receives, within what the local configuration allows.
 
+pub mod cli;
 mod client;
 pub mod config;
 mod engine_api;
@@ -101,6 +102,11 @@ pub async fn run(
         .await?
     };
     let state = Arc::new(state);
+    // The structured configuration kept from a former run is applied.
+    let structured = monitoring.as_ref().and_then(Monitoring::applied);
+    if let Some((target, digest)) = &structured {
+        state.set_applied(target, digest.clone());
+    }
     // Cancelled on every way out, so that no background task outlives `run`.
     let stop = CancellationToken::new();
     let _stop_guard = stop.clone().drop_guard();
@@ -114,6 +120,9 @@ pub async fn run(
             let mut monitoring = monitoring;
             loop {
                 state.set_engine(monitoring.engine_state());
+                if let Some((target, Some(digest))) = monitoring.applied() {
+                    state.set_applied(&target, Some(digest));
+                }
                 tokio::select! {
                     changed = monitoring.changed() => if !changed { return },
                     () = stop.cancelled() => return,
@@ -166,6 +175,7 @@ pub async fn run(
             max_output: config.max_output_bytes,
             http_timeout: config.http_post_timeout(),
             bearer: config.http_bearer_token.clone(),
+            monitoring: monitoring.clone(),
         },
         service_control: ServiceControlExecutor {
             services: config.services.clone(),
@@ -209,7 +219,14 @@ pub async fn run(
         client,
         node_id: config.node_id.clone(),
         component: config.component.clone(),
-        targets: config.targets.keys().cloned().collect(),
+        // A structured engine configuration is routed like a target push.
+        targets: config
+            .targets
+            .keys()
+            .cloned()
+            .chain(structured.iter().map(|(target, _)| target.clone()))
+            .collect(),
+        engine_configuration: structured.is_some(),
         journal: journal.clone(),
         scheduler: scheduler.clone(),
         state,

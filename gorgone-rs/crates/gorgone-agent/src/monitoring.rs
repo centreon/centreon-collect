@@ -1,5 +1,5 @@
-//! The built-in monitoring scheduler (crate `gorgone-scheduler`, cargo
-//! feature `scheduler`) as the executors see it. Without the feature the
+//! The built-in engine (crate `centreon-engine`, cargo feature `scheduler`)
+//! as the executors see it. Without the feature the
 //! handle type has no value, so every branch that uses it is dead code the
 //! compiler removes, and the configuration check refuses `scheduler.enabled`.
 
@@ -13,34 +13,75 @@ mod imp {
 
     use super::{AgentConfig, EngineState};
 
-    /// Handle on the running scheduler.
+    /// Handle on the running engine.
     #[derive(Clone)]
-    pub(crate) struct Monitoring(gorgone_scheduler::Scheduler);
+    pub(crate) struct Monitoring {
+        engine: centreon_engine::Scheduler,
+        /// Target the structured configuration is reported under, when the
+        /// input is structured.
+        structured: Option<(String, PathBuf)>,
+    }
 
     impl Monitoring {
-        /// Starts the scheduler when `scheduler.enabled`.
+        /// Starts the engine when `scheduler.enabled`.
         pub(crate) fn start(config: &AgentConfig) -> Option<Self> {
             if !config.scheduler.enabled {
                 return None;
             }
-            // Checked by the configuration validation.
-            let main_file = config.scheduler_main_file()?;
             let section = &config.scheduler;
-            let mut options = gorgone_scheduler::Options::new(main_file);
-            options.broker_config = section.broker_config.clone();
+            // Both checked by the configuration validation.
+            let (mut options, structured) = match config.scheduler_snapshot_dir() {
+                Some(dir) => (
+                    centreon_engine::Options::structured(&dir),
+                    Some((section.target.clone(), dir)),
+                ),
+                None => {
+                    let mut options = centreon_engine::Options::new(config.scheduler_main_file()?);
+                    if let centreon_engine::Input::Files { broker_config, .. } = &mut options.input
+                    {
+                        broker_config.clone_from(&section.broker_config);
+                    }
+                    (options, None)
+                }
+            };
             options.broker_address = section.broker_address.clone();
             options.max_concurrent_checks = section.max_concurrent_checks;
             options.max_pending_events = section.max_pending_events;
             options.max_output_bytes = config.max_output_bytes.min(64 * 1024);
-            Some(Self(gorgone_scheduler::Scheduler::start(options)))
+            Some(Self {
+                engine: centreon_engine::Scheduler::start(options),
+                structured,
+            })
         }
 
         pub(crate) async fn reload(&self) -> Result<String, String> {
-            self.0.reload().await
+            self.engine.reload().await
+        }
+
+        /// Target and digest of the structured configuration: the one in
+        /// force, else the one kept from a former run.
+        pub(crate) fn applied(&self) -> Option<(String, Option<String>)> {
+            let (target, dir) = self.structured.as_ref()?;
+            let digest = self
+                .engine
+                .status()
+                .digest
+                .or_else(|| centreon_engine::kept_digest(dir));
+            Some((target.clone(), digest))
+        }
+
+        /// Checks and puts a structured document in force (see
+        /// `centreon_engine::Scheduler::apply`).
+        pub(crate) async fn apply(
+            &self,
+            document: Vec<u8>,
+            digest: String,
+        ) -> Result<String, String> {
+            self.engine.apply(document, digest).await
         }
 
         pub(crate) async fn external_command(&self, line: &str) -> Result<String, String> {
-            self.0.external_command(line).await
+            self.engine.external_command(line).await
         }
 
         /// Checks a staged configuration: valid or not, and the report,
@@ -52,7 +93,7 @@ mod imp {
         ) -> Result<(bool, String), String> {
             let main_file = PathBuf::from(main_file);
             tokio::task::spawn_blocking(move || {
-                gorgone_scheduler::validate(&main_file, broker_config.as_deref())
+                centreon_engine::validate(&main_file, broker_config.as_deref())
             })
             .await
             .map_err(|error| format!("check task failed: {error}"))
@@ -62,18 +103,18 @@ mod imp {
         /// is in force.
         pub(crate) fn engine_state(&self) -> EngineState {
             EngineState {
-                reachable: self.0.status().loaded,
-                version: gorgone_scheduler::VERSION.to_owned(),
+                reachable: self.engine.status().loaded,
+                version: centreon_engine::VERSION.to_owned(),
             }
         }
 
         /// Waits for a change of what `engine_state` reports.
         pub(crate) async fn changed(&mut self) -> bool {
-            self.0.status_changed().await.is_some()
+            self.engine.status_changed().await.is_some()
         }
 
         pub(crate) async fn shutdown(&self) {
-            self.0.shutdown().await;
+            self.engine.shutdown().await;
         }
     }
 }
@@ -94,6 +135,18 @@ mod imp {
         }
 
         pub(crate) async fn reload(&self) -> Result<String, String> {
+            match *self {}
+        }
+
+        pub(crate) fn applied(&self) -> Option<(String, Option<String>)> {
+            match *self {}
+        }
+
+        pub(crate) async fn apply(
+            &self,
+            _document: Vec<u8>,
+            _digest: String,
+        ) -> Result<String, String> {
             match *self {}
         }
 
@@ -189,7 +242,7 @@ mod tests {
             monitoring
                 .engine_state()
                 .version
-                .starts_with("gorgone-scheduler ")
+                .starts_with("centreon-engine ")
         );
 
         // Configuration check: the staged file is read by the scheduler.

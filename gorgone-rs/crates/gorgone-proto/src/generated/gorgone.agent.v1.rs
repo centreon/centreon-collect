@@ -142,7 +142,7 @@ pub struct Job {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Action {
-    #[prost(oneof = "action::Kind", tags = "1, 2, 3, 4, 5")]
+    #[prost(oneof = "action::Kind", tags = "1, 2, 3, 4, 5, 6")]
     pub kind: ::core::option::Option<action::Kind>,
 }
 /// Nested message and enum types in `Action`.
@@ -160,6 +160,8 @@ pub mod action {
         ServiceControl(super::ServiceControl),
         #[prost(message, tag = "5")]
         ValidateConfig(super::ValidateConfig),
+        #[prost(message, tag = "6")]
+        ApplyEngineConfiguration(super::ApplyEngineConfiguration),
     }
 }
 #[allow(clippy::all)]
@@ -209,6 +211,26 @@ pub struct ValidateConfig {
     #[prost(string, tag = "1")]
     pub target: ::prost::alloc::string::String,
     /// Lowercase hex SHA-256 of the bundle.
+    #[prost(string, tag = "2")]
+    pub digest: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub size: u64,
+}
+/// Puts a structured configuration in force on the built-in engine of the
+/// node (centreon-engine), without any file: the blob is the JSON document
+/// of gorgone-rs/schemas/engine-configuration.v1.json compressed with zstd.
+/// The engine checks it as it checks the Engine files, refuses it as a whole
+/// when invalid (the configuration in force stays), keeps it to restart with
+/// it, and sends the central broker only what changed. Reported with one
+/// CommandResult (the check report) before the terminal event; the node then
+/// reports the digest as applied to the target.
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ApplyEngineConfiguration {
+    /// Target the applied digest is reported under: "engine".
+    #[prost(string, tag = "1")]
+    pub target: ::prost::alloc::string::String,
+    /// Lowercase hex SHA-256 of the blob.
     #[prost(string, tag = "2")]
     pub digest: ::prost::alloc::string::String,
     #[prost(uint64, tag = "3")]

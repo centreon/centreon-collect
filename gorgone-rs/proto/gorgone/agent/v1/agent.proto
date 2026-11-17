@@ -101,6 +101,7 @@ message Action {
     ApplyConfig apply_config = 3;
     ServiceControl service_control = 4;
     ValidateConfig validate_config = 5;
+    ApplyEngineConfiguration apply_engine_configuration = 6;
   }
 }
 
@@ -136,6 +137,22 @@ message ApplyConfig {
 message ValidateConfig {
   string target = 1;
   // Lowercase hex SHA-256 of the bundle.
+  string digest = 2;
+  uint64 size = 3;
+}
+
+// Puts a structured configuration in force on the built-in engine of the
+// node (centreon-engine), without any file: the blob is the JSON document
+// of gorgone-rs/schemas/engine-configuration.v1.json compressed with zstd.
+// The engine checks it as it checks the Engine files, refuses it as a whole
+// when invalid (the configuration in force stays), keeps it to restart with
+// it, and sends the central broker only what changed. Reported with one
+// CommandResult (the check report) before the terminal event; the node then
+// reports the digest as applied to the target.
+message ApplyEngineConfiguration {
+  // Target the applied digest is reported under: "engine".
+  string target = 1;
+  // Lowercase hex SHA-256 of the blob.
   string digest = 2;
   uint64 size = 3;
 }

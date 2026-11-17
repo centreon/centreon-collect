@@ -67,7 +67,7 @@ jobs:
       - name: Run clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
-      - name: Run clippy with the built-in scheduler of the agent
+      - name: Run clippy with centreon-engine (agent feature scheduler, centreon-engine binary)
         run: cargo clippy -p gorgone-agent --all-targets --features scheduler --locked -- -D warnings
 
       - name: Check that the generated gRPC code is up to date
@@ -104,7 +104,7 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --locked
 
-      - name: Run the agent tests with the built-in scheduler
+      - name: Run the agent tests with centreon-engine (feature scheduler)
         run: cargo test -p gorgone-agent --features scheduler --locked
 
   test-mariadb:

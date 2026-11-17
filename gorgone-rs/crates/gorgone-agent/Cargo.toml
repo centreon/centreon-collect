@@ -10,17 +10,24 @@ description = "Poller-side executor of Gorgone: runs typed jobs received from go
 name = "gorgone-agent"
 path = "src/main.rs"
 
+# The whole poller: the agent with its built-in engine always on, in place of
+# centengine and cbd (crate `centreon-engine`).
+[[bin]]
+name = "centreon-engine"
+path = "src/bin/centreon-engine.rs"
+required-features = ["scheduler"]
+
 [features]
 # Trust the certificate authorities of the system when `tls.ca_file` is unset.
 native-roots = ["tonic/tls-native-roots"]
 # Built-in monitoring scheduler in place of Centreon Engine (`[scheduler]`).
-scheduler = ["dep:gorgone-scheduler"]
+scheduler = ["dep:centreon-engine"]
 
 [dependencies]
 anyhow = "1.0.104"
 gorgone-core = { version = "0.1.0", path = "../gorgone-core" }
 gorgone-proto = { version = "0.1.0", path = "../gorgone-proto" }
-gorgone-scheduler = { version = "0.1.0", path = "../gorgone-scheduler", optional = true }
+centreon-engine = { version = "0.1.0", path = "../centreon-engine", optional = true }
 nix = { version = "0.31.3", default-features = false, features = ["signal"] }
 prost = "0.14"
 serde = { version = "1.0.229", features = ["derive"] }

@@ -1,5 +1,6 @@
 //! Agent configuration: one TOML file, every key overridable by environment
-//! (`GORGONE_AGENT__SECTION__KEY`).
+//! (`GORGONE_AGENT__SECTION__KEY`; `centreon-engine` also reads
+//! `CENTREON_ENGINE__SECTION__KEY`, which wins).
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -16,6 +17,8 @@ use crate::http_post::HttpTarget;
 
 /// Prefix of the environment overrides; `__` separates nesting levels.
 pub const ENV_PREFIX: &str = "GORGONE_AGENT__";
+/// Prefix read by `centreon-engine` after [`ENV_PREFIX`], so that it wins.
+pub const ENGINE_ENV_PREFIX: &str = "CENTREON_ENGINE__";
 
 /// Configuration errors.
 #[derive(Debug, thiserror::Error)]
@@ -222,7 +225,7 @@ pub struct AgentConfig {
     pub scheduler: SchedulerConfig,
 }
 
-/// The built-in monitoring scheduler (`gorgone-scheduler`): when enabled,
+/// The built-in monitoring scheduler (crate `centreon-engine`): when enabled,
 /// the agent runs the checks of the poller itself and sends the results to
 /// the central broker, with no centengine nor cbd on the poller. Needs the
 /// cargo feature `scheduler`.
@@ -232,7 +235,12 @@ pub struct SchedulerConfig {
     /// Runs the scheduler.
     #[serde(default)]
     pub enabled: bool,
-    /// Target whose local path holds the Engine configuration.
+    /// Where the configuration comes from: the Engine files of `target`, or
+    /// the structured document of `apply_engine_configuration` jobs.
+    #[serde(default)]
+    pub input: SchedulerInput,
+    /// Target whose local path holds the Engine configuration (`files`), or
+    /// under which the applied document is reported (`structured`).
     #[serde(
         default = "default_scheduler_target",
         deserialize_with = "lenient::string"
@@ -265,6 +273,7 @@ impl Default for SchedulerConfig {
     fn default() -> Self {
         Self {
             enabled: false,
+            input: SchedulerInput::default(),
             target: default_scheduler_target(),
             main_file: default_scheduler_main_file(),
             broker_config: None,
@@ -273,6 +282,18 @@ impl Default for SchedulerConfig {
             max_pending_events: default_max_pending_events(),
         }
     }
+}
+
+/// Source of the configuration of the built-in scheduler.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SchedulerInput {
+    /// The `.cfg` files pushed to `scheduler.target`.
+    #[default]
+    Files,
+    /// The JSON document of the `apply_engine_configuration` jobs, kept in
+    /// `state_dir`: no file is read from a target.
+    Structured,
 }
 
 /// TLS settings.
@@ -889,10 +910,37 @@ impl AgentConfig {
         Self::load_with(file, vars)
     }
 
-    fn load_with(
+    /// Configuration of the `centreon-engine` program: same file format, the
+    /// scheduler always enabled, a structured input unless the file says
+    /// otherwise, and `CENTREON_ENGINE__` variables over `GORGONE_AGENT__`.
+    pub fn load_engine(file: Option<&Path>) -> Result<Self, ConfigError> {
+        let vars: Vec<(String, String)> = std::env::vars_os()
+            .filter_map(|(name, value)| Some((name.into_string().ok()?, value.into_string().ok()?)))
+            .collect();
+        Self::load_engine_with(file, vars)
+    }
+
+    fn load_engine_with(
         file: Option<&Path>,
-        vars: impl IntoIterator<Item = (String, String)>,
+        vars: Vec<(String, String)>,
     ) -> Result<Self, ConfigError> {
+        let mut table = Self::read_table(file)?;
+        overlay_env(&mut table, ENV_PREFIX, vars.iter().cloned())?;
+        overlay_env(&mut table, ENGINE_ENV_PREFIX, vars)?;
+        let scheduler = table
+            .entry("scheduler")
+            .or_insert_with(|| Value::Table(Table::new()));
+        let Value::Table(scheduler) = scheduler else {
+            return Err(ConfigError::Invalid("scheduler: not a table".to_owned()));
+        };
+        scheduler.insert("enabled".to_owned(), Value::Boolean(true));
+        scheduler
+            .entry("input")
+            .or_insert_with(|| Value::String("structured".to_owned()));
+        Self::finish(table)
+    }
+
+    fn read_table(file: Option<&Path>) -> Result<Table, ConfigError> {
         let mut table = Table::new();
         if let Some(path) = file {
             match std::fs::read_to_string(path) {
@@ -906,6 +954,14 @@ impl AgentConfig {
                 }
             }
         }
+        Ok(table)
+    }
+
+    fn load_with(
+        file: Option<&Path>,
+        vars: impl IntoIterator<Item = (String, String)>,
+    ) -> Result<Self, ConfigError> {
+        let mut table = Self::read_table(file)?;
         overlay_env(&mut table, ENV_PREFIX, vars)?;
         Self::finish(table)
     }
@@ -1068,7 +1124,18 @@ impl AgentConfig {
                     .to_owned(),
             );
         }
-        if self.scheduler_main_file().is_none() {
+        if scheduler.input == SchedulerInput::Structured {
+            if self.state_dir.is_none() {
+                return invalid(
+                    "scheduler.input = \"structured\" requires state_dir, where the applied \
+                     configuration is kept"
+                        .to_owned(),
+                );
+            }
+            if scheduler.target.is_empty() || scheduler.target.len() > 191 {
+                return invalid("scheduler.target must be 1 to 191 bytes".to_owned());
+            }
+        } else if self.scheduler_main_file().is_none() {
             return invalid(format!(
                 "scheduler.target: no target {:?} with a local path",
                 scheduler.target
@@ -1100,6 +1167,16 @@ impl AgentConfig {
             ));
         }
         Ok(())
+    }
+
+    /// Directory where the built-in scheduler keeps the structured
+    /// configuration in force, when its input is structured.
+    #[must_use]
+    pub fn scheduler_snapshot_dir(&self) -> Option<PathBuf> {
+        if self.scheduler.input != SchedulerInput::Structured {
+            return None;
+        }
+        Some(self.state_dir.as_ref()?.join("engine-configuration"))
     }
 
     /// Main Engine file of the built-in scheduler, when its target has a
@@ -1756,6 +1833,56 @@ mod tests {
         [scheduler]\nenabled = true\nbroker_address = \"broker:5669\"\n\
         [targets.engine]\npath = \"/etc/centreon-engine\"\nengine_main_file = \"centengine.cfg\"\n\
         [services.engine]\nreload = \"scheduler:reload\"\nrestart = \"scheduler:reload\"\n";
+
+    #[test]
+    fn centreon_engine_configuration() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("centreon-engine.toml");
+        std::fs::write(
+            &file,
+            "server_url = \"http://gorgone:5556\"\ntoken = \"t\"\nstate_dir = \"/var/lib/e\"\n\
+             [scheduler]\nenabled = false\n",
+        )
+        .unwrap();
+        let env = |pairs: &[(&str, &str)]| {
+            pairs
+                .iter()
+                .map(|(name, value)| ((*name).to_owned(), (*value).to_owned()))
+                .collect::<Vec<_>>()
+        };
+        let load = |vars| AgentConfig::load_engine_with(Some(&file), vars);
+        if !cfg!(feature = "scheduler") {
+            let error = load(env(&[("GORGONE_AGENT__NODE_ID", "4")])).unwrap_err();
+            assert!(
+                error.to_string().contains("cargo feature `scheduler`"),
+                "{error}"
+            );
+            return;
+        }
+        // GORGONE_AGENT__ still works; CENTREON_ENGINE__ wins over it.
+        let config = load(env(&[("GORGONE_AGENT__NODE_ID", "4")])).unwrap();
+        assert_eq!(config.node_id, "4");
+        assert!(config.scheduler.enabled, "always on");
+        assert_eq!(config.scheduler.input, SchedulerInput::Structured);
+        assert_eq!(
+            config.scheduler_snapshot_dir(),
+            Some(PathBuf::from("/var/lib/e/engine-configuration"))
+        );
+        let config = load(env(&[
+            ("GORGONE_AGENT__NODE_ID", "4"),
+            ("CENTREON_ENGINE__NODE_ID", "5"),
+        ]))
+        .unwrap();
+        assert_eq!(config.node_id, "5");
+        // A structured input needs a state directory.
+        std::fs::write(
+            &file,
+            "server_url = \"http://gorgone:5556\"\ntoken = \"t\"\n",
+        )
+        .unwrap();
+        let error = load(env(&[("CENTREON_ENGINE__NODE_ID", "5")])).unwrap_err();
+        assert!(error.to_string().contains("requires state_dir"), "{error}");
+    }
 
     #[test]
     fn scheduler_section() {

@@ -143,6 +143,19 @@ fn kind_name(action: &Action) -> Result<&'static str, Error> {
             }
             Ok(kind::VALIDATE_CONFIG)
         }
+        Some(Kind::ApplyEngineConfiguration(apply)) => {
+            if apply.target.is_empty() || apply.digest.is_empty() {
+                return Err(Error::Invalid(
+                    "apply_engine_configuration needs target and digest".into(),
+                ));
+            }
+            if apply.target.len() > 191 {
+                return Err(Error::Invalid(
+                    "apply_engine_configuration target is too long".into(),
+                ));
+            }
+            Ok(kind::APPLY_ENGINE_CONFIGURATION)
+        }
         Some(Kind::ServiceControl(control)) => {
             if control.service.is_empty() || control.operation == 0 {
                 return Err(Error::Invalid(
@@ -243,6 +256,11 @@ impl Dispatcher {
             Some(Kind::ApplyConfig(apply)) => {
                 (Some(apply.digest.as_str()), Some(apply.target.as_str()))
             }
+            // A push of the target, as a bundle: `requires_latest_config`
+            // waits for it the same way.
+            Some(Kind::ApplyEngineConfiguration(apply)) => {
+                (Some(apply.digest.as_str()), Some(apply.target.as_str()))
+            }
             // Needs the blob, but is not a push: the latest push of the
             // target stays what it was.
             Some(Kind::ValidateConfig(validate)) => (Some(validate.digest.as_str()), None),
@@ -302,6 +320,8 @@ impl Dispatcher {
         let (target, copied) = match &action.kind {
             Some(Kind::ApplyConfig(apply)) => (apply.target.as_str(), true),
             Some(Kind::ValidateConfig(validate)) => (validate.target.as_str(), false),
+            // One engine takes it: the first component declaring the target.
+            Some(Kind::ApplyEngineConfiguration(apply)) => (apply.target.as_str(), false),
             Some(Kind::ServiceControl(control)) if control.service != engine => {
                 let components = self.store.components(node_id).await?;
                 if components.iter().any(|c| c.component == control.service) {

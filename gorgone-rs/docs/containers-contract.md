@@ -27,15 +27,23 @@ database, VictoriaMetrics), never one shared with another container.
   The agent receives the broker configuration and the encryption key, and
   reloads or stops `cbd` with a signal.
 
-- A rust-poller container runs `gorgone-agent` alone, built with its
-  monitoring scheduler (`docs/scheduler-design.md`): no `centengine`, no
-  `cbd`, no broker module. It receives the `engine`, `broker` and
-  `engine_context` targets like an engine container, checks the engine
-  configuration with the scheduler's parser, reloads in process
-  (`scheduler:reload`) and sends the results to the central broker input
-  (TCP 5669) named by the broker module file of its poller. Its plugins are
-  in the image (Debian `monitoring-plugins-basic`, reachable as
-  `/usr/lib64/nagios/plugins`, the `$USER1$` centreon-web gives new pollers).
+- A centreon-engine container runs the `centreon-engine` program alone
+  (`docs/scheduler-design.md`): no `gorgone-agent`, no `centengine`, no
+  `cbd`, no broker module, no `.cfg` file. Configuration
+  `/etc/centreon-engine/centreon-engine.toml` (format of the agent; the
+  `GORGONE_AGENT__` variables and, over them, `CENTREON_ENGINE__` ones),
+  state in `/var/lib/centreon-engine` (job journal, and the configuration in
+  force under `engine-configuration/`, loaded again at start: the container
+  filesystem, or a volume, must survive a restart for the poller to resume
+  without a new push). centreon-web marks its poller with
+  `nagios_server.engine_name = centreon-engine` and, with the feature flag
+  `engine_structured_configuration`, sends it the structured configuration
+  (`ApplyEngineConfiguration`) instead of the `engine`, `broker`, `vmware`
+  and `engine_context` pushes. The engine checks and applies it in process
+  and sends the results to the central broker input (TCP 5669) the
+  document names. Its plugins are in the image (Debian
+  `monitoring-plugins-basic`, reachable as `/usr/lib64/nagios/plugins`, the
+  `$USER1$` centreon-web gives new pollers).
 
 ## Broker container image
 

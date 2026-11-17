@@ -2,6 +2,8 @@
 //! directory the administrator mapped to the target, once the engine has
 //! accepted it when the target holds an engine configuration.
 //! `ValidateConfig`: the same check alone, the live files are not touched.
+//! `ApplyEngineConfiguration`: fetches a structured configuration and hands
+//! it to the built-in engine, which checks, keeps and applies it: no file.
 
 use std::collections::BTreeMap;
 use std::future::Future;
@@ -12,12 +14,15 @@ use std::time::{Duration, Instant};
 use gorgone_core::bundle::{self, ApplyOptions, ApplyReport};
 use gorgone_proto::agent::job_event::Body;
 use gorgone_proto::agent::job_finished::Outcome;
-use gorgone_proto::agent::{ApplyConfig, CommandResult, JobFinished, ValidateConfig};
+use gorgone_proto::agent::{
+    ApplyConfig, ApplyEngineConfiguration, CommandResult, JobFinished, ValidateConfig,
+};
 
 use super::verify::{self, ConfigChecker};
 use super::{Executor, JobContext, command_result, finished};
 use crate::config::{FileMode, Secret, TargetConfig};
 use crate::http_post::{self, HttpTarget, PostError, Request};
+use crate::monitoring::Monitoring;
 use crate::node_state::{NodeState, marker_name};
 
 /// Paths outside the target named in a result message, at most.
@@ -57,6 +62,8 @@ pub(crate) struct ApplyConfigExecutor<F> {
     pub http_timeout: Duration,
     /// Sent with every `PUT` to a remote destination.
     pub bearer: Option<Secret>,
+    /// The built-in engine, which takes the structured configurations.
+    pub monitoring: Option<Monitoring>,
 }
 
 /// A bundle the engine accepted, with the sentence saying so.
@@ -232,6 +239,99 @@ impl<F: BlobFetcher> ApplyConfigExecutor<F> {
             Ok(Verified { blob, message })
         } else {
             Err(finished(outcome, message))
+        }
+    }
+
+    /// Runs an `ApplyEngineConfiguration` action: downloads the blob,
+    /// unpacks the document and has the engine apply it. The engine report
+    /// is the `CommandResult`; a refused document fails the job and leaves
+    /// the configuration in force.
+    pub(crate) async fn apply_engine_configuration(
+        &self,
+        action: ApplyEngineConfiguration,
+        ctx: &JobContext<'_>,
+    ) -> JobFinished {
+        let Some((target, applied)) = self.monitoring.as_ref().and_then(Monitoring::applied) else {
+            return finished(
+                Outcome::Rejected,
+                "this agent runs no engine taking structured configurations \
+                 (scheduler.input = \"structured\")",
+            );
+        };
+        if action.target != target {
+            return finished(
+                Outcome::Rejected,
+                format!(
+                    "the engine configuration of this agent is target {target:?}, not {:?}",
+                    action.target
+                ),
+            );
+        }
+        if !is_sha256_hex(&action.digest) {
+            return finished(Outcome::Failed, "digest is not a SHA-256 in hexadecimal");
+        }
+        let digest = action.digest.to_ascii_lowercase();
+        if applied.as_deref() == Some(digest.as_str()) {
+            self.state.set_applied(&target, Some(digest));
+            return finished(Outcome::Ok, format!("{target}: configuration unchanged"));
+        }
+        let blob = match self.download(&digest, action.size, ctx).await {
+            Ok(blob) => blob,
+            Err(done) => return done,
+        };
+        let max_unpacked = self.max_unpacked_bytes;
+        let expected = digest.clone();
+        let unpacked = tokio::task::spawn_blocking(move || {
+            let actual = bundle::digest(&blob);
+            if actual != expected {
+                return Err(format!(
+                    "digest mismatch: expected {expected}, got {actual}"
+                ));
+            }
+            gorgone_core::document::unpack(&blob, max_unpacked)
+                .map_err(|error| format!("invalid configuration blob: {error}"))
+        })
+        .await
+        .unwrap_or_else(|error| Err(format!("unpacking task failed: {error}")));
+        let document = match unpacked {
+            Ok(document) => document,
+            Err(error) => return finished(Outcome::Failed, format!("{target}: {error}")),
+        };
+        let Some(monitoring) = &self.monitoring else {
+            return finished(Outcome::Rejected, "no engine");
+        };
+        let command = format!("apply {target} configuration");
+        let applied = monitoring.apply(document, digest.clone()).await;
+        let (exit_code, report) = match &applied {
+            Ok(report) | Err(report) => (i32::from(applied.is_err()), report.clone()),
+        };
+        let mut stdout = report.clone();
+        if stdout.len() > self.max_output {
+            let mut end = self.max_output;
+            while !stdout.is_char_boundary(end) {
+                end -= 1;
+            }
+            stdout.truncate(end);
+        }
+        ctx.sink.emit(Body::CommandResult(CommandResult {
+            command,
+            exit_code,
+            stdout,
+            ..CommandResult::default()
+        }));
+        match applied {
+            Ok(report) => {
+                self.state.set_applied(&target, Some(digest));
+                let first = report.lines().next().unwrap_or_default();
+                finished(Outcome::Ok, format!("{target}: {first}"))
+            }
+            Err(report) => {
+                let message = match verify::total_errors(&report) {
+                    Some(errors) => format!("{target}: configuration rejected, {errors} error(s)"),
+                    None => format!("{target}: configuration rejected: {}", report.trim()),
+                };
+                finished(Outcome::Failed, message)
+            }
         }
     }
 
@@ -634,6 +734,7 @@ mod tests {
             max_output: 4096,
             http_timeout: Duration::from_secs(5),
             bearer: None,
+            monitoring: None,
         }
     }
 
@@ -1397,5 +1498,96 @@ echo "Total Errors:   $errors"
             "; 7 path(s) outside /etc/centreon-engine checked as deployed on this node: \
              /opt/0.cfg, /opt/1.cfg, /opt/2.cfg, /opt/3.cfg, /opt/4.cfg, ..."
         );
+    }
+
+    /// `apply_engine_configuration`: fetched, checked and applied by the
+    /// built-in engine, reported applied; an invalid one is refused.
+    #[cfg(feature = "scheduler")]
+    #[tokio::test]
+    async fn structured_engine_configuration() {
+        use gorgone_proto::agent::ApplyEngineConfiguration;
+
+        let dir = tempfile::tempdir().unwrap();
+        let toml = format!(
+            "node_id = \"3\"\nserver_url = \"http://central:5556\"\ntoken = \"t\"\n\
+             state_dir = \"{}\"\n[scheduler]\nenabled = true\ninput = \"structured\"\n",
+            dir.path().display()
+        );
+        let config = crate::AgentConfig::from_toml(&toml).unwrap();
+        let monitoring = Monitoring::start(&config).unwrap();
+        let document = |command: &str| {
+            format!(
+                r#"{{"version": 1, "poller": {{"id": 3, "name": "p"}},
+                    "broker": {{"address": "127.0.0.1:1"}},
+                    "commands": [{{"command_name": "ok", "command_line": "/bin/true"}}],
+                    "hosts": [{{"host_name": "h", "host_id": 1}}],
+                    "services": [{{"host_name": "h", "service_description": "s",
+                                   "check_command": "{command}", "service_id": 1}}]}}"#
+            )
+        };
+        let blob_of = |text: String| {
+            let blob = gorgone_core::document::pack(text.as_bytes()).unwrap();
+            (bundle::digest(&blob), blob)
+        };
+        let valid = blob_of(document("ok"));
+        let invalid = blob_of(document("nope"));
+        let fetcher = MemoryFetcher::holding(&[&valid, &invalid]);
+        let mut exec = executor_for(&fetcher, TargetConfig::local(dir.path()), None);
+        exec.monitoring = Some(monitoring.clone());
+        let action = |(digest, blob): &(String, Vec<u8>), target: &str| ApplyEngineConfiguration {
+            target: target.to_owned(),
+            digest: digest.clone(),
+            size: blob.len() as u64,
+        };
+        let apply = |action| {
+            let exec = &exec;
+            async move {
+                let sink = MemorySink::default();
+                let cancel = CancellationToken::new();
+                let ctx = JobContext {
+                    sink: &sink,
+                    cancel: &cancel,
+                };
+                let done = exec.apply_engine_configuration(action, &ctx).await;
+                (done, sink)
+            }
+        };
+
+        let (done, sink) = apply(action(&valid, "engine")).await;
+        assert_eq!(done.outcome(), Outcome::Ok, "{}", done.message);
+        assert!(done.message.contains("1 services"), "{}", done.message);
+        assert!(
+            sink.command_results()[0]
+                .stdout
+                .contains("Total Errors:   0")
+        );
+        let applied = |exec: &ApplyConfigExecutor<&MemoryFetcher>| {
+            exec.state
+                .applied()
+                .into_iter()
+                .find(|applied| applied.target == "engine")
+                .map(|applied| applied.digest)
+        };
+        assert_eq!(applied(&exec), Some(valid.0.clone()));
+        // The same digest again: nothing fetched.
+        let calls = fetcher.calls.load(Ordering::SeqCst);
+        let (done, _) = apply(action(&valid, "engine")).await;
+        assert!(done.message.contains("unchanged"), "{}", done.message);
+        assert_eq!(fetcher.calls.load(Ordering::SeqCst), calls);
+
+        let (done, sink) = apply(action(&invalid, "engine")).await;
+        assert_eq!(done.outcome(), Outcome::Failed);
+        assert!(
+            done.message.contains("rejected, 1 error(s)"),
+            "{}",
+            done.message
+        );
+        assert_eq!(sink.command_results()[0].exit_code, 1);
+        assert_eq!(applied(&exec), Some(valid.0.clone()));
+        assert_eq!(monitoring.applied().unwrap().1, Some(valid.0.clone()));
+
+        let (done, _) = apply(action(&valid, "other")).await;
+        assert_eq!(done.outcome(), Outcome::Rejected);
+        monitoring.shutdown().await;
     }
 }

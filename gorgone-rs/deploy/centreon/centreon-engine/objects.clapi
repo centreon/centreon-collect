@@ -1,7 +1,10 @@
-# Objects of the rust-poller, created through CLAPI by register.pl objects:
+# Objects of the centreon-engine poller, created through CLAPI by register.pl objects:
 # OBJECT;ACTION;values (CLAPI splits values on ';': none in a value).
 # @POLLER@ is the poller name. An object that already exists is kept (the
 # container may start again).
+# The poller runs centreon-engine: centreon-web sends it a structured
+# configuration (feature flag engine_structured_configuration).
+INSTANCE;SETPARAM;@POLLER@;engine_name;centreon-engine
 CMD;ADD;rust-check-dummy;check;$USER1$/check_dummy $ARG1$ "$ARG2$|value=$ARG1$"
 HTPL;ADD;rust-host-tpl;Rust poller host;;;;
 HTPL;SETPARAM;rust-host-tpl;check_command;rust-check-dummy

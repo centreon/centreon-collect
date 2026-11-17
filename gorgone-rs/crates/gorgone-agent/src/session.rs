@@ -83,6 +83,9 @@ pub(crate) struct Session {
     pub component: String,
     /// Configured target names, announced in `Hello`.
     pub targets: Vec<String>,
+    /// Takes `apply_engine_configuration` jobs (built-in engine with a
+    /// structured input).
+    pub engine_configuration: bool,
     pub journal: Arc<Journal>,
     pub scheduler: Arc<Scheduler>,
     pub state: Arc<NodeState>,
@@ -134,7 +137,12 @@ impl Session {
                 kind::SERVICE_CONTROL,
             ]
             .map(str::to_owned)
-            .to_vec(),
+            .into_iter()
+            .chain(
+                self.engine_configuration
+                    .then(|| kind::APPLY_ENGINE_CONFIGURATION.to_owned()),
+            )
+            .collect(),
             component: self.component.clone(),
             targets: self.targets.clone(),
         };

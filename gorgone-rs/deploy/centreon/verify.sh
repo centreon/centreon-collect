@@ -508,19 +508,133 @@ failover_to_other_replica() {
   return "${result}"
 }
 
-# The rust-poller runs no centengine and no cbd: its gorgone-agent and the
-# built-in scheduler are the whole poller.
-rust_poller_has_no_engine_nor_broker() {
-  "${COMPOSE[@]}" exec -T rust-poller sh -c '
-    ! command -v centengine && ! command -v cbd \
+# The centreon-engine container runs the centreon-engine program, and no
+# gorgone-agent, centengine nor cbd: it is the whole poller.
+centreon_engine_is_the_whole_poller() {
+  "${COMPOSE[@]}" exec -T centreon-engine sh -c '
+    command -v centreon-engine \
+      && ! command -v gorgone-agent && ! command -v centengine && ! command -v cbd \
       && [ ! -e /usr/lib64/nagios/cbmod.so ] && [ ! -e /usr/share/centreon/lib/centreon-broker ] \
-      && ! ls /proc/*/exe -l 2>/dev/null | grep -qE "centengine|cbd"'
+      && ls -l /proc/*/exe 2>/dev/null | grep -q "/usr/bin/centreon-engine$" \
+      && ! ls -l /proc/*/exe 2>/dev/null | grep -qE "gorgone-agent|centengine|cbd"'
 }
 
-# rust_poller_status <host> <service> <state> <type>: the state the central
-# stored for that service of the rust-poller, in services and resources
+# Digest of the last structured configuration job of the centreon-engine
+# poller, and of what it applied.
+last_engine_configuration() {
+  sql "SELECT blob_digest FROM gorgone.jobs WHERE node_id = '$(node_of centreon-engine)'
+       AND kind = 'apply_engine_configuration' AND state = 'succeeded'
+       ORDER BY seq DESC LIMIT 1"
+}
+
+applied_engine_digest() {
+  gorgone_api GET "/v1/nodes/$(node_of centreon-engine)" \
+    | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["applied"].get("engine") or "")'
+}
+
+# No .cfg file in the configuration and state directories: the
+# configuration came as a structured document; the node reports the digest
+# of the last job, which is the one the engine keeps.
+centreon_engine_has_no_cfg_file() {
+  local last kept files
+  files=$("${COMPOSE[@]}" exec -T centreon-engine \
+    find /etc/centreon-engine /var/lib/centreon-engine -name '*.cfg') || return 1
+  [[ -z "${files}" ]] || return 1
+  last=$(last_engine_configuration) || return 1
+  [[ -n "${last}" && $(applied_engine_digest) == "${last}" ]] || return 1
+  kept=$("${COMPOSE[@]}" exec -T centreon-engine head -n 1 \
+    /var/lib/centreon-engine/engine-configuration/configuration) || return 1
+  [[ "${kept}" == "${last}" ]]
+}
+
+# One service changed through CLAPI, generated, pushed and reloaded: the
+# engine reports one change only, the central stores it, and no object of
+# the poller is disabled meanwhile (Engine's reload, not the full resync of
+# an Engine restart, which disables every object then enables them again).
+centreon_engine_incremental_reload() {
+  local before job report result=1
+  before=$(last_engine_configuration) || return 1
+  sql "CREATE TABLE IF NOT EXISTS centreon_storage.bench_disabled
+         (kind VARCHAR(16), id BIGINT, parent_id BIGINT, poller_id BIGINT);
+       DELETE FROM centreon_storage.bench_disabled;
+       DROP TRIGGER IF EXISTS centreon_storage.bench_resource_disabled;
+       CREATE TRIGGER centreon_storage.bench_resource_disabled AFTER UPDATE
+         ON centreon_storage.resources FOR EACH ROW
+         INSERT INTO centreon_storage.bench_disabled
+         SELECT 'resource', NEW.id, NEW.parent_id, NEW.poller_id FROM DUAL
+         WHERE OLD.enabled = 1 AND NEW.enabled = 0;
+       DROP TRIGGER IF EXISTS centreon_storage.bench_service_disabled;
+       CREATE TRIGGER centreon_storage.bench_service_disabled AFTER UPDATE
+         ON centreon_storage.services FOR EACH ROW
+         INSERT INTO centreon_storage.bench_disabled
+         SELECT 'service', NEW.service_id, NEW.host_id, 0 FROM DUAL
+         WHERE OLD.enabled = 1 AND NEW.enabled = 0" || return 1
+  if clapi SETPARAM 'rust-h2;rust-warn;normal_check_interval;2' SERVICE > /dev/null \
+    && clapi POLLERGENERATE centreon-engine > /dev/null \
+    && clapi CFGMOVE centreon-engine | grep -q 'centreon-engine: done' \
+    && clapi POLLERRELOAD centreon-engine > /dev/null; then
+    for _ in $(seq 1 30); do
+      job=$(sql "SELECT id FROM gorgone.jobs WHERE node_id = '$(node_of centreon-engine)'
+                 AND kind = 'apply_engine_configuration' AND state = 'succeeded'
+                 ORDER BY seq DESC LIMIT 1")
+      if [[ -n "${job}" && $(last_engine_configuration) != "${before}" \
+        && $(rust_id s.check_interval rust-h2 rust-warn) == 2 ]]; then
+        # The reload that followed the push changed nothing more.
+        sleep 5
+        report=$(gorgone_api GET "/v1/jobs/${job}")
+        if grep -q '0 added, 1 changed, 0 removed' <<< "${report}" \
+          && [[ $(sql "SELECT COUNT(*) FROM centreon_storage.bench_disabled d
+                  LEFT JOIN centreon_storage.hosts h ON h.host_id = d.parent_id
+                  LEFT JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
+                  WHERE i.name = 'centreon-engine'
+                     OR d.poller_id = $(node_of centreon-engine)") == 0 ]] \
+          && [[ $(applied_engine_digest) == $(last_engine_configuration) ]]; then
+          result=0
+        fi
+        break
+      fi
+      sleep 2
+    done
+  fi
+  sql "DROP TRIGGER IF EXISTS centreon_storage.bench_resource_disabled;
+       DROP TRIGGER IF EXISTS centreon_storage.bench_service_disabled;
+       DROP TABLE IF EXISTS centreon_storage.bench_disabled"
+  return "${result}"
+}
+
+# A restart of the container keeps the configuration: the engine loads the
+# document it kept, reports the same digest, and the central sees it running
+# with its services, without any new push.
+centreon_engine_survives_a_restart() {
+  local before jobs_before
+  before=$(applied_engine_digest)
+  [[ -n "${before}" ]] || return 1
+  jobs_before=$(sql "SELECT COUNT(*) FROM gorgone.jobs WHERE node_id = '$(node_of centreon-engine)'
+                     AND kind = 'apply_engine_configuration'")
+  "${COMPOSE[@]}" restart centreon-engine > /dev/null 2>&1 || return 1
+  for _ in $(seq 1 60); do
+    if gorgone_api GET "/v1/nodes/$(node_of centreon-engine)" | python3 -I -c '
+import json, sys
+node = json.load(sys.stdin)
+sys.exit(0 if node["connected"] and (node["engine"] or {}).get("reachable") else 1)'; then
+      break
+    fi
+    sleep 2
+  done
+  [[ $(applied_engine_digest) == "${before}" ]] || return 1
+  [[ $(sql "SELECT COUNT(*) FROM gorgone.jobs WHERE node_id = '$(node_of centreon-engine)'
+            AND kind = 'apply_engine_configuration'") == "${jobs_before}" ]] || return 1
+  instance_running centreon-engine || return 1
+  [[ $(sql "SELECT COUNT(*) FROM centreon_storage.services s
+            JOIN centreon_storage.hosts h ON h.host_id = s.host_id
+            JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
+            WHERE i.name = 'centreon-engine' AND s.enabled = 1 AND h.enabled = 1") == 3 ]]
+}
+
+# centreon_engine_status <host> <service> <state> <type>: the state the central
+# stored for that service of the centreon-engine, in services and resources
 # (type 1 = HARD). Waits for it: SOFT then HARD takes about two minutes.
-rust_poller_status() {
+centreon_engine_status() {
   local host=$1 service=$2 state=$3 type=$4
   for _ in $(seq 1 48); do
     if [[ $(sql "SELECT CONCAT(s.state, ' ', s.state_type, ' ', r.status, ' ', r.status_confirmed)
@@ -529,7 +643,7 @@ rust_poller_status() {
           JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
           JOIN centreon_storage.resources r ON r.id = s.service_id AND r.parent_id = s.host_id
             AND r.type = 0
-          WHERE i.name = 'rust-poller' AND h.name = '${host}' AND s.description = '${service}'
+          WHERE i.name = 'centreon-engine' AND h.name = '${host}' AND s.description = '${service}'
             AND s.enabled = 1 AND h.enabled = 1 AND r.enabled = 1 AND s.checked = 1") \
         == "${state} ${type} ${state} ${type}" ]]; then
       return 0
@@ -539,12 +653,12 @@ rust_poller_status() {
   return 1
 }
 
-# Both hosts of the rust-poller are UP and HARD, and are resources.
-rust_poller_hosts_up() {
+# Both hosts of the centreon-engine are UP and HARD, and are resources.
+centreon_engine_hosts_up() {
   [[ $(sql "SELECT COUNT(*) FROM centreon_storage.hosts h
         JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
         JOIN centreon_storage.resources r ON r.id = h.host_id AND r.type = 1 AND r.enabled = 1
-        WHERE i.name = 'rust-poller' AND h.enabled = 1 AND h.checked = 1
+        WHERE i.name = 'centreon-engine' AND h.enabled = 1 AND h.checked = 1
           AND h.state = 0 AND h.state_type = 1 AND h.name LIKE 'rust-h%'") == 2 ]]
 }
 
@@ -553,9 +667,9 @@ rust_id() {
        ON h.host_id = s.host_id WHERE h.name = '$2' AND s.description = '$3' AND s.enabled = 1"
 }
 
-# The perfdata of a rust-poller service reach VictoriaMetrics through the
+# The perfdata of a centreon-engine service reach VictoriaMetrics through the
 # central broker, labelled with its ids.
-rust_poller_metric_in_victoria() {
+centreon_engine_metric_in_victoria() {
   local host_id
   host_id=$(rust_id s.host_id rust-h1 rust-crit) || return 1
   [[ -n "${host_id}" ]] || return 1
@@ -570,13 +684,13 @@ rust_poller_metric_in_victoria() {
   return 1
 }
 
-# A forced check asked through the centreon-web API on a rust-poller service:
+# A forced check asked through the centreon-web API on a centreon-engine service:
 # web -> Gorgone REST API -> agent -> built-in scheduler, which runs it now.
-rust_poller_forced_check() {
+centreon_engine_forced_check() {
   local host_id service_id node before after since handled
   host_id=$(rust_id s.host_id rust-h1 rust-ok) || return 1
   service_id=$(rust_id s.service_id rust-h1 rust-ok) || return 1
-  node=$(node_of rust-poller) || return 1
+  node=$(node_of centreon-engine) || return 1
   before=$(rust_id s.last_check rust-h1 rust-ok) || return 1
   # last_check has a one-second resolution.
   sleep 2
@@ -599,13 +713,13 @@ rust_poller_forced_check() {
   return 1
 }
 
-# gorgone-server sees the scheduler as the engine of the rust-poller.
-rust_poller_state_is_reported() {
-  gorgone_api GET "/v1/nodes/$(node_of rust-poller)" | python3 -I -c '
+# gorgone-server sees the scheduler as the engine of the centreon-engine.
+centreon_engine_state_is_reported() {
+  gorgone_api GET "/v1/nodes/$(node_of centreon-engine)" | python3 -I -c '
 import json, sys
 node = json.load(sys.stdin)
 ok = (node["connected"] and node["applied"].get("engine") and node["engine"]["reachable"]
-      and node["engine"]["version"].startswith("gorgone-scheduler"))
+      and node["engine"]["version"].startswith("centreon-engine "))
 sys.exit(0 if ok else 1)'
 }
 
@@ -640,18 +754,25 @@ check "a session opened on one web replica is valid on the other" session_shared
 check "both web replicas push the same encryption key" key_shared_by_replicas
 check "the encryption key is in no log of the web containers" key_not_logged
 check "two web cron replicas run each job once per minute" web_cron_runs_each_job_once
-check "the rust-poller container runs no centengine and no cbd" rust_poller_has_no_engine_nor_broker
-check "the central broker sees the rust-poller running" instance_running rust-poller
-check "gorgone-server sees the built-in scheduler as the rust-poller engine" \
-  rust_poller_state_is_reported
-check "rust-poller: a CRITICAL service goes HARD after its attempts" \
-  rust_poller_status rust-h1 rust-crit 2 1
-check "rust-poller: a WARNING service goes HARD after its attempts" \
-  rust_poller_status rust-h2 rust-warn 1 1
-check "rust-poller: an OK service is stored OK and HARD" rust_poller_status rust-h1 rust-ok 0 1
-check "rust-poller: both hosts are UP, HARD and resources" rust_poller_hosts_up
-check "rust-poller: a metric reaches VictoriaMetrics" rust_poller_metric_in_victoria
-check "rust-poller: a forced check from the centreon-web API is run" rust_poller_forced_check
+check "the centreon-engine container runs centreon-engine, no gorgone-agent, centengine nor cbd" \
+  centreon_engine_is_the_whole_poller
+check "the central broker sees the centreon-engine running" instance_running centreon-engine
+check "gorgone-server sees centreon-engine as the engine of its poller" \
+  centreon_engine_state_is_reported
+check "centreon-engine: a CRITICAL service goes HARD after its attempts" \
+  centreon_engine_status rust-h1 rust-crit 2 1
+check "centreon-engine: a WARNING service goes HARD after its attempts" \
+  centreon_engine_status rust-h2 rust-warn 1 1
+check "centreon-engine: an OK service is stored OK and HARD" centreon_engine_status rust-h1 rust-ok 0 1
+check "centreon-engine: both hosts are UP, HARD and resources" centreon_engine_hosts_up
+check "centreon-engine: a metric reaches VictoriaMetrics" centreon_engine_metric_in_victoria
+check "centreon-engine: a forced check from the centreon-web API is run" centreon_engine_forced_check
+check "centreon-engine: no .cfg file, the applied digest is the last configuration job's" \
+  centreon_engine_has_no_cfg_file
+check "centreon-engine: a changed service is reloaded alone, nothing is disabled meanwhile" \
+  centreon_engine_incremental_reload
+check "centreon-engine: the configuration survives a container restart" \
+  centreon_engine_survives_a_restart
 check "a job submitted to either gorgone-server replica reaches every node" jobs_cross_replicas
 # Last: the agents move between the gorgone-server replicas.
 check "an agent fails over to the other gorgone-server replica" failover_to_other_replica

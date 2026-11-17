@@ -5,7 +5,7 @@
 //! of the scheduler thread (plugins and fake broker excluded).
 //!
 //! ```bash
-//! cargo run --release -p gorgone-scheduler --example load -- 10000 300 330
+//! cargo run --release -p centreon-engine --example load -- 10000 300 330
 //! ```
 //! Arguments: services (10000), interval in seconds (300), duration in
 //! seconds (330).
@@ -14,9 +14,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
+use centreon_engine::wire::{Decoder, event, frame};
+use centreon_engine::{Options, Scheduler};
 use gorgone_proto::bbdo::{Ack, Bbdo, Welcome};
-use gorgone_scheduler::wire::{Decoder, event, frame};
-use gorgone_scheduler::{Options, Scheduler};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 /// Statuses received by the fake broker.

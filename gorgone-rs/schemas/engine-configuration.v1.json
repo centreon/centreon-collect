@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/centreon/centreon-collect/gorgone-rs/schemas/engine-configuration.v1.json",
+  "title": "centreon-engine configuration, version 1",
+  "description": "Configuration of one poller run by centreon-engine (gorgone-rs/crates/centreon-engine), sent by centreon-web through gorgone-server instead of the Engine .cfg files. Field names are the Engine .cfg keys after their aliases are resolved (common/engine_conf/*_helper.cc). Templates are sent unresolved, with their `use` lists: centreon-engine merges them with Engine's rules. Every object accepts only the fields listed here: an unknown field makes the whole document refused, and the configuration in force stays. Design: gorgone-rs/docs/scheduler-design.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "poller", "broker"],
+  "properties": {
+    "version": {
+      "description": "Version of this document format. centreon-engine refuses a version it does not know.",
+      "const": 1
+    },
+    "poller": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "description": "nagios_server.id: the BBDO instance_id of the poller.",
+          "$ref": "#/$defs/id"
+        },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "broker": {
+      "description": "Where the poller sends its events: what the cbmod file gives Engine.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["address"],
+      "properties": {
+        "address": {
+          "description": "host:port of the TCP (BBDO) input of the central broker; [v6]:port for an IPv6 address.",
+          "type": "string",
+          "pattern": "^.+:[0-9]{1,5}$"
+        },
+        "name": {
+          "description": "Name of the broker module of the poller (broker_name of the cbmod file).",
+          "type": "string"
+        }
+      }
+    },
+    "settings": {
+      "description": "Global settings of centengine.cfg the engine uses; Engine's default when absent.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "interval_length": { "$ref": "#/$defs/positive", "default": 60 },
+        "service_check_timeout": { "$ref": "#/$defs/count", "default": 60 },
+        "host_check_timeout": { "$ref": "#/$defs/count", "default": 30 },
+        "max_service_check_spread": { "$ref": "#/$defs/count", "default": 5 },
+        "max_host_check_spread": { "$ref": "#/$defs/count", "default": 5 },
+        "status_update_interval": { "$ref": "#/$defs/count", "default": 60 }
+      }
+    },
+    "resource_macros": {
+      "description": "Resource macros by name without the dollars, e.g. {\"USER1\": \"/usr/lib64/nagios/plugins\"} (resource.cfg).",
+      "type": "object",
+      "propertyNames": { "minLength": 1, "pattern": "^[^$]+$" },
+      "additionalProperties": { "type": "string" }
+    },
+    "commands": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "host_templates": {
+      "description": "Host templates (register 0): `name` is required.",
+      "type": "array",
+      "items": {
+        "allOf": [{ "$ref": "#/$defs/host" }],
+        "required": ["name"]
+      }
+    },
+    "hosts": {
+      "description": "Monitored hosts (register 1).",
+      "type": "array",
+      "items": {
+        "allOf": [{ "$ref": "#/$defs/host" }],
+        "not": { "required": ["name"] }
+      }
+    },
+    "service_templates": {
+      "description": "Service templates (register 0): `name` is required.",
+      "type": "array",
+      "items": {
+        "allOf": [{ "$ref": "#/$defs/service" }],
+        "required": ["name"]
+      }
+    },
+    "services": {
+      "description": "Monitored services (register 1).",
+      "type": "array",
+      "items": {
+        "allOf": [{ "$ref": "#/$defs/service" }],
+        "not": { "required": ["name"] }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "integer", "minimum": 1 },
+    "count": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+    "positive": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+    "uses": {
+      "description": "Templates, in order: the first one that sets a field wins; custom macros are merged by name.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "macros": {
+      "description": "Custom macros by name without the leading underscore, e.g. {\"SNMPCOMMUNITY\": \"public\"} for _SNMPCOMMUNITY. Names are upper-cased by the engine.",
+      "type": "object",
+      "propertyNames": { "minLength": 1 },
+      "additionalProperties": { "type": "string" }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command_name", "command_line"],
+      "properties": {
+        "command_name": { "type": "string", "minLength": 1 },
+        "command_line": { "type": "string", "minLength": 1 },
+        "connector": {
+          "description": "Accepted for compatibility: the command runs as a plain process.",
+          "type": "string"
+        }
+      }
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "description": "Template name.", "type": "string", "minLength": 1 },
+        "use": { "$ref": "#/$defs/uses" },
+        "host_name": { "type": "string" },
+        "host_id": { "description": "_HOST_ID", "$ref": "#/$defs/id" },
+        "alias": { "type": "string" },
+        "address": { "type": "string" },
+        "check_command": { "description": "command_name!arg1!arg2", "type": "string" },
+        "check_interval": { "$ref": "#/$defs/count" },
+        "retry_interval": { "$ref": "#/$defs/count" },
+        "max_check_attempts": { "$ref": "#/$defs/count" },
+        "active_checks_enabled": { "type": "boolean" },
+        "passive_checks_enabled": { "type": "boolean" },
+        "macros": { "$ref": "#/$defs/macros" }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "description": "Template name.", "type": "string", "minLength": 1 },
+        "use": { "$ref": "#/$defs/uses" },
+        "host_name": { "type": "string" },
+        "service_description": { "type": "string" },
+        "service_id": { "description": "_SERVICE_ID", "$ref": "#/$defs/id" },
+        "check_command": { "description": "command_name!arg1!arg2", "type": "string" },
+        "check_interval": { "$ref": "#/$defs/count" },
+        "retry_interval": { "$ref": "#/$defs/count" },
+        "max_check_attempts": { "$ref": "#/$defs/count" },
+        "active_checks_enabled": { "type": "boolean" },
+        "passive_checks_enabled": { "type": "boolean" },
+        "macros": { "$ref": "#/$defs/macros" }
+      }
+    }
+  }
+}

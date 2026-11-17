@@ -19,8 +19,9 @@
 #                    Central poller, which receives its configuration and key
 #   central-engine   the engine of the "Central" poller with its gorgone-agent
 #   engine           a second container-only poller, same image
-#   rust-poller      a poller without centengine nor cbd: gorgone-agent and its
-#                    built-in scheduler send the results to the central broker
+#   centreon-engine  a poller without centengine nor cbd: the centreon-engine
+#                    program takes a structured configuration (no .cfg) and
+#                    sends the results to the central broker
 #   poller           the Centreon poller test image, driven by gorgone-agent
 #
 # The database and VictoriaMetrics keep their data in their own volume. Local
@@ -85,7 +86,9 @@ x-web: &web
     GORGONE_API_ADDRESS: gorgone
     VICTORIA_METRICS_URL: http://victoria-metrics:8428
     # The engines schedule recurring downtimes; the web cron no longer does.
-    CENTREON_FEATURE_FLAGS: engine_recurring_downtimes
+    # Pollers marked as run by centreon-engine get a structured
+    # configuration instead of .cfg files.
+    CENTREON_FEATURE_FLAGS: engine_recurring_downtimes,engine_structured_configuration
     # Sessions opened on one replica are valid on the other.
     SESSION_REDIS_URL: tcp://valkey:6379
     # Credentials encryption key, the same in every replica and pushed to the
@@ -284,16 +287,17 @@ services:
       <<: *engine-env
       POLLER_NAME: engine
 
-  # A poller with no centengine and no cbd: gorgone-agent and its built-in
-  # scheduler run the checks and send the results to the central broker
+  # A poller with no centengine and no cbd: the centreon-engine program takes
+  # the structured configuration centreon-web sends through gorgone-server,
+  # runs the checks and sends the results to the central broker
   # (docs/scheduler-design.md). Registers and deploys itself.
-  rust-poller:
+  centreon-engine:
     build:
       context: ../..
       dockerfile: deploy/centreon/Dockerfile
-      target: rust-poller-bench
-    image: ${RUST_POLLER_IMAGE:-gorgone-rs-centreon-rust-poller}
-    hostname: rust-poller
+      target: centreon-engine-bench
+    image: ${CENTREON_ENGINE_IMAGE:-gorgone-rs-centreon-centreon-engine}
+    hostname: centreon-engine
     restart: always
     depends_on:
       central-setup:
@@ -303,9 +307,9 @@ services:
       WEB_HOST: web
       GORGONE_HOST: gorgone
       BROKER_HOST: broker
-      POLLER_NAME: rust-poller
+      POLLER_NAME: centreon-engine
       GORGONE_DEPLOY: "true"
-      GORGONE_AGENT_LOG: info
+      CENTREON_ENGINE_LOG: info
 
   poller:
     build:

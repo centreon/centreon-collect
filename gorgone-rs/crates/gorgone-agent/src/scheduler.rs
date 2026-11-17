@@ -138,6 +138,12 @@ impl Shared {
             Some(Kind::ServiceControl(action)) => {
                 executors.service_control.execute(action, ctx).await
             }
+            Some(Kind::ApplyEngineConfiguration(action)) => {
+                executors
+                    .apply_config
+                    .apply_engine_configuration(action, ctx)
+                    .await
+            }
             None => finished(Outcome::Rejected, "action kind not supported by this agent"),
         }
     }

@@ -6,9 +6,9 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use centreon_engine::wire::{Decoder, HEADER_SIZE, event, frame};
+use centreon_engine::{Options, Scheduler};
 use gorgone_proto::bbdo::{Bbdo, PeerType, Welcome};
-use gorgone_scheduler::wire::{Decoder, HEADER_SIZE, event, frame};
-use gorgone_scheduler::{Options, Scheduler};
 use prost::Message;
 use serde_json::Value;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};

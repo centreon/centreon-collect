@@ -16,7 +16,8 @@ use gorgone_core::legacy;
 use gorgone_proto::agent::action::Kind;
 use gorgone_proto::agent::service_control::Operation;
 use gorgone_proto::agent::{
-    Action, ApplyConfig, Command, EngineCommands, RunCommands, ServiceControl, ValidateConfig,
+    Action, ApplyConfig, ApplyEngineConfiguration, Command, EngineCommands, RunCommands,
+    ServiceControl, ValidateConfig,
 };
 use prost::Message;
 use serde::{Deserialize, Serialize};
@@ -60,6 +61,20 @@ pub(super) enum ActionJson {
         #[serde(default)]
         size: u64,
     },
+    /// A structured engine configuration already stored (see
+    /// `PUT /v1/nodes/{node}/engine-configuration`).
+    ApplyEngineConfiguration {
+        #[serde(default = "engine_target")]
+        target: String,
+        digest: String,
+        #[serde(default)]
+        size: u64,
+    },
+}
+
+/// Target a structured engine configuration is reported under by default.
+fn engine_target() -> String {
+    gorgone_core::DEFAULT_COMPONENT.to_owned()
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -126,6 +141,15 @@ impl From<ActionJson> for Action {
                 digest: digest.to_ascii_lowercase(),
                 size,
             }),
+            ActionJson::ApplyEngineConfiguration {
+                target,
+                digest,
+                size,
+            } => Kind::ApplyEngineConfiguration(ApplyEngineConfiguration {
+                target,
+                digest: digest.to_ascii_lowercase(),
+                size,
+            }),
         };
         Self { kind: Some(kind) }
     }
@@ -160,6 +184,8 @@ fn action_json(encoded: &[u8]) -> Value {
         }
         Some(Kind::ValidateConfig(validate)) => json!({ "validate_config": {
             "target": validate.target, "digest": validate.digest, "size": validate.size } }),
+        Some(Kind::ApplyEngineConfiguration(apply)) => json!({ "apply_engine_configuration": {
+            "target": apply.target, "digest": apply.digest, "size": apply.size } }),
         None => Value::Null,
     }
 }
@@ -272,8 +298,9 @@ pub(super) async fn submit_job(
     Path(node): Path<String>,
     Json(body): Json<SubmitBody>,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
-    if let ActionJson::ApplyConfig { digest, .. } | ActionJson::ValidateConfig { digest, .. } =
-        &body.action
+    if let ActionJson::ApplyConfig { digest, .. }
+    | ActionJson::ValidateConfig { digest, .. }
+    | ActionJson::ApplyEngineConfiguration { digest, .. } = &body.action
         && state
             .store
             .blob_size(&digest.to_ascii_lowercase())
@@ -532,6 +559,96 @@ async fn submit_config(
             },
         );
     let (digest, size) = submitted.unwrap_or((digest, json!(size)));
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(json!({ "id": id, "digest": digest, "size": size })),
+    ))
+}
+
+/// Version of the structured configuration document this server accepts.
+const ENGINE_DOCUMENT_VERSION: u64 = 1;
+
+/// Only the version of a document: the rest is skipped, not kept.
+#[derive(Deserialize)]
+struct DocumentProbe {
+    version: Option<Value>,
+}
+
+/// `PUT /v1/nodes/{node}/engine-configuration`: takes the JSON document of
+/// a structured engine configuration (`gorgone-rs/schemas/`), stores it
+/// compressed as a blob and submits the `ApplyEngineConfiguration` job.
+/// Only its syntax and version are checked here: the engine checks the rest
+/// and refuses an invalid one. Query: `id`, `requires`, `deadline_s`, as
+/// for the bundles; `target` (default `engine`).
+pub(super) async fn put_engine_configuration(
+    State(state): State<Shared>,
+    Path(node): Path<String>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Bytes,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
+    let deadline = query
+        .get("deadline_s")
+        .map(|v| v.parse::<u64>().map(Duration::from_secs))
+        .transpose()
+        .map_err(|_| ApiError::bad_request("deadline_s must be an integer"))?;
+    let requires: Vec<String> = query
+        .get("requires")
+        .map(|ids| {
+            ids.split(',')
+                .filter(|id| !id.is_empty())
+                .map(str::to_owned)
+        })
+        .into_iter()
+        .flatten()
+        .collect();
+    let target = query.get("target").cloned().unwrap_or_else(engine_target);
+    if let Some(id) = query.get("id")
+        && let Some(job) = state.store.job(id).await?
+    {
+        // A retry: the answer of the first request.
+        let submitted = Action::decode(job.action.as_slice())
+            .ok()
+            .and_then(|action| match action.kind {
+                Some(Kind::ApplyEngineConfiguration(apply)) => Some((apply.digest, apply.size)),
+                _ => None,
+            });
+        let Some((digest, size)) = submitted.filter(|_| job.node_id == node) else {
+            return Err(ApiError::conflict("job id already used by another job"));
+        };
+        return Ok((
+            StatusCode::ACCEPTED,
+            Json(json!({ "id": id, "digest": digest, "size": size })),
+        ));
+    }
+    // Checked and compressed off the async workers: it may be large.
+    let blob = tokio::task::spawn_blocking(move || {
+        let probe: DocumentProbe = serde_json::from_slice(&body)
+            .map_err(|error| format!("invalid JSON document: {error}"))?;
+        match probe.version {
+            Some(Value::Number(version)) if version.as_u64() == Some(ENGINE_DOCUMENT_VERSION) => {}
+            Some(version) => return Err(format!("unsupported document version {version}")),
+            None => return Err("document without version".to_owned()),
+        }
+        gorgone_core::document::pack(&body).map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|_| ApiError::bad_request("document check aborted"))?
+    .map_err(ApiError::bad_request)?;
+    let (digest, size) = state.store.put_blob(&blob).await?;
+    let action = Action {
+        kind: Some(Kind::ApplyEngineConfiguration(ApplyEngineConfiguration {
+            target,
+            digest: digest.clone(),
+            size: u64::try_from(size).unwrap_or_default(),
+        })),
+    };
+    let options = SubmitOptions {
+        id: query.get("id").map(String::as_str),
+        requires: &requires,
+        latest_config: LatestConfig::None,
+        deadline,
+    };
+    let (id, _) = submit(&state, &node, action, options).await?;
     Ok((
         StatusCode::ACCEPTED,
         Json(json!({ "id": id, "digest": digest, "size": size })),

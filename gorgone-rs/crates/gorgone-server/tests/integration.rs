@@ -924,6 +924,91 @@ async fn bundle_upload_then_fetch_blob_round_trip() {
 }
 
 #[tokio::test]
+async fn engine_configuration_is_stored_compressed_and_counts_as_the_engine_push() {
+    let db = TestDb::new();
+    let server = start(&db, |c| c.sweep_interval_ms = 5000).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, None)
+        .await
+        .unwrap();
+    let path = format!("/v1/nodes/{node}/engine-configuration");
+    let document = format!(
+        r#"{{"version": 1, "poller": {{"id": 1, "name": "p"}}, "broker": {{"address": "b:5669"}},
+            "hosts": [{}]}}"#,
+        vec![r#"{"host_name": "h", "host_id": 1}"#; 200].join(",")
+    );
+    let (status, body) = Rest::json(
+        rest.request("PUT", &format!("{path}?id=engine-conf-1"))
+            .header("Content-Type", "application/json")
+            .body(document.clone()),
+    )
+    .await;
+    assert_eq!(status, 202, "{body}");
+    let job = agent.next_dispatch().await;
+    assert_eq!(job.id, "engine-conf-1");
+    let Some(Kind::ApplyEngineConfiguration(apply)) = job.action.unwrap().kind else {
+        panic!("expected ApplyEngineConfiguration");
+    };
+    assert_eq!(
+        (apply.target.as_str(), apply.digest.as_str()),
+        ("engine", body["digest"].as_str().unwrap())
+    );
+    // Compressed, and the agent gets the document back.
+    assert!(apply.size < document.len() as u64 / 4, "{}", apply.size);
+    let blob = agent.fetch_blob(&apply.digest).await.unwrap().concat();
+    assert_eq!(gorgone_core::bundle::digest(&blob), apply.digest);
+    let unpacked = gorgone_core::document::unpack(&blob, 1 << 20).unwrap();
+    assert_eq!(unpacked, document.as_bytes());
+    // A retry gets the same answer and submits nothing.
+    let (status, again) = Rest::json(
+        rest.request("PUT", &format!("{path}?id=engine-conf-1"))
+            .body(document.clone()),
+    )
+    .await;
+    assert_eq!((status, &again["digest"]), (202, &body["digest"]));
+
+    // A restart that requires the latest engine configuration waits for it.
+    let restart_id = submit(
+        &rest,
+        &node,
+        &restart(json!({ "requires_latest_config": ["engine"] })),
+    )
+    .await;
+    assert_nothing_received(&mut agent).await;
+    agent
+        .event("engine-conf-1", 1, finished(Outcome::Ok, ""))
+        .await;
+    let job = agent.next_dispatch().await;
+    assert_eq!(job.id, restart_id);
+    assert_eq!(job.requires, ["engine-conf-1"]);
+
+    // The stored document again, through the jobs route.
+    let (status, reapplied) = rest
+        .post(
+            &format!("/v1/nodes/{node}/jobs"),
+            &json!({ "apply_engine_configuration": { "digest": apply.digest } }),
+        )
+        .await;
+    assert_eq!(status, 202, "{reapplied}");
+    let (_, job) = rest
+        .get(&format!("/v1/jobs/{}", reapplied["id"].as_str().unwrap()))
+        .await;
+    assert_eq!(job["kind"], "apply_engine_configuration");
+    assert_eq!(
+        job["action"]["apply_engine_configuration"]["target"],
+        "engine"
+    );
+
+    // Not JSON, or another version: refused, nothing submitted.
+    for refused in ["not json", r#"{"version": 2}"#, r#"{"hosts": []}"#] {
+        let (status, body) = Rest::json(rest.request("PUT", &path).body(refused.to_owned())).await;
+        assert_eq!(status, 400, "{refused}: {body}");
+    }
+    server.shutdown().await;
+}
+
+#[tokio::test]
 async fn agent_token_and_rest_bearer_are_enforced() {
     let db = TestDb::new();
     let server = start(&db, |c| {

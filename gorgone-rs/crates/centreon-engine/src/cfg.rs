@@ -1,7 +1,9 @@
 //! Reading of the Engine configuration centreon-web generates, reduced to
-//! what the scheduler runs: global settings, commands, hosts, services,
+//! what the engine runs: global settings, commands, hosts, services,
 //! their templates, and the `$USERn$` resource macros. Same syntax and
-//! template rules as `common/engine_conf/parser.cc`.
+//! template rules as `common/engine_conf/parser.cc`. The structured
+//! document (`document.rs`) is turned into the same raw objects and goes
+//! through the same template resolution and checks ([`build`]).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
@@ -141,9 +143,9 @@ impl Report {
     }
 }
 
-/// Object types the scheduler reads; the others are skipped.
+/// Object types the engine reads; the others are skipped.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Kind {
+pub(crate) enum Kind {
     Command,
     Host,
     Service,
@@ -151,17 +153,18 @@ enum Kind {
 
 /// One `define` block, keys already mapped to their canonical name.
 #[derive(Debug, Clone, Default)]
-struct RawObject {
-    fields: BTreeMap<String, String>,
+pub(crate) struct RawObject {
+    pub fields: BTreeMap<String, String>,
     /// Custom variables, names upper-cased.
-    custom: BTreeMap<String, String>,
+    pub custom: BTreeMap<String, String>,
     /// `use` list, in order.
-    uses: Vec<String>,
+    pub uses: Vec<String>,
     /// `name`: a template other objects can `use`.
-    name: Option<String>,
-    register: bool,
-    /// `file:line` of the `define`, for messages.
-    origin: String,
+    pub name: Option<String>,
+    pub register: bool,
+    /// Where the object was defined (`file:line`, or its place in the
+    /// document), for messages.
+    pub origin: String,
 }
 
 /// Canonical name of `key` for `kind` (the correspondence tables of
@@ -299,9 +302,6 @@ impl Reader {
         }
         if self.settings.broker_module_cfg_file.is_none() {
             self.settings.broker_module_cfg_file = cbmod;
-        }
-        if self.settings.interval_length == 0 {
-            self.error("interval_length must be at least 1");
         }
         for file in resource_files {
             self.resource_file(&file);
@@ -510,6 +510,9 @@ impl Reader {
     }
 
     fn build(mut self, main_file: &Path) -> (MonitoringConfig, Report) {
+        if self.settings.interval_length == 0 {
+            self.error("interval_length must be at least 1");
+        }
         let mut templates = HashMap::new();
         for (index, (kind, object)) in self.objects.iter().enumerate() {
             if let Some(name) = &object.name
@@ -749,6 +752,25 @@ pub fn command_name(check_command: &str) -> &str {
         .split_once('!')
         .map_or(check_command, |(name, _)| name)
         .trim()
+}
+
+/// Resolves the templates of `objects` and checks the result, as for the
+/// files: what the structured document goes through.
+#[must_use]
+pub(crate) fn build(
+    settings: Settings,
+    users: HashMap<String, String>,
+    objects: Vec<(Kind, RawObject)>,
+    report: Report,
+) -> (MonitoringConfig, Report) {
+    let reader = Reader {
+        report,
+        settings,
+        users,
+        objects,
+        seen: HashSet::new(),
+    };
+    reader.build(Path::new(""))
 }
 
 /// Reads the configuration whose main file is `main_file`. The report holds

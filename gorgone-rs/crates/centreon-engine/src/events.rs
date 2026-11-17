@@ -11,7 +11,15 @@ use crate::cfg::{HostConf, ServiceConf};
 use crate::state::{CheckState, CheckType, StateType};
 
 /// Name the instance reports in `instances.engine`.
-pub const ENGINE_NAME: &str = "Centreon Engine (gorgone-scheduler)";
+pub const ENGINE_NAME: &str = "Centreon Engine (Rust)";
+
+/// Version the instance reports in `instances.version`: the Centreon
+/// Engine release whose configuration and BBDO contract this engine
+/// follows (`COLLECT_MAJOR.COLLECT_MINOR.COLLECT_PATCH` of the root
+/// `CMakeLists.txt`). centreon-web compares it with Engine versions
+/// (`www/class/config-generate/engine.class.php`, `broker.class.php`): the
+/// crate version (0.x) would read as a very old Engine.
+pub const INSTANCE_VERSION: &str = "27.01.0";
 
 /// `pb_instance`: start (`running`) or end of the poller.
 #[must_use]
@@ -26,7 +34,7 @@ pub fn instance(poller_id: u64, name: &str, running: bool, start: i64, end: i64)
             instance_id: poller_id,
             end_time: end,
             start_time: start,
-            version: env!("CARGO_PKG_VERSION").to_owned(),
+            version: INSTANCE_VERSION.to_owned(),
             ..Instance::default()
         },
     )
@@ -75,14 +83,15 @@ fn should_be_scheduled(st: &CheckState) -> bool {
     st.next_check != 0
 }
 
-/// `pb_host`: configuration and current state of a host.
+/// `pb_host`: configuration and current state of a host; `enabled` false
+/// when it is removed.
 #[must_use]
-pub fn host(poller_id: u64, conf: &HostConf, st: &CheckState, now: i64) -> Vec<u8> {
+pub fn host(poller_id: u64, conf: &HostConf, st: &CheckState, now: i64, enabled: bool) -> Vec<u8> {
     let check = &conf.check;
     let message = Host {
         host_id: conf.host_id,
         active_checks: check.active_checks,
-        enabled: true,
+        enabled,
         check_command: check.check_command.clone(),
         check_interval: i32::try_from(check.check_interval).unwrap_or(i32::MAX),
         check_type: if active(st.check_type) {
@@ -168,15 +177,22 @@ pub fn host_status(conf: &HostConf, st: &CheckState) -> Vec<u8> {
     )
 }
 
-/// `pb_service`: configuration and current state of a service.
+/// `pb_service`: configuration and current state of a service; `enabled`
+/// false when it is removed.
 #[must_use]
-pub fn service(poller_id: u64, conf: &ServiceConf, st: &CheckState, now: i64) -> Vec<u8> {
+pub fn service(
+    poller_id: u64,
+    conf: &ServiceConf,
+    st: &CheckState,
+    now: i64,
+    enabled: bool,
+) -> Vec<u8> {
     let check = &conf.check;
     let message = Service {
         host_id: conf.host_id,
         service_id: conf.service_id,
         active_checks: check.active_checks,
-        enabled: true,
+        enabled,
         check_command: check.check_command.clone(),
         check_interval: check.check_interval,
         check_type: if active(st.check_type) {

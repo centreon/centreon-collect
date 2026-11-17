@@ -28,13 +28,13 @@ pollers (ZMQ, SSH, pull, pullwss are dropped), and being a broker module
                        shared SQL store (MariaDB; SQLite for one replica)
 ```
 
-| Crate               | Role                                                                     |
-| ------------------- | ------------------------------------------------------------------------ |
-| `gorgone-proto`     | gRPC contracts (`proto/`): agent gateway and peer service                |
-| `gorgone-core`      | Shared domain: config bundles, command allowlist, legacy codes           |
-| `gorgone-server`    | Central control plane: REST API, agent gateway, job store, dispatcher    |
-| `gorgone-agent`     | Poller executor: runs jobs received on its session                       |
-| `gorgone-scheduler` | Optional monitoring scheduler of the agent, in place of Engine and cbmod |
+| Crate             | Role                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| `gorgone-proto`   | gRPC contracts (`proto/`): agent gateway and peer service                            |
+| `gorgone-core`    | Shared domain: config bundles, command allowlist, legacy codes                       |
+| `gorgone-server`  | Central control plane: REST API, agent gateway, job store, dispatcher                |
+| `gorgone-agent`   | Poller executor: runs jobs received on its session                                   |
+| `centreon-engine` | Monitoring engine run by the `centreon-engine` program, in place of Engine and cbmod |
 
 ## Principles
 
@@ -216,26 +216,39 @@ it, never on the central:
 The central needs no engine binary, and a configuration is checked by the
 engine version that will run it.
 
-## Built-in scheduler (no Engine on the poller)
+## centreon-engine (no C++ Engine on the poller)
 
-With the cargo feature `scheduler` and `[scheduler] enabled`, the agent is
-the whole poller: the crate `gorgone-scheduler` reads the Engine
-configuration of the `engine` target (commands, hosts, services and their
-templates), runs the checks with Engine's semantics (SOFT/HARD, intervals,
-timeouts, output and perfdata parsing) and sends the results to the central
-broker over BBDO on TCP, as `cbmod` does: no `centengine`, no `cbd`, no
-C++ on the poller. Design, protocol and C++ sources:
-[scheduler-design.md](scheduler-design.md).
+The program `centreon-engine` (second binary of the agent crate, built with
+the cargo feature `scheduler`) is the agent with its built-in engine always
+on: the whole poller. The crate `centreon-engine` takes the poller
+configuration, runs the checks with Engine's semantics (SOFT/HARD,
+intervals, timeouts, output and perfdata parsing) and sends the results to
+the central broker over BBDO on TCP, as `cbmod` does: no `centengine`, no
+`cbd`, no C++ on the poller. `gorgone-agent` built with the feature and
+`[scheduler] enabled` runs the same engine. Design, protocol and C++
+sources: [scheduler-design.md](scheduler-design.md).
 
-- The configuration check of the `engine` target is the scheduler's own
-  parser (same staging, same `Total Errors:` report).
+- Configuration input (`[scheduler] input`): `structured` (default of
+  `centreon-engine`) takes the JSON document of
+  [`schemas/engine-configuration.v1.json`](../schemas/engine-configuration.v1.json)
+  through `ApplyEngineConfiguration` jobs, with no file on the poller;
+  `files` reads the `.cfg` files of the `engine` target, checked by the
+  engine's own parser (same staging, same `Total Errors:` report). Both give
+  the same model, checked by the same code.
+- `ApplyEngineConfiguration{target, digest, size}`: the blob is the document
+  compressed with zstd, fetched with `FetchBlob` like a bundle. The engine
+  checks it, refuses it as a whole when invalid (the configuration in force
+  stays), keeps it in `state_dir` to restart with it, applies it and sends
+  the central only what changed. The node then reports the digest as
+  applied to the target (`engine`): `requires_latest_config` treats it as
+  the push of that target.
 - `ServiceControl` reload and restart map to `scheduler:reload`: an
-  in-process reload, refused when the files do not parse.
+  in-process reload of the files, or of the kept document.
 - `EngineCommands`: the forced and planned checks and the passive results
   are handled; any other command fails the job ("not supported by the
   built-in scheduler").
-- The heartbeat reports the scheduler as the engine (`reachable` once a
-  configuration is in force, version `gorgone-scheduler x.y.z`).
+- The heartbeat reports the engine (`reachable` once a configuration is in
+  force, version `centreon-engine x.y.z`).
 - Out of scope for now: notifications, downtimes, acknowledgements,
   dependencies, timeperiods (24x7), event handlers, flapping, freshness,
   retention across restarts, CMA, severities and tags.
@@ -295,21 +308,23 @@ meta        (name PK, value)   -- stable server id, shared by all replicas
 
 ### Native (`/v1`)
 
-| Method           | Path                                          | Purpose                                                                                                                                                                                                              |
-| ---------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`           | `/v1/nodes/{node}/jobs`                       | submit a job (JSON action, optional `id`, `requires`, `requires_latest_config`); returns `{id}`                                                                                                                      |
-| `GET`            | `/v1/jobs/{id}`                               | job with state and events; `?wait=<seconds>` long-polls until terminal                                                                                                                                               |
-| `GET`            | `/v1/jobs/{id}/events`                        | server-sent events, closes on the terminal event                                                                                                                                                                     |
-| `DELETE`         | `/v1/jobs/{id}`                               | cancel: immediate when queued, `Cancel` frame through the owner replica otherwise                                                                                                                                    |
-| `PUT`            | `/v1/nodes/{node}/config/{target}`            | body is a `tar.zst` bundle, or a plain tar with `Content-Type: application/x-tar`; stores the blob and submits `ApplyConfig`; optional `?id=` and `?requires=`; `?digest=` with an empty body reuses a stored bundle |
-| `POST`           | `/v1/nodes/{node}/config/{target}/validation` | same body; submits `ValidateConfig`                                                                                                                                                                                  |
-| `GET`            | `/v1/nodes`, `/v1/nodes/{node}`               | nodes with connection status, applied configuration digests and engine state (of the engine component), and `components`: each one's session, declared targets and reported state                                    |
-| `PUT` / `DELETE` | `/v1/nodes/{node}`                            | enrol (returns the token once) / remove a node                                                                                                                                                                       |
-| `GET`            | `/healthz`, `/readyz`, `/metrics`             | probes and Prometheus metrics                                                                                                                                                                                        |
+| Method           | Path                                          | Purpose                                                                                                                                                                                                                                      |
+| ---------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`           | `/v1/nodes/{node}/jobs`                       | submit a job (JSON action, optional `id`, `requires`, `requires_latest_config`); returns `{id}`                                                                                                                                              |
+| `GET`            | `/v1/jobs/{id}`                               | job with state and events; `?wait=<seconds>` long-polls until terminal                                                                                                                                                                       |
+| `GET`            | `/v1/jobs/{id}/events`                        | server-sent events, closes on the terminal event                                                                                                                                                                                             |
+| `DELETE`         | `/v1/jobs/{id}`                               | cancel: immediate when queued, `Cancel` frame through the owner replica otherwise                                                                                                                                                            |
+| `PUT`            | `/v1/nodes/{node}/config/{target}`            | body is a `tar.zst` bundle, or a plain tar with `Content-Type: application/x-tar`; stores the blob and submits `ApplyConfig`; optional `?id=` and `?requires=`; `?digest=` with an empty body reuses a stored bundle                         |
+| `POST`           | `/v1/nodes/{node}/config/{target}/validation` | same body; submits `ValidateConfig`                                                                                                                                                                                                          |
+| `PUT`            | `/v1/nodes/{node}/engine-configuration`       | body is the JSON document of a structured engine configuration (version checked here, the rest by the engine); stored compressed (zstd) and submits `ApplyEngineConfiguration`; optional `?id=`, `?requires=`, `?target=` (default `engine`) |
+| `GET`            | `/v1/nodes`, `/v1/nodes/{node}`               | nodes with connection status, applied configuration digests and engine state (of the engine component), and `components`: each one's session, declared targets and reported state                                                            |
+| `PUT` / `DELETE` | `/v1/nodes/{node}`                            | enrol (returns the token once) / remove a node                                                                                                                                                                                               |
+| `GET`            | `/healthz`, `/readyz`, `/metrics`             | probes and Prometheus metrics                                                                                                                                                                                                                |
 
 JSON action shape: `{"run_commands": {"commands": [{"command": "...", "timeout_s": 30}]}}`,
 `{"engine_commands": {"commands": ["..."]}}`,
 `{"apply_config": {"target": "engine", "digest": "...", "size": 0}}`,
+`{"apply_engine_configuration": {"digest": "..."}}` (a stored document),
 `{"service_control": {"service": "engine", "operation": "reload"}}`.
 
 ### Legacy compatibility (`/api`)

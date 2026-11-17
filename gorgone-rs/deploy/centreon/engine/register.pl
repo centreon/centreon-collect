@@ -5,7 +5,7 @@
 # register: declares the poller in centreon-web when needed, removes its
 #           command file (see no_command_file) and prints the id web gave it,
 #           which is the node id of its gorgone-agent.
-# objects:  creates the objects of the CLAPI_OBJECTS file (rust-poller).
+# objects:  creates the objects of the CLAPI_OBJECTS file (centreon-engine).
 # deploy:   removes the command file of the poller (the Central poller is not
 #           registered by this script), waits for gorgone-server to see the
 #           agent, then asks centreon-web to generate, push and restart, as an

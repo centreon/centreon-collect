@@ -1,16 +1,17 @@
 [package]
-name = "gorgone-scheduler"
+name = "centreon-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-description = "Monitoring scheduler of gorgone-agent: runs the checks of a Centreon poller and sends the results to Centreon Broker over BBDO"
+description = "centreon-engine: monitoring core of a Centreon poller; runs its checks from the Engine files or a structured configuration and sends the results to Centreon Broker over BBDO"
 
 # Only crates the workspace already builds: no new entry in Cargo.lock.
 [dependencies]
 gorgone-proto = { version = "0.1.0", path = "../gorgone-proto" }
 nix = { version = "0.31.3", default-features = false, features = ["signal"] }
 prost = "0.14"
+serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt", "macros", "net", "process", "time", "sync", "io-util"] }

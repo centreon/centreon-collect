@@ -4,7 +4,6 @@
 
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, VecDeque};
-use std::path::PathBuf;
 use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot, watch};
@@ -13,30 +12,51 @@ use tokio_util::sync::CancellationToken;
 
 use crate::cfg::{self, CheckParams, HostConf, MonitoringConfig, ServiceConf};
 use crate::client::{Notice, Outgoing, Target};
+use crate::document::Parsed;
 use crate::extcmd::{self, ExtCommand};
 use crate::macros::{Context, HostView, ServiceView, StateView};
 use crate::runner::{self, PluginRun};
 use crate::state::{self, CheckState, CheckType, Next, Outcome, StateType, code};
-use crate::{Status, broker_conf, cmdline, events, output};
+use crate::{Input, Status, broker_conf, cmdline, events, output};
 
 /// `(host_id, service_id)`; `service_id` 0 for a host.
 type Key = (u64, u64);
 
-/// Settings of the scheduler that do not come from the Engine files.
+/// Settings of the engine that do not come from its configuration.
 #[derive(Debug, Clone)]
 pub(crate) struct CoreOptions {
-    pub main_file: PathBuf,
-    pub broker_config: Option<PathBuf>,
+    pub input: Input,
     pub broker_address: Option<String>,
     pub max_concurrent_checks: usize,
     pub max_output_bytes: usize,
 }
 
-/// Requests to the scheduler task.
+/// What putting a configuration in force did.
+#[derive(Debug, Clone)]
+pub(crate) struct Installed {
+    /// One line for the log and the job.
+    pub text: String,
+    /// Commands, hosts, services.
+    pub counts: (usize, usize, usize),
+}
+
+/// Requests to the engine task.
 pub(crate) enum Request {
+    /// Read the files again (files input).
     Reload(oneshot::Sender<Result<String, String>>),
+    /// Put a checked document in force, with the digest it was applied under.
+    Install(Box<(Parsed, String)>, oneshot::Sender<Installed>),
     Command(String, oneshot::Sender<Result<String, String>>),
     Shutdown(oneshot::Sender<()>),
+}
+
+/// Objects a new configuration adds, changes and removes, by key.
+#[derive(Debug, Default)]
+struct Changes {
+    added: Vec<Key>,
+    changed: Vec<Key>,
+    /// Configurations of the removed objects, for their last event.
+    removed: Vec<ObjConf>,
 }
 
 /// Wall-clock seconds derived from the runtime clock, so that a test with a
@@ -83,9 +103,21 @@ impl Clock {
     }
 }
 
+#[derive(Debug)]
 enum ObjConf {
     Host(HostConf),
     Service { conf: ServiceConf, host: usize },
+}
+
+impl ObjConf {
+    /// Same configuration, wherever the host of a service sits.
+    fn same(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Host(a), Self::Host(b)) => a == b,
+            (Self::Service { conf: a, .. }, Self::Service { conf: b, .. }) => a == b,
+            _ => false,
+        }
+    }
 }
 
 struct Obj {
@@ -125,6 +157,8 @@ struct Done {
 struct Loaded {
     config: MonitoringConfig,
     target: Target,
+    /// Digest of the structured document, `None` for files.
+    digest: Option<String>,
 }
 
 pub(crate) struct Core {
@@ -212,8 +246,10 @@ impl Core {
         let mut frames = vec![events::instance(poller_id, &name, true, self.start_time, 0)];
         for obj in &self.objs {
             frames.push(match &obj.conf {
-                ObjConf::Host(host) => events::host(poller_id, host, &obj.state, now),
-                ObjConf::Service { conf, .. } => events::service(poller_id, conf, &obj.state, now),
+                ObjConf::Host(host) => events::host(poller_id, host, &obj.state, now, true),
+                ObjConf::Service { conf, .. } => {
+                    events::service(poller_id, conf, &obj.state, now, true)
+                }
             });
         }
         frames.push(events::instance_configuration(poller_id));
@@ -242,6 +278,7 @@ impl Core {
             poller_id: self.loaded.as_ref().map_or(0, |l| l.target.poller_id),
             hosts,
             services,
+            digest: self.loaded.as_ref().and_then(|l| l.digest.clone()),
         });
     }
 
@@ -268,10 +305,17 @@ impl Core {
             .map_or(60, |l| u64::from(l.config.settings.interval_length.max(1)))
     }
 
-    /// Reads the configuration and puts it in force; the running one stays
-    /// when it cannot be read.
+    /// Reads the Engine files and puts them in force; the running
+    /// configuration stays when they cannot be read.
     fn load(&mut self) -> Result<String, String> {
-        let (config, report) = cfg::read(&self.options.main_file);
+        let Input::Files {
+            main_file,
+            broker_config,
+        } = &self.options.input
+        else {
+            return Err("this engine takes structured configurations: nothing to read".to_owned());
+        };
+        let (config, report) = cfg::read(main_file);
         let counts = (
             config.commands.len(),
             config.hosts.len(),
@@ -280,9 +324,7 @@ impl Core {
         if !report.errors.is_empty() {
             return Err(report.render(Some(counts)));
         }
-        let broker_file = self
-            .options
-            .broker_config
+        let broker_file = broker_config
             .clone()
             .or_else(|| config.settings.broker_module_cfg_file.clone())
             .ok_or_else(|| {
@@ -308,34 +350,131 @@ impl Core {
             poller_name: broker.poller_name,
             broker_name: broker.broker_name,
         };
+        let installed = self.install(config, target, None);
+        Ok(format!(
+            "{}\n{}",
+            installed.text,
+            report.render(Some(counts))
+        ))
+    }
+
+    /// Puts a checked document in force.
+    fn install_document(&mut self, parsed: Parsed, digest: String) -> Installed {
+        let target = Target {
+            address: self
+                .options
+                .broker_address
+                .clone()
+                .unwrap_or(parsed.broker.address),
+            poller_id: parsed.poller.id,
+            poller_name: parsed.poller.name,
+            broker_name: parsed.broker.name,
+        };
+        self.install(parsed.config, target, Some(digest))
+    }
+
+    /// Puts a configuration in force. On the same connection, the central
+    /// gets what changed as Engine sends it on a reload; a new connection
+    /// gets everything once welcomed.
+    fn install(
+        &mut self,
+        config: MonitoringConfig,
+        target: Target,
+        digest: Option<String>,
+    ) -> Installed {
+        let counts = (
+            config.commands.len(),
+            config.hosts.len(),
+            config.services.len(),
+        );
         let same_target = self.loaded.as_ref().map(|l| &l.target) == Some(&target);
-        self.rebuild(&config);
-        let summary = format!(
-            "configuration loaded: {} commands, {} hosts, {} services, poller {} ({})",
-            counts.0, counts.1, counts.2, target.poller_id, target.poller_name
+        let changes = self.rebuild(&config);
+        let text = format!(
+            "configuration loaded: {} commands, {} hosts, {} services, poller {} ({}); \
+             {} added, {} changed, {} removed",
+            counts.0,
+            counts.1,
+            counts.2,
+            target.poller_id,
+            target.poller_name,
+            changes.added.len(),
+            changes.changed.len(),
+            changes.removed.len(),
         );
         self.loaded = Some(Loaded {
             config,
             target: target.clone(),
+            digest,
         });
         self.target.send_if_modified(|current| {
             let changed = current.as_ref() != Some(&target);
             *current = Some(target);
             changed
         });
-        // Same connection: resend everything now. A new one gets it once
-        // connected.
         if self.connected && same_target {
-            self.emit_snapshot();
+            self.emit_changes(&changes);
         }
         self.publish_status();
         self.launch();
-        Ok(format!("{summary}\n{}", report.render(Some(counts))))
+        Installed { text, counts }
+    }
+
+    /// What Engine sends on a reload (`engine/src/configuration/applier/`):
+    /// `pb_service` then `pb_host` with `enabled` false for removed objects
+    /// (`host.cc:428-436`, `service.cc:464-466`), `pb_host`/`pb_service` for
+    /// added and changed ones (`host.cc:134`, `:387`, `service.cc:152`,
+    /// `:407`), then `pb_instance_configuration` (`cbmod::reload`,
+    /// `broker/neb/src/cbmod.cc:376-391`). No `pb_instance`: the central
+    /// keeps every other object of the poller enabled.
+    fn emit_changes(&mut self, changes: &Changes) {
+        let Some((poller_id, _)) = self.poller() else {
+            return;
+        };
+        let now = self.clock.now();
+        let idle = CheckState::default();
+        let mut frames = Vec::new();
+        let removed_services = changes
+            .removed
+            .iter()
+            .filter(|conf| matches!(conf, ObjConf::Service { .. }));
+        let removed_hosts = changes
+            .removed
+            .iter()
+            .filter(|conf| matches!(conf, ObjConf::Host(_)));
+        for conf in removed_services.chain(removed_hosts) {
+            frames.push(match conf {
+                ObjConf::Host(host) => events::host(poller_id, host, &idle, now, false),
+                ObjConf::Service { conf, .. } => {
+                    events::service(poller_id, conf, &idle, now, false)
+                }
+            });
+        }
+        let mut updated: Vec<usize> = changes
+            .added
+            .iter()
+            .chain(&changes.changed)
+            .filter_map(|key| self.by_key.get(key).copied())
+            .collect();
+        // Hosts first: a service of an unknown host is ignored by the central.
+        updated.sort_by_key(|index| (!self.objs[*index].is_host(), *index));
+        for index in updated {
+            let obj = &self.objs[index];
+            frames.push(match &obj.conf {
+                ObjConf::Host(host) => events::host(poller_id, host, &obj.state, now, true),
+                ObjConf::Service { conf, .. } => {
+                    events::service(poller_id, conf, &obj.state, now, true)
+                }
+            });
+        }
+        frames.push(events::instance_configuration(poller_id));
+        for frame in frames {
+            self.emit(frame);
+        }
     }
 
     /// Replaces the objects, keeping the state and the plan of those that
-    /// stay.
-    fn rebuild(&mut self, config: &MonitoringConfig) {
+    /// stay, and tells what changed.
+    fn rebuild(&mut self, config: &MonitoringConfig) -> Changes {
         // Due but not started yet: they keep their time.
         for (index, seq, planned) in self.ready.drain(..) {
             if let Some(obj) = self.objs.get_mut(index).filter(|obj| obj.seq == seq) {
@@ -349,13 +488,18 @@ impl Core {
         self.heap.clear();
         self.ready.clear();
         let mut fresh = Vec::new();
+        let mut changes = Changes::default();
         let mut make = |key: Key, conf: ObjConf, objs: &mut Vec<Obj>| {
             let obj = match old.remove(&key) {
                 Some(mut previous) => {
+                    if !previous.conf.same(&conf) {
+                        changes.changed.push(key);
+                    }
                     previous.conf = conf;
                     previous
                 }
                 None => {
+                    changes.added.push(key);
                     fresh.push(objs.len());
                     Obj {
                         key,
@@ -391,6 +535,7 @@ impl Core {
             );
         }
         self.objs = objs;
+        changes.removed = old.into_values().map(|obj| obj.conf).collect();
         for (index, obj) in self.objs.iter().enumerate() {
             self.by_key.insert(obj.key, index);
             match &obj.conf {
@@ -449,6 +594,7 @@ impl Core {
                 self.schedule(index, now + offset);
             }
         }
+        changes
     }
 
     /// Moves the due checks to the ready queue.
@@ -781,13 +927,15 @@ impl Core {
         mut notices: mpsc::UnboundedReceiver<Notice>,
         cancel: CancellationToken,
     ) {
-        match self.load() {
-            Ok(summary) => tracing::info!("{}", summary.lines().next().unwrap_or_default()),
-            Err(error) => tracing::warn!(
-                main_file = %self.options.main_file.display(),
-                "scheduler waits for a usable configuration: {}",
-                error.lines().find(|line| line.starts_with("Error")).unwrap_or(error.lines().next().unwrap_or_default())
-            ),
+        // A structured input is loaded by the handle, off this task.
+        if matches!(self.options.input, Input::Files { .. }) {
+            match self.load() {
+                Ok(summary) => tracing::info!("{}", crate::first_line(&summary)),
+                Err(error) => tracing::warn!(
+                    "the engine waits for a usable configuration: {}",
+                    crate::first_error(&error)
+                ),
+            }
         }
         self.publish_status();
         let mut status_due = Instant::now() + self.status_period();
@@ -805,10 +953,16 @@ impl Core {
                     Some(Request::Reload(reply)) => {
                         let result = self.load();
                         match &result {
-                            Ok(summary) => tracing::info!("{}", summary.lines().next().unwrap_or_default()),
+                            Ok(summary) => tracing::info!("{}", crate::first_line(summary)),
                             Err(_) => tracing::warn!("reload refused: the configuration in force is kept"),
                         }
                         let _ = reply.send(result);
+                    }
+                    Some(Request::Install(install, reply)) => {
+                        let (parsed, digest) = *install;
+                        let installed = self.install_document(parsed, digest);
+                        tracing::info!("{}", installed.text);
+                        let _ = reply.send(installed);
                     }
                     Some(Request::Command(line, reply)) => {
                         let _ = reply.send(self.command(&line));
@@ -882,7 +1036,7 @@ impl Core {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     use super::*;
 
@@ -925,8 +1079,10 @@ mod tests {
         let (target, target_rx) = watch::channel(None);
         let (status, _) = watch::channel(Status::default());
         let options = CoreOptions {
-            main_file: main,
-            broker_config: Some(dir.join("module.json")),
+            input: Input::Files {
+                main_file: main,
+                broker_config: Some(dir.join("module.json")),
+            },
             broker_address: None,
             // No check is started by these tests.
             max_concurrent_checks: 0,

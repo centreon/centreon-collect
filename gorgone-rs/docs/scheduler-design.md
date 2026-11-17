@@ -1,11 +1,21 @@
-# Built-in monitoring scheduler — design note
+# centreon-engine — design note
 
-Status: proof of concept. `gorgone-agent` gains an optional, in-process
-monitoring scheduler (crate `crates/gorgone-scheduler`, cargo feature
-`scheduler` of the agent) that replaces, on a poller, Centreon Engine
-(`centengine`) and its Broker module (`cbmod`): it reads the configuration
-centreon-web generates, runs the checks and sends the results straight to the
-central Broker (`cbd`) over BBDO. One process per poller, no C++.
+Status: proof of concept. The program `centreon-engine` replaces, on a
+poller, Centreon Engine (`centengine`) and its Broker module (`cbmod`): it
+takes the configuration centreon-web generates (a structured JSON document,
+or the Engine `.cfg` files), runs the checks and sends the results straight
+to the central Broker (`cbd`) over BBDO. One process per poller, no C++.
+
+- The engine is the library crate `crates/centreon-engine`.
+- The program is the second binary of the agent crate
+  (`crates/gorgone-agent/src/bin/centreon-engine.rs`, built with the cargo
+  feature `scheduler`): the agent with the engine always on, so that the
+  poller still runs the jobs of gorgone-server (configuration, external
+  commands, service control, `RunCommands`). A bin crate depending on the
+  agent library would be the same thing with one more manifest; a binary in
+  the engine crate would make the engine depend on the agent (cycle).
+- `gorgone-agent` stays as is for the pollers that keep the C++ Engine; built
+  with the feature and `[scheduler] enabled`, it runs the same engine.
 
 Every protocol statement below is taken from the C++ code of this repository;
 references are `file:line` at the time of writing.
@@ -165,7 +175,7 @@ On the central (`broker/unified_sql/src/stream_sql.cc`):
 - `pb_instance_status` (`:3328-…`): `last_alive`; Engine sends it every
   `status_update_interval` (default 60 s, `common/engine_conf/state_helper.cc:322`).
 
-Order kept by the scheduler on every (re)connection and every reload:
+Order kept by the engine on every (re)connection:
 
 ```
 pb_instance(running) → pb_host × N → pb_service × M → pb_instance_configuration
@@ -177,15 +187,50 @@ then statuses as checks complete and `pb_instance_status` every
 parents, downtimes, comments and acknowledgements are not sent (out of
 scope); `resources` are still filled from `pb_host`/`pb_service`.
 
-A reload is a full resync (what an Engine restart does): `pb_instance`
-disables everything, the dump enables what still exists. Engine's reload
-sends per-object differences instead; the resync costs SQL writes
-proportional to the poller size (see risks).
+### Reload: only what changed
+
+Engine does not resend its configuration on a reload
+(`applier::state::_processing`, `engine/src/configuration/applier/state.cc:1226-1625`):
+each object type is diffed (`pb_difference`) and each applier tells the
+broker about its own changes:
+
+| Change          | Engine                                                                                                                            | Event                                                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| host added      | `applier::host::add_object`, `NEBTYPE_HOST_ADD` (`host.cc:134`)                                                                   | `pb_host`, `enabled` true                                                |
+| host changed    | `applier::host::modify_object`, `NEBTYPE_HOST_UPDATE` (`host.cc:387`)                                                             | `pb_host`, `enabled` true                                                |
+| host removed    | `applier::host::remove_object`: `NEBTYPE_SERVICE_DELETE` for each of its services, then `NEBTYPE_HOST_DELETE` (`host.cc:428-436`) | `pb_service`, then `pb_host`, `enabled` false (`broker.cc:574`, `:1059`) |
+| service added   | `NEBTYPE_SERVICE_ADD` (`service.cc:152`)                                                                                          | `pb_service`, `enabled` true                                             |
+| service changed | `NEBTYPE_SERVICE_UPDATE` (`service.cc:407`)                                                                                       | `pb_service`, `enabled` true                                             |
+| service removed | `NEBTYPE_SERVICE_DELETE` (`service.cc:464-466`)                                                                                   | `pb_service`, `enabled` false                                            |
+| end of reload   | `cbm->reload()` (`state.cc:1617`), `cbmod::reload` (`broker/neb/src/cbmod.cc:376-391`)                                            | `pb_instance_configuration{loaded}`                                      |
+
+`broker_program_state` sends `pb_instance` only at the start and the end of
+the event loop (`broker.cc:4160-4212`): never on a reload. `unified_sql`
+applies an `enabled` false host or service to `hosts`/`services` and
+`resources` (`stream_sql.cc:2436-2476`, `:4096-4127`) and leaves the other
+objects of the poller alone, where a `pb_instance` would disable all of them
+first (`_clean_tables`, `:73-160`).
+
+The engine does the same: a new configuration (document or files) is
+diffed against the one in force by object key (`host_id`, `(host_id,
+service_id)`); objects whose resolved configuration differs are "changed".
+On the same connection the central gets, in this order, `pb_service` then
+`pb_host` with `enabled` false for removed objects, `pb_host` then
+`pb_service` for added and changed ones (with their current state, so a
+kept object keeps its state), then `pb_instance_configuration`; no
+`pb_instance`, no status. Kept objects keep their state and their plan. A
+(re)connection still sends the full dump above, and a change of the poller
+identity or of the central address reconnects, hence a full dump. Commands
+and resource macros have no event: they only change the next command lines.
+The summary (`… N added, N changed, N removed`) is the first line of the
+report the job returns.
 
 ## 3. Configuration input
 
-The scheduler reads the files gorgone delivers for the `engine` target, the
-same files Engine reads:
+Two inputs give the same model: the structured document (below, no file)
+and the Engine files. With `[scheduler] input = "files"`, the engine reads
+the files gorgone delivers for the `engine` target, the same files Engine
+reads:
 
 - **Main file** `centengine.cfg` (`common/engine_conf/parser.cc:139-205`):
   `key=value` lines; read: `cfg_file`, `cfg_dir`, `resource_file`,
@@ -223,8 +268,72 @@ same files Engine reads:
   the `broker` target. The scheduler reads the same file;
   `[scheduler] broker_address` overrides the address.
 
+### Structured configuration (no file)
+
+`[scheduler] input = "structured"` (the default of `centreon-engine`): the
+configuration is one JSON document, never a file on the poller.
+
+- **Format**: JSON, documented by
+  [`schemas/engine-configuration.v1.json`](../schemas/engine-configuration.v1.json),
+  read by the serde model of `crates/centreon-engine/src/document.rs`. JSON
+  rather than protobuf: PHP writes it with `json_encode`, protobuf would
+  need a PHP library and generated classes in centreon-web. Content:
+  `version`, `poller {id, name}`, `broker {address, name}` (what the `cbmod`
+  file gave), `settings` (the globals above), `resource_macros`
+  (`$USERn$`), `commands`, `host_templates`, `hosts`, `service_templates`,
+  `services`. Field names are the Engine keys after alias resolution
+  (`check_interval`, `active_checks_enabled`…), `host_id`/`service_id` for
+  `_HOST_ID`/`_SERVICE_ID`, custom macros in `macros` without the leading
+  underscore.
+- **Templates are sent unresolved**, with their `use` lists, as in the
+  files: each object becomes the raw object of the file reader and goes
+  through the same template resolution and the same checks (`cfg::build`).
+  The inheritance rules (first template wins, macros merged by name, loops,
+  unknown templates) therefore stay Engine's and live in one place, the
+  error messages are the same, centreon-web sends what its generator
+  already builds, and a template shared by thousands of objects is sent
+  once. A test (`files_and_document_give_the_same_model`) builds the same
+  objects from files and from a document and compares the models.
+- **Unknown fields are refused** (`deny_unknown_fields` on every object),
+  the whole document with them: a field the engine does not know is a
+  behaviour it would silently not have (a check period, a downtime, a
+  dependency…). Refusing keeps the configuration in force and tells the
+  operator; centreon-web must not send fields the engine does not take yet.
+  `version` is read first: another version is refused for that reason. A
+  later field is added to version 1 when an older engine refusing it is
+  acceptable; a change of meaning makes version 2.
+- **Delivery**: `PUT /v1/nodes/{node}/engine-configuration` (gorgone-server)
+  takes the document (up to `body_limit_bytes`, 256 MiB by default; the
+  1 MiB limit of `POST /v1/nodes/{node}/jobs` does not apply), checks its
+  syntax and version, stores it compressed with zstd as a blob (a JSON
+  poller configuration compresses about tenfold) and submits
+  `ApplyEngineConfiguration{target "engine", digest, size}`;
+  `{"apply_engine_configuration": {"digest": …}}` on the jobs route applies
+  a stored one again. The job carries only the digest: the agent fetches
+  the blob with the `FetchBlob` stream, in chunks of at most 1 MiB, as the
+  bundles, so the 4 MiB gRPC message limit never applies; the agent bounds
+  it with `max_bundle_bytes` (compressed) and `max_unpacked_bytes`
+  (document).
+- **Apply**: the agent checks the digest, unpacks the blob and hands the
+  document to the engine, which parses and checks it off its task, writes it
+  to `<state_dir>/engine-configuration/configuration` (digest on the first
+  line, then the document; written aside, synced, renamed), then puts it in
+  force as one message to its task (the diff above). An invalid document is
+  refused before anything is written: the configuration in force and the
+  kept one stay. The job gets the report (`Total Errors:` last) as its
+  `CommandResult`. Documents are applied one at a time.
+- **Restart**: the engine loads the kept document at start, so the poller
+  resumes without a push; `scheduler:reload` puts it in force again.
+- **Node state**: the agent reports the digest of the document in force (or
+  kept) as applied to the target `engine`, and declares that target and the
+  capability `apply_engine_configuration` in its `Hello`: the job is routed
+  to it, and `requires_latest_config` (an engine restart waiting for the
+  latest `engine` push) works as with a bundle.
+
 Checks done when a configuration is validated (they make `ApplyConfig`
-refuse a bundle): syntax of the files, unknown template, duplicate template
+refuse a bundle and `ApplyEngineConfiguration` refuse a document; the
+document adds: version, unknown field, poller id and name, broker
+address): syntax of the files, unknown template, duplicate template
 name, host without `host_name` or `host_id`, service without description,
 host, `service_id` or check command, service on an unknown host, unknown
 check command, duplicate `host_id` or `(host_id, service_id)`, unreadable or
@@ -314,15 +423,27 @@ with `/bin/true`, the scheduler on one thread: 33.3 checks/s for 1.4 % of
 one core (about 0.4 ms of CPU per check, process spawning included) and
 36 MiB resident; every minute, 166.7 checks/s for 4.2 %.
 
-## 6. Integration with gorgone-agent
+## 6. The centreon-engine program
+
+`centreon-engine [-c FILE] [--log LEVEL] [--check]`: the configuration file
+is `/etc/centreon-engine/centreon-engine.toml` (`CENTREON_ENGINE_CONFIG`),
+the log level `CENTREON_ENGINE_LOG`, in the format of the agent. The
+environment overrides keys with `GORGONE_AGENT__SECTION__KEY` and, over it,
+`CENTREON_ENGINE__SECTION__KEY`: both are read so that a poller moving from
+`gorgone-agent` keeps its environment (node id, token), while the new name
+wins. `[scheduler] enabled` is forced on and `input` defaults to
+`structured`.
 
 ```toml
+state_dir = "/var/lib/centreon-engine" # required with input = "structured"
+
 [scheduler]
-enabled = true
-target = "engine"            # target whose path holds the configuration
-main_file = "centengine.cfg" # relative to the target path
-# broker_config = "/etc/centreon-broker/poller-module.json" # else from centengine.cfg
-# broker_address = "broker:5669"                           # else from the cbmod file
+input = "structured"         # or "files"
+target = "engine"            # files: target whose path holds the .cfg files;
+                             # structured: target the document is reported as
+main_file = "centengine.cfg" # files: relative to the target path
+# broker_config = "/etc/centreon-broker/poller-module.json" # files: else from centengine.cfg
+# broker_address = "broker:5669" # over the document or the cbmod file
 max_concurrent_checks = 256
 max_pending_events = 100000
 
@@ -331,23 +452,58 @@ reload = "scheduler:reload"
 restart = "scheduler:reload"
 ```
 
-- The agent built with feature `scheduler` starts the scheduler at start-up
-  when `[scheduler] enabled`: it loads the configuration of the target if
-  there is one (else it waits for a deployment), connects to the central
-  broker and starts checking.
-- **Validation**: a target with `engine_main_file` is checked by the
-  scheduler's own parser (`ConfigChecker::Scheduler`), in place of the
+- At start the engine loads the kept document (structured) or the files of
+  the target (files); without one it waits for a deployment. Then it
+  connects to the central broker and starts checking.
+- **Instance**: `instances.engine` is `Centreon Engine (Rust)`;
+  `instances.version` is `27.01.0`, the collect release whose configuration
+  and BBDO contract the engine follows, not the crate version: centreon-web
+  compares it with Engine versions (`www/class/config-generate/engine.class.php:356-368`
+  adds the legacy `cbmod.so` line below 25.05.0, `broker.class.php`
+  `getPollerVersion` picks features by version), and `0.1.0` would read as
+  a very old Engine.
+- **Validation** (files input): a target with `engine_main_file` is checked
+  by the engine's own parser (`ConfigChecker::Scheduler`), in place of the
   engine API or `verify_command`: same staging, same `Total Errors:` report,
   same refusal of an invalid bundle.
-- **Reload**: `scheduler:reload` (service operation) parses the live files
-  again and applies them in process; a configuration that does not parse is
-  refused and the running one is kept. `restart` is the same.
+- **Reload**: `scheduler:reload` (service operation) reads the live files,
+  or the kept document, again and applies them in process; a configuration
+  that does not parse is refused and the running one is kept. `restart` is
+  the same.
 - **External commands** (`EngineCommands`): after the agent allowlist,
   handled in process: `SCHEDULE_FORCED_HOST_CHECK`, `SCHEDULE_FORCED_SVC_CHECK`,
   `SCHEDULE_HOST_CHECK`, `SCHEDULE_SVC_CHECK`, `PROCESS_HOST_CHECK_RESULT`,
   `PROCESS_SERVICE_CHECK_RESULT`. Any other command fails the job with
   "not supported by the built-in scheduler"; lines after it are not run.
 - **Node state**: the heartbeat reports the engine state as
-  `reachable = configuration loaded`, version `gorgone-scheduler <version>`.
+  `reachable = configuration loaded`, version `centreon-engine <version>`,
+  and, with the structured input, the digest of the document in force as
+  applied to `target`.
 - The crate is a separate library; without the feature the agent binary
-  does not contain it.
+  does not contain it, and the `centreon-engine` binary is not built.
+
+## 7. Growing the model (next batches)
+
+Timeperiods, downtimes, acknowledgements, comments, retention, groups,
+severities, tags, the event log, parents and UNREACHABLE, dependencies:
+
+- **Document**: a new object type is a new top-level list (`timeperiods`,
+  `hostgroups`, `severities`…) with its own `$defs` entry in the schema and
+  its serde struct in `document.rs`; a new field of an existing object is a
+  new optional property (`check_period`, `parents`…). Engine key names, as
+  today. The schema test (`the_schema_file_names_the_same_fields`) keeps the
+  schema and the model together.
+- **Model**: each object type gets a `Kind` and a resolved `*Conf` in the
+  model; templates keep going through `cfg::build`, so both inputs keep
+  giving the same model. Cross-object checks (unknown timeperiod, parent
+  loop) go to `build`, where the file input gets them too.
+- **Diff**: the reload diff is per keyed object (`Changes` in `core.rs`).
+  A new type adds its key (timeperiod name, group id, `(id, type)` for
+  severities and tags) and its Engine events: add/update/delete as in the
+  table of section 2 (`applier/hostgroup.cc`, `severity.cc`, `tag.cc`…
+  send the group/severity/tag event with `enabled` false on removal), sent
+  before the hosts and services that reference them, as Engine applies
+  them. Runtime state that is not configuration (downtimes, comments,
+  acknowledgements) is not diffed: it lives in the engine, survives a
+  reload, and needs retention (a state file next to the kept document) to
+  survive a restart.
