@@ -132,6 +132,9 @@ podman rm -f "${CONTAINER}" 2>/dev/null || true
 # --privileged and the same mounts as the reference container (pasta network by
 # default).
 #
+# --pull=newer: fetch the image again when the registry has a newer one,
+# instead of reusing a cached image that may be months old.
+#
 # --init is REQUIRED, not cosmetic: with `sleep infinity` as PID 1 nothing ever
 # calls wait(), so every orphaned process becomes a permanent zombie. The test
 # teardowns orphan a lot of `pkill` (Common.py kills cbd/centengine/rrdcached
@@ -144,6 +147,7 @@ podman run -d --name "${CONTAINER}" \
   --hostname "${CONTAINER}" \
   --privileged \
   --init \
+  --pull=newer \
   -v "${SRC}:${WORK}" \
   -v "${CACHE}:/root/.cache" \
   "${IMAGE}" sleep infinity
@@ -162,6 +166,11 @@ echo ">>> (2/6) System packages and build toolchain"
 run '
   export DEBIAN_FRONTEND=noninteractive
   apt-get update
+  # The binaries are built on the host and only installed here: they link
+  # against system libraries (libmariadb, libcurl, gnutls, ...), so the
+  # container must be as up to date as the host, not frozen at the date of the
+  # cached image.
+  apt-get dist-upgrade -y
   apt-get install -y \
     curl wget git zip unzip zstd tar ca-certificates gnupg sudo locales \
     g++ gcc gdb lldb valgrind \
@@ -221,6 +230,14 @@ run "
 "
 
 echo ">>> (5/6) uv and the robot venv (${TESTS_DIR}/robotframework)"
+# A worktree on an older branch may have no tests/requirements.txt yet: fall
+# back to the main repository's list rather than failing.
+if [ -f "${SRC}/${WORKTREE}/tests/requirements.txt" ]; then
+  REQUIREMENTS="${TESTS_DIR}/requirements.txt"
+else
+  REQUIREMENTS="${WORK}/tests/requirements.txt"
+  echo "--- ${WORKTREE}/tests/requirements.txt missing, using ${REQUIREMENTS}"
+fi
 # The tests/README.md procedure, with the interpreter named explicitly.
 #
 # It must be the container's own /usr/bin/python3, and not a python uv downloads for
@@ -242,7 +259,7 @@ run "
   cd ${TESTS_DIR}
   rm -rf robotframework
   uv venv --python=/usr/bin/python3 robotframework
-  uv pip install --python robotframework/bin/python -U -r requirements.txt
+  uv pip install --python robotframework/bin/python -U -r ${REQUIREMENTS}
 "
 
 echo ">>> (6/6) Generating the python gRPC stubs (init-proto.sh)"
