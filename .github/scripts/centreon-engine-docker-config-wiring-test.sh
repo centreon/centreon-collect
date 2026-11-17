@@ -120,7 +120,7 @@ create_with_configs() {
   docker cp "$FIXTURE_DIR/broker/." "$container:/etc/centreon-broker"
   while [ "$#" -ge 2 ]; do
     # mktemp files are 0600 owned by the runner's uid; docker cp preserves
-    # mode+uid, and check_custom_deps.py/check_plugins.py run as centreon-engine
+    # mode+uid, and check_packages.pl runs as centreon-engine
     # (uid 901) - without this they'd hit a silent permission-denied read and
     # install nothing. Make it world-readable so 901 can read it regardless.
     chmod 644 "$1"

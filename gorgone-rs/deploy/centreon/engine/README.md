@@ -1,10 +1,10 @@
 # centreon-engine image for the gorgone-rs proof of concept
 
-`centreon-engine-trixie:develop` with `/usr/sbin/centengine` replaced by a build of this branch, which adds the `ProcessExternalCommand` and `VerifyConfiguration` RPCs to the Engine gRPC API (`engine/enginerpc/engine.proto`), lets that API listen on a Unix domain socket and adds the `recurringdowntime` configuration object (recurring downtimes scheduled by Engine), and with the entrypoint script `05-engine-config.sh` of this branch, which reads `ENGINE_RPC_LISTEN_ADDRESS`.
+`centreon-engine-trixie:develop` with `/usr/sbin/centengine` replaced by a build of this branch, which adds the `ProcessExternalCommand` and `VerifyConfiguration` RPCs to the Engine gRPC API (`engine/enginerpc/engine.proto`), lets that API listen on a Unix domain socket and adds the `recurringdowntime` configuration object (recurring downtimes scheduled by Engine), and with the entrypoint scripts of this branch (`05-engine-config.sh` reads `ENGINE_RPC_LISTEN_ADDRESS`; `check_packages.pl` replaces the Python plugin installer).
 
-`recurringdowntime` adds messages to `common/engine_conf/state.proto`, so the image also replaces the configuration library `libcentreon_engine_conf.so` (`/usr/lib`) and the two modules compiled against its classes, `externalcmd.so` and `libopentelemetry.so` (`/usr/lib64/centreon-engine/`). `cbmod.so` and `libcentreon_clib.so` still come from the image packages (`cbmod.so` does not use the configuration classes), so the branch must not diverge from `develop` in `clib/`, `bbdo/` or `broker/neb/`. A Broker that parses the Engine configuration (`unified_sql`) needs the same `libcentreon_engine_conf.so` to read a configuration that contains `recurringdowntime` objects.
+`recurringdowntime` adds messages to `common/engine_conf/state.proto`, so the image also replaces the configuration library `libcentreon_engine_conf.so` (`/usr/lib`) and the module compiled against its classes, `libopentelemetry.so` (`/usr/lib64/centreon-engine/`). The other one, `externalcmd.so`, is removed: see [No external command file](#no-external-command-file). `cbmod.so` and `libcentreon_clib.so` still come from the image packages (`cbmod.so` does not use the configuration classes), so the branch must not diverge from `develop` in `clib/`, `bbdo/` or `broker/neb/`. A Broker that parses the Engine configuration (`unified_sql`) needs the same `libcentreon_engine_conf.so` to read a configuration that contains `recurringdowntime` objects.
 
-The image is a single layer: the base image already ships about 140 MB of files that its later layers replace or delete, and replacing the binaries above adds more. It also swaps `mailutils` for `bsd-mailx`: the same `mail` command in front of the same `msmtp` (checked: the same message reaches an SMTP server from both), without the Guile runtime mailutils pulls in. Plugins, the `plugins.json` installer, Perl and Python are kept. Sizes, from the published base to this image: layers 432 MB → 343 MB, download (compressed) 113 MB → 95 MB.
+The image is a single layer: the base image already ships about 140 MB of files that its later layers replace or delete, and replacing the binaries above adds more. It also swaps `mailutils` for `bsd-mailx`: the same `mail` command in front of the same `msmtp` (checked: the same message reaches an SMTP server from both), without the Guile runtime mailutils pulls in. It has no Python: the `plugins.json` and `custom-deps.json` installer is the Perl script `check_packages.pl` of the entrypoint (same output as the former `check_plugins.py` and `check_custom_deps.py`), Perl being there for the plugins anyway. Plugins and the installer are kept. Sizes, from the published base to this image: layers 432 MB → 313 MB, `docker save` 115 MB → 88 MB.
 
 ## Build
 
@@ -31,7 +31,7 @@ docker run --rm -v "$PWD":/src:ro -v collect-poc-build-trixie:/build -w /src "$P
     -DWITH_PREFIX_CONF_ENGINE=/etc/centreon-engine -DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine \
     -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_RW_DIR=/var/lib/centreon-engine/rw \
     -DWITH_VAR_DIR=/var/log/centreon-engine -DWITH_MODULE_SIMU=On -DLEGACY_ENGINE=OFF -DONLY_ROBOT_CMA=OFF
-  ninja -C /build -j "$(nproc)" centengine centreon_engine_conf externalcmd opentelemetry \
+  ninja -C /build -j "$(nproc)" centengine centreon_engine_conf opentelemetry \
     ut_engine rpc_client_engine bin_connector_test_run'
 
 # 2. Unit tests of the gRPC API and of the recurring downtimes. The
@@ -40,15 +40,14 @@ docker run --rm -v "$PWD":/src:ro -v collect-poc-build-trixie:/build -w /build "
   tests/ut_engine --gtest_filter='EngineRpc.*:enginerpc_test.*:ApplierGlobal.*:recurring*'
 
 # 3. Build context, outside the working tree: the stripped binary, library and
-#    modules, and the entrypoint script of this branch.
+#    module, and the entrypoint scripts of this branch.
 CTX=$(mktemp -d)
 docker run --rm -v collect-poc-build-trixie:/build:ro -v "$CTX":/out "$PACKAGING" sh -ec '
   strip -o /out/centengine /build/engine/centengine
   strip -o /out/libcentreon_engine_conf.so /build/common/engine_conf/libcentreon_engine_conf.so
-  strip -o /out/externalcmd.so /build/engine/modules/external_commands/externalcmd.so
   strip -o /out/libopentelemetry.so /build/engine/modules/opentelemetry/libopentelemetry.so
   chmod 755 /out/*'
-cp .github/docker/centreon-engine/trixie/entrypoint/container.d/05-engine-config.sh "$CTX/"
+cp -r .github/docker/centreon-engine/trixie/entrypoint "$CTX/"
 
 # 4. Image.
 docker build -t centreon-engine-trixie:gorgone-poc -f gorgone-rs/deploy/centreon/engine/Dockerfile "$CTX"
@@ -59,6 +58,14 @@ docker build -t centreon-engine-trixie:gorgone-poc -f gorgone-rs/deploy/centreon
 The image is configured like its base (`.github/docker/centreon-engine/trixie/`): it reads `/etc/centreon-engine/centengine.cfg` and the files that one lists, and `/etc/centreon-broker/` for `cbmod`. Copy or mount a configuration there; `.github/docker/centreon-engine/fixtures/minimal-config/` is a minimal one.
 
 The entrypoint (`container.d/05-engine-config.sh`) writes `rpc_listen_address` into `centengine.cfg` at each start, from the environment variable `ENGINE_RPC_LISTEN_ADDRESS` (default `0.0.0.0`). The API is plain text and has no authentication: whoever reaches it runs any external command.
+
+### No external command file
+
+The container engine has no external command file: the image has no `externalcmd.so` (the module that creates the `centengine.cmd` FIFO and reads it), and its packaged `centengine.cfg` has neither the `broker_module=…/externalcmd.so` line nor `command_file`. Engine itself never creates the FIFO, whatever `command_file` and `check_external_commands` say; external commands reach it through the gRPC API only (`ProcessExternalCommand`, used by `gorgone-agent`).
+
+The configuration centreon-web generates must match. In the bench, `register.pl` (run by `50-gorgone-agent_background.sh`) removes the module and `command_file` from the Engine configuration of its poller, through CLAPI (`ENGINECFG`, `delbrokermodule` and `setparam … command_file` to an empty value), when it registers the poller and again before the first deployment; the Central poller, which the installation creates, gets the same at its deployment. A configuration that still loads `externalcmd.so` works, with one error at each start (`Could not load module`).
+
+On such a poller, anything that writes to `centengine.cmd` (`centreontrapd`, event handler or notification scripts, custom tools) must call `ProcessExternalCommand` on the gRPC API instead: the file does not exist, and nothing would read it.
 
 ### Unix domain socket (recommended for a sidecar)
 
