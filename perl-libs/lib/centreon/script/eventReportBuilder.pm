@@ -54,7 +54,8 @@ sub new {
     my $class = shift;
     my $self = $class->SUPER::new("eventReportBuilder",
         centreon_db_conn => 1,
-        centstorage_db_conn => 1
+        centstorage_db_conn => 1,
+        requireconfig => 1
     );
 
     bless $self, $class;
