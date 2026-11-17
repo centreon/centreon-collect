@@ -1,4 +1,11 @@
 name: gorgone
+run-name: |
+  ${{
+    (github.event_name == 'schedule' ||
+     (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true'))
+    && format('gorgone nightly {0}', github.ref_name)
+    || ''
+  }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -6,6 +13,14 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      nightly_manual_trigger:
+        description: "Set to true for nightly run"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "0 1 * * 1-5"
   pull_request:
     paths:
       - ".version.centreon-gorgone"
@@ -38,6 +53,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: .version.centreon-gorgone
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   package:
     needs: [get-environment]
@@ -332,12 +348,14 @@ jobs:
   deliver-rpm-pulp:
     runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, robot-test]
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      needs.get-environment.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled')))
 
     strategy:
       fail-fast: false
@@ -371,12 +389,14 @@ jobs:
   deliver-deb-pulp:
     runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, robot-test]
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      needs.get-environment.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled')))
 
     strategy:
       fail-fast: false
@@ -452,3 +472,26 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
     uses: ./.github/workflows/set-pull-request-skip-label.yml
+
+  create-jira-nightly-ticket:
+    runs-on: ubuntu-24.04
+    needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
+    # Disabled unless the NIGHTLY_JIRA_TICKETS_ENABLED organization variable is set to 'true'
+    if: |
+      vars.NIGHTLY_JIRA_TICKETS_ENABLED == 'true' &&
+      needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+      startsWith(github.ref_name, 'dev') &&
+      (failure() || cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) &&
+      github.repository == 'centreon/centreon-collect'
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Create Jira ticket based on nightly build failure
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-gorgone"
+          ticket_reason_for_creation: "Nightly"
