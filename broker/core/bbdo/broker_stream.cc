@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include "broker/core/bbdo/broker_stream.hh"
+#include <exception>
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
@@ -303,7 +304,7 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       _push_pending_config_messages();
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(_logger,
-                          "Fail to send config messages to poller {}: {}",
+                          "Failed to send config messages to poller {}: {}",
                           poller_id(), e.what());
     }
     // even if an error occurs, we update _last_config_generation, an error
@@ -359,7 +360,15 @@ void broker_stream::_push_pending_config_messages() {
       // config update, push the DiffState to the relay.
       for (uint64_t engine_id :
            _state.engine_peers_via_relay_needing_update(poller_id())) {
-        _send_diff_state_for_poller(engine_id);
+        // a prot file on a poller must not block other updates => ignore
+        // exception
+        try {
+          _send_diff_state_for_poller(engine_id);
+        } catch (const std::exception& e) {
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "Failed to send config messages to poller {}: {}",
+                              engine_id, e.what());
+        }
       }
     }
     /* When this broker is a relay (no pollers_config_dir), forward any pending
