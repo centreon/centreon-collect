@@ -29,7 +29,6 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::misc;
 using com::centreon::common::log_v2::log_v2;
 
 class into_memory : public io::stream {

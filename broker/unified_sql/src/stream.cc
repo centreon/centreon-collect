@@ -366,7 +366,7 @@ void stream::_load_caches() {
       "SELECT resource_id, id, parent_id, poller_id FROM resources",
       std::move(promise_resource));
 
-  /* severities => _severity_cache */
+  /* severities => _severities_cache */
   _mysql.run_query_and_get_result(
       "SELECT severity_id, id, type FROM severities",
       std::move(promise_severity));
@@ -564,8 +564,8 @@ void stream::_load_caches() {
     try {
       mysql_result res{future_resource.get()};
       while (_mysql.fetch_row(res)) {
-        _resource_cache[{res.value_as_u64(1), res.value_as_u64(2),
-                         res.value_as_u64(3)}] = res.value_as_u64(0);
+        _resources_cache[{res.value_as_u64(1), res.value_as_u64(2),
+                          res.value_as_u64(3)}] = res.value_as_u64(0);
       }
     } catch (const std::exception& e) {
       throw msg_fmt("unified sql: could not get the list of resources: {}",
@@ -575,8 +575,8 @@ void stream::_load_caches() {
     try {
       mysql_result res{future_severity.get()};
       while (_mysql.fetch_row(res)) {
-        _severity_cache[{res.value_as_u64(1),
-                         static_cast<uint16_t>(res.value_as_u32(2))}] =
+        _severities_cache[{res.value_as_u64(1),
+                           static_cast<uint16_t>(res.value_as_u32(2))}] =
             res.value_as_u64(0);
       }
     } catch (const std::exception& e) {
@@ -1173,13 +1173,13 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
           _cache_svc_cmd.erase(itt);
 
           // resources
-          auto res_it = _resource_cache.find({svc_id, host_id, it->second});
-          if (res_it != _resource_cache.end())
-            _resource_cache.erase(res_it);
+          auto res_it = _resources_cache.find({svc_id, host_id, it->second});
+          if (res_it != _resources_cache.end())
+            _resources_cache.erase(res_it);
         }
-        auto res_it = _resource_cache.find({host_id, 0, it->second});
-        if (res_it != _resource_cache.end())
-          _resource_cache.erase(res_it);
+        auto res_it = _resources_cache.find({host_id, 0, it->second});
+        if (res_it != _resources_cache.end())
+          _resources_cache.erase(res_it);
       }
       it = _cache_host_instance.erase(it);
     } else
