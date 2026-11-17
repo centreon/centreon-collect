@@ -35,16 +35,19 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
 class LoopTest : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
     error_cnt err;
-    init_config_state();
+    _state_hlp = init_config_state();
     events::loop::instance().clear();
 
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_config);
+    _state_hlp->expand(err);
     ct_aply.resolve_object(ctct, err);
 
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
@@ -122,7 +125,7 @@ TEST_F(LoopTest, ForcedServiceCheckAtMaxDoesNotStarveQueuedTasks) {
 
   // max_concurrent_checks is reached but a forced check bypasses it: the event
   // is run, not nudged, and the idle branch of the loop is not reached.
-  pb_config.set_max_parallel_service_checks(1);
+  pb_indexed_config.mut_state().set_max_parallel_service_checks(1);
   currently_running_service_checks = 1;
   _svc->set_check_options(CHECK_OPTION_FORCE_EXECUTION);
   auto new_event{std::make_unique<timed_event>(

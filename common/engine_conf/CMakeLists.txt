@@ -80,6 +80,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     hostescalation_helper.hh
     hostgroup_helper.cc
     hostgroup_helper.hh
+    indexed_diff_state.cc
+    indexed_diff_state.hh
+    indexed_state.cc
+    indexed_state.hh
     message_helper.cc
     message_helper.hh
     parser.cc

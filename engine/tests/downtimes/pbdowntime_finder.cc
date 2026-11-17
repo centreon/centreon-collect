@@ -35,10 +35,13 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
 
 class DowntimeFinderFindMatchingAllTest : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
     configuration::error_cnt err;
-    init_config_state();
+    _state_hlp = init_config_state();
     configuration::Contact ctc{
         new_pb_configuration_contact("admin", false, "a")};
     configuration::applier::contact ctc_aply;

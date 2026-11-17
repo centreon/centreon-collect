@@ -19,12 +19,10 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOST_HH
 #define CCE_CONFIGURATION_APPLIER_HOST_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
-
 #include "common/engine_conf/host_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 
-namespace applier {
 class host {
  public:
   host() = default;
@@ -32,13 +30,12 @@ class host {
   ~host() noexcept = default;
   host& operator=(host const&) = delete;
   void add_object(const configuration::Host& obj);
-  void expand_objects(configuration::State& s);
   void modify_object(configuration::Host* old_obj,
                      const configuration::Host& new_obj);
-  void remove_object(ssize_t idx);
+  void remove_object(uint64_t host_id);
   void resolve_object(const configuration::Host& obj, error_cnt& err);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_HOST_HH

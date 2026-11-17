@@ -21,8 +21,6 @@
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
-#include "com/centreon/engine/globals.hh"
-#include "common/engine_conf/connector_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -63,7 +61,8 @@ TEST_F(ApplierPbConnector, PbModifyConnector) {
   aply.add_object(cnn);
 
   cnn.set_connector_line("date");
-  configuration::Connector* old = &pb_config.mutable_connectors()->at(0);
+  configuration::Connector* old =
+      pb_indexed_config.mut_connectors().at("connector").get();
   aply.modify_object(old, cnn);
 
   connector_map::iterator found_con =
@@ -86,7 +85,7 @@ TEST_F(ApplierPbConnector, PbRemoveConnector) {
   cnn.set_connector_line("echo 1");
 
   aply.add_object(cnn);
-  aply.remove_object(0);
-  ASSERT_TRUE(pb_config.connectors().size() == 0);
+  aply.remove_object("connector");
+  ASSERT_TRUE(pb_indexed_config.connectors().size() == 0);
   ASSERT_TRUE(commands::connector::connectors.size() == 0);
 }

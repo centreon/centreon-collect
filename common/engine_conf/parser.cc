@@ -18,6 +18,7 @@
  */
 #include "parser.hh"
 #include <absl/strings/match.h>
+#include <filesystem>
 #include "anomalydetection_helper.hh"
 #include "com/centreon/common/file_system.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -139,6 +140,11 @@ void parser::_parse_global_configuration(const std::string& path,
                                          State* pb_config) {
   _logger->info("Reading main configuration file '{}'.", path);
 
+  std::filesystem::path p(path);
+  if (!std::filesystem::is_regular_file(p)) {
+    _logger->info("No configuration file available at '{}'.", path);
+    return;
+  }
   std::string content = common::read_file_content(path);
 
   pb_config->set_cfg_main(path);

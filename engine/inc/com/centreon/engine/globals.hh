@@ -1,7 +1,7 @@
 /**
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
- * Copyright 2011-2024 Centreon
+ * Copyright 2011-2025 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -29,6 +29,7 @@
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
 #include "common/crypto/aes256.hh"
+#include "common/engine_conf/indexed_state.hh"
 #include "common/log_v2/log_v2.hh"
 
 /* Start/Restart statistics */
@@ -51,7 +52,7 @@ extern std::shared_ptr<spdlog::logger> process_logger;
 extern std::shared_ptr<spdlog::logger> runtime_logger;
 extern std::shared_ptr<spdlog::logger> otel_logger;
 
-extern com::centreon::engine::configuration::State pb_config;
+extern com::centreon::engine::configuration::indexed_state pb_indexed_config;
 extern std::string config_file;
 extern std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 

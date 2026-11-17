@@ -62,13 +62,16 @@ class connector_listener : public commands::command_listener {
 };
 
 class Connector : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   std::shared_ptr<connector> cmd_connector;
 
   void SetUp() override {
     signal(SIGPIPE, SIG_IGN);
     commands_logger->set_level(spdlog::level::trace);
-    init_config_state();
+    _state_hlp = init_config_state();
   }
 
   void TearDown() override {

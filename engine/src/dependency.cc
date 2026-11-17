@@ -33,7 +33,6 @@ dependency::dependency(size_t key,
                        bool fail_on_pending,
                        const std::string& dependency_period)
     : _internal_key{key},
-      dependency_period_ptr(nullptr),
       _dependency_type{dependency_type},
       _dependent_hostname{dependent_hostname},
       _hostname{hostname},
@@ -46,8 +45,9 @@ dependency::dependency(size_t key,
     engine_logger(log_config_error, basic)
         << "Error: NULL host name in host dependency definition";
     config_logger->error("Error: NULL host name in host dependency definition");
-    throw engine_error() << "Could not create execution " << "dependency of '"
-                         << dependent_hostname << "' on '" << hostname << "'";
+    throw engine_error() << "Could not create execution "
+                         << "dependency of '" << dependent_hostname << "' on '"
+                         << hostname << "'";
   }
 }
 

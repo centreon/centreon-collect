@@ -20,7 +20,6 @@
 #define CCE_CONFIGURATION_HOSTESCALATION
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
@@ -44,19 +43,9 @@ class hostescalation_helper : public message_helper {
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
           m_hostgroups);
 };
-
-template <typename hash_type>
-hash_type AbslHashValue(hash_type previous_value,
-                        const Hostescalation& to_hash) {
-  return hash_type::combine(std::move(previous_value),
-                            hostescalation_key(to_hash));
-}
-
-bool operator==(const Hostescalation& left, const Hostescalation& right);
-
 }  // namespace com::centreon::engine::configuration
 
 #endif /* !CCE_CONFIGURATION_HOSTESCALATION */

@@ -32,8 +32,11 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 
 class ServiceExternalCommand : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override {
     deinit_config_state();
@@ -76,8 +79,7 @@ TEST_F(ServiceExternalCommand, AddServiceDowntime) {
   svc_hlp.set_default_values();
   svc_aply.add_object(svc);
 
-  hst_aply.expand_objects(pb_config);
-  svc_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
 
   hst_aply.resolve_object(hst, err);
   svc_aply.resolve_object(svc, err);
@@ -131,10 +133,9 @@ TEST_F(ServiceExternalCommand, AddServiceDowntimeByHostIpAddress) {
   svc_hlp.set_default_values();
   svc_aply.add_object(svc);
 
-  hst_aply.expand_objects(pb_config);
-  svc_aply.expand_objects(pb_config);
-
   configuration::error_cnt err;
+  _state_hlp->expand(err);
+
   hst_aply.resolve_object(hst, err);
   svc_aply.resolve_object(svc, err);
 
@@ -187,10 +188,9 @@ TEST_F(ServiceExternalCommand, AddServiceComment) {
   svc_hlp.set_default_values();
   svc_aply.add_object(svc);
 
-  hst_aply.expand_objects(pb_config);
-  svc_aply.expand_objects(pb_config);
-
   configuration::error_cnt err;
+  _state_hlp->expand(err);
+
   hst_aply.resolve_object(hst, err);
   svc_aply.resolve_object(svc, err);
 

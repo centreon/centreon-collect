@@ -158,7 +158,7 @@ void hostgroup::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   uint32_t errors = 0;
 
   // Check all group members.
-  for (host_map_unsafe::iterator it{members.begin()}, end{members.end()};
+  for (host_map_unsafe::iterator it = members.begin(), end = members.end();
        it != end; ++it) {
     host_map::const_iterator it_host{host::hosts.find(it->first)};
     if (it_host == host::hosts.end() || !it_host->second) {

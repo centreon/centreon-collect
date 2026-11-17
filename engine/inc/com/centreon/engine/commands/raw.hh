@@ -21,7 +21,6 @@
 #define CCE_COMMANDS_RAW_HH
 
 #include "com/centreon/engine/commands/command.hh"
-#include "com/centreon/process.hh"
 #include "com/centreon/process_listener.hh"
 
 namespace com::centreon::engine {

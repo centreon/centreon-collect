@@ -23,6 +23,8 @@
 #include <absl/container/flat_hash_set.h>
 #include <google/protobuf/util/message_differencer.h>
 
+#include <iterator>
+
 namespace com::centreon::engine {
 
 using MessageDifferencer = ::google::protobuf::util::MessageDifferencer;

@@ -16,11 +16,8 @@
  * For more information : contact@centreon.com
  *
  */
-
-#include <google/protobuf/util/message_differencer.h>
-
 #include "common/engine_conf/servicedependency_helper.hh"
-
+#include <boost/functional/hash.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using com::centreon::exceptions::msg_fmt;
@@ -28,17 +25,23 @@ using com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 
 size_t servicedependency_key(const Servicedependency& sd) {
-  return absl::HashOf(
-      sd.dependency_period(), sd.dependency_type(), sd.dependent_hostgroups(),
-      sd.dependent_hosts(), sd.dependent_servicegroups(),
-      sd.dependent_service_description(), sd.execution_failure_options(),
-      sd.hostgroups(), sd.hosts(), sd.inherits_parent(),
-      sd.notification_failure_options(), sd.servicegroups(),
-      sd.service_description());
-}
-
-bool operator==(const Servicedependency& left, const Servicedependency& right) {
-  return ::google::protobuf::util::MessageDifferencer::Equals(left, right);
+  assert(sd.hosts().data().size() == 1 && sd.hostgroups().data().empty() &&
+         sd.servicegroups().data().empty() &&
+         sd.dependent_hostgroups().data().empty() &&
+         sd.dependent_hosts().data().size() == 1 &&
+         sd.dependent_servicegroups().data().empty() &&
+         sd.dependent_service_description().data().size() == 1);
+  uint64_t result = 0;
+  boost::hash_combine(result, sd.dependency_period());
+  boost::hash_combine(result, sd.dependency_type());
+  boost::hash_combine(result, sd.dependent_hosts().data(0));
+  boost::hash_combine(result, sd.dependent_service_description().data(0));
+  boost::hash_combine(result, sd.execution_failure_options());
+  boost::hash_combine(result, sd.hosts().data(0));
+  boost::hash_combine(result, sd.inherits_parent());
+  boost::hash_combine(result, sd.notification_failure_options());
+  boost::hash_combine(result, sd.service_description().data(0));
+  return result;
 }
 
 /**
@@ -212,8 +215,9 @@ void servicedependency_helper::set_default_values() {
 void servicedependency_helper::expand(
     State& s,
     error_cnt& err [[maybe_unused]],
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        hostgroups,
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
         servicegroups) {
   // Browse all dependencies.
   std::list<std::unique_ptr<Servicedependency>> expanded;
@@ -304,8 +308,9 @@ void servicedependency_helper::_expand_services(
     const ::google::protobuf::RepeatedPtrField<std::string>& svc,
     const ::google::protobuf::RepeatedPtrField<std::string>& sg,
     absl::flat_hash_set<std::pair<std::string, std::string>>& expanded,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        hostgroups,
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
         servicegroups) {
   // Expanded hosts.
   absl::flat_hash_set<std::string> all_hosts;

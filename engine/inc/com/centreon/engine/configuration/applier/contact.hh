@@ -19,13 +19,11 @@
 #ifndef CCE_CONFIGURATION_APPLIER_CONTACT_HH
 #define CCE_CONFIGURATION_APPLIER_CONTACT_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
-
 #include "common/engine_conf/contact_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 // Forward declarations.
 
-namespace applier {
 class contact {
  public:
   /**
@@ -43,11 +41,10 @@ class contact {
   void add_object(const configuration::Contact& obj);
   void modify_object(configuration::Contact* to_modify,
                      const configuration::Contact& new_object);
-  void remove_object(ssize_t idx);
-  void expand_objects(configuration::State& s);
+  void remove_object(const std::string& key);
   void resolve_object(const configuration::Contact& obj, error_cnt& err);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_CONTACT_HH

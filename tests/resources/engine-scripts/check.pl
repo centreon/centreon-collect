@@ -70,6 +70,10 @@ else {
       if (/^$id=>(.*)/) {
         $status = $1;
         chomp $status;
+	if (open(FF, '>>', "/tmp/check_log")) {
+          print FF "$$ => id=$id state get from /tmp/states: $status\n";
+	  close FF;
+        }
 	last;
       }
     }
@@ -87,10 +91,22 @@ else {
     $d = 2 * $c;
   } else {
     if ($d > $c) {
+      if (open(FF, '>>', "/tmp/check_log")) {
+          print FF "$$ => id=$id status set to 2\n";
+	  close FF;
+      }
       $status = 2;
     } elsif ($d > $w) {
+      if (open(FF, '>>', "/tmp/check_log")) {
+          print FF "$$ => id=$id status set to 1\n";
+	  close FF;
+      }
       $status = 1;
     } else {
+      if (open(FF, '>>', "/tmp/check_log")) {
+          print FF "$$ => id=$id status set to 0\n";
+	  close FF;
+      }
       $status = 0;
     }
   }

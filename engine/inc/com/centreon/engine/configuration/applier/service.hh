@@ -18,33 +18,29 @@
  */
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICE_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICE_HH
+#include <cstdint>
 #include "com/centreon/engine/configuration/applier/state.hh"
-
 #include "common/engine_conf/service_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 
-namespace applier {
 class service {
+  void _expand_service_memberships(configuration::Service& obj,
+                                   configuration::indexed_state& s);
+  void _inherits_special_vars(configuration::Service& obj,
+                              const configuration::indexed_state& s);
+
  public:
   service() = default;
   service(service const&) = delete;
   ~service() noexcept = default;
   service& operator=(service const&) = delete;
   void add_object(const configuration::Service& obj);
-  void expand_objects(configuration::State& s);
   void modify_object(configuration::Service* old_obj,
                      const configuration::Service& new_obj);
-  void remove_object(ssize_t idx);
+  void remove_object(const std::pair<uint64_t, uint64_t>& key);
   void resolve_object(const configuration::Service& obj, error_cnt& err);
-
- private:
-  void _expand_service_memberships(configuration::Service& obj,
-                                   configuration::State& s);
-  void _inherits_special_vars(configuration::Service& obj,
-                              const configuration::State& s);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICE_HH

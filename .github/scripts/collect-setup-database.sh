@@ -3,6 +3,7 @@ set -e
 set -x
 
 
+# mysql or mariadb
 database_type=$1
 
 . /etc/os-release
