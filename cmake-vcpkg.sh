@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# Tells if the Debian package $1 is installed. A tool is also accepted when its
+# command is found in the PATH, since it may come from elsewhere than a Debian
+# package (e.g. sccache installed with cargo).
+is_installed() {
+  local cmd
+  case "$1" in
+    ninja-build) cmd=ninja ;;
+    cmake|curl|g++|gcc|git|mold|pkg-config|python3|sccache|zip) cmd="$1" ;;
+    *) cmd= ;;
+  esac
+  if [ -n "$cmd" ] && command -v "$cmd" >/dev/null ; then
+    return 0
+  fi
+  $dpkg -l "$1" | grep -q "^ii"
+}
+
 show_help() {
 cat << EOF
 Usage: ${0##*/} -n=[yes|no] -v
@@ -20,11 +36,39 @@ EOF
 
 BUILD_TYPE="Debug"
 
-export VCPKG_ROOT=vcpkg
+# Every path given to cmake is absolute: cmake stores them in its cache, and a
+# relative one breaks as soon as cmake is re-run from another directory (e.g.
+# by ninja from the build directory). The script can also be launched from
+# anywhere.
+SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_VCPKG="$SRC_DIR/vcpkg"
+# vcpkg release this tree is built with.
+VCPKG_TAG=2026.05.25
+
+# Prints the vcpkg directory to use when VCPKG_ROOT is not defined: the local
+# one if it exists, otherwise the one of another worktree of the repository if
+# it is at the release VCPKG_TAG, otherwise the local one (to be cloned).
+find_vcpkg() {
+  local wt
+  if [ -d "$LOCAL_VCPKG" ] ; then
+    echo "$LOCAL_VCPKG"
+    return
+  fi
+  while read -r wt ; do
+    if [ "$wt" != "$SRC_DIR" ] && [ -d "$wt/vcpkg" ] &&
+       [ "$(git -C "$wt/vcpkg" describe --tags --exact-match 2>/dev/null)" = "$VCPKG_TAG" ] ; then
+      echo "$wt/vcpkg"
+      return
+    fi
+  done < <(git -C "$SRC_DIR" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
+  echo "$LOCAL_VCPKG"
+}
+
+# An already defined VCPKG_ROOT is kept, only made absolute. A vcpkg borrowed
+# from another worktree is shared like it.
+export VCPKG_ROOT="$(realpath -m "${VCPKG_ROOT:-$(find_vcpkg)}")"
 export PATH="$VCPKG_ROOT:$PATH"
-#echo "Please, before the build, execute the following commands:"
-#echo "export VCPKG_ROOT=\$PWD/vcpkg"
-#echo "export PATH=\$VCPKG_ROOT:\$PATH"
+echo "vcpkg used: $VCPKG_ROOT"
 
 COMPILER=gcc
 CC=gcc
@@ -231,7 +275,7 @@ elif [ -r /etc/issue ] ; then
     )
     apt update
     for i in "${pkgs[@]}"; do
-      if ! $dpkg -l $i | grep "^ii" ; then
+      if ! is_installed "$i" ; then
         if [[ "$my_id" == 0 ]] ; then
           apt install -y $i
         else
@@ -260,7 +304,7 @@ elif [ -r /etc/issue ] ; then
       zlib1g-dev
     )
     for i in "${pkgs[@]}"; do
-      if ! $dpkg -l $i | grep "^ii" ; then
+      if ! is_installed "$i" ; then
         if [[ "$my_id" == 0 ]] ; then
           apt install -y $i
         else
@@ -273,18 +317,22 @@ elif [ -r /etc/issue ] ; then
 fi
 
 if [ "$force" = "1" ] ; then
-  echo "Build forced, removing the 'build' directory before recreating it"
-  rm -rf build
-  rm -rf vcpkg
-  mkdir build
+  echo "Build forced, removing the '$SRC_DIR/build' directory before recreating it"
+  rm -rf "$SRC_DIR/build"
+  # A vcpkg shared through VCPKG_ROOT belongs to other trees too: only the
+  # local one is removed.
+  if [ "$VCPKG_ROOT" = "$LOCAL_VCPKG" ] ; then
+    rm -rf "$LOCAL_VCPKG"
+  else
+    echo "Shared vcpkg '$VCPKG_ROOT' kept"
+  fi
+  mkdir "$SRC_DIR/build"
 fi
 
-if [ ! -d vcpkg ] ; then
-  echo "No vcpkg directory. Cloning the repo"
-  echo "Current dir: $PWD"
-  git clone -b 2026.05.25 https://github.com/Microsoft/vcpkg.git
-  ./vcpkg/bootstrap-vcpkg.sh
-  echo "Current dir: $PWD"
+if [ ! -d "$VCPKG_ROOT" ] ; then
+  echo "No vcpkg directory. Cloning the repo into '$VCPKG_ROOT'"
+  git clone -b "$VCPKG_TAG" https://github.com/Microsoft/vcpkg.git "$VCPKG_ROOT"
+  "$VCPKG_ROOT/bootstrap-vcpkg.sh"
 fi
 
 case "$COMPILER" in
@@ -303,10 +351,10 @@ else
 fi
 
 if [[ "$maj" == "Raspbian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$SRC_DIR/build" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S "$SRC_DIR"
 
 elif [[ "$maj" == "Debian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$SRC_DIR/build" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S "$SRC_DIR"
 else
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS=overlays -S . -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$SRC_DIR/build" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -S "$SRC_DIR" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
 fi
