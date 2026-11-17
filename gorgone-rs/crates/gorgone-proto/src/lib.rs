@@ -23,5 +23,12 @@ pub mod engine {
     include!("generated/com.centreon.engine.rs");
 }
 
+/// `com.centreon.broker`: the BBDO 3 messages the built-in scheduler of the
+/// agent exchanges with Centreon Broker, from the mirror
+/// `proto/com/centreon/broker/bbdo.proto`.
+pub mod bbdo {
+    include!("generated/com.centreon.broker.rs");
+}
+
 /// Metadata key carrying the node id on agent calls.
 pub const NODE_ID_METADATA: &str = "x-gorgone-node-id";

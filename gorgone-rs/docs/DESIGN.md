@@ -28,12 +28,13 @@ pollers (ZMQ, SSH, pull, pullwss are dropped), and being a broker module
                        shared SQL store (MariaDB; SQLite for one replica)
 ```
 
-| Crate            | Role                                                                  |
-| ---------------- | --------------------------------------------------------------------- |
-| `gorgone-proto`  | gRPC contracts (`proto/`): agent gateway and peer service             |
-| `gorgone-core`   | Shared domain: config bundles, command allowlist, legacy codes        |
-| `gorgone-server` | Central control plane: REST API, agent gateway, job store, dispatcher |
-| `gorgone-agent`  | Poller executor: runs jobs received on its session                    |
+| Crate               | Role                                                                     |
+| ------------------- | ------------------------------------------------------------------------ |
+| `gorgone-proto`     | gRPC contracts (`proto/`): agent gateway and peer service                |
+| `gorgone-core`      | Shared domain: config bundles, command allowlist, legacy codes           |
+| `gorgone-server`    | Central control plane: REST API, agent gateway, job store, dispatcher    |
+| `gorgone-agent`     | Poller executor: runs jobs received on its session                       |
+| `gorgone-scheduler` | Optional monitoring scheduler of the agent, in place of Engine and cbmod |
 
 ## Principles
 
@@ -214,6 +215,30 @@ it, never on the central:
 
 The central needs no engine binary, and a configuration is checked by the
 engine version that will run it.
+
+## Built-in scheduler (no Engine on the poller)
+
+With the cargo feature `scheduler` and `[scheduler] enabled`, the agent is
+the whole poller: the crate `gorgone-scheduler` reads the Engine
+configuration of the `engine` target (commands, hosts, services and their
+templates), runs the checks with Engine's semantics (SOFT/HARD, intervals,
+timeouts, output and perfdata parsing) and sends the results to the central
+broker over BBDO on TCP, as `cbmod` does: no `centengine`, no `cbd`, no
+C++ on the poller. Design, protocol and C++ sources:
+[scheduler-design.md](scheduler-design.md).
+
+- The configuration check of the `engine` target is the scheduler's own
+  parser (same staging, same `Total Errors:` report).
+- `ServiceControl` reload and restart map to `scheduler:reload`: an
+  in-process reload, refused when the files do not parse.
+- `EngineCommands`: the forced and planned checks and the passive results
+  are handled; any other command fails the job ("not supported by the
+  built-in scheduler").
+- The heartbeat reports the scheduler as the engine (`reachable` once a
+  configuration is in force, version `gorgone-scheduler x.y.z`).
+- Out of scope for now: notifications, downtimes, acknowledgements,
+  dependencies, timeperiods (24x7), event handlers, flapping, freshness,
+  retention across restarts, CMA, severities and tags.
 
 ## Node state
 

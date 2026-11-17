@@ -7,15 +7,16 @@ The architecture, the protocol and the migration path are in
 
 ## Layout
 
-| Path                    | Content                                          |
-| ----------------------- | ------------------------------------------------ |
-| `proto/`                | gRPC contracts                                   |
-| `crates/gorgone-proto`  | generated gRPC code                              |
-| `crates/gorgone-core`   | config bundles, command allowlist, legacy codes  |
-| `crates/gorgone-server` | REST API, agent gateway, job store, dispatcher   |
-| `crates/gorgone-agent`  | job executors and session with the server        |
-| `crates/gorgone-e2e`    | tests running the real server and agent together |
-| `deploy/`               | container images and a two-replica demo          |
+| Path                       | Content                                                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `proto/`                   | gRPC contracts                                                                                                                              |
+| `crates/gorgone-proto`     | generated gRPC code                                                                                                                         |
+| `crates/gorgone-core`      | config bundles, command allowlist, legacy codes                                                                                             |
+| `crates/gorgone-server`    | REST API, agent gateway, job store, dispatcher                                                                                              |
+| `crates/gorgone-agent`     | job executors and session with the server                                                                                                   |
+| `crates/gorgone-scheduler` | optional monitoring scheduler of the agent, in place of Engine and its broker module ([docs/scheduler-design.md](docs/scheduler-design.md)) |
+| `crates/gorgone-e2e`       | tests running the real server and agent together                                                                                            |
+| `deploy/`                  | container images and a two-replica demo                                                                                                     |
 
 ## Build and test
 
@@ -65,18 +66,19 @@ alone in a slim image: no centreon-collect, Gorgone, plugin, Perl, Python or
 `rrdtool` next to it. Configuration, keys and commands go over the network
 (rules: [docs/containers-contract.md](docs/containers-contract.md)).
 
-| Container                            | Content                                                                                                               |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `gorgone-server`, `gorgone-server-b` | two replicas of the control plane, store in MariaDB; one shared name, `gorgone`, as a Kubernetes Service              |
-| `web-install`                        | sets the Centreon databases up once, then exits                                                                       |
-| `web`, `web-b`                       | two centreon-web replicas served by FrankenPHP (scratch image, no shell), calling Gorgone; same sessions and same key |
-| `valkey`                             | the PHP session store of the web replicas, in memory, no volume                                                       |
-| `web-cron`, `web-cron-b`             | two replicas of the centreon-web scheduled tasks, same image; MariaDB locks run each job once per schedule            |
-| `victoria-metrics`                   | the time series store; centreon-web reads its graphs from it                                                          |
-| `broker`                             | the central broker and its `gorgone-agent`, the `broker` component of the Central poller                              |
-| `central-engine`                     | the engine of the "Central" poller and its `gorgone-agent`, in the same container                                     |
-| `engine`                             | a second container-only poller, same image; registers and deploys itself                                              |
-| `poller`                             | the Centreon poller test image, driven by `gorgone-agent`                                                             |
+| Container                            | Content                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gorgone-server`, `gorgone-server-b` | two replicas of the control plane, store in MariaDB; one shared name, `gorgone`, as a Kubernetes Service                                                                  |
+| `web-install`                        | sets the Centreon databases up once, then exits                                                                                                                           |
+| `web`, `web-b`                       | two centreon-web replicas served by FrankenPHP (scratch image, no shell), calling Gorgone; same sessions and same key                                                     |
+| `valkey`                             | the PHP session store of the web replicas, in memory, no volume                                                                                                           |
+| `web-cron`, `web-cron-b`             | two replicas of the centreon-web scheduled tasks, same image; MariaDB locks run each job once per schedule                                                                |
+| `victoria-metrics`                   | the time series store; centreon-web reads its graphs from it                                                                                                              |
+| `broker`                             | the central broker and its `gorgone-agent`, the `broker` component of the Central poller                                                                                  |
+| `central-engine`                     | the engine of the "Central" poller and its `gorgone-agent`, in the same container                                                                                         |
+| `engine`                             | a second container-only poller, same image; registers and deploys itself                                                                                                  |
+| `rust-poller`                        | a poller with no `centengine` and no `cbd`: `gorgone-agent` built with its scheduler runs the checks and feeds the central broker over BBDO; registers and deploys itself |
+| `poller`                             | the Centreon poller test image, driven by `gorgone-agent`                                                                                                                 |
 
 Inside an engine container the agent drives the engine over its gRPC API on a
 local Unix socket. The Central poller has two agents, each with its own
@@ -119,7 +121,10 @@ graph, with no RRD file anywhere, that a session opened on `web` is valid on
 `web-b`, that both replicas push the same key and that the key is in no log of
 the web containers, that the two cron replicas start `centAcl` once per
 minute between them, that a job submitted to the `gorgone-server` replica
-that does not hold the session of its node still reaches it, and, last, that
+that does not hold the session of its node still reaches it, that the
+`rust-poller`, with no `centengine` nor `cbd`, is seen running by the central
+broker with its hosts and services stored in HARD states, a metric in
+VictoriaMetrics and a forced check from the web API run, and, last, that
 the agent of `engine` moves to the other replica when the one holding its
 session stops (the agents and centreon-web reach the replicas by the name
 `gorgone`; each replica's REST API is on port 8085 and 8086 of the host). The
@@ -150,6 +155,29 @@ sync, which varied between runs on that machine:
 | 32     | 256     | 600 to 1000 jobs/s | 250 to 400 ms  |
 
 Set `GORGONE_TEST_DATABASE_URL` to measure on MariaDB.
+
+### Built-in scheduler
+
+```bash
+cargo run --release -p gorgone-scheduler --example load -- 10000 300 330
+crates/gorgone-scheduler/tests/real-cbd/run.sh   # the scheduler against a real cbd
+```
+
+`/bin/true` as the plugin, the scheduler and its BBDO connection on one
+thread (current-thread runtime), a fake central broker on another thread of
+the same process; CPU of the scheduler thread from `/proc`, plugins and fake
+broker excluded; resident memory of the whole process. Same laptop:
+
+| Services | Interval | Checks/s | Scheduler CPU (one core) | CPU per check | Resident memory |
+| -------- | -------- | -------- | ------------------------ | ------------- | --------------- |
+| 10 000   | 5 min    | 33.3     | 1.4 %                    | 0.4 ms        | 36 MiB          |
+| 10 000   | 1 min    | 166.7    | 4.2 %                    | 0.25 ms       | 36 MiB          |
+
+Images of the bench, layers summed (`docker history`) / `docker save`:
+`rust-poller` (Debian slim, basic plugins, agent of 5.7 MB) 112 MB / 39 MB,
+against 313 MB / 87 MB for the engine image plus 160 MB / 54 MB for the
+broker image a poller needs today. The bench image adds Perl for its
+provisioning script (169 MB / 51 MB).
 
 ## Containers
 

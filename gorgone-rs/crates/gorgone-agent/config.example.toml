@@ -302,6 +302,35 @@ allowed_commands = [
 # and no allowlist above limits it. Declare it only on nodes the central is
 # meant to configure. The same reasoning applies to any target whose files
 # are executed or interpreted by a local service.
+#
+# Built-in monitoring scheduler, in place of centengine and its broker
+# module (agent built with the cargo feature `scheduler`; design:
+# docs/scheduler-design.md). The agent then runs the checks of the Engine
+# configuration of `target` itself and sends the results to the central
+# broker over BBDO (plain TCP). It also checks the configuration pushed to a
+# target with `engine_main_file` (no engine API nor verify_command needed),
+# handles the scheduling and passive-result external commands, and maps
+# `scheduler:reload` service operations to an in-process reload.
+# [scheduler]
+# enabled = false
+# Target whose local path holds the Engine configuration, and its main file.
+# target = "engine"
+# main_file = "centengine.cfg"
+# cbmod file with the poller id and name and the central broker address;
+# `broker_module_cfg_file` of the main file when unset.
+# broker_config = "/etc/centreon-broker/poller-module.json"
+# host:port of the central broker input; the TCP output of the cbmod file
+# when unset.
+# broker_address = "central:5669"
+# Plugins running at once, at most.
+# max_concurrent_checks = 256
+# Events kept in memory while the central broker does not take them; the
+# oldest are dropped beyond.
+# max_pending_events = 100000
+#
+# [services.engine]
+# reload = "scheduler:reload"
+# restart = "scheduler:reload"
 [targets.engine]
 path = "/etc/centreon-engine"
 prune = true

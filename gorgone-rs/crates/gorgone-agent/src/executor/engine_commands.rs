@@ -16,6 +16,7 @@ use nix::libc::O_NONBLOCK;
 
 use super::{Executor, JobContext, finished};
 use crate::engine_api::EngineApi;
+use crate::monitoring::Monitoring;
 
 /// Time given to the engine to make room in a full pipe.
 const WRITE_PATIENCE: Duration = Duration::from_secs(5);
@@ -26,6 +27,8 @@ pub(crate) enum EngineTransport {
     Pipe(PathBuf),
     /// `ProcessExternalCommand` of the engine API, one call per line.
     Grpc(EngineApi),
+    /// The built-in scheduler, which handles a few commands itself.
+    Scheduler(Monitoring),
 }
 
 pub(crate) struct EngineCommandsExecutor {
@@ -166,6 +169,9 @@ impl Executor for EngineCommandsExecutor {
         let path = match &self.transport {
             EngineTransport::Pipe(path) => path.clone(),
             EngineTransport::Grpc(engine) => return send_commands(engine, &action, ctx).await,
+            EngineTransport::Scheduler(monitoring) => {
+                return scheduler_commands(monitoring, &action, ctx).await;
+            }
         };
         let written =
             tokio::task::spawn_blocking(move || write_commands(&path, &action.commands)).await;
@@ -203,6 +209,35 @@ async fn send_commands(
     finished(
         Outcome::Ok,
         format!("{total} commands accepted by the engine API"),
+    )
+}
+
+/// Runs the lines in the built-in scheduler, in order; stops at the first
+/// one it refuses (unsupported or invalid), as with the engine API.
+async fn scheduler_commands(
+    monitoring: &Monitoring,
+    action: &EngineCommands,
+    ctx: &JobContext<'_>,
+) -> JobFinished {
+    let total = action.commands.len();
+    for (accepted, line) in action.commands.iter().enumerate() {
+        let progress = format!("{accepted} of {total} commands run by the scheduler");
+        if ctx.cancel.is_cancelled() {
+            return finished(Outcome::Cancelled, format!("cancelled: {progress}"));
+        }
+        match monitoring.external_command(line).await {
+            Ok(done) => ctx.progress(format!("command {accepted}: {done}")),
+            Err(error) => {
+                return finished(
+                    Outcome::Failed,
+                    format!("command {accepted}: {error}; {progress}"),
+                );
+            }
+        }
+    }
+    finished(
+        Outcome::Ok,
+        format!("{total} commands run by the built-in scheduler"),
     )
 }
 

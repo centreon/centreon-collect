@@ -27,6 +27,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 proto.join("gorgone/peer/v1/peer.proto"),
                 // Mirror of the Centreon Engine API, reduced to what the agent calls.
                 proto.join("com/centreon/engine/engine.proto"),
+                // Mirror of the BBDO messages the built-in scheduler sends to cbd.
+                proto.join("com/centreon/broker/bbdo.proto"),
             ],
             &[proto],
         )?;

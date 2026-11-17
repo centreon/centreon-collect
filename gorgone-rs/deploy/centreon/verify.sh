@@ -508,6 +508,107 @@ failover_to_other_replica() {
   return "${result}"
 }
 
+# The rust-poller runs no centengine and no cbd: its gorgone-agent and the
+# built-in scheduler are the whole poller.
+rust_poller_has_no_engine_nor_broker() {
+  "${COMPOSE[@]}" exec -T rust-poller sh -c '
+    ! command -v centengine && ! command -v cbd \
+      && [ ! -e /usr/lib64/nagios/cbmod.so ] && [ ! -e /usr/share/centreon/lib/centreon-broker ] \
+      && ! ls /proc/*/exe -l 2>/dev/null | grep -qE "centengine|cbd"'
+}
+
+# rust_poller_status <host> <service> <state> <type>: the state the central
+# stored for that service of the rust-poller, in services and resources
+# (type 1 = HARD). Waits for it: SOFT then HARD takes about two minutes.
+rust_poller_status() {
+  local host=$1 service=$2 state=$3 type=$4
+  for _ in $(seq 1 48); do
+    if [[ $(sql "SELECT CONCAT(s.state, ' ', s.state_type, ' ', r.status, ' ', r.status_confirmed)
+          FROM centreon_storage.services s
+          JOIN centreon_storage.hosts h ON h.host_id = s.host_id
+          JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
+          JOIN centreon_storage.resources r ON r.id = s.service_id AND r.parent_id = s.host_id
+            AND r.type = 0
+          WHERE i.name = 'rust-poller' AND h.name = '${host}' AND s.description = '${service}'
+            AND s.enabled = 1 AND h.enabled = 1 AND r.enabled = 1 AND s.checked = 1") \
+        == "${state} ${type} ${state} ${type}" ]]; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+# Both hosts of the rust-poller are UP and HARD, and are resources.
+rust_poller_hosts_up() {
+  [[ $(sql "SELECT COUNT(*) FROM centreon_storage.hosts h
+        JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
+        JOIN centreon_storage.resources r ON r.id = h.host_id AND r.type = 1 AND r.enabled = 1
+        WHERE i.name = 'rust-poller' AND h.enabled = 1 AND h.checked = 1
+          AND h.state = 0 AND h.state_type = 1 AND h.name LIKE 'rust-h%'") == 2 ]]
+}
+
+rust_id() {
+  sql "SELECT $1 FROM centreon_storage.services s JOIN centreon_storage.hosts h
+       ON h.host_id = s.host_id WHERE h.name = '$2' AND s.description = '$3' AND s.enabled = 1"
+}
+
+# The perfdata of a rust-poller service reach VictoriaMetrics through the
+# central broker, labelled with its ids.
+rust_poller_metric_in_victoria() {
+  local host_id
+  host_id=$(rust_id s.host_id rust-h1 rust-crit) || return 1
+  [[ -n "${host_id}" ]] || return 1
+  for _ in $(seq 1 30); do
+    if curl -s -G http://127.0.0.1:8428/api/v1/series \
+      --data-urlencode "match[]=metric_val{name=\"value\",host_id=\"${host_id}\"}" \
+      | python3 -I -c 'import json,sys; sys.exit(0 if json.load(sys.stdin)["data"] else 1)'; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+# A forced check asked through the centreon-web API on a rust-poller service:
+# web -> Gorgone REST API -> agent -> built-in scheduler, which runs it now.
+rust_poller_forced_check() {
+  local host_id service_id node before after since handled
+  host_id=$(rust_id s.host_id rust-h1 rust-ok) || return 1
+  service_id=$(rust_id s.service_id rust-h1 rust-ok) || return 1
+  node=$(node_of rust-poller) || return 1
+  before=$(rust_id s.last_check rust-h1 rust-ok) || return 1
+  # last_check has a one-second resolution.
+  sleep 2
+  since=$(($(date +%s) * 1000))
+  curl -s -f -X POST -H 'Content-Type: application/json' -H "X-AUTH-TOKEN: $(web_token)" \
+    -d "{\"check\":{\"is_forced\":true},\"resources\":[{\"type\":\"service\",\"id\":${service_id},\"parent\":{\"id\":${host_id}}}]}" \
+    "${WEB_URL}/api/latest/monitoring/resources/check" || return 1
+  # The scheduler said it planned the check, and the check ran: well before
+  # the next regular one, a minute later.
+  for _ in $(seq 1 15); do
+    handled=$(sql "SELECT COUNT(*) FROM gorgone.job_events e JOIN gorgone.jobs j ON j.id = e.job_id
+                   WHERE j.node_id = '${node}' AND e.time_ms >= ${since}
+                     AND e.data LIKE '%check scheduled%'") || return 1
+    after=$(rust_id s.last_check rust-h1 rust-ok) || return 1
+    if ((handled > 0 && after > before)); then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+# gorgone-server sees the scheduler as the engine of the rust-poller.
+rust_poller_state_is_reported() {
+  gorgone_api GET "/v1/nodes/$(node_of rust-poller)" | python3 -I -c '
+import json, sys
+node = json.load(sys.stdin)
+ok = (node["connected"] and node["applied"].get("engine") and node["engine"]["reachable"]
+      and node["engine"]["version"].startswith("gorgone-scheduler"))
+sys.exit(0 if ok else 1)'
+}
+
 check "the web image is a web server only: no shell, collect, Gorgone or plugin" web_image_is_slim
 check "the web image carries no rrdtool" web_image_has_no_rrdtool
 check "no volume is shared between containers" no_shared_volume
@@ -539,6 +640,18 @@ check "a session opened on one web replica is valid on the other" session_shared
 check "both web replicas push the same encryption key" key_shared_by_replicas
 check "the encryption key is in no log of the web containers" key_not_logged
 check "two web cron replicas run each job once per minute" web_cron_runs_each_job_once
+check "the rust-poller container runs no centengine and no cbd" rust_poller_has_no_engine_nor_broker
+check "the central broker sees the rust-poller running" instance_running rust-poller
+check "gorgone-server sees the built-in scheduler as the rust-poller engine" \
+  rust_poller_state_is_reported
+check "rust-poller: a CRITICAL service goes HARD after its attempts" \
+  rust_poller_status rust-h1 rust-crit 2 1
+check "rust-poller: a WARNING service goes HARD after its attempts" \
+  rust_poller_status rust-h2 rust-warn 1 1
+check "rust-poller: an OK service is stored OK and HARD" rust_poller_status rust-h1 rust-ok 0 1
+check "rust-poller: both hosts are UP, HARD and resources" rust_poller_hosts_up
+check "rust-poller: a metric reaches VictoriaMetrics" rust_poller_metric_in_victoria
+check "rust-poller: a forced check from the centreon-web API is run" rust_poller_forced_check
 check "a job submitted to either gorgone-server replica reaches every node" jobs_cross_replicas
 # Last: the agents move between the gorgone-server replicas.
 check "an agent fails over to the other gorgone-server replica" failover_to_other_replica

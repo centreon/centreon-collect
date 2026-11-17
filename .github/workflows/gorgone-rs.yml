@@ -67,6 +67,9 @@ jobs:
       - name: Run clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
+      - name: Run clippy with the built-in scheduler of the agent
+        run: cargo clippy -p gorgone-agent --all-targets --features scheduler --locked -- -D warnings
+
       - name: Check that the generated gRPC code is up to date
         run: |
           cargo run --locked --manifest-path tools/protogen/Cargo.toml
@@ -100,6 +103,9 @@ jobs:
 
       - name: Run tests
         run: cargo test --workspace --locked
+
+      - name: Run the agent tests with the built-in scheduler
+        run: cargo test -p gorgone-agent --features scheduler --locked
 
   test-mariadb:
     runs-on: ubuntu-24.04

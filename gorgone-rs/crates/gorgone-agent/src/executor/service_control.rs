@@ -17,12 +17,15 @@ use super::{Executor, JobContext, command_result, finished};
 use crate::config::{EngineRpc, ProcessSignal, Secret, ServiceAction, ServiceConfig};
 use crate::engine_api::EngineApi;
 use crate::http_post::{self, HttpTarget, PostError};
+use crate::monitoring::Monitoring;
 use crate::process::{self, CommandSpec};
 
 pub(crate) struct ServiceControlExecutor {
     pub services: BTreeMap<String, ServiceConfig>,
     /// Engine API of the `grpc:` operations; set when `engine.grpc_url` is.
     pub engine: Option<EngineApi>,
+    /// Built-in scheduler of the `scheduler:reload` operations.
+    pub monitoring: Option<Monitoring>,
     /// Bound of one call of an `http-post:` operation, connection included.
     pub http_timeout: Duration,
     /// Sent with every call of an `http-post:` operation.
@@ -174,6 +177,34 @@ impl Executor for ServiceControlExecutor {
                 };
                 return finished(outcome, format!("{name} {service_name}: {done}"));
             }
+            ServiceAction::SchedulerReload => {
+                let Some(monitoring) = &self.monitoring else {
+                    return finished(Outcome::Rejected, "the built-in scheduler is not enabled");
+                };
+                return match monitoring.reload().await {
+                    Ok(summary) => finished(
+                        Outcome::Ok,
+                        format!(
+                            "{name} {service_name}: {}",
+                            summary.lines().next().unwrap_or_default()
+                        ),
+                    ),
+                    Err(report) => {
+                        ctx.sink.emit(Body::CommandResult(CommandResult {
+                            command: format!("{name} {service_name}"),
+                            exit_code: 1,
+                            stdout: report,
+                            ..CommandResult::default()
+                        }));
+                        finished(
+                            Outcome::Failed,
+                            format!(
+                                "{name} {service_name}: configuration refused, the running one is kept"
+                            ),
+                        )
+                    }
+                };
+            }
             ServiceAction::Engine(rpc) => {
                 let asked = match rpc {
                     EngineRpc::Reload => "configuration reload",
@@ -243,6 +274,7 @@ mod tests {
         ServiceControlExecutor {
             services: BTreeMap::from([("engine".to_owned(), service)]),
             engine: None,
+            monitoring: None,
             http_timeout: Duration::from_millis(300),
             bearer: None,
             timeout: Duration::from_secs(10),

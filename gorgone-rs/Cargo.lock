@@ -563,6 +563,7 @@ dependencies = [
  "anyhow",
  "gorgone-core",
  "gorgone-proto",
+ "gorgone-scheduler",
  "nix",
  "prost",
  "rcgen",
@@ -611,6 +612,21 @@ dependencies = [
  "prost",
  "tonic",
  "tonic-prost",
+]
+
+[[package]]
+name = "gorgone-scheduler"
+version = "0.1.0"
+dependencies = [
+ "gorgone-proto",
+ "nix",
+ "prost",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "tracing",
 ]
 
 [[package]]

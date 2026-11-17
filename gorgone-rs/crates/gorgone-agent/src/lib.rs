@@ -7,6 +7,7 @@ mod engine_api;
 mod executor;
 mod http_post;
 mod journal;
+mod monitoring;
 mod node_state;
 mod process;
 mod scheduler;
@@ -28,6 +29,7 @@ use crate::executor::{
     RunCommandsExecutor, ServiceControlExecutor, remove_leftovers,
 };
 use crate::journal::Journal;
+use crate::monitoring::Monitoring;
 use crate::node_state::NodeState;
 use crate::scheduler::{Executors, Scheduler};
 use crate::session::{Backoff, Session};
@@ -81,9 +83,10 @@ pub async fn run(
 ) -> Result<(), AgentError> {
     let client = client::connect(&config)?;
     let engine = EngineApi::connect(&config.engine)?;
+    let monitoring = Monitoring::start(&config);
     let state = {
         let targets = config.targets.clone();
-        let engine_api = engine.is_some();
+        let engine_api = engine.is_some() || monitoring.is_some();
         let remote_dir = config
             .state_dir
             .as_ref()
@@ -105,20 +108,39 @@ pub async fn run(
         let (state, stop) = (state.clone(), stop.clone());
         tokio::spawn(async move { state.watch_engine(engine, stop).await });
     }
-    let engine_transport = match &engine {
-        Some(engine) => EngineTransport::Grpc(engine.clone()),
-        None => EngineTransport::Pipe(config.engine.command_file.clone()),
+    if let Some(monitoring) = monitoring.clone() {
+        let (state, stop) = (state.clone(), stop.clone());
+        tokio::spawn(async move {
+            let mut monitoring = monitoring;
+            loop {
+                state.set_engine(monitoring.engine_state());
+                tokio::select! {
+                    changed = monitoring.changed() => if !changed { return },
+                    () = stop.cancelled() => return,
+                }
+            }
+        });
+    }
+    // The built-in scheduler, when enabled, is the engine of this agent.
+    let engine_transport = match (&monitoring, &engine) {
+        (Some(monitoring), _) => EngineTransport::Scheduler(monitoring.clone()),
+        (None, Some(engine)) => EngineTransport::Grpc(engine.clone()),
+        (None, None) => EngineTransport::Pipe(config.engine.command_file.clone()),
     };
     // The engine checks what it will load; a local command stands in for it
     // when the agent does not reach its API.
-    let checker = match (&engine, config.engine.verify_argv()?) {
-        (Some(engine), _) => Some(ConfigChecker::Grpc(engine.clone())),
-        (None, Some(argv)) => Some(ConfigChecker::Command {
+    let checker = match (&monitoring, &engine, config.engine.verify_argv()?) {
+        (Some(monitoring), _, _) => Some(ConfigChecker::Scheduler {
+            monitoring: monitoring.clone(),
+            broker_config: config.scheduler.broker_config.clone(),
+        }),
+        (None, Some(engine), _) => Some(ConfigChecker::Grpc(engine.clone())),
+        (None, None, Some(argv)) => Some(ConfigChecker::Command {
             argv,
             timeout: config.default_command_timeout(),
             kill_grace: config.kill_grace(),
         }),
-        (None, None) => None,
+        (None, None, None) => None,
     };
     let executors = Executors {
         run_commands: RunCommandsExecutor {
@@ -148,6 +170,7 @@ pub async fn run(
         service_control: ServiceControlExecutor {
             services: config.services.clone(),
             engine,
+            monitoring: monitoring.clone(),
             http_timeout: config.http_post_timeout(),
             bearer: config.http_bearer_token.clone(),
             timeout: config.default_command_timeout(),
@@ -226,6 +249,10 @@ pub async fn run(
         .is_err()
     {
         tracing::warn!("stopping with events the server did not acknowledge");
+    }
+    if let Some(monitoring) = &monitoring {
+        // The central marks the poller stopped.
+        monitoring.shutdown().await;
     }
     stop.cancel();
     session.await?;

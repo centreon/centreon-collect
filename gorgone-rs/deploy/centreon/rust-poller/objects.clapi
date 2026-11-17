@@ -1,0 +1,24 @@
+# Objects of the rust-poller, created through CLAPI by register.pl objects:
+# OBJECT;ACTION;values (CLAPI splits values on ';': none in a value).
+# @POLLER@ is the poller name. An object that already exists is kept (the
+# container may start again).
+CMD;ADD;rust-check-dummy;check;$USER1$/check_dummy $ARG1$ "$ARG2$|value=$ARG1$"
+HTPL;ADD;rust-host-tpl;Rust poller host;;;;
+HTPL;SETPARAM;rust-host-tpl;check_command;rust-check-dummy
+HTPL;SETPARAM;rust-host-tpl;check_command_arguments;!0!host up
+HTPL;SETPARAM;rust-host-tpl;max_check_attempts;2
+HTPL;SETPARAM;rust-host-tpl;check_interval;1
+HTPL;SETPARAM;rust-host-tpl;retry_check_interval;1
+STPL;ADD;rust-svc-tpl;Rust poller service;
+STPL;SETPARAM;rust-svc-tpl;check_command;rust-check-dummy
+STPL;SETPARAM;rust-svc-tpl;check_command_arguments;!0!fine
+STPL;SETPARAM;rust-svc-tpl;max_check_attempts;2
+STPL;SETPARAM;rust-svc-tpl;normal_check_interval;1
+STPL;SETPARAM;rust-svc-tpl;retry_check_interval;1
+HOST;ADD;rust-h1;Rust host 1;127.0.0.1;rust-host-tpl;@POLLER@;
+HOST;ADD;rust-h2;Rust host 2;127.0.0.2;rust-host-tpl;@POLLER@;
+SERVICE;ADD;rust-h1;rust-ok;rust-svc-tpl
+SERVICE;ADD;rust-h1;rust-crit;rust-svc-tpl
+SERVICE;SETPARAM;rust-h1;rust-crit;check_command_arguments;!2!broken
+SERVICE;ADD;rust-h2;rust-warn;rust-svc-tpl
+SERVICE;SETPARAM;rust-h2;rust-warn;check_command_arguments;!1!degraded

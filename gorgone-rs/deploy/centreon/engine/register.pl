@@ -5,6 +5,7 @@
 # register: declares the poller in centreon-web when needed, removes its
 #           command file (see no_command_file) and prints the id web gave it,
 #           which is the node id of its gorgone-agent.
+# objects:  creates the objects of the CLAPI_OBJECTS file (rust-poller).
 # deploy:   removes the command file of the poller (the Central poller is not
 #           registered by this script), waits for gorgone-server to see the
 #           agent, then asks centreon-web to generate, push and restart, as an
@@ -178,10 +179,34 @@ sub deploy {
     }
 }
 
-my %commands = (register => \&register, deploy => \&deploy);
+# Creates the objects of the CLAPI_OBJECTS file (OBJECT;ACTION;values lines,
+# @POLLER@ standing for the poller name). An ADD of an object that already
+# exists is skipped: the container may start again.
+sub objects {
+    my $file = $ENV{CLAPI_OBJECTS} // die "CLAPI_OBJECTS is not set\n";
+    my $token = login();
+    open(my $fh, '<', $file) or die "$file: $!\n";
+    while (my $line = <$fh>) {
+        chomp($line);
+        next if $line =~ /^\s*(#|$)/;
+        $line =~ s/\@POLLER\@/$POLLER/g;
+        my ($object, $action, $values) = split(/;/, $line, 3);
+        my $done = eval {
+            clapi($token, object => $object, action => $action, values => $values // '');
+            1;
+        };
+        next if $done;
+        # CLAPI answers 409 for an object that already exists.
+        die $@ unless $action eq 'ADD' && ref($@) eq 'HASH' && $@->{status} == 409;
+        print STDERR "$object $values: already there\n";
+    }
+    close($fh);
+}
+
+my %commands = (register => \&register, deploy => \&deploy, objects => \&objects);
 my $command = $commands{$ARGV[0] // ''};
 if (!$command) {
-    print STDERR "Usage: register.pl register|deploy\n";
+    print STDERR "Usage: register.pl register|deploy|objects\n";
     exit 1;
 }
 if (!eval { $command->(); 1 }) {

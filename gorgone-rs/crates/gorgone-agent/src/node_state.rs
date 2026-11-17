@@ -201,6 +201,21 @@ impl NodeState {
             .collect()
     }
 
+    /// Replaces the engine state, for an engine that is not probed over its
+    /// API (the built-in scheduler).
+    pub(crate) fn set_engine(&self, state: EngineState) {
+        if let Some(engine) = &self.engine {
+            let previous = lock(&engine.last).replace(state.clone());
+            if previous.as_ref() != Some(&state) {
+                tracing::info!(
+                    reachable = state.reachable,
+                    version = %state.version,
+                    "engine state changed"
+                );
+            }
+        }
+    }
+
     /// Last known state of the engine API; `None` without `engine.grpc_url`,
     /// and until the first probe ends.
     pub(crate) fn engine(&self) -> Option<EngineState> {

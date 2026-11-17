@@ -1,0 +1,49 @@
+{
+  "centreonBroker": {
+    "broker_id": 1,
+    "broker_name": "central-broker-master",
+    "poller_id": 1,
+    "poller_name": "Central",
+    "module_directory": "/usr/share/centreon/lib/centreon-broker",
+    "bbdo_version": "3.0.1",
+    "log_timestamp": true,
+    "event_queue_max_size": 100000,
+    "cache_directory": "/var/lib/centreon-broker",
+    "log": {
+      "directory": "/work",
+      "filename": "cbd.log",
+      "max_size": 0,
+      "loggers": {
+        "core": "info",
+        "config": "info",
+        "bbdo": "trace",
+        "tcp": "debug",
+        "processing": "info",
+        "lua": "info",
+        "neb": "debug"
+      }
+    },
+    "input": [
+      {
+        "name": "central-broker-master-input",
+        "port": "5669",
+        "protocol": "bbdo",
+        "tls": "auto",
+        "negotiation": "yes",
+        "compression": "auto",
+        "type": "ipv4"
+      }
+    ],
+    "output": [
+      {
+        "name": "dump",
+        "type": "lua",
+        "path": "/work/dump.lua",
+        "lua_parameter": [
+          { "type": "string", "name": "path", "value": "/work/events.json" }
+        ],
+        "filters": { "category": ["neb"] }
+      }
+    ]
+  }
+}

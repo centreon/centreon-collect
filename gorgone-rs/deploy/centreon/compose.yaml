@@ -19,6 +19,8 @@
 #                    Central poller, which receives its configuration and key
 #   central-engine   the engine of the "Central" poller with its gorgone-agent
 #   engine           a second container-only poller, same image
+#   rust-poller      a poller without centengine nor cbd: gorgone-agent and its
+#                    built-in scheduler send the results to the central broker
 #   poller           the Centreon poller test image, driven by gorgone-agent
 #
 # The database and VictoriaMetrics keep their data in their own volume. Local
@@ -281,6 +283,29 @@ services:
     environment:
       <<: *engine-env
       POLLER_NAME: engine
+
+  # A poller with no centengine and no cbd: gorgone-agent and its built-in
+  # scheduler run the checks and send the results to the central broker
+  # (docs/scheduler-design.md). Registers and deploys itself.
+  rust-poller:
+    build:
+      context: ../..
+      dockerfile: deploy/centreon/Dockerfile
+      target: rust-poller-bench
+    image: ${RUST_POLLER_IMAGE:-gorgone-rs-centreon-rust-poller}
+    hostname: rust-poller
+    restart: always
+    depends_on:
+      central-setup:
+        condition: service_completed_successfully
+    environment:
+      <<: *gorgone-api
+      WEB_HOST: web
+      GORGONE_HOST: gorgone
+      BROKER_HOST: broker
+      POLLER_NAME: rust-poller
+      GORGONE_DEPLOY: "true"
+      GORGONE_AGENT_LOG: info
 
   poller:
     build:

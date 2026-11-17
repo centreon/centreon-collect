@@ -217,6 +217,62 @@ pub struct AgentConfig {
     /// Service control command lines, by service name.
     #[serde(default)]
     pub services: BTreeMap<String, ServiceConfig>,
+    /// Built-in monitoring scheduler, in place of Centreon Engine.
+    #[serde(default)]
+    pub scheduler: SchedulerConfig,
+}
+
+/// The built-in monitoring scheduler (`gorgone-scheduler`): when enabled,
+/// the agent runs the checks of the poller itself and sends the results to
+/// the central broker, with no centengine nor cbd on the poller. Needs the
+/// cargo feature `scheduler`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SchedulerConfig {
+    /// Runs the scheduler.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Target whose local path holds the Engine configuration.
+    #[serde(
+        default = "default_scheduler_target",
+        deserialize_with = "lenient::string"
+    )]
+    pub target: String,
+    /// Main Engine file, relative to the path of `target`.
+    #[serde(
+        default = "default_scheduler_main_file",
+        deserialize_with = "lenient::path"
+    )]
+    pub main_file: PathBuf,
+    /// `cbmod` file with the poller identity and the central address;
+    /// `broker_module_cfg_file` of the main file when unset.
+    #[serde(default, deserialize_with = "lenient::option_path")]
+    pub broker_config: Option<PathBuf>,
+    /// `host:port` of the central broker input; the TCP output of the `cbmod`
+    /// file when unset.
+    #[serde(default, deserialize_with = "lenient::option")]
+    pub broker_address: Option<String>,
+    /// Plugins running at once, at most.
+    #[serde(default = "default_max_concurrent_checks")]
+    pub max_concurrent_checks: usize,
+    /// Events kept in memory while the central broker does not take them;
+    /// the oldest are dropped beyond.
+    #[serde(default = "default_max_pending_events")]
+    pub max_pending_events: usize,
+}
+
+impl Default for SchedulerConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            target: default_scheduler_target(),
+            main_file: default_scheduler_main_file(),
+            broker_config: None,
+            broker_address: None,
+            max_concurrent_checks: default_max_concurrent_checks(),
+            max_pending_events: default_max_pending_events(),
+        }
+    }
 }
 
 /// TLS settings.
@@ -598,7 +654,13 @@ pub enum ServiceAction<'a> {
     HttpPost(&'a str),
     /// Sends a signal to the process whose pid this file holds.
     Signal(ProcessSignal, &'a Path),
+    /// `scheduler:reload`: the built-in scheduler reads its configuration
+    /// again and puts it in force (reload and restart alike).
+    SchedulerReload,
 }
+
+/// Value of a service operation handled by the built-in scheduler.
+pub const SCHEDULER_RELOAD: &str = "scheduler:reload";
 
 /// Actions controlling one service; an unset operation is refused. A value is
 /// a command line, `grpc:reload` / `grpc:shutdown` (see [`EngineRpc`]),
@@ -654,6 +716,9 @@ impl ServiceConfig {
             let (signal, pid_file) = ProcessSignal::parse_action(signal).ok()?;
             return Some(ServiceAction::Signal(signal, pid_file));
         }
+        if value == SCHEDULER_RELOAD {
+            return Some(ServiceAction::SchedulerReload);
+        }
         match value.strip_prefix(EngineRpc::PREFIX) {
             Some(name) => EngineRpc::parse(name).map(ServiceAction::Engine),
             None => Some(ServiceAction::Command(value)),
@@ -696,6 +761,22 @@ impl ServiceConfig {
             .into_iter()
             .filter_map(|value| value.as_deref()?.strip_prefix(EngineRpc::PREFIX))
     }
+}
+
+fn default_scheduler_target() -> String {
+    "engine".to_owned()
+}
+
+fn default_scheduler_main_file() -> PathBuf {
+    PathBuf::from("centengine.cfg")
+}
+
+fn default_max_concurrent_checks() -> usize {
+    256
+}
+
+fn default_max_pending_events() -> usize {
+    100_000
 }
 
 fn default_component() -> String {
@@ -920,14 +1001,27 @@ impl AgentConfig {
                      path, without `.` or `..`"
                 )));
             }
-            if self.engine.grpc_url.is_none() && self.engine.verify_command.is_none() {
+            if self.engine.grpc_url.is_none()
+                && self.engine.verify_command.is_none()
+                && !self.scheduler.enabled
+            {
                 return Err(ConfigError::Invalid(format!(
                     "targets.{name}.engine_main_file requires engine.grpc_url or \
-                     engine.verify_command to check the configuration"
+                     engine.verify_command or scheduler.enabled to check the configuration"
                 )));
             }
         }
+        self.validate_scheduler()?;
         for (service, config) in &self.services {
+            if !self.scheduler.enabled
+                && [&config.start, &config.stop, &config.reload, &config.restart]
+                    .into_iter()
+                    .any(|value| value.as_deref() == Some(SCHEDULER_RELOAD))
+            {
+                return Err(ConfigError::Invalid(format!(
+                    "services.{service}: {SCHEDULER_RELOAD} requires scheduler.enabled"
+                )));
+            }
             for name in config.engine_calls() {
                 if EngineRpc::parse(name).is_none() {
                     return Err(ConfigError::Invalid(format!(
@@ -959,6 +1053,61 @@ impl AgentConfig {
             }
         }
         Ok(())
+    }
+
+    fn validate_scheduler(&self) -> Result<(), ConfigError> {
+        let scheduler = &self.scheduler;
+        if !scheduler.enabled {
+            return Ok(());
+        }
+        let invalid = |message: String| Err(ConfigError::Invalid(message));
+        if !cfg!(feature = "scheduler") {
+            return invalid(
+                "scheduler.enabled: this gorgone-agent is built without the built-in \
+                 scheduler (cargo feature `scheduler`)"
+                    .to_owned(),
+            );
+        }
+        if self.scheduler_main_file().is_none() {
+            return invalid(format!(
+                "scheduler.target: no target {:?} with a local path",
+                scheduler.target
+            ));
+        }
+        let plain = scheduler
+            .main_file
+            .components()
+            .all(|component| matches!(component, Component::Normal(_)));
+        if !plain || scheduler.main_file.as_os_str().is_empty() {
+            return invalid(
+                "scheduler.main_file must be a path relative to the target path, without `.` or `..`"
+                    .to_owned(),
+            );
+        }
+        if scheduler.max_concurrent_checks == 0 || scheduler.max_pending_events == 0 {
+            return invalid(
+                "scheduler.max_concurrent_checks and scheduler.max_pending_events must be at least 1"
+                    .to_owned(),
+            );
+        }
+        if let Some(address) = &scheduler.broker_address
+            && !address.rsplit_once(':').is_some_and(|(host, port)| {
+                !host.is_empty() && port.parse::<u16>().is_ok_and(|port| port > 0)
+            })
+        {
+            return invalid(format!(
+                "scheduler.broker_address {address:?}: expected host:port"
+            ));
+        }
+        Ok(())
+    }
+
+    /// Main Engine file of the built-in scheduler, when its target has a
+    /// local path.
+    #[must_use]
+    pub fn scheduler_main_file(&self) -> Option<PathBuf> {
+        let target = self.targets.get(&self.scheduler.target)?;
+        Some(target.path.as_ref()?.join(&self.scheduler.main_file))
     }
 
     /// True when the connection to the server uses TLS.
@@ -1601,5 +1750,64 @@ mod tests {
         std::fs::write(&broken, "node_id = ").unwrap();
         let error = AgentConfig::load_with(Some(&broken), vars).unwrap_err();
         assert!(matches!(error, ConfigError::Parse(_)), "{error}");
+    }
+
+    const SCHEDULER: &str = "\
+        [scheduler]\nenabled = true\nbroker_address = \"broker:5669\"\n\
+        [targets.engine]\npath = \"/etc/centreon-engine\"\nengine_main_file = \"centengine.cfg\"\n\
+        [services.engine]\nreload = \"scheduler:reload\"\nrestart = \"scheduler:reload\"\n";
+
+    #[test]
+    fn scheduler_section() {
+        let config = AgentConfig::from_toml(MINIMAL).unwrap();
+        assert!(!config.scheduler.enabled);
+        assert_eq!(config.scheduler.max_concurrent_checks, 256);
+
+        let result = AgentConfig::from_toml(&format!("{MINIMAL}{SCHEDULER}"));
+        if cfg!(feature = "scheduler") {
+            let config = result.unwrap();
+            assert_eq!(
+                config.scheduler_main_file(),
+                Some(PathBuf::from("/etc/centreon-engine/centengine.cfg"))
+            );
+            assert_eq!(
+                config.services["engine"].action(Operation::Restart),
+                Some(ServiceAction::SchedulerReload)
+            );
+        } else {
+            let error = result.unwrap_err().to_string();
+            assert!(error.contains("cargo feature `scheduler`"), "{error}");
+        }
+
+        // `scheduler:reload` without the scheduler.
+        let error = AgentConfig::from_toml(&format!(
+            "{MINIMAL}[services.engine]\nreload = \"scheduler:reload\"\n"
+        ))
+        .unwrap_err()
+        .to_string();
+        assert!(error.contains("requires scheduler.enabled"), "{error}");
+        if cfg!(feature = "scheduler") {
+            for (change, needle) in [
+                (("target = ", "\"vmware\""), "no target \"vmware\""),
+                (
+                    ("main_file = ", "\"../x.cfg\""),
+                    "relative to the target path",
+                ),
+                (("max_concurrent_checks = ", "0"), "at least 1"),
+            ] {
+                let toml = format!(
+                    "{MINIMAL}{}",
+                    SCHEDULER.replace(
+                        "enabled = true\n",
+                        &format!("enabled = true\n{}{}\n", change.0, change.1)
+                    )
+                );
+                let error = AgentConfig::from_toml(&toml).unwrap_err().to_string();
+                assert!(error.contains(needle), "{error}");
+            }
+            let toml = format!("{MINIMAL}{SCHEDULER}").replace("broker:5669", "broker");
+            let error = AgentConfig::from_toml(&toml).unwrap_err().to_string();
+            assert!(error.contains("expected host:port"), "{error}");
+        }
     }
 }

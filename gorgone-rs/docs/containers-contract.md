@@ -27,6 +27,16 @@ database, VictoriaMetrics), never one shared with another container.
   The agent receives the broker configuration and the encryption key, and
   reloads or stops `cbd` with a signal.
 
+- A rust-poller container runs `gorgone-agent` alone, built with its
+  monitoring scheduler (`docs/scheduler-design.md`): no `centengine`, no
+  `cbd`, no broker module. It receives the `engine`, `broker` and
+  `engine_context` targets like an engine container, checks the engine
+  configuration with the scheduler's parser, reloads in process
+  (`scheduler:reload`) and sends the results to the central broker input
+  (TCP 5669) named by the broker module file of its poller. Its plugins are
+  in the image (Debian `monitoring-plugins-basic`, reachable as
+  `/usr/lib64/nagios/plugins`, the `$USER1$` centreon-web gives new pollers).
+
 ## Broker container image
 
 - `cbd` is the main process; the entrypoint writes its pid to

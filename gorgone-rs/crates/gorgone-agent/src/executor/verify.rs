@@ -15,6 +15,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::config::EngineConfig;
 use crate::engine_api::EngineApi;
+use crate::monitoring::Monitoring;
 use crate::process::{self, CommandSpec, ProcessOutput};
 
 /// Suffix of the main file written for the check, next to the staged one.
@@ -35,6 +36,12 @@ pub(crate) enum ConfigChecker {
         argv: Vec<String>,
         timeout: Duration,
         kill_grace: Duration,
+    },
+    /// The parser of the built-in scheduler, which runs what it checks.
+    Scheduler {
+        monitoring: Monitoring,
+        /// `scheduler.broker_config`, when set.
+        broker_config: Option<PathBuf>,
     },
 }
 
@@ -63,6 +70,21 @@ impl ConfigChecker {
                     duration: started.elapsed(),
                     timed_out: false,
                     cancelled,
+                })
+            }
+            Self::Scheduler {
+                monitoring,
+                broker_config,
+            } => {
+                let started = Instant::now();
+                let (valid, report) = monitoring.validate(file, broker_config.clone()).await?;
+                Ok(ProcessOutput {
+                    exit_code: if valid { 0 } else { 1 },
+                    stdout: shorten(report, max_output),
+                    stderr: String::new(),
+                    duration: started.elapsed(),
+                    timed_out: false,
+                    cancelled: false,
                 })
             }
             Self::Command {
