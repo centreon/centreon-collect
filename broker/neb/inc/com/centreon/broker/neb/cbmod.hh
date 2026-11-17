@@ -45,6 +45,9 @@ class cbmod {
 
  public:
   cbmod(const std::filesystem::path& proto_conf);
+  /* A string alone used to be the configuration file; it would now silently
+   * convert into the proto_conf path above and skip the configuration. */
+  cbmod(const std::string& config_file) = delete;
   cbmod(const std::string& config_file,
         const std::filesystem::path& proto_conf,
         const std::string& engine_conf_version);

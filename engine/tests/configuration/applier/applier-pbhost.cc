@@ -54,7 +54,7 @@ class ProtobufHostEvents : public ApplierPbHost {
  protected:
   class recording_cbmod : public com::centreon::broker::neb::cbmod {
    public:
-    explicit recording_cbmod(const std::string& path) : cbmod(path) {}
+    explicit recording_cbmod(const std::string& path) : cbmod(path, "", "") {}
     bool record = false;
     std::vector<std::shared_ptr<com::centreon::broker::io::data>> written;
     void write(

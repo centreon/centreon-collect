@@ -23,7 +23,7 @@
 #include "bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/vars.hh"
-#include "com/centreon/common/file.hh"
+#include "com/centreon/common/file_system.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/indexed_state.hh"
