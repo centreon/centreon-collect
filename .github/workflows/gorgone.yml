@@ -1,4 +1,11 @@
 name: gorgone
+run-name: |
+  ${{
+    (github.event_name == 'schedule' ||
+     (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true'))
+    && format('gorgone nightly {0}', github.ref_name)
+    || ''
+  }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -6,6 +13,14 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      nightly_manual_trigger:
+        description: "Set to true for nightly run"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "0 1 * * 1-5"
   pull_request:
     paths:
       - ".version.centreon-gorgone"
@@ -38,6 +53,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: .version.centreon-gorgone
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   package:
     needs: [get-environment]
@@ -332,12 +348,14 @@ jobs:
   deliver-rpm-pulp:
     runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, robot-test]
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      needs.get-environment.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled')))
 
     strategy:
       fail-fast: false
@@ -371,12 +389,14 @@ jobs:
   deliver-deb-pulp:
     runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, robot-test]
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      needs.get-environment.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled')))
 
     strategy:
       fail-fast: false

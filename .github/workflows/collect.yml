@@ -448,12 +448,14 @@ jobs:
           minor_version: ${{ needs.get-environment.outputs.minor_version }}
 
   deliver-rpm-pulp:
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
+      needs.get-environment.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled'))) &&
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, robot-test]
@@ -492,12 +494,14 @@ jobs:
           audience: ${{ vars.PULP_OIDC_AUDIENCE }}
 
   deliver-deb-pulp:
+    # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
+      needs.get-environment.result == 'success' &&
+      (needs.get-environment.outputs.is_nightly == 'true' ||
+      (! contains(needs.*.result, 'failure') && ! contains(needs.*.result, 'cancelled'))) &&
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, robot-test]
