@@ -306,6 +306,7 @@ add_dependencies(pb_broker_lib process_stat pb_common_lib)
 target_link_libraries(pb_broker_lib
   PRIVATE
   process_stat
+  centreon_engine_conf
 )
 
 set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)

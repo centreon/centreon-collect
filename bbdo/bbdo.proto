@@ -53,3 +53,9 @@ message Ack {
 message Stop {
   uint64 poller_id = 1;
 }
+
+/* io::bbdo, bbdo::de_pb_diff_state_ack, 55 */
+message DiffStateAck {
+  uint64 poller_id = 1;
+  string config_version = 2;
+}

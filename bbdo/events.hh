@@ -94,6 +94,8 @@ enum data_element {
   de_welcome = 7,
   de_pb_ack = 8,
   de_pb_stop = 9,
+  de_pb_diff_state = 10,
+  de_pb_diff_state_ack = 11,
 };
 }
 namespace neb {
@@ -141,7 +143,7 @@ enum data_element {
   de_pb_service_check = 40,
   de_pb_log_entry = 41,
   de_pb_instance_status = 42,
-  // de_pb_module = 43,    Not used
+  de_pb_global_diff_state = 43,
   de_pb_instance = 44,
   de_pb_acknowledgement = 45,
   de_pb_responsive_instance = 46,
