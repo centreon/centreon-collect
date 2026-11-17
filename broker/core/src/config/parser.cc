@@ -280,11 +280,11 @@ state parser::parse(std::string const& file, bool neb_module) {
                           retval.cache_directory());
         } else if (get_conf<state>(
                        {it.key(), it.value()}, "cache_config_directory", retval,
-                       &state::set_config_cache_dir, &json::is_string)) {
-          if (!misc::filesystem::readable(retval.config_cache_dir()))
+                       &state::set_cache_config_dir, &json::is_string)) {
+          if (!misc::filesystem::readable(retval.cache_config_dir()))
             throw msg_fmt(
                 "The cache configuration directory '{}' is not accessible",
-                retval.config_cache_dir());
+                retval.cache_config_dir());
         } else if (get_conf<state>({it.key(), it.value()},
                                    "pollers_config_directory", retval,
                                    &state::set_pollers_config_dir,

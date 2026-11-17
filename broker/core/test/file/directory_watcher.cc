@@ -161,9 +161,9 @@ TEST(DirectoryWatcher, WatchNonBlockingMultipleFiles) {
 
   /* We should have 200 files. file0, file1, file2, file3, etc. */
   absl::flat_hash_set<std::string> expected_filenames;
-  for (int count = 0; count < 200; count++) {
+  for (int count = 0; count < 200; count++)
     expected_filenames.insert(fmt::format("file{}", count));
-  }
+
   ASSERT_EQ(filenames.size(), 200);
   ASSERT_EQ(filenames, expected_filenames);
 }

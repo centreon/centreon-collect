@@ -35,7 +35,8 @@ const std::string db_password = "centreon";
 
 class BamMonitoringStream : public testing::Test {
   void SetUp() override {
-    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+    config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
+                          0);
   }
   void TearDown() override { config::applier::deinit(); }
 };

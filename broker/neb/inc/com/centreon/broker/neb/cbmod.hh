@@ -46,7 +46,7 @@ class cbmod {
 
  public:
   cbmod();
-  cbmod(const std::string& config_file);
+  cbmod(const std::string& config_file, const std::string& engine_conf_version);
   cbmod& operator=(const cbmod&) = delete;
 
   virtual ~cbmod() noexcept;

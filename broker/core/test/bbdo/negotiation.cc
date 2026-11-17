@@ -151,7 +151,8 @@ class BbdoNegotiation : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "broker_test", 0);
+      config::applier::init(com::centreon::common::BROKER, "", 0, "broker_test",
+                            0);
     } catch (const std::exception&) {
     }
   }

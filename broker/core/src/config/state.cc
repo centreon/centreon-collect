@@ -495,8 +495,8 @@ const std::string& state::engine_config_dir() const noexcept {
  *
  * @param config_cache_dir The directory name
  */
-void state::set_config_cache_dir(const std::string& config_cache_dir) {
-  _config_cache_dir = config_cache_dir;
+void state::set_cache_config_dir(const std::string& cache_config_dir) {
+  _cache_config_dir = cache_config_dir;
 }
 
 /**
@@ -504,8 +504,8 @@ void state::set_config_cache_dir(const std::string& config_cache_dir) {
  *
  * @return The directory name
  */
-const std::string& state::config_cache_dir() const noexcept {
-  return _config_cache_dir;
+const std::string& state::cache_config_dir() const noexcept {
+  return _cache_config_dir;
 }
 
 /**
