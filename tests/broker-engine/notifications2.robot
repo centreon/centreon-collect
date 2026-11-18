@@ -101,7 +101,7 @@ not11
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -158,7 +158,7 @@ not12
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     ${cmd_service_2}    Ctn Get Service Command Id    ${2}
@@ -281,7 +281,7 @@ not13
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
      ## Time to set the host to CRITICAL HARD.
 
@@ -379,7 +379,7 @@ not14
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     ${cmd_service_2}    Ctn Get Service Command Id    ${2}
@@ -475,7 +475,7 @@ not15
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -560,7 +560,7 @@ not16
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ## Time to set the service3 to CRITICAL HARD.
 
@@ -695,7 +695,7 @@ not17
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # Time to set the host to CRITICAL HARD.
 
@@ -786,7 +786,7 @@ not18
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -832,7 +832,7 @@ not19
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -878,7 +878,7 @@ not20
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}

@@ -900,7 +900,7 @@ BEEXTCMD_REVERSE_GRPC1
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-        Ctn Wait For Engine To Be Ready    ${1}
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         #lets time to grpc to start
         Sleep  0.1
 
