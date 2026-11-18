@@ -123,6 +123,8 @@ void check_uptime::start_check([[maybe_unused]] const duration& timeout) {
 e_status check_uptime::compute(uint64_t ms_uptime,
                                std::string* output,
                                common::perfdata* perf) {
+  std::chrono::system_clock::time_point boot_tp =
+      std::chrono::system_clock::now() - std::chrono::milliseconds(ms_uptime);
   uint64_t uptime = ms_uptime / 1000;
   uint64_t uptime_bis = uptime;
 
@@ -152,6 +154,9 @@ e_status check_uptime::compute(uint64_t ms_uptime,
   } else {
     *output = "OK: System uptime is: " + sz_uptime;
   }
+
+  std::format_to(std::back_inserter(*output), " (last reboot: {:%FT%TZ})",
+                 std::chrono::floor<std::chrono::seconds>(boot_tp));
 
   perf->name("uptime"sv);
   perf->unit("s");
