@@ -107,6 +107,9 @@ x-web: &web
     COLLECTOR_SERVER_URL: http://gorgone:5556
     COLLECTOR_BROKER_ADDRESS: broker
     COLLECTOR_IMAGE: gorgone-rs-centreon-collector
+    # gorgone-server is only reachable on this network: the command the page
+    # gives must join it.
+    COLLECTOR_DOCKER_NETWORK: gorgone-rs-centreon_default
     # Sessions opened on one replica are valid on the other.
     SESSION_REDIS_URL: tcp://valkey:6379
     # Credentials encryption key, the same in every replica and pushed to the

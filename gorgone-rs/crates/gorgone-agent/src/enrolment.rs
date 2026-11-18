@@ -237,13 +237,32 @@ async fn enrol(config: &AgentConfig, token: &str, credential: &str) -> Result<St
             }
             Err(status) => {
                 let delay = failures.next_delay();
-                tracing::error!(code = ?status.code(), error = %status.message(), retry_in = ?delay,
-                    "enrolment failed: check server_url and the enrolment token (unknown, expired \
-                     or already used; a new token may not be pushed yet)");
+                tracing::error!(server_url = %config.server_url, code = ?status.code(),
+                    error = %status.message(), retry_in = ?delay,
+                    "enrolment failed: {}", failure_hint(status.code()));
                 delay
             }
         };
         tokio::time::sleep(delay).await;
+    }
+}
+
+/// What to check after a failed `Enroll` call: an unreachable server and a
+/// refused token need different actions from the admin.
+fn failure_hint(code: tonic::Code) -> &'static str {
+    match code {
+        tonic::Code::Unavailable | tonic::Code::DeadlineExceeded => {
+            "gorgone-server cannot be reached: check server_url (name resolution, network, port, \
+             TLS)"
+        }
+        tonic::Code::PermissionDenied | tonic::Code::Unauthenticated => {
+            "the enrolment token is refused: unknown, expired or already used (a token just \
+             created may not be pushed to gorgone-server yet)"
+        }
+        tonic::Code::ResourceExhausted => {
+            "too many refused attempts from this address: gorgone-server slows them down"
+        }
+        _ => "unexpected answer from gorgone-server",
     }
 }
 
@@ -252,6 +271,15 @@ mod tests {
     use std::os::unix::fs::PermissionsExt;
 
     use super::*;
+
+    #[test]
+    fn failure_hint_tells_network_from_token() {
+        assert!(failure_hint(tonic::Code::Unavailable).contains("cannot be reached"));
+        assert!(failure_hint(tonic::Code::DeadlineExceeded).contains("cannot be reached"));
+        assert!(failure_hint(tonic::Code::PermissionDenied).contains("token is refused"));
+        assert!(!failure_hint(tonic::Code::Unavailable).contains("token"));
+        assert!(failure_hint(tonic::Code::ResourceExhausted).contains("too many"));
+    }
 
     #[test]
     fn identity_round_trip_is_private() {
