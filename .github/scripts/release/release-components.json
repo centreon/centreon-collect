@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "testing_tag_builds": false,
   "components": {
     "centreon-collect": {
       "workflow": "collect.yml",
@@ -13,12 +14,10 @@
         "connectors",
         "custom-triplets",
         "engine",
-        "grpc",
         "packaging/centreon-collect",
         "overlays",
         "selinux/centreon-broker",
         "selinux/centreon-engine",
-        "cmake.sh",
         "cmake-vcpkg.sh",
         "CMakeLists.txt",
         "CMakeListsLinux.txt",
@@ -38,8 +37,7 @@
       "bundle_component": "centreon-gorgone",
       "paths": [
         "gorgone",
-        ".version.centreon-gorgone",
-        "packaging/centreon-gorgone"
+        ".version.centreon-gorgone"
       ]
     },
     "centreon-monitoring-agent": {
