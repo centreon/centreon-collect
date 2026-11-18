@@ -16,31 +16,43 @@ use crate::config::{AgentConfig, Secret};
 use crate::session::Backoff;
 use crate::{AgentError, client};
 
-/// File of `state_dir` holding the node identity: `node_id=` and
-/// `credential=` lines, mode 0600. `node_id` is empty while a fleet
-/// enrolment waits for the central.
+/// File of `state_dir` holding the node identity: `node_id=`,
+/// `credential=` and, during a rotation, `next_credential=` lines, mode
+/// 0600. `node_id` is empty while a fleet enrolment waits for the central.
+/// Its modification time is when the credential last changed.
 pub(crate) const IDENTITY_FILE: &str = "identity";
 /// Random bytes of a credential, sent in hexadecimal.
 const CREDENTIAL_BYTES: usize = 32;
 /// Period of the questions while the central has not assigned a node.
 const PENDING_MIN: Duration = Duration::from_secs(2);
 const PENDING_MAX: Duration = Duration::from_secs(10);
+/// Period of the questions once the enrolment was rejected: nothing will
+/// change for this token, but asking rarely keeps the agent alive (no
+/// restart loop under a supervisor) and shows in its log.
+const REJECTED_RETRY: Duration = Duration::from_secs(3600);
 
 /// Identity of the node, as kept on disk.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Identity {
     pub(crate) node_id: String,
     pub(crate) credential: String,
+    /// Credential being rotated to: written before the server hears of it,
+    /// promoted to `credential` once the server made it the only one.
+    pub(crate) next_credential: Option<String>,
 }
 
 impl Identity {
     fn parse(text: &str) -> Option<Self> {
         let mut node_id = None;
         let mut credential = None;
+        let mut next_credential = None;
         for line in text.lines() {
             match line.split_once('=') {
                 Some(("node_id", value)) => node_id = Some(value.trim().to_owned()),
                 Some(("credential", value)) => credential = Some(value.trim().to_owned()),
+                Some(("next_credential", value)) => {
+                    next_credential = Some(value.trim().to_owned());
+                }
                 _ => {}
             }
         }
@@ -48,6 +60,7 @@ impl Identity {
         Some(Self {
             node_id: node_id.unwrap_or_default(),
             credential,
+            next_credential: next_credential.filter(|c| !c.is_empty()),
         })
     }
 
@@ -79,6 +92,9 @@ impl Identity {
             "node_id={}\ncredential={}\n",
             self.node_id, self.credential
         )?;
+        if let Some(next) = &self.next_credential {
+            writeln!(file, "next_credential={next}")?;
+        }
         file.sync_all()?;
         drop(file);
         fs::rename(&staged, &path)?;
@@ -88,7 +104,7 @@ impl Identity {
 }
 
 /// A new random credential, from the kernel generator.
-fn new_credential() -> io::Result<String> {
+pub(crate) fn new_credential() -> io::Result<String> {
     let mut bytes = [0u8; CREDENTIAL_BYTES];
     File::open("/dev/urandom")?.read_exact(&mut bytes)?;
     Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
@@ -114,10 +130,13 @@ fn io_error(path: PathBuf) -> impl FnOnce(io::Error) -> AgentError {
 
 /// Gives `config` its node identity: the one kept in `state_dir`, else the
 /// one obtained with `enrolment_token` (retried until it succeeds). Without
-/// `state_dir` or token, the configuration is used as it is.
-pub(crate) async fn resolve(mut config: AgentConfig) -> Result<AgentConfig, AgentError> {
+/// `state_dir` or token, the configuration is used as it is. Also returns
+/// the identity kept in `state_dir`, whose credential this agent rotates.
+pub(crate) async fn resolve(
+    mut config: AgentConfig,
+) -> Result<(AgentConfig, Option<Identity>), AgentError> {
     let Some(dir) = config.state_dir.clone() else {
-        return Ok(config);
+        return Ok((config, None));
     };
     let kept = Identity::load(&dir).map_err(io_error(dir.join(IDENTITY_FILE)))?;
     if let Some(identity) = &kept
@@ -134,10 +153,10 @@ pub(crate) async fn resolve(mut config: AgentConfig) -> Result<AgentConfig, Agen
         tracing::info!(node_id = %identity.node_id, "using the identity kept in the state directory");
         config.node_id.clone_from(&identity.node_id);
         config.token = Some(Secret::new(identity.credential.clone()));
-        return Ok(config);
+        return Ok((config, kept));
     }
     let Some(token) = config.enrolment_token.clone() else {
-        return Ok(config);
+        return Ok((config, None));
     };
     // Kept before the first attempt: a restart while the central has not
     // assigned a node asks again with the same credential.
@@ -147,6 +166,7 @@ pub(crate) async fn resolve(mut config: AgentConfig) -> Result<AgentConfig, Agen
             let identity = Identity {
                 node_id: String::new(),
                 credential: new_credential().map_err(io_error(PathBuf::from("/dev/urandom")))?,
+                next_credential: None,
             };
             identity
                 .store(&dir)
@@ -155,16 +175,18 @@ pub(crate) async fn resolve(mut config: AgentConfig) -> Result<AgentConfig, Agen
         }
     };
     let node_id = enrol(&config, token.expose(), &credential).await?;
-    Identity {
+    let identity = Identity {
         node_id: node_id.clone(),
         credential: credential.clone(),
-    }
-    .store(&dir)
-    .map_err(io_error(dir.join(IDENTITY_FILE)))?;
+        next_credential: None,
+    };
+    identity
+        .store(&dir)
+        .map_err(io_error(dir.join(IDENTITY_FILE)))?;
     tracing::info!(%node_id, "enrolled: node identity kept in the state directory");
     config.node_id = node_id;
     config.token = Some(Secret::new(credential));
-    Ok(config)
+    Ok((config, Some(identity)))
 }
 
 /// Asks the server until it gives a node id. Never gives up: the token may
@@ -200,6 +222,12 @@ async fn enrol(config: &AgentConfig, token: &str, credential: &str) -> Result<St
                             "enrolment accepted, waiting for the central to assign a node");
                         delay
                     }
+                    State::Rejected => {
+                        tracing::error!(enrolment_id = %answer.enrolment_id, retry_in = ?REJECTED_RETRY,
+                            "enrolment rejected by the central: no node will be assigned with \
+                             this token; ask its administrator for another one");
+                        REJECTED_RETRY
+                    }
                     _ => {
                         let delay = failures.next_delay();
                         tracing::warn!(retry_in = ?delay, "unexpected enrolment answer");
@@ -232,10 +260,11 @@ mod tests {
         let identity = Identity {
             node_id: "12".into(),
             credential: new_credential().unwrap(),
+            next_credential: None,
         };
         assert_eq!(identity.credential.len(), 2 * CREDENTIAL_BYTES);
         identity.store(dir.path()).unwrap();
-        assert_eq!(Identity::load(dir.path()).unwrap(), Some(identity));
+        assert_eq!(Identity::load(dir.path()).unwrap(), Some(identity.clone()));
         let mode = fs::metadata(dir.path().join(IDENTITY_FILE))
             .unwrap()
             .permissions()
@@ -246,6 +275,13 @@ mod tests {
         let pending = Identity::parse("node_id=\ncredential=abc\n").unwrap();
         assert!(pending.node_id.is_empty());
         assert_eq!(Identity::parse("node_id=1\n"), None);
+        // During a rotation both credentials are kept.
+        let rotating = Identity {
+            next_credential: Some(new_credential().unwrap()),
+            ..identity
+        };
+        rotating.store(dir.path()).unwrap();
+        assert_eq!(Identity::load(dir.path()).unwrap(), Some(rotating));
     }
 
     #[test]

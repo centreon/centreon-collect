@@ -178,11 +178,17 @@ pub(crate) static CENTCORE_UNSUPPORTED: Family<2> = Family::labelled(
     ["SENDEXPORTFILE", "STARTWORKER"],
 );
 /// Answers to `Enroll` calls.
-pub(crate) static ENROLMENTS: Family<3> = Family::labelled(
+pub(crate) static ENROLMENTS: Family<5> = Family::labelled(
     "gorgone_enrolments_total",
     "outcome",
-    ["enrolled", "pending", "refused"],
+    ["enrolled", "pending", "rejected", "refused", "rate_limited"],
 );
+/// Credentials replaced by their agent.
+pub(crate) static CREDENTIAL_ROTATIONS: Family<1> =
+    Family::counter("gorgone_credential_rotations_total");
+/// Enrolment tokens deleted by the purge.
+pub(crate) static ENROLMENT_TOKENS_PURGED: Family<1> =
+    Family::counter("gorgone_enrolment_tokens_purged_total");
 
 /// Every metric, in the Prometheus text exposition format.
 pub(crate) fn render() -> String {
@@ -202,6 +208,8 @@ pub(crate) fn render() -> String {
     CENTCORE_DROPPED.render(&mut out);
     CENTCORE_UNSUPPORTED.render(&mut out);
     ENROLMENTS.render(&mut out);
+    CREDENTIAL_ROTATIONS.render(&mut out);
+    ENROLMENT_TOKENS_PURGED.render(&mut out);
     out
 }
 

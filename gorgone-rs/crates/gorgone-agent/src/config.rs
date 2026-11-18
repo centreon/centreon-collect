@@ -176,6 +176,10 @@ pub struct AgentConfig {
     /// Address reported at enrolment; the host name when unset.
     #[serde(default, deserialize_with = "lenient::option")]
     pub address: Option<String>,
+    /// Days between two rotations of the credential chosen at enrolment
+    /// (kept in `state_dir`); 0 rotates only when the central asks.
+    #[serde(default = "default_credential_rotation_days")]
+    pub credential_rotation_days: u32,
     /// Directory where the job journal survives a restart; memory only when unset.
     #[serde(default, deserialize_with = "lenient::option_path")]
     pub state_dir: Option<PathBuf>,
@@ -854,6 +858,10 @@ fn default_http_post_timeout_ms() -> u64 {
 fn default_reconnect_min_ms() -> u64 {
     500
 }
+fn default_credential_rotation_days() -> u32 {
+    30
+}
+
 fn default_reconnect_max_ms() -> u64 {
     30_000
 }

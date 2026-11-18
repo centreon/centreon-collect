@@ -13,7 +13,7 @@ use gorgone_proto::agent::enroll_response::State as EnrollState;
 use gorgone_proto::agent::server_frame::Frame;
 use gorgone_proto::agent::{
     AgentFrame, BlobChunk, EnrollRequest, EnrollResponse, EventAck, FetchBlobRequest, Heartbeat,
-    JobEvent, ServerFrame, Welcome,
+    JobEvent, RotateCredentialRequest, RotateCredentialResponse, ServerFrame, Welcome,
 };
 use prost::Message;
 use tokio::sync::{Semaphore, mpsc};
@@ -28,9 +28,10 @@ use crate::error::Error;
 use crate::events;
 use crate::hub::{Hub, SessionHandle};
 use crate::metrics;
+use crate::rate_limit::RateLimiter;
 use crate::store::{
     EnrolOutcome, EnrolRequest, FAILED_SEQ, MAX_CREDENTIAL_LEN, MIN_CREDENTIAL_LEN, NewEvent,
-    SERVER_SEQ_FLOOR, Store, Termination, Transition, hash_token, state,
+    NextCredential, SERVER_SEQ_FLOOR, Store, Termination, Transition, hash_token, state,
 };
 
 /// Time left to an agent to send its `Hello`.
@@ -71,6 +72,16 @@ pub(crate) struct Gateway {
     pub(crate) auto_enroll: bool,
     /// Bounds the sessions that have not sent their `Hello` yet.
     pub(crate) opening: Arc<Semaphore>,
+    /// Refused `Enroll` attempts per source address; `None`: no limit.
+    pub(crate) enrol_limit: Option<RateLimiter>,
+}
+
+/// An authenticated agent call.
+#[derive(Debug)]
+pub(crate) struct Caller {
+    pub(crate) node_id: String,
+    /// The central asks the agent to rotate its credential.
+    pub(crate) rotation_requested: bool,
 }
 
 /// tonic service wrapper around [`Gateway`].
@@ -96,6 +107,20 @@ fn node_id_metadata<T>(request: &Request<T>) -> Result<String, Status> {
 /// Comparison that does not stop at the first difference.
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+/// Checks a credential an agent chose. It is sent back as bearer metadata,
+/// so it must be visible ASCII.
+fn check_credential(credential: &str) -> Result<(), Status> {
+    if (MIN_CREDENTIAL_LEN..=MAX_CREDENTIAL_LEN).contains(&credential.len())
+        && credential.bytes().all(|b| b.is_ascii_graphic())
+    {
+        Ok(())
+    } else {
+        Err(Status::invalid_argument(format!(
+            "credential must be {MIN_CREDENTIAL_LEN} to {MAX_CREDENTIAL_LEN} visible ASCII characters"
+        )))
+    }
 }
 
 /// Cuts a text reported by an agent to [`MAX_STATE_TEXT`] bytes.
@@ -143,21 +168,69 @@ impl Gateway {
     /// of `node_id`. Nothing of the request body is read before this. A
     /// client certificate (mTLS) only proves the CA trusts the agent: the
     /// enrolment token is what identifies the node.
-    async fn authenticate<T>(&self, request: &Request<T>) -> Result<String, Status> {
+    ///
+    /// During a credential rotation both the current credential and the one
+    /// the agent proposed are accepted; the first call presenting the new
+    /// one makes it the only one and drops the sessions opened with the
+    /// former one.
+    pub(crate) async fn authenticate<T>(&self, request: &Request<T>) -> Result<Caller, Status> {
         let node_id = node_id_metadata(request)?;
-        let token = bearer_token(request.metadata());
+        let given = bearer_token(request.metadata())
+            .as_deref()
+            .map(hash_token)
+            .unwrap_or_default();
         let stored = self
             .store
-            .node_token_hash(&node_id)
+            .node_credentials(&node_id)
             .await
             .map_err(internal)?;
-        match stored.as_deref() {
-            Some(hash) if !hash.is_empty() => {
-                let given = token.as_deref().map(hash_token).unwrap_or_default();
-                if constant_time_eq(given.as_bytes(), hash.as_bytes()) {
-                    Ok(node_id)
-                } else {
-                    Err(Status::unauthenticated("invalid node token"))
+        match stored {
+            Some(stored) if !stored.token_hash.is_empty() => {
+                if constant_time_eq(given.as_bytes(), stored.token_hash.as_bytes()) {
+                    return Ok(Caller {
+                        node_id,
+                        rotation_requested: stored.rotation_requested,
+                    });
+                }
+                let proposed = stored
+                    .next_token_hash
+                    .as_deref()
+                    .is_some_and(|next| constant_time_eq(given.as_bytes(), next.as_bytes()));
+                if !proposed {
+                    return Err(Status::unauthenticated("invalid node token"));
+                }
+                if self
+                    .store
+                    .promote_credential(&node_id, &given)
+                    .await
+                    .map_err(internal)?
+                {
+                    metrics::CREDENTIAL_ROTATIONS.inc(1);
+                    info!(node = %node_id, "credential rotated: the former one is refused from now on");
+                    // Sessions opened with the former credential end here;
+                    // the other replicas see their rows gone.
+                    self.hub.kick(&node_id);
+                    return Ok(Caller {
+                        node_id,
+                        rotation_requested: false,
+                    });
+                }
+                // Promoted concurrently by another call of the same agent.
+                let current = self
+                    .store
+                    .node_credentials(&node_id)
+                    .await
+                    .map_err(internal)?;
+                match current {
+                    Some(current)
+                        if constant_time_eq(given.as_bytes(), current.token_hash.as_bytes()) =>
+                    {
+                        Ok(Caller {
+                            node_id,
+                            rotation_requested: current.rotation_requested,
+                        })
+                    }
+                    _ => Err(Status::unauthenticated("invalid node token")),
                 }
             }
             // A node deleted after an enrolment keeps its credential refused.
@@ -165,7 +238,10 @@ impl Gateway {
                 && !self.store.node_revoked(&node_id).await.map_err(internal)? =>
             {
                 self.store.ensure_node(&node_id).await.map_err(internal)?;
-                Ok(node_id)
+                Ok(Caller {
+                    node_id,
+                    rotation_requested: false,
+                })
             }
             _ => Err(Status::unauthenticated("unknown node")),
         }
@@ -518,7 +594,10 @@ impl AgentGateway for GatewayService {
             .try_acquire_owned()
             .map_err(|_| Status::resource_exhausted("too many sessions being opened"))?;
         // Before the first frame is decoded.
-        let node_id = gateway.authenticate(&request).await?;
+        let Caller {
+            node_id,
+            rotation_requested,
+        } = gateway.authenticate(&request).await?;
         let mut inbound = request.into_inner();
 
         let first = tokio::time::timeout(HELLO_TIMEOUT, inbound.message())
@@ -566,6 +645,7 @@ impl AgentGateway for GatewayService {
                 heartbeat_interval_s: u32::try_from(gateway.heartbeat_interval.as_secs())
                     .unwrap_or(u32::MAX),
                 server_version: env!("CARGO_PKG_VERSION").to_owned(),
+                rotate_credential: rotation_requested,
             })),
         };
         // Queued first so that it precedes any dispatch.
@@ -599,6 +679,7 @@ impl AgentGateway for GatewayService {
             ?targets,
             session = %handle.session_id,
             agent_version = %hello.agent_version,
+            rotation_requested,
             "agent session opened"
         );
         let frames = ReceiverStream::new(rx).take_until(handle.closed.clone().cancelled_owned());
@@ -615,18 +696,29 @@ impl AgentGateway for GatewayService {
         let _opening = Arc::clone(&gateway.opening)
             .try_acquire_owned()
             .map_err(|_| Status::resource_exhausted("too many sessions being opened"))?;
-        let enroll = request.into_inner();
-        let credential = enroll.credential.as_str();
-        // Sent back as bearer metadata by the sessions: visible ASCII only.
-        if !(MIN_CREDENTIAL_LEN..=MAX_CREDENTIAL_LEN).contains(&credential.len())
-            || !credential.bytes().all(|b| b.is_ascii_graphic())
+        let source = request.remote_addr().map(|addr| addr.ip());
+        let limit = gateway.enrol_limit.as_ref().zip(source);
+        if let Some((limit, source)) = limit
+            && !limit.allows(source)
         {
-            return Err(Status::invalid_argument(format!(
-                "credential must be {MIN_CREDENTIAL_LEN} to {MAX_CREDENTIAL_LEN} visible ASCII characters"
+            metrics::ENROLMENTS.add("rate_limited", 1);
+            debug!(%source, "enrolment attempt refused: too many refused attempts");
+            return Err(Status::resource_exhausted(format!(
+                "too many refused enrolment attempts from this address: retry in {:?}",
+                limit.retry_after()
             )));
         }
+        let refused = |status: Status| {
+            if let Some((limit, source)) = limit {
+                limit.charge(source);
+            }
+            status
+        };
+        let enroll = request.into_inner();
+        let credential = enroll.credential.as_str();
+        check_credential(credential).map_err(refused)?;
         if enroll.token.is_empty() {
-            return Err(Status::unauthenticated("enrolment token missing"));
+            return Err(refused(Status::unauthenticated("enrolment token missing")));
         }
         let component = if enroll.component.is_empty() {
             gorgone_core::DEFAULT_COMPONENT
@@ -634,9 +726,9 @@ impl AgentGateway for GatewayService {
             enroll.component.as_str()
         };
         if !gorgone_core::valid_component(component) {
-            return Err(Status::invalid_argument(
+            return Err(refused(Status::invalid_argument(
                 "component must be 1 to 32 characters among a-z, 0-9, _ and -",
-            ));
+            )));
         }
         let outcome = gateway
             .store
@@ -654,6 +746,7 @@ impl AgentGateway for GatewayService {
             match &outcome {
                 EnrolOutcome::Enrolled { .. } => "enrolled",
                 EnrolOutcome::Pending { .. } => "pending",
+                EnrolOutcome::Rejected { .. } => "rejected",
                 EnrolOutcome::Refused(_) => "refused",
             },
             1,
@@ -678,13 +771,51 @@ impl AgentGateway for GatewayService {
                     enrolment_id,
                 }))
             }
+            EnrolOutcome::Rejected { enrolment_id } => {
+                debug!(enrolment = %enrolment_id, name = %bounded(&enroll.name), "enrolment rejected");
+                Ok(Response::new(EnrollResponse {
+                    state: EnrollState::Rejected.into(),
+                    node_id: String::new(),
+                    enrolment_id,
+                }))
+            }
             EnrolOutcome::Refused(reason) => {
                 // The reason stays here: the agent learns nothing about the token.
                 warn!(reason, name = %bounded(&enroll.name), address = %bounded(&enroll.address), "enrolment refused");
-                Err(Status::permission_denied(
+                Err(refused(Status::permission_denied(
                     "enrolment refused: token unknown, expired, used up, or enrolment revoked",
-                ))
+                )))
             }
+        }
+    }
+
+    async fn rotate_credential(
+        &self,
+        request: Request<RotateCredentialRequest>,
+    ) -> Result<Response<RotateCredentialResponse>, Status> {
+        let gateway = &self.0;
+        let _opening = Arc::clone(&gateway.opening)
+            .try_acquire_owned()
+            .map_err(|_| Status::resource_exhausted("too many sessions being opened"))?;
+        // Promotes the proposed credential when the call presents it.
+        let node_id = gateway.authenticate(&request).await?.node_id;
+        let new_credential = request.into_inner().new_credential;
+        check_credential(&new_credential)?;
+        match gateway
+            .store
+            .propose_credential(&node_id, &hash_token(&new_credential))
+            .await
+            .map_err(internal)?
+        {
+            NextCredential::Recorded => {
+                info!(node = %node_id, "new credential proposed: both are accepted until it is used");
+                Ok(Response::new(RotateCredentialResponse { done: false }))
+            }
+            NextCredential::Current => Ok(Response::new(RotateCredentialResponse { done: true })),
+            NextCredential::NoCredential => Err(Status::failed_precondition(
+                "this node has no credential to rotate",
+            )),
+            NextCredential::UnknownNode => Err(Status::unauthenticated("unknown node")),
         }
     }
 
@@ -693,7 +824,7 @@ impl AgentGateway for GatewayService {
         request: Request<FetchBlobRequest>,
     ) -> Result<Response<Self::FetchBlobStream>, Status> {
         let gateway = &self.0;
-        let node_id = gateway.authenticate(&request).await?;
+        let node_id = gateway.authenticate(&request).await?.node_id;
 
         let digest = request.into_inner().digest.to_ascii_lowercase();
         if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit()) {
@@ -739,6 +870,8 @@ mod tests {
     use gorgone_proto::agent::job_finished::Outcome;
     use gorgone_proto::agent::{CommandResult, JobFinished, JobStarted};
 
+    use gorgone_proto::agent::agent_gateway_server::AgentGateway as _;
+
     use super::*;
     use crate::dispatcher::DispatcherConfig;
     use crate::peer::PeerClients;
@@ -758,6 +891,7 @@ mod tests {
                 validation_deadline: Duration::from_secs(120),
                 sweep_interval: Duration::from_secs(1),
                 retention: Duration::from_secs(60),
+                enrolment_token_retention: Duration::from_secs(60),
                 auto_enroll: true,
             },
         ));
@@ -769,6 +903,7 @@ mod tests {
             heartbeat_interval: Duration::from_secs(5),
             auto_enroll: true,
             opening: Arc::new(Semaphore::new(MAX_OPENING_SESSIONS)),
+            enrol_limit: None,
         };
         (Arc::new(gateway), dir)
     }
@@ -932,6 +1067,133 @@ mod tests {
         assert_eq!(
             store.job(&second).await.unwrap().unwrap().state,
             state::FAILED
+        );
+    }
+
+    /// A request of the agent of `node` presenting `credential`.
+    fn signed<T>(body: T, node: &str, credential: &str) -> Request<T> {
+        let mut request = Request::new(body);
+        let metadata = request.metadata_mut();
+        metadata.insert(NODE_ID_METADATA, node.parse().unwrap());
+        metadata.insert(
+            "authorization",
+            format!("Bearer {credential}").parse().unwrap(),
+        );
+        request
+    }
+
+    async fn rotate(
+        service: &GatewayService,
+        node: &str,
+        presented: &str,
+        new: &str,
+    ) -> Result<bool, tonic::Code> {
+        let request = RotateCredentialRequest {
+            new_credential: new.to_owned(),
+        };
+        service
+            .rotate_credential(signed(request, node, presented))
+            .await
+            .map(|answer| answer.into_inner().done)
+            .map_err(|status| status.code())
+    }
+
+    /// Every point where an agent may stop during a rotation leaves it a
+    /// credential the server accepts, and a repeated step changes nothing.
+    #[tokio::test]
+    async fn rotation_crash_windows_always_leave_a_working_credential() {
+        let (gateway, _dir) = gateway().await;
+        let service = GatewayService(Arc::clone(&gateway));
+        let node = unique("node");
+        let old = gateway.store.enrol_node(&node, "rotated").await.unwrap();
+        let new = "a-new-credential-chosen-by-the-agent-0001";
+        let auth = |credential: &str| {
+            let request = signed((), &node, credential);
+            let gateway = Arc::clone(&gateway);
+            async move { gateway.authenticate(&request).await }
+        };
+        assert!(auth(&old).await.is_ok());
+        // Not proposed yet (agent stopped after writing it): refused, the
+        // former one works.
+        assert_eq!(
+            auth(new).await.unwrap_err().code(),
+            tonic::Code::Unauthenticated
+        );
+        assert!(auth(&old).await.is_ok());
+        // Malformed: refused before the store is touched.
+        assert_eq!(
+            rotate(&service, &node, &old, "short").await,
+            Err(tonic::Code::InvalidArgument)
+        );
+
+        // Proposed (the answer may be lost): both work, repeating is harmless.
+        assert_eq!(rotate(&service, &node, &old, new).await, Ok(false));
+        assert_eq!(rotate(&service, &node, &old, new).await, Ok(false));
+        assert!(auth(&old).await.is_ok());
+
+        // The agent presents the new one: it becomes the only one.
+        assert_eq!(rotate(&service, &node, new, new).await, Ok(true));
+        assert_eq!(
+            auth(&old).await.unwrap_err().code(),
+            tonic::Code::Unauthenticated
+        );
+        assert_eq!(
+            rotate(&service, &node, &old, new).await,
+            Err(tonic::Code::Unauthenticated)
+        );
+        // Restarted before it updated its file: it repeats both steps, the
+        // first one is refused, the second one confirms.
+        assert_eq!(rotate(&service, &node, new, new).await, Ok(true));
+        assert!(auth(new).await.is_ok());
+
+        // A session opened with the proposed credential promotes it too.
+        let newer = "a-newer-credential-chosen-by-the-agent-02";
+        assert_eq!(rotate(&service, &node, new, newer).await, Ok(false));
+        let caller = auth(newer).await.unwrap();
+        assert!(!caller.rotation_requested);
+        assert_eq!(
+            auth(new).await.unwrap_err().code(),
+            tonic::Code::Unauthenticated
+        );
+
+        // The request of the central travels with the next authentication.
+        gateway.store.request_rotation(&node).await.unwrap();
+        assert!(auth(newer).await.unwrap().rotation_requested);
+    }
+
+    #[tokio::test]
+    async fn refused_enrolments_are_rate_limited_per_address() {
+        let (gateway, _dir) = gateway().await;
+        let mut gateway = Arc::into_inner(gateway).unwrap();
+        gateway.enrol_limit = RateLimiter::new(60, 2);
+        let service = GatewayService(Arc::new(gateway));
+        let attempt = |token: &str| {
+            let mut request = Request::new(EnrollRequest {
+                token: token.to_owned(),
+                credential: "credential-of-an-agent-of-32-characters".to_owned(),
+                ..EnrollRequest::default()
+            });
+            request
+                .extensions_mut()
+                .insert(tonic::transport::server::TcpConnectInfo {
+                    local_addr: None,
+                    remote_addr: Some("192.0.2.7:4000".parse().unwrap()),
+                });
+            let service = service.clone();
+            async move {
+                service
+                    .enroll(request)
+                    .await
+                    .map(|_| ())
+                    .map_err(|s| s.code())
+            }
+        };
+        assert_eq!(attempt("unknown").await, Err(tonic::Code::PermissionDenied));
+        assert_eq!(attempt("unknown").await, Err(tonic::Code::PermissionDenied));
+        // Out of budget: refused before the store is read.
+        assert_eq!(
+            attempt("unknown").await,
+            Err(tonic::Code::ResourceExhausted)
         );
     }
 }

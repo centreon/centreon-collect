@@ -63,7 +63,8 @@ pollers (ZMQ, SSH, pull, pullwss are dropped), and being a broker module
   a fleet token (node chosen later by the central), always expiring, with an
   optional number of uses.
 - **Enrolment**: one use of a token by one agent credential: `pending`
-  (fleet token, no node yet), `enrolled`, `completed` (the central finished
+  (fleet token, no node yet), `approved` (an administrator accepted it, the
+  token asked for it), `enrolled`, `completed` (the central finished
   setting the node up), `rejected` or `revoked` (its node was deleted).
 - **Job**: `id` (the legacy "token"), `node_id`, one typed `Action`, a
   deadline, a state.
@@ -133,7 +134,8 @@ event written by the server.
 
 `Enroll {token, credential, name, address, agent_version, component}` is the
 only call without node identity, on the same listener and TLS as the
-sessions; see [Enrolment](#enrolment).
+sessions; see [Enrolment](#enrolment). `RotateCredential {new_credential}`
+is authenticated like a session; see [Credential rotation](#credential-rotation).
 
 `Session` is a bidirectional stream:
 
@@ -143,7 +145,8 @@ targets}`. The node token (or the credential chosen at enrolment) travels
    additionally proves the agent is trusted by the CA; it is not read for
    identity. `component` (empty: `engine`) and `targets` (the configuration
    targets the agent maps) are described in [Components](#components-of-a-node).
-2. Server answers `Welcome {session_id, heartbeat_interval_s}` and registers
+2. Server answers `Welcome {session_id, heartbeat_interval_s,
+rotate_credential}` and registers
    the session in the store (`(node_id, component) → replica`). A newer
    session for the same node and component replaces the older one; the
    sessions of the other components of the node are kept.
@@ -213,6 +216,65 @@ centreon-web                     gorgone-server                      new agent
   node id too, so it cannot come back without a new enrolment.
 - **Existing agents** with a configured `node_id` and token, or with
   `auto_enroll`, work as before.
+- **Approval** (opt-in per fleet token, `approval_required`). The
+  enrolments of such a token stay `pending` until an administrator approves
+  them (`POST /v1/enrolments/{id}/approve` → `approved`); `assign` refuses a
+  pending one (409), so the central creates no poller before. `reject`
+  (from `pending` or `approved`) is final: the agent presenting that token
+  and credential gets `REJECTED` (not an error: only the holder of both
+  learns it), logs it and asks again once an hour, so that a supervisor does
+  not restart it in a loop and a new token given in its configuration is
+  used at its next start. A token bound to a node never asks for approval.
+- **Purge.** The replica holding the `purge` lease deletes, every minute,
+  the tokens expired, or used up, for longer than
+  `enrolment_token_retention_s` (one day). A token one of whose enrolments
+  is `pending` or `approved` is kept: its agent still asks with it. The
+  retention covers an agent that enrolled but died before keeping its node
+  id: it asks again with the same token and credential. Enrolments are kept
+  (history, revocation by node).
+- **Rate limit.** Each replica keeps, per source address, a token bucket of
+  refused `Enroll` attempts (`enrol_rate_per_minute`, 10, and
+  `enrol_rate_burst`, 20; 0 disables it). Only refusals (unknown, expired,
+  used-up token, malformed request) take a token, so agents asking again
+  while their enrolment waits are never slowed down; an address out of
+  budget gets `RESOURCE_EXHAUSTED` before the store is read. Limits: in
+  memory, per replica (an address gets one budget per replica the balancer
+  sends it to), and the address is the one the replica sees (the
+  balancer's when it hides the source); at most 10 000 addresses are
+  tracked, full buckets are forgotten first.
+
+### Credential rotation
+
+The credential an agent chose at enrolment is replaced by a new one it
+generates, every `credential_rotation_days` (agent setting, 30; 0: on
+request only; the age is the modification time of the identity file) and
+when the central asks (`POST /v1/nodes/{id}/rotate-credential`: the node is
+marked, its sessions are closed, and the `Welcome` of the next one carries
+`rotate_credential`). Agents whose token comes from their configuration do
+not rotate (they log the request).
+
+```
+agent                                        server (nodes row)
+1. identity file: credential=C, next_credential=N   token_hash=h(C)
+2. RotateCredential(N)  [Bearer C]  ──►      next_token_hash=h(N): C and N accepted
+3. RotateCredential(N)  [Bearer N]  ──►      token_hash=h(N), next=NULL, sessions dropped
+   (or any session opened with N)            C refused from now on
+4. identity file: credential=N
+```
+
+- Each step is idempotent, and the agent runs steps 2 to 4 again at start
+  when its file still holds `next_credential`, so a crash anywhere leaves a
+  working credential: before step 2 the server only knows C; between 2 and
+  3 both work; after 3 the file still has N, which works (step 2 is then
+  refused, step 3 confirms). Proposing the credential already in force
+  answers `done`.
+- The switch is a compare-and-set on `next_token_hash` in the same
+  transaction as the removal of the node's sessions: a session opened with
+  the former credential is closed (at once on the replica that switched,
+  at the next heartbeat on the others) and the agent reconnects with N.
+- A rotation that never finishes (agent gone with its file) leaves C
+  valid; the next proposal replaces N. A node accepted by `auto_enroll`
+  has no credential to rotate (`FAILED_PRECONDITION`, REST 409).
 
 ## Components of a node
 
@@ -335,8 +397,9 @@ reports its own; the node shows the engine's, and every component's under
 - **Result path**: the owner replica commits events. A REST replica waiting for
   a job (long poll or SSE) is notified locally when it owns the session, and
   falls back to short store polls otherwise.
-- **Singleton work** (purge, legacy `centcore.cmd` intake, node sync from the
-  Centreon database) runs only on the replica holding the matching lease.
+- **Singleton work** (purge of jobs, blobs and enrolment tokens, legacy
+  `centcore.cmd` intake, node sync from the Centreon database) runs only on
+  the replica holding the matching lease.
 - A replica that stops heartbeating has its sessions dropped by the others.
 
 With one replica and SQLite the same code runs with no extra component, which
@@ -347,7 +410,8 @@ is the default on-premise install.
 Portable SQL (MariaDB and SQLite), times in Unix milliseconds.
 
 ```
-nodes       (id PK, name, token_hash, created_at)
+nodes       (id PK, name, token_hash, created_at, state NULL, state_at NULL,
+             next_token_hash NULL, rotate_requested, credential_rotated_at NULL)
 replicas    (id PK, peer_addr, last_seen)
 agent_sessions (node_id, component, session_id, replica_id, agent_version,
              connected_at, last_seen, PRIMARY KEY (node_id, component))
@@ -363,10 +427,11 @@ blob_chunks (digest, idx, data BLOB, PRIMARY KEY (digest, idx))
 leases      (name PK, holder, expires_at)
 meta        (name PK, value)   -- stable server id, shared by all replicas
 enrolment_tokens (id PK, token_hash UNIQUE, node_id NULL, name NULL,
-             expires_at, max_uses NULL, uses, created_at)
+             expires_at, max_uses NULL, uses, created_at, approval_required,
+             last_used_at NULL)
 enrolments  (id PK, token_id, credential_hash, state, node_id NULL, name,
              address, agent_version, component, created_at, updated_at,
-             UNIQUE (token_id, credential_hash))
+             fleet, approval_required, UNIQUE (token_id, credential_hash))
 ```
 
 ## REST API
@@ -384,11 +449,13 @@ enrolments  (id PK, token_id, credential_hash, state, node_id NULL, name,
 | `PUT`            | `/v1/nodes/{node}/engine-configuration`       | body is the JSON document of a structured engine configuration (version checked here: 1 or 2, and 409 when the engine of the node reports in its heartbeat that it reads an older one only; the rest by the engine); stored compressed (zstd) and submits `ApplyEngineConfiguration`; optional `?id=`, `?requires=`, `?target=` (default `engine`) |
 | `GET`            | `/v1/nodes`, `/v1/nodes/{node}`               | nodes with connection status, applied configuration digests and engine state (of the engine component), and `components`: each one's session, declared targets and reported state                                                                                                                                                                  |
 | `PUT` / `DELETE` | `/v1/nodes/{node}`                            | enrol (returns the token once) / remove a node, which revokes the enrolments that gave it its credential                                                                                                                                                                                                                                           |
-| `GET`            | `/v1/enrolment-tokens`                        | enrolment tokens, without their hash                                                                                                                                                                                                                                                                                                               |
-| `PUT` / `DELETE` | `/v1/enrolment-tokens/{id}`                   | record a token `{token_hash, node_id?, name?, expires_in_s, max_uses?}` (201, or 200 when the same one is there) / delete it                                                                                                                                                                                                                       |
+| `GET`            | `/v1/enrolment-tokens`                        | enrolment tokens, without their hash, with `approval_required` and `last_used_at`                                                                                                                                                                                                                                                                  |
+| `PUT` / `DELETE` | `/v1/enrolment-tokens/{id}`                   | record a token `{token_hash, node_id?, name?, expires_in_s, max_uses?, approval_required?}` (201, or 200 when the same one is there) / delete it                                                                                                                                                                                                   |
 | `GET`            | `/v1/enrolments`, `/v1/enrolments/{id}`       | enrolments with state, node, reported name, address and version                                                                                                                                                                                                                                                                                    |
 | `POST`           | `/v1/enrolments/{id}/assign`                  | `{node_id, name?}`: gives a pending enrolment its node, created with the credential of the agent                                                                                                                                                                                                                                                   |
-| `POST`           | `/v1/enrolments/{id}/reject`, `/complete`     | refuse a pending enrolment / mark an enrolled one completed                                                                                                                                                                                                                                                                                        |
+| `POST`           | `/v1/enrolments/{id}/approve`                 | a pending enrolment may get its node (`approved`)                                                                                                                                                                                                                                                                                                  |
+| `POST`           | `/v1/enrolments/{id}/reject`, `/complete`     | refuse a pending or approved enrolment (its agent is told) / mark an enrolled one completed                                                                                                                                                                                                                                                        |
+| `POST`           | `/v1/nodes/{node}/rotate-credential`          | 202: the agent of the node rotates its credential at its next session, opened at once (`credential_rotated_at`, `rotation_requested` of the node)                                                                                                                                                                                                  |
 | `GET`            | `/healthz`, `/readyz`, `/metrics`             | probes and Prometheus metrics                                                                                                                                                                                                                                                                                                                      |
 
 JSON action shape: `{"run_commands": {"commands": [{"command": "...", "timeout_s": 30}]}}`,
@@ -432,7 +499,8 @@ writers call the API.
 - TLS everywhere (rustls); optional mTLS for agents. The peer listener takes
   the same TLS settings and a shared secret.
 - Node token: random 32 bytes, shown once, stored as SHA-256; or the
-  credential the agent generated at enrolment, stored the same way.
+  credential the agent generated at enrolment, stored the same way and
+  rotated by the agent ([Credential rotation](#credential-rotation)).
 - Enrolment tokens: generated by the central; only their SHA-256 reaches the
   server; they expire and their uses are counted (see
   [Enrolment](#enrolment)).

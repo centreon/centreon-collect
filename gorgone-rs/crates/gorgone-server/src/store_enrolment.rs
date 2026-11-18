@@ -1,6 +1,6 @@
 //! Enrolment of new nodes: tokens given by the central, and the enrolments
-//! made with them. Only hashes of the tokens and of the node credentials
-//! are stored.
+//! made with them; rotation of the credential of an enrolled node. Only
+//! hashes of the tokens and of the node credentials are stored.
 
 use sqlx::Row;
 use sqlx::any::AnyRow;
@@ -10,13 +10,17 @@ use crate::error::Error;
 
 /// States of an enrolment.
 pub(crate) mod enrolment_state {
-    /// Fleet token: waits for the central to assign a node.
+    /// Fleet token: waits for the central to assign a node (and, when the
+    /// token asks for it, for an administrator to approve it first).
     pub(crate) const PENDING: &str = "pending";
+    /// Approved by an administrator: the central may assign a node.
+    pub(crate) const APPROVED: &str = "approved";
     /// Bound to a node, whose sessions present the credential.
     pub(crate) const ENROLLED: &str = "enrolled";
     /// The central finished setting the node up.
     pub(crate) const COMPLETED: &str = "completed";
-    /// Refused by the central before any node was assigned.
+    /// Refused by the central before any node was assigned: the agent is
+    /// told so, and asks again rarely.
     pub(crate) const REJECTED: &str = "rejected";
     /// Its node was deleted: the credential is refused.
     pub(crate) const REVOKED: &str = "revoked";
@@ -38,6 +42,10 @@ pub(crate) struct EnrolmentTokenRow {
     pub(crate) max_uses: Option<i64>,
     pub(crate) uses: i64,
     pub(crate) created_at: i64,
+    /// Fleet token whose enrolments wait for an administrator's approval.
+    pub(crate) approval_required: bool,
+    /// Last enrolment counted against the token.
+    pub(crate) last_used_at: Option<i64>,
 }
 
 /// A token to record.
@@ -50,6 +58,8 @@ pub(crate) struct NewEnrolmentToken<'a> {
     pub(crate) name: Option<&'a str>,
     pub(crate) expires_at: i64,
     pub(crate) max_uses: Option<i64>,
+    /// Fleet tokens only: enrolments wait for an approval.
+    pub(crate) approval_required: bool,
 }
 
 /// One enrolment of a node with a token.
@@ -65,6 +75,10 @@ pub(crate) struct EnrolmentRow {
     pub(crate) component: String,
     pub(crate) created_at: i64,
     pub(crate) updated_at: i64,
+    /// Made with a fleet token (the central chooses the node).
+    pub(crate) fleet: bool,
+    /// Waits for an approval before the central may assign a node.
+    pub(crate) approval_required: bool,
 }
 
 /// What an agent sends to enrol, secrets in clear (never stored).
@@ -88,6 +102,9 @@ pub(crate) enum EnrolOutcome {
     },
     /// Waits for the central to assign a node.
     Pending { enrolment_id: String },
+    /// Rejected by an administrator. Only the holder of the token and of
+    /// the credential of this enrolment learns it.
+    Rejected { enrolment_id: String },
     /// Refused, with the reason kept for the server logs.
     Refused(&'static str),
 }
@@ -100,9 +117,36 @@ pub(crate) enum AssignOutcome {
     Conflict(&'static str),
 }
 
-const TOKEN_COLUMNS: &str = "id, node_id, name, expires_at, max_uses, uses, created_at";
+/// Answer to a new credential an agent proposes, or to a rotation request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum NextCredential {
+    /// Recorded: both credentials are accepted until the new one is used.
+    Recorded,
+    /// It is already the credential of the node (rotation finished).
+    Current,
+    /// The node has no credential (auto-enrolled): nothing to rotate.
+    NoCredential,
+    UnknownNode,
+}
+
+/// Credentials of a node as stored (hashes).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct NodeCredentials {
+    /// Empty for a node accepted by `auto_enroll`.
+    pub(crate) token_hash: String,
+    /// Credential proposed by the agent, not presented yet.
+    pub(crate) next_token_hash: Option<String>,
+    /// The agent is asked to rotate at its next session.
+    pub(crate) rotation_requested: bool,
+}
+
+const TOKEN_COLUMNS: &str =
+    "id, node_id, name, expires_at, max_uses, uses, created_at, approval_required, last_used_at";
 const ENROLMENT_COLUMNS: &str = "id, token_id, state, node_id, name, address, agent_version, \
-     component, created_at, updated_at";
+     component, created_at, updated_at, fleet, approval_required";
+
+/// States in which an enrolment still waits for its node: its token is kept.
+const WAITING: [&str; 2] = [enrolment_state::PENDING, enrolment_state::APPROVED];
 
 fn token_from_row(row: &AnyRow) -> Result<EnrolmentTokenRow, sqlx::Error> {
     Ok(EnrolmentTokenRow {
@@ -113,6 +157,8 @@ fn token_from_row(row: &AnyRow) -> Result<EnrolmentTokenRow, sqlx::Error> {
         max_uses: row.try_get("max_uses")?,
         uses: row.try_get("uses")?,
         created_at: row.try_get("created_at")?,
+        approval_required: row.try_get::<i64, _>("approval_required")? != 0,
+        last_used_at: row.try_get("last_used_at")?,
     })
 }
 
@@ -128,13 +174,18 @@ fn enrolment_from_row(row: &AnyRow) -> Result<EnrolmentRow, sqlx::Error> {
         component: row.try_get("component")?,
         created_at: row.try_get("created_at")?,
         updated_at: row.try_get("updated_at")?,
+        fleet: row.try_get::<i64, _>("fleet")? != 0,
+        approval_required: row.try_get::<i64, _>("approval_required")? != 0,
     })
 }
 
 /// Outcome of an enrolment already recorded for the same token and credential.
 fn replay(enrolment: &EnrolmentRow) -> EnrolOutcome {
     match (enrolment.state.as_str(), &enrolment.node_id) {
-        (enrolment_state::PENDING, _) => EnrolOutcome::Pending {
+        (enrolment_state::PENDING | enrolment_state::APPROVED, _) => EnrolOutcome::Pending {
+            enrolment_id: enrolment.id.clone(),
+        },
+        (enrolment_state::REJECTED, _) => EnrolOutcome::Rejected {
             enrolment_id: enrolment.id.clone(),
         },
         (enrolment_state::ENROLLED | enrolment_state::COMPLETED, Some(node_id)) => {
@@ -143,7 +194,7 @@ fn replay(enrolment: &EnrolmentRow) -> EnrolOutcome {
                 node_id: node_id.clone(),
             }
         }
-        _ => EnrolOutcome::Refused("enrolment rejected or revoked"),
+        _ => EnrolOutcome::Refused("enrolment revoked"),
     }
 }
 
@@ -169,10 +220,13 @@ impl Store {
         } else {
             token.max_uses
         };
+        // A bound token names its node: there is nothing to approve.
+        let approval_required = token.approval_required && token.node_id.is_none();
         let sql = format!(
             "{} INTO enrolment_tokens
-             (id, token_hash, node_id, name, expires_at, max_uses, uses, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, 0, ?)",
+             (id, token_hash, node_id, name, expires_at, max_uses, uses, created_at,
+              approval_required)
+             VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)",
             self.insert_ignore()
         );
         let inserted = sqlx::query(&sql)
@@ -183,6 +237,7 @@ impl Store {
             .bind(token.expires_at)
             .bind(max_uses)
             .bind(self.now_ms())
+            .bind(i64::from(approval_required))
             .execute(&self.pool)
             .await?
             .rows_affected();
@@ -300,9 +355,10 @@ impl Store {
         let mut tx = self.pool.begin().await?;
         // Compare-and-set: concurrent enrolments never exceed the uses.
         let counted = sqlx::query(
-            "UPDATE enrolment_tokens SET uses = uses + 1
+            "UPDATE enrolment_tokens SET uses = uses + 1, last_used_at = ?
              WHERE id = ? AND expires_at > ? AND (max_uses IS NULL OR uses < max_uses)",
         )
+        .bind(now)
         .bind(&token.id)
         .bind(now)
         .execute(&mut *tx)
@@ -322,8 +378,8 @@ impl Store {
         };
         sqlx::query(
             "INSERT INTO enrolments (id, token_id, credential_hash, state, node_id, name, address,
-             agent_version, component, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             agent_version, component, created_at, updated_at, fleet, approval_required)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(enrolment_id)
         .bind(&token.id)
@@ -336,6 +392,8 @@ impl Store {
         .bind(cut(request.component, 32))
         .bind(now)
         .bind(now)
+        .bind(i64::from(token.node_id.is_none()))
+        .bind(i64::from(token.approval_required))
         .execute(&mut *tx)
         .await?;
         let outcome = match &token.node_id {
@@ -354,8 +412,10 @@ impl Store {
         Ok(outcome)
     }
 
-    /// Gives a pending enrolment its node: the node is created with the
-    /// credential of the enrolment. Assigning the same node again is a no-op.
+    /// Gives a waiting enrolment its node: the node is created with the
+    /// credential of the enrolment. An enrolment whose token asks for an
+    /// approval must be approved first. Assigning the same node again is a
+    /// no-op.
     pub(crate) async fn assign_enrolment(
         &self,
         id: &str,
@@ -374,7 +434,8 @@ impl Store {
         let now = self.now_ms();
         let mut tx = self.pool.begin().await?;
         let row = sqlx::query(
-            "SELECT state, node_id, name, credential_hash FROM enrolments WHERE id = ?",
+            "SELECT state, node_id, name, credential_hash, approval_required
+             FROM enrolments WHERE id = ?",
         )
         .bind(id)
         .fetch_optional(&mut *tx)
@@ -383,14 +444,17 @@ impl Store {
             return Ok(AssignOutcome::NotFound);
         };
         let state: String = row.try_get("state")?;
-        if state != enrolment_state::PENDING {
+        if state == enrolment_state::PENDING && row.try_get::<i64, _>("approval_required")? != 0 {
+            return Ok(AssignOutcome::Conflict("enrolment awaits approval"));
+        }
+        if !WAITING.contains(&state.as_str()) {
             let same = opt_text(&row, "node_id")?.as_deref() == Some(node_id)
                 && [enrolment_state::ENROLLED, enrolment_state::COMPLETED]
                     .contains(&state.as_str());
             return Ok(if same {
                 AssignOutcome::Assigned
             } else {
-                AssignOutcome::Conflict("enrolment is not pending")
+                AssignOutcome::Conflict("enrolment is not waiting for a node")
             });
         }
         let taken = sqlx::query("SELECT token_hash FROM nodes WHERE id = ?")
@@ -414,12 +478,14 @@ impl Store {
         .bind(name)
         .bind(now)
         .bind(id)
-        .bind(enrolment_state::PENDING)
+        .bind(&state)
         .execute(&mut *tx)
         .await?
         .rows_affected();
         if updated == 0 {
-            return Ok(AssignOutcome::Conflict("enrolment is not pending"));
+            return Ok(AssignOutcome::Conflict(
+                "enrolment is not waiting for a node",
+            ));
         }
         bind_node(&mut tx, node_id, name, &credential_hash, now).await?;
         tx.commit().await?;
@@ -470,6 +536,138 @@ impl Store {
             .await?;
         Ok(row.is_some())
     }
+
+    /// Deletes the tokens that enrol nothing more since `retention_ms`:
+    /// expired, or used up. A token one of whose enrolments still waits
+    /// for its node is kept, since its agent asks again with it. The
+    /// enrolments stay (history, revocation). Returns the tokens deleted.
+    pub(crate) async fn purge_enrolment_tokens(&self, retention_ms: i64) -> Result<u64, Error> {
+        let cutoff = self.now_ms().saturating_sub(retention_ms);
+        let done = sqlx::query(
+            "DELETE FROM enrolment_tokens
+             WHERE (expires_at < ?
+                    OR (max_uses IS NOT NULL AND uses >= max_uses AND last_used_at < ?))
+               AND id NOT IN (SELECT token_id FROM enrolments WHERE state IN (?, ?))",
+        )
+        .bind(cutoff)
+        .bind(cutoff)
+        .bind(WAITING[0])
+        .bind(WAITING[1])
+        .execute(&self.pool)
+        .await?;
+        Ok(done.rows_affected())
+    }
+
+    // ---- credential rotation ----
+
+    /// Stored credentials of a node; `None` when it does not exist.
+    pub(crate) async fn node_credentials(
+        &self,
+        id: &str,
+    ) -> Result<Option<NodeCredentials>, Error> {
+        let row = sqlx::query(
+            "SELECT token_hash, next_token_hash, rotate_requested FROM nodes WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        let Some(row) = row else {
+            return Ok(None);
+        };
+        Ok(Some(NodeCredentials {
+            token_hash: row.try_get("token_hash")?,
+            next_token_hash: opt_text(&row, "next_token_hash")?,
+            rotation_requested: row.try_get::<i64, _>("rotate_requested")? != 0,
+        }))
+    }
+
+    /// Records the credential an agent proposes (hash), next to its
+    /// current one: both are accepted until the new one is presented.
+    /// Proposing the current credential again is a no-op, so that an agent
+    /// retrying after a lost answer learns the rotation is done.
+    pub(crate) async fn propose_credential(
+        &self,
+        id: &str,
+        next_hash: &str,
+    ) -> Result<NextCredential, Error> {
+        let updated = sqlx::query(
+            "UPDATE nodes SET next_token_hash = ?
+             WHERE id = ? AND token_hash <> '' AND token_hash <> ?",
+        )
+        .bind(next_hash)
+        .bind(id)
+        .bind(next_hash)
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
+        if updated > 0 {
+            return Ok(NextCredential::Recorded);
+        }
+        Ok(match self.node_credentials(id).await? {
+            None => NextCredential::UnknownNode,
+            Some(stored) if stored.token_hash.is_empty() => NextCredential::NoCredential,
+            Some(_) => NextCredential::Current,
+        })
+    }
+
+    /// Makes the proposed credential the only one of the node, once its
+    /// agent presented it: the former one is refused from now on, and the
+    /// sessions opened with it are dropped. False when `next_hash` is not
+    /// (or no longer) the proposed credential.
+    pub(crate) async fn promote_credential(
+        &self,
+        id: &str,
+        next_hash: &str,
+    ) -> Result<bool, Error> {
+        Ok(with_retry(|| self.promote_tx(id, next_hash)).await?)
+    }
+
+    async fn promote_tx(&self, id: &str, next_hash: &str) -> Result<bool, sqlx::Error> {
+        let mut tx = self.pool.begin().await?;
+        let promoted = sqlx::query(
+            "UPDATE nodes SET token_hash = next_token_hash, next_token_hash = NULL,
+             rotate_requested = 0, credential_rotated_at = ?
+             WHERE id = ? AND next_token_hash = ?",
+        )
+        .bind(self.now_ms())
+        .bind(id)
+        .bind(next_hash)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if promoted == 0 {
+            return Ok(false);
+        }
+        sqlx::query("DELETE FROM agent_sessions WHERE node_id = ?")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        Ok(true)
+    }
+
+    /// Asks the agent of a node to rotate its credential at its next
+    /// session, and drops its sessions so that the next one starts now.
+    pub(crate) async fn request_rotation(&self, id: &str) -> Result<NextCredential, Error> {
+        let updated =
+            sqlx::query("UPDATE nodes SET rotate_requested = 1 WHERE id = ? AND token_hash <> ''")
+                .bind(id)
+                .execute(&self.pool)
+                .await?
+                .rows_affected();
+        if updated == 0 {
+            return Ok(if self.node_exists(id).await? {
+                NextCredential::NoCredential
+            } else {
+                NextCredential::UnknownNode
+            });
+        }
+        sqlx::query("DELETE FROM agent_sessions WHERE node_id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(NextCredential::Recorded)
+    }
 }
 
 /// Creates (or replaces) the node with the credential hash as its token
@@ -497,7 +695,7 @@ async fn bind_node(
 
 #[cfg(test)]
 mod tests {
-    use super::super::testing::{store, unique};
+    use super::super::testing::{ENGINE, store, unique};
     use super::*;
 
     const CREDENTIAL: &str = "c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00";
@@ -519,20 +717,39 @@ mod tests {
         ttl_ms: i64,
         max_uses: Option<i64>,
     ) -> String {
-        let token = unique("tok");
+        token_with(store, node_id, ttl_ms, max_uses, false).await.0
+    }
+
+    /// A token and its id.
+    async fn token_with(
+        store: &Store,
+        node_id: Option<&str>,
+        ttl_ms: i64,
+        max_uses: Option<i64>,
+        approval_required: bool,
+    ) -> (String, String) {
+        let (token, id) = (unique("tok"), unique("tid"));
         let created = store
             .put_enrolment_token(NewEnrolmentToken {
-                id: &unique("tid"),
+                id: &id,
                 token_hash: &hash_token(&token),
                 node_id,
                 name: node_id.map(|_| "named-poller"),
                 expires_at: store.now_ms() + ttl_ms,
                 max_uses,
+                approval_required,
             })
             .await
             .unwrap();
         assert!(created);
-        token
+        (token, id)
+    }
+
+    fn pending_id(outcome: EnrolOutcome) -> String {
+        match outcome {
+            EnrolOutcome::Pending { enrolment_id } => enrolment_id,
+            other => panic!("not pending: {other:?}"),
+        }
     }
 
     #[tokio::test]
@@ -680,7 +897,7 @@ mod tests {
         assert!(store.node_revoked(&node).await.unwrap());
         assert_eq!(
             store.enrol(request(&token, credentials[0])).await.unwrap(),
-            EnrolOutcome::Refused("enrolment rejected or revoked")
+            EnrolOutcome::Refused("enrolment revoked")
         );
     }
 
@@ -716,6 +933,7 @@ mod tests {
             name: None,
             expires_at: store.now_ms() + 1000,
             max_uses: None,
+            approval_required: false,
         };
         assert!(store.put_enrolment_token(new).await.unwrap());
         assert!(!store.put_enrolment_token(new).await.unwrap());
@@ -748,5 +966,197 @@ mod tests {
         );
         assert!(store.delete_enrolment_token(&id).await.unwrap());
         assert!(!store.delete_enrolment_token(&id).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn approval_is_needed_before_assignment_and_rejection_is_told() {
+        let (store, _dir) = store().await;
+        let (token, token_id) = token_with(&store, None, 60_000, Some(2), true).await;
+        let listed = store.list_enrolment_tokens().await.unwrap();
+        let listed = listed.iter().find(|t| t.id == token_id).unwrap();
+        assert!(listed.approval_required);
+        assert_eq!(listed.last_used_at, None);
+
+        let first = "approved-credential-of-at-least-32-chars";
+        let id = pending_id(store.enrol(request(&token, first)).await.unwrap());
+        let enrolment = store.enrolment(&id).await.unwrap().unwrap();
+        assert!(enrolment.fleet && enrolment.approval_required);
+        let node = unique("node");
+        assert_eq!(
+            store.assign_enrolment(&id, &node, None).await.unwrap(),
+            AssignOutcome::Conflict("enrolment awaits approval")
+        );
+        assert!(!store.node_exists(&node).await.unwrap());
+        assert!(
+            store
+                .set_enrolment_state(&id, &[enrolment_state::PENDING], enrolment_state::APPROVED)
+                .await
+                .unwrap()
+        );
+        // Approved, the agent still waits for its node.
+        assert_eq!(
+            store.enrol(request(&token, first)).await.unwrap(),
+            EnrolOutcome::Pending {
+                enrolment_id: id.clone()
+            }
+        );
+        assert_eq!(
+            store.assign_enrolment(&id, &node, None).await.unwrap(),
+            AssignOutcome::Assigned
+        );
+        assert!(matches!(
+            store.enrol(request(&token, first)).await.unwrap(),
+            EnrolOutcome::Enrolled { .. }
+        ));
+
+        // A second machine is rejected: it is told, and gets no node.
+        let second = "rejected-credential-of-at-least-32-chars";
+        let rejected = pending_id(store.enrol(request(&token, second)).await.unwrap());
+        assert!(
+            store
+                .set_enrolment_state(
+                    &rejected,
+                    &[enrolment_state::PENDING, enrolment_state::APPROVED],
+                    enrolment_state::REJECTED
+                )
+                .await
+                .unwrap()
+        );
+        assert_eq!(
+            store.enrol(request(&token, second)).await.unwrap(),
+            EnrolOutcome::Rejected {
+                enrolment_id: rejected.clone()
+            }
+        );
+        assert!(matches!(
+            store
+                .assign_enrolment(&rejected, &unique("node"), None)
+                .await
+                .unwrap(),
+            AssignOutcome::Conflict(_)
+        ));
+        let listed = store.list_enrolment_tokens().await.unwrap();
+        let listed = listed.iter().find(|t| t.id == token_id).unwrap();
+        assert_eq!(listed.uses, 2);
+        assert!(listed.last_used_at.is_some());
+
+        // A token bound to a node never asks for an approval.
+        let node = unique("node");
+        let (bound, _) = token_with(&store, Some(&node), 60_000, None, true).await;
+        assert!(matches!(
+            store.enrol(request(&bound, first)).await.unwrap(),
+            EnrolOutcome::Enrolled { .. }
+        ));
+    }
+
+    #[tokio::test]
+    async fn purge_keeps_the_tokens_still_needed() {
+        let (store, _dir) = store().await;
+        // Expired for longer than the retention, never used: purged.
+        let (_, expired) = token_with(&store, None, -120_000, None, false).await;
+        // Expired, with an enrolment that waits for its node: kept.
+        let (waiting_token, waiting) = token_with(&store, None, 60_000, None, false).await;
+        store
+            .enrol(request(&waiting_token, CREDENTIAL))
+            .await
+            .unwrap();
+        sqlx::query("UPDATE enrolment_tokens SET expires_at = ? WHERE id = ?")
+            .bind(store.now_ms() - 1)
+            .bind(&waiting)
+            .execute(&store.pool)
+            .await
+            .unwrap();
+        // Used up: purged once the retention passed since its last use.
+        let node = unique("node");
+        let (used_token, used) = token_with(&store, Some(&node), 60_000, None, false).await;
+        store.enrol(request(&used_token, CREDENTIAL)).await.unwrap();
+        // Valid and usable: kept.
+        let (_, valid) = token_with(&store, None, 60_000, Some(5), false).await;
+
+        let ids = |tokens: Vec<EnrolmentTokenRow>| -> Vec<String> {
+            tokens.into_iter().map(|token| token.id).collect()
+        };
+        store.purge_enrolment_tokens(60_000).await.unwrap();
+        let left = ids(store.list_enrolment_tokens().await.unwrap());
+        assert!(!left.contains(&expired));
+        assert!(left.contains(&waiting) && left.contains(&used) && left.contains(&valid));
+
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        store.purge_enrolment_tokens(0).await.unwrap();
+        let left = ids(store.list_enrolment_tokens().await.unwrap());
+        assert!(!left.contains(&used));
+        assert!(left.contains(&waiting) && left.contains(&valid));
+        // The enrolments stay: the node keeps working, and stays revocable.
+        assert!(store.list_enrolments().await.unwrap().len() >= 2);
+    }
+
+    #[tokio::test]
+    async fn credential_rotation_accepts_both_until_the_new_one_is_used() {
+        let (store, _dir) = store().await;
+        let node = unique("node");
+        let token = token(&store, Some(&node), 60_000, None).await;
+        store.enrol(request(&token, CREDENTIAL)).await.unwrap();
+        let (old, new) = (
+            hash_token(CREDENTIAL),
+            hash_token("the-new-credential-of-32-chars-or-more"),
+        );
+
+        assert_eq!(
+            store.request_rotation(&node).await.unwrap(),
+            NextCredential::Recorded
+        );
+        assert!(store.node(&node).await.unwrap().unwrap().rotation_requested);
+        assert_eq!(
+            store.propose_credential(&node, &new).await.unwrap(),
+            NextCredential::Recorded
+        );
+        // Again: harmless.
+        assert_eq!(
+            store.propose_credential(&node, &new).await.unwrap(),
+            NextCredential::Recorded
+        );
+        let stored = store.node_credentials(&node).await.unwrap().unwrap();
+        assert_eq!(stored.token_hash, old);
+        assert_eq!(stored.next_token_hash.as_deref(), Some(new.as_str()));
+        assert!(stored.rotation_requested);
+
+        store
+            .open_session(&node, "session-of-the-old-credential")
+            .await;
+        assert!(!store.promote_credential(&node, &old).await.unwrap());
+        assert!(store.promote_credential(&node, &new).await.unwrap());
+        assert!(!store.promote_credential(&node, &new).await.unwrap());
+        let stored = store.node_credentials(&node).await.unwrap().unwrap();
+        assert_eq!(stored.token_hash, new);
+        assert_eq!(stored.next_token_hash, None);
+        assert!(!stored.rotation_requested);
+        let row = store.node(&node).await.unwrap().unwrap();
+        assert!(row.credential_rotated_at.is_some() && !row.rotation_requested);
+        // The session opened with the former credential is gone.
+        assert!(store.session(&node, ENGINE).await.unwrap().is_none());
+        // Proposing the credential in force tells the rotation is done.
+        assert_eq!(
+            store.propose_credential(&node, &new).await.unwrap(),
+            NextCredential::Current
+        );
+
+        assert_eq!(
+            store.propose_credential("missing", &new).await.unwrap(),
+            NextCredential::UnknownNode
+        );
+        assert_eq!(
+            store.request_rotation("missing").await.unwrap(),
+            NextCredential::UnknownNode
+        );
+        let open = unique("node");
+        store.ensure_node(&open).await.unwrap();
+        assert_eq!(
+            store.propose_credential(&open, &new).await.unwrap(),
+            NextCredential::NoCredential
+        );
+        assert_eq!(
+            store.request_rotation(&open).await.unwrap(),
+            NextCredential::NoCredential
+        );
     }
 }

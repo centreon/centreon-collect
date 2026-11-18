@@ -1,6 +1,7 @@
 //! Enrolment routes of `/v1`: the central records the tokens it gives
-//! (hashes only), follows the enrolments made with them and assigns a node
-//! to those of fleet tokens.
+//! (hashes only), follows the enrolments made with them, approves or
+//! rejects those that wait for it, and assigns a node to those of fleet
+//! tokens. Also the rotation request of the credential of a node.
 
 use axum::Json;
 use axum::extract::{Path, State};
@@ -10,7 +11,8 @@ use serde_json::{Value, json};
 
 use super::{ApiError, Shared};
 use crate::store::{
-    AssignOutcome, EnrolmentRow, EnrolmentTokenRow, NewEnrolmentToken, enrolment_state,
+    AssignOutcome, EnrolmentRow, EnrolmentTokenRow, NewEnrolmentToken, NextCredential,
+    enrolment_state,
 };
 
 /// Longest validity of a token: one year.
@@ -29,6 +31,8 @@ fn token_json(token: &EnrolmentTokenRow) -> Value {
         "max_uses": token.max_uses,
         "uses": token.uses,
         "created_at": token.created_at,
+        "approval_required": token.approval_required,
+        "last_used_at": token.last_used_at,
     })
 }
 
@@ -44,6 +48,8 @@ fn enrolment_json(enrolment: &EnrolmentRow) -> Value {
         "component": enrolment.component,
         "created_at": enrolment.created_at,
         "updated_at": enrolment.updated_at,
+        "fleet": enrolment.fleet,
+        "approval_required": enrolment.approval_required,
     })
 }
 
@@ -59,6 +65,10 @@ pub(super) struct TokenBody {
     expires_in_s: u64,
     /// Fleet tokens only: enrolments allowed, unlimited when absent.
     max_uses: Option<i64>,
+    /// Fleet tokens only: each enrolment waits for an approval
+    /// (`POST /v1/enrolments/{id}/approve`) before a node may be assigned.
+    #[serde(default)]
+    approval_required: bool,
 }
 
 /// `GET /v1/enrolment-tokens`: the tokens, without their hash.
@@ -103,6 +113,11 @@ pub(super) async fn put_token(
             "a token bound to a node is single use",
         ));
     }
+    if body.node_id.is_some() && body.approval_required {
+        return Err(ApiError::bad_request(
+            "approval_required is for fleet tokens: a token bound to a node names it",
+        ));
+    }
     let expires_at = state
         .store
         .now_ms()
@@ -116,6 +131,7 @@ pub(super) async fn put_token(
             name: body.name.as_deref(),
             expires_at,
             max_uses: body.max_uses,
+            approval_required: body.approval_required,
         })
         .await
         .map_err(|err| match err {
@@ -169,8 +185,9 @@ pub(super) struct AssignBody {
     name: Option<String>,
 }
 
-/// `POST /v1/enrolments/{id}/assign`: gives a pending enrolment its node,
-/// created with the credential of the enrolment.
+/// `POST /v1/enrolments/{id}/assign`: gives a waiting enrolment its node,
+/// created with the credential of the enrolment; 409 while it awaits an
+/// approval.
 pub(super) async fn assign(
     State(state): State<Shared>,
     Path(id): Path<String>,
@@ -217,9 +234,8 @@ async fn transition(
     }
 }
 
-/// `POST /v1/enrolments/{id}/reject`: a pending enrolment is refused; its
-/// agent gets an error from then on.
-pub(super) async fn reject(
+/// `POST /v1/enrolments/{id}/approve`: a pending enrolment may get its node.
+pub(super) async fn approve(
     State(state): State<Shared>,
     Path(id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
@@ -227,9 +243,44 @@ pub(super) async fn reject(
         &state,
         &id,
         &[enrolment_state::PENDING],
+        enrolment_state::APPROVED,
+    )
+    .await
+}
+
+/// `POST /v1/enrolments/{id}/reject`: an enrolment waiting for its node is
+/// refused; its agent is told so from then on.
+pub(super) async fn reject(
+    State(state): State<Shared>,
+    Path(id): Path<String>,
+) -> Result<StatusCode, ApiError> {
+    transition(
+        &state,
+        &id,
+        &[enrolment_state::PENDING, enrolment_state::APPROVED],
         enrolment_state::REJECTED,
     )
     .await
+}
+
+/// `POST /v1/nodes/{node}/rotate-credential`: the agent of the node is asked
+/// to replace its credential; its sessions are closed so that the next one,
+/// opened at once, carries the request. 202: the rotation itself happens
+/// when the agent comes back (`credential_rotated_at` of the node).
+pub(super) async fn rotate_credential(
+    State(state): State<Shared>,
+    Path(node): Path<String>,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
+    match state.store.request_rotation(&node).await? {
+        NextCredential::Recorded | NextCredential::Current => {
+            state.hub.kick(&node);
+            Ok((StatusCode::ACCEPTED, Json(json!({ "node_id": node }))))
+        }
+        NextCredential::NoCredential => Err(ApiError::conflict(
+            "this node has no credential to rotate (accepted without one)",
+        )),
+        NextCredential::UnknownNode => Err(ApiError::not_found("unknown node")),
+    }
 }
 
 /// `POST /v1/enrolments/{id}/complete`: the central finished setting the

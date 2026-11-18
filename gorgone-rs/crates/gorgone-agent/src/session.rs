@@ -15,6 +15,7 @@ use tokio_util::sync::CancellationToken;
 use crate::client::GatewayClient;
 use crate::journal::Journal;
 use crate::node_state::NodeState;
+use crate::rotation::Rotation;
 use crate::scheduler::Scheduler;
 
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(30);
@@ -78,6 +79,8 @@ impl Backoff {
 /// What the session loop needs, shared with the rest of the agent.
 pub(crate) struct Session {
     pub client: GatewayClient,
+    /// Rotation of the credential chosen at enrolment, when there is one.
+    pub rotation: Option<Arc<Rotation>>,
     pub node_id: String,
     /// Part of the node this agent drives, announced in `Hello`.
     pub component: String,
@@ -176,6 +179,15 @@ impl Session {
             "session established"
         );
 
+        if welcome.rotate_credential {
+            match &self.rotation {
+                Some(rotation) => rotation.request(),
+                None => tracing::warn!(
+                    "the central asks for a credential rotation, but this agent's token comes \
+                     from its configuration: replace it there"
+                ),
+            }
+        }
         // Everything the previous session did not get acknowledged goes again.
         self.journal.begin_session();
         let period = match welcome.heartbeat_interval_s {

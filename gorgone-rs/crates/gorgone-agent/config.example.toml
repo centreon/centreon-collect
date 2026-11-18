@@ -43,6 +43,11 @@ token_file = "/etc/centreon-gorgone/agent.token"
 # enrolment_token = "..."
 # name = "poller-paris"
 # address = "10.0.0.7"
+# Days between two rotations of that credential (0: only when the central
+# asks, with POST /v1/nodes/{id}/rotate-credential). The new one is written
+# to state_dir/identity before the server hears of it; the server accepts
+# both until the agent presents the new one.
+credential_rotation_days = 30
 
 # Directory where the job journal survives a restart. Unset by default: the
 # journal then lives in memory only and a restart forgets it. When set, after

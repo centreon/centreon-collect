@@ -12,6 +12,23 @@ service AgentGateway {
   // identity bound to a credential the agent chose. Needs no node id and no
   // bearer metadata; the secrets travel in the request.
   rpc Enroll(EnrollRequest) returns (EnrollResponse);
+  // Replaces the credential of an enrolled node with one the agent chose.
+  // Authenticated like a session. Called with the current credential, it
+  // records the new one: from then on both are accepted. The first call
+  // authenticated with the new one (this one again, or a session) makes it
+  // the only one. Repeating either call is harmless.
+  rpc RotateCredential(RotateCredentialRequest) returns (RotateCredentialResponse);
+}
+
+message RotateCredentialRequest {
+  // New random secret, kept by the agent in its state directory before the
+  // call: 32 to 255 visible ASCII characters.
+  string new_credential = 1;
+}
+
+message RotateCredentialResponse {
+  // True once the new credential is the only one of the node.
+  bool done = 1;
 }
 
 message EnrollRequest {
@@ -39,6 +56,9 @@ message EnrollResponse {
     // Fleet token: the central has not assigned a node yet. Ask again later
     // with the same token and credential.
     STATE_PENDING = 2;
+    // An administrator rejected this enrolment: no node will be assigned.
+    // Asking again only makes sense with another token.
+    STATE_REJECTED = 3;
   }
   State state = 1;
   string node_id = 2;
@@ -80,6 +100,10 @@ message Welcome {
   string session_id = 1;
   uint32 heartbeat_interval_s = 2;
   string server_version = 3;
+  // The central asks the agent to rotate its credential now
+  // (RotateCredential). Ignored by an agent whose credential comes from its
+  // configuration.
+  bool rotate_credential = 4;
 }
 
 message Heartbeat {

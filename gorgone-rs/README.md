@@ -241,6 +241,32 @@ centreon-web deletes the node in gorgone-server and revokes its credential.
 enrolments. Design: `docs/DESIGN.md` (Enrolment); the bench service
 `collector-2` does exactly this (`deploy/centreon/verify.sh`).
 
+The page **Configuration > Pollers > Collectors** (admin only, shown with
+the feature flag) does the same from the browser: it lists enrolments and
+tokens, creates an enrolment and shows its token and command once (copy
+button), revokes a token, approves or rejects a pending enrolment and asks
+a collector to rotate its credential.
+
+- **Approval.** A fleet token created with `"approval_required": true`
+  leaves each machine that uses it `pending`: the web cron creates no
+  poller until an administrator approves it
+  (`POST .../enrolments/{id}/approve`). A rejected machine
+  (`.../reject`) is told so and asks again once an hour only; it never
+  gets a poller.
+- **Credential rotation.** A collector replaces its credential every
+  `credential_rotation_days` (30 by default, 0: on request only), and when
+  asked (`POST /centreon/api/latest/configuration/collectors/{poller_id}/rotate-credential`,
+  or `POST /v1/nodes/{id}/rotate-credential` on gorgone-server). The former
+  credential is refused once the new one is in use; an interrupted rotation
+  finishes at the next start.
+- **Idempotent poller creation.** The web cron records the poller it is
+  about to create (table `collector_enrolment`) before creating it: a cron
+  killed at any point and run again never creates a second poller.
+- **Housekeeping.** gorgone-server deletes the tokens that enrol nothing
+  more (`enrolment_token_retention_s`, one day) and limits refused `Enroll`
+  attempts per source address (`enrol_rate_per_minute`,
+  `enrol_rate_burst`).
+
 ## Containers
 
 `deploy/Dockerfile` builds static binaries into two distroless images.

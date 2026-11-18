@@ -662,11 +662,13 @@ version = "0.1.0"
 dependencies = [
  "gorgone-agent",
  "gorgone-core",
+ "gorgone-proto",
  "gorgone-server",
  "serde_json",
  "sha2",
  "tempfile",
  "tokio",
+ "tonic",
 ]
 
 [[package]]

@@ -15,6 +15,7 @@ mod hub;
 mod legacy_intake;
 mod metrics;
 mod peer;
+mod rate_limit;
 mod store;
 mod tls;
 
@@ -242,6 +243,7 @@ impl Server {
                 validation_deadline: Duration::from_secs(config.validation_deadline_s),
                 sweep_interval: config.sweep_interval(),
                 retention: Duration::from_secs(config.retention_s),
+                enrolment_token_retention: Duration::from_secs(config.enrolment_token_retention_s),
                 auto_enroll: config.auto_enroll,
             },
         ));
@@ -272,6 +274,10 @@ impl Server {
             heartbeat_interval: config.heartbeat_interval(),
             auto_enroll: config.auto_enroll,
             opening: Arc::new(tokio::sync::Semaphore::new(gateway::MAX_OPENING_SESSIONS)),
+            enrol_limit: rate_limit::RateLimiter::new(
+                config.enrol_rate_per_minute,
+                config.enrol_rate_burst,
+            ),
         }));
         let mut agent_server = tonic::transport::Server::builder()
             .http2_keepalive_interval(Some(Duration::from_secs(30)));

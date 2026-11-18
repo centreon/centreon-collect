@@ -26,6 +26,9 @@
 #                    runtime image with only the gorgone-server address and an
 #                    enrolment token (scale 0, started by verify.sh
 #                    once it created the token through the centreon-web API)
+#   collector-3,     two more collectors sharing a fleet token that asks for an
+#   collector-4      approval (scale 0): verify.sh approves the first one and
+#                    rejects the second one
 #   mailpit          SMTP sink of the notifications of centreon-engine
 #   poller           the Centreon poller test image, driven by gorgone-agent
 #
@@ -140,6 +143,9 @@ x-gorgone-server-env: &gorgone-server-env
   GORGONE_SERVER__REST__BASIC_PASSWORD: bench-only
   # Bench only: agents are accepted without enrolment.
   GORGONE_SERVER__AUTO_ENROLL: "true"
+  # Bench only: tokens that enrol nothing more are purged after 5 seconds
+  # (one day by default), so that verify.sh sees the purge.
+  GORGONE_SERVER__ENROLMENT_TOKEN_RETENTION_S: "5"
 
 x-web-serve: &web-serve
   depends_on:
@@ -344,6 +350,27 @@ services:
     environment:
       CENTREON_ENGINE__SERVER_URL: http://gorgone:5556
       CENTREON_ENGINE__ENROLMENT_TOKEN: ${COLLECTOR_ENROLMENT_TOKEN:-}
+
+  # Two collectors of a fleet whose token asks for an approval: verify.sh
+  # approves collector-3 (its poller is created then) and rejects
+  # collector-4 (no poller). Same image as collector-2, which builds it.
+  collector-3:
+    image: ${COLLECTOR_IMAGE:-gorgone-rs-centreon-collector}
+    hostname: collector-3
+    restart: always
+    scale: 0
+    environment:
+      CENTREON_ENGINE__SERVER_URL: http://gorgone:5556
+      CENTREON_ENGINE__ENROLMENT_TOKEN: ${COLLECTOR_APPROVAL_TOKEN:-}
+
+  collector-4:
+    image: ${COLLECTOR_IMAGE:-gorgone-rs-centreon-collector}
+    hostname: collector-4
+    restart: always
+    scale: 0
+    environment:
+      CENTREON_ENGINE__SERVER_URL: http://gorgone:5556
+      CENTREON_ENGINE__ENROLMENT_TOKEN: ${COLLECTOR_APPROVAL_TOKEN:-}
 
   # SMTP sink of the notifications of centreon-engine (notify-mail.pl);
   # verify.sh reads the mails through its API.

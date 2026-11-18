@@ -151,6 +151,15 @@ pub struct Config {
     pub body_limit_bytes: usize,
     /// Development only: accept unknown nodes without a token.
     pub auto_enroll: bool,
+    /// How long an enrolment token is kept once it enrols nothing more
+    /// (expired, or used up), in seconds. A token whose enrolment still
+    /// waits for its node is kept anyway.
+    pub enrolment_token_retention_s: u64,
+    /// Refused `Enroll` attempts allowed per source address and minute, on
+    /// each replica; 0 disables the limit.
+    pub enrol_rate_per_minute: u32,
+    /// Refused `Enroll` attempts a source address may make in a burst.
+    pub enrol_rate_burst: u32,
     /// Stable identifier returned by the legacy thumbprint route; derived
     /// from the database location when unset.
     pub thumbprint: Option<String>,
@@ -204,6 +213,12 @@ impl fmt::Debug for Config {
             .field("sweep_interval_ms", &self.sweep_interval_ms)
             .field("body_limit_bytes", &self.body_limit_bytes)
             .field("auto_enroll", &self.auto_enroll)
+            .field(
+                "enrolment_token_retention_s",
+                &self.enrolment_token_retention_s,
+            )
+            .field("enrol_rate_per_minute", &self.enrol_rate_per_minute)
+            .field("enrol_rate_burst", &self.enrol_rate_burst)
             .field("thumbprint", &self.thumbprint)
             .field("rest", &self.rest)
             .field("rest_tls", &self.rest_tls)
@@ -240,6 +255,9 @@ impl Default for Config {
             sweep_interval_ms: 2000,
             body_limit_bytes: 256 << 20,
             auto_enroll: false,
+            enrolment_token_retention_s: 24 * 3600,
+            enrol_rate_per_minute: 10,
+            enrol_rate_burst: 20,
             thumbprint: None,
             rest: RestAuthConfig::default(),
             rest_tls: None,
@@ -379,6 +397,11 @@ impl Config {
                      or allow_plaintext = true"
                 )));
             }
+        }
+        if self.enrol_rate_per_minute > 0 && self.enrol_rate_burst == 0 {
+            return Err(Error::Invalid(
+                "enrol_rate_burst must be positive when enrol_rate_per_minute is".into(),
+            ));
         }
         if self.db_max_connections == Some(0) {
             return Err(Error::Invalid("db_max_connections must be positive".into()));

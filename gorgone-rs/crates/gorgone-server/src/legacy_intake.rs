@@ -811,6 +811,7 @@ mod tests {
                     validation_deadline: Duration::from_secs(120),
                     sweep_interval: Duration::from_secs(1),
                     retention: Duration::from_secs(60),
+                    enrolment_token_retention: Duration::from_secs(60),
                     auto_enroll: self.auto_enroll,
                 },
             ));

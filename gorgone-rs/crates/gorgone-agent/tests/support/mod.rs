@@ -72,6 +72,15 @@ impl AgentGateway for Gateway {
         Err(Status::unimplemented("no enrolment in these tests"))
     }
 
+    async fn rotate_credential(
+        &self,
+        _request: Request<gorgone_proto::agent::RotateCredentialRequest>,
+    ) -> Result<Response<gorgone_proto::agent::RotateCredentialResponse>, Status> {
+        Err(Status::unimplemented(
+            "no credential rotation in these tests",
+        ))
+    }
+
     async fn session(
         &self,
         request: Request<Streaming<AgentFrame>>,
@@ -99,6 +108,7 @@ impl AgentGateway for Gateway {
             session_id: "fake-session".to_owned(),
             heartbeat_interval_s: 1,
             server_version: "fake".to_owned(),
+            rotate_credential: false,
         };
         to_agent
             .send(Ok(ServerFrame {

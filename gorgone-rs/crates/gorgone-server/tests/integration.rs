@@ -3561,7 +3561,7 @@ async fn fleet_enrolment_waits_for_the_central_to_assign_a_node() {
     let (_, shown) = rest.get(&format!("/v1/nodes/{node}")).await;
     assert_eq!(shown["name"], "fleet-poller");
 
-    // A rejected enrolment answers an error from then on.
+    // A rejected enrolment is told so from then on, with no node.
     let token2 = format!("fleet2-{suffix}");
     let body = json!({ "token_hash": sha256_hex(&token2), "expires_in_s": 60 });
     assert_eq!(
@@ -3573,11 +3573,18 @@ async fn fleet_enrolment_waits_for_the_central_to_assign_a_node() {
         .unwrap();
     let reject = format!("/v1/enrolments/{}/reject", pending.enrolment_id);
     assert_eq!(rest.post(&reject, &json!({})).await.0, 204);
-    let refused = enroll(server.agent_addr, &token2, &credential).await;
-    assert_eq!(refused.unwrap_err().code(), Code::PermissionDenied);
+    let rejected = enroll(server.agent_addr, &token2, &credential)
+        .await
+        .unwrap();
+    assert_eq!(rejected.state, State::Rejected as i32);
+    assert!(rejected.node_id.is_empty());
+    assert_eq!(rejected.enrolment_id, pending.enrolment_id);
     // Deleting the token stops further enrolments.
     let (status, _) = delete(&rest, &format!("/v1/enrolment-tokens/f2-{suffix}")).await;
     assert_eq!(status, 204);
+    let other = "another-credential-after-the-token-is-gone";
+    let refused = enroll(server.agent_addr, &token2, other).await;
+    assert_eq!(refused.unwrap_err().code(), Code::PermissionDenied);
 
     server.shutdown().await;
 }

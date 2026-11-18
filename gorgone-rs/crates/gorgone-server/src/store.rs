@@ -29,7 +29,7 @@ use crate::metrics;
 mod enrolment;
 pub(crate) use enrolment::{
     AssignOutcome, EnrolOutcome, EnrolRequest, EnrolmentRow, EnrolmentTokenRow, MAX_CREDENTIAL_LEN,
-    MIN_CREDENTIAL_LEN, NewEnrolmentToken, enrolment_state,
+    MIN_CREDENTIAL_LEN, NewEnrolmentToken, NextCredential, enrolment_state,
 };
 
 /// Size of one stored blob chunk, also the size of a `FetchBlob` frame.
@@ -110,6 +110,10 @@ pub(crate) struct NodeRow {
     pub(crate) state: Option<String>,
     /// When the reported state last changed.
     pub(crate) state_at: Option<i64>,
+    /// When the agent last replaced its credential.
+    pub(crate) credential_rotated_at: Option<i64>,
+    /// The agent is asked to replace its credential at its next session.
+    pub(crate) rotation_requested: bool,
 }
 
 /// Agent session held by a replica.
@@ -346,7 +350,8 @@ pub(crate) struct Store {
 const JOB_COLUMNS: &str = "id, node_id, kind, action, state, attempts, created_at, updated_at, \
      deadline_at, cancel_requested, seq, requires, component";
 
-const NODE_COLUMNS: &str = "id, name, created_at, state, state_at";
+const NODE_COLUMNS: &str =
+    "id, name, created_at, state, state_at, credential_rotated_at, rotate_requested";
 
 const SESSION_COLUMNS: &str =
     "node_id, component, session_id, replica_id, agent_version, connected_at, last_seen";
@@ -395,6 +400,8 @@ fn node_from_row(row: &AnyRow) -> Result<NodeRow, sqlx::Error> {
         created_at: row.try_get("created_at")?,
         state: opt_text(row, "state")?,
         state_at: row.try_get("state_at")?,
+        credential_rotated_at: row.try_get("credential_rotated_at")?,
+        rotation_requested: row.try_get::<i64, _>("rotate_requested")? != 0,
     })
 }
 
@@ -575,7 +582,10 @@ impl Store {
                 token_hash VARCHAR(64) NOT NULL,
                 created_at BIGINT NOT NULL,
                 state {text} NULL,
-                state_at BIGINT NULL)"
+                state_at BIGINT NULL,
+                next_token_hash VARCHAR(64) NULL,
+                rotate_requested BIGINT NOT NULL DEFAULT 0,
+                credential_rotated_at BIGINT NULL)"
             ),
             "CREATE TABLE IF NOT EXISTS replicas (
                 id VARCHAR(191) NOT NULL PRIMARY KEY,
@@ -671,7 +681,9 @@ impl Store {
                 expires_at BIGINT NOT NULL,
                 max_uses BIGINT NULL,
                 uses BIGINT NOT NULL DEFAULT 0,
-                created_at BIGINT NOT NULL)"
+                created_at BIGINT NOT NULL,
+                approval_required BIGINT NOT NULL DEFAULT 0,
+                last_used_at BIGINT NULL)"
                 .to_owned(),
             "CREATE TABLE IF NOT EXISTS enrolments (
                 id VARCHAR(191) NOT NULL PRIMARY KEY,
@@ -685,6 +697,8 @@ impl Store {
                 component VARCHAR(32) NOT NULL,
                 created_at BIGINT NOT NULL,
                 updated_at BIGINT NOT NULL,
+                fleet BIGINT NOT NULL DEFAULT 0,
+                approval_required BIGINT NOT NULL DEFAULT 0,
                 UNIQUE (token_id, credential_hash))"
                 .to_owned(),
             // Latest `ApplyConfig` job of each target of a node.
@@ -711,6 +725,23 @@ impl Store {
             // Jobs queued before components existed belong to the engine.
             ("jobs", "component", "VARCHAR(32) NOT NULL DEFAULT 'engine'"),
             ("jobs", "parent_id", "VARCHAR(191) NULL"),
+            // Credential rotation of enrolled nodes.
+            ("nodes", "next_token_hash", "VARCHAR(64) NULL"),
+            ("nodes", "rotate_requested", "BIGINT NOT NULL DEFAULT 0"),
+            ("nodes", "credential_rotated_at", "BIGINT NULL"),
+            // Approval of fleet enrolments, purge of used tokens.
+            (
+                "enrolment_tokens",
+                "approval_required",
+                "BIGINT NOT NULL DEFAULT 0",
+            ),
+            ("enrolment_tokens", "last_used_at", "BIGINT NULL"),
+            ("enrolments", "fleet", "BIGINT NOT NULL DEFAULT 0"),
+            (
+                "enrolments",
+                "approval_required",
+                "BIGINT NOT NULL DEFAULT 0",
+            ),
         ] {
             let probe = format!("SELECT {column} FROM {table} LIMIT 1");
             if sqlx::query(&probe).fetch_optional(&self.pool).await.is_ok() {
@@ -749,6 +780,8 @@ impl Store {
             ("idx_jobs_parent", "jobs (parent_id)"),
             // Enrolments of a node, for its revocation.
             ("idx_enrolments_node", "enrolments (node_id)"),
+            // Enrolments of a token, for the purge of the tokens.
+            ("idx_enrolments_token", "enrolments (token_id)"),
         ] {
             let create = format!("CREATE INDEX IF NOT EXISTS {name} ON {target}");
             if sqlx::query(&create).execute(&self.pool).await.is_err() {

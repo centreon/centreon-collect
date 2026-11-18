@@ -82,6 +82,16 @@ session_send_timeout_ms = 5000
 # Development only: accept unknown nodes without an enrolment token, and
 # jobs for nodes that are not enrolled.
 auto_enroll = false
+# How long an enrolment token that enrols nothing more (expired, or used up)
+# is kept before the purge deletes it, in seconds. A token whose enrolment
+# still waits for its node is kept anyway.
+enrolment_token_retention_s = 86400
+# Refused Enroll attempts allowed per source address and per minute, on each
+# replica (0: no limit), and in a burst. Agents whose enrolment waits are not
+# counted; once an address is out of budget, all its attempts are refused
+# until it refills.
+enrol_rate_per_minute = 10
+enrol_rate_burst = 20
 
 # ---- Legacy ----
 # Value answered by /api/internal/thumbprint. Default: an identifier created

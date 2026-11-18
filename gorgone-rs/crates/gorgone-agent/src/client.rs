@@ -2,6 +2,7 @@
 //! blob download.
 
 use std::path::Path;
+use std::sync::{Arc, PoisonError, RwLock};
 use std::time::Duration;
 
 use gorgone_proto::NODE_ID_METADATA;
@@ -25,19 +26,42 @@ const CHUNK_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub(crate) type GatewayClient = AgentGatewayClient<InterceptedService<Channel, Auth>>;
 
+/// Credential the calls present, replaced during a credential rotation.
+/// The new value applies to the calls started after the change, including
+/// the next session.
+#[derive(Debug, Default)]
+pub(crate) struct Bearer(RwLock<Option<MetadataValue<Ascii>>>);
+
+impl Bearer {
+    /// Presents `token` from now on.
+    pub(crate) fn set(&self, token: &str) -> Result<(), AgentError> {
+        let mut value = metadata_value("token", &format!("Bearer {token}"))?;
+        value.set_sensitive(true);
+        *self.0.write().unwrap_or_else(PoisonError::into_inner) = Some(value);
+        Ok(())
+    }
+
+    fn get(&self) -> Option<MetadataValue<Ascii>> {
+        self.0
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+    }
+}
+
 /// Adds the node id and the bearer token to every call.
 #[derive(Clone)]
 pub(crate) struct Auth {
     node_id: MetadataValue<Ascii>,
-    authorization: Option<MetadataValue<Ascii>>,
+    bearer: Arc<Bearer>,
 }
 
 impl Interceptor for Auth {
     fn call(&mut self, mut request: Request<()>) -> Result<Request<()>, Status> {
         let metadata = request.metadata_mut();
         metadata.insert(NODE_ID_METADATA, self.node_id.clone());
-        if let Some(authorization) = &self.authorization {
-            metadata.insert("authorization", authorization.clone());
+        if let Some(authorization) = self.bearer.get() {
+            metadata.insert("authorization", authorization);
         }
         Ok(request)
     }
@@ -56,25 +80,22 @@ fn read(path: &Path) -> Result<Vec<u8>, AgentError> {
     })
 }
 
-/// Builds the client. The channel connects on first use and reconnects by
+/// Builds the client, and the credential its calls present (the token of
+/// the configuration). The channel connects on first use and reconnects by
 /// itself, so this only fails on invalid settings.
-pub(crate) fn connect(config: &AgentConfig) -> Result<GatewayClient, AgentError> {
+pub(crate) fn connect(config: &AgentConfig) -> Result<(GatewayClient, Arc<Bearer>), AgentError> {
     let endpoint = endpoint(config)?;
-    let mut authorization = config
-        .token
-        .as_ref()
-        .map(|token| metadata_value("token", &format!("Bearer {}", token.expose())))
-        .transpose()?;
-    if let Some(value) = &mut authorization {
-        value.set_sensitive(true);
+    let bearer = Arc::new(Bearer::default());
+    if let Some(token) = &config.token {
+        bearer.set(token.expose())?;
     }
     let auth = Auth {
         node_id: metadata_value("node_id", &config.node_id)?,
-        authorization,
+        bearer: Arc::clone(&bearer),
     };
-    Ok(AgentGatewayClient::with_interceptor(
-        endpoint.connect_lazy(),
-        auth,
+    Ok((
+        AgentGatewayClient::with_interceptor(endpoint.connect_lazy(), auth),
+        bearer,
     ))
 }
 

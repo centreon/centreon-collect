@@ -154,7 +154,12 @@ pub(crate) fn router(state: Shared) -> Router {
         .route("/v1/enrolments", get(enrolment::list_enrolments))
         .route("/v1/enrolments/{id}", get(enrolment::get_enrolment))
         .route("/v1/enrolments/{id}/assign", post(enrolment::assign))
+        .route("/v1/enrolments/{id}/approve", post(enrolment::approve))
         .route("/v1/enrolments/{id}/reject", post(enrolment::reject))
+        .route(
+            "/v1/nodes/{node}/rotate-credential",
+            post(enrolment::rotate_credential),
+        )
         .route("/v1/enrolments/{id}/complete", post(enrolment::complete))
         .nest("/api", legacy::router())
         .layer(DefaultBodyLimit::max(SMALL_BODY))

@@ -788,6 +788,8 @@ fn node_json(node: &NodeRow, sessions: &[&SessionRow], components: &[&ComponentR
         "engine": engine,
         "state_changed_at": node.state_at,
         "components": components,
+        "credential_rotated_at": node.credential_rotated_at,
+        "rotation_requested": node.rotation_requested,
     })
 }
 

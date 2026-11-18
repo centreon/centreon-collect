@@ -62,6 +62,8 @@ pub(crate) struct DispatcherConfig {
     /// Deadline of a `ValidateConfig` job submitted without one.
     pub(crate) validation_deadline: Duration,
     pub(crate) sweep_interval: Duration,
+    /// How long a token that enrols nothing more is kept.
+    pub(crate) enrolment_token_retention: Duration,
     pub(crate) retention: Duration,
     /// Accept jobs for nodes that are not enrolled (development).
     pub(crate) auto_enroll: bool,
@@ -956,6 +958,18 @@ impl Dispatcher {
                 Ok(0) => {}
                 Ok(purged) => info!(purged, "purged old jobs"),
                 Err(err) => warn!(error = %err, "purge failed"),
+            }
+            match self
+                .store
+                .purge_enrolment_tokens(millis(self.config.enrolment_token_retention))
+                .await
+            {
+                Ok(0) => {}
+                Ok(purged) => {
+                    metrics::ENROLMENT_TOKENS_PURGED.inc(purged);
+                    info!(purged, "purged enrolment tokens that enrol nothing more");
+                }
+                Err(err) => warn!(error = %err, "enrolment token purge failed"),
             }
         }
     }

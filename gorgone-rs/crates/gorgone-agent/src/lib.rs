@@ -12,6 +12,7 @@ mod journal;
 mod monitoring;
 mod node_state;
 mod process;
+mod rotation;
 mod scheduler;
 mod session;
 mod store;
@@ -96,11 +97,11 @@ pub async fn run(
     };
     tokio::pin!(shutdown);
     // A new node first trades its enrolment token for an identity.
-    let config = tokio::select! {
-        config = enrolment::resolve(config) => config?,
+    let (config, identity) = tokio::select! {
+        resolved = enrolment::resolve(config) => resolved?,
         () = &mut shutdown => return Ok(()),
     };
-    let client = client::connect(&config)?;
+    let (client, bearer) = client::connect(&config)?;
     let engine = EngineApi::connect(&config.engine)?;
     let monitoring = Monitoring::start(&config);
     let state = {
@@ -222,8 +223,27 @@ pub async fn run(
         executors,
         config.max_concurrent_jobs,
     ));
+    // The credential chosen at enrolment is rotated by this agent; a token
+    // of the configuration belongs to its administrator.
+    let rotation = identity
+        .zip(config.state_dir.clone())
+        .map(|(identity, dir)| {
+            let period = (config.credential_rotation_days > 0).then(|| {
+                Duration::from_secs(u64::from(config.credential_rotation_days) * 24 * 3600)
+            });
+            let rotation = Arc::new(rotation::Rotation::new(
+                dir,
+                identity,
+                bearer,
+                client.clone(),
+                period,
+            ));
+            tokio::spawn(Arc::clone(&rotation).run(stop.clone()));
+            rotation
+        });
     let session = Session {
         client,
+        rotation,
         node_id: config.node_id.clone(),
         component: config.component.clone(),
         // A structured engine configuration is routed like a target push.

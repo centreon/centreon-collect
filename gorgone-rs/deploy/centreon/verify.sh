@@ -1603,12 +1603,232 @@ sys.exit(0 if any(e["node_id"] == node and e["state"] == "revoked"
   return 1
 }
 
+# ---- Collectors page, approval, rotation, idempotent creation, purge ----
+
+APPROVAL_TOKEN=""
+APPROVAL_TOKEN_ID=""
+
+# A token pushed to gorgone-server that expires at once: the purge deletes it
+# once the retention of the bench (5 seconds) has passed.
+EXPIRED_TOKEN_ID=bench-expired-token
+push_expired_token() {
+  local hash
+  hash=$(python3 -I -c 'import hashlib, secrets; print(hashlib.sha256(secrets.token_hex(32).encode()).hexdigest())')
+  [[ "$(gorgone_api PUT "/v1/enrolment-tokens/${EXPIRED_TOKEN_ID}" -H 'Content-Type: application/json' \
+    -d "{\"token_hash\":\"${hash}\",\"expires_in_s\":1}" -o /dev/null -w '%{http_code}')" == 201 ]]
+}
+
+expired_token_purged() {
+  for _ in $(seq 60); do
+    if ! gorgone_api GET /v1/enrolment-tokens | grep -qF "\"${EXPIRED_TOKEN_ID}\""; then
+      log_has gorgone-server 'purged enrolment tokens' || log_has gorgone-server-b 'purged enrolment tokens'
+      return
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+# The page Configuration > Pollers > Collectors: its menu entry (React,
+# behind the feature flag), its route served to an admin, and the two calls
+# it makes list the enrolment of collector-2 and the approval token, still
+# kept while one of its enrolments waits (never a token value). The token of
+# collector-2, used up, is purged by then (5-second retention of the bench).
+collectors_page_lists_enrolments() {
+  [[ "$(sql "SELECT CONCAT_WS(' ', topology_url, is_react, topology_feature_flag) FROM centreon.topology
+        WHERE topology_page = 60906 AND topology_parent = 609")" \
+    == "/configuration/pollers/collectors 1 collector_enrolment" ]] || return 1
+  [[ "$(curl -s -o /dev/null -w '%{http_code}' "${WEB_URL}/configuration/pollers/collectors")" == 200 ]] || return 1
+  web_api GET /configuration/collectors/enrolments | python3 -I -c '
+import json, sys
+rows = json.load(sys.stdin)["result"]
+sys.exit(0 if any(r["name"] == "collector-2" and r["kind"] == "fleet" and r["poller_name"] == "collector-2"
+                  and r["state"] in ("enrolled", "completed") and r["agent_version"] for r in rows) else 1)' \
+    || return 1
+  web_api GET /configuration/collectors/enrolment-tokens | python3 -I -c '
+import json, sys
+rows = json.load(sys.stdin)["result"]
+token_id = sys.argv[1]
+sys.exit(0 if any(r["id"] == token_id and r["kind"] == "fleet" and r["approval_required"]
+                  and r["uses"] == 2 and r["max_uses"] == 2 and not r["expired"] for r in rows)
+         and "token" not in json.dumps(rows).replace("token_id", "") else 1)' "${APPROVAL_TOKEN_ID}" || return 1
+  # A non-admin is refused by the API the page calls.
+  [[ "$(curl -s -o /dev/null -w '%{http_code}' -H "X-AUTH-TOKEN: none" \
+    "${WEB_URL}/api/latest/configuration/collectors/enrolments")" == 401 ]]
+}
+
+identity_credential() {
+  "${COMPOSE[@]}" exec -T "$1" sed -n 's/^credential=//p' /var/lib/centreon-engine/identity
+}
+
+# Rotation asked from the web: the identity file of collector-2 changes, the
+# node records the rotation, the session comes back with the new credential
+# and the former one is refused.
+collector_credential_rotation() {
+  local node old new name=gorgone-rs-collector-old-credential network refused=1
+  node=$(collector_node)
+  old=$(identity_credential "${COLLECTOR}") || return 1
+  [[ ${#old} == 64 ]] || return 1
+  web_api POST "/configuration/collectors/${node}/rotate-credential" > /dev/null || return 1
+  for _ in $(seq 45); do
+    new=$(identity_credential "${COLLECTOR}") || return 1
+    if [[ -n "${new}" && "${new}" != "${old}" ]] \
+      && ! "${COMPOSE[@]}" exec -T "${COLLECTOR}" grep -q next_credential /var/lib/centreon-engine/identity \
+      && gorgone_api GET "/v1/nodes/${node}" | python3 -I -c '
+import json, sys
+n = json.load(sys.stdin)
+sys.exit(0 if n["connected"] and n["credential_rotated_at"] and not n["rotation_requested"] else 1)'; then
+      break
+    fi
+    new=""
+    sleep 2
+  done
+  [[ -n "${new}" ]] || return 1
+  [[ "$(sql "SELECT token_hash FROM gorgone.nodes WHERE id = '${node}'")" \
+    == "$(printf %s "${new}" | sha256sum | cut -d' ' -f1)" ]] || return 1
+  log_has "${COLLECTOR}" 'credential rotated' || return 1
+  # The former credential, presented by another container, is refused. It
+  # goes through the environment, never on a command line.
+  network=$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' \
+    "$("${COMPOSE[@]}" ps -q "${COLLECTOR}")") || return 1
+  docker rm -f "${name}" > /dev/null 2>&1
+  CENTREON_ENGINE__TOKEN=${old} docker run -d --name "${name}" --network "${network}" \
+    -e CENTREON_ENGINE__SERVER_URL=http://gorgone:5556 -e CENTREON_ENGINE__NODE_ID="${node}" \
+    -e CENTREON_ENGINE__TOKEN gorgone-rs-centreon-collector > /dev/null || return 1
+  for _ in $(seq 15); do
+    if grep -q 'invalid node token' <<< "$(docker logs "${name}" 2>&1)"; then
+      refused=0
+      break
+    fi
+    sleep 2
+  done
+  docker rm -f "${name}" > /dev/null 2>&1
+  ((refused == 0)) || return 1
+  # Still connected with the new credential, results still flowing.
+  sleep 3
+  gorgone_api GET "/v1/nodes/${node}" | grep -q '"connected":true'
+}
+
+# Enrolments of the approval token, as the page lists them.
+approval_enrolment() {
+  web_api GET /configuration/collectors/enrolments | python3 -I -c '
+import json, sys
+name, field = sys.argv[1], sys.argv[2]
+rows = [r for r in json.load(sys.stdin)["result"] if r["token_id"] == sys.argv[3] and r["name"] == name]
+print(rows[0][field] if rows else "")' "$1" "$2" "${APPROVAL_TOKEN_ID}"
+}
+
+# A fleet token asking for an approval, used by collector-3 and collector-4:
+# both stay pending, and the web cron creates no poller for them.
+approval_collectors_pending() {
+  local answer
+  answer=$(web_api POST /configuration/collectors/enrolments \
+    '{"fleet":true,"max_uses":2,"approval_required":true,"expires_in":3600}') || return 1
+  read -r APPROVAL_TOKEN APPROVAL_TOKEN_ID < <(python3 -I -c '
+import json, sys
+a = json.load(sys.stdin)
+print(a["token"], a["id"]) if a["approval_required"] is True and a["type"] == "fleet" else print("")' <<< "${answer}")
+  [[ -n "${APPROVAL_TOKEN}" ]] || return 1
+  COLLECTOR_APPROVAL_TOKEN=${APPROVAL_TOKEN} "${COMPOSE[@]}" up -d --scale collector-3=1 --scale collector-4=1 \
+    collector-3 collector-4 > /dev/null 2>&1 || return 1
+  for _ in $(seq 30); do
+    [[ "$(approval_enrolment collector-3 state) $(approval_enrolment collector-4 state)" == "pending pending" ]] && break
+    sleep 2
+  done
+  [[ "$(approval_enrolment collector-3 approval_required)" == True ]] || return 1
+  # At least one run of the web cron sees them.
+  sleep 65
+  [[ "$(approval_enrolment collector-3 state) $(approval_enrolment collector-4 state)" == "pending pending" ]] \
+    && [[ "$(sql "SELECT COUNT(*) FROM centreon.nagios_server WHERE name IN ('collector-3', 'collector-4')")" == 0 ]]
+}
+
+# cron <extra docker compose exec args...>: one run of the collector
+# enrolment job in the web-cron container, as the web user.
+enrolment_cron() {
+  "${COMPOSE[@]}" exec -T -u 48:48 "$@" web-cron /usr/local/bin/frankenphp php-cli \
+    /usr/share/centreon/cron/centreon-collector-enrolment.php
+}
+
+# Approved, collector-3 gets its poller; a cron run killed right after
+# creating it (test hook) and run again leaves one poller, assigned once.
+approval_crash_creates_one_poller() {
+  local id output code poller
+  id=$(approval_enrolment collector-3 id)
+  [[ -n "${id}" ]] || return 1
+  # Far from the minute: the scheduled run of this minute is over.
+  while (( 10#$(date +%S) < 10 || 10#$(date +%S) > 35 )); do sleep 1; done
+  web_api POST "/configuration/collectors/enrolments/${id}/approve" > /dev/null || return 1
+  [[ "$(approval_enrolment collector-3 state)" == approved ]] || return 1
+  # A scheduled run may hold the lock of the job: the manual run then skips.
+  for _ in $(seq 10); do
+    output=$(enrolment_cron -e COLLECTOR_ENROLMENT_TEST_CRASH_AFTER_POLLER=1 2>&1)
+    code=$?
+    grep -q 'skipped' <<< "${output}" || break
+    sleep 3
+  done
+  grep -q 'test hook: dying after creating poller' <<< "${output}" && ((code == 137)) || return 1
+  poller=$(sql "SELECT id FROM centreon.nagios_server WHERE name = 'collector-3'")
+  # Dead between the creation and the assignment.
+  [[ -n "${poller}" ]] \
+    && [[ "$(sql "SELECT CONCAT_WS(' ', poller_name, IFNULL(poller_id, 'null')) FROM centreon.collector_enrolment
+          WHERE enrolment_id = '${id}'")" == "collector-3 null" ]] \
+    && [[ "$(approval_enrolment collector-3 state)" == approved ]] || return 1
+  enrolment_cron > /dev/null 2>&1
+  for _ in $(seq 40); do
+    [[ "$(approval_enrolment collector-3 poller_id)" == "${poller}" ]] && break
+    sleep 2
+  done
+  [[ "$(approval_enrolment collector-3 poller_id)" == "${poller}" ]] \
+    && [[ "$(sql "SELECT COUNT(*) FROM centreon.nagios_server WHERE name LIKE 'collector-3%'")" == 1 ]] \
+    && [[ "$(sql "SELECT poller_id FROM centreon.collector_enrolment WHERE enrolment_id = '${id}'")" == "${poller}" ]]
+}
+
+# The approved collector gets its configuration from the web cron and its
+# results reach centreon_storage.
+approved_collector_monitors() {
+  clapi ADD "collector-h3;Collector 3 host;127.0.0.1;rust-host-tpl;collector-3;" HOST | grep -qv '"error"' || return 1
+  clapi ADD "collector-h3;collector-ok;rust-svc-tpl" SERVICE | grep -qv '"error"' || return 1
+  for _ in $(seq 60); do
+    [[ "$(approval_enrolment collector-3 state)" == completed ]] && break
+    sleep 2
+  done
+  [[ "$(approval_enrolment collector-3 state)" == completed ]] || return 1
+  for _ in $(seq 60); do
+    [[ "$(sql "SELECT CONCAT(s.state, ' ', s.checked) FROM centreon_storage.services s
+          JOIN centreon_storage.hosts h ON h.host_id = s.host_id
+          JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
+          WHERE i.name = 'collector-3' AND h.name = 'collector-h3'
+            AND s.description = 'collector-ok' AND s.enabled = 1")" == "0 1" ]] && return 0
+    sleep 2
+  done
+  return 1
+}
+
+# Rejected, collector-4 is told so, gets no poller and keeps quiet.
+rejected_collector_refused() {
+  local id
+  id=$(approval_enrolment collector-4 id)
+  [[ -n "${id}" ]] || return 1
+  web_api POST "/configuration/collectors/enrolments/${id}/reject" > /dev/null || return 1
+  for _ in $(seq 20); do
+    log_has collector-4 'enrolment rejected by the central' && break
+    sleep 2
+  done
+  log_has collector-4 'enrolment rejected by the central' \
+    && [[ "$(approval_enrolment collector-4 state)" == rejected ]] \
+    && [[ "$(sql "SELECT COUNT(*) FROM centreon.nagios_server WHERE name LIKE 'collector-4%'")" == 0 ]] \
+    && [[ "$("${COMPOSE[@]}" ps -q collector-4 | wc -l)" == 1 ]]
+}
+
 check "the web image is a web server only: no shell, collect, Gorgone or plugin" web_image_is_slim
 check "the web image carries no rrdtool" web_image_has_no_rrdtool
 check "no volume is shared between containers" no_shared_volume
 # First: the web cron sets the collector up while the other checks run.
 check "collector: a fleet enrolment from the web API, collector-2 started with only its token" \
   start_collector
+check "enrolment: an expired token is recorded (purged later)" push_expired_token
+check "approval: two collectors of a token asking for an approval stay pending, no poller" \
+  approval_collectors_pending
 check "the three agents are connected to gorgone-server" all_nodes_connected
 check "the broker image carries no Python, control API, RRD nor legacy SQL output" broker_image_is_slim
 check "the Central poller has an engine and a broker session" central_has_engine_and_broker_sessions
@@ -1725,6 +1945,16 @@ check "collector: a named enrolment creates its poller and shows its token once"
 check "collector: the single-use token is refused to another machine" collector_token_single_use
 check "collector: a restart reconnects with the kept identity, without the token" \
   collector_restart_keeps_identity
+check "collectors page: menu entry, route and the API calls of the page list the enrolments" \
+  collectors_page_lists_enrolments
+check "rotation: asked from the web, new identity, former credential refused, session back" \
+  collector_credential_rotation
+check "approval: approved, a cron killed after creating the poller and run again: one poller" \
+  approval_crash_creates_one_poller
+check "approval: the approved collector gets its configuration and its results are stored" \
+  approved_collector_monitors
+check "approval: the rejected collector is told so and gets no poller" rejected_collector_refused
+check "enrolment: the purge deleted the expired token" expired_token_purged
 check "collector: deleting its poller in the web revokes its credential" collector_deletion_revokes
 check "a job submitted to either gorgone-server replica reaches every node" jobs_cross_replicas
 # Last: the agents move between the gorgone-server replicas.
