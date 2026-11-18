@@ -79,10 +79,12 @@ Ctn Clean After Suite With rrdcached
 Ctn Clear Engine Logs
     Remove Directory    ${ENGINE_LOG}    Recursive=True
     Create Directory    ${ENGINE_LOG}
+    Directory Should Exist    ${ENGINE_LOG}
 
 Ctn Clear Broker Logs
     Remove Directory    ${BROKER_LOG}    Recursive=True
     Create Directory    ${BROKER_LOG}
+    Directory Should Exist    ${BROKER_LOG}
 
 Ctn Start Vault
     Start Process    /usr/bin/perl    vault/vault-server.pl    alias=vault
