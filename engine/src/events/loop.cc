@@ -118,6 +118,13 @@ static void apply_conf(std::atomic<bool>* reloading) {
   process_logger->info("Reload configuration finished.");
 }
 
+/**
+ * @brief Apply a diff configuration.
+ *
+ * @param diff_conf The new diff configuration.
+ * @param reloading A boolean to know if the configuration is currently
+ * reloading.
+ */
 static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
                        std::atomic<bool>* reloading) {
   configuration::error_cnt err;
