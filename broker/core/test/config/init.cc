@@ -16,8 +16,9 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include <gtest/gtest.h>
+#include "broker/core/config/applier/broker_state.hh"
 
 using namespace com::centreon::broker;
 
@@ -28,6 +29,7 @@ using namespace com::centreon::broker;
  */
 TEST(init, init) {
   // First object.
-  config::applier::init(com::centreon::common::BROKER, 0, "test", 0);
+  config::applier::init<com::centreon::broker::config::applier::broker_state>(
+      "", 0, "test", 0);
   ASSERT_NO_THROW(config::applier::deinit());
 }

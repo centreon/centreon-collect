@@ -21,9 +21,10 @@
 
 #include <absl/hash/hash.h>
 #include "bbdo/events.hh"
+#include "bbdo/neb.pb.h"
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "neb.pb.h"
+#include "common/engine_conf/state.pb.h"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 namespace com::centreon::broker {
@@ -125,6 +126,13 @@ using pb_unknown_host =
 using pb_agent_host_info =
     io::protobuf<AgentHostInfo, make_type(io::neb, neb::de_pb_agent_host_info)>;
 
+using pb_global_diff_state =
+    io::protobuf<com::centreon::engine::configuration::DiffState,
+                 make_type(io::neb, neb::de_pb_global_diff_state)>;
+
+using pb_engine_state =
+    io::protobuf<com::centreon::engine::configuration::State,
+                 make_type(io::neb, neb::de_pb_engine_state)>;
 }  // namespace neb
 
 namespace storage {

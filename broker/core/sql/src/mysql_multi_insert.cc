@@ -91,6 +91,7 @@ bulk_or_multi::bulk_or_multi(
     : _bulk_stmt(std::make_unique<mysql_bulk_stmt>(request)),
       _bulk_bind(_bulk_stmt->create_bind()),
       _bulk_row(bulk_row),
+      _row_count{0},
       _execute_delay_ready(execute_delay_ready),
       _row_count_ready(row_count_ready) {
   connexion.prepare_statement(*_bulk_stmt);

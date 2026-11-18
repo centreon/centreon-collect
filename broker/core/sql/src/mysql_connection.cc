@@ -18,7 +18,7 @@
 #include <errmsg.h>
 #include <mysqld_error.h>
 
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/sql/mysql_tls_probe.hh"
 #include "common/log_v2/log_v2.hh"
@@ -479,9 +479,9 @@ void mysql_connection::_commit(mysql_task* t) {
 void mysql_connection::_prepare(mysql_task* t) {
   mysql_task_prepare* task(static_cast<mysql_task_prepare*>(t));
   if (_stmt.find(task->id) != _stmt.end()) {
-    SPDLOG_LOGGER_ERROR(_logger,
-                        "mysql_connection: Statement already prepared: {} ({})",
-                        task->id, task->query);
+    SPDLOG_LOGGER_INFO(_logger,
+                       "mysql_connection: Statement already prepared: {} ({})",
+                       task->id, task->query);
     return;
   }
 

@@ -19,6 +19,7 @@
 #ifndef CCB_LUA_LUABINDING_HH
 #define CCB_LUA_LUABINDING_HH
 
+#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/misc/variant.hh"
 
 extern "C" {

@@ -534,8 +534,8 @@ target_link_libraries(
   centengine
   PRIVATE centreon_clib
   log_v2
-  enginerpc
   -Wl,--whole-archive
+  enginerpc
   centreon_grpc
   centreon_http
   cce_core

@@ -2,7 +2,7 @@
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
  * Copyright 2011-2013 Merethis
- * Copyright 2013-2024 Centreon
+ * Copyright 2013-2025 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -29,6 +29,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
+#include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 
 using namespace com::centreon::engine;
@@ -99,21 +100,45 @@ static void apply_conf(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
   try {
-    configuration::State config;
-    configuration::state_helper config_hlp(&config);
+    auto cfg = std::make_unique<configuration::State>();
+    configuration::state_helper config_hlp(cfg.get());
     {
       configuration::parser p;
-      std::string path(::pb_config.cfg_main());
-      p.parse(path, &config, err);
+      std::string path(::pb_indexed_config.state().cfg_main());
+      p.parse(path, cfg.get(), err);
+      config_hlp.expand(err);
     }
-    configuration::extended_conf::update_state(&config);
-    configuration::applier::state::instance().apply(config, err);
+    configuration::extended_conf::update_state(cfg.get());
+    configuration::applier::state::instance().apply(*cfg, err);
     process_logger->info("Configuration reloaded, main loop continuing.");
   } catch (std::exception const& e) {
     config_logger->error("Error: {}", e.what());
   }
   *reloading = false;
   process_logger->info("Reload configuration finished.");
+}
+
+/**
+ * @brief Apply a diff configuration.
+ *
+ * @param diff_conf The new diff configuration.
+ * @param reloading A boolean to know if the configuration is currently
+ * reloading.
+ */
+static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
+                       std::atomic<bool>* reloading) {
+  configuration::error_cnt err;
+  process_logger->info("Starting to reload differential configuration.");
+  try {
+    process_logger->info("Configuration reloaded, main loop continuing.");
+    configuration::applier::state::instance().apply_diff(*diff_conf, err);
+  } catch (const std::exception& e) {
+    config_logger->error("Error: {}", e.what());
+  }
+  *reloading = false;
+  process_logger->info(
+      "Reload differential configuration finished. new engine version '{}'",
+      pb_indexed_config.state().config_version());
 }
 
 /**
@@ -142,16 +167,22 @@ void loop::_dispatching() {
       sighup = false;
     }
 
+    std::unique_ptr<configuration::DiffState> diff_conf = cbm->diff_state();
     // Start reload configuration.
-    if (_need_reload) {
-      engine_logger(log_info_message, most) << "Need reload.";
-      process_logger->info("Need reload.");
+    if (_need_reload || diff_conf) {
       if (!reloading) {
-        engine_logger(log_info_message, most) << "Reloading...";
-        process_logger->info("Reloading...");
         reloading = true;
-        auto future [[maybe_unused]] =
-            std::async(std::launch::async, apply_conf, &reloading);
+        if (_need_reload) {
+          process_logger->info("Need reload.");
+          process_logger->info("Reloading...");
+          auto future [[maybe_unused]] =
+              std::async(std::launch::async, apply_conf, &reloading);
+        } else {
+          process_logger->info("New differential configuration to load.");
+          process_logger->info("Reloading from Broker...");
+          auto future [[maybe_unused]] = std::async(
+              std::launch::async, apply_diff, std::move(diff_conf), &reloading);
+        }
       } else {
         engine_logger(log_info_message, most) << "Already reloading...";
         process_logger->info("Already reloading...");
@@ -165,14 +196,17 @@ void loop::_dispatching() {
 
     configuration::applier::state::instance().lock();
 
-    time_t time_change_threshold = pb_config.time_change_threshold();
+    time_t time_change_threshold =
+        pb_indexed_config.state().time_change_threshold();
     uint32_t max_parallel_service_checks =
-        pb_config.max_parallel_service_checks();
-    bool execute_service_checks = pb_config.execute_service_checks();
-    bool execute_host_checks = pb_config.execute_host_checks();
-    uint32_t interval_length = pb_config.interval_length();
-    double sleep_time = pb_config.sleep_time();
-    int32_t command_check_interval = pb_config.command_check_interval();
+        pb_indexed_config.state().max_parallel_service_checks();
+    bool execute_service_checks =
+        pb_indexed_config.state().execute_service_checks();
+    bool execute_host_checks = pb_indexed_config.state().execute_host_checks();
+    uint32_t interval_length = pb_indexed_config.state().interval_length();
+    double sleep_time = pb_indexed_config.state().sleep_time();
+    int32_t command_check_interval =
+        pb_indexed_config.state().command_check_interval();
 
     // Hey, wait a second...  we traveled back in time!
     if (current_time < _last_time)

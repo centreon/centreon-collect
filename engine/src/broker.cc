@@ -197,7 +197,8 @@ void broker_acknowledgement_data(R* data,
                                  bool notify_contacts,
                                  bool persistent_comment) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_ACKNOWLEDGEMENT_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_ACKNOWLEDGEMENT_DATA))
     return;
 
   if (cbm->use_protobuf())
@@ -232,7 +233,11 @@ template void broker_acknowledgement_data<com::centreon::engine::host>(
  */
 void broker_adaptive_severity_data(int type, engine::severity* es) {
   /* Config check. */
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_ADAPTIVE_DATA))
+    return;
+
+  if (cbm->centralized_conf())
     return;
 
   SPDLOG_LOGGER_DEBUG(neb_logger,
@@ -279,7 +284,11 @@ void broker_adaptive_severity_data(int type, engine::severity* es) {
  */
 void broker_adaptive_tag_data(int type, engine::tag* et) {
   /* Config check. */
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_ADAPTIVE_DATA))
+    return;
+
+  if (cbm->centralized_conf())
     return;
 
   /* Make callbacks. */
@@ -482,6 +491,9 @@ static void forward_pb_host(int type,
                             int flags [[maybe_unused]],
                             uint64_t modified_attribute,
                             const engine::host* eh) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb host event protobuf");
@@ -697,7 +709,8 @@ void broker_adaptive_host_data(int type,
                                host* hst,
                                uint64_t modattr) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_ADAPTIVE_DATA))
     return;
 
   // Make callbacks.
@@ -936,6 +949,9 @@ static void forward_pb_service(int type,
                                int flags [[maybe_unused]],
                                uint64_t modified_attribute,
                                const engine::service* es) {
+  if (cbm->centralized_conf())
+    return;
+
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb service event protobuf");
 
@@ -1196,7 +1212,8 @@ void broker_adaptive_service_data(int type,
                                   engine::service* svc,
                                   unsigned long modattr) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_ADAPTIVE_DATA))
     return;
 
   // Make callbacks.
@@ -1400,7 +1417,8 @@ void broker_comment_data(int type,
                          time_t expire_time,
                          unsigned long comment_id) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_COMMENT_DATA))
+  if (!cbm ||
+      !(pb_indexed_config.state().event_broker_options() & BROKER_COMMENT_DATA))
     return;
 
   // Make callbacks.
@@ -1691,7 +1709,8 @@ void broker_custom_variable(int type,
                             const std::string_view& varvalue,
                             const struct timeval* timestamp) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_CUSTOMVARIABLE_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_CUSTOMVARIABLE_DATA))
     return;
 
   // Make callback.
@@ -1833,7 +1852,8 @@ void broker_downtime_data(int type,
                           unsigned long duration,
                           unsigned long downtime_id) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_DOWNTIME_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_DOWNTIME_DATA))
     return;
 
   // Make callbacks.
@@ -2031,7 +2051,8 @@ static void forward_pb_external_command(int type,
  */
 void broker_external_command(int type, int command_type, char* command_args) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_EXTERNALCOMMAND_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_EXTERNALCOMMAND_DATA))
     return;
 
   // Fill struct with relevant data.
@@ -2053,6 +2074,9 @@ void broker_external_command(int type, int command_type, char* command_args) {
 
 template <typename G>
 static void forward_group(int type, const G* group_data) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating group event");
 
@@ -2129,6 +2153,9 @@ static void forward_group(int type, const G* group_data) {
  */
 template <typename G>
 static void forward_pb_group(int type, const G* group_data) {
+  if (cbm->centralized_conf())
+    return;
+
   // Host group.
   if constexpr (std::is_same_v<G, engine::hostgroup>) {
     assert(NEBTYPE_HOSTGROUP_ADD == type || NEBTYPE_HOSTGROUP_UPDATE == type ||
@@ -2222,7 +2249,8 @@ static void forward_pb_group(int type, const G* group_data) {
 template <typename G>
 void broker_group(int type, const G* group) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_GROUP_DATA))
+  if (!cbm ||
+      !(pb_indexed_config.state().event_broker_options() & BROKER_GROUP_DATA))
     return;
 
   // Make callbacks.
@@ -2282,6 +2310,9 @@ static void forward_group_member(int type,
 static void forward_group_member(int type,
                                  const engine::service* object,
                                  const engine::servicegroup* group) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(
       neb_logger,
@@ -2339,6 +2370,9 @@ static void forward_group_member(int type,
  */
 template <typename G, typename R>
 static void forward_pb_group_member(int type, const R* object, const G* group) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb group member event");
@@ -2432,7 +2466,8 @@ static void forward_pb_group_member(int type, const R* object, const G* group) {
 template <typename G, typename R>
 void broker_group_member(int type, const R* object, const G* group) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_GROUP_MEMBER_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_GROUP_MEMBER_DATA))
     return;
 
   // Make callbacks.
@@ -2544,7 +2579,8 @@ int broker_host_check(int type,
                       int check_type,
                       const char* cmdline) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_HOST_CHECKS))
+  if (!cbm ||
+      !(pb_indexed_config.state().event_broker_options() & BROKER_HOST_CHECKS))
     return OK;
 
   if (!hst)
@@ -2788,7 +2824,8 @@ static void forward_pb_host_status(const host* hst,
  */
 void broker_host_status(const host* hst, uint32_t attributes) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_STATUS_DATA))
+  if (!cbm ||
+      !(pb_indexed_config.state().event_broker_options() & BROKER_STATUS_DATA))
     return;
 
   // Make callbacks.
@@ -3721,8 +3758,9 @@ static void forward_pb_log(const char* data, time_t entry_time) {
  */
 void broker_log_data_legacy(const char* data, time_t entry_time) {
   // Config check.
-  if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
-      (!pb_config.log_legacy_enabled()) || !cbm)
+  if (!(pb_indexed_config.state().event_broker_options() &
+        BROKER_LOGGED_DATA) ||
+      (!pb_indexed_config.state().log_legacy_enabled()) || !cbm)
     return;
 
   // Make callbacks.
@@ -3740,8 +3778,9 @@ void broker_log_data_legacy(const char* data, time_t entry_time) {
  */
 void broker_log_data(const char* data, time_t entry_time) {
   // Config check.
-  if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
-      !pb_config.log_v2_enabled() || !cbm)
+  if (!(pb_indexed_config.state().event_broker_options() &
+        BROKER_LOGGED_DATA) ||
+      !pb_indexed_config.state().log_v2_enabled() || !cbm)
     return;
 
   // Make callbacks.
@@ -3973,6 +4012,9 @@ static void forward_relation(int type,
 static void forward_pb_relation(int type,
                                 const engine::host* hst,
                                 const engine::host* dep_hst) noexcept {
+  if (!cbm->use_protobuf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb relation event");
 
@@ -4114,8 +4156,7 @@ template <bool proto>
 static void send_instance_configuration() {
   neb_logger->info(
       "init: sending initial instance configuration loading event, poller "
-      "id: "
-      "{}",
+      "id: {}",
       cbm->poller_id());
   if constexpr (proto) {
     auto ic = std::make_shared<neb::pb_instance_configuration>();
@@ -4133,21 +4174,21 @@ static void send_instance_configuration() {
 
 template <bool proto>
 static void send_initial_configuration() {
-  // if (config::applier::state::instance().broker_needs_update()) {
-  SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
-  send_severity_list();
-  send_tag_list();
-  send_host_list<proto>();
-  send_service_list<proto>();
-  send_custom_variables_list<proto>();
-  send_downtimes_list<proto>();
-  send_host_parents_list<proto>();
-  send_host_group_list<proto>();
-  send_service_group_list<proto>();
-  //    } else {
-  //      SPDLOG_LOGGER_INFO(_neb_logger,
-  //                         "init: No need to send poller configuration");
-  //  }
+  if (!cbm->centralized_conf()) {
+    SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
+    send_severity_list();
+    send_tag_list();
+    send_host_list<proto>();
+    send_service_list<proto>();
+    send_custom_variables_list<proto>();
+    send_downtimes_list<proto>();
+    send_host_parents_list<proto>();
+    send_host_group_list<proto>();
+    send_service_group_list<proto>();
+  } else {
+    SPDLOG_LOGGER_INFO(neb_logger,
+                       "init: No need to send poller configuration");
+  }
   send_instance_configuration<proto>();
 }
 
@@ -4162,7 +4203,8 @@ void broker_program_state(int type, int flags [[maybe_unused]]) {
   static time_t start_time;
 
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_PROGRAM_STATE))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_PROGRAM_STATE))
     return;
 
   if (cbm->use_protobuf()) {
@@ -4357,30 +4399,37 @@ static void forward_pb_program_status(
  */
 void broker_program_status() {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_STATUS_DATA))
+  if (!cbm ||
+      !(pb_indexed_config.state().event_broker_options() & BROKER_STATUS_DATA))
     return;
 
   // Make callbacks.
   if (cbm->use_protobuf())
     forward_pb_program_status(
-        last_command_check, pb_config.enable_notifications(),
-        pb_config.execute_service_checks(),
-        pb_config.accept_passive_service_checks(),
-        pb_config.execute_host_checks(), pb_config.accept_passive_host_checks(),
-        pb_config.enable_event_handlers(), pb_config.enable_flap_detection(),
-        pb_config.obsess_over_hosts(), pb_config.obsess_over_services(),
-        pb_config.global_host_event_handler(),
-        pb_config.global_service_event_handler());
+        last_command_check, pb_indexed_config.state().enable_notifications(),
+        pb_indexed_config.state().execute_service_checks(),
+        pb_indexed_config.state().accept_passive_service_checks(),
+        pb_indexed_config.state().execute_host_checks(),
+        pb_indexed_config.state().accept_passive_host_checks(),
+        pb_indexed_config.state().enable_event_handlers(),
+        pb_indexed_config.state().enable_flap_detection(),
+        pb_indexed_config.state().obsess_over_hosts(),
+        pb_indexed_config.state().obsess_over_services(),
+        pb_indexed_config.state().global_host_event_handler(),
+        pb_indexed_config.state().global_service_event_handler());
   else
     forward_program_status(
-        last_command_check, pb_config.enable_notifications(),
-        pb_config.execute_service_checks(),
-        pb_config.accept_passive_service_checks(),
-        pb_config.execute_host_checks(), pb_config.accept_passive_host_checks(),
-        pb_config.enable_event_handlers(), pb_config.enable_flap_detection(),
-        pb_config.obsess_over_hosts(), pb_config.obsess_over_services(),
-        pb_config.global_host_event_handler(),
-        pb_config.global_service_event_handler());
+        last_command_check, pb_indexed_config.state().enable_notifications(),
+        pb_indexed_config.state().execute_service_checks(),
+        pb_indexed_config.state().accept_passive_service_checks(),
+        pb_indexed_config.state().execute_host_checks(),
+        pb_indexed_config.state().accept_passive_host_checks(),
+        pb_indexed_config.state().enable_event_handlers(),
+        pb_indexed_config.state().enable_flap_detection(),
+        pb_indexed_config.state().obsess_over_hosts(),
+        pb_indexed_config.state().obsess_over_services(),
+        pb_indexed_config.state().global_host_event_handler(),
+        pb_indexed_config.state().global_service_event_handler());
 }
 
 /**
@@ -4398,8 +4447,12 @@ void broker_relation_data(int type,
                           const engine::host* dep_hst,
                           const engine::service* dep_svc) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_RELATION_DATA))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_RELATION_DATA))
     return;
+  if (cbm->centralized_conf())
+    return;
+
   if (!hst || !dep_hst || svc || dep_svc)
     return;
 
@@ -4512,7 +4565,8 @@ int broker_service_check(int type,
                          int check_type,
                          const char* cmdline) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_SERVICE_CHECKS))
+  if (!cbm || !(pb_indexed_config.state().event_broker_options() &
+                BROKER_SERVICE_CHECKS))
     return OK;
   if (!svc)
     return ERROR;
@@ -4798,7 +4852,8 @@ static void forward_pb_service_status(const engine::service* svc,
  */
 void broker_service_status(const engine::service* svc, uint32_t attributes) {
   // Config check.
-  if (!cbm || !(pb_config.event_broker_options() & BROKER_STATUS_DATA))
+  if (!cbm ||
+      !(pb_indexed_config.state().event_broker_options() & BROKER_STATUS_DATA))
     return;
 
   // Make callbacks.

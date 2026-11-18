@@ -20,7 +20,6 @@
 #define CCE_CONFIGURATION_HOSTDEPENDENCY
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
@@ -44,19 +43,9 @@ class hostdependency_helper : public message_helper {
   static void expand(
       State& s,
       error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>&
+      absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
           m_hostgroups);
 };
-
-template <typename hash_type>
-hash_type AbslHashValue(hash_type previous_value,
-                        const Hostdependency& to_hash) {
-  return hash_type::combine(std::move(previous_value),
-                            hostdependency_key(to_hash));
-}
-
-bool operator==(const Hostdependency& left, const Hostdependency& right);
-
 }  // namespace com::centreon::engine::configuration
 
 #endif /* !CCE_CONFIGURATION_HOSTDEPENDENCY */

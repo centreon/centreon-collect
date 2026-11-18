@@ -33,27 +33,28 @@
 #include "broker/test/test_server.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/lua/connector.hh"
 #include "com/centreon/broker/lua/factory.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
+#include "broker/core/config/applier/modules.hh"
+#include "broker/core/config/applier/state.hh"
+#include "broker/test/test_server.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
+#include "state.pb.h"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 
 using log_v2 = com::centreon::common::log_v2::log_v2;
-extern std::shared_ptr<asio::io_context> g_io_context;
-
-extern std::unique_ptr<com::centreon::common::crypto::aes256>
-    credentials_decrypt;
+using json = nlohmann::json;
 
 #define FILE1 CENTREON_BROKER_LUA_SCRIPT_PATH "/test1.lua"
 #define FILE2 CENTREON_BROKER_LUA_SCRIPT_PATH "/test2.lua"
@@ -69,13 +70,16 @@ class LuaTest : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::LUA);
 
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "test_broker", 0);
+      config::applier::state::instance().initialize_cache(_logger);
     } catch (std::exception const& e) {
       (void)e;
     }
-    cache::global_cache::load(g_io_context, "/tmp/broker_test_cache");
   }
   void TearDown() override {
+    // The cache must be destroyed before the applier deinit() call.
     config::applier::deinit();
     cache::global_cache::unload();
     ::remove("/tmp/broker_test_cache.rt");
@@ -95,12 +99,12 @@ class LuaTest : public ::testing::Test {
         ->set_level(spdlog::level::info);
   }
 
-  void CreateScript(std::string const& filename, std::string const& content) {
+  void CreateScript(const std::string& filename, const std::string& content) {
     std::ofstream oss(filename);
     oss << content;
   }
 
-  std::string ReadFile(std::string const& filename) {
+  std::string ReadFile(const std::string& filename) {
     std::ostringstream oss;
     std::string retval;
     std::ifstream infile(filename);
@@ -111,7 +115,7 @@ class LuaTest : public ::testing::Test {
     return oss.str();
   }
 
-  void RemoveFile(std::string const& filename) {
+  void RemoveFile(const std::string& filename) {
     std::remove(filename.c_str());
   }
 };
@@ -585,7 +589,8 @@ TEST_F(LuaTest, HostCacheTest) {
   hst->check_command = "echo 'John Doe'";
   hst->alias = "alias-centreon";
   hst->address = "4.3.2.1";
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -628,11 +633,12 @@ TEST_F(LuaTest, HostCacheTestAdaptive) {
   hst->host_name = "centreon";
   hst->alias = "alias-centreon";
   hst->address = "4.3.2.1";
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
   auto ah = std::make_shared<neb::pb_adaptive_host>();
   ah->mut_obj().set_host_id(1);
   ah->mut_obj().set_event_handler("qwerty");
-  cache::global_cache::instance_ptr()->write(ah);
+  cache.publish(ah);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -666,11 +672,12 @@ TEST_F(LuaTest, HostCacheV2TestAdaptive) {
   hst->host_name = "centreon";
   hst->alias = "alias-centreon";
   hst->address = "4.3.2.1";
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
   auto ah = std::make_shared<neb::pb_adaptive_host>();
   ah->mut_obj().set_host_id(1);
   ah->mut_obj().set_event_handler("qwerty");
-  cache::global_cache::instance_ptr()->write(ah);
+  cache.publish(ah);
 
   CreateScript(filename,
                "broker_api_version=2\n"
@@ -707,7 +714,8 @@ TEST_F(LuaTest, PbHostCacheTest) {
   hst->mut_obj().set_alias("alias-centreon");
   hst->mut_obj().set_address("4.3.2.1");
   hst->mut_obj().set_enabled(true);
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -745,11 +753,12 @@ TEST_F(LuaTest, PbHostCacheTestAdaptive) {
   hst->mut_obj().set_alias("alias-centreon");
   hst->mut_obj().set_address("4.3.2.1");
   hst->mut_obj().set_enabled(true);
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
   auto ah = std::make_shared<neb::pb_adaptive_host>();
   ah->mut_obj().set_host_id(1);
   ah->mut_obj().set_event_handler("azerty");
-  cache::global_cache::instance_ptr()->write(ah);
+  cache.publish(ah);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -785,11 +794,12 @@ TEST_F(LuaTest, PbHostCacheV2TestAdaptive) {
   hst->mut_obj().set_alias("alias-centreon");
   hst->mut_obj().set_address("4.3.2.1");
   hst->mut_obj().set_enabled(true);
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
   auto ah = std::make_shared<neb::pb_adaptive_host>();
   ah->mut_obj().set_host_id(1);
   ah->mut_obj().set_event_handler("azerty");
-  cache::global_cache::instance_ptr()->write(ah);
+  cache.publish(ah);
 
   CreateScript(filename,
                "broker_api_version=2\n"
@@ -822,7 +832,8 @@ TEST_F(LuaTest, ServiceCacheTest) {
   svc->service_id = 14;
   svc->service_description = "description";
   svc->check_command = "echo Supercalifragilisticexpialidocious";
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -858,12 +869,13 @@ TEST_F(LuaTest, ServiceCacheTestAdaptive) {
   svc->host_id = 1;
   svc->service_id = 14;
   svc->service_description = "description";
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   auto as = std::make_shared<neb::pb_adaptive_service>();
   as->mut_obj().set_host_id(1);
   as->mut_obj().set_service_id(14);
   as->mut_obj().set_event_handler("abcdef");
-  cache::global_cache::instance_ptr()->write(as);
+  cache.publish(as);
 
   CreateScript(
       filename,
@@ -905,12 +917,13 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
   tag->set_id(24);
   tag->set_type(SERVICEGROUP);
 
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   auto as = std::make_shared<neb::pb_adaptive_service>();
   as->mut_obj().set_host_id(1);
   as->mut_obj().set_service_id(14);
   as->mut_obj().set_event_handler("fedcba");
-  cache::global_cache::instance_ptr()->write(as);
+  cache.publish(as);
 
   CreateScript(
       filename,
@@ -950,12 +963,13 @@ TEST_F(LuaTest, ServiceCacheApi2TestAdaptive) {
   svc->host_id = 1;
   svc->service_id = 14;
   svc->service_description = "description";
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   auto as = std::make_shared<neb::pb_adaptive_service>();
   as->mut_obj().set_host_id(1);
   as->mut_obj().set_service_id(14);
   as->mut_obj().set_event_handler("abcdef");
-  cache::global_cache::instance_ptr()->write(as);
+  cache.publish(as);
 
   CreateScript(
       filename,
@@ -997,12 +1011,13 @@ TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
   tag->set_id(25);
   tag->set_type(SERVICECATEGORY);
 
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   auto as = std::make_shared<neb::pb_adaptive_service>();
   as->mut_obj().set_host_id(1);
   as->mut_obj().set_service_id(14);
   as->mut_obj().set_event_handler("fedcba");
-  cache::global_cache::instance_ptr()->write(as);
+  cache.publish(as);
 
   CreateScript(
       filename,
@@ -1039,7 +1054,8 @@ TEST_F(LuaTest, PbServiceCacheTest) {
   svc->mut_obj().set_service_id(14);
   svc->mut_obj().set_host_id(1);
   svc->mut_obj().set_enabled(true);
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
 
   CreateScript(
       filename,
@@ -1068,16 +1084,17 @@ TEST_F(LuaTest, IndexMetricCacheTest) {
   svc->host_id = 1;
   svc->service_id = 14;
   svc->service_description = "MyDescription";
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
   hst->host_name = "host1";
-  cache::global_cache::instance_ptr()->write(hst);
+  cache.publish(hst);
   auto im{std::make_shared<storage::index_mapping>()};
   im->index_id = 7;
   im->service_id = 14;
   im->host_id = 1;
-  cache::global_cache::instance_ptr()->write(im);
+  cache.publish(im);
 
   CreateScript(
       filename,
@@ -1111,18 +1128,19 @@ TEST_F(LuaTest, PbIndexMetricCacheTest) {
   svc->mut_obj().set_service_id(14);
   svc->mut_obj().set_host_id(1);
   svc->mut_obj().set_enabled(true);
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
   hst->mut_obj().set_name("host1");
   hst->mut_obj().set_check_command("free");
   hst->mut_obj().set_enabled(true);
-  cache::global_cache::instance_ptr()->write(hst);
+  cache.publish(hst);
   auto im{std::make_shared<storage::index_mapping>()};
   im->index_id = 7;
   im->service_id = 14;
   im->host_id = 1;
-  cache::global_cache::instance_ptr()->write(im);
+  cache.publish(im);
 
   CreateScript(
       filename,
@@ -1159,13 +1177,14 @@ TEST_F(LuaTest, InstanceNameCacheTest) {
   inst->is_running = true;
   inst->poller_id = 18;
   inst->name = "MyPoller";
-  cache::global_cache::instance_ptr()->write(inst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(inst);
   auto inst_pb{std::make_shared<neb::pb_instance>()};
   inst_pb->mut_obj().set_engine("engine name");
   inst_pb->mut_obj().set_running(true);
   inst_pb->mut_obj().set_instance_id(19);
   inst_pb->mut_obj().set_name("MyPollerPB");
-  cache::global_cache::instance_ptr()->write(inst_pb);
+  cache.publish(inst_pb);
 
   CreateScript(
       filename,
@@ -1197,7 +1216,8 @@ TEST_F(LuaTest, MetricMappingCacheTestV1) {
   auto mm{std::make_shared<storage::metric_mapping>()};
   mm->index_id = 19;
   mm->metric_id = 27;
-  cache::global_cache::instance_ptr()->write(mm);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(mm);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -1227,7 +1247,8 @@ TEST_F(LuaTest, MetricMappingCacheTestV2) {
   auto mm{std::make_shared<storage::metric_mapping>()};
   mm->index_id = 19;
   mm->metric_id = 27;
-  cache::global_cache::instance_ptr()->write(mm);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(mm);
 
   CreateScript(filename,
                "broker_api_version=2\n"
@@ -1282,7 +1303,8 @@ TEST_F(LuaTest, HostGroupCacheTestName) {
   auto hg{std::make_shared<neb::host_group>()};
   hg->id = 28;
   hg->name = "centreon";
-  cache::global_cache::instance_ptr()->write(hg);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hg);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -1312,7 +1334,8 @@ TEST_F(LuaTest, HostGroupCacheTestAlias) {
   obj.set_name("centreon");
   obj.set_enabled(true);
   obj.set_alias("alias-centreon");
-  cache::global_cache::instance_ptr()->write(hg);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hg);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -1363,29 +1386,30 @@ TEST_F(LuaTest, HostGroupCacheTest) {
   auto hg{std::make_shared<neb::host_group>()};
   hg->id = 16;
   hg->name = "centreon1";
-  cache::global_cache::instance_ptr()->write(hg);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hg);
   hg = std::make_shared<neb::host_group>();
   hg->id = 17;
   hg->name = "centreon2";
-  cache::global_cache::instance_ptr()->write(hg);
+  cache.publish(hg);
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 22;
   hst->host_name = "host_centreon";
-  cache::global_cache::instance_ptr()->write(hst);
+  cache.publish(hst);
   auto member{std::make_shared<neb::host_group_member>()};
   member->host_id = 22;
   member->group_id = 16;
   member->group_name = "sixteen";
   member->enabled = false;
   member->poller_id = 14;
-  cache::global_cache::instance_ptr()->write(member);
+  cache.publish(member);
   member = std::make_shared<neb::host_group_member>();
   member->host_id = 22;
   member->group_id = 17;
   member->group_name = "seventeen";
   member->enabled = true;
   member->poller_id = 144;
-  cache::global_cache::instance_ptr()->write(member);
+  cache.publish(member);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -1416,29 +1440,30 @@ TEST_F(LuaTest, PbHostGroupCacheTest) {
   auto hg{std::make_shared<neb::host_group>()};
   hg->id = 16;
   hg->name = "centreon1";
-  cache::global_cache::instance_ptr()->write(hg);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hg);
   hg = std::make_shared<neb::host_group>();
   hg->id = 17;
   hg->name = "centreon2";
-  cache::global_cache::instance_ptr()->write(hg);
+  cache.publish(hg);
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(22);
   hst->mut_obj().set_name("host_centreon");
-  cache::global_cache::instance_ptr()->write(hst);
+  cache.publish(hst);
   auto member{std::make_shared<neb::host_group_member>()};
   member->host_id = 22;
   member->group_id = 16;
   member->group_name = "sixteen";
   member->enabled = false;
   member->poller_id = 14;
-  cache::global_cache::instance_ptr()->write(member);
+  cache.publish(member);
   member = std::make_shared<neb::host_group_member>();
   member->host_id = 22;
   member->group_id = 17;
   member->group_name = "seventeen";
   member->enabled = true;
   member->poller_id = 144;
-  cache::global_cache::instance_ptr()->write(member);
+  cache.publish(member);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -1493,7 +1518,8 @@ TEST_F(LuaTest, ServiceGroupCacheTestName) {
   sg->id = 28;
   sg->name = "centreon";
   sg->enabled = true;
-  cache::global_cache::instance_ptr()->write(sg);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(sg);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -1544,17 +1570,18 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
   auto sg{std::make_shared<neb::service_group>()};
   sg->id = 16;
   sg->name = "centreon1";
-  cache::global_cache::instance_ptr()->write(sg);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(sg);
   sg = std::make_shared<neb::service_group>();
   sg->id = 17;
   sg->name = "centreon2";
-  cache::global_cache::instance_ptr()->write(sg);
+  cache.publish(sg);
   auto svc = std::make_shared<neb::service>();
   svc->service_id = 17;
   svc->host_id = 22;
   svc->host_name = "host_centreon";
   svc->service_description = "service_description";
-  cache::global_cache::instance_ptr()->write(svc);
+  cache.publish(svc);
   auto member{std::make_shared<neb::service_group_member>()};
   member->host_id = 22;
   member->service_id = 17;
@@ -1562,7 +1589,7 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
   member->enabled = false;
   member->group_id = 16;
   member->group_name = "seize";
-  cache::global_cache::instance_ptr()->write(member);
+  cache.publish(member);
   member = std::make_shared<neb::service_group_member>();
   member->host_id = 22;
   member->service_id = 17;
@@ -1570,12 +1597,13 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
   member->enabled = true;
   member->group_id = 17;
   member->group_name = "dix-sept";
-  cache::global_cache::instance_ptr()->write(member);
+  cache.publish(member);
 
   CreateScript(filename,
                "function init(conf)\n"
                "  broker_log:set_parameters(3, '/tmp/log')\n"
                "  local sg = broker_cache:get_servicegroups(22, 17)\n"
+               "  broker_log:info(1, 'sg = ' .. tostring(sg))\n"
                "  for i,v in ipairs(sg) do\n"
                "    broker_log:info(1, 'member of ' .. broker.json_encode(v))\n"
                "  end\n"
@@ -1601,18 +1629,19 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
   auto sg{std::make_shared<neb::service_group>()};
   sg->id = 16;
   sg->name = "centreon1";
-  cache::global_cache::instance_ptr()->write(sg);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(sg);
   sg = std::make_shared<neb::service_group>();
   sg->id = 17;
   sg->name = "centreon2";
-  cache::global_cache::instance_ptr()->write(sg);
+  cache.publish(sg);
   auto svc{std::make_shared<neb::pb_service>()};
   svc->mut_obj().set_description("service_description");
   svc->mut_obj().set_service_id(17);
   svc->mut_obj().set_host_id(22);
   svc->mut_obj().set_host_name("host_centreon");
   svc->mut_obj().set_enabled(true);
-  cache::global_cache::instance_ptr()->write(svc);
+  cache.publish(svc);
   auto member{std::make_shared<neb::service_group_member>()};
   member->host_id = 22;
   member->service_id = 17;
@@ -1620,7 +1649,7 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
   member->enabled = false;
   member->group_id = 16;
   member->group_name = "seize";
-  cache::global_cache::instance_ptr()->write(member);
+  cache.publish(member);
   member = std::make_shared<neb::service_group_member>();
   member->host_id = 22;
   member->service_id = 17;
@@ -1628,7 +1657,7 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
   member->enabled = true;
   member->group_id = 17;
   member->group_name = "dix-sept";
-  cache::global_cache::instance_ptr()->write(member);
+  cache.publish(member);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -1656,16 +1685,16 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
 TEST_F(LuaTest, BamCacheTestBvBaRelation) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  std::shared_ptr<bam::pb_dimension_ba_bv_relation_event> rel(
-      new bam::pb_dimension_ba_bv_relation_event);
+  auto rel = std::make_shared<bam::pb_dimension_ba_bv_relation_event>();
   rel->mut_obj().set_ba_id(10);
   rel->mut_obj().set_bv_id(18);
-  cache::global_cache::instance_ptr()->write(rel);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(rel);
 
   rel.reset(new bam::pb_dimension_ba_bv_relation_event);
   rel->mut_obj().set_ba_id(10);
   rel->mut_obj().set_bv_id(23);
-  cache::global_cache::instance_ptr()->write(rel);
+  cache.publish(rel);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -1703,7 +1732,8 @@ TEST_F(LuaTest, BamCacheTestBaV1) {
   ba_pb.set_sla_month_percent_warn(1.18);
   ba_pb.set_sla_duration_crit(19);
   ba_pb.set_sla_duration_warn(23);
-  cache::global_cache::instance_ptr()->write(ba);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(ba);
 
   CreateScript(
       filename,
@@ -1740,7 +1770,8 @@ TEST_F(LuaTest, BamCacheTestBaV2) {
   ba_pb.set_sla_month_percent_warn(1.18);
   ba_pb.set_sla_duration_crit(19);
   ba_pb.set_sla_duration_warn(23);
-  cache::global_cache::instance_ptr()->write(ba);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(ba);
 
   CreateScript(
       filename,
@@ -1799,7 +1830,8 @@ TEST_F(LuaTest, BamCacheTestBvV1) {
   bv->mut_obj().set_bv_id(10);
   bv->mut_obj().set_bv_name("bv name");
   bv->mut_obj().set_bv_description("bv description");
-  cache::global_cache::instance_ptr()->write(bv);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(bv);
 
   CreateScript(
       filename,
@@ -1834,7 +1866,8 @@ TEST_F(LuaTest, BamCacheTestBvV2) {
   bv->mut_obj().set_bv_id(10);
   bv->mut_obj().set_bv_name("bv name");
   bv->mut_obj().set_bv_description("bv description");
-  cache::global_cache::instance_ptr()->write(bv);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(bv);
 
   CreateScript(
       filename,
@@ -2490,7 +2523,8 @@ TEST_F(LuaTest, CacheGetNotesUrlTest) {
   hst->notes_url = "host notes url";
   hst->action_url = "host action url";
   hst->host_name = "centreon";
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -2527,7 +2561,8 @@ TEST_F(LuaTest, PbCacheGetNotesUrlTest) {
   hst->mut_obj().set_action_url("host action url");
   hst->mut_obj().set_name("centreon");
   hst->mut_obj().set_enabled(true);
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -2563,7 +2598,8 @@ TEST_F(LuaTest, CacheSvcGetNotesUrlTest) {
   svc->notes = "svc notes";
   svc->notes_url = "svc notes url";
   svc->action_url = "svc action url";
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -2596,14 +2632,15 @@ TEST_F(LuaTest, CacheSeverity) {
   svc->notes = "svc notes";
   svc->notes_url = "svc notes url";
   svc->action_url = "svc action url";
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   std::shared_ptr<neb::custom_variable> cv =
       std::make_shared<neb::custom_variable>();
   cv->name = "CRITICALITY_LEVEL";
   cv->value = std::to_string(3);
   cv->host_id = 1;
   cv->service_id = 2;
-  cache::global_cache::instance_ptr()->write(cv);
+  cache.publish(cv);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -2711,7 +2748,8 @@ TEST_F(LuaTest, PbCacheSvcGetNotesUrlTest) {
   obj.set_notes_url("svc notes url");
   obj.set_action_url("svc action url");
   obj.set_enabled(true);
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -2745,13 +2783,15 @@ TEST_F(LuaTest, PbCacheSeverity) {
   obj.set_notes_url("svc notes url");
   obj.set_action_url("svc action url");
   obj.set_enabled(true);
-  cache::global_cache::instance_ptr()->write(svc);
+  obj.set_severity_id(2);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   auto cv{std::make_shared<neb::custom_variable>()};
   cv->name = "CRITICALITY_LEVEL";
   cv->value = std::to_string(3);
   cv->host_id = 1;
   cv->service_id = 2;
-  cache::global_cache::instance_ptr()->write(cv);
+  cache.publish(cv);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -2937,7 +2977,8 @@ TEST_F(LuaTest, TestHostApiV1) {
                "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -2965,7 +3006,8 @@ TEST_F(LuaTest, TestHostApiV2) {
                "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -3077,7 +3119,10 @@ TEST_F(LuaTest, PbTestHostApiV1) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  // When passing by the multiplexer, the cache is updated. We simulate that
+  // here.
+  cache.publish(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -3390,7 +3435,7 @@ TEST_F(LuaTest, PbTestHostApiV2) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
+  config::applier::state::instance().cache().publish(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -3531,7 +3576,6 @@ TEST_F(LuaTest, PbTestCommentApiV1) {
                " return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -3602,7 +3646,6 @@ TEST_F(LuaTest, PbTestCommentApiV2) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -3648,7 +3691,8 @@ TEST_F(LuaTest, TestSvcApiV2) {
                "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -3680,7 +3724,8 @@ TEST_F(LuaTest, TestSvcApiV1) {
                "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -3710,7 +3755,8 @@ TEST_F(LuaTest, BrokerEventCache) {
                "  broker_log:info(0, 'description = ' .. svc.description)\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar cache"), std::string::npos);
@@ -3952,7 +3998,7 @@ TEST_F(LuaTest, PbTestSvcApiV2) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
+  config::applier::state::instance().cache().publish(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -4157,7 +4203,8 @@ TEST_F(LuaTest, PbTestSvcApiV1) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -4299,7 +4346,6 @@ TEST_F(LuaTest, PbTestCustomVariableApiV1) {
                " return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -4357,7 +4403,6 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -4375,23 +4420,22 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
   RemoveFile("/tmp/event_log");
 }
 
-TEST_F(LuaTest, PbTestCustomVariableNoIntValueNoRecordedInCache) {
+TEST_F(LuaTest, PbTestCustomVariableNoIntValueNotRecordedInCache) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto hst{std::make_shared<neb::pb_custom_variable>()};
-  hst->mut_obj().mutable_header()->set_conf_version(5);
-  hst->mut_obj().set_host_id(1);
-  hst->mut_obj().set_service_id(2);
-  hst->mut_obj().set_modified(true);
-  hst->mut_obj().set_name("CRITICALITY_LEVEL");
-  hst->mut_obj().set_update_time(4);
-  hst->mut_obj().set_value("titi");
-  hst->mut_obj().set_default_value("tata");
-  hst->mut_obj().set_enabled(false);
-  hst->mut_obj().set_password(true);
-  hst->mut_obj().set_type(
-      com::centreon::broker::CustomVariable_VarType_SERVICE);
+  auto cv{std::make_shared<neb::pb_custom_variable>()};
+  cv->mut_obj().mutable_header()->set_conf_version(5);
+  cv->mut_obj().set_host_id(1);
+  cv->mut_obj().set_service_id(2);
+  cv->mut_obj().set_modified(true);
+  cv->mut_obj().set_name("CRITICALITY_LEVEL");
+  cv->mut_obj().set_update_time(4);
+  cv->mut_obj().set_value("titi");
+  cv->mut_obj().set_default_value("tata");
+  cv->mut_obj().set_enabled(false);
+  cv->mut_obj().set_password(true);
+  cv->mut_obj().set_type(com::centreon::broker::CustomVariable_VarType_SERVICE);
   std::string filename("/tmp/cache_test.lua");
 
   CreateScript(filename,
@@ -4401,10 +4445,11 @@ TEST_F(LuaTest, PbTestCustomVariableNoIntValueNoRecordedInCache) {
                "function write(d)\n"
                "  return true\n"
                "end\n");
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(cv);
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
-  binding->write(hst);
-  ASSERT_FALSE(cache::global_cache::instance_ptr()->get_severity(1, 2));
+  binding->write(cv);
+  ASSERT_THROW(cache.severity(1, 2), msg_fmt);
   RemoveFile(filename);
 }
 
@@ -4412,19 +4457,18 @@ TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
-  auto hst{std::make_shared<neb::pb_custom_variable>()};
-  hst->mut_obj().mutable_header()->set_conf_version(5);
-  hst->mut_obj().set_host_id(1);
-  hst->mut_obj().set_service_id(2);
-  hst->mut_obj().set_modified(true);
-  hst->mut_obj().set_name("CRITICALITY_LEVEL");
-  hst->mut_obj().set_update_time(4);
-  hst->mut_obj().set_value("5");
-  hst->mut_obj().set_default_value("tata");
-  hst->mut_obj().set_enabled(false);
-  hst->mut_obj().set_password(true);
-  hst->mut_obj().set_type(
-      com::centreon::broker::CustomVariable_VarType_SERVICE);
+  auto cv{std::make_shared<neb::pb_custom_variable>()};
+  cv->mut_obj().mutable_header()->set_conf_version(5);
+  cv->mut_obj().set_host_id(1);
+  cv->mut_obj().set_service_id(2);
+  cv->mut_obj().set_modified(true);
+  cv->mut_obj().set_name("CRITICALITY_LEVEL");
+  cv->mut_obj().set_update_time(4);
+  cv->mut_obj().set_value("5");
+  cv->mut_obj().set_default_value("tata");
+  cv->mut_obj().set_enabled(false);
+  cv->mut_obj().set_password(true);
+  cv->mut_obj().set_type(com::centreon::broker::CustomVariable_VarType_SERVICE);
   std::string filename("/tmp/cache_test.lua");
 
   CreateScript(filename,
@@ -4435,9 +4479,10 @@ TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
-  binding->write(hst);
-  ASSERT_EQ(*cache::global_cache::instance_ptr()->get_severity(1, 2), 5);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(cv);
+  binding->write(cv);
+  ASSERT_EQ(cache.severity(1, 2), 5);
   RemoveFile(filename);
 }
 
@@ -4465,7 +4510,8 @@ TEST_F(LuaTest, PbBrokerEventCache) {
                "svc.description)\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << lst << std::endl;
@@ -4552,7 +4598,6 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar"), std::string::npos);
@@ -4603,7 +4648,6 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar"), std::string::npos);
@@ -4656,7 +4700,6 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << lst << std::endl;
@@ -4709,7 +4752,6 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << "<<" << lst << ">>" << std::endl;
@@ -4764,7 +4806,6 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65563"), std::string::npos);
@@ -4815,7 +4856,6 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65563"), std::string::npos);
@@ -4857,7 +4897,6 @@ TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65563"), std::string::npos);
@@ -4904,7 +4943,6 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("check_command = super command"), std::string::npos);
@@ -4949,7 +4987,6 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("check_command = super command"), std::string::npos);
@@ -4989,7 +5026,6 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("check_command => super command"), std::string::npos);
@@ -5024,7 +5060,6 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65568"), std::string::npos);
@@ -5062,7 +5097,6 @@ TEST_F(LuaTest, BrokerPbHostJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65566"), std::string::npos);
@@ -5118,7 +5152,6 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65568"), std::string::npos);
@@ -5153,7 +5186,6 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65568"), std::string::npos);
@@ -5186,7 +5218,6 @@ TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << "Content: <<" << lst << ">>" << std::endl;
@@ -5221,7 +5252,6 @@ TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << "Content: <<" << lst << ">>" << std::endl;
@@ -5286,9 +5316,8 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
   binding->write(svc);
-  cache::global_cache::instance_ptr()->write(svc1);
+  config::applier::state::instance().cache().publish(svc1);
   binding->write(svc1);
   std::string ret(ReadFile("/tmp/log"));
   std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
@@ -5372,9 +5401,8 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
   binding->write(hst);
-  cache::global_cache::instance_ptr()->write(hst1);
+  config::applier::state::instance().cache().publish(hst1);
   binding->write(hst1);
   std::string ret(ReadFile("/tmp/log"));
   std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
@@ -5454,9 +5482,8 @@ TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(svc);
   binding->write(svc);
-  cache::global_cache::instance_ptr()->write(svc1);
+  config::applier::state::instance().cache().publish(svc1);
   binding->write(svc1);
   std::string ret(ReadFile("/tmp/log"));
   std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
@@ -5534,9 +5561,8 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(hst);
   binding->write(hst);
-  cache::global_cache::instance_ptr()->write(hst1);
+  config::applier::state::instance().cache().publish(hst1);
   binding->write(hst1);
   std::string ret(ReadFile("/tmp/log"));
   std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
@@ -5596,7 +5622,6 @@ TEST_F(LuaTest, PbDowntime) {
                "  broker_log:info(1, 'downtime is ' .. broker.json_encode(d))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(dt);
   binding->write(dt);
   std::string lst(ReadFile("/tmp/log"));
   std::cout << lst << std::endl;
@@ -5632,7 +5657,6 @@ TEST_F(LuaTest, PbDowntimeV2) {
                "  broker_log:info(1, 'downtime is ' .. broker.json_encode(d))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf)};
-  cache::global_cache::instance_ptr()->write(dt);
   binding->write(dt);
   std::string lst(ReadFile("/tmp/log"));
   std::cout << lst << std::endl;
@@ -5862,13 +5886,14 @@ TEST_F(LuaTest, AdaptiveHostCacheTest) {
   hst->check_command = "echo 'John Doe'";
   hst->alias = "alias-centreon";
   hst->address = "4.3.2.1";
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
 
   auto ahoststatus = std::make_shared<neb::pb_adaptive_host_status>();
   auto& obj = ahoststatus->mut_obj();
   obj.set_host_id(1);
   obj.set_scheduled_downtime_depth(2);
-  cache::global_cache::instance_ptr()->write(ahoststatus);
+  cache.publish(ahoststatus);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -5904,7 +5929,8 @@ TEST_F(LuaTest, AdaptiveHostCacheFieldTest) {
   hst->check_command = "echo 'John Doe'";
   hst->alias = "alias-centreon";
   hst->address = "4.3.2.1";
-  cache::global_cache::instance_ptr()->write(hst);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(hst);
 
   CreateScript(filename,
                "broker_api_version = 2\n"
@@ -5969,14 +5995,15 @@ TEST_F(LuaTest, AdaptiveServiceCacheTest) {
   svc->service_description = "centreon-description";
   svc->check_command = "echo 'John Doe'";
   svc->display_name = "alias-centreon";
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
 
   auto aservicestatus = std::make_shared<neb::pb_adaptive_service_status>();
   auto& obj = aservicestatus->mut_obj();
   obj.set_host_id(1);
   obj.set_service_id(2);
   obj.set_scheduled_downtime_depth(3);
-  cache::global_cache::instance_ptr()->write(aservicestatus);
+  cache.publish(aservicestatus);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -6015,7 +6042,8 @@ TEST_F(LuaTest, AdaptiveServiceCacheFieldTest) {
   svc->service_description = "centreon-description";
   svc->check_command = "echo 'John Doe'";
   svc->display_name = "alias-centreon";
-  cache::global_cache::instance_ptr()->write(svc);
+  auto& cache = config::applier::state::instance().cache();
+  cache.publish(svc);
 
   CreateScript(filename,
                "broker_api_version = 2\n"
@@ -6199,6 +6227,162 @@ TEST_F(LuaTest, Base64) {
             std::string::npos);
   ASSERT_NE(result.find("INFO: Decoded: Hello World from Broker!"),
             std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, GlobalConf) {
+  config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
+  modules.load_file("./broker/lib/10-neb.so");
+  com::centreon::engine::configuration::State state;
+  auto* severity = state.mutable_severities()->Add();
+  auto* key = severity->mutable_key();
+  key->set_type(com::centreon::engine::configuration::SeverityType::host);
+  key->set_id(1);
+  severity->set_severity_name("severity1");
+  severity->set_level(5);
+
+  severity = state.mutable_severities()->Add();
+  key = severity->mutable_key();
+  key->set_type(com::centreon::engine::configuration::SeverityType::service);
+  key->set_id(3);
+  severity->set_severity_name("severity2");
+  severity->set_level(7);
+
+  auto* hst = state.mutable_hosts()->Add();
+  hst->set_host_id(1);
+  hst->set_host_name("host1");
+  hst->set_address("127.0.0.1");
+  hst->set_alias("My host 1");
+  hst->set_severity_id(1);
+
+  auto* svc = state.mutable_services()->Add();
+  svc->set_host_id(1);
+  svc->set_service_id(1);
+  svc->set_service_description("My service 1");
+  svc->set_severity_id(3);
+
+  svc = state.mutable_services()->Add();
+  svc->set_host_id(1);
+  svc->set_service_id(2);
+  svc->set_service_description("My service 2");
+
+  auto* hg = state.mutable_hostgroups()->Add();
+  hg->set_hostgroup_id(1);
+  hg->set_hostgroup_name("hg1");
+  hg->set_alias("alias hg1");
+  hg->mutable_members()->add_data("host1");
+
+  auto* sg = state.mutable_servicegroups()->Add();
+  sg->set_servicegroup_id(1);
+  sg->set_servicegroup_name("sg1");
+  sg->set_alias("alias sg1");
+  auto* member = sg->mutable_members()->add_data();
+  member->set_first("host1");
+  member->set_second("My service 1");
+  member = sg->mutable_members()->add_data();
+  member->set_first("host1");
+  member->set_second("My service 2");
+
+  auto& cache = config::applier::state::instance().cache();
+  cache.merge(state);
+
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/global_diff.lua");
+  CreateScript(
+      filename,
+      "broker_api_version = 2\n"
+      "function init(conf)\n"
+      "  broker_log:set_parameters(3, '/tmp/log')\n"
+      "  local hst = broker_cache:get_host(1)\n"
+      "  broker_log:info(0, 'Host: ' .. broker.json_encode(hst))\n"
+      "  local svc1 = broker_cache:get_service(1, 1)\n"
+      "  broker_log:info(0, 'Service1: ' .. broker.json_encode(svc1))\n"
+      "  local svc2 = broker_cache:get_service(1, 2)\n"
+      "  broker_log:info(0, 'Service2: ' .. broker.json_encode(svc2))\n"
+      "  local hg_name = broker_cache:get_hostgroup_name(1)\n"
+      "  broker_log:info(0, 'Hostgroup name: ' .. hg_name)\n"
+      "  local hg_alias = broker_cache:get_hostgroup_alias(1)\n"
+      "  broker_log:info(0, 'Hostgroup alias: ' .. hg_alias)\n"
+      "  local sg_name = broker_cache:get_servicegroup_name(1)\n"
+      "  broker_log:info(0, 'Servicegroup name: ' .. sg_name)\n"
+      "  local severity = broker_cache:get_severity(1)\n"
+      "  broker_log:info(0, 'Severity on host 1: ' .. severity)\n"
+      "  severity = broker_cache:get_severity(1, 1)\n"
+      "  broker_log:info(0, 'Severity on service (1, 1): ' .. "
+      "tostring(severity))\n"
+      "  severity = broker_cache:get_severity(1, 2)\n"
+      "  broker_log:info(0, 'Severity on service (1, 2): ' .. "
+      "tostring(severity))\n"
+      "end\n\n"
+      "function write(d)\n"
+      "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf)};
+  std::string result(ReadFile("/tmp/log"));
+
+  size_t pos = result.find("INFO: Host: {");
+  ASSERT_NE(pos, std::string::npos);
+  std::string_view host_json = result;
+  host_json = host_json.substr(pos + 12);
+  pos = host_json.find("\n");
+  ASSERT_NE(pos, std::string::npos);
+  host_json = host_json.substr(0, pos);
+
+  /********* Host **********/
+  json j = json::parse(host_json);
+  ASSERT_EQ(j["host_id"].get<uint64_t>(), 1);
+  ASSERT_EQ(j["name"].get<std::string>(), "host1");
+  ASSERT_EQ(j["address"].get<std::string>(), "127.0.0.1");
+  ASSERT_EQ(j["alias"].get<std::string>(), "My host 1");
+
+  /********* Service 1 **********/
+  pos = result.find("INFO: Service1: {");
+  ASSERT_NE(pos, std::string::npos);
+  std::string_view svc_json1 = result;
+  svc_json1 = svc_json1.substr(pos + 16);
+  pos = svc_json1.find("\n");
+  ASSERT_NE(pos, std::string::npos);
+  svc_json1 = svc_json1.substr(0, pos);
+
+  j = json::parse(svc_json1);
+  ASSERT_EQ(j["host_id"].get<uint64_t>(), 1);
+  ASSERT_EQ(j["service_id"].get<uint64_t>(), 1);
+  ASSERT_EQ(j["description"].get<std::string>(), "My service 1");
+
+  /********* Service 2 **********/
+  pos = result.find("INFO: Service2: {");
+  ASSERT_NE(pos, std::string::npos);
+  std::string_view svc_json2 = result;
+  svc_json2 = svc_json2.substr(pos + 16);
+  pos = svc_json2.find("\n");
+  ASSERT_NE(pos, std::string::npos);
+  svc_json2 = svc_json2.substr(0, pos);
+
+  j = json::parse(svc_json2);
+  ASSERT_EQ(j["host_id"].get<uint64_t>(), 1);
+  ASSERT_EQ(j["service_id"].get<uint64_t>(), 2);
+  ASSERT_EQ(j["description"].get<std::string>(), "My service 2");
+
+  /********* Hostgroup **********/
+  pos = result.find("INFO: Hostgroup name: hg1\n");
+  ASSERT_NE(pos, std::string::npos);
+  pos = result.find("INFO: Hostgroup alias: alias hg1\n", pos);
+  ASSERT_NE(pos, std::string::npos);
+
+  /********* Servicegroup **********/
+  pos = result.find("INFO: Servicegroup name: sg1\n", pos);
+  ASSERT_NE(pos, std::string::npos);
+
+  /********* Severities **********/
+  pos = result.find("INFO: Severity on host 1: 5\n", pos);
+  ASSERT_NE(pos, std::string::npos);
+
+  pos = result.find("INFO: Severity on service (1, 1): 7\n", pos);
+  ASSERT_NE(pos, std::string::npos);
+
+  pos = result.find("INFO: Severity on service (1, 2): nil\n", pos);
+  ASSERT_NE(pos, std::string::npos);
+
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }

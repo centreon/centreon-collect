@@ -57,8 +57,7 @@ class stream : public io::stream {
 
  public:
   stream(std::string const& lua_script,
-         std::map<std::string, misc::variant> const& conf_params,
-         std::shared_ptr<persistent_cache> const& cache);
+         std::map<std::string, misc::variant> const& conf_params);
   ~stream() noexcept;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

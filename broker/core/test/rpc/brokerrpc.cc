@@ -17,14 +17,11 @@
  *
  */
 
-#include "com/centreon/broker/brokerrpc.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/brokerrpc/brokerrpc.hh"
+#include "broker/core/config/applier/broker_state.hh"
 
 #include <gtest/gtest.h>
 
-#include <fmt/format.h>
-
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/version.hh"
 
@@ -34,7 +31,7 @@ using namespace com::centreon::broker;
 class BrokerRpc : public ::testing::Test {
  public:
   void SetUp() override {
-    config::applier::state::load(common::PeerType::BROKER);
+    config::applier::state::load<config::applier::broker_state>("");
     io::protocols::load();
     io::events::load();
   }
@@ -60,12 +57,12 @@ class BrokerRpc : public ::testing::Test {
 };
 
 TEST_F(BrokerRpc, StartStop) {
-  brokerrpc brpc("0.0.0.0", 40000, "test");
+  brokerrpc brpc("0.0.0.0", 40000);
   ASSERT_NO_THROW(brpc.shutdown());
 }
 
 TEST_F(BrokerRpc, GetVersion) {
-  brokerrpc brpc("0.0.0.0", 40000, "test");
+  brokerrpc brpc("0.0.0.0", 40000);
   auto output = execute("GetVersion");
 #if CENTREON_BROKER_PATCH == 0
   ASSERT_EQ(output.size(), 2u);
@@ -82,7 +79,7 @@ TEST_F(BrokerRpc, GetVersion) {
 }
 
 TEST_F(BrokerRpc, GetMuxerStats) {
-  brokerrpc brpc("0.0.0.0", 40000, "test");
+  brokerrpc brpc("0.0.0.0", 40000);
   std::vector<std::string> vectests{
       "name: mx1, queue_file: qufl_, "
       "unacknowledged_events: "

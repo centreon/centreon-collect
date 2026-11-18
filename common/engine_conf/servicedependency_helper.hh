@@ -21,7 +21,6 @@
 #define CCE_CONFIGURATION_SERVICEDEPENDENCY
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
@@ -34,8 +33,9 @@ class servicedependency_helper : public message_helper {
       const ::google::protobuf::RepeatedPtrField<std::string>& svc,
       const ::google::protobuf::RepeatedPtrField<std::string>& sg,
       absl::flat_hash_set<std::pair<std::string, std::string>>& expanded,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-      absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+          hostgroups,
+      const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           servicegroups);
 
  public:
@@ -50,19 +50,11 @@ class servicedependency_helper : public message_helper {
   static void expand(
       State& s,
       error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-      absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+          hostgroups,
+      const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           servicegroups);
 };
-
-template <typename hash_type>
-hash_type AbslHashValue(hash_type previous_value,
-                        const Servicedependency& to_hash) {
-  return hash_type::combine(std::move(previous_value),
-                            servicedependency_key(to_hash));
-}
-
-bool operator==(const Servicedependency& left, const Servicedependency& right);
 }  // namespace com::centreon::engine::configuration
 
 #endif /* !CCE_CONFIGURATION_SERVICEDEPENDENCY */

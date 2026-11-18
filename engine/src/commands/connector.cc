@@ -45,7 +45,8 @@ connector::connector(const std::string& connector_name,
       _logger(commands_logger),
       _io_context(io_context),
       _timeout_timer(*io_context) {
-  bool enable_environment_macros = pb_config.enable_environment_macros();
+  bool enable_environment_macros =
+      pb_indexed_config.state().enable_environment_macros();
   if (enable_environment_macros) {
     SPDLOG_LOGGER_WARN(runtime_logger,
                        "Warning: Connector does not enable environment macros");

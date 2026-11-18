@@ -24,9 +24,9 @@
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/misc/fifo_client.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -53,21 +53,23 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  @param[in] cache           The persistent cache.
  */
 monitoring_stream::monitoring_stream(
+    const std::string& name,
     const std::string& ext_cmd_file,
     const database_config& db_cfg,
     const database_config& storage_db_cfg,
-    std::shared_ptr<persistent_cache> cache,
     const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("BAM"),
+      _name{name},
       _ext_cmd_file(ext_cmd_file),
       _logger{logger},
       _applier(_logger),
+      _queue_external_commands_timer{com::centreon::common::pool::io_context()},
+      _queue_external_commands_stopped{false},
       _mysql(db_cfg.auto_commit_conf()),
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
       _pending_events(0),
       _pending_request(0),
       _storage_db_cfg(storage_db_cfg),
-      _cache(std::move(cache)),
       _forced_svc_checks_timer{com::centreon::common::pool::io_context()},
       _forced_svc_checks_timer_stopped{false} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream constructor");
@@ -146,6 +148,21 @@ int32_t monitoring_stream::stop() {
         });
   }
   p.get_future().wait();
+  {
+    std::promise<void> p;
+    _queue_external_commands_stopped = true;
+    _logger->info(
+        "bam: monitoring_stream - waiting for external commands to be sent");
+    _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
+    _queue_external_commands_timer.async_wait(
+        [this, &p](const boost::system::error_code& ec) {
+          if (!ec)
+            _async_write_external_commands();
+          p.set_value();
+        });
+    p.get_future().wait();
+  }
+
   /* Now, it is really cancelled. */
   _logger->info("bam: monitoring_stream - stop finished");
 
@@ -794,8 +811,10 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
 void monitoring_stream::_write_forced_svc_check(
     const std::string& host,
     const std::string& description) {
-  SPDLOG_LOGGER_TRACE(_logger,
-                      "BAM: monitoring stream _write_forced_svc_check");
+  SPDLOG_LOGGER_TRACE(
+      _logger,
+      "BAM: monitoring stream _write_forced_svc_check on service {}:{}", host,
+      description);
   std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
   _forced_svc_checks.emplace(host, description);
   _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
@@ -812,13 +831,54 @@ void monitoring_stream::_write_forced_svc_check(
 void monitoring_stream::_write_external_command(const std::string& cmd) {
   SPDLOG_LOGGER_TRACE(
       _logger, "BAM: monitoring stream _write_external_command <<{}>>", cmd);
-  std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
-  misc::fifo_client fc(_ext_cmd_file);
-  if (fc.write(cmd) < 0) {
-    _logger->error("BAM: could not write BA check result to command file '{}'",
-                   _ext_cmd_file);
-  } else
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: sent external command '{}'", cmd);
+  {
+    std::lock_guard<std::mutex> lck(_queue_external_commands_m);
+    _queue_external_commands.push_back(cmd);
+  }
+  _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
+  _queue_external_commands_timer.async_wait(
+      [this](const boost::system::error_code& ec) {
+        if (!ec)
+          _async_write_external_commands();
+      });
+}
+
+void monitoring_stream::_async_write_external_commands() {
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "BAM: monitoring stream _async_write_external_commands");
+  std::deque<std::string> local_queue;
+  bool need_to_restart = false;
+  {
+    std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
+    std::swap(local_queue, _queue_external_commands);
+  }
+  _logger->debug("BAM: sending {} external commands", local_queue.size());
+  for (auto& cmd : local_queue) {
+    misc::fifo_client fc(_ext_cmd_file);
+    int32_t ret = fc.write(cmd);
+    if (ret >= 0)
+      _logger->info("BAM: external command '{}' sent to command file '{}'", cmd,
+                    _ext_cmd_file);
+    else {
+      _logger->error(
+          "BAM: could not write external command '{}' to command file '{}'",
+          cmd, _ext_cmd_file);
+      {
+        std::lock_guard<std::mutex> lck(_queue_external_commands_m);
+        _queue_external_commands.push_back(std::move(cmd));
+        need_to_restart = true;
+      }
+    }
+  }
+
+  if (need_to_restart && !_queue_external_commands_stopped) {
+    _queue_external_commands_timer.expires_after(std::chrono::seconds(5));
+    _queue_external_commands_timer.async_wait(
+        [this](const boost::system::error_code& ec) {
+          if (!ec)
+            this->_async_write_external_commands();
+        });
+  }
 }
 
 /**
@@ -826,11 +886,19 @@ void monitoring_stream::_write_external_command(const std::string& cmd) {
  */
 void monitoring_stream::_read_cache() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _read_cache");
-  if (_cache == nullptr)
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: no cache configured");
-  else {
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: loading cache");
-    _applier.load_from_cache(*_cache);
+  std::lock_guard<std::mutex> lck(_queue_external_commands_m);
+  SPDLOG_LOGGER_DEBUG(_logger, "BAM: loading cache");
+  _applier.load_from_cache(_name, _queue_external_commands);
+
+  _logger->debug("BAM: scheduling {} external commands from cache",
+                 _queue_external_commands.size());
+  if (!_queue_external_commands.empty()) {
+    _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
+    _queue_external_commands_timer.async_wait(
+        [this](const boost::system::error_code& ec) {
+          if (!ec)
+            _async_write_external_commands();
+        });
   }
 }
 
@@ -838,13 +906,8 @@ void monitoring_stream::_read_cache() {
  *  Save inherited downtime to the cache.
  */
 void monitoring_stream::_write_cache() {
-  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _write_cache");
-  if (_cache == nullptr)
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: no cache configured");
-  else {
-    SPDLOG_LOGGER_DEBUG(_logger, "BAM: saving cache");
-    _applier.save_to_cache(*_cache);
-  }
+  SPDLOG_LOGGER_DEBUG(_logger, "BAM: saving cache");
+  _applier.save_to_cache(_name, _queue_external_commands);
 }
 
 /**

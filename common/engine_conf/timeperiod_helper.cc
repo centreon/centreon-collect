@@ -19,6 +19,7 @@
 #include "common/engine_conf/timeperiod_helper.hh"
 
 #include <absl/strings/str_format.h>
+#include <fmt/ranges.h>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 

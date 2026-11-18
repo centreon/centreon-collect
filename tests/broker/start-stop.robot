@@ -33,6 +33,7 @@ BSS2
     [Documentation]    Start/Stop 10 times broker with 300ms interval and no coredump
     [Tags]    broker    start-stop
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Repeat Keyword    10 times    Ctn Start Stop Instance    300ms
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -41,6 +42,7 @@ BSSU2
     [Documentation]    Start/Stop 10 times broker (BBDO3) with 300ms interval and no coredump
     [Tags]    broker    start-stop
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    0
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Repeat Keyword    10 times    Ctn Start Stop Instance    300ms
@@ -50,6 +52,7 @@ BSS3
     [Documentation]    Start-Stop one instance of broker 5 times and no coredump
     [Tags]    broker    start-stop
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Repeat Keyword    5 times    Ctn Start Stop Instance    0
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -58,6 +61,7 @@ BSSU3
     [Documentation]    Start-Stop one instance of broker (BBDO3) and no coredump
     [Tags]    broker    start-stop
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    0
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Repeat Keyword    5 times    Ctn Start Stop Instance    0
@@ -67,6 +71,7 @@ BSS4
     [Documentation]    Start/Stop 10 times broker with 1sec interval and no coredump
     [Tags]    broker    start-stop
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Repeat Keyword    10 times    Ctn Start Stop Instance    1s
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -75,6 +80,7 @@ BSSU4
     [Documentation]    Start/Stop 10 times broker with 1sec interval and no coredump
     [Tags]    broker    start-stop
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    0
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Repeat Keyword    10 times    Ctn Start Stop Instance    1s
@@ -84,6 +90,7 @@ BSS5
     [Documentation]    Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
     [Tags]    broker    start-stop
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
@@ -94,6 +101,7 @@ BSSU5
     [Documentation]    Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
     [Tags]    broker    start-stop
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    0
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    host
@@ -109,7 +117,6 @@ START_STOP_CBD
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Ctn Config Broker Sql Output    central    unified_sql
 
     Ctn Clear Db    services
     Ctn Clear Db    hosts
@@ -122,7 +129,7 @@ START_STOP_CBD
     Ctn Wait For Engine To Be Ready    ${start}    1
 
     # restart central broker
-    Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Ctn Start Broker
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

@@ -233,14 +233,12 @@ void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
  * @brief Save the services states from the service_book to the cache. The cache
  * must be open with write mode, otherwise, this function throws an exception.
  *
- * @param cache The persistent cache to receive data.
+ * @param cache The cache to receive data.
  */
-void service_book::save_to_cache(persistent_cache& cache) const {
-  auto to_save_ptr = std::make_shared<pb_services_book_state>();
-  ServicesBookState& to_save = to_save_ptr->mut_obj();
+void service_book::save_to_cache(ServicesBookState* cache) const {
   for (auto it = _book.begin(); it != _book.end(); ++it) {
     auto& state = it->second.state;
-    auto* svc = to_save.add_service();
+    auto* svc = cache->add_service();
     svc->set_host_id(state.host_id);
     svc->set_service_id(state.service_id);
     svc->set_current_state(state.current_state);
@@ -249,7 +247,6 @@ void service_book::save_to_cache(persistent_cache& cache) const {
     svc->set_state_type(state.state_type);
     svc->set_acknowledged(state.acknowledged);
   }
-  cache.add(to_save_ptr);
 }
 
 /**
@@ -258,7 +255,7 @@ void service_book::save_to_cache(persistent_cache& cache) const {
  *
  * @param state A ServicesBookState get from the cache.
  */
-void service_book::apply_services_state(const ServicesBookState& state) {
+void service_book::apply(const ServicesBookState& state) {
   _logger->trace("BAM: applying services state from cache");
   for (auto& svc : state.service()) {
     auto found = _book.find(std::make_pair(svc.host_id(), svc.service_id()));

@@ -20,22 +20,20 @@
 #define CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-
+#include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 
-size_t servicedependency_key(const servicedependency& sd);
-
-namespace applier {
 class servicedependency {
   void _expand_services(
       const ::google::protobuf::RepeatedPtrField<std::string>& hst,
       const ::google::protobuf::RepeatedPtrField<std::string>& hg,
       const ::google::protobuf::RepeatedPtrField<std::string>& svc,
       const ::google::protobuf::RepeatedPtrField<std::string>& sg,
-      configuration::State& s,
-      absl::flat_hash_set<std::pair<std::string, std::string>>& expanded);
+      configuration::indexed_state& s,
+      absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
+          expanded);
 
  public:
   servicedependency() = default;
@@ -45,12 +43,10 @@ class servicedependency {
   void add_object(const configuration::Servicedependency& obj);
   void modify_object(configuration::Servicedependency* old_obj,
                      const configuration::Servicedependency& new_obj);
-  void expand_objects(configuration::State& s);
-  void remove_object(ssize_t idx);
+  void remove_object(uint64_t hash_key);
   void resolve_object(const configuration::Servicedependency& obj,
                       error_cnt& err);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH

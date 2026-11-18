@@ -22,13 +22,14 @@
 
 #include "com/centreon/engine/globals.hh"
 
+#include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
 
-configuration::State pb_config;
+configuration::indexed_state pb_indexed_config;
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
                       "ABRT", "BUS",    "FPE",    "KILL",  "USR1",   "SEGV",
@@ -55,6 +56,9 @@ std::shared_ptr<spdlog::logger> runtime_logger;
 std::shared_ptr<spdlog::logger> otl_logger;
 
 std::string config_file;
+/* Directory of the serialized protobuf Engine configuration, we consider we
+ * are in new generation configuration if it is not empty */
+std::filesystem::path proto_conf;
 std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 char* debug_file(NULL);
 char* global_host_event_handler(NULL);
@@ -133,6 +137,8 @@ unsigned long next_notification_id(1);
 unsigned long next_problem_id(1);
 
 std::unique_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;
+
+std::unique_ptr<com::centreon::engine::enginerpc> rpc;
 
 void init_loggers() {
   checks_logger = log_v2::instance().get(log_v2::CHECKS);

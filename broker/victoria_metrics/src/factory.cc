@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/victoria_metrics/factory.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/victoria_metrics/connector.hh"
 #include "com/centreon/common/pool.hh"
@@ -67,8 +67,7 @@ void factory::set_default_values(config::endpoint& cfg) const {
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const std::map<std::string, std::string>& global_params [[maybe_unused]],
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache>) const {
+    bool& is_acceptor) const {
   is_acceptor = false;
 
   std::shared_ptr<http_tsdb::http_tsdb_config> conf(

@@ -80,6 +80,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     hostescalation_helper.hh
     hostgroup_helper.cc
     hostgroup_helper.hh
+    indexed_diff_state.cc
+    indexed_diff_state.hh
+    indexed_state.cc
+    indexed_state.hh
     message_helper.cc
     message_helper.hh
     parser.cc
@@ -109,4 +113,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_precompile_headers(centreon_engine_conf PRIVATE
                             ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
   set_target_properties(centreon_engine_conf PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+  # Install shared library.
+  install(
+    TARGETS centreon_engine_conf
+    DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
+    COMPONENT "runtime")
 endif()

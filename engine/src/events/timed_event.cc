@@ -205,9 +205,9 @@ void timed_event::_exec_event_orphan_check() {
   events_logger->trace("** Orphaned Host and Service Check Event");
 
   // check for orphaned hosts and services.
-  if (pb_config.check_orphaned_hosts())
+  if (pb_indexed_config.state().check_orphaned_hosts())
     host::check_for_orphaned();
-  if (pb_config.check_orphaned_services())
+  if (pb_indexed_config.state().check_orphaned_services())
     service::check_for_orphaned();
 }
 
@@ -220,7 +220,7 @@ void timed_event::_exec_event_retention_save() {
   events_logger->trace("** Retention Data Save Event");
 
   // save state retention data.
-  retention::dump::save(pb_config.state_retention_file());
+  retention::dump::save(pb_indexed_config.state().state_retention_file());
 }
 
 /**

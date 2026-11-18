@@ -59,9 +59,13 @@ if(WITH_TESTING)
     centreon_grpc
     centreon_file_system
     gRPC::grpc++
+    protobuf::libprotobuf
     stdc++fs
     -Wl,--no-whole-archive
     pthread)
+  # cbmod.so needs libcentreon_engine_conf.so, which takes protobuf from the
+  # executable (one copy of protobuf per process): export it, as centengine.
+  set_property(TARGET bin_connector_test_run PROPERTY ENABLE_EXPORTS ON)
 
   target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-* Copyright 2023 Centreon
+* Copyright 2023-2025 Centreon
 *
 * Licensed under the Apache License, Version 2.0(the "License");
 * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ message CentreonEvent {
 """
 
 cc_file_begin_content = """/**
- * Copyright 2023 Centreon (https://www.centreon.com/)
+ * Copyright 2023-2025 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ cc_file_protobuf_to_event_function = """
  * unknown content received
  */
 std::shared_ptr<io::data> protobuf_to_event(const event_ptr & stream_content) {
-    switch(stream_content->content_case()) {
+    switch (stream_content->content_case()) {
 """
 
 cc_file_create_event_with_data_function = """
@@ -154,7 +154,7 @@ cc_file_create_event_with_data_function_end = """
       {
         auto logger = log_v2::instance().get(log_v2::GRPC);
         SPDLOG_LOGGER_ERROR(logger, "unable to send unknown event type: {}", *event);
-      }  
+      }
     }
     if (ret) {
         ret->grpc_event.set_destination_id(event->destination_id);
@@ -176,11 +176,27 @@ parser.add_argument('-d', '--proto_directory',
 
 args = parser.parse_args()
 
-message_parser = r'^message\s+(\w+)\s+\{'
-io_protobuf_parser = r'\/\*\s*(\w+::\w+\s*,\s*\w+::\w+)\s*,\s*(\d+)\s*\*\/'
+package_parser = re.compile(r'^package\s+([.\w]+);')
+message_parser = re.compile(r'^message\s+(\w+)\s+\{')
+# /* category, element, index[, Message[, Field]] */
+# Message is needed when the message name cannot be deduced from the element
+# name. Field names the member of the CentreonEvent oneof; it defaults to the
+# message name and must be given when one message serves several BBDO types
+# (one annotation line per type, just above the message).
+io_protobuf_parser = re.compile(
+    r'/\*\s*(\w+::\w+\s*,\s*\w+::\w+)\s*,\s*(\d+)\s*(,\s*(\w+))?\s*(,\s*(\w+))?\s*\*/')
 ignore_message = "/* Ignore */"
 
 message_save = []
+
+
+def prefix_cpp(prefix: str) -> str:
+    """Convert a Protobuf package prefix to a C++ namespace prefix.
+    Args:
+        prefix (str): The Protobuf package prefix (e.g., "com.centreon.broker").
+    """
+    return prefix.replace('.', '::')
+
 
 for directory in args.proto_directory:
     proto_files = [f for f in listdir(
@@ -190,32 +206,51 @@ for directory in args.proto_directory:
         flag_ignore = False
         with open(join(directory, file)) as proto_file:
             messages = []
-            io_protobuf_match = None
+            # Annotations read on the lines just above the current one.
+            io_protobuf_matches = []
+            prefix = ""
             for line in proto_file.readlines():
                 line_counter += 1
+                m = re.match(package_parser, line)
+                if m:
+                    # Check the package
+                    if not m.group(1).startswith("com.centreon.broker"):
+                        prefix = m.group(1) + "."
+
                 m = re.match(message_parser, line)
-                if m and io_protobuf_match:
-                    # Check that the message and the io_protobuf_match are coherent
-                    # Let's take the message name and remove the de_pb_ prefix if it exists
-                    message_name = io_protobuf_match.group(1).split(',')[
-                        1].split('::')[1]
-                    message_name = message_name[3:] if message_name.startswith(
-                        'de_') else message_name
-                    message_name = message_name[3:] if message_name.startswith(
-                        'pb_') else message_name
-                    # Let's change the name into SnakeCase
-                    message_name = ''.join(word.title()
-                                           for word in message_name.split('_'))
-                    if m.group(1) != message_name:
-                        print(
-                            f"generate_proto.py : Error: Message {{ {m.group(1)} }} does not match the io_protobuf_match {{ {io_protobuf_match[1]} }} : file :{file}:{line_counter}", file=sys.stderr)
-                        exit(2)
-                    messages.append(
-                        [m.group(1), io_protobuf_match.group(1), io_protobuf_match.group(2)])
-                    io_protobuf_match = None
+                if m and io_protobuf_matches:
+                    for io_protobuf_match in io_protobuf_matches:
+                        # Check that the message and the io_protobuf_match are coherent
+                        # Let's take the message name and remove the de_pb_ prefix if it exists
+                        arr = io_protobuf_match.group(1).split(',')
+                        message_name = arr[1].split('::')[1]
+                        event_name = message_name
+                        if io_protobuf_match.group(4) is not None:
+                            message_name = io_protobuf_match.group(4)
+                        else:
+                            message_name = message_name[3:] if message_name.startswith(
+                                'de_') else message_name
+                            message_name = message_name[3:] if message_name.startswith(
+                                'pb_') else message_name
+                            # Let's change the name into SnakeCase
+                            message_name = ''.join(word.title()
+                                                   for word in message_name.split('_'))
+
+                        if m.group(1) != message_name:
+                            print(
+                                f"generate_proto.py : Error: Message '{m.group(1)}' does not match the field '{event_name}' given at {file}:{line_counter}", file=sys.stderr)
+                            exit(2)
+                        field = io_protobuf_match.group(6) or m.group(1)
+                        messages.append(
+                            (prefix, m.group(1), io_protobuf_match.group(1), io_protobuf_match.group(2), field, f"{file}:{line_counter}"))
+                    io_protobuf_matches = []
                     flag_ignore = True
                 else:
                     io_protobuf_match = re.match(io_protobuf_parser, line)
+                    if io_protobuf_match:
+                        io_protobuf_matches.append(io_protobuf_match)
+                    else:
+                        io_protobuf_matches = []
 
                 # check if no bbo message have the comment: Ignore
                 if ignore_message in line:
@@ -233,25 +268,40 @@ for directory in args.proto_directory:
         if len(messages) > 0:
             file_begin_content += f"import \"{file}\";\n"
             message_save += messages
+# Each BBDO type, each oneof index and each oneof field must be unique: a
+# message serving two BBDO types with the same field would be received as one
+# of them only, and an event type without its field cannot be sent at all.
+for col, what in ((2, "BBDO type"), (3, "index"), (4, "field")):
+    seen = {}
+    for entry in message_save:
+        key = entry[col].replace(' ', '') if col == 2 else entry[col]
+        if key in seen:
+            print(
+                f"generate_proto.py : Error: {what} '{key}' given twice, at {seen[key]} and {entry[5]}; "
+                "a message serving several BBDO types needs one annotation per type, each with its own index and field name",
+                file=sys.stderr)
+            exit(3)
+        seen[key] = entry[5]
+
 # sort the message with index (io_protobuf_match.group(2))
-message_save.sort(key=lambda x: int(x[2]))
-for mess, id, index in message_save:
+message_save.sort(key=lambda x: int(x[3]))
+for prefix, mess, id, index, field, _ in message_save:
     # proto file
-    file_message_centreon_event += f"        {mess} {mess}_ = {index};\n"
+    file_message_centreon_event += f"        {prefix}{mess} {field}_ = {index};\n"
     # count index : needed for opentelemetry
-    lower_mess = mess.lower()
+    lower_field = field.lower()
     # cc file
-    cc_file_protobuf_to_event_function += f"""        case ::stream::CentreonEvent::k{mess}:
-return std::make_shared<detail::received_protobuf<
-    {mess}, make_type({id})>>(
-    stream_content, &grpc_event_type::{lower_mess}_,
-    &grpc_event_type::mutable_{lower_mess}_);
+    cc_file_protobuf_to_event_function += f"""        case ::stream::CentreonEvent::k{field}:
+          return std::make_shared<detail::received_protobuf<
+              {prefix_cpp(prefix)}{mess}, make_type({id})>>(
+              stream_content, &grpc_event_type::{lower_field}_,
+              &grpc_event_type::mutable_{lower_field}_);
 """
     cc_file_create_event_with_data_function += f"""        case make_type({id}):
     ret = std::make_shared<event_with_data>(
         event, reinterpret_cast<event_with_data::releaser_type>(
-        &grpc_event_type::release_{lower_mess}_));
-    ret->grpc_event.set_allocated_{lower_mess}_(&std::static_pointer_cast<io::protobuf<{mess}, make_type({id})>>(event)->mut_obj());
+        &grpc_event_type::release_{lower_field}_));
+    ret->grpc_event.set_allocated_{lower_field}_(&std::static_pointer_cast<io::protobuf<{prefix_cpp(prefix)}{mess}, make_type({id})>>(event)->mut_obj());
     break;
 
 """

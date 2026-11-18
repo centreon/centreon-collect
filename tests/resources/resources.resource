@@ -33,26 +33,28 @@ Ctn Config BBDO3
         Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
     END
     IF    not ${only_engine}
-	Ctn Config Broker Sql Output    central    unified_sql
+        Ctn Config Broker Sql Output    central    unified_sql
         Ctn Broker Config Add Item    central    bbdo_version    ${version}
     END
-    IF    not ${only_central}
-        FOR    ${i}    IN RANGE    ${nbEngine}
-            ${mod}    Catenate    SEPARATOR=    module    ${i}
-            Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
-        END
+    FOR    ${i}    IN RANGE    ${nbEngine}
+        ${mod}    Catenate    SEPARATOR=    module    ${i}
+        Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
     END
     # We replace the global Bbdo2 Variable to False
     Ctn Set Bbdo2    ${False}
 
 Ctn Clean Before Suite
     Ctn Clear Db    resources
+    Ctn Clear Db    instances
     Ctn Clear Db    hosts
     Ctn Clear Db    services
     Ctn Clear Db    tags
+    Ctn Clear Db    customvariables
     Ctn Stop Processes
     Ctn Clear Engine Logs
     Ctn Clear Broker Logs
+    Ctn Clear Commands Status
+    Ctn Clear Engine White List
 
 Ctn Clean Before Suite With rrdcached
     Ctn Clean Before Suite
@@ -76,13 +78,18 @@ Ctn Clean After Suite With rrdcached
 Ctn Clear Engine Logs
     Remove Directory    ${ENGINE_LOG}    Recursive=True
     Create Directory    ${ENGINE_LOG}
+    Directory Should Exist    ${ENGINE_LOG}
 
 Ctn Clear Broker Logs
     Remove Directory    ${BROKER_LOG}    Recursive=True
     Create Directory    ${BROKER_LOG}
+    Directory Should Exist    ${BROKER_LOG}
 
 Ctn Start Vault
-    Start Process    /usr/bin/perl    vault/vault-server.pl    alias=vault
+    ${result}    Start Process    /usr/bin/perl    vault/vault-server.pl    alias=vault
+    Sleep    2s    # Waiting 2s to be sure vault is started
+    ${running}    Is Process Running    ${result}
+    Should Be True    ${running}    Vault not correctly started
 
 Ctn Stop Vault
     ${result}    Terminate Process    vault    kill=False
@@ -91,7 +98,16 @@ Ctn Stop Vault
     ...    Vault not correctly stopped
 
 Ctn Start Broker
-    [Arguments]    ${only_central}=False
+    [Arguments]    ${only_central}=False    ${newGeneration}=False
+
+    IF    ${newGeneration}
+	${count}    Ctn Get Engines Count
+	Ctn Config BBDO3    ${count}    3.1.0    ${only_central}
+        Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    END
+    Log To Console    Flushing broker configuration
+    Ctn Broker Config Flush
+
     # Currently we are in BBDO2 by default.
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
     IF    not ${only_central}
@@ -173,6 +189,14 @@ Ctn Kindly Stop Broker
             ELSE
                 Log To Console    We don't check RRD duplicates here (bbdo2 or explicitly asked)
             END
+
+	    # We check negative metric_id
+	    ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+	    IF    len("""${result}""") > 0
+                Log To Console    The central logs contain errors about metrics with negative IDs.
+                Ctn Save Logs
+                Remove File    ${centralLog}
+	    END
         END
     END
 
@@ -209,11 +233,15 @@ Ctn Stop Processes
     Ctn Kill Broker
     Ctn Kill Engine
     Remove Files    ${rrdLog}    ${centralLog}    ${engineLog0}    ${engineLog1}    ${engineLog2}    ${engineLog3}    ${engineLog4}
+    Ctn Broker Config Reset
 
 Ctn Start Engine
-    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False
-    # Currently we are in BBDO2 by default.
+    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False
     ${count}    Ctn Get Engines Count
+    IF    ${newGeneration}
+        Ctn Config BBDO3    ${count}    3.1.0    ${central_only}
+    END
+    Ctn Broker Config Flush    ${False}
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
@@ -230,13 +258,13 @@ Ctn Start Engine
             Run    chown -R centreon-engine: /tmp/etc/centreon-engine /tmp/etc/centreon-broker /tmp/var
         END
         IF    ${newGeneration}
-            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         ELSE
             Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         END
     END
 
-Ctn Start Engine With Extend Conf
+Ctn Start Engine With Extended Conf
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -250,6 +278,7 @@ Ctn Start Engine With Extend Conf
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
+        Ctn Broker Config Flush    ${False}
         Start Process
         ...    /usr/sbin/centengine
         ...    --extended-config\=/tmp/centengine_extend.json
@@ -264,6 +293,7 @@ Ctn Restart Engine
 
 Ctn Start Custom Engine
     [Arguments]    ${broker_conf}    ${conf_path}    ${process_alias}
+    Ctn Broker Config Flush    ${False}
     Start Process    /usr/sbin/centengine
     ...    ${conf_path}
     ...    alias=${process_alias}
@@ -286,18 +316,17 @@ Ctn Stop Engine
         Send Signal To Process    SIGTERM    e${idx}
     END
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}    Catenate    SEPARATOR=    e    ${idx}
-        ${result}    Wait For Process    ${alias}    timeout=60s
+        ${result}    Wait For Process    e${idx}    timeout=60s
         IF    "${result}" == "${None}"
             Log To Console    Failed to stop centengine
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}
-            Ctn Dump Process    ${alias}    /usr/sbin/centengine    ${name}
-            Send Signal To Process    SIGKILL    ${alias}
+            Ctn Dump Process    e${idx}    /usr/sbin/centengine    ${name}
+            Send Signal To Process    SIGKILL    e${idx}
             Fail    ${name} not correctly stopped (coredump generated)
         ELSE
             IF    ${result.rc} != 0 and ${result.rc} != -15
                 # Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
-                Ctn Coredump Info    ${alias}    /usr/sbin/centengine    ${alias}
+                Ctn Coredump Info    e${idx}    /usr/sbin/centengine    e${idx}
             END
             Should Be True
             ...    ${result.rc} == -15 or ${result.rc} == 0
@@ -359,13 +388,19 @@ Ctn Check Connections
 
 Ctn Disable Eth Connection On Port
     [Arguments]    ${port}
-    RUN    iptables -A INPUT -p tcp --dport ${port} -j DROP
+    ${result}    RUN    iptables -A INPUT -p tcp --dport ${port} -j DROP
+    Should Not Contain    ${result}    not found
+    ...    iptables is not installed or you don't have the rights to use it.
+    ...    Please fix this issue.
     RUN    iptables -A OUTPUT -p tcp --dport ${port} -j DROP
     RUN    iptables -A FORWARD -p tcp --dport ${port} -j DROP
 
 Ctn Reset Eth Connection
-    Run    iptables -F
-    Run    iptables -X
+    ${result}    RUN    iptables -F
+    Should Not Contain    ${result}    not found
+    ...    iptables is not installed or you don't have the rights to use it.
+    ...    Please fix this issue.
+    RUN    iptables -X
 
 Ctn Save Logs If Failed
     Run Keyword If Test Failed    Ctn Save Logs
@@ -549,9 +584,9 @@ Ctn Workspace Win
         ${workspace}    Ctn Get Workspace Win
         RETURN    ${workspace}
     END
-    
+
     RETURN    None
-    
+
 Ctn Kindly Stop Agent
     [Arguments]    ${nb_agent}=1
     ${run_env}    Ctn Run Env

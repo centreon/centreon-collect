@@ -70,6 +70,10 @@ else {
       if (/^$id=>(.*)/) {
         $status = $1;
         chomp $status;
+	if (open(FF, '>>', "/tmp/check_log")) {
+          print FF "$$ => id=$id state get from /tmp/states: $status\n";
+	  close FF;
+        }
 	last;
       }
     }
@@ -79,18 +83,30 @@ else {
   $d /= ($id + 1);
   my $w = 300 / ($id + 1);
   my $c = 400 / ($id + 1);
-  if ($status == 0) {
+  if ($status eq 0) {
     $d = $w / 2;
-  } elsif ($status == 1) {
+  } elsif ($status eq 1) {
     $d = ($w + $c) / 2;
-  } elsif ($status == 2) {
+  } elsif ($status eq 2) {
     $d = 2 * $c;
   } else {
     if ($d > $c) {
+      if (open(FF, '>>', "/tmp/check_log")) {
+          print FF "$$ => id=$id status set to 2\n";
+	  close FF;
+      }
       $status = 2;
     } elsif ($d > $w) {
+      if (open(FF, '>>', "/tmp/check_log")) {
+          print FF "$$ => id=$id status set to 1\n";
+	  close FF;
+      }
       $status = 1;
     } else {
+      if (open(FF, '>>', "/tmp/check_log")) {
+          print FF "$$ => id=$id status set to 0\n";
+	  close FF;
+      }
       $status = 0;
     }
   }

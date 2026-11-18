@@ -124,7 +124,11 @@ Here is the list of the currently implemented tests:
       * Then the Business Activity is no longer acknowledged
       * We also check that we have no bam filter error
 16. **BA_BOOL_KPI**: With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
-17. **BA_CHANGED**: A BA of type worst is configured with one service kpi. Then it is modified so that the service kpi is replaced by a boolean rule kpi. When cbd is reloaded, the BA is well updated.
+17. **BA_CHANGED**: Scenario: Replace Service KPI with Boolean Rule KPI in Worst-type BA
+      * Given a BA of type "worst" is configured with one service KPI
+      * When the service KPI is replaced by a boolean rule KPI
+      * And Broker is reloaded
+      * Then the BA is correctly updated with the new KPI configuration
 18. **BA_DISABLED**: create a disabled BA with timeperiods and reporting filter don't create error message
 19. **BA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
 20. **BA_IMPACT_IMPACT**: 
@@ -215,92 +219,89 @@ Here is the list of the currently implemented tests:
 4. **BCL2**: Starting broker with option '-s5' should work
 5. **BCL3**: Starting broker with options '-D' should work and activate diagnose mode
 6. **BCL4**: Starting broker with options '-s2' and '-D' should work.
-7. **BDB1**: Access denied when database name exists but is not the good one for sql output
-8. **BDB10**: connection should be established when user password is good for sql/perfdata
-9. **BDB2**: Access denied when database name exists but is not the good one for storage output
-10. **BDB3**: Access denied when database name does not exist for sql output
-11. **BDB4**: Access denied when database name does not exist for storage and sql outputs
-12. **BDB5**: cbd does not crash if the storage/sql db_host is wrong
-13. **BDB6**: cbd does not crash if the sql db_host is wrong
-14. **BDB7**: access denied when database user password is wrong for perfdata/sql
-15. **BDB8**: access denied when database user password is wrong for perfdata/sql
-16. **BDB9**: access denied when database user password is wrong for sql
-17. **BDBM1**: 
-      * Given the broker and engine are configured and started
-      * When MariaDB is restarted
-      * Then the connection between the broker/engine and MariaDB should be successfully established and 
-      * number of connections in the stats file should be equal to the configured connections_count
-18. **BDBMU1**: start broker/engine with unified sql and then start MariaDB => connection is established
-19. **BDBU1**: Access denied when database name exists but is not the good one for unified sql output
-20. **BDBU10**: Connection should be established when user password is good for unified sql
-21. **BDBU3**: Access denied when database name does not exist for unified sql output
-22. **BDBU5**: cbd does not crash if the unified sql db_host is wrong
-23. **BDBU7**: Access denied when database user password is wrong for unified sql
-24. **BEDB2**: start broker/engine and then start MariaDB => connection is established
-25. **BEDB3**: start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
-26. **BEDB4**: start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
-27. **BFC1**: Start broker with invalid filters but one filter ok
-28. **BFC2**: Start broker with only invalid filters on an output
-29. **BGRPCSS1**: Start-Stop two instances of broker configured with grpc stream and no coredump
-30. **BGRPCSS2**: Start/Stop 10 times broker configured with grpc stream with 300ms interval and no coredump
-31. **BGRPCSS3**: Start-Stop one instance of broker configured with grpc stream and no coredump
-32. **BGRPCSS4**: Start/Stop 10 times broker configured with grpc stream with 1sec interval and no coredump
-33. **BGRPCSS5**: Start-Stop with reversed connection on grpc acceptor with only one instance and no deadlock
-34. **BGRPCSSU1**: Start-Stop with unified_sql two instances of broker with grpc stream and no coredump
-35. **BGRPCSSU2**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 300ms interval and no coredump
-36. **BGRPCSSU3**: Start-Stop with unified_sql one instance of broker configured with grpc and no coredump
-37. **BGRPCSSU4**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
-38. **BGRPCSSU5**: Start-Stop with unified_sql with reversed connection on grpc acceptor with only one instance and no deadlock
-39. **BLBD**: Start Broker with loggers levels by default
-40. **BLDIS1**: Start broker with core logs 'disabled'
-41. **BLEC1**: Change live the core level log from trace to debug
-42. **BLEC2**: Change live the core level log from trace to foo raises an error
-43. **BLEC3**: Change live the foo level log to trace raises an error
-44. **BSCSS1**: Start-Stop two instances of broker and no coredump
-45. **BSCSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
-46. **BSCSS3**: Start-Stop one instance of broker with tcp connection and no coredump
-47. **BSCSS4**: Start/Stop 10 times broker with 1sec interval and no coredump
-48. **BSCSSC1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
-49. **BSCSSC2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side.
-50. **BSCSSCG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on client side.
-51. **BSCSSCGRR1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
-52. **BSCSSCGRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
-53. **BSCSSCRR1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side. Connection reversed with retention.
-54. **BSCSSCRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side. Connection reversed with retention.
-55. **BSCSSG1**: Start-Stop two instances of broker and no coredump
-56. **BSCSSG2**: Start/Stop 10 times broker with 300ms interval and no coredump
-57. **BSCSSG3**: Start-Stop one instance of broker with grpc connection and no coredump
-58. **BSCSSG4**: Start/Stop 10 times broker with 1sec interval and no coredump
-59. **BSCSSGA1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server. Error messages are raised.
-60. **BSCSSGA2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server and also on the client. All looks ok.
-61. **BSCSSGA3**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. The authorization token is retrieved from the vault on the server side.
-62. **BSCSSGRR1**: Start-Stop two instances of broker and no coredump, reversed and retention, with transport protocol grpc, start-stop 5 times.
-63. **BSCSSK1**: Start-Stop two instances of broker, server configured with grpc and client with tcp. No connectrion established and error raised on client side.
-64. **BSCSSK2**: Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
-65. **BSCSSP1**: Start-Stop two instances of broker and no coredump. The server contains a listen address
-66. **BSCSSPRR1**: Start-Stop two instances of broker and no coredump. The server contains a listen address, reversed and retention. centreon-broker-master-rrd is then a failover.
-67. **BSCSSR1**: Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client and reversed.
-68. **BSCSSRR1**: Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client, reversed and retention. centreon-broker-master-rrd is then a failover.
-69. **BSCSSRR2**: Start/Stop 10 times broker with 300ms interval and no coredump, reversed and retention. centreon-broker-master-rrd is then a failover.
-70. **BSCSST1**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
-71. **BSCSST2**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
-72. **BSCSSTG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. This is not sufficient, then an error is raised.
-73. **BSCSSTG2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys.
-74. **BSCSSTG3**: Start-Stop two instances of broker. The connection cannot be established if the server private key is missing and an error message explains this issue.
-75. **BSCSSTGRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys. Reversed grpc connection with retention.
-76. **BSCSSTRR1**: Start-Stop two instances of broker and no coredump. Encryption is enabled. transport protocol is tcp, reversed and retention.
-77. **BSCSSTRR2**: Start-Stop two instances of broker and no coredump. Encryption is enabled.
-78. **BSS1**: Start-Stop two instances of broker and no coredump
-79. **BSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
-80. **BSS3**: Start-Stop one instance of broker 5 times and no coredump
-81. **BSS4**: Start/Stop 10 times broker with 1sec interval and no coredump
-82. **BSS5**: Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
-83. **BSSU1**: Start-Stop two instances of broker with BBDO3 and no coredump
-84. **BSSU2**: Start/Stop 10 times broker (BBDO3) with 300ms interval and no coredump
-85. **BSSU3**: Start-Stop one instance of broker (BBDO3) and no coredump
-86. **BSSU4**: Start/Stop 10 times broker with 1sec interval and no coredump
-87. **BSSU5**: Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
-88. **START_STOP_CBD**: restart cbd with unified_sql services state must not be null after restart
+7. **BDB1**: 
+      * Given a broker with a wrong unified_sql db_host
+      * When cbd starts
+      * Then it should log an error about the connection
+      * And it should not crash
+8. **BDB2**: 
+      * Given a broker with a wrong unified_sql db_password
+      * When cbd starts
+      * Then it should log an error about access denied
+      * And it should not crash
+9. **BDB3**: 
+      * Given a broker with a correct unified_sql user password
+      * When cbd starts
+      * Then the connection to the database should be established
+10. **BDBM1**: Feature: Broker and Engine Start/Stop with MariaDB Scenario: Start broker and engine, then start MariaDB with different connection counts Given the broker and engine are started When MariaDB is started after them And the broker is configured with connections_count set to 1 and 3 Then the connection to the database should be established for each configured connection
+11. **BEDB1**: 
+      * Given the broker and engine are started,
+      * When MariaDB is started after them,
+      * Then the connection to the database should be established
+12. **BEDB2**: Feature: SQL Connections via gRPC API Scenario: Start broker and engine, stop MariaDB, then start it again Given the broker and engine are running When MariaDB is stopped and then started again Then the gRPC API should provide information about SQL connections
+13. **BEDB3**: Feature: SQL Connections via gRPC API Scenario: Start broker and engine, then stop MariaDB and then start it again Given broker and engine are running When MariaDB is stopped and then started again Then the gRPC API should provide information about SQL connections
+14. **BFC1**: Scenario: Start broker with valid and invalid filters on an output
+15. **BFC2**: Scenario: Start broker with only invalid filters on an output
+16. **BGRPCSS1**: Start-Stop two instances of broker configured with grpc stream and no coredump
+17. **BGRPCSS2**: Start/Stop 10 times broker configured with grpc stream with 300ms interval and no coredump
+18. **BGRPCSS3**: Start-Stop one instance of broker configured with grpc stream and no coredump
+19. **BGRPCSS4**: Start/Stop 10 times broker configured with grpc stream with 1sec interval and no coredump
+20. **BGRPCSS5**: Start-Stop with reversed connection on grpc acceptor with only one instance and no deadlock
+21. **BGRPCSSU1**: Start-Stop with unified_sql two instances of broker with grpc stream and no coredump
+22. **BGRPCSSU2**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 300ms interval and no coredump
+23. **BGRPCSSU3**: Start-Stop with unified_sql one instance of broker configured with grpc and no coredump
+24. **BGRPCSSU4**: Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
+25. **BGRPCSSU5**: Start-Stop with unified_sql with reversed connection on grpc acceptor with only one instance and no deadlock
+26. **BLBD**: Start Broker with loggers levels by default
+27. **BLDIS1**: Start broker with core logs 'disabled'
+28. **BLEC1**: Change live the core level log from trace to debug
+29. **BLEC2**: Change live the core level log from trace to foo raises an error
+30. **BLEC3**: Change live the foo level log to trace raises an error
+31. **BSCSS1**: Start-Stop two instances of broker and no coredump
+32. **BSCSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
+33. **BSCSS3**: Start-Stop one instance of broker with tcp connection and no coredump
+34. **BSCSS4**: Start/Stop 10 times broker with 1sec interval and no coredump
+35. **BSCSSC1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
+36. **BSCSSC2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side.
+37. **BSCSSCG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on client side.
+38. **BSCSSCGRR1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
+39. **BSCSSCGRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
+40. **BSCSSCRR1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side. Connection reversed with retention.
+41. **BSCSSCRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side. Connection reversed with retention.
+42. **BSCSSG1**: Start-Stop two instances of broker and no coredump
+43. **BSCSSG2**: Start/Stop 10 times broker with 300ms interval and no coredump
+44. **BSCSSG3**: Start-Stop one instance of broker with grpc connection and no coredump
+45. **BSCSSG4**: Start/Stop 10 times broker with 1sec interval and no coredump
+46. **BSCSSGA1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server. Error messages are raised.
+47. **BSCSSGA2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server and also on the client. All looks ok.
+48. **BSCSSGA3**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. The authorization token is retrieved from the vault on the server side.
+49. **BSCSSGRR1**: Start-Stop two instances of broker and no coredump, reversed and retention, with transport protocol grpc, start-stop 5 times.
+50. **BSCSSK1**: Start-Stop two instances of broker, server configured with grpc and client with tcp. No connectrion established and error raised on client side.
+51. **BSCSSK2**: Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
+52. **BSCSSP1**: Start-Stop two instances of broker and no coredump. The server contains a listen address
+53. **BSCSSPRR1**: Start-Stop two instances of broker and no coredump. The server contains a listen address, reversed and retention. centreon-broker-master-rrd is then a failover.
+54. **BSCSSR1**: Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client and reversed.
+55. **BSCSSRR1**: Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client, reversed and retention. centreon-broker-master-rrd is then a failover.
+56. **BSCSSRR2**: Start/Stop 10 times broker with 300ms interval and no coredump, reversed and retention. centreon-broker-master-rrd is then a failover.
+57. **BSCSST1**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
+58. **BSCSST2**: Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
+59. **BSCSSTG1**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. This is not sufficient, then an error is raised.
+60. **BSCSSTG2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys.
+61. **BSCSSTG3**: Start-Stop two instances of broker. The connection cannot be established if the server private key is missing and an error message explains this issue.
+62. **BSCSSTGRR2**: Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys. Reversed grpc connection with retention.
+63. **BSCSSTRR1**: Start-Stop two instances of broker and no coredump. Encryption is enabled. transport protocol is tcp, reversed and retention.
+64. **BSCSSTRR2**: Start-Stop two instances of broker and no coredump. Encryption is enabled.
+65. **BSS1**: Start-Stop two instances of broker and no coredump
+66. **BSS2**: Start/Stop 10 times broker with 300ms interval and no coredump
+67. **BSS3**: Start-Stop one instance of broker 5 times and no coredump
+68. **BSS4**: Start/Stop 10 times broker with 1sec interval and no coredump
+69. **BSS5**: Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
+70. **BSSU1**: Start-Stop two instances of broker with BBDO3 and no coredump
+71. **BSSU2**: Start/Stop 10 times broker (BBDO3) with 300ms interval and no coredump
+72. **BSSU3**: Start-Stop one instance of broker (BBDO3) and no coredump
+73. **BSSU4**: Start/Stop 10 times broker with 1sec interval and no coredump
+74. **BSSU5**: Start-Stop with reversed connection on TCP acceptor with only one instance and no deadlock
+75. **START_STOP_CBD**: restart cbd with unified_sql services state must not be null after restart
 
 ### Broker/database
 1. **BDBTEPWD1**: 
@@ -331,22 +332,23 @@ Here is the list of the currently implemented tests:
       * When the broker starts
       * Then it reads both options and configures the database connection with TLS
 8. **DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}**: count database connection
-9. **NetworkDBFail6**: network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
-10. **NetworkDBFail7**: network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
-11. **NetworkDBFailU6**: network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
-12. **NetworkDBFailU7**: network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
-13. **NetworkDBFailU8**: network failure test between broker and database: we wait for the connection to be established and then we shutdown the connection until _check_queues failure
-14. **NetworkDbFail1**: network failure test between broker and database (shutting down connection for 100ms)
-15. **NetworkDbFail2**: network failure test between broker and database (shutting down connection for 1s)
-16. **NetworkDbFail3**: network failure test between broker and database (shutting down connection for 10s)
-17. **NetworkDbFail4**: network failure test between broker and database (shutting down connection for 30s)
-18. **NetworkDbFail5**: network failure test between broker and database (shutting down connection for 60s)
+9. **NetworkDBFail6**: GIVEN a Broker configured with 5 database connections WHEN the network connection to the database (port 3306) is disrupted for 60 seconds THEN Broker should lose database connectivity during the outage AND should resume normal operations after network restoration
+10. **NetworkDBFail7**: GIVEN Broker is running with 5 database connections AND Engine is connected to Broker AND database queries are being executed successfully WHEN the network connection on port 3306 is repeatedly disrupted (6 cycles of 10s down / 10s up) THEN Broker should handle the intermittent network failures AND should acknowledge all events once the network is stable
+11. **NetworkDBFail8**: GIVEN Broker with unified_sql and 3 database connections WHEN database network is blocked until failure detection THEN Broker should log database errors AND should recover and execute pending statements after network restoration
+12. **NetworkDBFailU6**: GIVEN Broker is running with unified_sql and 5 database connections AND Engine is connected to Broker using BBDO3 protocol AND database queries are being executed successfully WHEN the network connection on port 3306 is blocked for 60 seconds THEN database operations should fail during the network outage AND Broker should recover and acknowledge events after network restoration
+13. **NetworkDBFailU7**: GIVEN Broker is running with unified_sql and 5 database connections AND Engine is connected to Broker using BBDO3 protocol AND database queries are being executed successfully WHEN the network connection on port 3306 is repeatedly disrupted (6 cycles of 10s down / 10s up) THEN Broker should handle the intermittent network failures AND should acknowledge all events once the network is stable
+14. **NetworkDBFailU8**: GIVEN Broker is running with unified_sql, BBDO3 protocol and 3 database connections AND Engine is connected to Broker AND database queries are being executed successfully WHEN the network connection on port 3306 is blocked indefinitely THEN Broker should detect the database failure and log appropriate errors AND WHEN the network is restored THEN Broker should reconnect and successfully execute pending statements
+15. **NetworkDbFail1**: network failure test between broker and database (shutting down connection for 100ms)
+16. **NetworkDbFail2**: network failure test between broker and database (shutting down connection for 1s)
+17. **NetworkDbFail3**: network failure test between broker and database (shutting down connection for 10s)
+18. **NetworkDbFail4**: network failure test between broker and database (shutting down connection for 30s)
+19. **NetworkDbFail5**: network failure test between broker and database (shutting down connection for 60s)
 
 ### Broker/engine
 1. **ANO_CFG_SENSITIVITY_SAVED**: cfg sensitivity saved in retention
 2. **ANO_DT1**: downtime on dependent service is inherited by ano
 3. **ANO_DT2**: 
-      * Given a service and its AD, 
+      * Given a service and its AD,
       * when we delete downtime on dependent service, AD must not be in downtime anymore
 4. **ANO_DT3**: delete downtime on anomaly don t delete dependent service one
 5. **ANO_DT4**: Scenario: Removing downtime from service keeps it on anomaly detection
@@ -357,7 +359,7 @@ Here is the list of the currently implemented tests:
 6. **ANO_EXTCMD_SENSITIVITY_SAVED**: extcmd sensitivity saved in retention
 7. **ANO_JSON_SENSITIVITY_NOT_SAVED**: json sensitivity not saved in retention
 8. **ANO_NOFILE**: an anomaly detection without threshold file must be in unknown state
-9. **ANO_NOFILE_VERIF_CONFIG_NO_ERROR**: an anomaly detection without threshold file doesn't display error on config check
+9. **ANO_NOFILE_VERIF_CONFIG_NO_ERROR**: An anomaly detection without threshold file doesn't display error on config check
 10. **ANO_OUT_LOWER_THAN_LIMIT**: an anomaly detection with a perfdata lower than lower limit make a critical state
 11. **ANO_OUT_UPPER_THAN_LIMIT**: an anomaly detection with a perfdata upper than upper limit make a critical state
 12. **ANO_TOO_OLD_FILE**: An anomaly detection with an oldest threshold file must be in unknown state
@@ -451,90 +453,124 @@ Here is the list of the currently implemented tests:
       * Then the downtime is still active on the renamed service
       * When the downtime is removed from the renamed service
       * Then the downtime is well removed
-51. **BEEXTCMD1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
-52. **BEEXTCMD10**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0
-53. **BEEXTCMD11**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0
-54. **BEEXTCMD12**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo2.0
-55. **BEEXTCMD13**: external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0
-56. **BEEXTCMD14**: external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0
-57. **BEEXTCMD15**: external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0
-58. **BEEXTCMD16**: external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0
-59. **BEEXTCMD17**: external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0
-60. **BEEXTCMD18**: external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0
-61. **BEEXTCMD19**: external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0
-62. **BEEXTCMD2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0
-63. **BEEXTCMD20**: external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0
-64. **BEEXTCMD21**: external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0
-65. **BEEXTCMD22**: external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0
-66. **BEEXTCMD23**: 
+51. **BEDW**: Scenario: Verify Broker configured with cache_config_directory listens to it
+      * Given the Central Broker is started with cache_config_directory set to a specific Directory
+      * And the pollers_config_directory is set to its default value: /var/lib/centreon-broker/pollers-configuration.
+      * When a file of the form <poller_id>.lck is created in the cache_config_directory
+      * Then Broker logs a message telling the file has been created
+      * When the corresponding configuration directory doesn't exist
+      * Then Broker logs a message telling the directory doesn't exist
+52. **BEDWEN**: Scenario: Verify Broker configured with cache_config_directory listens to it
+      * Given the Central Broker is started with cache_config_directory set to a specific Directory
+      * And the pollers_config_directory is set (default value) to /var/lib/centreon-broker/pollers-configuration.
+      * When a file of the form <poller_id>.lck is created in the cache_config_directory
+      * Then Broker logs a message telling the file has been created
+      * When the corresponding configuration directory doesn't exist
+      * Then Broker logs a message telling the directory doesn't exist
+53. **BEDWEND**: Scenario: Verify Broker configured with cache_config_directory creates the protobuf serialized configuration
+      * Given Central Broker is started with cache_config_directory set to a specific Directory
+      * And the pollers_config_directory is set (default value) to /var/lib/centreon-broker/pollers-configuration.
+      * And Central Broker has already sent a first configuration to Engine
+      * When a new configuration is put into the cache_config_directory
+      * Then Engine should be notified about the new configuration by Broker
+      * And Engine should update its configuration from a differential configuration
+54. **BEDWENF**: Scenario: Verify Broker configured with cache_config_directory creates the protobuf serialized configuration
+      * Given the Central Broker is started with cache_config_directory set to a specific Directory
+      * And the pollers_config_directory is set (default value) to /var/lib/centreon-broker/pollers-configuration.
+      * When a file of the form <poller_id>.lck is created after the <poller_id> directory is filled correctly
+      * Then Broker logs a message telling the file has been created
+      * And Broker dumps a file <poller_id>.prot in the pollers_conf directory
+55. **BEEXTCMD1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
+56. **BEEXTCMD10**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0
+57. **BEEXTCMD11**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0
+58. **BEEXTCMD12**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo2.0
+59. **BEEXTCMD13**: external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0
+60. **BEEXTCMD14**: external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0
+61. **BEEXTCMD15**: external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0
+62. **BEEXTCMD16**: external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0
+63. **BEEXTCMD17**: external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0
+64. **BEEXTCMD18**: external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0
+65. **BEEXTCMD19**: external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0
+66. **BEEXTCMD2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0
+67. **BEEXTCMD20**: external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0
+68. **BEEXTCMD21**: external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0
+69. **BEEXTCMD22**: external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0
+70. **BEEXTCMD23**: 
       * Given Engine and broker configured with BBDO3
       * When the external command DISABLE_HOST_CHECK on host_1 is executed
       * Then the host_1 host checks should be disabled
       * When the external command ENABLE_HOST_CHECK on host_1 is executed
       * Then the host_1 host checks should be enabled
-67. **BEEXTCMD24**: external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo2.0
-68. **BEEXTCMD25**: external command DISABLE_HOST_EVENT_HANDLER and ENABLE_HOST_EVENT_HANDLER on bbdo3.0
-69. **BEEXTCMD26**: external command DISABLE_HOST_EVENT_HANDLER and ENABLE_HOST_EVENT_HANDLER on bbdo2.0
-70. **BEEXTCMD27**: external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo3.0
-71. **BEEXTCMD28**: external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo2.0
-72. **BEEXTCMD29**: external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo3.0
-73. **BEEXTCMD3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0
-74. **BEEXTCMD30**: external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0
-75. **BEEXTCMD31**: external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo3.0
-76. **BEEXTCMD32**: external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo2.0
-77. **BEEXTCMD33**: external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo3.0
-78. **BEEXTCMD34**: external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo2.0
-79. **BEEXTCMD35**: external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo3.0
-80. **BEEXTCMD36**: external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo2.0
-81. **BEEXTCMD37**: external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo3.0
-82. **BEEXTCMD38**: external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo2.0
-83. **BEEXTCMD39**: external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo3.0
-84. **BEEXTCMD4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0
-85. **BEEXTCMD40**: external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo2.0
-86. **BEEXTCMD41**: external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo3.0
-87. **BEEXTCMD42**: external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo2.0
-88. **BEEXTCMD5**: external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo3.0
-89. **BEEXTCMD6**: external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo2.0
-90. **BEEXTCMD7**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0
-91. **BEEXTCMD8**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0
-92. **BEEXTCMD9**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS with bbdo3.0
-93. **BEEXTCMD_COMPRESS_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
-94. **BEEXTCMD_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and grpc
-95. **BEEXTCMD_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc
-96. **BEEXTCMD_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc
-97. **BEEXTCMD_GRPC4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc
-98. **BEEXTCMD_REVERSE_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and reversed gRPC
-99. **BEEXTCMD_REVERSE_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc reversed
-100. **BEEXTCMD_REVERSE_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc reversed
-101. **BEEXTCMD_REVERSE_GRPC4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc reversed
-102. **BEHOSTCHECK**: 
+71. **BEEXTCMD24**: external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo2.0
+72. **BEEXTCMD25**: external command DISABLE_HOST_EVENT_HANDLER and ENABLE_HOST_EVENT_HANDLER on bbdo3.0
+73. **BEEXTCMD26**: external command DISABLE_HOST_EVENT_HANDLER and ENABLE_HOST_EVENT_HANDLER on bbdo2.0
+74. **BEEXTCMD27**: external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo3.0
+75. **BEEXTCMD28**: external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo2.0
+76. **BEEXTCMD29**: external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo3.0
+77. **BEEXTCMD3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0
+78. **BEEXTCMD30**: external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0
+79. **BEEXTCMD31**: external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo3.0
+80. **BEEXTCMD32**: external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo2.0
+81. **BEEXTCMD33**: external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo3.0
+82. **BEEXTCMD34**: external command DISABLE_HOST_SVC_NOTIFICATIONS and ENABLE_HOST_SVC_NOTIFICATIONS on bbdo2.0
+83. **BEEXTCMD35**: external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo3.0
+84. **BEEXTCMD36**: external command DISABLE_PASSIVE_HOST_CHECKS and ENABLE_PASSIVE_HOST_CHECKS on bbdo2.0
+85. **BEEXTCMD37**: external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo3.0
+86. **BEEXTCMD38**: external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo2.0
+87. **BEEXTCMD39**: external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo3.0
+88. **BEEXTCMD4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0
+89. **BEEXTCMD40**: external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo2.0
+90. **BEEXTCMD41**: external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo3.0
+91. **BEEXTCMD42**: external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo2.0
+92. **BEEXTCMD5**: external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo3.0
+93. **BEEXTCMD6**: external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo2.0
+94. **BEEXTCMD7**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0
+95. **BEEXTCMD8**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0
+96. **BEEXTCMD9**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS with bbdo3.0
+97. **BEEXTCMD_COMPRESS_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
+98. **BEEXTCMD_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and grpc
+99. **BEEXTCMD_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc
+100. **BEEXTCMD_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc
+101. **BEEXTCMD_GRPC4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc
+102. **BEEXTCMD_REVERSE_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and reversed gRPC
+103. **BEEXTCMD_REVERSE_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc reversed
+104. **BEEXTCMD_REVERSE_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc reversed
+105. **BEEXTCMD_REVERSE_GRPC4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc reversed
+106. **BEHOSTCHECK**: 
       * Given Engine and Broker configured to work with BBDO 3
       * When a schedule forced host check command on host host_1 is launched
       * Then the result appears in the centreon_storage resources table
-103. **BEHS1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
-104. **BEINSTANCE**: Instance to bdd
-105. **BEINSTANCESTATUS**: Instance status to bdd
-106. **BEMC1**: 
+107. **BEHS1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
+108. **BEINSTANCE**: Instance to bdd
+109. **BEINSTANCESTATUS**: Instance status to bdd
+110. **BEMC1**: 
       * When host_1 is moved from engine0 to engine1, reloading engine1 first
       * (so broker cache records instance_id=2 for host_1) and then reloading
       * engine0 (which sends a DELETE with instance_id=1) must not evict host_1
       * from broker cache. The broker log must contain "ignoring stale deletion".
-107. **BEMC2**: 
+111. **BEMC2**: 
       * When service_1 on host_1 is moved from engine0 to engine1, reloading
       * engine1 first (broker records instance_id=2) and then reloading engine0
       * (DELETE with instance_id=1) must not evict service_1 from broker cache.
-108. **BENCH_${nb_checks}STATUS**: external command CHECK_SERVICE_RESULT 1000 times
-109. **BENCH_${nb_checks}STATUS_TRACES**: external command CHECK_SERVICE_RESULT ${nb_checks} times
-110. **BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL**: Broker is configured without SQL output. The connection between Engine and Broker is reversed. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times. Logs are in trace level.
-111. **BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL**: Broker is configured without SQL output. The connection between Engine and Broker is reversed. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times.
-112. **BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL**: Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times. Logs are in trace level.
-113. **BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL**: Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times.
-114. **BENCH_1000STATUS_100${suffixe}**: external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
-115. **BENCR1**: 
+112. **BENCH_${nb_checks}STATUS**: external command CHECK_SERVICE_RESULT 1000 times
+113. **BENCH_${nb_checks}STATUS_TRACES**: external command CHECK_SERVICE_RESULT ${nb_checks} times
+114. **BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL**: Broker is configured without SQL output. The connection between Engine and Broker is reversed. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times. Logs are in trace level.
+115. **BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL**: Broker is configured without SQL output. The connection between Engine and Broker is reversed. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times.
+116. **BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL**: Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times. Logs are in trace level.
+117. **BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL**: Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times.
+118. **BENCH_1000STATUS_100${suffixe}**: external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
+119. **BENCR1**: 
       * Given an engine configured with hosts and services with check commands,
       * when I change the check commands in the configuration and reload the engine,
-116. **BENCV**: Engine is configured with hosts/services. The first host has no customvariable. Then we add a customvariable to the first host and we reload engine. Then the host should have this new customvariable defined and centengine should not crash.
-117. **BEOTEL_CENTREON_AGENT_ACCENTED_PERFDATA**: Scenario: plugin output and perfdata label with accented characters (SSL certificate subject)
+120. **BENCV**: Engine is configured with hosts/services. The first host has no customvariable. Then we add a customvariable to the first host and we reload engine. Then the host should have this new customvariable defined and centengine should not crash.
+121. **BENHG1**: GIVEN a Centreon platform with 3 Engine instances AND Broker is configured with RRD, central and module outputs AND the central broker has 5 database connections WHEN I create a host group containing 3 hosts AND I reload both Broker and Engine configurations THEN the membership of all 3 hosts to the host group should be logged AND all membership entries should appear within 45 seconds
+122. **BENHG4**: GIVEN a platform with 3 Engine instances and unified_sql output with 5 connections AND detailed logging is enabled on module0 (neb debug, core and processing error) WHEN I create host group 1 with 3 hosts and reload configurations THEN at least 2 host memberships should be logged within 45 seconds WHEN I rename host group 1 to "hostgroup_test" and reload configurations THEN the hostgroup name should be updated in database within 60 seconds
+123. **BENHGU1**: GIVEN a Centreon platform with 3 Engine instances AND Broker is configured with RRD, central and module outputs AND Broker uses unified_sql output for database operations AND SQL logging is enabled at info level AND the unified_sql output has 5 database connections WHEN I create a host group containing 3 hosts AND I reload both Broker and Engine configurations THEN the membership of all 3 hosts to the host group should be logged AND all membership entries should appear within 45 seconds
+124. **BENHGU2**: GIVEN a platform with 3 Engine instances and unified_sql output with 5 connections AND BBDO3 protocol is enabled WHEN I create a host group with 3 hosts and reload configurations THEN at least 2 host memberships should be logged within 45 seconds
+125. **BENHGU3**: GIVEN a platform with 4 Engine instances and unified_sql output with 5 connections AND BBDO3 protocol is enabled with SQL debug logging WHEN I create host group 1 across 4 pollers with 3 hosts each and reload THEN host group 1 should contain 12 host members within 30 seconds WHEN I remove the hostgroups configuration from poller 0 and reload THEN host group 1 should contain only 9 host members within 30 seconds
+126. **BENHGU4_${test_label}**: GIVEN a platform with 3 Engine instances and unified_sql output with 5 connections AND detailed trace/debug logging is enabled (sql, lua, core) AND a Lua output dumps host groups to /tmp/lua-engine.log AND BBDO protocol version is configured based on test parameter WHEN I create host group 1 with 3 hosts and reload configurations THEN all 3 host memberships should be logged and stored in database within 60 seconds AND the hostgroup should appear in the Lua output file WHEN I rename host group 1 to "hostgroup_test" and reload configurations THEN the hostgroup name should be updated in database within 60 seconds AND the renamed hostgroup should appear in the Lua output file WHEN I remove the host group configuration and reload THEN the hostgroup should be deleted from database within 60 seconds AND no hostgroup should appear in the Lua output file after 10 seconds
+127. **BENSVC1**: New services with several pollers
+128. **BEOTEL_CENTREON_AGENT_ACCENTED_PERFDATA**: Scenario: plugin output and perfdata label with accented characters (SSL certificate subject)
       * Given an agent that executes two plugins printing an SSL certificate check result
       * whose output and perfdata label contain ô, é and à
       * And service_1 plugin prints it in UTF-8
@@ -542,42 +578,41 @@ Here is the list of the currently implemented tests:
       * When Broker, Engine and Agent are started
       * Then the OTel messages are serialized without error and both services reach HARD OK
       * And their outputs and metric names are stored in UTF-8 in the database
-118. **BEOTEL_CENTREON_AGENT_CEIP**: Scenario: Agent and "centreon_storage.agent_information" Statistics
+129. **BEOTEL_CENTREON_AGENT_CEIP**: Scenario: Agent and "centreon_storage.agent_information" Statistics
       * Given Engine connected to Broker
       * When an agent connects to Engine
-119. **BEOTEL_CENTREON_AGENT_CHECK_COUNTER**: 
+130. **BEOTEL_CENTREON_AGENT_CHECK_COUNTER**: 
       * Given an agent with counter check, we expect to get the correct status for the centagent process running on windows host
-120. **BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL**: 
-      * Given and agent who has to execute checks with different intervals, we expect to find these intervals in data_bin
-121. **BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG**: 
+131. **BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL**: GIVEN a Centreon Engine with OpenTelemetry server module configured AND an OTEL connector using centreon_agent processor with 5s export period AND 3 passive services configured with different check intervals (1, 2, 3 minutes) AND interval_length is set to 10 seconds WHEN the Engine, Broker and Agent are started THEN service_1 should execute checks every 10 seconds (1*10) with 5s tolerance AND service_2 should execute checks every 20 seconds (2*10) with 5s tolerance AND service_3 should execute checks every 30 seconds (3*10) with 5s tolerance AND all check intervals should be verified within 80 seconds
+132. **BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG**: 
       * Given an agent with eventlog check, we expect status, output and metrics
-122. **BEOTEL_CENTREON_AGENT_CHECK_FILES**: 
+133. **BEOTEL_CENTREON_AGENT_CHECK_FILES**: 
       * Given an agent with file check, we expect to get the correct status for files under monitoring on the Windows host
-123. **BEOTEL_CENTREON_AGENT_CHECK_HEALTH**: agent check health and we expect to get it in check result
-124. **BEOTEL_CENTREON_AGENT_CHECK_HOST**: 
+134. **BEOTEL_CENTREON_AGENT_CHECK_HEALTH**: agent check health and we expect to get it in check result
+135. **BEOTEL_CENTREON_AGENT_CHECK_HOST**: 
       * Given an agent host checked by centagent, we set a first output to check command, 
       * modify it, reload engine and expect the new output in resource table
-125. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED**: agent check host with encrypted connection and we expect to get it in check result
-126. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_ENCRYPTED_CREDENTIALS**: 
+136. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED**: agent check host with encrypted connection and we expect to get it in check result
+137. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_ENCRYPTED_CREDENTIALS**: 
       * Given an agent host checked by centagent over an encrypted connection,
       * Engine use credentials encryption and send encrypted commands
       * we set a first output to check command, 
       * modify it, reload engine and expect the new output in resource table
-127. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_MANY_AGENT**: 
+138. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_MANY_AGENT**: 
       * Given an engine listening for incomming CMA connections,
       * We connect two agent with the same host_name and engine must not crash
-128. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT**: 
+139. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT**: 
       * Given an engine with an encrypted otel server with one minute ttl, we expect that otel server
       * will restart after on minute, then we recreate certificates and otel server must restart also
-129. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT_WITH_DEFAULT_CERT**: 
+140. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT_WITH_DEFAULT_CERT**: 
       * Given an engine with an encrypted otel server with one minute ttl and default engine generated certificates, 
       * we expect that otel server will restart after on minute, then we recreate certificates and otel server must restart also
-130. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_SAN_IP**: 
+141. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_SAN_IP**: 
       * Given an engine with an encrypted otel server using a self-signed cert
       * whose CN does not match the hostname but has IP:127.0.0.1 and DNS:<hostname> in SAN,
       * with minute_certificate_ttl triggering cert regeneration,
       * the agent should connect successfully because SANs are copied to the generated cert.
-131. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_WITHOUT_CERT**: 
+142. **BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_WITHOUT_CERT**: 
       * Given Engine is configured with a full TLS gRPC server (port 4318) exposing its CA certificate,
       * And the CMA has only a fingerprint (no CA certificate file) and a JWT token,
       * When the CMA starts and attempts a full TLS connection to Engine (which fails — no CA yet),
@@ -587,41 +622,41 @@ Here is the list of the currently implemented tests:
       * And the CMA logs a security entry confirming the CA bootstrap succeeded,
       * And the CMA stores the CA certificate and reconnects using full TLS with the JWT token,
       * Then the host check result is reported successfully in the resources table.
-132. **BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS**: 
+143. **BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS**: 
       * Given an agent host checked by centagent over a non encrypted connection,
       * Engine use credentials encryption, but send no encrypted commands
       * we set a first output to check command, 
       * modify it, reload engine and expect the new output in resource table
-133. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU**: agent check service with native check cpu and we expect to get it in check result
-134. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CUSTOM**: Scenario: Native custom check echoes provided arguments
+144. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU**: agent check service with native check cpu and we expect to get it in check result
+145. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CUSTOM**: Scenario: Native custom check echoes provided arguments
       * Given Centreon Engine is configured with an OpenTelemetry server module and OTEL connector
       * And service_1 is set as a passive service with defined check and retry intervals
       * And the check command "otel_check" runs the native custom check "check_echo" with ARG1 "user" and ARG2 "hello"
       * When Broker, Engine and Agent are started and the OTEL server becomes ready
       * Then service_1 must reach HARD OK state within 120 seconds
       * And the service output must be "hello user from custom check"
-135. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY**: agent check service with native check memory and we expect to get it in check result
-136. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE**: agent check service with native check service and we expect to get it in check result
-137. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE_AUTO**: 
+146. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY**: agent check service with native check memory and we expect to get it in check result
+147. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE**: agent check service with native check service and we expect to get it in check result
+148. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE_AUTO**: 
       * Given a window agent with native service check, we check cma service with different configurations
-138. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE_FILTER_STATE**: 
+149. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE_FILTER_STATE**: 
       * Given a windows agent with native service check, 
       * we filter on CentreonMonitoringAgent service and use warning-state and critical-state to trigger status changes
-139. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE**: agent check service with native check storage and we expect to get it in check result, with the <drive>:#storage.space.free.bytes, usage.bytes and usage.percentage perfdata
-140. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS**: 
+150. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE**: agent check service with native check storage and we expect to get it in check result, with the <drive>:#storage.space.free.bytes, usage.bytes and usage.percentage perfdata
+151. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS**: 
       * Given a windows agent with native check storage,
       * when filter-fs or exclude-fs refuses a drive, then this drive is refused before any system call
       * on it (no GetVolumeInformation or GetDiskFreeSpaceEx), so no error is logged even for drives
       * without media. filter-fs and exclude-fs are case insensitive.
       * With filter-fs c:.*, the count perfdata is 1 and C:#storage.space.usage.percentage is sent.
-141. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS_MACRO**: 
+152. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS_MACRO**: 
       * Given a windows agent with native check storage whose filter-fs and exclude-fs
       * come from FILTERFS and EXCLUDEFS service macros,
       * when backslashes are escaped once or twice (legacy form) in these macros,
       * then both forms give the same result: C: is checked with FILTERFS and refused with EXCLUDEFS.
       * A FILTERFS that matches no drive still refuses every drive.
       * C:#storage.space.usage.percentage is also expected with each FILTERFS form.
-142. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_STORAGE_TYPE**: 
+153. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_STORAGE_TYPE**: 
       * Given a windows agent with native check storage,
       * when filter-storage-type contains a storage type (hrstoragefixeddisk, whatever its case)
       * or a file system format (hrfsntfs, other|ntfs), then C: drive is checked and service is OK.
@@ -630,28 +665,28 @@ Here is the list of the currently implemented tests:
       * Between each filter, a filter that refuses all drives is applied in order to be sure that
       * OK state comes from the new filter.
       * C:#storage.space.usage.percentage is also expected for each filter.
-143. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME**: agent check service with native check uptime and we expect to get it in check result, with the last reboot time in ISO 8601 UTC in the output
-144. **BEOTEL_CENTREON_AGENT_CHECK_PROCESS**: 
+154. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME**: agent check service with native check uptime and we expect to get it in check result, with the last reboot time in ISO 8601 UTC in the output
+155. **BEOTEL_CENTREON_AGENT_CHECK_PROCESS**: 
       * Given an agent with eventlog check, we expect to get the correct status for thr centagent process running on windows host
-145. **BEOTEL_CENTREON_AGENT_CHECK_SERVICE**: 
+156. **BEOTEL_CENTREON_AGENT_CHECK_SERVICE**: 
       * Given an Engine configured with an OpenTelemetry server module 
-146. **BEOTEL_CENTREON_AGENT_CHECK_SERVICE_FRESHNESS**: 
+157. **BEOTEL_CENTREON_AGENT_CHECK_SERVICE_FRESHNESS**: 
       * Given Centreon Engine is configured with an OpenTelemetry server module
-147. **BEOTEL_CENTREON_AGENT_CHECK_SERVICE_TIMEPERIODS**: CMA timeperiod gating: services with always-active periods are checked, services outside their period are deferred with the correct next-open offset. service_1 -> 24x7           always active (built-in) service_4 -> opens_in_1h    inactive now, opens in ~1 hour
-148. **BEOTEL_CENTREON_AGENT_CHECK_TASKSCHEDULER**: 
+158. **BEOTEL_CENTREON_AGENT_CHECK_SERVICE_TIMEPERIODS**: CMA timeperiod gating: services with always-active periods are checked, services outside their period are deferred with the correct next-open offset. service_1 -> 24x7           always active (built-in) service_4 -> opens_in_1h    inactive now, opens in ~1 hour
+159. **BEOTEL_CENTREON_AGENT_CHECK_TASKSCHEDULER**: 
       * Given an agent with task scheduler check, we expect to get the correct status for the centagent process running on windows host
-149. **BEOTEL_CENTREON_AGENT_CMD_DATABASE**: 
+160. **BEOTEL_CENTREON_AGENT_CMD_DATABASE**: 
       * Given an Engine configured 
-150. **BEOTEL_CENTREON_AGENT_FORCE_CHECK**: 
+161. **BEOTEL_CENTREON_AGENT_FORCE_CHECK**: 
       * Given an agent host with 20 services checked by centagent, we force check to 10nth service and then to the host and 
       * we expect correct status in bdd
-151. **BEOTEL_CENTREON_AGENT_INSECURE**: 
+162. **BEOTEL_CENTREON_AGENT_INSECURE**: 
       * Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled 
       * When the Centreon Agent connects using a certificate with a mismatched hostname and the insecure option enabled
       * Then the connection succeeds
       * And the engine log confirms the token was accepted
-152. **BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS**: agent check host and we expect to get it in check result
-153. **BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN**: Scenario: Encrypted connection rejected with untrusted token
+163. **BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS**: agent check host and we expect to get it in check result
+164. **BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN**: Scenario: Encrypted connection rejected with untrusted token
       * Given Centreon Engine is configured with an encrypted OpenTelemetry server on port 4318 and an empty trusted token list
       * And host_1 is configured with a passive check using otel_check_icmp
       * And Centreon Agent is configured with a JWT token and the server certificate
@@ -666,12 +701,12 @@ Here is the list of the currently implemented tests:
       * And the agent connection is refused
       * And host_1 resource status is not updated in the resources table
       * And the engine log contains 'UNAUTHENTICATED : Token is not trusted'
-154. **BEOTEL_CENTREON_AGENT_TLS_BAD_CERT**: 
+165. **BEOTEL_CENTREON_AGENT_TLS_BAD_CERT**: 
       * Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled 
       * When the Centreon Agent connects using a certificate with a mismatched hostname and the full option enabled
       * Then the connection is refused
       * And the engine log confirms the certificate hostname mismatch
-155. **BEOTEL_CENTREON_AGENT_TOKEN**: Scenario: Validate agent connection with valid JWT token
+166. **BEOTEL_CENTREON_AGENT_TOKEN**: Scenario: Validate agent connection with valid JWT token
       * Given the OpenTelemetry server is configured with encryption enabled and the server trusts a JWT token
       * And the Centreon Agent is configured to use that valid token and the server certificate
       * When the broker, engine and agent are started
@@ -681,12 +716,12 @@ Here is the list of the currently implemented tests:
       * And the agent is restarted
       * Then the engine should expose an unencrypted OTEL listener
       * And the engine log should still report that the token is valid
-156. **BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH**: 
+167. **BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH**: 
       * Given an OpenTelemetry server is configured with token-based connection
-157. **BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2**: 
+168. **BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2**: 
       * Given an OpenTelemetry server is configured with token-based connection
-158. **BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED**: Scenario: Encrypted connection with expired token
-159. **BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING**: Scenario: Token expires during encrypted connection
+169. **BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED**: Scenario: Encrypted connection with expired token
+170. **BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING**: Scenario: Token expires during encrypted connection
       * Given Centreon Engine is configured with an encrypted OTEL server on port 4318
       * And Centreon Agent is configured with a valid JWT token (20s lifetime) and the server certificate
       * When Broker, Engine and Agent are started
@@ -702,7 +737,7 @@ Here is the list of the currently implemented tests:
       * And the engine log reports "Token is valid"
       * When the token lifetime elapses
       * Then the engine log reports "UNAUTHENTICATED : Token expired"
-160. **BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE**: Scenario: Token expires during encrypted reverse connection
+171. **BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE**: Scenario: Token expires during encrypted reverse connection
       * Given Centreon Engine is configured to initiate a reverse encrypted OTEL connection to the Agent using a valid JWT token (10s lifetime)
       * When Broker, Engine and Agent are started
       * Then the Agent starts its encrypted reverse OTEL server and the Engine connects (init log appears)
@@ -716,7 +751,7 @@ Here is the list of the currently implemented tests:
       * And the Agent log reports "Token is valid"
       * When the new token lifetime elapses
       * Then the Engine log reports "client::OnDone(Token expired)"
-161. **BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE**: Scenario: Encrypted reversed connection with expired token
+172. **BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE**: Scenario: Encrypted reversed connection with expired token
       * Given Centreon Engine is configured as a client using a reversed encrypted OTEL connection to the Agent on port 4321
       * And the Agent reverse OTEL server trusts a JWT token that is already expired
       * When Broker, Engine and Agent are started
@@ -727,7 +762,7 @@ Here is the list of the currently implemented tests:
       * When the Agent is stopped, the Engine configuration is reloaded, and the Agent is restarted
       * Then the Agent starts its unencrypted reversed OTEL server (server listening appears in the agent log)
       * And the Engine connection is refused because the token is expired client::OnDone(Token expired appears in engine log)
-162. **BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER**: Scenario: Missing JWT header over encrypted OTEL connection
+173. **BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER**: Scenario: Missing JWT header over encrypted OTEL connection
       * Given Centreon Engine is configured with an encrypted OTEL server (port 4318) and a trusted token list
       * And Centreon Agent is configured to connect without a JWT token (no Authorization header)
       * When Broker, Engine and Agent are started
@@ -740,7 +775,7 @@ Here is the list of the currently implemented tests:
       * Then the unencrypted OTEL server is listening
       * And the agent connection is rejected
       * And the engine log contains "UNAUTHENTICATED: No authorization header"
-163. **BEOTEL_CENTREON_AGENT_TOKEN_REVERSE**: Scenario: Encrypted reversed connection with valid token
+174. **BEOTEL_CENTREON_AGENT_TOKEN_REVERSE**: Scenario: Encrypted reversed connection with valid token
       * Given Centreon Engine is configured as a client with a reverse encrypted connection to the Agent server on port 4321 and the Agent trusts a valid JWT token
       * When Broker, Engine and Agent are started
       * Then the Agent starts an encrypted reversed OTEL server
@@ -752,7 +787,7 @@ Here is the list of the currently implemented tests:
       * Then the Agent starts an unencrypted reversed OTEL server
       * And the Engine reconnects to the Agent (init log appears)
       * And the Agent log reports "Token is valid"
-164. **BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED**: Scenario: Encrypted connection with untrusted token
+175. **BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED**: Scenario: Encrypted connection with untrusted token
       * Given Centreon Engine is configured with an encrypted OpenTelemetry server
       * And the server trusts a JWT token different from the one configured on the Centreon Agent
       * When Broker, Engine and Agent are started
@@ -765,7 +800,7 @@ Here is the list of the currently implemented tests:
       * Then the unencrypted OTEL server starts listening
       * And the agent connection is refused
       * And the engine log contains "Token is not trusted"
-165. **BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE**: Scenario: Encrypted reversed connection refused with untrusted token
+176. **BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE**: Scenario: Encrypted reversed connection refused with untrusted token
       * Given Centreon Engine is configured as a client using a reverse encrypted OTEL connection to the Agent on port 4321
       * And the Agent reverse OTEL server trusts token1
       * And the Engine is configured to connect with a different (untrusted) token2
@@ -779,19 +814,19 @@ Here is the list of the currently implemented tests:
       * Then the Agent starts its unencrypted reversed server (listening is logged)
       * And the Engine connection is refused
       * And the engine log contains "client::OnDone(Token not trusted)"
-166. **BEOTEL_CENTREON_AGENT_UNKNOWN_HOST**: 
+177. **BEOTEL_CENTREON_AGENT_UNKNOWN_HOST**: 
       * Given an engine configured, a broker with event_script output
       * We connect a CMA with an hostname unknown from engine configuration, 
       * we expect that broker will call the script with the new agent infos
       * Then we add unknown host to engine config and we wait for a check result
-167. **BEOTEL_CENTREON_AGENT_WHITE_LIST**: Scenario: Enforcing command whitelist for agent checks
+178. **BEOTEL_CENTREON_AGENT_WHITE_LIST**: Scenario: Enforcing command whitelist for agent checks
       * Given a whitelist file is created with allowed commands for host_1
       * And the engine, broker, and agent are configured and started
       * When a check command matching the whitelist is executed for host_1
       * Then the check result is accepted and stored in the resources table
       * When a check command not matching the whitelist is configured for host_1 and engine is reloaded
       * Then the command is rejected and a "command not allowed by whitelist" message appears in the log
-168. **BEOTEL_CENTREON_AGENT_WHITE_LIST_FORCE_CHECK_HOST**: Scenario: forced checks of a CMA host use the CMA whitelist
+179. **BEOTEL_CENTREON_AGENT_WHITE_LIST_FORCE_CHECK_HOST**: Scenario: forced checks of a CMA host use the CMA whitelist
       * Given a whitelist file where the cma-whitelist accepts the CMA check command of host_1
       * And the engine whitelist does not accept this command
       * And the engine, broker, and agent are configured and started
@@ -800,7 +835,7 @@ Here is the list of the currently implemented tests:
       * When a forced check is scheduled on host_1
       * Then no whitelist error appears in the engine log
       * And the check result is stored in the resources table
-169. **BEOTEL_CENTREON_AGENT_WHITE_LIST_FORCE_CHECK_SERVICE**: Scenario: forced checks of a CMA service use the CMA whitelist
+180. **BEOTEL_CENTREON_AGENT_WHITE_LIST_FORCE_CHECK_SERVICE**: Scenario: forced checks of a CMA service use the CMA whitelist
       * Given a whitelist file where the cma-whitelist accepts the CMA check command of host_1/service_1
       * And the engine whitelist does not accept this command
       * And the engine, broker, and agent are configured and started
@@ -809,19 +844,19 @@ Here is the list of the currently implemented tests:
       * When a forced check is scheduled on service_1
       * Then no whitelist error appears in the engine log
       * And the check result is stored in the resources table
-170. **BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS**: 
+181. **BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS**: 
       * Given the agent is configured with native checks for services
       * And the OpenTelemetry server module is added
       * And services are configured with incorrect check commands and arguments
       * When the broker, engine, and agent are started
       * Then the resources table should be updated with the correct status
       * And appropriate error messages should be generated for invalid checks
-171. **BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST**: agent check host with reversed connection and we expect to get it in check result
-172. **BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED**: agent check host with encrypted reversed connection and we expect to get it in check result
-173. **BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE**: agent check service with reversed connection and we expect to get it in check result
-174. **BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED**: we configure engine with a telegraf conf server and we check telegraf conf file
-175. **BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED**: we configure engine with a telegraf conf server and we check telegraf conf file
-176. **BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED_1**: Scenario: Serve telegraf configuration with a complex whitelist
+182. **BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST**: agent check host with reversed connection and we expect to get it in check result
+183. **BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED**: agent check host with encrypted reversed connection and we expect to get it in check result
+184. **BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE**: agent check service with reversed connection and we expect to get it in check result
+185. **BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED**: we configure engine with a telegraf conf server and we check telegraf conf file
+186. **BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED**: we configure engine with a telegraf conf server and we check telegraf conf file
+187. **BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED_1**: Scenario: Serve telegraf configuration with a complex whitelist
       * Given the engine is configured with a telegraf conf server and a complex whitelist
       * When I request the telegraf conf file for host_1
       * Then I should receive the expected telegraf configuration for host_1
@@ -829,179 +864,190 @@ Here is the list of the currently implemented tests:
       * When I request the telegraf conf file for host_2
       * Then I should receive the expected telegraf configuration for host_2
       * And service_5 should be blacklisted and unavailable for host_2
-177. **BEOTEL_TELEGRAF_CHECK_HOST**: we send nagios telegraf formatted data and we expect to get it in check result
-178. **BEOTEL_TELEGRAF_CHECK_SERVICE**: Scenario: Handling of OK and CRITICAL check results from Telegraf input
+188. **BEOTEL_TELEGRAF_CHECK_HOST**: we send nagios telegraf formatted data and we expect to get it in check result
+189. **BEOTEL_TELEGRAF_CHECK_SERVICE**: Scenario: Handling of OK and CRITICAL check results from Telegraf input
       * Given the OpenTelemetry server is ready
       * When I send a Telegraf-formatted check result with status "OK" to the Engine
       * Then the result should be stored in the Centreon Broker storage database with status "OK"
-179. **BEPBBEE1**: central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
-180. **BEPBBEE2**: bbdo_version 3 not compatible with sql/storage
-181. **BEPBBEE3**: bbdo_version 3 generates new bbdo protobuf service status messages.
-182. **BEPBBEE4**: bbdo_version 3 generates new bbdo protobuf host status messages.
-183. **BEPBBEE5**: bbdo_version 3 generates new bbdo protobuf service messages.
-184. **BEPBCVS**: bbdo_version 3 communication of custom variables.
-185. **BEPBHostParent**: bbdo_version 3 communication of host parent relations
-186. **BEPBINST_CONF**: bbdo_version 3 communication of instance configuration.
-187. **BEPBRI1**: bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
-188. **BEPBUID1**: uid > 2^32 in broker module config overrides poller_id. The instances, hosts and resources tables must store this 64-bit value.
-189. **BERD1**: Scenario: Starting/stopping Broker does not create duplicated events.
-190. **BERD2**: Scenario: Starting/stopping Engine does not create duplicated events.
-191. **BERDUC1**: Scenario: Starting/stopping Engine does not create duplicated events in usual cases
-192. **BERDUC2**: Scenario: Starting/stopping Engine does not create duplicated events in usual cases
-193. **BERDUC3U1**: Scenario: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
-194. **BERDUC3U2**: Scenario: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
-195. **BERDUCA300**: Scenario: Starting/stopping Engine is stopped; it should emit a stop event and receive an ack event with events to clean from broker.
-196. **BERDUCA301**: Scenario: Starting/stopping Engine is stopped; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
-197. **BERDUCU1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql7
-198. **BERDUCU2**: Scenario: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
-199. **BERES1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
-200. **BESERVCHECK**: external command CHECK_SERVICE_RESULT
-201. **BESS1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
-202. **BESS2**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-203. **BESS2U**: Start-Stop Broker/Engine - Broker started first - Engine stopped first. Unified_sql is used.
-204. **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
-205. **BESS4**: Start-Stop Broker/Engine - Engine started first - Broker stopped first
-206. **BESS5**: Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
-207. **BESSBQ1**: A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
-208. **BESSCTO**: Scenario: Service commands time out due to missing Perl Connector
+190. **BEPBBEE1**: central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
+191. **BEPBBEE3**: bbdo_version 3 generates new bbdo protobuf service status messages.
+192. **BEPBBEE4**: bbdo_version 3 generates new bbdo protobuf host status messages.
+193. **BEPBBEE5**: bbdo_version 3 generates new bbdo protobuf service messages.
+194. **BEPBCVS**: bbdo_version 3 communication of custom variables.
+195. **BEPBHostParent**: bbdo_version 3 communication of host parent relations
+196. **BEPBINST_CONF**: bbdo_version 3 communication of instance configuration.
+197. **BEPBRI1**: bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
+198. **BEPBUID1**: uid > 2^32 in broker module config overrides poller_id. The instances, hosts and resources tables must store this 64-bit value.
+199. **BERD1**: Scenario: Starting/stopping Broker does not create duplicated events.
+200. **BERD2**: Scenario: Starting/stopping Engine does not create duplicated events.
+201. **BERDUC1**: Scenario: Starting/stopping Engine does not create duplicated events in usual cases
+202. **BERDUC2**: Scenario: Starting/stopping Engine does not create duplicated events in usual cases
+203. **BERDUC3U1**: Scenario: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+204. **BERDUC3U2**: Scenario: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+205. **BERDUCA300**: Scenario: Starting/stopping Engine is stopped; it should emit a stop event and receive an ack event with events to clean from broker.
+206. **BERDUCA301**: Scenario: Starting/stopping Engine is stopped; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
+207. **BERDUCU1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql7
+208. **BERDUCU2**: Scenario: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
+209. **BERES1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
+210. **BESERVCHECK**: external command CHECK_SERVICE_RESULT
+211. **BESS1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+212. **BESS2**: Scenario: Start and stop Broker/Engine with Broker started first and Engine stopped first
+      * Given the Broker is started before the Engine and both use BBDO 3
+      * When the Engine is started after the Broker
+      * Then the connection between Engine and Broker should be established
+      * And the poller should be visible in the database
+      * When the Engine is stopped before the Broker
+      * Then the poller should be disabled and not visible in the database
+      * And neither Broker nor Engine should crash
+213. **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
+214. **BESS4**: Start-Stop Broker/Engine - Engine started first - Broker stopped first
+215. **BESS5**: Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
+216. **BESS6_${label}**: Scenario: Verify Broker and Engine start and establish connections
+      * Given the Central Broker, RRD Broker, and Central Engine are started
+      * When we check the connection between them
+      * Then the connection should be well established
+      * And the central broker should have two peers connected: the central engine and the RRD broker
+      * And the RRD broker should correctly recognize its peer as the Central Broker
+217. **BESSBQ1**: A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
+218. **BESSCTO**: Scenario: Service commands time out due to missing Perl Connector
       * Given the Engine is configured as usual but without the Perl Connector
       * When the Engine executes its service commands
       * Then the commands take too long and reach the timeout
       * And the Engine starts and stops two times as a result
-209. **BESSCTOWC**: Scenario: Service commands time out due to missing Perl Connector
+219. **BESSCTOWC**: Scenario: Service commands time out due to missing Perl Connector
       * Given the Engine is configured as usual with some commands using the Perl Connector
       * When the Engine executes its service commands
       * Then the commands take too long and reach the timeout
       * And the Engine starts and stops two times as a result
-210. **BESSG**: Scenario: Broker handles connection and disconnection with Engine
+220. **BESSG**: Scenario: Broker handles connection and disconnection with Engine
       * Given Broker is configured with only one output that is Graphite
       * When the Engine starts and connects to the Broker
       * Then the Broker must be able to handle the connection
       * When the Engine stops
       * Then the Broker must be able to handle the disconnection
-211. **BESS_CRYPTED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
-212. **BESS_CRYPTED_GRPC2**: Start-Stop grpc version Broker/Engine only server crypted
-213. **BESS_CRYPTED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
-214. **BESS_CRYPTED_REVERSED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
-215. **BESS_CRYPTED_REVERSED_GRPC2**: Start-Stop grpc version Broker/Engine only engine server crypted
-216. **BESS_CRYPTED_REVERSED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
-217. **BESS_ENGINE_DELETE_HOST**: once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
-218. **BESS_GRPC1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
-219. **BESS_GRPC2**: Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
-220. **BESS_GRPC3**: Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
-221. **BESS_GRPC4**: Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
-222. **BESS_GRPC5**: Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
-223. **BESS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
-224. **BETAG1**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
-225. **BETAG2**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
-226. **BEUTAG1**: Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
-227. **BEUTAG10**: some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
-228. **BEUTAG11**: Scenario: Updating resource tags after changing several tags
+221. **BESS_CRYPTED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
+222. **BESS_CRYPTED_GRPC2**: Start-Stop grpc version Broker/Engine only server crypted
+223. **BESS_CRYPTED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
+224. **BESS_CRYPTED_REVERSED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
+225. **BESS_CRYPTED_REVERSED_GRPC2**: Start-Stop grpc version Broker/Engine only engine server crypted
+226. **BESS_CRYPTED_REVERSED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
+227. **BESS_ENGINE_DELETE_HOST**: once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
+228. **BESS_GRPC1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
+229. **BESS_GRPC2**: Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
+230. **BESS_GRPC3**: Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
+231. **BESS_GRPC4**: Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
+232. **BESS_GRPC5**: Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
+233. **BESS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
+234. **BETAG1**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Broker is started before.
+235. **BETAG2**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
+236. **BEUTAG1**: Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
+237. **BEUTAG10**: some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
+238. **BEUTAG11**: Scenario: Updating resource tags after changing several tags
       * Given some services are configured with tags on two pollers
       * Then the resources_tags table contains them
       * When several tags are changed
       * Then the resources_tags table is updated
-229. **BEUTAG12**: Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
-230. **BEUTAG2**: Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
-231. **BEUTAG3**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
-232. **BEUTAG4**: Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
-233. **BEUTAG5**: Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled.
-234. **BEUTAG6**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.resources_tags table. Engine is started before.
-235. **BEUTAG7**: Some services are configured with tags on two pollers. Then tags configuration is modified.
-236. **BEUTAG8**: Services have tags provided by templates.
-237. **BEUTAG9**: hosts have tags provided by templates.
-238. **BEUTAG_REMOVE_HOST_FROM_HOSTGROUP**: remove a host from hostgroup, reload, insert 2 host in the hostgroup must not make sql error
-239. **BE_BACKSLASH_CHECK_RESULT**: external command PROCESS_SERVICE_CHECK_RESULT with \:
-240. **BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE**: default notification_interval must be set to NULL in services, hosts and resources tables.
-241. **BE_FLAPPING_HOST_RESOURCE**: With BBDO 3, flapping detection must be set in hosts and resources tables.
-242. **BE_FLAPPING_SERVICE_RESOURCE**: With BBDO 3, flapping detection must be set in services and resources tables.
-243. **BE_NOTIF_OVERFLOW**: bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
-244. **BE_TIME_NULL_SERVICE_RESOURCE**: With BBDO 3, notification_interval time must be set to NULL on 0 in services, hosts and resources tables.
-245. **BRCS1**: Broker reverse connection stopped
-246. **BRCTS1**: Broker reverse connection too slow
-247. **BRCTSMN**: 
+239. **BEUTAG12**: Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
+240. **BEUTAG2**: Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
+241. **BEUTAG3**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
+242. **BEUTAG4**: Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
+243. **BEUTAG5**: Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled.
+244. **BEUTAG6**: Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.resources_tags table. Engine is started before.
+245. **BEUTAG7**: Some services are configured with tags on two pollers. Then tags configuration is modified.
+246. **BEUTAG8**: Services have tags provided by templates.
+247. **BEUTAG9**: hosts have tags provided by templates.
+248. **BEUTAG_REMOVE_HOST_FROM_HOSTGROUP**: remove a host from hostgroup, reload, insert 2 host in the hostgroup must not make sql error
+249. **BE_BACKSLASH_CHECK_RESULT**: external command PROCESS_SERVICE_CHECK_RESULT with \:
+250. **BE_DEFAULT_NOTIFICATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE**: default notification_interval must be set to NULL in services, hosts and resources tables.
+251. **BE_FLAPPING_HOST_RESOURCE**: With BBDO 3, flapping detection must be set in hosts and resources tables.
+252. **BE_FLAPPING_SERVICE_RESOURCE**: With BBDO 3, flapping detection must be set in services and resources tables.
+253. **BE_NOTIF_OVERFLOW**: bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
+254. **BE_TIME_NULL_SERVICE_RESOURCE**: With BBDO 3, notification_interval time must be set to NULL on 0 in services, hosts and resources tables.
+255. **BRCS1**: Broker reverse connection stopped
+256. **BRCTS1**: Broker reverse connection too slow
+257. **BRCTSMN**: 
       * Given Broker, Engine configured as usual
       * And map also connected to Broker with a filter allowing only 'neb' category
       * When Engine sends pb_service, pb_host, pb_service_status and pb_host_status
       * Then map receives correctly them.
-248. **BRCTSMNS**: 
+258. **BRCTSMNS**: 
       * Given Broker, Engine configured as usual
       * And map also connected to Broker with a filter allowing 'neb' and 'storage' categories
       * When Engine sends pb_service, pb_host, pb_service_status, pb_host_status and metrics
       * Then Map receives correctly them.
-249. **BRGC1**: Broker good reverse connection
-250. **BROKER_LUA_ENCRYPTION**: 
+259. **BRGC1**: Broker good reverse connection
+260. **BROKER_LUA_ENCRYPTION**: 
       * Given an engine with configured encryption, and key and salt, 
       * cbmod and broker use a lua script that use encrypted credentials
       * we give it an encrypted macro that contains path to a lua output files and 
       * we expect that this file will becreated by lua.
-251. **BRRDCDDID1**: RRD metrics deletion from index ids with rrdcached.
-252. **BRRDCDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage with rrdcached.
-253. **BRRDCDDIDU1**: RRD metrics deletion from index ids with unified sql output with rrdcached.
-254. **BRRDCDDM1**: RRD metrics deletion from metric ids with rrdcached.
-255. **BRRDCDDMDB1**: RRD metrics deletion from metric ids with a query in centreon_storage and rrdcached.
-256. **BRRDCDDMID1**: RRD deletion of non existing metrics and indexes with rrdcached
-257. **BRRDCDDMIDU1**: RRD deletion of non existing metrics and indexes with rrdcached
-258. **BRRDCDDMU1**: RRD metric deletion on table metric with unified sql output with rrdcached
-259. **BRRDCDRB1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output and rrdcached.
-260. **BRRDCDRBDB1**: RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
-261. **BRRDCDRBU1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output and rrdcached.
-262. **BRRDCDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
-263. **BRRDDID1**: RRD metrics deletion from index ids.
-264. **BRRDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage.
-265. **BRRDDIDU1**: RRD metrics deletion from index ids with unified sql output.
-266. **BRRDDM1**: RRD metrics deletion from metric ids.
-267. **BRRDDMDB1**: RRD metrics deletion from metric ids with a query in centreon_storage.
-268. **BRRDDMID1**: RRD deletion of non existing metrics and indexes
-269. **BRRDDMIDU1**: RRD deletion of non existing metrics and indexes
-270. **BRRDDMU1**: RRD metric deletion on table metric with unified sql output
-271. **BRRDRBDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
-272. **BRRDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
-273. **BRRDRM1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
-274. **BRRDRMU1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
-275. **BRRDSTATUS**: We are working with BBDO3. This test checks status are correctly handled independently from their value.
-276. **BRRDSTATUSRETENTION**: We are working with BBDO3. This test checks status are not sent twice after Engine reload.
-277. **BRRDUPLICATE**: RRD metric rebuild with a query in centreon_storage and unified sql with duplicate rows in database
-278. **BRRDWM1**: We are working with BBDO3. This test checks protobuf metrics and status are sent to cbd RRD.
-279. **BRRD_RRDLEN**: 
+261. **BRRDCDDID1**: RRD metrics deletion from index ids with rrdcached.
+262. **BRRDCDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage with rrdcached.
+263. **BRRDCDDIDU1**: RRD metrics deletion from index ids with unified sql output with rrdcached.
+264. **BRRDCDDM1**: RRD metrics deletion from metric ids with rrdcached.
+265. **BRRDCDDMDB1**: RRD metrics deletion from metric ids with a query in centreon_storage and rrdcached.
+266. **BRRDCDDMID1**: RRD deletion of non existing metrics and indexes with rrdcached
+267. **BRRDCDDMIDU1**: RRD deletion of non existing metrics and indexes with rrdcached
+268. **BRRDCDDMU1**: RRD metric deletion on table metric with unified sql output with rrdcached
+269. **BRRDCDRB1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output and rrdcached.
+270. **BRRDCDRBDB1**: RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
+271. **BRRDCDRBU1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output and rrdcached.
+272. **BRRDCDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql with rrdcached
+273. **BRRDDID1**: RRD metrics deletion from index ids.
+274. **BRRDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage.
+275. **BRRDDIDU1**: RRD metrics deletion from index ids with unified sql output.
+276. **BRRDDM1**: RRD metrics deletion from metric ids.
+277. **BRRDDMDB1**: RRD metrics deletion from metric ids with a query in centreon_storage.
+278. **BRRDDMID1**: RRD deletion of non existing metrics and indexes
+279. **BRRDDMIDU1**: RRD deletion of non existing metrics and indexes
+280. **BRRDDMU1**: RRD metric deletion on table metric with unified sql output
+281. **BRRDRBDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
+282. **BRRDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
+283. **BRRDRM1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
+284. **BRRDRMU1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
+285. **BRRDSTATUS**: We are working with BBDO3. This test checks status are correctly handled independently from their value.
+286. **BRRDSTATUSRETENTION**: We are working with BBDO3. This test checks status are not sent twice after Engine reload.
+287. **BRRDUPLICATE**: RRD metric rebuild with a query in centreon_storage and unified sql with duplicate rows in database
+288. **BRRDWM1**: We are working with BBDO3. This test checks protobuf metrics and status are sent to cbd RRD.
+289. **BRRD_RRDLEN**: 
       * Given an RRD with default length 15552000s, 180 days,
       * We change length to 86400s, 1 day, we rebuild metrics and we expect to find 289 rows in metrics
-280. **BRTCPWQF**: 
+290. **BRTCPWQF**: 
       * Given Broker configured with a map output and a small event queue
       * When a map client connects with a tiny receive buffer and stops reading
       * Then Broker logs "write queue full => remove oldest event"
-281. **CBD_RELOAD_AND_FILTERS**: We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
-282. **CBD_RELOAD_AND_FILTERS_WITH_OPR**: We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
-283. **CUSTOM_MACRO_RECURSIVE_RESOLUTION**: Custom macros can reference other macros and get them resolved: - host custom containing host standard ($HOSTADDRESS$) - host custom containing another host custom ($_HOSTINNER$) - host custom containing resource macro ($USER1$) - service custom containing service standard ($SERVICEDESC$) - service custom containing host standard + host custom + service custom - service custom containing $USER1$ + $HOSTADDRESS$ - recursion stops at depth 2 (3-level chain leaves innermost unresolved)
-284. **CUSTOM_MACRO_RECURSIVE_RESOLUTION_WITH_ONE_DOLLAR**: Custom macros can reference other macros and get them resolved: - host custom containing host standard ($HOSTADDRESS$) - host custom containing another host custom ($_HOSTINNER$) - host custom containing resource macro ($USER1$) - service custom containing service standard ($SERVICEDESC$) - service custom containing host standard + host custom + service custom - service custom containing $USER1$ + $HOSTADDRESS$ - recursion stops at depth 2 (3-level chain leaves innermost unresolved)
-285. **CUSTOM_MACRO_RESOLUTION_WITH_FALSE_MACRO**: 
+291. **CBD_RELOAD_AND_FILTERS**: We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
+292. **CBD_RELOAD_AND_FILTERS_WITH_OPR**: We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
+293. **CUSTOM_MACRO_RECURSIVE_RESOLUTION**: Custom macros can reference other macros and get them resolved: - host custom containing host standard ($HOSTADDRESS$) - host custom containing another host custom ($_HOSTINNER$) - host custom containing resource macro ($USER1$) - service custom containing service standard ($SERVICEDESC$) - service custom containing host standard + host custom + service custom - service custom containing $USER1$ + $HOSTADDRESS$ - recursion stops at depth 2 (3-level chain leaves innermost unresolved)
+294. **CUSTOM_MACRO_RECURSIVE_RESOLUTION_WITH_ONE_DOLLAR**: Custom macros can reference other macros and get them resolved: - host custom containing host standard ($HOSTADDRESS$) - host custom containing another host custom ($_HOSTINNER$) - host custom containing resource macro ($USER1$) - service custom containing service standard ($SERVICEDESC$) - service custom containing host standard + host custom + service custom - service custom containing $USER1$ + $HOSTADDRESS$ - recursion stops at depth 2 (3-level chain leaves innermost unresolved)
+295. **CUSTOM_MACRO_RESOLUTION_WITH_FALSE_MACRO**: 
       * Given engine is configured with host and service custom macros whose values contain dollar signs
       * When a service check runs using old-style $MACRO$ syntax with a non-existent macro at the end of the command
       * Then all macros are resolved correctly, dollar signs inside values are preserved, and the non-existent macro expands to empty
-286. **CUSTOM_MACRO_RESOLUTION_WITH_NEW_STYLE_MACRO**: 
+296. **CUSTOM_MACRO_RESOLUTION_WITH_NEW_STYLE_MACRO**: 
       * Given engine is configured with host and service custom macros, one value embedding a new-style non-existent macro {{$TITI$}}
       * When a service check runs using new-style {{$MACRO$}} syntax with a non-existent macro at the end of the command
       * Then all macros are resolved correctly, dollar signs inside values are preserved, and non-existent macros expand to empty
-287. **CUSTOM_MACRO_RESOLUTION_WITH_ONE_DOLLAR**: Custom macros with one dollar can be resolved an dollar is not removed
-288. **DTIM**: New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 5250 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.1
-289. **DT_WITH_QUOTES**: 
+297. **CUSTOM_MACRO_RESOLUTION_WITH_ONE_DOLLAR**: Custom macros with one dollar can be resolved an dollar is not removed
+298. **DTIM**: New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 5250 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.1
+299. **DT_WITH_QUOTES**: 
       * Given a centreon running, we set a downtime with quotes
       * Then we expect to get these quotes in bdd
-290. **EBBM1**: A service status contains metrics that do not fit in a float number.
-291. **EBBPS1**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
-292. **EBBPS2**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
-293. **EBDP1**: Four new pollers are started and then we remove Poller3.
-294. **EBDP2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
-295. **EBDP3**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
-296. **EBDP4**: Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by Broker.
-297. **EBDP5**: Four new pollers are started and then we remove Poller3.
-298. **EBDP6**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
-299. **EBDP7**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
-300. **EBDP8**: Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
-301. **EBDP_GRPC2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
-302. **EBMSSM**: 1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
-303. **EBMSSMDBD**: 1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. While metrics are written in the database, we stop the database and then restart it. Broker must recover its connection to the database and continue to write metrics.
-304. **EBMSSMPART**: Scenario: Broker continues writing metrics after partition recreation
+300. **EBBM1**: A service status contains metrics that do not fit in a float number.
+301. **EBBPS1**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
+302. **EBBPS2**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
+303. **EBDP1**: Four new pollers are started and then we remove Poller3.
+304. **EBDP2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
+305. **EBDP3**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
+306. **EBDP4**: Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by Broker.
+307. **EBDP5**: Four new pollers are started and then we remove Poller3.
+308. **EBDP6**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
+309. **EBDP7**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
+310. **EBDP8**: Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
+311. **EBDP_GRPC2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
+312. **EBMSSM**: 1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
+313. **EBMSSMDBD**: 1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. While metrics are written in the database, we stop the database and then restart it. Broker must recover its connection to the database and continue to write metrics.
+314. **EBMSSMPART**: Scenario: Broker continues writing metrics after partition recreation
       * Given 1000 services are configured with 100 metrics each
       * And the rrd output is removed from the broker configuration
       * And the data_bin table is configured with two partitions "p1" and "p2"
@@ -1014,9 +1060,7 @@ Here is the list of the currently implemented tests:
       * And it must continue writing metrics
       * When a last service check is forced
       * Then its metrics must be written in the database
-305. **EBNHG1**: New host group with several pollers and connections to DB
-306. **EBNHG4**: New host group with several pollers and connections to DB with broker and rename this hostgroup
-307. **EBNHG5**: Scenario: Host group creation and membership updates with unified SQL and BBDO3
+315. **EBNHG5**: Scenario: Host group creation and membership updates with unified SQL and BBDO3
       * And a host group 1 is defined with 7 members across instances (hosts host_1 to host_7)
       * When the broker and engine start and the engine becomes ready
       * And the engine configuration file hostgroups.cfg is added and the engine is reloaded
@@ -1024,30 +1068,25 @@ Here is the list of the currently implemented tests:
       * When host host_1 is removed and hostgroup_1 members are updated to exclude host_1
       * And the engine is reloaded
       * Then the system reports 6 relations between hostgroup 1 and its hosts
-308. **EBNHG6**: Scenario: Two pollers are connected, hostgroup 1 is defined on poller 0 with host_1 and
+316. **EBNHG6**: Scenario: Two pollers are connected, hostgroup 1 is defined on poller 0 with host_1 and
       * host_2 as members. Both hosts are then moved from poller 0's configuration to poller 1's
       * configuration, poller 1 is reloaded first, then poller 0. The hostgroup and its host
       * memberships must not disappear from the database.
-309. **EBNHGU1**: New host group with several pollers and connections to DB with broker configured with unified_sql
-310. **EBNHGU2**: New host group with several pollers and connections to DB with broker configured with unified_sql
-311. **EBNHGU3**: New host group with several pollers and connections to DB with broker configured with unified_sql
-312. **EBNHGU4_${test_label}**: New host group with several pollers and connections to DB with broker and rename this hostgroup
-313. **EBNSG1**: New service group with several pollers and connections to DB
-314. **EBNSG2**: Scenario: Two pollers are connected, servicegroup 1 is defined on poller 0 with
+317. **EBNSG1**: New service group with several pollers and connections to DB
+318. **EBNSG2**: Scenario: Two pollers are connected, servicegroup 1 is defined on poller 0 with
       * host_1/service_1 and host_2/service_2 as members. Both hosts and their services are then
       * moved from poller 0's configuration to poller 1's configuration, poller 1 is reloaded first,
       * then poller 0. The servicegroup and its service memberships must not disappear from the
       * database.
-315. **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
-316. **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
-317. **EBNSGU3_${test_label}**: New service group with several pollers and connections to DB with broker and rename this servicegroup
-318. **EBNSVC1**: New services with several pollers
-319. **EBPN0**: Verify if child is in queue when parent is down.
-320. **EBPN1**: verify relation parent child when delete parent.
-321. **EBPN2**: verify relation parent child when delete child.
-322. **EBPS2**: 1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
-323. **EBSAU2**: New hosts with action_url with more than 2000 characters
-324. **EBSG_1**: Scenario: Service group creation and membership updates with unified SQL and BBDO3
+319. **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
+320. **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
+321. **EBNSGU3_${test_label}**: New service group with several pollers and connections to DB with broker and rename this servicegroup
+322. **EBPN0**: Verify if child is in queue when parent is down.
+323. **EBPN1**: verify relation parent child when delete parent.
+324. **EBPN2**: verify relation parent child when delete child.
+325. **EBPS2**: 1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
+326. **EBSAU2**: New hosts with action_url with more than 2000 characters
+327. **EBSG_1**: Scenario: Service group creation and membership updates with unified SQL and BBDO3
       * And a service group 1 is defined with 7 members across hosts (including host_1 services 1-5 and host_2 services 6-7)
       * When the broker and engine start and the engine becomes ready
       * And the engine configuration file servicegroups.cfg is added and the engine is reloaded
@@ -1055,31 +1094,31 @@ Here is the list of the currently implemented tests:
       * When service host_1/service_1 is removed and servicegroup_1 members are updated to exclude service_1
       * And the engine is reloaded
       * Then the system reports 6 relations between servicegroup 1 and its services
-325. **EBSN3**: New hosts with notes with more than 500 characters
-326. **EBSN4**: New hosts with No Alias / Alias and have A Template
-327. **EBSNU1**: New hosts with notes_url with more than 2000 characters
-328. **ENGINE_ENCRYPTION_BAD_CONF**: 
+328. **EBSN3**: New hosts with notes with more than 500 characters
+329. **EBSN4**: New hosts with No Alias / Alias and have A Template
+330. **EBSNU1**: New hosts with notes_url with more than 2000 characters
+331. **ENGINE_ENCRYPTION_BAD_CONF**: 
       * Given an engine with configured encryption, but without key and salt, 
       * we give him several macros and we expect to retrieve them in logs without decrypt.
       * As engine is not ready to receive encrypted macros, is_encryption_ready must be equal to 0 in db
-329. **ENGINE_ENCRYPTION_GOOD_CONF**: 
+332. **ENGINE_ENCRYPTION_GOOD_CONF**: 
       * Given an engine with configured encryption, and key and salt, 
       * we give him several macros and we expect to retrieve them in logs without decrypt.
       * As engine is ready to receive encrypted macros, is_encryption_ready must be equal to 1 in db
-330. **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
-331. **EVENT_SCRIPT_BASIC_SERVICE_CHECK**: 
+333. **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
+334. **EVENT_SCRIPT_BASIC_SERVICE_CHECK**: 
       * Given an event_script output configured in broker
       * When a service check result is processed
       * Then the event is passed to the script as JSON
-332. **FILTER_ON_LUA_EVENT**: stream connector with a bad configured filter generate a log error message
-333. **GRAPHITE_BROKER_RESTART_TEST**: 
+335. **FILTER_ON_LUA_EVENT**: stream connector with a bad configured filter generate a log error message
+336. **GRAPHITE_BROKER_RESTART_TEST**: 
       * Given a central broker configured with a Graphite output (same config as GRAPHITE_FORMAT_TEST)
       * And engine already running
       * When broker is started, a service check result is processed for host_16 / service_314,
       * the TCP server receives a graphite frame, then broker is killed with SIGKILL (repeated 10 times)
       * Then each cycle produces a valid graphite metric or status frame on the TCP server
       * The goal is to test cache resilience to broker crash
-334. **GRAPHITE_FORMAT_TEST**: 
+337. **GRAPHITE_FORMAT_TEST**: 
       * Given a central broker configured with a Graphite output using a custom metric and status path format
       * And an engine with host_16 belonging to host groups 1 and 2, service_314 belonging to service groups 4 and 5
       * And host_16 tagged with host group tag 2 and host category tag 2
@@ -1092,13 +1131,13 @@ Here is the list of the currently implemented tests:
       * And the metric value is 80 with the correct timestamp
       * And the TCP server receives a status message whose path contains all the same context macros
       * And both messages include the expected Basic authentication header
-335. **GRPC_CLOUD_FAILURE**: simulate a broker failure in cloud environment, we provide a muted grpc server and there must remain only one grpc connection. Then we start broker and connection must be ok
-336. **GRPC_RECONNECT**: We restart broker and engine must reconnect to it and send data
-337. **HUGE_CONF**: 
+338. **GRPC_CLOUD_FAILURE**: simulate a broker failure in cloud environment, we provide a muted grpc server and there must remain only one grpc connection. Then we start broker and connection must be ok
+339. **GRPC_RECONNECT**: We restart broker and engine must reconnect to it and send data
+340. **HUGE_CONF**: 
       * Given a broker with 3 pollers, we wait that all engine are ready,
       * Then once all data are saved in db, we stop broker, we start broker and we test cache content with a lua script. 
       * We also check that we don't have cache error in broker logs
-338. **INFLUXDB_FORMAT_TEST**: 
+341. **INFLUXDB_FORMAT_TEST**: 
       * Given a central broker configured with an InfluxDB output using the InfluxDB line protocol
       * And an engine with host_16 belonging to host groups 1 and 2, service_314 belonging to service groups 4 and 5
       * And host_16 tagged with host group tag 2 and host category tag 2
@@ -1111,66 +1150,66 @@ Here is the list of the currently implemented tests:
       * And a second HTTP POST is received containing a status line with measurement centreon_status
       * with value 0 and the same context fields expanded
       * And each HTTP POST is answered with HTTP/1.0 204 No Content to acknowledge the write
-339. **LCDNU**: the lua cache updates correctly service cache.
-340. **LCDNUH**: the lua cache updates correctly host cache
-341. **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
-342. **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
-343. **LOGV2DF1**: log-v2 disabled old log enabled check logfile sink
-344. **LOGV2DF2**: log-v2 disabled old log disabled check logfile sink
-345. **LOGV2EB1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled.
-346. **LOGV2EB2**: log-v2 enabled old log enabled check broker sink
-347. **LOGV2EBU1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
-348. **LOGV2EBU2**: Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
-349. **LOGV2EF1**: log-v2 enabled    old log disabled check logfile sink
-350. **LOGV2EF2**: log-v2 enabled old log enabled check logfile sink
-351. **LOGV2FE2**: log-v2 enabled old log enabled check logfile sink
-352. **LUA_CACHE_SAVE_BBDO3**: 
+342. **LCDNU**: the lua cache updates correctly service cache.
+343. **LCDNUH**: the lua cache updates correctly host cache
+344. **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
+345. **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
+346. **LOGV2DF1**: log-v2 disabled old log enabled check logfile sink
+347. **LOGV2DF2**: log-v2 disabled old log disabled check logfile sink
+348. **LOGV2EB1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled.
+349. **LOGV2EB2**: log-v2 enabled old log enabled check broker sink
+350. **LOGV2EBU1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
+351. **LOGV2EBU2**: Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
+352. **LOGV2EF1**: log-v2 enabled    old log disabled check logfile sink
+353. **LOGV2EF2**: log-v2 enabled old log enabled check logfile sink
+354. **LOGV2FE2**: log-v2 enabled old log enabled check logfile sink
+355. **LUA_CACHE_SAVE_BBDO3**: 
       * Given a engine broker configured in bbdo2, we check that services and hosts are stored in bbdo3 format in cache
       * To do that we compare host and service event with lua cache
-353. **LUA_CACHE_SAVE_HOST_GROUP**: 
+356. **LUA_CACHE_SAVE_HOST_GROUP**: 
       * Given two engines configured, 
       * we create a first host group of two hosts of poller1, then we create a second host group that only contains one host of poller1
       * then we delete all hosts from second host group, we delete a host from first host
       * we create a group that contains one host of each poller, we remove first host group, we remove one host from the last created group
       * we expect that lua cache will be synchronized with all that modifications
-354. **LUA_CACHE_SAVE_SERVICE_GROUP**: 
+357. **LUA_CACHE_SAVE_SERVICE_GROUP**: 
       * Given two engines configured, 
       * we create a first service group of two services of poller1, then we create a second service group that only contains one service of poller1
       * then we delete all services from second service group, we delete a service from first service
       * we create a group that contains one service of each poller, we remove first service group, we remove one service from the last created group
       * we expect that lua cache will be synchronized with all that modifications
-355. **LUA_FAILURE**: 
+358. **LUA_FAILURE**: 
       * Given a engine broker configured with a SC, we check write intervals in case of lua write returns nothing
-356. **MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER**: Scenario: Moving hosts between pollers without losing hostgroup tag
+359. **MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER**: Scenario: Moving hosts between pollers without losing hostgroup tag
       * Given two pollers each with two hosts
       * And all hosts belong to the same hostgroup
       * When I move two hosts from one poller to the other
       * Then the hostgroup tag of the moved hosts is not erased
-357. **NON_TLS_CONNECTION_WARNING**: 
+360. **NON_TLS_CONNECTION_WARNING**: 
       * Given an agent starts a non-TLS connection,
       * we expect to get a warning message.
-358. **NON_TLS_CONNECTION_WARNING_ENCRYPTED**: 
+361. **NON_TLS_CONNECTION_WARNING_ENCRYPTED**: 
       * Given agent with encrypted connection, we expect no warning message.
-359. **NON_TLS_CONNECTION_WARNING_FULL**: 
+362. **NON_TLS_CONNECTION_WARNING_FULL**: 
       * Given an agent starts a non-TLS connection,
       * we expect to get a warning message.
       * After 1 hour, we expect to get a warning message about the connection time expired
       * and the connection killed.
-360. **NON_TLS_CONNECTION_WARNING_FULL_REVERSED**: 
+363. **NON_TLS_CONNECTION_WARNING_FULL_REVERSED**: 
       * Given an agent starts a non-TLS connection reverse,
       * we expect to get a warning message.
       * After 1 hour, we expect to get a warning message about the connection time expired
       * and the connection killed.
-361. **NON_TLS_CONNECTION_WARNING_REVERSED**: 
+364. **NON_TLS_CONNECTION_WARNING_REVERSED**: 
       * Given an agent starts a non-TLS connection reversed,
       * we expect to get a warning message.
-362. **NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED**: 
+365. **NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED**: 
       * Given agent with encrypted reversed connection, we expect no warning message.
-363. **NO_ENGINE_ENCRYPTION**: 
+366. **NO_ENGINE_ENCRYPTION**: 
       * Given an engine without configured encryption, we give him several macros and we expect to retrieve them in logs.
       * As engine is not ready to receive encrypted macros, is_encryption_ready must be equal to 0 in db
-364. **NO_FILTER_NO_ERROR**: no filter configured => no filter error.
-365. **OTLP_AGENT_HOST_METADATA**: Scenario: CMA host information becomes host and os resource attributes
+367. **NO_FILTER_NO_ERROR**: no filter configured => no filter error.
+368. **OTLP_AGENT_HOST_METADATA**: Scenario: CMA host information becomes host and os resource attributes
       * Given poller 10 owns the host and link-local filtering is left disabled
       * And exports carry no host.id
       * When an AgentHostInfo event is received for the host
@@ -1178,13 +1217,13 @@ Here is the list of the currently implemented tests:
       * And host.ip keeps the IPv4 and IPv6 link-local addresses
       * When a later AgentHostInfo event is empty
       * Then all these attributes are removed
-366. **OTLP_AGENT_HOST_METADATA_PERSISTENCE**: Scenario: Broker restores CMA host information from the OTLP output cache after a crash
+369. **OTLP_AGENT_HOST_METADATA_PERSISTENCE**: Scenario: Broker restores CMA host information from the OTLP output cache after a crash
       * Given poller 10 owns the host
       * And an AgentHostInfo event gave it host.id robot-machine
       * And Broker saved it in the OTLP output cache
       * When Broker is killed and restarted, and the test peer sends the host again but no AgentHostInfo
       * Then exports still carry host.id robot-machine
-367. **OTLP_BBDO2_MACRO_CONVERSION**: Scenario: Broker converts BBDO2 custom variable payloads
+370. **OTLP_BBDO2_MACRO_CONVERSION**: Scenario: Broker converts BBDO2 custom variable payloads
       * Given poller 10 owns the host
       * When BBDO2 configuration events set name "legacy" and namespace "initial"
       * Then exports carry legacy/initial
@@ -1192,34 +1231,34 @@ Here is the list of the currently implemented tests:
       * Then exports carry legacy/runtime
       * When a disabled BBDO2 configuration event removes the name
       * Then exports carry centreon-broker/runtime
-368. **OTLP_BROKER_RESTART**: Scenario: A runtime identity survives a Broker restart
+371. **OTLP_BROKER_RESTART**: Scenario: A runtime identity survives a Broker restart
       * Given host_1 is configured with name "configured"
       * When the name is changed to "runtime" at runtime
       * Then exports carry runtime/centreon
       * When Broker is restarted while Engine keeps running
       * Then exports still carry runtime/centreon
-369. **OTLP_CACHE_PERSISTENCE**: Scenario: Broker restores both macros from its persisted cache
+372. **OTLP_CACHE_PERSISTENCE**: Scenario: Broker restores both macros from its persisted cache
       * Given poller 10 owns the host
       * And it sends name "persisted" as configuration and namespace "runtime" as status
       * And exports carry persisted/runtime
       * When Broker is restarted and the test peer reconnects without replaying any event
       * Then exports still carry persisted/runtime
-370. **OTLP_DEFAULT_IDENTITY**: Scenario: Without OTel macros, the service identity names Broker
+373. **OTLP_DEFAULT_IDENTITY**: Scenario: Without OTel macros, the service identity names Broker
       * Given host_1 defines neither _OTEL_SERVICE_NAME nor _OTEL_SERVICE_NAMESPACE
       * When a passive check result of service_1 is exported
       * Then its resource carries service.name centreon-broker and service.namespace centreon
       * And its resource carries a non-empty service.version
       * And centreon.service.description stays on the datapoint, not on the resource
-371. **OTLP_ENGINE_RESTART_REMOVAL**: Scenario: Macros removed while Engine is stopped do not survive its restart
+374. **OTLP_ENGINE_RESTART_REMOVAL**: Scenario: Macros removed while Engine is stopped do not survive its restart
       * Given host_1 is configured with name and namespace "removed"
       * And exports carry removed/removed
       * When Engine is stopped, both macros are removed from its configuration and Engine is started
       * Then its startup dump restores centreon-broker/centreon
-372. **OTLP_EXCLUDE_LINK_LOCAL**: Scenario: The opt-in filter removes link-local addresses from host.ip
+375. **OTLP_EXCLUDE_LINK_LOCAL**: Scenario: The opt-in filter removes link-local addresses from host.ip
       * Given host_ip_exclude_link_local is enabled on the OTLP output
       * When an AgentHostInfo event lists link-local and other IPv4 and IPv6 addresses
       * Then host.ip only keeps 192.0.2.10 and 2001:db8::1
-373. **OTLP_HOST_AND_INSTANCE_CLEANUP**: Scenario: Owner poller startup and host deletion clear the host identity
+376. **OTLP_HOST_AND_INSTANCE_CLEANUP**: Scenario: Owner poller startup and host deletion clear the host identity
       * Given poller 10 owns the host and sends name "configured"
       * When poller 20 starts
       * Then exports still carry configured/centreon
@@ -1230,7 +1269,7 @@ Here is the list of the currently implemented tests:
       * When poller 10 deletes the host
       * And a status update arrives before the host is created again
       * Then exports carry centreon-broker/centreon
-374. **OTLP_HOST_MACROS**: Scenario: Host macros override the service identity of each host independently
+377. **OTLP_HOST_MACROS**: Scenario: Host macros override the service identity of each host independently
       * Given host_1 defines _OTEL_SERVICE_NAME, _OTEL_SERVICE_NAMESPACE and a _SECRET macro
       * And host_2 only defines _OTEL_SERVICE_NAMESPACE
       * And service_1 defines its own _OTEL_SERVICE_NAME
@@ -1240,7 +1279,7 @@ Here is the list of the currently implemented tests:
       * And no resource carries the secret macro
       * When the service_1 macro is changed at runtime
       * Then host_1 still carries payments/shop
-375. **OTLP_MAPPING_RELOAD**: Scenario: The JSON metric mapping is applied and reloaded live
+378. **OTLP_MAPPING_RELOAD**: Scenario: The JSON metric mapping is applied and reloaded live
       * Given a mapping file renames robot_cpu to system.cpu.utilization with a 0.01 scale
       * When a check result with robot_cpu=25% is received
       * Then the exported point is system.cpu.utilization=0.25 with unit 1 and cpu.mode user
@@ -1248,7 +1287,7 @@ Here is the list of the currently implemented tests:
       * Then Broker reloads it and the next point is robot.cpu.percent=26 with unit %
       * When the mapping file is replaced by invalid JSON
       * Then Broker keeps the previous mapping and the next point is robot.cpu.percent=27
-376. **OTLP_MIGRATION_WITHOUT_MACROS**: Scenario: Moving a host to a poller without macros clears its old identity
+379. **OTLP_MIGRATION_WITHOUT_MACROS**: Scenario: Moving a host to a poller without macros clears its old identity
       * Given host_1 is monitored by poller 0 with name and namespace "old"
       * When host_1 moves to poller 1 without OTel macros and poller 1 is reloaded
       * Then exports through poller 1 carry centreon-broker/centreon
@@ -1256,12 +1295,12 @@ Here is the list of the currently implemented tests:
       * Then exports through poller 0 still carry centreon-broker/centreon
       * When poller 0 is reloaded
       * Then exports through poller 1 still carry centreon-broker/centreon
-377. **OTLP_OLDER_PROTOBUF_SENDERS**: Scenario: Macro events without instance_id from older senders are still accepted
+380. **OTLP_OLDER_PROTOBUF_SENDERS**: Scenario: Macro events without instance_id from older senders are still accepted
       * Given a BBDO test peer whose transport source_id is not a poller ID
       * And the host moved from poller 10 to poller 20
       * When lowercase macro events without instance_id are received
       * Then exports carry legacy/compatibility
-378. **OTLP_POLLER_MIGRATION**: Scenario: Delayed updates from the old poller cannot overwrite a moved host identity
+381. **OTLP_POLLER_MIGRATION**: Scenario: Delayed updates from the old poller cannot overwrite a moved host identity
       * Given host_1 is monitored by poller 0 with name and namespace "old"
       * When host_1 moves to poller 1 with name and namespace "new" and poller 1 is reloaded
       * Then exports through poller 1 carry new/new
@@ -1269,7 +1308,7 @@ Here is the list of the currently implemented tests:
       * Then exports through poller 0 still carry new/new
       * When poller 0 is reloaded
       * Then exports through poller 1 still carry new/new
-379. **OTLP_RELOAD_AND_REMOVAL**: Scenario: Configuration reloads update and then remove host macros
+382. **OTLP_RELOAD_AND_REMOVAL**: Scenario: Configuration reloads update and then remove host macros
       * Given host_1 is configured with name "initial" and namespace "shop"
       * When the name is changed in the configuration and Engine is reloaded
       * Then the next export carries changed/shop
@@ -1278,7 +1317,7 @@ Here is the list of the currently implemented tests:
       * And service.name falls back to centreon-broker
       * When the namespace is removed too and Engine is reloaded
       * Then the identity falls back to centreon-broker/centreon
-380. **OTLP_RUNTIME_MACROS**: Scenario: Runtime host macro updates apply to the next exports
+383. **OTLP_RUNTIME_MACROS**: Scenario: Runtime host macro updates apply to the next exports
       * Given host_1 is configured with name and namespace "initial"
       * When both macros are changed at runtime with surrounding spaces
       * Then the next export carries the trimmed values payments/shop
@@ -1286,7 +1325,7 @@ Here is the list of the currently implemented tests:
       * Then service.name falls back to centreon-broker and the namespace is kept
       * When the namespace is changed to an empty value
       * Then the identity falls back to centreon-broker/centreon
-381. **OTLP_STALE_CONFIGURATION_EVENTS**: Scenario: Macro events are only accepted from the poller owning the host
+384. **OTLP_STALE_CONFIGURATION_EVENTS**: Scenario: Macro events are only accepted from the poller owning the host
       * Given a BBDO test peer replaces the pollers on the Broker input
       * When macros arrive before their host, or from a poller not owning it
       * Then they are ignored and the identity stays centreon-broker/centreon
@@ -1299,61 +1338,75 @@ Here is the list of the currently implemented tests:
       * Then exports still carry new/new
       * When poller 20 removes both macros
       * Then the identity falls back to centreon-broker/centreon
-382. **OTLP_TLS_EXPORT**: Scenario: The OTLP output reads its CA certificate from the path in its configuration
+385. **OTLP_TLS_EXPORT**: Scenario: The OTLP output reads its CA certificate from the path in its configuration
       * Given the collector only accepts TLS, with a self-signed certificate for 127.0.0.1
       * And the OTLP output has encryption on and ca_certificate set to the path of that certificate
       * When a check result is received
       * Then it is exported to the collector over TLS
-383. **OTLP_TLS_MISSING_FILE**: Scenario: A TLS file that cannot be read is reported with the parameter that names it
+386. **OTLP_TLS_MISSING_FILE**: Scenario: A TLS file that cannot be read is reported with the parameter that names it
       * Given the OTLP output has encryption on and ca_certificate set to a path that does not exist
       * When Broker starts
       * Then Broker stops with an error
       * And it logs that it cannot read ca_certificate for the robot-otlp endpoint
-384. **RENAME_PARENT**: 
+387. **RENAME_PARENT**: 
       * Given an host with a parent host. We rename the parent host and check if the child host is still linked to the parent.
       * Engine mustn't crash and log an error on reload.
-385. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
-386. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
-387. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
-388. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
-389. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
-390. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. Broker should run correctly.
-391. **Service_increased_huge_check_interval**: New services with huge check interval at creation time. Given Engine and Broker are configured with 1 poller and 10 hosts When Engine is started Then host_1 should be pending When a check result with metrics is processed for service_1 Then metrics should be created and sent to rrd broker When service_1 metrics are analyzed Then metrics should have minimal heartbeat of 3000 and pdp_per_row of 300 When a new service is created with a check interval of 90 And Engine is reloaded Then the new service should be pending When a check result with metrics is processed for the new service Then metrics should be created and sent to rrd Broker When new service metrics are analyzed Then metrics should have minimal heartbeat of 54000 and pdp_per_row of 5400
-392. **Services_and_bulks_${id}**: One service is configured with one metric with a name of 150 to 1021 characters.
-393. **Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-394. **Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
-395. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
-396. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
-397. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
-398. **VICT_ONE_CHECK_STATUS**: 
+388. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
+389. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
+390. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
+391. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
+392. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
+393. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. Broker should run correctly.
+394. **Service_increased_huge_check_interval**: Scenario: New services with huge check interval at creation time.
+      * Given Engine and Broker are configured with 1 poller and 10 hosts
+      * When Engine is started
+      * Then host_1 should be pending
+      * When a check result with metrics is processed for service_1
+      * Then metrics should be created and sent to rrd broker
+      * When service_1 metrics are analyzed
+      * Then metrics should have minimal heartbeat of 3000 and pdp_per_row of 300
+      * When a new service is created with a check interval of 90
+      * And Engine is reloaded
+      * Then the new service should be pending
+      * When a check result with metrics is processed for the new service
+      * Then metrics should be created and sent to rrd Broker
+      * When new service metrics are analyzed
+      * Then metrics should have minimal heartbeat of 54000 and pdp_per_row of 5400
+395. **Services_and_bulks_${id}**: One service is configured with one metric with a name of 150 to 1021 characters.
+396. **Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
+397. **Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+398. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
+399. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
+400. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
+401. **VICT_ONE_CHECK_STATUS**: 
       * Given a Victoria Metrics setup with Centreon Broker
       * When a service check result is processed
       * Then the service status transitions through OK, WARNING, and CRITICAL states
       * And the corresponding status updates are sent to Victoria Metrics
-399. **Whitelist_Directory_NotReadable**: 
+402. **Whitelist_Directory_NotReadable**: 
       * Given a centengine started by centreon-engine user, whitelist directories are not readable and centengine must log an error
-400. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
-401. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
-402. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
-403. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
-404. **Whitelist_NotReadable**: 
+403. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
+404. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
+405. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
+406. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
+407. **Whitelist_NotReadable**: 
       * Given a centengine started by centreon-engine user, whitelist files are not readable and centengine must log an error
-405. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
-406. **Whitelist_Service**: test allowed and forbidden commands for services
-407. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
-408. **metric_mapping**: Check if metric name exists using a stream connector
-409. **not1**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
-410. **not10**: This test case involves scheduling downtime on a down host that already had a critical notification. When The Host return to UP state we should receive a recovery notification.
-411. **not11**: This test case involves configuring one service and checking that three alerts are sent for it.
-412. **not12**: Escalations
-413. **not13**: notification for a dependencies host
-414. **not14**: notification for a Service dependency
-415. **not15**: several notification commands for the same user.
-416. **not16**: notification for dependencies services group
-417. **not17**: notification for a dependensies host group
-418. **not18**: notification delay where first notification delay equal retry check
-419. **not19**: notification delay where first notification delay greater than retry check 
-420. **not1_2**: Scenario: Service notification command expands contact macros
+408. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
+409. **Whitelist_Service**: test allowed and forbidden commands for services
+410. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
+411. **metric_mapping**: Check if metric name exists using a stream connector
+412. **not1**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
+413. **not10**: This test case involves scheduling downtime on a down host that already had a critical notification. When The Host return to UP state we should receive a recovery notification.
+414. **not11**: This test case involves configuring one service and checking that three alerts are sent for it.
+415. **not12**: Escalations
+416. **not13**: notification for a dependencies host
+417. **not14**: notification for a Service dependency
+418. **not15**: several notification commands for the same user.
+419. **not16**: notification for dependencies services group
+420. **not17**: notification for a dependensies host group
+421. **not18**: notification delay where first notification delay equal retry check
+422. **not19**: notification delay where first notification delay greater than retry check 
+423. **not1_2**: Scenario: Service notification command expands contact macros
       * Given a single service 'service_1' is assigned to contact 'John_Doe' with notifications enabled, options (w,c,r), and period 24x7
       * And 'service_1' has check/retry intervals of 1 and max check attempts of 1
       * And contact 'John_Doe' uses notification command 'command_with_macro' with macros
@@ -1361,22 +1414,34 @@ Here is the list of the currently implemented tests:
       * Then the service reaches HARD CRITICAL
       * And a service notification is logged for 'service_1' in CRITICAL state using 'command_with_macro'
       * And the processed notification command in logs is "/bin/echo pager address5 " showing macros are expanded
-421. **not1_WL_KO**: This test case configures a single service. When it is in non-OK HARD state a notification should be sent but it is not allowed by the whitelist
-422. **not1_WL_OK**: This test case configures a single service. When it is in non-OK HARD state a notification is sent because it is allowed by the whitelist
-423. **not1_reload**: This test case configures a single service and set the service in a non-OK HARD state so engine sends a notification. Then the service is removed from the configuration and Engine is reloaded. And Engine doesn't crash.
-424. **not2**: This test case configures a single service and verifies that a recovery notification is sent
-425. **not20**: notification delay where first notification delay smaller than retry check
-426. **not21**: No notifications should be sent for UNKNOWN services when host goes DOWN. When a host transitions to DOWN (soft or hard), services become UNKNOWN due to host unreachability. These services should not trigger notifications.
-427. **not3**: This test case configures a single service and verifies the notification system's behavior during and after downtime
-428. **not4**: This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
-429. **not5**: This test case configures two services with two different users being notified when the services transition to a critical state.
-430. **not6**: This test case validate the behavior when the notification time period is set to null.
-431. **not7**: This test case simulates a host alert scenario.
-432. **not8**: This test validates the critical host notification.
-433. **not9**: This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
-434. **not_in_timeperiod_with_send_recovery_notifications_anyways**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is sent outside timeperiod when _send_recovery_notifications_anyways is set
-435. **not_in_timeperiod_without_send_recovery_notifications_anyways**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is not sent outside timeperiod when _send_recovery_notifications_anyways is not set
-436. **not_remove_host_and_service_in_downtime**: 
+424. **not1_WL_KO**: This test case configures a single service. When it is in non-OK HARD state a notification should be sent but it is not allowed by the whitelist
+425. **not1_WL_OK**: This test case configures a single service. When it is in non-OK HARD state a notification is sent because it is allowed by the whitelist
+426. **not1_reload**: This test case configures a single service and set the service in a non-OK HARD state so engine sends a notification. Then the service is removed from the configuration and Engine is reloaded. And Engine doesn't crash.
+427. **not2**: This test case configures a single service and verifies that a recovery notification is sent
+428. **not20**: notification delay where first notification delay smaller than retry check
+429. **not21**: No notifications should be sent for UNKNOWN services when host goes DOWN. When a host transitions to DOWN (soft or hard), services become UNKNOWN due to host unreachability. These services should not trigger notifications.
+430. **not3**: This test case configures a single service and verifies the notification system's behavior during and after downtime
+431. **not4**: This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
+432. **not5**: This test case configures two services with two different users being notified when the services transition to a critical state.
+433. **not6**: This test case validate the behavior when the notification time period is set to null.
+434. **not7**: This test case simulates a host alert scenario.
+435. **not8**: This test validates the critical host notification.
+436. **not9**: This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
+437. **not_in_timeperiod_with_send_recovery_notifications_anyways**: Scenario: Verify notification is sent when service is in non-OK state and recovery is sent outside timeperiod if setting is enabled
+      * Given a configured single service
+      * And the service enters a non-OK state
+      * When the service remains in a non-OK state
+      * Then a notification should be sent
+      * And an OK notification should be sent outside the time period
+      * When the setting "_send_recovery_notifications_anyways" is set
+438. **not_in_timeperiod_without_send_recovery_notifications_anyways**: Scenario: Verify notification is sent when service is in non-OK state and recovery is not sent outside timeperiod
+      * Given a configured single service
+      * And the service enters a non-OK state
+      * When the service remains in a non-OK state
+      * Then a notification should be sent
+      * And no OK notification should be sent outside the time period
+      * When the setting "send_recovery_notifications_anyways" is not set
+439. **not_remove_host_and_service_in_downtime**: 
       * Given a service in a fixed downtime whose notification options contain 's'
       * When the service and its host are removed from the configuration and engine is reloaded
       * Then the host is removed before the service, so the service downtime is cancelled
@@ -1392,6 +1457,204 @@ Here is the list of the currently implemented tests:
 6. **BECCC6**: ccc with -p 51001 GetVersion{} calls the GetVersion command
 7. **BECCC7**: ccc with -p 51001 GetVersion{"idx":1} returns an error because the input message is wrong.
 8. **BECCC8**: ccc with -p 50001 EnableServiceNotifications{"names":{"host_name": "host_1", "service_name": "service_1"}} works and returns an empty message.
+
+### Centralized/configuration
+1. **BECNHG1**: Scenario: Host group synchronization across 3 pollers in centralized configuration
+      * Given a centralized engine with 3 pollers
+      * And broker is configured with RRD, central module, and SQL debug logging
+      * And database connections are set to 5 for both SQL and perfdata outputs
+      * When I start the broker and engine with new generation
+      * And I add a host group containing 3 hosts (host_1, host_2, host_3)
+      * And I notify broker of the engine configuration change
+      * Then the logs should confirm membership of all 3 hosts to the host group
+      * And each host should be properly associated with host group 1 on instance 1
+2. **BECNHG3**: Scenario: Host group synchronization across 4 pollers in centralized configuration
+      * Given 4 pollers and Broker are started in centralized mode
+      * When hostgroup_1 is added with 3 hosts per poller (12 total)
+      * Then Broker receives all 12 hosts as hostgroup_1 members
+      * When hostgroup configuration files are removed sequentially from each poller
+      * Then Broker progressively removes corresponding hosts from database
+      * And hostgroup_1 membership decreases from 12 → 9 → 6 → 3 → 0
+3. **BECNHG4**: Scenario: Host group rename synchronization in centralized configuration
+      * Given 3 pollers and Broker are started in centralized mode
+      * When hostgroup_1 is created on poller 1 with hosts: host_1, host_2, host_3
+      * Then Broker receives hostgroup_1 with its 3 members
+      * When hostgroup_1 is renamed to hostgroup_test
+      * Then Broker updates the hostgroup name to hostgroup_test in database
+      * And the same 3 hosts remain as members of hostgroup_test
+4. **BECNHG5**: Scenario: Host group removal and recreation with same hosts in centralized configuration
+      * Given 3 pollers and Broker are started in centralized mode
+      * When hostgroup_1 is created on each poller with different hosts
+      * Then Broker receives all hostgroups with their respective members
+      * When hostgroup_1 is removed from poller 1 and hostgroup_2 is created with the same hosts
+      * Then Broker updates the database to reflect the changes
+      * And hostgroup_2 contains the 3 hosts from poller 1
+      * And hostgroup_1 still contains the 6 hosts from pollers 2 and 3
+5. **BECNSG1**: Scenario: Service group creation and synchronization in centralized configuration
+      * Given 3 pollers and Broker are started in centralized mode
+      * When a service group is created on poller 1 with 3 services from host_1
+      * Then Broker receives the service group configuration
+      * And the 3 services are registered as members of the service group in logs
+6. **BECNSG2**: Feature: Service Groups Management with Unified SQL Database
+7. **BECNSG3**: FIXME DBO: This test is broken because we currently have no cache. Test about lua cache. But the centralized configuration currently breaks the broker cache. FIXME: we have to fix this test when the centralized broker cache will be done.
+8. **BECNSVC1**: 
+      * Given a Centreon platform with 3 pollers configured
+      * And 50 hosts distributed across pollers (17+17+16)
+      * And initially 20 services per host
+      * And BBDO3 protocol with unified SQL output enabled
+9. **BECPN0**: Feature: Parent-Child Host Dependency Management As a monitoring administrator I want child host checks to be queued when parent hosts are down So that unnecessary checks are avoided
+10. **BECPN1**: Feature: Parent Host Deletion Management As a monitoring administrator I want parent-child relationships to be cleaned up when parent hosts are deleted So that orphaned relationships don't exist in the system
+11. **BECPN2**: Feature: Child Host Deletion Management As a monitoring administrator I want parent-child relationships to be cleaned up when child hosts are deleted So that orphaned relationships don't exist in the system
+12. **BECSS1**: Scenario: Broker sends configuration to engine in new generation
+      * Given an engine configuration is provided to the broker
+      * And the broker and engine are started in new generation (broker first)
+      * And the protocol is bbdo3
+      * When the broker detects the configuration for the engine
+      * Then the broker sends the configuration to the engine
+      * Then both broker and engine are stopped (engine first)
+13. **BECSS2**: Scenario: Broker sends configuration to engine in new generation
+      * Given an engine configuration is provided to the broker
+      * And the broker and engine are started in new generation (broker first)
+      * And the protocol is bbdo3
+      * When the broker detects the configuration for the engine
+      * Then the broker sends the configuration to the engine
+      * Then both broker and engine are stopped (engine first)
+14. **BECSS3**: Scenario: Broker sends configuration to engine in new generation
+      * Given an engine configuration is provided to the broker
+      * And the broker and engine are started in new generation (engine first)
+      * And the protocol is bbdo3
+      * When the broker detects the configuration for the engine
+      * Then the broker sends the configuration to the engine
+      * Then both broker and engine are stopped (engine first)
+15. **BECSS4**: Scenario: Broker sends configuration to engine in new generation
+      * Given an engine configuration is provided to the broker
+      * And the broker and engine are started in new generation (engine first)
+      * And the protocol is bbdo3
+      * When the broker detects the configuration for the engine
+      * Then the broker sends the configuration to the engine
+      * Then both broker and engine are stopped (broker first)
+16. **BECSSBQ1**: A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
+17. **BECSS_CRYPTED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured FIXME DBO: We don't have the global cache for now. So this test can't pass. The first step, broker ends the full configuration to engine. At the second step, both restart and know the engine configuration. Broker doesn't send it to engine and engine doesn't ask for it. The global diff is not aware of the engine configuration. Disabled resources are not re-enabled. And we can't just enable resources match this poller id because disabling a resource means two things: 1) This resource is really disabled for now. 2) This resource doesn't exist anymore.
+18. **BECSS_CRYPTED_GRPC2**: Start-Stop grpc version Broker/Engine only server crypted
+19. **BECSS_CRYPTED_REVERSED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
+20. **BECSS_CRYPTED_REVERSED_GRPC2**: Start-Stop grpc version Broker/Engine only engine server crypted
+21. **BECSS_CRYPTED_REVERSED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
+22. **BECSS_ENGINE_DELETE_HOST**: once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
+23. **BECSS_GRPC1**: Scenario: Broker sends configuration to engine in new generation
+      * Given an engine configuration is provided to the broker
+      * And the broker and engine are started in new generation (broker first)
+      * And the protocol is bbdo3
+      * When the broker detects the configuration for the engine
+      * Then the broker sends the configuration to the engine
+      * Then both broker and engine are stopped (engine first)
+24. **BECSS_GRPC2**: Scenario: Broker sends configuration to engine in new generation
+      * Given an engine configuration is provided to the broker
+      * And the broker and engine are started in new generation (broker first)
+      * And the protocol is bbdo3
+      * When the broker detects the configuration for the engine
+      * Then the broker sends the configuration to the engine
+      * Then both broker and engine are stopped (engine first)
+25. **BECSS_GRPC3**: Scenario: Broker sends configuration to engine in new generation
+      * Given an engine configuration is provided to the broker
+      * And the broker and engine are started in new generation (engine first)
+      * And the protocol is bbdo3
+      * When the broker detects the configuration for the engine
+      * Then the broker sends the configuration to the engine
+      * Then both broker and engine are stopped (engine first)
+26. **BECSS_GRPC4**: Scenario: Broker sends configuration to engine in new generation
+      * Given an engine configuration is provided to the broker
+      * And the broker and engine are started in new generation (engine first)
+      * And the protocol is bbdo3
+      * When the broker detects the configuration for the engine
+      * Then the broker sends the configuration to the engine
+      * Then both broker and engine are stopped (broker first)
+27. **BECSS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
+28. **BECTAG1**: Feature: Tag Management between Engine and Broker As a Centreon administrator I want to configure tags in Engine So that Broker stores them correctly in centreon_storage.tags table
+29. **CANO_CFG_SENSITIVITY_SAVED**: 
+      * Given an anomaly detection service is configured with a specific sensitivity value in configuration
+      * And the threshold file contains prediction data with sensitivity parameters
+      * When the engine and broker are started and then stopped
+      * Then the configuration-based sensitivity value should be persisted in the retention data
+      * because CFG sensitivity parameters are properly saved during retention processing
+30. **CANO_DT1**: 
+      * Given an anomaly detection service is configured with a dependent service relationship
+      * And both services are running normally
+      * When a downtime is scheduled on the dependent service
+      * Then the dependent service should enter downtime state
+      * And the anomaly detection service should automatically inherit the downtime
+      * because anomaly detection services inherit downtime from their dependent services
+31. **CANO_DT2**: 
+      * Given an anomaly detection service is configured with a dependent service relationship
+      * And both services are running normally
+      * When a downtime is scheduled on the dependent service
+      * Then the anomaly detection service should automatically enter downtime
+      * When the downtime is deleted from the dependent service
+      * Then the anomaly detection service should automatically exit downtime
+      * because anomaly detection downtime should follow its dependent service downtime state
+32. **CANO_DT3**: 
+      * Given an anomaly detection service is configured with a dependent service relationship
+      * And both services are running normally
+      * When a downtime is scheduled on the dependent service
+      * Then the anomaly detection service should automatically enter downtime
+      * When the downtime is deleted from the anomaly detection service
+      * Then the dependent service should remain in its original downtime state
+      * because deleting downtime on anomaly detection should not affect dependent service downtimes
+33. **CANO_DT4**: Scenario: Removing downtime from service keeps it on anomaly detection
+      * Given an anomaly detection is attached to a service
+      * And a downtime is set on both the service and the anomaly detection
+      * When the downtime is removed from the service
+      * Then the downtime should still be present on the anomaly detection
+34. **CANO_EXTCMD_SENSITIVITY_SAVED**: 
+      * Given an anomaly detection service is configured with threshold data
+      * And the service is running with initial sensitivity parameters
+      * When an external command updates the anomaly sensitivity value
+      * And the engine and broker are stopped
+      * Then the updated sensitivity value should be persisted in the retention data
+      * because external command sensitivity changes are properly saved during retention processing
+35. **CANO_JSON_SENSITIVITY_NOT_SAVED**: 
+      * Given an anomaly detection service is configured with threshold data including sensitivity
+      * And the threshold file contains prediction data with a specific sensitivity value
+      * When the engine and broker are started and then stopped
+      * Then the sensitivity value should not be persisted in the retention data
+      * because JSON sensitivity parameters are not saved during retention processing
+36. **CANO_NOFILE**: 
+      * Given an anomaly detection service is configured for metric monitoring
+      * and the threshold configuration file is missing from the system
+      * when the service processes a check result with critical state
+      * then the anomaly detection service must transition to UNKNOWN state
+      * because it cannot determine thresholds without the configuration file
+37. **CANO_OUT_LOWER_THAN_LIMIT**: 
+      * Given an anomaly detection service is configured with valid threshold data
+      * And the threshold file contains lower and upper limits for the metric
+      * When a service check provides performance data below the lower threshold limit
+      * Then the anomaly detection service must transition to CRITICAL state
+      * because the metric value indicates an anomalous condition requiring attention
+38. **CANO_OUT_UPPER_THAN_LIMIT**: 
+      * Given an anomaly detection service is configured with valid threshold data
+      * And the threshold file contains lower and upper limits for the metric
+      * When a service check provides performance data above the upper threshold limit
+      * Then the anomaly detection service must transition to CRITICAL state
+      * because the metric value indicates an anomalous condition requiring attention
+39. **CANO_TOO_OLD_FILE**: 
+      * Given an anomaly detection service is configured with metric monitoring
+      * And a threshold file exists but contains outdated prediction data
+      * When the service processes a check result with performance data
+      * Then the anomaly detection service must transition to UNKNOWN state
+      * because the threshold data is too old to be reliable for current predictions
+40. **CAOUTLU1**: 
+      * Given an anomaly detection service is configured with valid threshold data using BBDO3 protocol
+      * And the threshold file contains lower and upper limits for the metric
+      * When a service check provides performance data above the upper threshold limit
+      * Then the anomaly detection service must transition to CRITICAL state
+      * And the resources table should contain SERVICE, HOST and ANOMALY_DETECTION type entries
+41. **CBEUDHOSTS**: 
+      * Given a Centreon platform with 3 pollers configured
+      * And 50 hosts distributed across pollers (17+17+16)
+      * And initially 20 services per host
+      * And BBDO3 protocol with unified SQL output enabled
+42. **Centralized_Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
+43. **Centralized_Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+44. **RENAME_PARENT**: Feature: Parent Host Rename Management As a monitoring administrator I want parent-child relationships to be maintained when parent hosts are renamed So that dependencies remain intact after configuration changes
 
 ### Connector perl
 1. **CONPERL**: The test.pl script is launched using the perl connector. Then we should find its execution in the engine log file.
@@ -1543,8 +1806,8 @@ Here is the list of the currently implemented tests:
       * Given the Engine is configured with a valid old configuration
       * When the Engine is started to check the configuration
       * Then the Engine reads it as expected
-78. **EXT_CONF1**: Engine configuration is overided by json conf
-79. **EXT_CONF2**: Engine configuration is overided by json conf after reload
+78. **EXT_CONF1**: Engine configuration is overidden by json conf
+79. **EXT_CONF2**: Engine configuration is overidden by json conf after reload
 80. **E_FD_LIMIT**: Engine here is started with a low file descriptor limit. The engine should not crash and limit should be set.
 81. **E_HOST_DOWN_DISABLE_SERVICE_CHECKS**: host_down_disable_service_checks is set to 1, host down switch all services to UNKNOWN
 82. **E_HOST_UNREACHABLE_DISABLE_SERVICE_CHECKS**: host_down_disable_service_checks is set to 1, host unreachable switch all services to UNKNOWN
@@ -1574,23 +1837,24 @@ Here is the list of the currently implemented tests:
       * exception. The service using the child timeperiod as check_period must be checked.
 92. **VERIF**: 
       * When centengine is started in verification mode, it does not log in its file.
-93. **VERIFIY_CONF**: Verify deprecated engine configuration options are logged as warnings Given the engine and broker are configured with module 1 And the engine configuration is set with deprecated options When the engine is started Then a warning message for 'auto_reschedule_checks' should be logged And a warning message for 'auto_rescheduling_interval' should be logged And a warning message for 'auto_rescheduling_window' should be logged And the engine should be stopped
+93. **VERIFY_CONF**: Scenario Verify deprecated engine configuration options are logged as warnings Given the engine and broker are configured with module 1 And the engine configuration is set with deprecated options When the engine is started Then a warning message for 'auto_reschedule_checks' should be logged And a warning message for 'auto_rescheduling_interval' should be logged And a warning message for 'auto_rescheduling_window' should be logged And the engine should be stopped
 
 ### Migration
 1. **MIGRATION**: Migration bbdo2 with sql/storage to bbdo2 with unified_sql and then to bbdo3 with unified_sql and then to bbdo2 with unified_sql and then to bbdo2 with sql/storage
 
 ### Severities
-1. **BESEV1**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
-2. **BESEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
-3. **BETUHSEV1**: Hosts have severities provided by templates.
-4. **BETUSEV1**: Services have severities provided by templates.
-5. **BETUSEV2**: A service and a host have severities. Then we remove severities from both of them and check they no longer have severities.
-6. **BEUHSEV1**: Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
-7. **BEUHSEV2**: Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
-8. **BEUSEV1**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
-9. **BEUSEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
-10. **BEUSEV3**: Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
-11. **BEUSEV4**: Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
+1. **BECSEV1**: Feature: Severity Management between Engine and Broker As a Centreon administrator I want to configure severities in Engine So that Broker stores them correctly in centreon_storage.severities table
+2. **BESEV1**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
+3. **BESEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
+4. **BETUHSEV1**: Hosts have severities provided by templates.
+5. **BETUSEV1**: Services have severities provided by templates.
+6. **BETUSEV2**: A service and a host have severities. Then we remove severities from both of them and check they no longer have severities.
+7. **BEUHSEV1**: Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
+8. **BEUHSEV2**: Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
+9. **BEUSEV1**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
+10. **BEUSEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
+11. **BEUSEV3**: Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
+12. **BEUSEV4**: Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
 
 ### Vault
 1. **BAEBC**: Broker is used to AES256 decrypt a content not well encrypted
@@ -1606,4 +1870,4 @@ Here is the list of the currently implemented tests:
 11. **BWVC6**: Broker is tuned with strange keys APP_SECRET and salt that are not base64 encoded.
 
 
-714 tests currently implemented.
+750 tests currently implemented.

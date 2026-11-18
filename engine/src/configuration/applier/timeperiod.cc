@@ -21,12 +21,10 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/timeperiod.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
@@ -48,24 +46,13 @@ void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
   }
 
   // Add time period to the global configuration set.
-  configuration::Timeperiod* c_tp = pb_config.add_timeperiods();
-  c_tp->CopyFrom(obj);
+  pb_indexed_config.mut_timeperiods().emplace(
+      obj.timeperiod_name(), std::make_unique<Timeperiod>(obj));
 
   // Create time period.
   auto tp = std::make_shared<engine::timeperiod>(obj);
   engine::timeperiod::timeperiods.insert({obj.timeperiod_name(), tp});
 }
-
-/**
- *  @brief Expand time period.
- *
- *  Time period objects do not need expansion. Therefore this method
- *  does nothing.
- *
- *  @param[in] s  Unused.
- */
-void applier::timeperiod::expand_objects(configuration::State& s
-                                         [[maybe_unused]]) {}
 
 /**
  *  Modify time period.
@@ -120,21 +107,19 @@ void applier::timeperiod::modify_object(
   }
 }
 
-void applier::timeperiod::remove_object(ssize_t idx) {
-  /* obj is the object to remove */
-  auto& obj = pb_config.timeperiods()[idx];
-  config_logger->debug("Removing time period '{}'.", obj.timeperiod_name());
+template <>
+void applier::timeperiod::remove_object(const std::string& key) {
+  config_logger->debug("Removing time period '{}'.", key);
 
   // Find time period.
-  timeperiod_map::iterator it =
-      engine::timeperiod::timeperiods.find(obj.timeperiod_name());
+  timeperiod_map::iterator it = engine::timeperiod::timeperiods.find(key);
   if (it != engine::timeperiod::timeperiods.end() && it->second) {
     // Erase time period (will effectively delete the object).
     engine::timeperiod::timeperiods.erase(it);
   }
 
   // Remove time period from the global configuration set.
-  pb_config.mutable_timeperiods()->DeleteSubrange(idx, 1);
+  pb_indexed_config.mut_timeperiods().erase(key);
 }
 
 /**

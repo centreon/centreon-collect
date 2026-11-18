@@ -143,7 +143,7 @@ void get_datetime_string(time_t const* raw_time,
 #endif /* HAVE_TM_ZONE || HAVE_TZNAME */
 
   int32_t date_format;
-  date_format = pb_config.date_format();
+  date_format = pb_indexed_config.state().date_format();
 
   /* ctime() style date/time */
   if (type == LONG_DATE_TIME)

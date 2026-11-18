@@ -21,9 +21,8 @@
 #define CCE_CONFIGURATION_APPLIER_SEVERITY_HH
 #include "common/engine_conf/severity_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 
-namespace applier {
 class severity {
  public:
   severity() = default;
@@ -32,10 +31,9 @@ class severity {
   void add_object(const configuration::Severity& obj);
   void modify_object(configuration::Severity* to_modify,
                      const configuration::Severity& new_object);
-  void remove_object(ssize_t idx);
+  void remove_object(const std::pair<uint64_t, uint32_t>& p);
   void resolve_object(const configuration::Severity& obj, error_cnt& err);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SEVERITY_HH

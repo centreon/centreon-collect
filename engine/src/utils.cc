@@ -38,6 +38,7 @@
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -295,7 +296,7 @@ bool set_cloexec(int fd) {
  */
 void cleanup() {
   // Unload modules.
-  if (!test_scheduling && !verify_config) {
+  if (!test_scheduling) {
     checks::checker::deinit();
     /* Before stopping, we stop all the connectors that are not already
      * finished. */
@@ -398,4 +399,19 @@ std::string get_stack_trace(int max_depth) {
   }
 
   return result;
+}
+
+void update_rpc_server(const std::string& listen_address, uint16_t port) {
+  if (rpc) {
+    rpc->shutdown();
+    rpc.reset();
+  }
+  rpc = std::make_unique<enginerpc>(listen_address, port);
+}
+
+void stop_rpc_server() {
+  if (rpc) {
+    rpc->shutdown();
+    rpc.reset();
+  }
 }

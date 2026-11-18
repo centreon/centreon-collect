@@ -24,7 +24,6 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <random>
-#include <string>
 
 #include <boost/asio.hpp>
 #include <boost/optional.hpp>
@@ -44,8 +43,6 @@ namespace po = boost::program_options;
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 
-#include <rapidjson/document.h>
-
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
@@ -64,7 +61,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/misc.hh"
-#include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
 #include "com/centreon/engine/retention/state.hh"
@@ -74,7 +70,6 @@ namespace po = boost::program_options;
 #include "com/centreon/logging/engine.hh"
 #include "common/crypto/cert_tree.hh"
 #include "common/engine_conf/parser.hh"
-#include "common/engine_conf/state_helper.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
@@ -84,16 +79,6 @@ using com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
-
-// Error message when configuration parsing fail.
-#define ERROR_CONFIGURATION                                                  \
-  "    Check your configuration file(s) to ensure that they contain valid\n" \
-  "    directives and data definitions. If you are upgrading from a\n"       \
-  "    previous version of Centreon Engine, you should be aware that some\n" \
-  "    variables/definitions may have been removed or modified in this\n"    \
-  "    version. Make sure to read the documentation regarding the config\n"  \
-  "    files, as well as the version changelog to find out what has\n"       \
-  "    changed.\n"
 
 static void set_engine_owner(const std::string_view& path) {
   struct passwd user_info;
@@ -155,16 +140,27 @@ int main(int argc, char* argv[]) {
   // It must be the first OpenSSL initialization of the process.
   OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, nullptr);
 
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
   // Get global macros.
   nagios_macros* mac(get_global_macros());
 
   // Load singletons and global variable.
   log_v2::load("centengine");
 
+  // Initialize the initial configuration state.
+  {
+    auto cfg = std::make_unique<configuration::State>();
+    configuration::state_helper state_hlp(cfg.get());
+    pb_indexed_config.set_state(std::move(cfg));
+  }
   /* It's time to set the logger. Later, we will have access from multiple
    * threads and we'll only be able to change loggers atomic values. */
   // init pb_config to default values
-  configuration::state_helper state_hlp(&pb_config);
+  {
+    auto pb_config = std::make_unique<configuration::State>();
+    configuration::state_helper state_hlp(pb_config.get());
+    configuration::indexed_state pb_indexed_config(std::move(pb_config));
+  }
 
   init_loggers();
   configuration::applier::logging::instance();
@@ -192,10 +188,17 @@ int main(int argc, char* argv[]) {
       ("dont-verify-paths,x",
        "Don't check for circular object paths - USE WITH CAUTION!")
       ("diagnose,D", "Generate a diagnostic file")
+      ("broker-config,b", po::value<std::string>()->value_name("module_file"),
+       "Broker configuration file")
       ("extended-config,c",
        po::value<std::vector<std::string>>()->value_name("config-file"),
        "Extended configuration file")
-      ("config-file,f", po::value<std::string>()->value_name("cfg_file"), "Main configuration file")
+      ("proto-conf,p", po::value<std::string>()->value_name("proto_dir"),
+       "Directory containing the protocol buffer configuration files")
+      ("log-file,l", po::value<std::string>()->value_name("log-file"),
+       "Full path to the log file name")
+      ("config-file,f", po::value<std::string>()->value_name("cfg_file"),
+        "Main configuration file")
       ("gen-cma-key,k", "generate default cma self-signed-certificate");
 
     // clang-format on
@@ -253,6 +256,10 @@ int main(int argc, char* argv[]) {
         verify_circular_paths = false;
       if (vm.count("diagnose"))
         diagnose = true;
+      if (vm.count("proto-conf"))
+        proto_conf = vm["proto-conf"].as<std::string>();
+      if (vm.count("broker-config"))
+        broker_config = vm["broker-config"].as<std::string>();
       if (vm.count("extended-config"))
         extended_conf_file =
             vm["extended-config"].as<std::vector<std::string>>();
@@ -287,14 +294,17 @@ int main(int argc, char* argv[]) {
           // Read in the configuration files (main config file,
           // resource and object config files).
           configuration::error_cnt err;
-          cbm = std::make_unique<cbmod>();
-          configuration::State pb_config;
+          cbm = std::make_unique<cbmod>(proto_conf);
+          auto pb_cfg = std::make_unique<configuration::State>();
+          configuration::state_helper state_hlp(pb_cfg.get());
           {
             configuration::parser p;
-            p.parse(config_file, &pb_config, err);
-            broker_config = pb_config.broker_module_cfg_file();
+            p.parse(config_file, pb_cfg.get(), err);
+            if (broker_config.empty())
+              broker_config = pb_cfg->broker_module_cfg_file();
+            state_hlp.expand(err);
           }
-          configuration::applier::state::instance().apply(pb_config, err);
+          configuration::applier::state::instance().apply(*pb_cfg, err);
           std::cout << "\n Checked " << commands::command::commands.size()
                     << " commands.\n Checked "
                     << commands::connector::connectors.size()
@@ -344,19 +354,23 @@ int main(int argc, char* argv[]) {
       else if (test_scheduling) {
         try {
           // Parse configuration.
-          configuration::State pb_config;
+          auto pb_cfg = std::make_unique<configuration::State>();
+          configuration::state_helper state_hlp(pb_cfg.get());
           configuration::error_cnt err;
           {
             configuration::parser p;
-            p.parse(config_file, &pb_config, err);
+            p.parse(config_file, pb_cfg.get(), err);
+            if (broker_config.empty())
+              broker_config = pb_cfg->broker_module_cfg_file();
+            state_hlp.expand(err);
           }
 
           // Parse retention.
           retention::state state;
-          if (!pb_config.state_retention_file().empty()) {
+          if (!pb_cfg->state_retention_file().empty()) {
             retention::parser p;
             try {
-              p.parse(pb_config.state_retention_file(), state);
+              p.parse(pb_cfg->state_retention_file(), state);
             } catch (std::exception const& e) {
               std::cout << "Error while parsing the retention: {}" << e.what()
                         << std::endl;
@@ -364,8 +378,7 @@ int main(int argc, char* argv[]) {
           }
 
           // Apply configuration.
-          configuration::applier::state::instance().apply(pb_config, err,
-                                                          &state);
+          configuration::applier::state::instance().apply(*pb_cfg, err, &state);
 
           display_scheduling_info();
           retval = EXIT_SUCCESS;
@@ -394,19 +407,30 @@ int main(int argc, char* argv[]) {
         try {
           // Parse configuration.
           configuration::error_cnt err;
-          configuration::State new_config;
-          {
-            configuration::parser p;
-            p.parse(config_file, &new_config, err);
+          auto new_conf = std::make_unique<configuration::State>();
+          bool proto_valid = false;
+          if (!proto_conf.empty()) {
+            std::filesystem::path proto_conf_file(proto_conf / "state.prot");
+            std::ifstream ifs(proto_conf_file);
+            if (ifs.good()) {
+              new_conf->ParseFromIstream(&ifs);
+              ifs.close();
+              proto_valid = true;
+            }
           }
-
+          if (!proto_valid) {
+            configuration::state_helper state_hlp(new_conf.get());
+            configuration::parser p;
+            p.parse(config_file, new_conf.get(), err);
+            state_hlp.expand(err);
+          }
           configuration::extended_conf::load_all(extended_conf_file.begin(),
                                                  extended_conf_file.end());
 
-          configuration::extended_conf::update_state(&new_config);
+          configuration::extended_conf::update_state(new_conf.get());
           if (broker_config.empty())
-            broker_config = new_config.broker_module_cfg_file();
-          uint16_t port = new_config.grpc_port();
+            broker_config = new_conf->broker_module_cfg_file();
+          uint16_t port = new_conf->grpc_port();
 
           if (broker_config.empty()) {
             std::cerr << "No module configuration file provided in the Engine "
@@ -417,24 +441,20 @@ int main(int argc, char* argv[]) {
           if (!port)
             port = generate_port();
 
-          const std::string& listen_address = new_config.rpc_listen_address();
+          const std::string& listen_address = new_conf->rpc_listen_address();
 
           SPDLOG_LOGGER_INFO(external_command_logger,
                              "Start of grpc server on {}:{}", listen_address,
                              port);
 
-          std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
-              new enginerpc(listen_address, port), [](enginerpc* rpc) {
-                rpc->shutdown();
-                delete rpc;
-              });
+          update_rpc_server(listen_address, port);
 
           // Parse retention.
           retention::state state;
           {
             retention::parser p;
             try {
-              p.parse(new_config.state_retention_file(), state);
+              p.parse(new_conf->state_retention_file(), state);
             } catch (const std::exception& e) {
               config_logger->error("{}", e.what());
               engine_logger(logging::log_config_error, logging::basic)
@@ -452,12 +472,14 @@ int main(int argc, char* argv[]) {
           setup_sighandler();
 
           // Load broker modules.
-          configuration::applier::state::instance().apply_log_config(
-              new_config);
+          if (vm.count("log-file"))
+            new_conf->set_log_file(vm["log-file"].as<std::string>());
+
+          configuration::applier::state::instance().apply_log_config(*new_conf);
 
           neb_init_callback_list();
 
-          for (auto& m : new_config.broker_module()) {
+          for (auto& m : new_conf->broker_module()) {
             std::pair<std::string, std::string> p =
                 absl::StrSplit(m, absl::MaxSplits(' ', 1));
             broker::loader::instance().add_module(p.first, p.second);
@@ -468,7 +490,7 @@ int main(int argc, char* argv[]) {
               &backend_broker_log, logging::log_all, logging::basic);
 
           // Apply configuration.
-          configuration::applier::state::instance().apply(new_config, err,
+          configuration::applier::state::instance().apply(*new_conf, err,
                                                           &state);
 
           // Initialize status data.
@@ -483,15 +505,18 @@ int main(int argc, char* argv[]) {
           // Update all status data (with retained information).
           update_all_status_data();
 
-          /* We don't start cbm earlier because when we apply the configuration,
-           * we also send the configuration to Broker, but the initial instance
-           * will be send by broker_program_state with the
-           * NEBTYPE_PROCESS_EVENTLOOPSTART flag. So, if we'd do this, we'd send
-           * the configuration twice to Broker. But the first time without the
-           * initial instance, which can lead to issues in the database. Doing
-           * this, imply we also have to check if cbm is defined in broker.cc.
+          /* We don't start cbm earlier because when we apply the
+           * configuration, we also send the configuration to Broker, but the
+           * initial instance will be send by broker_program_state with the
+           * NEBTYPE_PROCESS_EVENTLOOPSTART flag. So, if we'd do this, we'd
+           * send the configuration twice to Broker. But the first time
+           * without the initial instance, which can lead to issues in the
+           * database. Doing this, imply we also have to check if cbm is
+           * defined in broker.cc.
            */
-          cbm = std::make_unique<cbmod>(broker_config);
+          cbm = std::make_unique<cbmod>(
+              broker_config, proto_conf,
+              pb_indexed_config.state().config_version());
           // Send program data to broker.
           broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 
@@ -502,8 +527,6 @@ int main(int argc, char* argv[]) {
           event_start = time(NULL);
           mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
 
-          engine_logger(logging::log_info_message, logging::basic)
-              << "Event loop start at " << string::ctime(event_start);
           config_logger->info("Event loop start at {}",
                               string::ctime(event_start));
           // Start monitoring all services (doesn't return until a
@@ -524,7 +547,8 @@ int main(int argc, char* argv[]) {
                                  NEBFLAG_USER_INITIATED);
 
           // Save service and host state information.
-          retention::dump::save(::pb_config.state_retention_file());
+          retention::dump::save(
+              ::pb_indexed_config.state().state_retention_file());
 
           // Clean up the status data.
           cleanup_status_data(true);
@@ -563,6 +587,7 @@ int main(int argc, char* argv[]) {
 
   cbm.reset();
   g_io_context->stop();
+  stop_rpc_server();
 
   return retval;
 }

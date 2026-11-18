@@ -17,11 +17,16 @@
  */
 
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/lua/broker_cache.hh"
+#include <spdlog/fmt/ostr.h>
+
+#include <cassert>
+
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/lua/broker_event.hh"
 #include "com/centreon/broker/lua/broker_log.hh"
 #include "com/centreon/broker/lua/broker_socket.hh"
 #include "com/centreon/broker/lua/broker_utils.hh"
+#include "com/centreon/broker/lua/lua_cache.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -262,7 +267,9 @@ void luabinding::_load_script(const std::string& lua_script) {
   broker_utils::broker_utils_reg(_L);
 
   // Registers the broker cache
-  broker_cache::broker_cache_reg(_L, _broker_api_version);
+  cache::broker_cache* const cache =
+      &com::centreon::broker::config::applier::state::instance().cache();
+  lua::lua_cache::broker_cache_reg(_L, cache, _broker_api_version);
   assert(lua_gettop(_L) == 0);
 }
 

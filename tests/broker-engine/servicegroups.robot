@@ -24,8 +24,7 @@ EBNSG1
     Ctn Config Broker    module    ${3}
 
     Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
 
     Ctn Clear Retention
     ${start}    Get Current Date
@@ -238,10 +237,10 @@ EBSG_1
     ...    Then the system reports 6 relations between servicegroup 1 and its services
     [Tags]    broker    engine    servicegroup    MON-191814
     Ctn Config Engine    ${1}    ${5}    ${5}
-    Ctn Config BBDO3    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
 
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Log    central    sql    info

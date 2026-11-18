@@ -18,7 +18,8 @@
  */
 #include <gtest/gtest.h>
 
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
@@ -36,7 +37,8 @@ const std::string MSG4("no this is the last message");
 class StartStop : public testing::Test {
  public:
   void SetUp() override {
-    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+    config::applier::init<com::centreon::broker::config::applier::broker_state>(
+        "", 0, "test_broker", 0);
   }
 
   void TearDown() override { config::applier::deinit(); }
@@ -49,7 +51,7 @@ class StartStop : public testing::Test {
  */
 TEST_F(StartStop, MultiplexingWorks) {
   // Initialization.
-  bool error{true};
+  bool error = true;
 
   try {
     // Subscriber.

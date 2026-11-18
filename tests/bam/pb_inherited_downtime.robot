@@ -94,9 +94,12 @@ BEBAMIDTU2
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
     Ctn Config BBDO3    1
     Ctn Config Engine    ${1}
 
@@ -117,7 +120,7 @@ BEBAMIDTU2
 
     # KPI set to critical
     Log To Console    KPI set to critical
-    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
     ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 

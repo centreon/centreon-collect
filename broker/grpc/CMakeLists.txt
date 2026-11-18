@@ -1,5 +1,5 @@
 #
-# Copyright 2011 Centreon
+# Copyright 2011-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -38,8 +38,7 @@ set(SOURCES
     "${SRC_DIR}/grpc_stream.grpc.pb.cc"
     "${SRC_DIR}/grpc_stream.pb.cc"
     "${SRC_DIR}/grpc_bridge.cc"
-    "${PROJECT_SOURCE_DIR}/core/src/io/limit_endpoint.cc"
-)
+    "${PROJECT_SOURCE_DIR}/core/src/io/limit_endpoint.cc")
 
 # GRPC module.
 set(GRPC "50-grpc")
@@ -59,19 +58,22 @@ target_link_libraries(
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)
 
+# Every directory given to generate_proto.py with -d, and the script itself: a
+# change in any of them changes the generated oneof.
 file(
   GLOB bbdo_files
   LIST_DIRECTORIES false
-  ${CMAKE_SOURCE_DIR}/bbdo/*.proto)
+  ${CMAKE_SOURCE_DIR}/bbdo/*.proto
+  ${CMAKE_SOURCE_DIR}/common/engine_conf/*.proto)
 
 add_custom_command(
   OUTPUT ${MODULE_DIR}/grpc_stream.proto ${MODULE_DIR}/src/grpc_bridge.cc
   COMMENT "Generating grpc_stream.proto from bbdo protobuf files"
-  DEPENDS ${bbdo_files}
+  DEPENDS ${bbdo_files} ${MODULE_DIR}/generate_proto.py
   COMMAND
     python3 ARGS ${MODULE_DIR}/generate_proto.py -f
     ${MODULE_DIR}/grpc_stream.proto -c ${MODULE_DIR}/src/grpc_bridge.cc -d
-    ${CMAKE_SOURCE_DIR}/bbdo
+    ${CMAKE_SOURCE_DIR}/bbdo -d ${CMAKE_SOURCE_DIR}/common/engine_conf
   VERBATIM)
 
 add_custom_command(
@@ -81,8 +83,8 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
     --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
-    grpc_stream.proto
+    --proto_path=${CMAKE_SOURCE_DIR}/common/engine_conf
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto grpc_stream.proto
   VERBATIM)
 
 add_custom_command(
@@ -91,18 +93,18 @@ add_custom_command(
   COMMENT "Generating interface files grpc.pb of grpc_stream.proto"
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --grpc_out=${SRC_DIR}
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
-    grpc_stream.proto
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${MODULE_DIR}
+    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    --proto_path=${CMAKE_SOURCE_DIR}/common/engine_conf
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto grpc_stream.proto
   VERBATIM
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Testing.
 if(WITH_TESTING)
   set(TESTS_SOURCES
-      ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc
-      ${TEST_DIR}/stream_test.cc ${TEST_DIR}/factory_test.cc
+      ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc ${TEST_DIR}/stream_test.cc
+      ${TEST_DIR}/factory_test.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} ${GRPC}

@@ -101,7 +101,7 @@ not11
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -158,7 +158,7 @@ not12
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     ${cmd_service_2}    Ctn Get Service Command Id    ${2}
@@ -281,7 +281,7 @@ not13
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
      ## Time to set the host to CRITICAL HARD.
 
@@ -379,7 +379,7 @@ not14
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     ${cmd_service_2}    Ctn Get Service Command Id    ${2}
@@ -475,7 +475,7 @@ not15
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -560,7 +560,7 @@ not16
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ## Time to set the service3 to CRITICAL HARD.
 
@@ -695,7 +695,7 @@ not17
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # Time to set the host to CRITICAL HARD.
 
@@ -786,7 +786,7 @@ not18
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -832,7 +832,7 @@ not19
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -878,7 +878,7 @@ not20
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -899,7 +899,14 @@ not20
     Ctn Kindly Stop Broker
 
 not_in_timeperiod_without_send_recovery_notifications_anyways
-    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is not sent outside timeperiod when _send_recovery_notifications_anyways is not set
+    [Documentation]    Scenario: Verify notification is sent when service is in non-OK state and recovery is not sent outside timeperiod
+    ...    Given a configured single service
+    ...    And the service enters a non-OK state
+    ...    When the service remains in a non-OK state
+    ...    Then a notification should be sent
+    ...    And no OK notification should be sent outside the time period
+    ...    When the setting "send_recovery_notifications_anyways" is not set
+
     [Tags]    MON-33121  broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -945,7 +952,13 @@ not_in_timeperiod_without_send_recovery_notifications_anyways
     Should Not Be True    ${result}    The notification is sent out of time period
 
 not_in_timeperiod_with_send_recovery_notifications_anyways
-    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is sent outside timeperiod when _send_recovery_notifications_anyways is set
+    [Documentation]    Scenario: Verify notification is sent when service is in non-OK state and recovery is sent outside timeperiod if setting is enabled
+    ...    Given a configured single service
+    ...    And the service enters a non-OK state
+    ...    When the service remains in a non-OK state
+    ...    Then a notification should be sent
+    ...    And an OK notification should be sent outside the time period
+    ...    When the setting "_send_recovery_notifications_anyways" is set
     [Tags]    MON-33121   broker    engine    services    hosts    notification    mon-33121
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -969,7 +982,7 @@ not_in_timeperiod_with_send_recovery_notifications_anyways
     Ctn Create Single Day Time Period    0    short_time_period    ${start}    2
 
     Ctn Start Broker
-    Ctn Start Engine With Extend Conf
+    Ctn Start Engine With Extended Conf
 
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${start}
@@ -1178,7 +1191,7 @@ not_remove_host_and_service_in_downtime
     # host_2 and service_2 are removed together. On reload, hosts are removed
     # before services: when service_2 is removed, its downtime is cancelled and
     # a notification is sent while its host does not exist anymore.
-    Ctn Engine Config Remove Service Host    ${0}    host_2
+    Ctn Engine Config Remove All Services From Host    ${0}    host_2
     Ctn Engine Config Remove Host    ${0}    host_2
 
     ${start}    Ctn Get Round Current Date

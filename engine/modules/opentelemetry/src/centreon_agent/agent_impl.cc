@@ -249,8 +249,10 @@ static bool add_command_to_agent_conf(
   } else {
     serv->set_command_line(plugins_cmdline);
   }
-  serv->set_check_interval(check_interval * pb_config.interval_length());
-  serv->set_retry_interval(retry_interval * pb_config.interval_length());
+  serv->set_check_interval(check_interval *
+                           pb_indexed_config.state().interval_length());
+  serv->set_retry_interval(retry_interval *
+                           pb_indexed_config.state().interval_length());
   serv->set_max_attempts(max_attempts);
   if (!check_period_name.empty()) {
     serv->set_check_period_name(check_period_name);
@@ -282,11 +284,10 @@ static void _serialize_timeperiods(
       seen.insert(svc.check_period_name());
   }
 
-  for (const auto& tp : pb_config.timeperiods()) {
-    if (!tp.timeperiod_name().empty() &&
-        seen.find(tp.timeperiod_name()) != seen.end()) {
+  for (const auto& [name, tp] : pb_indexed_config.timeperiods()) {
+    if (!name.empty() && seen.find(name) != seen.end()) {
       auto timeperiod = cnf->add_timeperiods();
-      timeperiod->CopyFrom(tp);
+      timeperiod->CopyFrom(*tp);
     }
   }
 }

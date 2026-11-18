@@ -58,22 +58,29 @@ endif()
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
   message(STATUS "rpm based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/lib/mysql/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
 else()
   message(STATUS "other os: ${OS_DISTRIBUTOR}")
   add_definitions("-DMYSQL_SOCKET=\"/tmp/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 endif()
 
 include_directories(
+  ${CMAKE_BINARY_DIR}
   ${CMAKE_BINARY_DIR}/bbdo
   ${CMAKE_BINARY_DIR}/common/process_stat
   "${PROJECT_SOURCE_DIR}/core/inc"
   "${PROJECT_SOURCE_DIR}/neb/inc"
+  "${PROJECT_SOURCE_DIR}/bam/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
   "${PROJECT_SOURCE_DIR}/core/cache/inc"
@@ -88,29 +95,6 @@ add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
 
 # link_directories(${mariadb-connector-c_LIB_DIRS})
-add_custom_command(
-  DEPENDS ${SRC_DIR}/broker.proto
-  COMMENT "Generating interface files of the proto file (grpc)"
-  OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
-  COMMAND
-    protobuf::protoc ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat --grpc_out="${SRC_DIR}"
-    ${SRC_DIR}/broker.proto
-  DEPENDS ${SRC_DIR}/broker.proto
-  COMMENT "Generating interface files of the proto file (protobuf)"
-  OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
-  COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat
-    ${SRC_DIR}/broker.proto
-    WORKING_DIRECTORY ${SRC_DIR})
-
-add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
-                                                  "${SRC_DIR}/broker.pb.h")
-
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
                     ${CMAKE_SOURCE_DIR}/common/inc
                     ${CMAKE_SOURCE_DIR}/bbdo)
@@ -292,23 +276,9 @@ endif()
 # Broker vars
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
+add_subdirectory(core/brokerrpc)
 add_subdirectory(core/multiplexing)
-
-add_library(pb_broker_lib STATIC
-    ${SRC_DIR}/broker.grpc.pb.cc
-    ${SRC_DIR}/broker.grpc.pb.h
-    ${SRC_DIR}/broker.pb.cc
-    ${SRC_DIR}/broker.pb.h
-  )
-
-add_dependencies(pb_broker_lib process_stat pb_common_lib)
-
-target_link_libraries(pb_broker_lib
-  PRIVATE
-  process_stat
-)
-
-set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_subdirectory(core/config/applier)
 
 add_subdirectory(core/bbdo)
 add_subdirectory(core/cache)
@@ -317,16 +287,11 @@ add_subdirectory(core/cache)
 set(LIBROKER_SOURCES
     # Sources.
     ${SRC_DIR}/bbdo2_to_bbdo3.cc
-    ${SRC_DIR}/broker_impl.cc
-    ${SRC_DIR}/brokerrpc.cc
     ${SRC_DIR}/compression/factory.cc
     ${SRC_DIR}/compression/opener.cc
     ${SRC_DIR}/compression/stack_array.cc
     ${SRC_DIR}/compression/stream.cc
     ${SRC_DIR}/compression/zlib.cc
-    ${SRC_DIR}/config/applier/endpoint.cc
-    ${SRC_DIR}/config/applier/modules.cc
-    ${SRC_DIR}/config/applier/state.cc
     ${SRC_DIR}/config/endpoint.cc
     ${SRC_DIR}/config/parser.cc
     ${SRC_DIR}/config/state.cc
@@ -380,19 +345,17 @@ add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib
                  process_stat pb_storage_lib)
 target_include_directories(rokerbase
                            PRIVATE ${PROJECT_SOURCE_DIR}/core
-                           ${PROJECT_SOURCE_DIR}/bam/inc)
+                           ${PROJECT_SOURCE_DIR}/bam/inc
+                           ${CMAKE_SOURCE_DIR})
 target_link_libraries(
   rokerbase PRIVATE
   sql
   global_cache
+  broker_cache
   bbdo_bbdo
   pb_broker_lib
-  bbdo
   ctncrypto
   process_stat)
-
-add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker PRIVATE rokerbase crypto ssl pthread dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
@@ -407,8 +370,11 @@ target_link_libraries(
   -Wl,--whole-archive
   log_v2
   sql
+  brokerrpc
   rokerbase
-  roker
+  broker_applier_state
+  broker_bbdo
+  nebbase
   multiplexing
   centreon_common
   centreon_process
@@ -441,7 +407,7 @@ unset(MODULE_LIST)
 # sql library
 add_subdirectory(core/sql)
 
-if (ONLY_ROBOT_CMA)
+if(ONLY_ROBOT_CMA)
   add_broker_module(STATS ON)
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
@@ -456,14 +422,11 @@ else()
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
   add_broker_module(UNIFIED_SQL ON)
-  add_broker_module(SQL ON)
-  add_broker_module(STORAGE ON)
   add_broker_module(INFLUXDB ON)
   add_broker_module(GRAPHITE ON)
   add_broker_module(BAM ON)
   add_broker_module(TCP ON)
   add_broker_module(TLS ON)
-  add_broker_module(TLS2 OFF)
   add_broker_module(DUMP OFF)
   add_broker_module(GRPC ON)
   add_broker_module(VICTORIA_METRICS ON)
@@ -569,6 +532,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/config/init.cc
     ${TEST_DIR}/config/parser.cc
     ${TEST_DIR}/file/disk_accessor.cc
+    ${TEST_DIR}/file/directory_watcher.cc
     ${TEST_DIR}/file/splitter/concurrent.cc
     ${TEST_DIR}/file/splitter/default.cc
     ${TEST_DIR}/file/splitter/more_than_max_size.cc

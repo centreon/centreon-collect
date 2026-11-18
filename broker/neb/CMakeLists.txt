@@ -92,8 +92,7 @@ target_precompile_headers(${NEB} REUSE_FROM nebbase)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
-add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc
-                         ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc)
+add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc)
 
 set_target_properties(cbmod PROPERTIES PREFIX "" POSITION_INDEPENDENT_CODE ON)
 add_dependencies(cbmod target_state_proto)
@@ -104,6 +103,8 @@ target_link_libraries(
   PRIVATE fmt::fmt
   -Wl,--whole-archive
   rokerbase
+  cbmod_applier_state
+  cbmod_bbdo
   process_stat
   centreon_common
   nebbase

@@ -18,7 +18,7 @@
  */
 #include <gtest/gtest.h>
 
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/common/pool.hh"
@@ -34,8 +34,10 @@ std::shared_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;
 class CentreonBrokerEnvironment : public testing::Environment {
  public:
   void SetUp() override {
-    com::centreon::broker::config::applier::state::load(
-        com::centreon::common::BROKER);
+    com::centreon::broker::config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
+    com::centreon::broker::config::applier::state::instance().initialize_cache(
+        log_v2::instance().get(log_v2::CORE));
     com::centreon::broker::io::protocols::load();
     com::centreon::broker::io::events::load();
   }

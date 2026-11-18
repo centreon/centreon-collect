@@ -23,8 +23,9 @@
 #include <mutex>
 #include <thread>
 
-#include "broker/core/bbdo/stream.hh"
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/bbdo/broker_stream.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/raw.hh"
 
@@ -121,12 +122,12 @@ negotiation_result negotiate(const extension_list& central_extensions,
   auto to_central = std::make_shared<channel>();
   auto to_poller = std::make_shared<channel>();
 
-  bbdo::stream central(true, false, central_extensions);
+  bbdo::broker_stream central(true, false, central_extensions);
   central.set_substream(std::make_shared<pipe_end>(to_central, to_poller));
   central.set_negotiate(central_negotiates);
   central.set_timeout(2);
 
-  bbdo::stream poller(false, false, poller_extensions);
+  bbdo::broker_stream poller(false, false, poller_extensions);
   poller.set_substream(std::make_shared<pipe_end>(to_poller, to_central));
   poller.set_timeout(2);
 
@@ -151,7 +152,8 @@ class BbdoNegotiation : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "broker_test", 0);
+      config::applier::init<config::applier::broker_state>("", 0, "broker_test",
+                                                           0);
     } catch (const std::exception&) {
     }
   }

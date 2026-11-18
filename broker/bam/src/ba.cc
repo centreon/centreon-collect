@@ -19,8 +19,8 @@
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/common/fmt_protobuf.hh"
 
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bam/kpi.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 

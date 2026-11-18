@@ -20,7 +20,12 @@
 
 #include <cassert>
 
-#include "com/centreon/broker/config/applier/init.hh"
+#if defined BROKER_COMPILATION
+#include "broker/core/bbdo/broker_stream.hh"
+#elif defined CBMOD_COMPILATION
+#include "broker/core/bbdo/cbmod_stream.hh"
+#endif
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
@@ -28,7 +33,8 @@
 #include "stream.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::bbdo;
+
+namespace com::centreon::broker::bbdo {
 
 /**
  *  Constructor.
@@ -90,24 +96,43 @@ std::shared_ptr<io::stream> acceptor::open() {
     std::shared_ptr<io::stream> u = _from->open();
 
     // Add BBDO layer.
+    std::shared_ptr<io::stream> retval;
     if (u) {
       assert(!_coarse);
       // if _is_output, the stream is an output
-      auto my_bbdo = std::make_unique<bbdo::stream>(
-          !_is_output, _grpc_serialized, _extensions);
-      my_bbdo->set_substream(u);
-      my_bbdo->set_coarse(_coarse);
-      my_bbdo->set_negotiate(_negotiate);
-      my_bbdo->set_timeout(_timeout);
-      my_bbdo->set_ack_limit(_ack_limit);
+      auto peer_type = config::applier::state::instance().peer_type();
+      std::shared_ptr<bbdo::stream> bbdo_stream;
+#if defined(BROKER_COMPILATION)
+      if (peer_type == common::BROKER)
+        bbdo_stream = std::make_shared<bbdo::broker_stream>(
+            !_is_output, _grpc_serialized, _extensions);
+#elif defined(CBMOD_COMPILATION)
+      if (peer_type == common::ENGINE)
+        bbdo_stream = std::make_shared<bbdo::cbmod_stream>(
+            !_is_output, _grpc_serialized, _extensions);
+#endif
+      else {
+        auto retval =
+            std::make_shared<bbdo::basic_stream>(!_is_output, _grpc_serialized);
+        retval->set_substream(u);
+        retval->set_coarse(_coarse);
+        retval->set_timeout(_timeout);
+        retval->set_ack_limit(_ack_limit);
+        return retval;
+      }
+      bbdo_stream->set_substream(u);
+      bbdo_stream->set_coarse(_coarse);
+      bbdo_stream->set_negotiate(_negotiate);
+      bbdo_stream->set_timeout(_timeout);
+      bbdo_stream->set_ack_limit(_ack_limit);
       try {
-        my_bbdo->negotiate(bbdo::stream::negotiate_second);
+        bbdo_stream->negotiate(bbdo::stream::negotiate_second);
       } catch (const std::exception& e) {
         u->stop();
         throw;
       }
 
-      return my_bbdo;
+      return bbdo_stream;
     }
   }
 
@@ -124,3 +149,4 @@ void acceptor::stats(nlohmann::json& tree) {
   if (_from)
     _from->stats(tree);
 }
+}  // namespace com::centreon::broker::bbdo

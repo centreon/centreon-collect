@@ -27,7 +27,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/common/src
 
 add_custom_command(
   DEPENDS engine.proto
-  COMMENT "Generating interface files of the proto file (grpc)"
+  COMMENT "Generating interface files of the proto file (grpc/protobuf)"
   OUTPUT engine.grpc.pb.cc engine.grpc.pb.h
   COMMAND
   protobuf::protoc ARGS --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
@@ -35,7 +35,6 @@ add_custom_command(
     --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat
     --grpc_out="${CMAKE_CURRENT_BINARY_DIR}" ${CMAKE_SOURCE_DIR}/engine/enginerpc/engine.proto
   DEPENDS engine.proto
-  COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT engine.pb.cc engine.pb.h
   COMMAND
     protobuf::protoc ARGS --cpp_out="${CMAKE_CURRENT_BINARY_DIR}"

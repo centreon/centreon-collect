@@ -22,11 +22,12 @@ set(INC_DIR "${PROJECT_SOURCE_DIR}/lua/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/lua/test")
 include_directories(
-  "${INC_DIR}" 
-  "${PROJECT_SOURCE_DIR}/neb/inc" 
-  "${PROJECT_SOURCE_DIR}/bam/inc" 
+  "${INC_DIR}"
+  "${PROJECT_SOURCE_DIR}/neb/inc"
+  "${PROJECT_SOURCE_DIR}/bam/inc"
   "${PROJECT_SOURCE_DIR}/core/cache/inc"
   ${CMAKE_BINARY_DIR}/common/process_stat
+  ${PROJECT_SOURCE_DIR}
   #to remove
   /usr/include/lua5.3
   )
@@ -41,7 +42,7 @@ set(LUA
 add_library(
   "${LUA}" SHARED
   # Sources.
-  "${SRC_DIR}/broker_cache.cc"
+  "${SRC_DIR}/lua_cache.cc"
   "${SRC_DIR}/broker_event.cc"
   "${SRC_DIR}/broker_log.cc"
   "${SRC_DIR}/broker_socket.cc"
@@ -52,7 +53,7 @@ add_library(
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
   # Headers.
-  "${INC_DIR}/broker_cache.hh"
+  "${INC_DIR}/lua_cache.hh"
   "${INC_DIR}/broker_event.hh"
   "${INC_DIR}/broker_log.hh"
   "${INC_DIR}/broker_socket.hh"

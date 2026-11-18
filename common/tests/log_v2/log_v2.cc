@@ -87,14 +87,14 @@ TEST_F(TestLogV2, LoggerUpdated) {
   ASSERT_TRUE(RE2::PartialMatch(lines[2],
                                 "\\[core\\] \\[.*debug.*\\] Second debug log"))
       << "The third log should be of type 'debug'";
-  std::remove("/tmp/test.log");
+  std::filesystem::remove("/tmp/test.log");
 }
 
 TEST_F(TestLogV2, Flush) {
   /* We remove the file if it exists */
   struct stat buffer;
   if (stat("/tmp/test.log", &buffer) == 0)
-    std::remove("/tmp/test.log");
+    std::filesystem::remove("/tmp/test.log");
 
   log_v2::load("ut_common");
   config cfg("/tmp/test.log", config::logger_type::LOGGER_FILE, 3, false,
@@ -131,7 +131,7 @@ TEST_F(TestLogV2, Flush) {
     ++it;
   }
 
-  std::remove("/tmp/test.log");
+  std::filesystem::remove("/tmp/test.log");
 
   /* The flush is disabled */
   cfg.set_flush_interval(0);
@@ -142,6 +142,7 @@ TEST_F(TestLogV2, Flush) {
   logger->debug("log 3");
   std::this_thread::sleep_for(std::chrono::seconds(1));
   content = read_file("/tmp/test.log");
+  std::cout << "Content of the log file:\n" << content << std::endl;
   ASSERT_TRUE(content.find("log 1") != std::string::npos)
       << "Log flush is disabled, we should not have all the logs, here 'log 1'."
       << std::endl;
@@ -152,5 +153,5 @@ TEST_F(TestLogV2, Flush) {
       << "Log flush is disabled, we should not have all the logs, here 'log 3'."
       << std::endl;
 
-  std::remove("/tmp/test.log");
+  std::filesystem::remove("/tmp/test.log");
 }

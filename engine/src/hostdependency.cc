@@ -102,8 +102,6 @@ void hostdependency::set_fail_on_unreachable(bool fail_on_unreachable) {
   _fail_on_unreachable = fail_on_unreachable;
 }
 
-namespace com::centreon::engine {
-
 /**
  *  Dump hostdependency content into the stream.
  *
@@ -112,7 +110,7 @@ namespace com::centreon::engine {
  *
  *  @return The output stream.
  */
-std::ostream& operator<<(std::ostream& os, const hostdependency& obj) {
+std::ostream& operator<<(std::ostream& os, hostdependency const& obj) {
   std::string dependency_period_str;
   if (obj.dependency_period_ptr)
     dependency_period_str = obj.dependency_period_ptr->get_name();
@@ -163,8 +161,6 @@ std::ostream& operator<<(std::ostream& os, const hostdependency& obj) {
         "}\n";
   return os;
 }
-
-}  // namespace com::centreon::engine
 
 /**
  *  Checks to see if there exists a circular dependency for a host.
@@ -305,3 +301,23 @@ void hostdependency::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   }
 }
 
+/**
+ *  Find a service dependency from its key.
+ *
+ *  @param[in] k The service dependency configuration.
+ *
+ *  @return Iterator to the element if found,
+ *          servicedependencies().end() otherwise.
+ */
+hostdependency_mmap::iterator hostdependency::hostdependencies_find(
+    const std::pair<std::string_view, size_t>& key) {
+  std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
+
+  p = hostdependencies.equal_range(key.first);
+  while (p.first != p.second) {
+    if (p.first->second->internal_key() == key.second)
+      break;
+    ++p.first;
+  }
+  return p.first == p.second ? hostdependencies.end() : p.first;
+}

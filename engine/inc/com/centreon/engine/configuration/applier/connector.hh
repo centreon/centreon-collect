@@ -22,9 +22,8 @@
 
 #include "common/engine_conf/connector_helper.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::configuration {
 
-namespace configuration {
 // Forward declarations.
 class connector;
 class state;
@@ -45,13 +44,12 @@ class connector {
   void add_object(const configuration::Connector& obj);
   void modify_object(configuration::Connector* to_modify,
                      const configuration::Connector& new_obj);
-  void remove_object(ssize_t idx);
-  void expand_objects(configuration::State& s);
+  void remove_object(const std::string& key);
   void resolve_object(const configuration::Connector& obj, error_cnt& err);
 };
-}  // namespace applier
-}  // namespace configuration
 
-}  // namespace com::centreon::engine
+}  // namespace applier
+
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_APPLIER_CONNECTOR_HH

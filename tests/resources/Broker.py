@@ -21,6 +21,7 @@ import signal
 from os import setsid
 from os import makedirs
 from os.path import exists
+import glob
 import datetime
 import pymysql.cursors
 import time
@@ -32,7 +33,6 @@ from subprocess import getoutput
 import subprocess as subp
 from robot.api import logger
 import json
-import glob
 import os.path
 import grpc
 import broker_pb2
@@ -42,6 +42,8 @@ from google.protobuf.json_format import MessageToJson, MessageToDict
 from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS, DB_SSL_ENABLED, DB_SSL_CA, DB_SSL_CERT, DB_SSL_KEY, DB_TLS_VERSION
 
 TIMEOUT = 30
+
+current_configs = {}
 
 config = {
     "central": """{{
@@ -93,19 +95,24 @@ config = {
         ],
         "output": [
             {{
-                "name": "central-broker-master-sql",
-                "db_type": "mysql",
-                "retry_interval": "5",
                 "buffering_timeout": "0",
-                "db_host": "{2}",
-                "db_port": "{3}",
-                "db_user": "{4}",
-                "db_password": "{5}",
-                "db_name": "{6}",
-                "queries_per_transaction": "1000",
+                "check_replication": "no",
                 "connections_count": "3",
+                "db_host": "{2}",
+                "db_name": "{6}",
+                "db_password": "{5}",
+                "db_port": "{3}",
+                "db_type": "mysql",
+                "db_user": "{4}",
+                "insert_in_index_data": "1",
+                "interval": "60",
+                "length": "15552000",
+                "name": "central-broker-unified-sql",
+                "queries_per_transaction": "1000",
                 "read_timeout": "1",
-                "type": "sql"
+                "retry_interval": "5",
+                "store_in_data_bin": "yes",
+                "type": "unified_sql"
             }},
             {{
                 "name": "centreon-broker-master-rrd",
@@ -119,26 +126,6 @@ config = {
                 "one_peer_retention_mode": "no",
                 "compression": "no",
                 "type": "ipv4"
-            }},
-            {{
-                "name": "central-broker-master-perfdata",
-                "interval": "60",
-                "retry_interval": "5",
-                "buffering_timeout": "0",
-                "length": "15552000",
-                "db_type": "mysql",
-                "db_host": "{2}",
-                "db_port": "{3}",
-                "db_user": "{4}",
-                "db_password": "{5}",
-                "db_name": "{6}",
-                "queries_per_transaction": "1000",
-                "read_timeout": "1",
-                "check_replication": "no",
-                "store_in_data_bin": "yes",
-                "connections_count": "3",
-                "insert_in_index_data": "1",
-                "type": "storage"
             }}
         ],
         "stats": [
@@ -334,19 +321,24 @@ config = {
         ],
         "output": [
             {{
-                "name": "central-broker-master-sql",
-                "db_type": "mysql",
-                "retry_interval": "5",
                 "buffering_timeout": "0",
-                "db_host": "{2}",
-                "db_port": "{3}",
-                "db_user": "{4}",
-                "db_password": "{5}",
-                "db_name": "{6}",
-                "queries_per_transaction": "1000",
+                "check_replication": "no",
                 "connections_count": "3",
+                "db_host": "{2}",
+                "db_name": "{6}",
+                "db_password": "{5}",
+                "db_port": "{3}",
+                "db_type": "mysql",
+                "db_user": "{4}",
+                "insert_in_index_data": "1",
+                "interval": "60",
+                "length": "15552000",
+                "name": "central-broker-unified-sql",
+                "queries_per_transaction": "1000",
                 "read_timeout": "1",
-                "type": "sql"
+                "retry_interval": "5",
+                "store_in_data_bin": "yes",
+                "type": "unified_sql"
             }},
             {{
                 "name": "centreon-broker-master-rrd",
@@ -372,26 +364,6 @@ config = {
                 "one_peer_retention_mode": "no",
                 "compression": "no",
                 "type": "ipv4"
-            }},
-            {{
-                "name": "central-broker-master-perfdata",
-                "interval": "60",
-                "retry_interval": "5",
-                "buffering_timeout": "0",
-                "length": "15552000",
-                "db_type": "mysql",
-                "db_host": "{2}",
-                "db_port": "{3}",
-                "db_user": "{4}",
-                "db_password": "{5}",
-                "db_name": "{6}",
-                "queries_per_transaction": "1000",
-                "read_timeout": "1",
-                "check_replication": "no",
-                "store_in_data_bin": "yes",
-                "connections_count": "3",
-                "insert_in_index_data": "1",
-                "type": "storage"
             }}
         ],
         "stats": [
@@ -410,19 +382,8 @@ config = {
 
 
 def _apply_conf(name, callback):
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     callback(conf)
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_config_broker(name: str, poller_inst: int = 1):
@@ -440,18 +401,17 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
     makedirs(VAR_ROOT + "/log/centreon-broker/", mode=0o777, exist_ok=True)
     makedirs(VAR_ROOT + "/lib/centreon-broker/", mode=0o777, exist_ok=True)
 
+    key = name
     if name == 'central':
         broker_id = 1
         broker_name = "central-broker-master"
-        filename = "central-broker.json"
     elif name == 'central_map':
+        key = 'central'
         broker_id = 1
         broker_name = "central-broker-master"
-        filename = "central-broker.json"
     elif name == 'module':
         broker_id = 3
         broker_name = "central-module-master"
-        filename = "central-module0.json"
     else:
         if not exists(f"{VAR_ROOT}/lib/centreon/metrics/"):
             makedirs(f"{VAR_ROOT}/lib/centreon/metrics/")
@@ -462,7 +422,6 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
                 f"rrdcreate {VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:300:51841")
         broker_id = 2
         broker_name = "central-rrd-master"
-        filename = "central-rrd.json"
 
     default_bbdo_version = TESTS_PARAMS.get("default_bbdo_version")
     default_transport = TESTS_PARAMS.get("default_transport")
@@ -474,9 +433,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
             conf = json.loads(buf)
             conf["centreonBroker"]["poller_name"] = f"Poller{i}"
             conf["centreonBroker"]["poller_id"] = i + 1
-
-            with open(broker_name, "w") as f:
-                f.write(json.dumps(conf, indent=2))
+            current_configs[f"module{i}"] = conf
             if default_bbdo_version is not None:
                 ctn_broker_config_add_item(
                     f"{name}{i}", "bbdo_version", default_bbdo_version)
@@ -485,9 +442,11 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
                     f"{name}{i}", "bbdo_client", "5669", "grpc", "localhost")
 
     else:
-        with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-            f.write(config[name].format(broker_id, broker_name,
-                                        DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
+        buf = config[name].format(broker_id, broker_name,
+                                    DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT)
+        conf = json.loads(buf)
+        current_configs[key] = conf
+
         if default_bbdo_version is not None:
             if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
                 ctn_config_broker_sql_output(name, 'unified_sql')
@@ -513,7 +472,7 @@ def ctn_change_broker_tcp_output_to_grpc(name: str):
     """
     def output_to_grpc(conf):
         output_dict = conf["centreonBroker"]["output"]
-        for i, v in enumerate(output_dict):
+        for _, v in enumerate(output_dict):
             if v["type"] == "ipv4":
                 v["type"] = "grpc"
             if "transport_protocol" in v:
@@ -533,7 +492,7 @@ def ctn_add_path_to_rrd_output(name: str, path: str):
     """
     def rrd_output(conf):
         output_dict = conf["centreonBroker"]["output"]
-        for i, v in enumerate(output_dict):
+        for _, v in enumerate(output_dict):
             if v["type"] == "rrd":
                 v["path"] = path
 
@@ -550,13 +509,61 @@ def ctn_change_broker_tcp_input_to_grpc(name: str):
     """
     def input_to_grpc(conf):
         input_dict = conf["centreonBroker"]["input"]
-        for i, v in enumerate(input_dict):
+        for _, v in enumerate(input_dict):
             if v["type"] == "ipv4":
                 v["type"] = "grpc"
             if "transport_protocol" in v:
                 v["transport_protocol"] = "grpc"
 
     _apply_conf(name, input_to_grpc)
+
+
+def ctn_broker_config_flush(is_broker: bool=True):
+    """
+    Write the current configurations of broker instances to their configuration files.
+
+    """
+
+    logger.console("Flushing broker configurations")
+    for name, conf in current_configs.items():
+        filename = ''
+        if is_broker:
+            if name == 'central':
+                filename = "central-broker.json"
+            elif name == 'central_map':
+                filename = "central-broker.json"
+            elif name == 'rrd':
+                filename = "central-rrd.json"
+            else:
+                continue
+            logger.console(f"Writing broker (broker) configuration for {name}")
+        else:
+            if name.startswith('module'):
+                filename = "central-{}.json".format(name)
+            else:
+                continue
+            logger.console(f"Writing broker (module) configuration for {name}")
+
+        conf = current_configs[name]
+        with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+            f.write(json.dumps(conf, indent=2))
+
+
+def ctn_broker_config_reset():
+    """
+    Reset the current broker configurations in memory and remove the corresponding
+    configuration files.
+    """
+    global current_configs
+    pattern = "central-*.json"
+    files_to_delete = glob.glob(f"{ETC_ROOT}/centreon-broker/{pattern}")
+    for file in files_to_delete:
+        try:
+            os.remove(file)
+        except OSError as e:
+            logger.console(f"Error deleting file {file}: {e.strerror}")
+
+    current_configs = {}
 
 
 def _add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
@@ -765,24 +772,12 @@ def ctn_config_broker_remove_rrd_output(name):
 
     | Config Broker Remove Rrd Output | central |
     """
-    if name == 'central' or name == 'central_map':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-    conf = {}
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-        conf = json.loads(buf)
-        output_dict = conf["centreonBroker"]["output"]
-        for i, v in enumerate(output_dict):
-            if "rrd" in v["name"] and v["type"] == "ipv4":
-                output_dict.pop(i)
-                break
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
+    conf = current_configs[name]
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if "rrd" in v["name"] and v["type"] == "ipv4":
+            output_dict.pop(i)
+            break
 
 
 def ctn_config_broker_bbdo_input(name, stream, port, proto, host=None):
@@ -809,17 +804,13 @@ def ctn_config_broker_bbdo_input(name, stream, port, proto, host=None):
     if stream == "bbdo_client" and host is None:
         raise Exception("A bbdo_client must specify a host to connect to")
 
-    input_name = f"{name}-broker-master-input"
     if name == 'central' or name == 'central_map':
-        filename = "central-broker.json"
+        input_name = f"{name}-broker-master-input"
     elif name.startswith('module'):
-        filename = f"central-{name}.json"
+        input_name = f"{name}-broker-master-input"
     else:
-        filename = "central-rrd.json"
         input_name = "central-rrd-master-input"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     io_dict = conf["centreonBroker"]["input"]
     # Cleanup
     for i, v in enumerate(io_dict):
@@ -835,8 +826,6 @@ def ctn_config_broker_bbdo_input(name, stream, port, proto, host=None):
     if host is not None:
         stream["host"] = host
     io_dict.append(stream)
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_config_broker_bbdo_output(name, stream, port, proto, host=None):
@@ -862,18 +851,13 @@ def ctn_config_broker_bbdo_output(name, stream, port, proto, host=None):
     if stream == "bbdo_client" and host is None:
         raise Exception("A bbdo_client must specify a host to connect to")
 
-    output_name = f"{name}-broker-master-output"
     if name == 'central' or name == 'central_map':
-        filename = "central-broker.json"
         output_name = 'centreon-broker-master-rrd'
     elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
         output_name = 'central-module-master-output'
     else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+        output_name = f"{name}-broker-master-output"
+    conf = current_configs[name]
     io_dict = conf["centreonBroker"]["output"]
     # Cleanup
     for i, v in enumerate(io_dict):
@@ -889,8 +873,6 @@ def ctn_config_broker_bbdo_output(name, stream, port, proto, host=None):
     if host is not None:
         stream["host"] = host
     io_dict.append(stream)
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
@@ -902,16 +884,7 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
         output (str): One string among "unified_sql" and "sql/perfdata".
         queries_per_transaction (int, optional): Defaults to 20000.
     """
-    if name == 'central' or name == 'central_map':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     output_dict = conf["centreonBroker"]["output"]
     for i, v in enumerate(output_dict):
         if v["type"] == "sql" or v["type"] == "storage" or v["type"] == "unified_sql":
@@ -996,8 +969,6 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
         }
         storage_output.update(tls_config)
         output_dict.append(storage_output)
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_clear_outputs_except(name, ex: list):
@@ -1013,23 +984,11 @@ def ctn_broker_config_clear_outputs_except(name, ex: list):
 
     | Broker Config Clear Outputs Except | central | ["sql", "storage"] |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     output_dict = conf["centreonBroker"]["output"]
     for i, v in enumerate(output_dict):
         if v["type"] not in ex:
             output_dict.pop(i)
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_config_broker_victoria_output():
@@ -1041,11 +1000,7 @@ def ctn_config_broker_victoria_output():
 
     | Config Broker Victoria Output |
     """
-    filename = "central-broker.json"
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs["central"]
     output_dict = conf["centreonBroker"]["output"]
     for i, v in enumerate(output_dict):
         if v["type"] == "victoria_metrics":
@@ -1059,8 +1014,6 @@ def ctn_config_broker_victoria_output():
         "db_password": "titi",
         "queries_per_transaction": "1",
     })
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_config_broker_graphite_output(port: int, metric_naming: str, status_naming: str):
@@ -1075,11 +1028,7 @@ def ctn_config_broker_graphite_output(port: int, metric_naming: str, status_nami
 
     | Config Broker Graphite Output |
     """
-    filename = "central-broker.json"
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs["central"]
     output_dict = conf["centreonBroker"]["output"]
     for i, v in enumerate(output_dict):
         if v["type"] == "graphite":
@@ -1094,8 +1043,6 @@ def ctn_config_broker_graphite_output(port: int, metric_naming: str, status_nami
         "metric_naming": metric_naming,
         "status_naming": status_naming
     })
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_config_broker_influxdb_output(
@@ -1129,7 +1076,6 @@ def ctn_config_broker_influxdb_output(
 
     | Ctn Config Broker Influxdb Output | centreon_metric | centreon_status |
     """
-    filename = "central-broker.json"
 
     metrics_columns = [
         {"name": "host", "value": "$HOST$", "is_tag": "yes", "type": "string"},
@@ -1205,9 +1151,7 @@ def ctn_config_broker_influxdb_output(
             "is_tag": "no", "type": "string"},
     ]
 
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs["central"]
     output_dict = conf["centreonBroker"]["output"]
     for i, v in enumerate(output_dict):
         if v["type"] == "influxdb":
@@ -1226,8 +1170,6 @@ def ctn_config_broker_influxdb_output(
         "metrics_column": metrics_columns,
         "status_column": status_columns,
     })
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
@@ -1239,11 +1181,7 @@ def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
 
     """
     import os
-    filename = "central-broker.json"
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs["central"]
     output_dict = conf["centreonBroker"]["output"]
     for i, v in enumerate(output_dict):
         if v["type"] == "event_script":
@@ -1260,8 +1198,6 @@ def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
             ]
         }
     })
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_add_item(name, key, value):
@@ -1277,19 +1213,8 @@ def ctn_broker_config_add_item(name, key, value):
 
     | Broker Config Add Item | module0 | bbdo_version | 3.0.1 |
     """
-    if name == 'central' or name == 'central_map':
-        filename = "central-broker.json"
-    elif name == 'rrd':
-        filename = "central-rrd.json"
-    elif name.startswith('module'):
-        filename = f"central-{name}.json"
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     conf["centreonBroker"][key] = value
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_remove_item(name, key):
@@ -1305,16 +1230,7 @@ def ctn_broker_config_remove_item(name, key):
 
     | Broker Config Remove Item | module0 | bbdo_version |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name == 'rrd':
-        filename = "central-rrd.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     cc = conf["centreonBroker"]
     if ":" in key:
         steps = key.split(':')
@@ -1323,8 +1239,6 @@ def ctn_broker_config_remove_item(name, key):
         key = steps[-1]
 
     cc.pop(key)
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_add_lua_output(name, output, luafile, params: dict = {}):
@@ -1340,26 +1254,14 @@ def ctn_broker_config_add_lua_output(name, output, luafile, params: dict = {}):
 
     | Broker Config Add Lua Output | central | test-protobuf | /tmp/lua.lua |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     lua_conf_content = {"name": output,
                         "path": luafile,
                         "type": "lua"}
     if len(params) != 0:
         lua_conf_content["lua_parameter"] = params
-    lua_conf = json.load
     output_dict = conf["centreonBroker"]["output"]
     output_dict.append(lua_conf_content)
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_output_set(name, output, key, value):
@@ -1376,20 +1278,10 @@ def ctn_broker_config_output_set(name, output, key, value):
 
     | Broker Config Output Set | central | central-broker-master-sql | host | localhost |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = f"central-{name}.json"
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     output_dict[key] = value
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_add_output(name, content):
@@ -1400,20 +1292,10 @@ def ctn_broker_config_add_output(name, content):
         name (str): The broker instance among central, rrd, module%d.
         content (str): The output to add.
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = f"central-{name}.json"
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
 
     cont = json.loads(content)
     conf["centreonBroker"]["output"].append(cont)
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_output_set_json(name, output, key, value):
@@ -1430,21 +1312,11 @@ def ctn_broker_config_output_set_json(name, output, key, value):
 
     | Broker Config Output Set Json | central | central-broker-master-sql | filters | {"category": ["neb", "foo", "bar"]} |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     j = json.loads(value)
     output_dict[key] = j
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_remove_output(name: str, output: str):
@@ -1455,20 +1327,10 @@ def ctn_broker_config_remove_output(name: str, output: str):
         name (str): The broker instance name among central, rrd and module%d.
         output (str): The output to remove.
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = f"central-{name}.json"
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] != output]
     conf["centreonBroker"]["output"] = output_dict
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_output_remove(name, output, key):
@@ -1484,15 +1346,7 @@ def ctn_broker_config_output_remove(name, output, key):
 
     | Broker Config Output Remove | central | centreon-broker-master-rrd | host |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     if key in output_dict:
@@ -1500,8 +1354,6 @@ def ctn_broker_config_output_remove(name, output, key):
         if key == "host":
             if output_dict["type"] == "bbdo_client":
                 output_dict["type"] = "bbdo_server"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_input_set(name, inp, key, value):
@@ -1518,23 +1370,12 @@ def ctn_broker_config_input_set(name, inp, key, value):
 
     | Broker Config Input Set | rrd | rrd-broker-master-input | encryption | yes |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-
-    conf = json.loads(buf)
+    conf = current_configs[name]
     input_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
     input_dict[key] = value
     if key == "host" and input_dict["type"] == "bbdo_server":
         input_dict["type"] = "bbdo_client"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_input_remove(name, inp, key):
@@ -1546,21 +1387,11 @@ def ctn_broker_config_input_remove(name, inp, key):
         inp: The input to work with.
         key: The key to remove.
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     input_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
     if key in input_dict:
         input_dict.pop(key)
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_log(name, key, value):
@@ -1576,19 +1407,9 @@ def ctn_broker_config_log(name, key, value):
 
     | Ctn Broker Config Log | central | bam | trace |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = f"central-{name}.json"
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     loggers = conf["centreonBroker"]["log"]["loggers"]
     loggers[key] = value
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_flush_log(name, value):
@@ -1603,19 +1424,9 @@ def ctn_broker_config_flush_log(name, value):
 
     | Broker Config Flush Log | central | 1 |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     log = conf["centreonBroker"]["log"]
     log["flush_period"] = value
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_source_log(name, value):
@@ -1630,19 +1441,9 @@ def ctn_broker_config_source_log(name, value):
 
     | Broker Config Source Log | central | 1 |
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     log = conf["centreonBroker"]["log"]
     log["log_source"] = value
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_check_broker_stats_exist(name: str, key1: str, key2: str, timeout: int = TIMEOUT):
@@ -1663,14 +1464,14 @@ def ctn_check_broker_stats_exist(name: str, key1: str, key2: str, timeout: int =
     | ${exist} | Check Broker Stats Exist | mysql manager | poller | waiting tasks in connection 0 |
     | Should Be True | ${exist} |
     """
+    if name == 'central':
+        filename = "central-broker-master-stats.json"
+    elif name == 'module':
+        filename = "central-module-master-stats.json"
+    else:
+        filename = "central-rrd-master-stats.json"
     limit = time.time() + timeout
     while time.time() < limit:
-        if name == 'central':
-            filename = "central-broker-master-stats.json"
-        elif name == 'module':
-            filename = "central-module-master-stats.json"
-        else:
-            filename = "central-rrd-master-stats.json"
         retry = True
         while retry and time.time() < limit:
             retry = False
@@ -1704,13 +1505,13 @@ def ctn_get_broker_stats_size(name: str, key: str, min_expected_value: int, time
     """
     limit = time.time() + timeout
     value = 0
+    if name == 'central':
+        filename = "central-broker-master-stats.json"
+    elif name == 'module':
+        filename = "central-module-master-stats.json"
+    else:
+        filename = "central-rrd-master-stats.json"
     while time.time() < limit:
-        if name == 'central':
-            filename = "central-broker-master-stats.json"
-        elif name == 'module':
-            filename = "central-module-master-stats.json"
-        else:
-            filename = "central-rrd-master-stats.json"
         retry = True
         while retry and time.time() < limit:
             retry = False
@@ -1900,9 +1701,14 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     | Should Be True | ${result} |
     """
     limit = time.time() + timeout
+    to_search = ""
     while time.time() < limit:
         res = getoutput(
             f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
+        if "rrdtool: not found" in res:
+            logger.console("rrdtool not installed. Please install it.")
+            return False
+        logger.console(f"rrdtool info output:\n{res}")
         escaped_key = key.replace("[", "\\[").replace("]", "\\]")
         line_search = re.compile(
             rf"{escaped_key}\s*=\s*{value}")
@@ -1910,6 +1716,7 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
             if (line_search.match(line)):
                 return True
         time.sleep(5)
+    logger.console(f"Failed to find: {to_search} in rrd info for metric {metric_id}")
     return False
 
 
@@ -2465,6 +2272,119 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
     return retval
 
 
+def ctn_check_service_status_in_resources(host_id: int, service_id: int, expected: int, timeout: int = 30):
+    limit = time.time() + timeout
+    retval = False
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                query = f"SELECT status FROM resources WHERE parent_id={host_id} AND id={service_id}"
+                logger.console(query)
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    row = result[0]
+                    # insert a duplicate value at the mid of the day
+                    state = row['status']
+                    logger.console(
+                        f"status of service {host_id}:{service_id} is {state}")
+                    if int(state) == int(expected):
+                        retval = True
+                        break
+        time.sleep(1)
+    return retval
+
+
+def ctn_check_service_status_in_services(host_id: int, service_id: int, expected: int, timeout: int = 30):
+    limit = time.time() + timeout
+    retval = False
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                query = f"SELECT state FROM services WHERE host_id={host_id} AND service_id={service_id}"
+                logger.console(query)
+                cursor.execute(query)
+                result = cursor.fetchall()
+                logger.console(result)
+                if len(result) > 0:
+                    row = result[0]
+                    # insert a duplicate value at the mid of the day
+                    state = row['state']
+                    logger.console(
+                        f"status of service {host_id}:{service_id} is {state}")
+                    if int(state) == int(expected):
+                        retval = True
+                        break
+        time.sleep(1)
+    return retval
+
+
+def ctn_check_host_status_in_resources(host_id: int, expected: int, timeout: int = 30):
+    limit = time.time() + timeout
+    retval = False
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                query = f"SELECT status FROM resources WHERE parent_id=0 AND id={host_id}"
+                logger.console(query)
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    row = result[0]
+                    # insert a duplicate value at the mid of the day
+                    state = row['status']
+                    if int(state) == int(expected):
+                        retval = True
+                        break
+        time.sleep(1)
+    return retval
+
+
+def ctn_check_host_status_in_hosts(host_id: int, expected: int, timeout: int = 30):
+    limit = time.time() + timeout
+    retval = False
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                query = f"SELECT state FROM hosts WHERE host_id={host_id}"
+                logger.console(query)
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    row = result[0]
+                    # insert a duplicate value at the mid of the day
+                    state = row['state']
+                    if int(state) == int(expected):
+                        retval = True
+                        break
+        time.sleep(1)
+    return retval
+
+
 def ctn_add_duplicate_metrics(metric_ids):
     """
     Add a value at the middle of the last day of each metric in the provided list.
@@ -2846,16 +2766,7 @@ def ctn_add_bam_config_to_broker(name):
     Args:
         name (str): The broker name to consider.
     """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-    else:
-        filename = "central-rrd.json"
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
+    conf = current_configs[name]
     output_dict = conf["centreonBroker"]["output"]
     output_dict.append({
         "name": "centreon-bam-monitoring",
@@ -2889,8 +2800,6 @@ def ctn_add_bam_config_to_broker(name):
         "queries_per_transaction": "0",
         "type": "bam_bi"
     })
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
 
 
 def ctn_remove_poller(port, name, timeout=TIMEOUT):
@@ -2943,44 +2852,14 @@ def ctn_remove_poller_by_id(port, idx, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
+def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int, in_resources: bool = False):
     """
     Check if all the hosts monitored by a poller are disabled.
 
     Args:
         poller_id: The poller ID.
         timeout: A timeout in seconds.
-
-    Returns:
-        True on success.
-    """
-    limit = time.time() + timeout
-    while time.time() < limit:
-        connection = pymysql.connect(host=DB_HOST,
-                                     user=DB_USER,
-                                     password=DB_PASS,
-                                     database=DB_NAME_STORAGE,
-                                     charset='utf8mb4',
-                                     cursorclass=pymysql.cursors.DictCursor)
-
-        with connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
-                result = cursor.fetchall()
-                if len(result) == 0:
-                    return True
-        time.sleep(2)
-    return False
-
-
-def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int, in_resources: bool = False):
-    """
-    Check if at least one host monitored by a poller is enabled.
-
-    Args:
-        poller_id: The poller ID.
-        timeout: A timeout in seconds.
+        in_resources: A boolean to tell if the check is made on resources table or not.
 
     Returns:
         True on success.
@@ -2998,11 +2877,52 @@ def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int, in_resour
             with connection.cursor() as cursor:
                 if in_resources:
                     cursor.execute(
-                        f"SELECT DISTINCT enabled FROM resources WHERE poller_id = {poller_id} AND enabled > 0")
+                        f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
                 else:
                     cursor.execute(
                         f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
                 result = cursor.fetchall()
+                if len(result) == 0:
+                    return True
+        time.sleep(2)
+    return False
+
+
+def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int, in_resources: bool = False):
+    """
+    Check if at least one host monitored by a poller is enabled.
+
+    Args:
+        poller_id: The poller ID.
+        timeout: A timeout in seconds.
+        in_resources: A boolean to tell if the check is made on resources table or not.
+
+    Returns:
+        True on success.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                if in_resources:
+                    logger.console(
+                        f"SELECT DISTINCT enabled FROM resources WHERE poller_id = {poller_id} AND enabled > 0")
+                    cursor.execute(
+                        f"SELECT DISTINCT enabled FROM resources WHERE poller_id = {poller_id} AND enabled > 0")
+                else:
+                    logger.console(
+                        f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
+                    cursor.execute(
+                        f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
+                result = cursor.fetchall()
+                logger.console(f"result: {result}")
                 if len(result) > 0:
                     return True
         time.sleep(2)
@@ -3088,6 +3008,7 @@ def ctn_set_broker_log_level(port, log, level, timeout=TIMEOUT):
         timeout: A timeout in seconds, 30s by default.
     """
     limit = time.time() + timeout
+    res = ""
     while time.time() < limit:
         logger.console("Try to call SetLogLevel")
         time.sleep(1)
@@ -3495,13 +3416,10 @@ def ctn_init_data_bin_without_partition():
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
-    now = int(time.time())
-    before = now - 60
-    after = now + 3600
     with connection:
         with connection.cursor() as cursor:
             cursor.execute("DROP TABLE IF EXISTS data_bin")
-            sql = f"""CREATE TABLE `data_bin` (
+            sql = """CREATE TABLE `data_bin` (
   `id_metric` int(11) DEFAULT NULL,
   `ctime` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,
@@ -3606,3 +3524,4 @@ def ctn_broker_get_bbdo_version():
             return conf["centreonBroker"]["bbdo_version"]
         else:
             return "2.0.0"
+

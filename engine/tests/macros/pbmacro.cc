@@ -52,9 +52,12 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 
 class Macro : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
-    init_config_state();
+    _state_hlp = init_config_state();
     _tp = _creator.new_timeperiod();
     for (int i(0); i < 7; ++i)
       _creator.new_timerange(0, 0, 24, 0, i);
@@ -82,7 +85,8 @@ class Macro : public TestEngine {
 // Then the applier add_object throws an exception.
 TEST_F(Macro, PbPollerName) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -92,8 +96,9 @@ TEST_F(Macro, PbPollerName) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
   nagios_macros* mac(get_global_macros());
@@ -103,7 +108,8 @@ TEST_F(Macro, PbPollerName) {
 
 TEST_F(Macro, PbPollerId) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -113,8 +119,9 @@ TEST_F(Macro, PbPollerId) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
   std::string out;
   nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$POLLERID$", out, 0);
@@ -348,7 +355,8 @@ TEST_F(Macro, PbContactPager) {
 
 TEST_F(Macro, PbAdminEmail) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -358,8 +366,9 @@ TEST_F(Macro, PbAdminEmail) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
 
   init_macros();
 
@@ -371,7 +380,8 @@ TEST_F(Macro, PbAdminEmail) {
 
 TEST_F(Macro, PbAdminPager) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -381,8 +391,9 @@ TEST_F(Macro, PbAdminPager) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
 
   init_macros();
 
@@ -394,7 +405,8 @@ TEST_F(Macro, PbAdminPager) {
 
 TEST_F(Macro, PbMainConfigFile) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -403,8 +415,9 @@ TEST_F(Macro, PbMainConfigFile) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -415,7 +428,8 @@ TEST_F(Macro, PbMainConfigFile) {
 
 TEST_F(Macro, PbStatusDataFile) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -425,8 +439,9 @@ TEST_F(Macro, PbStatusDataFile) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -437,7 +452,8 @@ TEST_F(Macro, PbStatusDataFile) {
 
 TEST_F(Macro, PbRetentionDataFile) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -448,8 +464,9 @@ TEST_F(Macro, PbRetentionDataFile) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -460,7 +477,8 @@ TEST_F(Macro, PbRetentionDataFile) {
 
 TEST_F(Macro, PbTempFile) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -469,8 +487,9 @@ TEST_F(Macro, PbTempFile) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -481,7 +500,8 @@ TEST_F(Macro, PbTempFile) {
 
 TEST_F(Macro, PbLogFile) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -490,8 +510,9 @@ TEST_F(Macro, PbLogFile) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -502,7 +523,8 @@ TEST_F(Macro, PbLogFile) {
 
 TEST_F(Macro, PbCommandFile) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -512,8 +534,9 @@ TEST_F(Macro, PbCommandFile) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -524,7 +547,8 @@ TEST_F(Macro, PbCommandFile) {
 
 TEST_F(Macro, PbTempPath) {
   configuration::parser parser;
-  configuration::State st;
+  auto st = std::make_unique<configuration::State>();
+  configuration::state_helper st_hlp(st.get());
 
   std::remove("/tmp/test-config.cfg");
 
@@ -533,8 +557,9 @@ TEST_F(Macro, PbTempPath) {
   ofs.close();
 
   configuration::error_cnt err;
-  parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  parser.parse("/tmp/test-config.cfg", st.get(), err);
+  st_hlp.expand(err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -549,8 +574,8 @@ TEST_F(Macro, PbContactGroupName) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
@@ -558,7 +583,7 @@ TEST_F(Macro, PbContactGroupName) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   cg_aply.resolve_object(cg, err);
 
   init_macros();
@@ -577,8 +602,8 @@ TEST_F(Macro, PbContactGroupAlias) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
@@ -586,7 +611,7 @@ TEST_F(Macro, PbContactGroupAlias) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
@@ -604,8 +629,8 @@ TEST_F(Macro, PbContactGroupMembers) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
@@ -613,7 +638,7 @@ TEST_F(Macro, PbContactGroupMembers) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
@@ -631,8 +656,8 @@ TEST_F(Macro, PbContactGroupNames) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
@@ -640,7 +665,7 @@ TEST_F(Macro, PbContactGroupNames) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
@@ -663,15 +688,15 @@ TEST_F(Macro, PbNotificationRecipients) {
   configuration::contact_helper ctct1_hlp(&ctct1);
   fill_pb_configuration_contact(&ctct1_hlp, "admin1", false, "c,r");
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
   configuration::Contact ctct2;
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst;
@@ -728,15 +753,15 @@ TEST_F(Macro, PbNotificationAuthor) {
   configuration::contact_helper ctct1_hlp(&ctct1);
   fill_pb_configuration_contact(&ctct1_hlp, "admin1", false, "c,r");
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
   configuration::Contact ctct2;
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst;
@@ -793,15 +818,15 @@ TEST_F(Macro, PbNotificationAuthorName) {
   configuration::contact_helper ctct1_hlp(&ctct1);
   fill_pb_configuration_contact(&ctct1_hlp, "admin1", false, "c,r");
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
   configuration::Contact ctct2;
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst;
@@ -854,14 +879,14 @@ TEST_F(Macro, PbNotificationAuthorAlias) {
   configuration::Contact ctct1{
       new_pb_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
   configuration::Contact ctct2{
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
@@ -908,14 +933,14 @@ TEST_F(Macro, PbNotificationComment) {
   configuration::Contact ctct1{
       new_pb_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
   configuration::Contact ctct2{
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst{new_pb_configuration_host("test_host", "admin")};

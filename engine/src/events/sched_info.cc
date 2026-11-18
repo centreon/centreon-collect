@@ -48,13 +48,13 @@ void display_scheduling_info() {
             << "\n"
                "Total scheduled hosts:              "
             << scheduling_info.total_scheduled_hosts << "\n";
-  if (pb_config.host_inter_check_delay_method().type() ==
+  if (pb_indexed_config.state().host_inter_check_delay_method().type() ==
       configuration::InterCheckDelay_IcdType_none) {
     std::cout << "Host inter-check delay method:      NONE\n";
-  } else if (pb_config.host_inter_check_delay_method().type() ==
+  } else if (pb_indexed_config.state().host_inter_check_delay_method().type() ==
              configuration::InterCheckDelay_IcdType_dumb) {
     std::cout << "Host inter-check delay method:      DUMB\n";
-  } else if (pb_config.host_inter_check_delay_method().type() ==
+  } else if (pb_indexed_config.state().host_inter_check_delay_method().type() ==
              configuration::InterCheckDelay_IcdType_smart) {
     std::cout << "Host inter-check delay method:      SMART\n"
                  "Average host check interval:        "
@@ -83,28 +83,31 @@ void display_scheduling_info() {
             << "\n"
                "Total scheduled services:           "
             << scheduling_info.total_scheduled_services << "\n";
-  if (pb_config.service_inter_check_delay_method().type() ==
+  if (pb_indexed_config.state().service_inter_check_delay_method().type() ==
       configuration::InterCheckDelay_IcdType_none) {
     std::cout << "Service inter-check delay method:   NONE\n";
-  } else if (pb_config.service_inter_check_delay_method().type() ==
-             configuration::InterCheckDelay_IcdType_dumb) {
+  } else if (pb_indexed_config.state()
+                 .service_inter_check_delay_method()
+                 .type() == configuration::InterCheckDelay_IcdType_dumb) {
     std::cout << "Service inter-check delay method:   DUMB\n";
-  } else if (pb_config.service_inter_check_delay_method().type() ==
-             configuration::InterCheckDelay_IcdType_smart) {
+  } else if (pb_indexed_config.state()
+                 .service_inter_check_delay_method()
+                 .type() == configuration::InterCheckDelay_IcdType_smart) {
     std::cout << "Service inter-check delay method:   SMART\n"
                  "Average service check interval:     "
               << scheduling_info.average_service_check_interval << " sec\n";
   } else {
     std::cout << "Service inter-check delay method:   USER-SUPPLIED VALUE\n";
   }
-  std::cout << "Inter-check delay:                  "
-            << scheduling_info.service_inter_check_delay
-            << " sec\n Interleave factor method:           "
-            << (pb_config.service_interleave_factor_method().type() ==
-                        configuration::InterleaveFactor::ilf_user
-                    ? "USER-SUPPLIED VALUE\n"
-                    : "SMART\n");
-  if (pb_config.service_interleave_factor_method().type() ==
+  std::cout
+      << "Inter-check delay:                  "
+      << scheduling_info.service_inter_check_delay
+      << " sec\n Interleave factor method:           "
+      << (pb_indexed_config.state().service_interleave_factor_method().type() ==
+                  configuration::InterleaveFactor::ilf_user
+              ? "USER-SUPPLIED VALUE\n"
+              : "SMART\n");
+  if (pb_indexed_config.state().service_interleave_factor_method().type() ==
       configuration::InterleaveFactor::ilf_smart) {
     std::cout << "Average services per host:          "
               << scheduling_info.average_services_per_host << "\n";
@@ -123,12 +126,13 @@ void display_scheduling_info() {
   std::cout << "CHECK PROCESSING INFORMATION\n"
                "----------------------------\n"
                "Check result reaper interval:       "
-            << pb_config.check_reaper_interval() << " sec\n";
-  if (pb_config.max_parallel_service_checks() == 0) {
+            << pb_indexed_config.state().check_reaper_interval() << " sec\n";
+  if (pb_indexed_config.state().max_parallel_service_checks() == 0) {
     std::cout << "Max concurrent service checks:      Unlimited\n";
   } else {
     std::cout << "Max concurrent service checks:      "
-              << pb_config.max_parallel_service_checks() << "\n";
+              << pb_indexed_config.state().max_parallel_service_checks()
+              << "\n";
   }
   std::cout << "\n";
   // Performance suggestions.
@@ -146,12 +150,12 @@ void display_scheduling_info() {
     max_reaper_interval = 2.0;
   if (max_reaper_interval > 30.0)
     max_reaper_interval = 30.0;
-  if (max_reaper_interval < pb_config.check_reaper_interval()) {
+  if (max_reaper_interval < pb_indexed_config.state().check_reaper_interval()) {
     std::cout << "* Value for 'check_result_reaper_frequency' should be <= "
               << static_cast<int>(max_reaper_interval) << " seconds\n";
     ++suggestions;
   }
-  if (pb_config.check_reaper_interval() < 2) {
+  if (pb_indexed_config.state().check_reaper_interval() < 2) {
     std::cout << "* Value for 'check_result_reaper_frequency' should be >= 2 "
                  "seconds\n";
     ++suggestions;
@@ -164,17 +168,18 @@ void display_scheduling_info() {
   float minimum_concurrent_checks1(0.0);
   float minimum_concurrent_checks2(0.0);
   if (scheduling_info.service_inter_check_delay == 0.0)
-    minimum_concurrent_checks1 = ceil(pb_config.check_reaper_interval() * 2.0);
+    minimum_concurrent_checks1 =
+        ceil(pb_indexed_config.state().check_reaper_interval() * 2.0);
   else
     minimum_concurrent_checks1 =
-        ceil((pb_config.check_reaper_interval() * 2.0) /
+        ceil((pb_indexed_config.state().check_reaper_interval() * 2.0) /
              scheduling_info.service_inter_check_delay);
   // Second method (new) - assume a 25% (1.25x) service check
   // burst for max concurrent checks.
   minimum_concurrent_checks2 =
       ceil((((double)scheduling_info.total_scheduled_services) /
             scheduling_info.average_service_check_interval) *
-           1.25 * pb_config.check_reaper_interval() *
+           1.25 * pb_indexed_config.state().check_reaper_interval() *
            scheduling_info.average_service_execution_time);
   // Use max of computed values.
   if (minimum_concurrent_checks1 > minimum_concurrent_checks2)
@@ -182,8 +187,9 @@ void display_scheduling_info() {
   else
     minimum_concurrent_checks = minimum_concurrent_checks2;
   // Compare with configured value.
-  if ((minimum_concurrent_checks > pb_config.max_parallel_service_checks()) &&
-      pb_config.max_parallel_service_checks() != 0) {
+  if ((minimum_concurrent_checks >
+       pb_indexed_config.state().max_parallel_service_checks()) &&
+      pb_indexed_config.state().max_parallel_service_checks() != 0) {
     std::cout << "* Value for 'max_concurrent_checks' option should be >= "
               << static_cast<int>(minimum_concurrent_checks) << "\n";
     ++suggestions;

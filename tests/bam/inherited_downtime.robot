@@ -86,6 +86,11 @@ BEBAMIDT2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Flush Log    central    0
     Ctn Config Engine    ${1}
 
     Ctn Clone Engine Config To Db
@@ -138,17 +143,21 @@ BEBAMIDT2
     END
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
+    Log To Console    Checking that there are still two downtimes
     ${result}    Ctn Check Downtimes With Timeout    2    60
     Should Be True    ${result}    We should have two downtimes
 
     # The downtime is deleted
+    Log To Console    Deleting the downtime on service_314
     Ctn Delete Service Downtime    host_16    service_314
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) is in downtime but should not.
 
+    Log To Console    Checking that there is no more downtime
     ${result}    Ctn Check Downtimes With Timeout    0    60
     Should Be True    ${result}    We should have no more downtime
 
+    Log To Console    Checking that there is no more downtime on the BA
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 

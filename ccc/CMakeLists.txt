@@ -43,6 +43,7 @@ endif()
 include_directories(
   ${CMAKE_BINARY_DIR}/bbdo
   ${CMAKE_BINARY_DIR}/common/process_stat
+  ${CMAKE_BINARY_DIR}/common/engine_conf
   ${CMAKE_SOURCE_DIR}/broker/core/src ${CMAKE_SOURCE_DIR}/engine/enginerpc
   ${CMAKE_SOURCE_DIR}/common/src)
 
@@ -67,7 +68,13 @@ target_link_libraries(
   process_stat
   pb_common_lib
   protobuf::libprotobuf
-  fmt::fmt)
+  fmt::fmt
+  # libcentreon_engine_conf.so (through pb_broker_lib) leaves these symbols to
+  # the executable; they must come after it for GNU ld.
+  centreon_engine_conf
+  log_v2
+  centreon_file_system
+  protobuf::libprotobuf)
 
 set_target_properties(ccc PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

@@ -900,7 +900,7 @@ BEEXTCMD_REVERSE_GRPC1
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-        Ctn Wait For Engine To Be Ready    ${1}
+        Ctn Wait For Engine To Be Ready    ${start}    ${1}
         #lets time to grpc to start
         Sleep  0.1
 
@@ -1240,6 +1240,7 @@ BECUSTOMHOSTVAR
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1    version=3.1.0
@@ -1275,6 +1276,7 @@ BECUSTOMSVCVAR
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1    version=3.1.0
@@ -1310,6 +1312,7 @@ BESERVCHECK
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -1339,6 +1342,7 @@ BEHOSTCHECK
     [Tags]    broker    engine    host    extcmd    bbdo3
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -1364,7 +1368,7 @@ BE_BACKSLASH_CHECK_RESULT
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Broker Config Log    central    sql    debug
-    FOR    ${use_grpc}    IN RANGE    0    2
+    FOR    ${use_grpc}    IN RANGE    2
         Log To Console    external command PROCESS_SERVICE_CHECK_RESULT use_grpc=${use_grpc}
         Ctn Clear Retention
         ${start}    Get Current Date

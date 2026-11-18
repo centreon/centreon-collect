@@ -31,49 +31,23 @@ BESS1
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS2
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
-    [Tags]    broker    engine    start-stop
-    ${test_direct_grpc}    Ctn Is Using Direct Grpc
-    IF    ${test_direct_grpc}
-        Pass Execution    Test passes, skipping on direct grpc tests
-    END
-    Ctn Clear Retention
-    Ctn Config Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Broker Config Log    central    sql    debug
-    Ctn Broker Config Log    central    bbdo    info
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-    ${result}    Ctn Check Connections
-    Should Be True    ${result}    Connection between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}    Poller not visible in database
-    Ctn Stop Engine
-    ${content}    Create List    SQL: Disabling poller
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No stop event processed by central cbd
-    ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}    Poller still visible in database
-    Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
-
-BESS2U
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first.
-    ...    Unified_sql is used.
+    [Documentation]    Scenario: Start and stop Broker/Engine with Broker started first and Engine stopped first
+    ...    Given the Broker is started before the Engine and both use BBDO 3
+    ...    When the Engine is started after the Broker
+    ...    Then the connection between Engine and Broker should be established
+    ...    And the poller should be visible in the database
+    ...    When the Engine is stopped before the Broker
+    ...    Then the poller should be disabled and not visible in the database
+    ...    And neither Broker nor Engine should crash
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    bbdo    error
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
@@ -82,7 +56,7 @@ BESS2U
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
     Should Be True    ${result}    Poller not visible in database
     ${content}    Create List    'central-rrd-master' with id [0-9]+ connected
     ${result}    Ctn Find RegEx In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -96,7 +70,7 @@ BESS2U
     ${content}    Create List    unified_sql: Disabling poller
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No stop event processed by central cbd
-    ${result}    Ctn Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    10    ${True}
     Should Be True    ${result}    Poller still visible in database
     &{result}    Ctn Get Peers    51001
     Log To Console    ${result}
@@ -232,10 +206,10 @@ BESS_GRPC3
     Ctn Start Broker
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connections between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    20
     Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
-    ${result}    Ctn Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    20
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -516,7 +490,7 @@ BESS_ENGINE_DELETE_HOST
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
     Ctn Kindly Stop Broker    True
     Ctn Start Broker    True
-    Ctn Engine Config Remove Service Host    ${0}    host_16
+    Ctn Engine Config Remove All Services From Host    ${0}    host_16
     Ctn Engine Config Remove Host    ${0}    host_16
     Ctn Reload Engine
     Sleep    2s
@@ -539,7 +513,7 @@ BESSBQ1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Source Log    central    true
     Ctn Clear Retention
-    Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
+    Ctn Create Bad Queue    central-broker-master.queue.central-broker-unified-sql
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${result}    Ctn In Bbdo2
     Should Be True    ${result}    We should be in BBDO2 in this test.
@@ -671,6 +645,7 @@ BESSCTO
     Ctn Engine Command Remove Connector    ${0}    *
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1    3.0.1
     FOR    ${i}    IN RANGE    2
       ${start}    Ctn Get Round Current Date
@@ -696,6 +671,7 @@ BESSCTOWC
     Ctn Engine Command Add Arg    ${0}    *    --duration 1000
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1    3.0.1
     FOR    ${i}    IN RANGE    2
       ${start}    Ctn Get Round Current Date

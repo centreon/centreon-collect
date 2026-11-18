@@ -82,7 +82,7 @@ void contactgroup_helper::check_validity(error_cnt& err) const {
 void contactgroup_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Contactgroup*>&
         m_contactgroups) {
   absl::flat_hash_set<std::string_view> resolved;
 
@@ -113,7 +113,7 @@ void contactgroup_helper::_resolve_members(
     configuration::Contactgroup& obj,
     absl::flat_hash_set<std::string_view>& resolved,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Contactgroup*>&
         m_contactgroups) {
   if (resolved.contains(obj.contactgroup_name()))
     return;

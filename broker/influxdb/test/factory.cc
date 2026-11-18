@@ -45,25 +45,25 @@ TEST(InfluxDBFactory, MissingParams) {
   std::shared_ptr<persistent_cache> cache;
   bool is_acceptor;
 
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["db_user"] = "admin";
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["db_password"] = "pass";
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["db_host"] = "host";
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["db_name"] = "centreon";
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["db_port"] = "centreon";
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["db_port"] = "4242";
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["queries_per_transaction"] = "centreon";
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["queries_per_transaction"] = "100";
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["status_timeseries"] = "host_status";
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 }
 
 TEST(InfluxDBFactory, StatusException) {
@@ -86,7 +86,7 @@ TEST(InfluxDBFactory, StatusException) {
   conf["status_column"] = nullptr;
   cfg.cfg = conf;
   std::unique_ptr<io::endpoint> ep;
-  ASSERT_NO_THROW(ep.reset(fact.new_endpoint(cfg, {}, is_acceptor, cache)));
+  ASSERT_NO_THROW(ep.reset(fact.new_endpoint(cfg, {}, is_acceptor)));
 
   json js1 = json::object({{"name", json{nullptr}},
                            {"value", json{nullptr}},
@@ -94,7 +94,7 @@ TEST(InfluxDBFactory, StatusException) {
                            {"type", json{nullptr}}});
   conf["status_column"] = js1;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js2 = json::object({{"name", "host"},
                            {"value", json{nullptr}},
@@ -102,7 +102,7 @@ TEST(InfluxDBFactory, StatusException) {
                            {"type", json{nullptr}}});
   conf["status_column"] = js2;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js3 = json::object({{"name", "host"},
                            {"value", "val"},
@@ -110,7 +110,7 @@ TEST(InfluxDBFactory, StatusException) {
                            {"type", json{nullptr}}});
   conf["status_column"] = js3;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js4 = json::object({{"name", "host"},
                            {"value", "val"},
@@ -118,7 +118,7 @@ TEST(InfluxDBFactory, StatusException) {
                            {"type", json{nullptr}}});
   conf["status_column"] = js4;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js5 = json::object({{"name", "host"},
                            {"value", "val"},
@@ -126,7 +126,7 @@ TEST(InfluxDBFactory, StatusException) {
                            {"type", "bad"}});
   conf["status_column"] = js5;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js6 = json::object({{"name", "host"},
                            {"value", "val"},
@@ -134,13 +134,13 @@ TEST(InfluxDBFactory, StatusException) {
                            {"type", "number"}});
   conf["status_column"] = js6;
   cfg.cfg = conf;
-  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor));
 
   json js7 = json::object(
       {{"name", ""}, {"value", "val"}, {"is_tag", "true"}, {"type", "number"}});
   conf["status_column"] = js7;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json array = json::array();
   array.push_back(js6);
@@ -149,7 +149,7 @@ TEST(InfluxDBFactory, StatusException) {
   array.push_back(js6);
   conf["status_column"] = array;
   cfg.cfg = conf;
-  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor));
 }
 
 TEST(InfluxDBFactory, MetricException) {
@@ -172,7 +172,7 @@ TEST(InfluxDBFactory, MetricException) {
   conf["metric_column"] = nullptr;
   cfg.cfg = conf;
   std::unique_ptr<io::endpoint> ep;
-  ASSERT_NO_THROW(ep.reset(fact.new_endpoint(cfg, {}, is_acceptor, cache)));
+  ASSERT_NO_THROW(ep.reset(fact.new_endpoint(cfg, {}, is_acceptor)));
 
   json js1 = json::object({{"name", json{nullptr}},
                            {"value", json{nullptr}},
@@ -180,7 +180,7 @@ TEST(InfluxDBFactory, MetricException) {
                            {"type", json{nullptr}}});
   conf["metrics_column"] = js1;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js2 = json::object({{"name", "host"},
                            {"value", json{nullptr}},
@@ -188,7 +188,7 @@ TEST(InfluxDBFactory, MetricException) {
                            {"type", json{nullptr}}});
   conf["metrics_column"] = js2;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js3 = json::object({{"name", "host"},
                            {"value", "val"},
@@ -196,7 +196,7 @@ TEST(InfluxDBFactory, MetricException) {
                            {"type", json{nullptr}}});
   conf["metrics_column"] = js3;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js4 = json::object({{"name", "host"},
                            {"value", "val"},
@@ -204,7 +204,7 @@ TEST(InfluxDBFactory, MetricException) {
                            {"type", json{nullptr}}});
   conf["metrics_column"] = js4;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js5 = json::object({{"name", "host"},
                            {"value", "val"},
@@ -212,7 +212,7 @@ TEST(InfluxDBFactory, MetricException) {
                            {"type", "bad"}});
   conf["metrics_column"] = js5;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json js6 = json::object({{"name", "host"},
                            {"value", "val"},
@@ -220,7 +220,7 @@ TEST(InfluxDBFactory, MetricException) {
                            {"type", "number"}});
   conf["metrics_column"] = js6;
   cfg.cfg = conf;
-  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor));
 
   json js7 = json::object({{"name", ""},
                            {"value", "val"},
@@ -228,7 +228,7 @@ TEST(InfluxDBFactory, MetricException) {
                            {"type", "number"}});
   conf["metrics_column"] = js7;
   cfg.cfg = conf;
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 
   json array = json::array();
   array.push_back(js6);
@@ -237,5 +237,5 @@ TEST(InfluxDBFactory, MetricException) {
   array.push_back(js6);
   conf["metrics_column"] = array;
   cfg.cfg = conf;
-  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor));
 }

@@ -20,9 +20,10 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
-#include "broker/core/bbdo/stream.hh"
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
+#include "broker/core/bbdo/broker_stream.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
+#include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
@@ -73,7 +74,9 @@ class UnifiedSqlRebuild2Test : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::SQL);
     io::data::broker_id = 0;
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "broker_test", 0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "broker_test", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -104,7 +107,7 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   (*r->mut_obj().mutable_metric_to_index_id())[5] = 1;
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::broker_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
   stm.set_negotiate(false);
@@ -153,7 +156,7 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
   }
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::broker_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
   stm.set_negotiate(false);

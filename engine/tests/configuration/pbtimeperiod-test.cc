@@ -25,7 +25,6 @@
 
 #include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
@@ -834,8 +833,8 @@ class timeperiod_config_parser_test
     : public ::testing::TestWithParam<std::vector<std::string>> {
  protected:
  public:
-  static void SetUpTestSuite() { pb_config.Clear(); }
-  static void TearDownTestSuite() {};
+  static void SetUpTestSuite() { pb_indexed_config.mut_state().Clear(); }
+  static void TearDownTestSuite(){};
 
  protected:
   void SetUp() override {}

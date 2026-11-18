@@ -71,6 +71,7 @@
 #include <boost/multi_index_container.hpp>
 
 #include <fmt/ranges.h>
+#include <fmt/std.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 

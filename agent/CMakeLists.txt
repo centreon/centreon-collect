@@ -91,7 +91,7 @@ endforeach()
 add_custom_command(
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
           ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
-  COMMENT "Generating interface files from the conf centagent proto file (grpc)"
+  COMMENT "Generating interface files from the conf centagent proto file (grpc/protobuf)"
   OUTPUT ${SRC_DIR}/agent.grpc.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
@@ -101,7 +101,6 @@ add_custom_command(
     --grpc_out=${SRC_DIR} ${PROJECT_SOURCE_DIR}/proto/agent.proto
   DEPENDS ${PROJECT_SOURCE_DIR}/proto/agent.proto
           ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
-  COMMENT "Generating interface files from the conf centagent proto file (protobuf)"
   OUTPUT ${SRC_DIR}/agent.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}

@@ -41,9 +41,9 @@ int open_command_file(void) {
   struct stat st;
 
   /* if we're not checking external commands, don't do anything */
-  if (!pb_config.check_external_commands())
+  if (!pb_indexed_config.state().check_external_commands())
     return OK;
-  const std::string& command_file{pb_config.command_file()};
+  const std::string& command_file{pb_indexed_config.state().command_file()};
 
   /* the command file was already created */
   if (command_file_created)
@@ -156,11 +156,11 @@ int open_command_file(void) {
 /* closes the external command file FIFO and deletes it */
 int close_command_file(void) {
   /* if we're not checking external commands, don't do anything */
-  if (!pb_config.check_external_commands())
+  if (!pb_indexed_config.state().check_external_commands())
     return OK;
 
   /* the command file wasn't created or was already cleaned up */
-  if (command_file_created == false)
+  if (!command_file_created)
     return OK;
 
   /* reset our flag */
@@ -168,6 +168,10 @@ int close_command_file(void) {
 
   /* close the command file */
   fclose(command_file_fp);
+
+  /* Delete the named pipe */
+  const std::string& command_file{pb_indexed_config.state().command_file()};
+  unlink(command_file.c_str());
 
   return OK;
 }
@@ -253,7 +257,7 @@ static void command_file_worker_thread() {
     }
 
     external_command_buffer.set_capacity(
-        pb_config.external_command_buffer_slots());
+        pb_indexed_config.state().external_command_buffer_slots());
 
     /* process all commands in the file (named pipe) if there's some space in
      * the buffer */

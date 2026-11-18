@@ -30,14 +30,13 @@
 #include "com/centreon/engine/configuration/applier/macros.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
 #include "common/engine_conf/command_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-
-extern configuration::State pb_config;
 
 /* The host check command prints the macros it receives in its environment. */
 static constexpr const char* env_script = "/tmp/pbmacro_global_context.sh";
@@ -54,7 +53,7 @@ static constexpr const char* env_script = "/tmp/pbmacro_global_context.sh";
 class GlobalMacrosContext : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state();
+    _state_hlp = init_config_state();
     // The engine creates it at startup. Created by the reload, its constructor
     // would clear the macros and hide the bug.
     configuration::applier::macros::instance();
@@ -66,13 +65,13 @@ class GlobalMacrosContext : public TestEngine {
               "SERVICEDESC=[${NAGIOS_SERVICEDESC}]\"\n";
     script.close();
 
-    pb_config.set_enable_environment_macros(true);
+    pb_indexed_config.mut_state().set_enable_environment_macros(true);
 
     configuration::error_cnt err;
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_config);
+    _state_hlp->expand(err);
     ct_aply.resolve_object(ctct, err);
 
     configuration::Command env_cmd;
@@ -120,6 +119,7 @@ class GlobalMacrosContext : public TestEngine {
   }
 
  protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
   std::shared_ptr<engine::host> _host;
   std::shared_ptr<engine::service> _svc;
 
@@ -144,15 +144,15 @@ class GlobalMacrosContext : public TestEngine {
 
   /* Reload the configuration without any service. */
   void reload_without_services() {
-    configuration::State new_cfg;
-    new_cfg.CopyFrom(pb_config);
-    new_cfg.mutable_services()->Clear();
+    configuration::indexed_state current(pb_indexed_config);
+    std::unique_ptr<configuration::State> new_cfg(current.release());
+    new_cfg->mutable_services()->Clear();
 
     // We must not keep the service alive, the reload has to destroy it.
     _svc.reset();
 
     configuration::error_cnt err;
-    configuration::applier::state::instance().apply(new_cfg, err);
+    configuration::applier::state::instance().apply(*new_cfg, err);
     ASSERT_TRUE(engine::service::services.empty());
     _host = engine::host::hosts.begin()->second;
   }

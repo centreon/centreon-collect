@@ -44,4 +44,5 @@ message ServiceState {
 /* io::bam, bam::de_pb_services_book_state, 48 */
 message ServicesBookState {
   repeated ServiceState service = 1;
+  repeated string pending_external_commands = 2;
 }

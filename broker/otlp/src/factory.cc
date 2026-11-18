@@ -19,9 +19,10 @@
 #include "com/centreon/broker/otlp/factory.hh"
 
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/otlp/connector.hh"
 #include "com/centreon/common/file_system.hh"
+#include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -201,20 +202,29 @@ void factory::set_default_values(config::endpoint& cfg) const {
  * @param cfg endpoint configuration
  * @param global_params unused
  * @param is_acceptor set to false: an OTLP output is always a connector
- * @param cache persistent cache of the endpoint, it keeps the CMA host
- * information across restarts
- * @return the new connector
+ * @return the new connector. If the endpoint has its cache enabled, the
+ * connector gets a persistent cache that keeps the CMA host information
+ * across restarts.
  * @throw msg_fmt if the configuration is invalid or the mapping file can't be
  * loaded
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const std::map<std::string, std::string>& global_params [[maybe_unused]],
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+    bool& is_acceptor) const {
   is_acceptor = false;
 
   auto conf = parse_config(cfg);
+
+  /* The endpoints do not receive a persistent cache anymore, the OTLP output
+   * creates its own one, as config::applier::endpoint did before. Guarded
+   * because the applier state is not loaded under unit tests. */
+  std::shared_ptr<persistent_cache> cache;
+  if (cfg.cache_enabled && config::applier::state::loaded())
+    cache = std::make_shared<persistent_cache>(
+        fmt::format("{}.cache.{}",
+                    config::applier::state::instance().cache_dir(), cfg.name),
+        log_v2::instance().get(log_v2::OTL));
 
   /* host.name resolution needs the persistent cache. Guarded because the
    * applier state is not loaded under unit tests. */

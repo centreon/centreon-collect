@@ -23,7 +23,7 @@
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
 #include <fstream>
-#include "../src/broker.grpc.pb.h"
+#include "broker/broker.grpc.pb.h"
 #include "com/centreon/common/fmt_protobuf.hh"
 
 using namespace com::centreon::broker;

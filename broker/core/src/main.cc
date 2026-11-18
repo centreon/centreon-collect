@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2013,2018-2024 Centreon
+ * Copyright 2009-2013,2018-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,46 +20,38 @@
 #include <openssl/crypto.h>
 
 #include <cerrno>
-#include <chrono>
 #include <clocale>
 #include <csignal>
 #include <cstdlib>
-#include <cstring>
 #include <exception>
 #include <thread>
 #include "bbdo/common.pb.h"
 
-#include <absl/synchronization/mutex.h>
-
-#include <absl/container/flat_hash_set.h>
 #include <absl/strings/numbers.h>
 
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;
-using namespace com::centreon;
 
 #include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
 
 #include <boost/container/string.hpp>
 #include <boost/container/vector.hpp>
 #include <boost/interprocess/allocators/private_node_allocator.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 
-#include "com/centreon/broker/brokerrpc.hh"
+#include "broker/core/brokerrpc/brokerrpc.hh"
+#include "broker/core/config/applier/broker_state.hh"
+#include "common/log_v2/log_v2.hh"
+
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/crypto/aes256.hh"
 
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
-
+using namespace com::centreon;
 using log_v2 = common::log_v2::log_v2;
 
 using namespace com::centreon::broker;
@@ -147,8 +139,6 @@ static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
         log_v2::instance().apply(log_conf);
         /* We update the logger, since the conf has been applied */
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(core_logger, "problem while reloading cbd: {}",
-                            e.what());
         SPDLOG_LOGGER_ERROR(core_logger, "problem while reloading cbd: {}",
                             e.what());
       }
@@ -340,7 +330,7 @@ int main(int argc, char* argv[]) {
 
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
-        config::applier::init(common::BROKER, conf);
+        config::applier::init<broker::config::applier::broker_state>("", conf);
 
         // Apply resulting configuration totally or partially.
         config::applier::state::instance().apply(conf, !check);
@@ -359,7 +349,7 @@ int main(int argc, char* argv[]) {
       SPDLOG_LOGGER_INFO(core_logger, "Start of grpc server on {}:{}",
                          default_listen_address, default_port);
       std::unique_ptr<brokerrpc, std::function<void(brokerrpc*)> > rpc(
-          new brokerrpc(default_listen_address, default_port, broker_name),
+          new brokerrpc(default_listen_address, default_port),
           [](brokerrpc* rpc) {
             rpc->shutdown();
             delete rpc;

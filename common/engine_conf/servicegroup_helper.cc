@@ -82,7 +82,7 @@ void servicegroup_helper::check_validity(error_cnt& err) const {
 void servicegroup_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
         m_servicegroups) {
   // This set stores resolved service groups.
   absl::flat_hash_set<std::string_view> resolved;
@@ -113,7 +113,7 @@ void servicegroup_helper::_resolve_members(
     configuration::State& s,
     configuration::Servicegroup* sg_conf,
     absl::flat_hash_set<std::string_view>& resolved,
-    const absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
         sg_by_name,
     configuration::error_cnt& err) {
   for (auto& sgm : sg_conf->servicegroup_members().data()) {

@@ -716,7 +716,10 @@ BEDTCANCELCLEAN
     # The poller is lost brutally: engine has no chance to terminate its
     # downtimes, so they stay open in the database. A graceful stop would
     # terminate them itself and would not exercise _clean_tables().
-    Ctn Kill Engine
+    # SIGKILL to the process, not Ctn Kill Engine that also clears the Engine
+    # configuration kept in memory.
+    Send Signal To Process    SIGKILL    e0
+    Wait For Process    e0    timeout=30s
     Check Row Count    ${running}    ==    21    retry_timeout=30s    retry_pause=2s
 
     # The poller comes back with no retention: it does not resend the downtimes,

@@ -44,7 +44,7 @@ std::shared_ptr<engine::broker::handle> loader::add_module(
     const std::string& args) {
   // Little hook to stop to load this old module.
   if (filename.find("cbmod.so") != std::string::npos) {
-    config_logger->error(
+    config_logger->warn(
         "Broker module '{}' is deprecated and will be removed in future "
         "versions. Please remove this module from your configuration.",
         filename);
@@ -53,6 +53,25 @@ std::shared_ptr<engine::broker::handle> loader::add_module(
   auto module = std::make_shared<handle>(filename, args);
   _modules.push_back(module);
   return module;
+}
+
+/**
+ * @brief Check if the module is already loaded.
+ *
+ * @param filename The module filename to check.
+ *
+ * @return A boolean indicating whether the module is loaded or not.
+ */
+bool loader::loaded(const std::filesystem::path& filename) const {
+  for (const auto& module : _modules) {
+    std::error_code ec;
+    if (std::filesystem::equivalent(module->get_filename(), filename, ec))
+        return true;
+    else if (ec)
+      runtime_logger->error("Error: Could not check module '{}' loading: {}",
+                            filename.filename().string(), ec.message());
+  }
+  return false;
 }
 
 /**

@@ -19,7 +19,6 @@
 #ifndef CC_LOGGING_SYSLOGGER_HH
 #define CC_LOGGING_SYSLOGGER_HH
 
-#include <string>
 #include "com/centreon/logging/backend.hh"
 
 namespace com::centreon {
@@ -55,6 +54,6 @@ class syslogger : public backend {
 };
 }  // namespace logging
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_LOGGING_SYSLOGGER_HH

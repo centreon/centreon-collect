@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2023 Centreon
+# Copyright 2016-2026 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -73,11 +73,12 @@ endif(WITH_SQL_TESTS)
 add_definitions(-DBROKERRPC_TESTS_PATH="${TESTS_DIR}/rpc")
 
 add_executable(rpc_client ${TESTS_DIR}/rpc/client.cc)
-add_dependencies(rpc_client centreon_common)
+add_dependencies(rpc_client centreon_common pb_neb_lib)
 
 target_link_libraries(
-  rpc_client
+  rpc_client PRIVATE
   pb_broker_lib
+  pb_neb_lib
   process_stat
   centreon_common
   pb_common_lib
@@ -87,7 +88,13 @@ target_link_libraries(
   ssl
   z
   dl
-  pthread)
+  pthread
+  # libcentreon_engine_conf.so (through pb_broker_lib) leaves these symbols to
+  # the executable; they must come after it for GNU ld.
+  centreon_engine_conf
+  log_v2
+  centreon_file_system
+  protobuf::libprotobuf)
 
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
@@ -110,12 +117,14 @@ set_property(TARGET ut_broker PROPERTY ENABLE_EXPORTS ON)
 target_link_libraries(
   ut_broker
   PRIVATE
-          roker
 	  -Wl,--whole-archive
+          broker_applier_state
           rokerbase
           centreon_process
+          broker_bbdo
+          nebbase
 	  -Wl,--no-whole-archive
-          conflictmgr
+          brokerrpc
           centreon_common
           centreon_hexdump
           centreon_grpc
@@ -137,10 +146,10 @@ target_link_libraries(
 add_dependencies(
   ut_broker
   test_util
-  roker
+  broker_applier_state
   rokerbase
+  broker_bbdo
   multiplexing
-  conflictmgr
   centreon_common)
 
 target_precompile_headers(ut_broker PRIVATE precomp_inc/precomp.hh)

@@ -44,7 +44,7 @@ add_custom_command(
   DEPENDS ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
           ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
   COMMENT
-    "Generating interface files of the conf centreon_agent proto file (grpc)"
+    "Generating interface files of the conf centreon_agent proto file (grpc/protobuf)"
   OUTPUT ${SRC_DIR}/centreon_agent/agent.grpc.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
@@ -56,8 +56,6 @@ add_custom_command(
     ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
   DEPENDS ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
           ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
-  COMMENT
-    "Generating interface files of the conf centreon_agent proto file (protobuf)"
   OUTPUT ${SRC_DIR}/centreon_agent/agent.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}/centreon_agent

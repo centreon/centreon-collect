@@ -21,7 +21,7 @@
 #include <fmt/chrono.h>
 
 #include "broker.pb.h"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/math.hh"
 #include "common/log_v2/log_v2.hh"
@@ -231,8 +231,8 @@ void stream::_update_stats() {
                   log_v2::instance()
                       .get(log_v2::CORE)
                       ->info(
-                          "Retention file will be terminated at {:%Y-%m-%d "
-                          "%H:%M:%S}",
+                          "The processing of retention data is expected to "
+                          "finish on {:%Y-%m-%d %H:%M:%S}",
                           tm);
                 }
               } else

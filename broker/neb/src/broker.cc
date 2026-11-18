@@ -233,6 +233,10 @@ void broker_module_init(void const* arg) {
                        &neb::pb_unknown_host::operations, "no_table");
       e.register_event(neb::pb_agent_host_info::static_type(), "AgentHostInfo",
                        &neb::pb_agent_host_info::operations, "no_table");
+      e.register_event(neb::pb_global_diff_state::static_type(), "DiffState",
+                       &neb::pb_global_diff_state::operations, "diff_state");
+      e.register_event(neb::pb_engine_state::static_type(), "EngineState",
+                       &neb::pb_engine_state::operations, "engine_state");
     }
   }
 }

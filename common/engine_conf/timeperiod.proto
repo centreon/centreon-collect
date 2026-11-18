@@ -20,22 +20,26 @@ syntax = "proto3";
 
 package com.centreon.engine.configuration;
 
+/* Ignore */
 message Object {
   string name = 1;
   bool register = 2;
   repeated string use = 3;
 }
 
+/* Ignore */
 message StringSet {
   repeated string data = 1;
   bool additive = 2;
 }
 
+/* Ignore */
 message Timerange {
   uint64 range_start = 1;
   uint64 range_end = 2;
 }
 
+/* Ignore */
 message Daterange {
   enum TypeRange {
     calendar_date = 0;
@@ -62,6 +66,7 @@ message Daterange {
   repeated Timerange timerange = 13;
 }
 
+/* Ignore */
 message DaysArray {
   repeated Timerange sunday = 1;
   repeated Timerange monday = 2;
@@ -72,6 +77,7 @@ message DaysArray {
   repeated Timerange saturday = 7;
 }
 
+/* Ignore */
 message ExceptionArray {
   repeated Daterange calendar_date = 1;
   repeated Daterange month_date = 2;
@@ -80,6 +86,7 @@ message ExceptionArray {
   repeated Daterange week_day = 5;
 }
 
+/* Ignore */
 message Timeperiod {
   Object obj = 1;
   optional string alias = 2;

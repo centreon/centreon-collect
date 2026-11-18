@@ -18,10 +18,15 @@
 
 #include "com/centreon/broker/multiplexing/engine.hh"
 
+#include <absl/synchronization/mutex.h>
+#include <unistd.h>
+
+#include <cassert>
+
 #include "bbdo/neb.pb.h"
 
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
@@ -199,8 +204,11 @@ void engine::start() {
       have_to_send = true;
     }
   }
-  if (have_to_send)
-    _send_to_subscribers(nullptr);
+  if (have_to_send) {
+    std::promise<void> promise;
+    if (_send_to_subscribers([&promise]() { promise.set_value(); }))
+      promise.get_future().get();
+  }
 
   SPDLOG_LOGGER_INFO(_logger, "multiplexing: engine started");
 }
@@ -228,9 +236,11 @@ void engine::stop() {
 
     std::promise<void> promise;
     if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+      _logger->trace("stop: waiting for sending to subscribers to end in stop");
       promise.get_future().get();
     }  // nothing to send or no muxer
 
+    _logger->trace("stop: all events sent to subscribers");
     absl::MutexLock l(_kiew_m);
 
     // Open the cache file and start the transaction.
@@ -275,9 +285,13 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
   std::promise<void> promise;
 
   if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
+    _logger->trace(
+        "unsubscribe_muxer: waiting for sending to subscribers to end");
     promise.get_future().wait();
   }
 
+  _logger->trace("unsubscribe_muxer: removing muxer {:p} from engine",
+                 static_cast<const void*>(subscriber));
   absl::MutexLock lck(_kiew_m);
 
   auto logger = log_v2::instance().get(log_v2::CONFIG);
@@ -385,13 +399,13 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
 
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
-  std::shared_ptr<muxer> first_muxer;
-  // Keep the other muxers alive here, so that if a muxer loses its last
-  // external owner concurrently, it is only destroyed once _kiew_m is
-  // released below (its destruction unsubscribes it from the engine, which
-  // needs to lock _kiew_m again).
-  std::vector<std::shared_ptr<muxer>> other_muxers;
+  // Keep the muxers alive here, so that if a muxer loses its last external
+  // owner concurrently, it is only destroyed once _kiew_m is released below
+  // (its destruction unsubscribes it from the engine, which needs to lock
+  // _kiew_m again).
+  std::vector<std::shared_ptr<muxer>> muxers;
   std::shared_ptr<detail::callback_caller> cb;
+  bool retval = false;
   {
     absl::MutexLock lck(_kiew_m);
     if (_muxers.empty() || _kiew.empty()) {
@@ -426,45 +440,37 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     cb = std::make_shared<detail::callback_caller>(std::move(callback),
                                                    _instance);
 
-    // we use all asio threads and current thread to publish event
-    // the first not null muxer is used by main thread whereas
-    // followed threads use io::context::post to do the job
-    // when the last muxer had done his job, cb is destroyed and
-    // _sending_to_subscribers is refreshed
+    // each muxer publishes the events in an asio thread, this thread feeds
+    // the broker cache. When the last muxer had done his job, cb is
+    // destroyed and _sending_to_subscribers is refreshed
     for (auto& mux : _muxers) {
-      if (!first_muxer) {
-        first_muxer = mux.lock();
-      } else {
-        std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
-        if (mux_to_publish_in_asio) {
-          asio::post(*_io_context, [kiew, mux_to_publish_in_asio, cb,
-                                    logger = _logger]() {
-            try {
-              mux_to_publish_in_asio->publish(*kiew);
-            }  // pool threads protection
-            catch (const std::exception& ex) {
-              SPDLOG_LOGGER_ERROR(logger, "publish caught exception: {}",
-                                  ex.what());
-            } catch (...) {
-              SPDLOG_LOGGER_ERROR(logger, "publish caught unknown exception");
-            }
-          });
-          // Don't let this shared_ptr be the one whose destruction drops the
-          // muxer's last reference while _kiew_m is still locked below.
-          other_muxers.push_back(std::move(mux_to_publish_in_asio));
-        }
+      std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
+      if (mux_to_publish_in_asio) {
+        retval = true;
+        asio::post(*_io_context, [kiew, mux_to_publish_in_asio, cb,
+                                  logger = _logger]() {
+          try {
+            mux_to_publish_in_asio->publish(*kiew);
+          }  // pool threads protection
+          catch (const std::exception& ex) {
+            SPDLOG_LOGGER_ERROR(logger, "publish caught exception: {}",
+                                ex.what());
+          } catch (...) {
+            SPDLOG_LOGGER_ERROR(logger, "publish caught unknown exception");
+          }
+        });
+        // Don't let this shared_ptr be the one whose destruction drops the
+        // muxer's last reference while _kiew_m is still locked.
+        muxers.push_back(std::move(mux_to_publish_in_asio));
       }
     }
   }
+  auto& cache = config::applier::state::instance().cache();
+  _center->update(&EngineStats::set_processed_events, _stats,
+                  static_cast<uint32_t>(kiew->size()));
+  cache.publish(*kiew);
 
-  if (first_muxer) {
-    _center->update(&EngineStats::set_processed_events, _stats,
-                    static_cast<uint32_t>(kiew->size()));
-    /* The same work but by this thread for the last muxer. */
-    first_muxer->publish(*kiew);
-    return true;
-  } else  // no muxer
-    return false;
+  return retval;
 }
 
 /**

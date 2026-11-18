@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2025 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_STATE
 
 #include <rapidjson/document.h>
+#include <spdlog/logger.h>
 
 #include "common/engine_conf/message_helper.hh"
 

@@ -20,7 +20,6 @@
 
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"

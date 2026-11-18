@@ -33,9 +33,6 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/service_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -44,8 +41,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierPbHost : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -54,7 +54,7 @@ class ProtobufHostEvents : public ApplierPbHost {
  protected:
   class recording_cbmod : public com::centreon::broker::neb::cbmod {
    public:
-    explicit recording_cbmod(const std::string& path) : cbmod(path) {}
+    explicit recording_cbmod(const std::string& path) : cbmod(path, "", "") {}
     bool record = false;
     std::vector<std::shared_ptr<com::centreon::broker::io::data>> written;
     void write(
@@ -130,7 +130,7 @@ TEST_F(ApplierPbHost, HostRenamed) {
   ASSERT_TRUE(h1->name() == "test_host");
 
   hst.set_host_name("test_host1");
-  hst_aply.modify_object(&pb_config.mutable_hosts()->at(0), hst);
+  hst_aply.modify_object(pb_indexed_config.hosts().at(12).get(), hst);
   ASSERT_EQ(hm.size(), 1u);
   h1 = hm.begin()->second;
   ASSERT_TRUE(h1->name() == "test_host1");
@@ -158,7 +158,7 @@ TEST_F(ApplierPbHost, ModifiedCustomVariableKeepsIsSent) {
   ASSERT_TRUE(h1->custom_variables["OTEL_SERVICE_NAME"].is_sent());
 
   hst.mutable_customvariables(0)->set_value("billing");
-  hst_aply.modify_object(&pb_config.mutable_hosts()->at(0), hst);
+  hst_aply.modify_object(pb_indexed_config.hosts().at(12).get(), hst);
   h1 = engine::host::hosts.begin()->second;
   ASSERT_EQ(h1->custom_variables["OTEL_SERVICE_NAME"].value(), "billing");
   ASSERT_TRUE(h1->custom_variables["OTEL_SERVICE_NAME"].is_sent());
@@ -297,7 +297,7 @@ TEST_F(ApplierPbHost, PbHostRemoved) {
   std::shared_ptr<com::centreon::engine::host> h1(hm.begin()->second);
   ASSERT_TRUE(h1->name() == "test_host");
 
-  hst_aply.remove_object(0);
+  hst_aply.remove_object(12);
 
   ASSERT_EQ(hm.size(), 0u);
   hst.set_host_name("test_host1");
@@ -348,7 +348,7 @@ TEST_F(ApplierPbHost, PbHostParentChildUnreachable) {
 
   ASSERT_EQ(engine::host::hosts.size(), 2u);
 
-  hst_aply.expand_objects(pb_config);
+  _state_hlp->expand(err);
   hst_aply.resolve_object(hst_child, err);
   hst_aply.resolve_object(hst_parent, err);
 

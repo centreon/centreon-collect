@@ -25,8 +25,6 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
-extern configuration::State pb_config;
-
 class ConfigTag : public ::testing::Test {
  public:
   void SetUp() override { init_config_state(); }

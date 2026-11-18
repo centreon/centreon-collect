@@ -14,6 +14,7 @@
 #
 # For more information : contact@centreon.com
 #
+include_directories(${CMAKE_BINARY_DIR})
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/cache/inc/com/centreon/broker/cache")
@@ -37,6 +38,7 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/protobuf.cc ${INC_DIR}/protobuf.hh
   COMMENT "Generating protobuf.hh and protobuf.cc from protobuf files"
   DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/bam.proto
+          ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND
     python3 ARGS ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py neb,header,bam ${INC_DIR}/protobuf.hh ${SRC_DIR}/protobuf.cc
@@ -52,6 +54,7 @@ add_custom_command(
   OUTPUT ${TEST_DIR}/protobuf_test_classes.cc ${TEST_DIR}/protobuf_test_classes.hh
   COMMENT "Generating protobuf_test_classes.hh and protobuf_test_classes.cc from protobuf files"
   DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/bam.proto
+          ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND
     python3 ARGS ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py neb,header,bam ${TEST_DIR}/protobuf_test_classes.hh ${TEST_DIR}/protobuf_test_classes.cc
@@ -77,9 +80,20 @@ if(WITH_TESTING)
       ${TESTS_SOURCES} 
       ${TEST_DIR}/global_cache_test.cc
       ${TEST_DIR}/protobuf_test.cc
+      ${TEST_DIR}/broker_cache.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} ut_cache global_cache
       PARENT_SCOPE)
 endif(WITH_TESTING)
 
+add_library(broker_cache STATIC
+  broker_cache.cc
+)
+
+target_precompile_headers(broker_cache PRIVATE ../precomp_inc/precomp.hpp)
+set_target_properties(broker_cache PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
+
+add_dependencies(broker_cache process_stat)

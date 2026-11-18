@@ -22,8 +22,8 @@
 #include <fmt/format.h>
 #include <google/protobuf/util/json_util.h>
 
-#include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/modules.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/version.hh"
 #include "common/log_v2/log_v2.hh"
