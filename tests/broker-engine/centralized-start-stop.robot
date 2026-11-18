@@ -11,8 +11,14 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 BECSS1
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
-    [Tags]    broker    engine    start-stop
+    [Documentation]     Scenario: Broker sends configuration to engine in new generation
+    ...    Given an engine configuration is provided to the broker
+    ...    And the broker and engine are started in new generation (broker first)
+    ...    And the protocol is bbdo3
+    ...    When the broker detects the configuration for the engine
+    ...    Then the broker sends the configuration to the engine
+    ...    Then both broker and engine are stopped (engine first)
+    [Tags]    broker    engine    start-stop    MON-153802
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -38,160 +44,185 @@ BECSS1
     Ctn Stop Engine
 
 BECSS2
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
-    [Tags]    broker    engine    start-stop
+    [Documentation]     Scenario: Broker sends configuration to engine in new generation
+    ...    Given an engine configuration is provided to the broker
+    ...    And the broker and engine are started in new generation (broker first)
+    ...    And the protocol is bbdo3
+    ...    When the broker detects the configuration for the engine
+    ...    Then the broker sends the configuration to the engine
+    ...    Then both broker and engine are stopped (engine first)
+    [Tags]    broker    engine    start-stop    MON-153802
     Ctn Clear Retention
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    sql    debug
-    Ctn Broker Config Log    central    bbdo    info
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-    ${result}    Ctn Check Connections
-    Should Be True    ${result}    Connection between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}    Poller not visible in database
-    Ctn Stop Engine
-    ${content}    Create List    SQL: Disabling poller
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No stop event processed by central cbd
-    ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}    Poller still visible in database
-    Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
+    Ctn Broker Config Flush Log    central    0
 
-BECSS2U
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first.
-    ...    Unified_sql is used.
-    [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Config BBDO3    1
-    Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Log    central    bbdo    info
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
+    ${start}    Ctn Get Round Current Date
     ${result}    Ctn In Bbdo2
-    Should Not Be True    ${result}    We should be in BBDO3 in this test.
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
+    Should Not Be True    ${result}    We should be in BBDO3 in this test (newGeneration=True).
+
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}    Poller not visible in database
-    &{result}    Ctn Get Peers    51001
-    Log To Console    ${result}
-    ${length}    Get Length    ${result['peers']}
-    Should Be Equal As Integers    ${length}    2
-    ...    Engine and Broker RRD should be connected to Broker Central
+
+    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No new Engine configuration found in central cbd log
+
     Ctn Stop Engine
     ${content}    Create List    unified_sql: Disabling poller
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No stop event processed by central cbd
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
-    &{result}    Ctn Get Peers    51001
-    Log To Console    ${result}
-    ${length}    Get Length    ${result['peers']}
-    Should Be Equal As Integers    ${length}    1
-    ...    RRD Broker should be still connected to Broker Central
     Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS3
-    [Documentation]    Start-Stop Broker/Engine - Engine started first - Engine stopped first
-    [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    [Documentation]     Scenario: Broker sends configuration to engine in new generation
+    ...    Given an engine configuration is provided to the broker
+    ...    And the broker and engine are started in new generation (engine first)
+    ...    And the protocol is bbdo3
+    ...    When the broker detects the configuration for the engine
+    ...    Then the broker sends the configuration to the engine
+    ...    Then both broker and engine are stopped (engine first)
+    [Tags]    broker    engine    start-stop    MON-153802
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+
+    Ctn Start Engine    newGeneration=True
+    Ctn Start Broker    newGeneration=True
+
+    ${start}    Ctn Get Round Current Date
     ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Engine
-    Ctn Start Broker
+    Should Not Be True    ${result}    We should be in BBDO3 in this test (newGeneration=True).
+
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
+
+    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No new Engine configuration found in central cbd log
+
     ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}    Poller not visible in database
+
     Ctn Stop Engine
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS4
-    [Documentation]    Start-Stop Broker/Engine - Engine started first - Broker stopped first
+    [Documentation]     Scenario: Broker sends configuration to engine in new generation
+    ...    Given an engine configuration is provided to the broker
+    ...    And the broker and engine are started in new generation (engine first)
+    ...    And the protocol is bbdo3
+    ...    When the broker detects the configuration for the engine
+    ...    Then the broker sends the configuration to the engine
+    ...    Then both broker and engine are stopped (broker first)
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+
+    Ctn Start Engine    newGeneration=True
+    Ctn Start Broker    newGeneration=True
+
+    ${start}    Ctn Get Round Current Date
     ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Engine
-    Ctn Start Broker
+    Should Not Be True    ${result}    We should be in BBDO3 in this test (newGeneration=True).
+
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
+
+    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No new Engine configuration found in central cbd log
+
     ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}    Poller not visible in database
+
     Ctn Kindly Stop Broker
     Ctn Stop Engine
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS5
     [Documentation]    Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    debug_level    ${-1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Engine Config Set Value    ${0}    debug_level    ${-1}
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Broker
-    Ctn Start Engine
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+
+    Ctn Start Engine    newGeneration=True
+    Ctn Start Broker    newGeneration=True
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine seem not connected
     [Teardown]    Ctn Stop Engine Broker And Save Logs
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_GRPC1
-    [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
-    [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    [Documentation]     Scenario: Broker sends configuration to engine in new generation
+    ...    Given an engine configuration is provided to the broker
+    ...    And the broker and engine are started in new generation (broker first)
+    ...    And the protocol is bbdo3
+    ...    When the broker detects the configuration for the engine
+    ...    Then the broker sends the configuration to the engine
+    ...    Then both broker and engine are stopped (engine first)
+    [Tags]    broker    engine    start-stop    MON-153802
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Flush Log    central    0
     Ctn Change Broker Tcp Output To Grpc    central
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
+    ${start}    Ctn Get Round Current Date
     ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Broker
-    Ctn Start Engine
+    Should Not Be True    ${result}    We should be in BBDO3 in this test (forced by newGeneration=True).
     ${result}    Ctn Check Connections
-    Should Be True    ${result}    Connections between Engine and Broker not established
+    Should Be True    ${result}    Connection between Engine and Broker not established
+
+    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No new Engine configuration found in central cbd log
+
     Ctn Kindly Stop Broker
     Ctn Stop Engine
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_GRPC2
-    [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
-    [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    [Documentation]     Scenario: Broker sends configuration to engine in new generation
+    ...    Given an engine configuration is provided to the broker
+    ...    And the broker and engine are started in new generation (broker first)
+    ...    And the protocol is bbdo3
+    ...    When the broker detects the configuration for the engine
+    ...    Then the broker sends the configuration to the engine
+    ...    Then both broker and engine are stopped (engine first)
+    [Tags]    broker    engine    start-stop    MON-153802
+    Ctn Clear Retention
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -199,51 +230,85 @@ BECSS_GRPC2
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Flush Log    central    0
+
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
+    ${start}    Ctn Get Round Current Date
     ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Broker
-    Ctn Start Engine
+    Should Not Be True    ${result}    We should be in BBDO3 in this test (newGeneration=True).
+
     ${result}    Ctn Check Connections
-    Should Be True    ${result}    Connections between Engine and Broker not established
+    Should Be True    ${result}    Connection between Engine and Broker not established
+
+    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No new Engine configuration found in central cbd log
+
+    Ctn Stop Engine
+    ${content}    Create List    unified_sql: Disabling poller
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No stop event processed by central cbd
+    ${result}    Ctn Check Poller Disabled In Database    1    10
+    Should Be True    ${result}    Poller still visible in database
+    Ctn Kindly Stop Broker
+
+BECSS_GRPC3
+    [Documentation]     Scenario: Broker sends configuration to engine in new generation
+    ...    Given an engine configuration is provided to the broker
+    ...    And the broker and engine are started in new generation (engine first)
+    ...    And the protocol is bbdo3
+    ...    When the broker detects the configuration for the engine
+    ...    Then the broker sends the configuration to the engine
+    ...    Then both broker and engine are stopped (engine first)
+    [Tags]    broker    engine    start-stop    MON-153802
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+
+    Ctn Start Engine    newGeneration=True
+    Ctn Start Broker    newGeneration=True
+
+    ${start}    Ctn Get Round Current Date
+    ${result}    Ctn In Bbdo2
+    Should Not Be True    ${result}    We should be in BBDO3 in this test (newGeneration=True).
+
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connection between Engine and Broker not established
+
+    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No new Engine configuration found in central cbd log
+
     ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}    Poller not visible in database
+
     Ctn Stop Engine
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
-
-BECSS_GRPC3
-    [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
-    [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Change Broker Tcp Output To Grpc    central
-    Ctn Change Broker Tcp Output To Grpc    module0
-    Ctn Change Broker Tcp Input To Grpc    central
-    Ctn Change Broker Tcp Input To Grpc    rrd
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Engine
-    Ctn Start Broker
-    ${result}    Ctn Check Connections
-    Should Be True    ${result}    Connections between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    20
-    Should Be True    ${result}    Poller not visible in database
-    Ctn Stop Engine
-    ${result}    Ctn Check Poller Disabled In Database    1    20
-    Should Be True    ${result}    Poller still visible in database
-    Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_GRPC4
-    [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
+    [Documentation]     Scenario: Broker sends configuration to engine in new generation
+    ...    Given an engine configuration is provided to the broker
+    ...    And the broker and engine are started in new generation (engine first)
+    ...    And the protocol is bbdo3
+    ...    When the broker detects the configuration for the engine
+    ...    Then the broker sends the configuration to the engine
+    ...    Then both broker and engine are stopped (broker first)
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -251,21 +316,33 @@ BECSS_GRPC4
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+
+    Ctn Start Engine    newGeneration=True
+    Ctn Start Broker    newGeneration=True
+
+    ${start}    Ctn Get Round Current Date
     ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Engine
-    Ctn Start Broker
+    Should Not Be True    ${result}    We should be in BBDO3 in this test (newGeneration=True).
+
     ${result}    Ctn Check Connections
-    Should Be True    ${result}    Connections between Engine and Broker not established
+    Should Be True    ${result}    Connection between Engine and Broker not established
+
+    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No new Engine configuration found in central cbd log
+
+    ${result}    Ctn Check Poller Enabled In Database    1    10
+    Should Be True    ${result}    Poller not visible in database
+
     Ctn Kindly Stop Broker
     Ctn Stop Engine
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_GRPC5
     [Documentation]    Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
-    [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    [Tags]    broker    engine    start-stop    MON-153802
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -274,11 +351,10 @@ BECSS_GRPC5
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${result}    Ctn In Bbdo2
     Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Broker
-    Ctn Start Engine
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connections between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
@@ -287,12 +363,11 @@ BECSS_GRPC5
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_GRPC_COMPRESS1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -302,11 +377,12 @@ BECSS_GRPC_COMPRESS1
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Change Broker Compression Output    module0    central-module-master-output    yes
     Ctn Change Broker Compression Input    central    centreon-broker-master-input    yes
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+
     ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Broker
-    Ctn Start Engine
+    Should Not Be True    ${result}    We should be in BBDO3 in this test.
+
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection not established between Engine and Broker
     ${result}    Ctn Check Poller Enabled In Database    1    10
@@ -315,17 +391,14 @@ BECSS_GRPC_COMPRESS1
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_CRYPTED_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - well configured
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
@@ -337,12 +410,11 @@ BECSS_CRYPTED_GRPC1
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
     Ctn Remove Host From Broker Output    module0    central-module-master-output
     Ctn Add Host To Broker Output    module0    central-module-master-output    localhost
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
-        Ctn Start Broker
-        Ctn Start Engine
+        Ctn Start Broker    newGeneration=True
+        Ctn Start Engine    newGeneration=True
+	${result}    Ctn In Bbdo2
+	Should Not Be True    ${result}    We should be in BBDO3 in this test.
         ${result}    Ctn Check Connections
         Should Be True    ${result}    Connection between Engine and Broker not established
         ${result}    Ctn Check Poller Enabled In Database    1    10
@@ -352,12 +424,11 @@ BECSS_CRYPTED_GRPC1
         Should Be True    ${result}    Poller still visible in database
         Ctn Kindly Stop Broker
     END
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_CRYPTED_GRPC2
     [Documentation]    Start-Stop grpc version Broker/Engine only server crypted
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -369,22 +440,20 @@ BECSS_CRYPTED_GRPC2
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
-        Ctn Start Broker
-        Ctn Start Engine
+        Ctn Start Broker    newGeneration=True
+        Ctn Start Engine    newGeneration=True
+	${result}    Ctn In Bbdo2
+	Should Not Be True    ${result}    We should be in BBDO3 in this test.
         Sleep    2s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_CRYPTED_GRPC3
     [Documentation]    Start-Stop grpc version Broker/Engine only engine crypted
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -396,22 +465,20 @@ BECSS_CRYPTED_GRPC3
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
-        Ctn Start Broker
-        Ctn Start Engine
+        Ctn Start Broker    newGeneration=True
+        Ctn Start Engine    newGeneration=True
+        ${result}    Ctn In Bbdo2
+        Should Not Be True    ${result}    We should be in BBDO3 in this test.
         Sleep    2s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_CRYPTED_REVERSED_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - well configured
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -426,24 +493,22 @@ BECSS_CRYPTED_REVERSED_GRPC1
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
-        Ctn Start Broker
-        Ctn Start Engine
+        Ctn Start Broker    newGeneration=True
+        Ctn Start Engine    newGeneration=True
+	${result}    Ctn In Bbdo2
+	Should Not Be True    ${result}    We should be in BBDO3 in this test.
         ${result}    Ctn Check Connections
         Should Be True    ${result}    Connection between Engine and Broker not established
         Sleep    2s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_CRYPTED_REVERSED_GRPC2
     [Documentation]    Start-Stop grpc version Broker/Engine only engine server crypted
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -457,22 +522,20 @@ BECSS_CRYPTED_REVERSED_GRPC2
     Ctn Add Broker Tcp Output Grpc Crypto    module0    True    True
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
-        Ctn Start Broker
-        Ctn Start Engine
+        Ctn Start Broker    newGeneration=True
+        Ctn Start Engine    newGeneration=True
+	${result}    Ctn In Bbdo2
+	Should Not Be True    ${result}    We should be in BBDO3 in this test.
         Sleep    5s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_CRYPTED_REVERSED_GRPC3
     [Documentation]    Start-Stop grpc version Broker/Engine only engine crypted
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -484,50 +547,48 @@ BECSS_CRYPTED_REVERSED_GRPC3
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
-        Ctn Start Broker
-        Ctn Start Engine
+        Ctn Start Broker    newGeneration=True
+        Ctn Start Engine    newGeneration=True
+	${result}    Ctn In Bbdo2
+	Should Not Be True    ${result}    We should be in BBDO3 in this test.
         Sleep    5s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSS_ENGINE_DELETE_HOST
     [Documentation]    once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Broker Config Log    module0    config    debug
+    #Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    module0    0
     Ctn Clear Retention
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Get Current Date
+    Ctn Start Broker    True    True
+    Ctn Start Engine    newGeneration=True
     ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Broker    True
-    Ctn Start Engine
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Should Not Be True    ${result}    We should be in BBDO3 in this test.
+
+    Ctn Wait For Engine To Be Ready    ${start}	   60
+
     Ctn Kindly Stop Broker    True
-    Ctn Start Broker    True
+    Ctn Start Broker    True    True
     Ctn Engine Config Remove Service Host    ${0}    host_16
     Ctn Engine Config Remove Host    ${0}    host_16
     Ctn Reload Engine
     Sleep    2s
     Ctn Kindly Stop Broker    True
     Ctn Stop Engine
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BECSSBQ1
     [Documentation]    A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
     [Tags]    broker    engine    start-stop    queue
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -539,24 +600,22 @@ BECSSBQ1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
     ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    ${result}    Ctn In Bbdo2
+    Should Not Be True    ${result}    We should be in BBDO3 in this test.
     ${content}    Create List    execute statement 1245300e
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
     Should Be True    ${result}    Services should be updated after the ingestion of the queue file
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 Centralized_Start_Stop_Engine_Broker_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -570,12 +629,11 @@ Centralized_Start_Stop_Engine_Broker_${id}
         Ctn Change Broker Tcp Input To Grpc    central
         Ctn Change Broker Tcp Input To Grpc    rrd
     END
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
     ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine	newGeneration=True
+    ${result}    Ctn In Bbdo2
+    Should Not Be True    ${result}    We should be in BBDO3 in this test.
     ${content}    Create List    create feeder central-broker-master-input
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    create feeder not found
@@ -592,12 +650,11 @@ Centralized_Start_Stop_Engine_Broker_${id}
     ...    1    False
     ...    2    True
     Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 Centralized_Start_Stop_Broker_Engine_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
     [Tags]    broker    engine    start-stop
-    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -610,13 +667,12 @@ Centralized_Start_Stop_Broker_Engine_${id}
         Ctn Change Broker Tcp Input To Grpc    central
         Ctn Change Broker Tcp Input To Grpc    rrd
     END
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Ctn Get Round Current Date
 
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
     ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Broker
-    Ctn Start Engine
+    Should Not Be True    ${result}    We should be in BBDO3 in this test.
     ${content}    Create List    create feeder central-broker-master-input
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    create feeder not found
@@ -642,7 +698,7 @@ BECSSG
     ...    Then the Broker must be able to handle the disconnection
 
     [Tags]    broker    engine    start-stop    MON-161611
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    1    3.0.1    True
@@ -665,7 +721,7 @@ BECSSCTO
     ...    Then the commands take too long and reach the timeout
     ...    And the Engine starts and stops two times as a result
     [Tags]    engine    start-stop    MON-167816
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Engine Command Add Arg    ${0}    *    --duration 1000
     Ctn Engine Command Remove Connector    ${0}    *
     Ctn Config Broker    central
@@ -689,7 +745,7 @@ BECSSCTOWC
     ...    And the Engine starts and stops two times as a result
 
     [Tags]    engine    start-stop    MON-167816
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Engine Command Add Arg    ${0}    *    --duration 1000
     Ctn Config Broker    central
     Ctn Config Broker    module
