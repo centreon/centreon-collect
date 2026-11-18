@@ -828,6 +828,50 @@ message TagInfo {
 }
 
 /* Ignore */
+message BrokerCache {
+  message InstancePair {
+    uint64 id = 1;
+    string name = 2;
+  }
+  /* Poller instances, just poller_id and name */
+  repeated InstancePair instances = 1;
+
+  /* Severities known by the broker */
+  repeated Severity severities = 2;
+
+  /* Tags known by the broker */
+  repeated Tag tags = 3;
+
+  /* Hosts known by the broker */
+  repeated Host hosts = 4;
+
+  /* Services known by the broker */
+  repeated Service services = 5;
+
+  /* Hostgroups known by the broker, the main identifiers here is hostgroups
+   * that lists the hostgroups known by the broker. */
+  message HostGroupPair {
+    HostGroup hostgroup = 1;
+    repeated uint64 pollers = 2;
+    repeated uint64 hosts = 3;
+  }
+  repeated HostGroupPair hostgroups = 6;
+
+  /* Servicegroups known by the broker, the main identifiers here is
+   * servicegroups that lists the servicegroups known by the broker. */
+  message HostServiceId {
+    uint64 host_id = 1;
+    uint64 service_id = 2;
+  }
+  message ServiceGroupPair {
+    ServiceGroup servicegroup = 1;
+    repeated uint64 pollers = 2;
+    repeated HostServiceId services = 3;
+  }
+  repeated ServiceGroupPair servicegroups = 7;
+}
+
+/* Ignore */
 message AgentInfo {
   uint32 major = 1;
   uint32 minor = 2;

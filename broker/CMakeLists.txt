@@ -80,6 +80,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}/common/process_stat
   "${PROJECT_SOURCE_DIR}/core/inc"
   "${PROJECT_SOURCE_DIR}/neb/inc"
+  "${PROJECT_SOURCE_DIR}/bam/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
   "${PROJECT_SOURCE_DIR}/core/cache/inc"
@@ -350,6 +351,7 @@ target_link_libraries(
   rokerbase PRIVATE
   sql
   global_cache
+  broker_cache
   bbdo_bbdo
   pb_broker_lib
   ctncrypto
@@ -372,6 +374,7 @@ target_link_libraries(
   rokerbase
   broker_applier_state
   broker_bbdo
+  nebbase
   multiplexing
   centreon_common
   centreon_process

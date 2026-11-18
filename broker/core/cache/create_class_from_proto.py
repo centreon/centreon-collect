@@ -976,5 +976,11 @@ if __name__ == "__main__":
         enums.update(file_enums)
         messages.update(file_messages)
 
+    # BrokerCache is the persistence format of broker_cache, it is not cached
+    # here and its nested messages are not supported by this generator.
+    for name in ("BrokerCache", "InstancePair", "HostGroupPair",
+                 "HostServiceId", "ServiceGroupPair"):
+        messages.pop(name, None)
+
     create_header(sys.argv[2], protos, messages, enums, classes)
     create_cc(sys.argv[3], sys.argv[2], messages, enums, classes)

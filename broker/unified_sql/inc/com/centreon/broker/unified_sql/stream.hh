@@ -24,6 +24,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
@@ -105,7 +106,7 @@ class service_status;
 
 namespace unified_sql {
 
-constexpr const char* BAM_NAME = "_Module_";
+constexpr const std::string_view BAM_NAME("_Module_");
 constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
@@ -198,7 +199,6 @@ class stream : public io::stream {
 
   instance_state _state;
 
-  mutable std::mutex _fifo_m;
   std::atomic_int _processed;
   std::atomic_int _ack;
 
@@ -234,6 +234,7 @@ class stream : public io::stream {
   std::atomic_bool _stop_check_queues;
   /* When the check_queues is really stopped */
   bool _check_queues_stopped;
+  mutable absl::Mutex _check_queues_m;
 
   /* Stats */
   std::shared_ptr<stats::center> _center;
@@ -274,27 +275,24 @@ class stream : public io::stream {
   std::shared_ptr<spdlog::logger> _logger_sql;
   std::shared_ptr<spdlog::logger> _logger_sto;
 
-  boost::bimap<uint32_t, std::string> _hostgroups_cache;
-  boost::bimap<uint32_t, std::string> _servicegroups_cache;
-
   /* The queue of metrics sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
    * _max_perfdata_queries. The filled table here is 'data_bin'. */
-  mutable std::mutex _queues_m;
-  mutable std::condition_variable _queues_cond_var;
+  mutable absl::Mutex _metrics_m;
   /* This map is also sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
    * _max_metrics_queries. Values here are the real time values, so if the
-   * same metric is recevied two times, the new value can overwrite the old
-   * one, that's why we store those values in a map. The filled table here is
+   * same metric is recevied twice, the new value can overwrite the old
+   * one, that's why we store these values in a map. The filled table here is
    * 'metrics'. */
-  std::unordered_map<int32_t, metric_info> _metrics;
+  std::unordered_map<int32_t, metric_info> _metrics ABSL_GUARDED_BY(_metrics_m);
 
   /* These queues are sent in bulk to the database. The insert/update is done
    * if the loop timeout is reached or if the queue size is greater than
    * _max_cv_queries/_max_log_queries. */
-  bulk_queries _cv;
-  bulk_queries _cvs;
+  mutable absl::Mutex _cv_m;
+  bulk_queries _cv ABSL_GUARDED_BY(_cv_m);
+  bulk_queries _cvs ABSL_GUARDED_BY(_cv_m);
 
   std::unique_ptr<database::bulk_or_multi> _perfdata_query;
 
@@ -465,7 +463,8 @@ class stream : public io::stream {
   void _process_pb_service(const std::shared_ptr<io::data>& d);
   uint64_t _process_pb_service_in_resources(const Service& s);
   void _process_pb_adaptive_service(const std::shared_ptr<io::data>& d);
-  void _process_pb_service_status(const std::shared_ptr<io::data>& d);
+  void _process_pb_service_status(const std::shared_ptr<io::data>& d)
+      ABSL_LOCKS_EXCLUDED(_metrics_m);
   void _process_pb_adaptive_service_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
   void _process_tag(const std::shared_ptr<io::data>& d);
@@ -475,7 +474,12 @@ class stream : public io::stream {
   void _process_pb_log(const std::shared_ptr<io::data>& d);
   void _process_pb_responsive_instance(const std::shared_ptr<io::data>& d);
   void _process_agent_stats(const std::shared_ptr<io::data>& d);
-  void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
+  void _process_engine_state(const std::shared_ptr<io::data>& d);
+  void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d)
+      ABSL_LOCKS_EXCLUDED(_metrics_m);
+  void _publish_index_mapping(uint64_t host_id,
+                              uint64_t service_id,
+                              const index_info& info);
   void _check_and_update_index_cache(const Service& ss);
 
   void _unified_sql_process_pb_service_status(
@@ -490,8 +494,7 @@ class stream : public io::stream {
   void _prepare_sg_insupdate_statement();
   void _prepare_pb_sg_insupdate_statement();
   void _finish_actions();
-  void _update_metrics();
-  // void __exit();
+  void _update_metrics() ABSL_LOCKS_EXCLUDED(_metrics_m);
   void _clear_instances_cache(const std::list<uint64_t>& ids);
   bool _host_instance_known(uint64_t host_id) const;
 
@@ -552,8 +555,6 @@ class stream : public io::stream {
   absl::flat_hash_map<std::string, uint64_t>& host_name_id_cache();
   absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
   service_description_id_cache();
-  boost::bimap<uint32_t, std::string>& hostgroups_cache();
-  boost::bimap<uint32_t, std::string>& servicegroups_cache();
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker

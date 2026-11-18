@@ -24,6 +24,7 @@
 #include <ctime>
 #include <memory>
 
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/rrd/lib.hh"
 

@@ -41,9 +41,7 @@ class factory : public io::factory {
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
       const absl::flat_hash_map<std::string, std::string>& global_params,
-      bool& is_acceptor,
-      std::shared_ptr<persistent_cache> cache =
-          std::shared_ptr<persistent_cache>()) const override;
+      bool& is_acceptor) const override;
   std::shared_ptr<io::stream> new_stream(
       std::shared_ptr<io::stream> to,
       bool is_acceptor,

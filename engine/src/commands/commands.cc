@@ -1307,9 +1307,13 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   for (downtime_finder::result_set::const_iterator it = result.begin(),
                                                    end = result.end();
        it != end; ++it) {
+    external_command_logger->debug("Deleting downtime id {}", *it);
     downtime_manager::instance().unschedule_downtime(*it);
   }
 
+  external_command_logger->info(
+			"Deleted {} downtime(s) matching the given criteria",
+			result.size());
   return OK;
 }
 

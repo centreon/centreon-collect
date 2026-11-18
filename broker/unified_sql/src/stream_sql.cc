@@ -24,6 +24,7 @@
 #include "com/centreon/broker/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
@@ -662,7 +663,7 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
                        "unified_sql: enable custom variable '{}' of ({}, {})",
                        cv.name(), cv.host_id(), cv.service_id());
 
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock l(_cv_m);
     _cv.push_query(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(cv.name(),
@@ -780,7 +781,7 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
 
   // Processing.
   if (cv.enabled) {
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock l(_cv_m);
     _cv.push_query(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(cv.name,
@@ -825,6 +826,7 @@ void stream::_process_custom_variable_status(
   const neb::custom_variable_status& cv{
       *static_cast<neb::custom_variable_status const*>(d.get())};
 
+  absl::MutexLock l(_cv_m);
   _cvs.push_query(fmt::format(
       "('{}',{},{},{},{},'{}')",
       misc::string::escape(cv.name,
@@ -854,6 +856,7 @@ void stream::_process_pb_custom_variable_status(
       *static_cast<neb::pb_custom_variable_status const*>(d.get())};
 
   const com::centreon::broker::CustomVariableStatus& data = cv.obj();
+  absl::MutexLock l(_cv_m);
   _cvs.push_query(fmt::format(
       "('{}',{},{},{},{},'{}')",
       misc::string::escape(data.name(),
@@ -1016,14 +1019,13 @@ void stream::_internal_process_downtime(
 }
 
 bool stream::_host_instance_known(uint64_t host_id) const {
-  bool retval =
-      _cache_host_instance.find(host_id) != _cache_host_instance.end();
-  //  FIXME DBO: with the centralized configuration, checks are executed earlier
-  //  than before and it is possible that the cache is not ready when first
-  //  checks arrive. So we temporarily disable this assert.
-  //  if (retval)
-  //    assert(_cache_host_instance.at(host_id) > 0);
-  return retval;
+  /* With the centralized configuration, hosts come from the configuration
+   * and not from pb_host events, so _cache_host_instance does not know them.
+   * The broker cache knows hosts in both cases. */
+  if (_cache_host_instance.find(host_id) != _cache_host_instance.end())
+    return true;
+  const auto host = config::applier::state::instance().cache().host(host_id);
+  return host && host->obj().instance_id() != 0;
 }
 
 /**
@@ -1187,7 +1189,6 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
     _host_group_insupdate << hg;
     _mysql.run_statement(_host_group_insupdate,
                          database::mysql_error::store_host_group, 0);
-    _hostgroups_cache.insert({hg.id, hg.name});
   }
   // Delete group.
   else {
@@ -1206,7 +1207,6 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
                       "hosts.instance_id={}",
                       hg.id, hg.poller_id));
       _mysql.run_query(query, database::mysql_error::empty, 0);
-      _hostgroups_cache.left.erase(hg.id);
     }
   }
 }
@@ -1236,9 +1236,6 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
     _pb_host_group_insupdate << *hgd;
     _mysql.run_statement(_pb_host_group_insupdate,
                          database::mysql_error::store_host_group, 0);
-    _hostgroups_cache.left.erase(hg.hostgroup_id());
-    _hostgroups_cache.right.erase(hg.name());
-    _hostgroups_cache.left.insert(std::make_pair(hg.hostgroup_id(), hg.name()));
   }
   // Delete group.
   else {
@@ -1256,7 +1253,6 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
                       "hosts.instance_id={}",
                       hg.hostgroup_id(), hg.poller_id()));
       _mysql.run_query(query, database::mysql_error::empty, 0);
-      _hostgroups_cache.left.erase(hg.hostgroup_id());
     }
   }
 }
@@ -1301,9 +1297,10 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     /* If the group does not exist, we create it. */
-    if (_cache_host_instance[hgm.host_id]) {
-      if (_hostgroups_cache.left.find(hgm.group_id) ==
-          _hostgroups_cache.left.end()) {
+    if (_host_instance_known(hgm.host_id)) {
+      auto& cache = config::applier::state::instance().cache();
+      const auto hostgroup = cache.hostgroup(hgm.group_id);
+      if (!hostgroup) {
         SPDLOG_LOGGER_ERROR(_logger_sql,
                             "SQL: host group {} {} does not exist - insertion "
                             "before insertion of "
@@ -1311,16 +1308,18 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
                             hgm.group_id, hgm.group_name);
         _prepare_hg_insupdate_statement();
 
-        neb::host_group hg;
-        hg.id = hgm.group_id;
-        hg.name = hgm.group_name;
-        hg.enabled = true;
-        hg.poller_id = _cache_host_instance[hgm.host_id];
+        auto hg = std::make_shared<neb::pb_host_group>();
+        auto& obj = hg->mut_obj();
+        obj.set_hostgroup_id(hgm.group_id);
+        obj.set_name(hgm.group_name);
+        obj.set_enabled(true);
+        const auto& host = cache.host(hgm.host_id);
+        obj.set_poller_id(host->obj().instance_id());
 
-        _host_group_insupdate << hg;
-        _mysql.run_statement(_host_group_insupdate,
+        _pb_host_group_insupdate << *hg;
+        _mysql.run_statement(_pb_host_group_insupdate,
                              database::mysql_error::store_host_group, 0);
-        _hostgroups_cache.insert({hgm.group_id, hgm.group_name});
+        cache.update_hostgroup(hg);
       }
 
       _host_group_member_insert << hgm;
@@ -1406,29 +1405,29 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     /* If the group does not exist, we create it. */
-    if (_cache_host_instance[hgm.host_id()]) {
-      if (_hostgroups_cache.left.find(hgm.hostgroup_id()) ==
-          _hostgroups_cache.left.end()) {
+    if (_host_instance_known(hgm.host_id())) {
+      auto& cache = config::applier::state::instance().cache();
+      const auto hostgroup = cache.hostgroup(hgm.hostgroup_id());
+      if (!hostgroup) {
         SPDLOG_LOGGER_ERROR(_logger_sql,
                             "SQL: host group {} {} does not exist - insertion "
                             "before insertion of members",
                             hgm.hostgroup_id(), hgm.name());
         _prepare_pb_hg_insupdate_statement();
 
-        neb::pb_host_group hg;
-        auto& obj = hg.mut_obj();
+        auto hg = std::make_shared<neb::pb_host_group>();
+        auto& obj = hg->mut_obj();
         obj.set_hostgroup_id(hgm.hostgroup_id());
         obj.set_name(hgm.name());
         obj.set_enabled(true);
-        obj.set_poller_id(_cache_host_instance[hgm.host_id()]);
+        auto& cache = config::applier::state::instance().cache();
+        const auto& host = cache.host(hgm.host_id());
+        obj.set_poller_id(host->obj().instance_id());
 
-        _pb_host_group_insupdate << hg;
+        _pb_host_group_insupdate << *hg;
         _mysql.run_statement(_pb_host_group_insupdate,
                              database::mysql_error::store_host_group, 0);
-        _hostgroups_cache.left.erase(hgm.hostgroup_id());
-        _hostgroups_cache.right.erase(hgm.name());
-        _hostgroups_cache.left.insert(
-            std::make_pair(hgm.hostgroup_id(), hgm.name()));
+        cache.update_hostgroup(hg);
       }
 
       _pb_host_group_member_insert << hgmp;
@@ -1520,6 +1519,11 @@ void stream::_process_host(const std::shared_ptr<io::data>& d) {
         _mysql.run_statement(_host_update, database::mysql_error::store_host,
                              0);
       }
+
+      // Fill the broker cache...
+      auto& cache = config::applier::state::instance().cache();
+      cache.update_host(
+          std::static_pointer_cast<neb::pb_host>(bbdo2_to_bbdo3(d)));
     } else
       SPDLOG_LOGGER_TRACE(
           _logger_sql,
@@ -2023,7 +2027,7 @@ void stream::_prepare_pb_requests() {
  * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
-  auto hst{static_cast<const neb::pb_host*>(d.get())};
+  const auto& hst = std::static_pointer_cast<neb::pb_host>(d);
   auto& h = hst->obj();
 
   // Log message.
@@ -2090,8 +2094,14 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
  */
 bool stream::_owned_by_another_poller(uint64_t host_id,
                                       uint64_t instance_id) const {
-  auto it = _cache_host_instance.find(host_id);
-  return it != _cache_host_instance.end() && it->second != instance_id;
+  /* _cache_host_instance first: the broker cache may already contain the
+   * event currently processed, it is fed concurrently with the muxers. */
+  if (auto it = _cache_host_instance.find(host_id);
+      it != _cache_host_instance.end())
+    return it->second != instance_id;
+  const auto host = config::applier::state::instance().cache().host(host_id);
+  return host && host->obj().instance_id() != 0 &&
+         host->obj().instance_id() != instance_id;
 }
 
 uint64_t stream::_process_pb_host_in_resources(const Host& h) {
@@ -2137,8 +2147,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h) {
     _resources_host_insert_or_update.bind_value_as_u32(7, h.check_attempt());
     _resources_host_insert_or_update.bind_value_as_u32(8,
                                                        h.max_check_attempts());
-    _resources_host_insert_or_update.bind_value_as_u64(
-        9, _cache_host_instance[h.host_id()]);
+    _resources_host_insert_or_update.bind_value_as_u64(9, h.instance_id());
     if (h.severity_id()) {
       sid = _severities_cache[{h.severity_id(), 1}];
       SPDLOG_LOGGER_DEBUG(_logger_sql,
@@ -2781,10 +2790,14 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
       i.poller_id, i.name, i.is_running ? "yes" : "no");
 
   // Clean tables.
-  clean_tables(i.poller_id);
+  // FIXME DBO
+  if (!i.is_running)
+    clean_tables(i.poller_id);
 
   // Processing.
   if (_is_valid_poller(i.poller_id)) {
+    _logger_sql->debug("storing instance {} with name '{}'", i.poller_id,
+                       i.name);
     // Prepare queries.
     if (!_instance_insupdate.prepared()) {
       query_preparator::event_unique unique;
@@ -2807,7 +2820,6 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
  *
  *  @param[in] e Uncasted instance.
  *
- * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
   const neb::pb_instance& inst_obj(
@@ -2823,10 +2835,14 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
       inst.instance_id(), inst.name(), inst.running() ? "yes" : "no");
 
   // Clean tables.
-  clean_tables(inst.instance_id());
+  // FIXME DBO
+  if (!inst.running())
+    clean_tables(inst.instance_id());
 
   // Processing.
   if (_is_valid_poller(inst.instance_id())) {
+    _logger_sql->debug("unified_sql: storing instance {} with name '{}'",
+                       inst.instance_id(), inst.name());
     // Prepare queries.
     if (!_pb_instance_insupdate.prepared()) {
       query_preparator::event_pb_unique unique{
@@ -2882,8 +2898,8 @@ void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
   _logger_sql->info("  hosts: {} added, {} deleted, {} modified",
                     obj.hosts().added_size(), obj.hosts().removed_size(),
                     obj.hosts().modified_size());
-  database_configurator cfg(obj, this, _logger_sql);
-  cfg.process();
+  database_configurator cfg(this, _logger_sql);
+  cfg.process_diff(static_cast<const engine::configuration::DiffState&>(obj));
 }
 
 /**
@@ -3308,9 +3324,6 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
     _service_group_insupdate << sg;
     _mysql.run_statement(_service_group_insupdate,
                          database::mysql_error::store_service_group, 0);
-    _servicegroups_cache.left.erase(sg.id);
-    _servicegroups_cache.right.erase(sg.name);
-    _servicegroups_cache.left.insert({sg.id, sg.name});
   }
   // Delete group.
   else {
@@ -3356,8 +3369,6 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
     _pb_service_group_insupdate << sgp;
     _mysql.run_statement(_pb_service_group_insupdate,
                          database::mysql_error::store_service_group, 0);
-    _servicegroups_cache.left.insert(
-        std::make_pair(sg.servicegroup_id(), sg.name()));
   }
   // Delete group.
   else {
@@ -3414,27 +3425,26 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     /* If the group does not exist, we create it. */
-    if (_servicegroups_cache.left.find(sgm.group_id) ==
-        _servicegroups_cache.left.end()) {
+    auto& cache = config::applier::state::instance().cache();
+    const auto servicegroup = cache.servicegroup(sgm.group_id);
+    if (!servicegroup) {
       SPDLOG_LOGGER_ERROR(_logger_sql,
-                          "unified_sql: service group {} does not exist - "
-                          "insertion before insertion "
-                          "of members",
-                          sgm.group_id);
+                          "unified_sql: service group {} {} does not exist - "
+                          "insertion before insertion of members",
+                          sgm.group_id, sgm.group_name);
       _prepare_sg_insupdate_statement();
 
-      neb::service_group sg;
-      sg.id = sgm.group_id;
-      sg.name = sgm.group_name;
-      sg.enabled = true;
-      sg.poller_id = sgm.poller_id;
+      auto sg = std::make_shared<neb::pb_service_group>();
+      auto& obj = sg->mut_obj();
+      obj.set_servicegroup_id(sgm.group_id);
+      obj.set_name(sgm.group_name);
+      obj.set_enabled(true);
+      obj.set_poller_id(sgm.poller_id);
 
-      _service_group_insupdate << sg;
+      _service_group_insupdate << *sg;
       _mysql.run_statement(_service_group_insupdate,
                            database::mysql_error::store_service_group, 0);
-      _servicegroups_cache.left.erase(sgm.group_id);
-      _servicegroups_cache.right.erase(sgm.group_name);
-      _servicegroups_cache.insert({sgm.group_id, sgm.group_name});
+      cache.update_servicegroup(sg);
     }
 
     _service_group_member_insert << sgm;
@@ -3519,8 +3529,9 @@ void stream::_process_pb_service_group_member(
     }
 
     /* If the group does not exist, we create it. */
-    if (_servicegroups_cache.left.find(sgm.servicegroup_id()) ==
-        _servicegroups_cache.left.end()) {
+    auto& cache = config::applier::state::instance().cache();
+    const auto servicegroup = cache.servicegroup(sgm.servicegroup_id());
+    if (!servicegroup) {
       SPDLOG_LOGGER_ERROR(
           _logger_sql,
           "SQL: service group {} does not exist - insertion before insertion "
@@ -3528,20 +3539,17 @@ void stream::_process_pb_service_group_member(
           sgm.servicegroup_id());
       _prepare_sg_insupdate_statement();
 
-      neb::pb_service_group sg;
-      auto& obj = sg.mut_obj();
+      auto sg = std::make_shared<neb::pb_service_group>();
+      auto& obj = sg->mut_obj();
       obj.set_servicegroup_id(sgm.servicegroup_id());
       obj.set_name(sgm.name());
       obj.set_enabled(true);
       obj.set_poller_id(sgm.poller_id());
 
-      _pb_service_group_insupdate << sg;
+      _pb_service_group_insupdate << *sg;
       _mysql.run_statement(_pb_service_group_insupdate,
                            database::mysql_error::store_service_group, 0);
-      _servicegroups_cache.left.erase(sgm.servicegroup_id());
-      _servicegroups_cache.right.erase(sgm.name());
-      _servicegroups_cache.left.insert(
-          std::make_pair(sgm.servicegroup_id(), sgm.name()));
+      cache.update_servicegroup(sg);
     }
 
     _pb_service_group_member_insert << sgmp;
@@ -3738,8 +3746,11 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s) {
                                                           s.check_attempt());
     _resources_service_insert_or_update.bind_value_as_u32(
         11, s.max_check_attempts());
+
+    auto& cache = config::applier::state::instance().cache();
+    auto hh = cache.host(s.host_id());
     _resources_service_insert_or_update.bind_value_as_u64(
-        12, _cache_host_instance[s.host_id()]);
+        12, hh->obj().instance_id());
     if (s.severity_id() > 0) {
       sid = _severities_cache[{s.severity_id(), 0}];
       SPDLOG_LOGGER_DEBUG(_logger_sql,
@@ -3937,6 +3948,32 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ * @brief Publish the pb_index_mapping of a service, with all the informations
+ * stored in the index cache, so that the broker cache is up to date.
+ *
+ * @param host_id The host ID.
+ * @param service_id The service ID.
+ * @param info The index informations of the service.
+ */
+void stream::_publish_index_mapping(uint64_t host_id,
+                                    uint64_t service_id,
+                                    const index_info& info) {
+  auto im{std::make_shared<storage::pb_index_mapping>()};
+  auto& im_obj = im->mut_obj();
+  im_obj.set_index_id(info.index_id);
+  im_obj.set_host_id(host_id);
+  im_obj.set_service_id(service_id);
+  im_obj.set_host_name(info.host_name);
+  im_obj.set_service_description(info.service_description);
+  im_obj.set_interval(info.interval);
+  im_obj.set_rrd_retention(_rrd_len);
+  im_obj.set_special(info.special);
+  im_obj.set_locked(info.locked);
+  multiplexing::publisher pblshr;
+  pblshr.write(im);
+}
+
+/**
  * @brief Check if the index cache contains informations about the given
  * service. If these informations changed or do not exist, they are inserted
  * into the cache.
@@ -3994,17 +4031,10 @@ void stream::_check_and_update_index_cache(const Service& ss) {
     SPDLOG_LOGGER_DEBUG(_logger_sql,
                         "sql: loaded index {} of ({}, {}) with interval={}",
                         index_id, ss.host_id(), ss.service_id(), info.interval);
-    _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
 
     // Create the metric mapping.
-    auto im{std::make_shared<storage::pb_index_mapping>()};
-    auto& im_obj = im->mut_obj();
-    im_obj.set_index_id(info.index_id);
-    im_obj.set_host_id(ss.host_id());
-    im_obj.set_service_id(ss.service_id());
-    multiplexing::publisher pblshr;
-    pblshr.write(im);
-
+    _publish_index_mapping(ss.host_id(), ss.service_id(), info);
+    _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
   } else {
     uint64_t index_id = it_index_cache->second.index_id;
 
@@ -4030,6 +4060,8 @@ void stream::_check_and_update_index_cache(const Service& ss) {
       it_index_cache->second.host_name = fmt::to_string(hv);
       it_index_cache->second.service_description = fmt::to_string(sv);
       it_index_cache->second.interval = ss.check_interval();
+      _publish_index_mapping(ss.host_id(), ss.service_id(),
+                             it_index_cache->second);
       SPDLOG_LOGGER_DEBUG(_logger_sql,
                           "Updating index_data for host_id={} and "
                           "service_id={}: host_name={}, "
@@ -4862,6 +4894,21 @@ void stream::_process_agent_stats(const std::shared_ptr<io::data>& d) {
   _mysql.run_statement(_agent_information_insert_update,
                        database::mysql_error::insert_update_agent_information,
                        0);
+}
+
+/**
+ * @brief Process an engine state event.
+ *
+ * @param d A poller configuration event (pb_engine_state).
+ */
+void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
+  SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: processing engine state");
+  std::shared_ptr<neb::pb_engine_state> state{
+      std::static_pointer_cast<neb::pb_engine_state>(d)};
+  database_configurator cfg(this, _logger_sql);
+  cfg.process_state(state->obj());
+  auto& cache = config::applier::state::instance().cache();
+  cache.merge(state->obj());
 }
 
 /**

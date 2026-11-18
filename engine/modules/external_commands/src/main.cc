@@ -92,6 +92,7 @@ extern "C" int nebmodule_deinit(int flags, int reason) {
   (void)reason;
 
   try {
+    runtime_logger->info("Shutting down external command module ...");
     neb_deregister_callback(NEBCALLBACK_EXTERNAL_COMMAND_DATA,
                             callback_external_command);
 

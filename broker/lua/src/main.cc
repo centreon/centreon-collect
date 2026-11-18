@@ -28,6 +28,7 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/lua/factory.hh"
 #include "com/centreon/broker/lua/internal.hh"
+#include "com/centreon/broker/lua/stream.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "common/log_v2/log_v2.hh"
 

@@ -37,8 +37,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  @param[in] port                    port
  */
 stream::stream(const std::string& lua_script,
-               const std::map<std::string, misc::variant>& conf_params,
-               const std::shared_ptr<persistent_cache>&)
+               const std::map<std::string, misc::variant>& conf_params)
     : io::stream("lua"),
       _luabinding(lua_script, conf_params),
       _logger{log_v2::instance().get(log_v2::LUA)} {}
@@ -67,7 +66,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  *  @return Number of events acknowledged.
  */
-int stream::write(std::shared_ptr<io::data> const& data) {
+int stream::write(const std::shared_ptr<io::data>& data) {
   assert(data);
 
   return _luabinding.write(data);

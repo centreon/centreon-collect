@@ -414,7 +414,10 @@ BECSS_CRYPTED_GRPC1
         Should Be True    ${result}    No new Engine configuration found in central cbd log
 
 	Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-	Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled>0    >    ${0}    retry_timeout=30s    retry_pause=1s
+	Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled=1    ==    ${50}    retry_timeout=30s    retry_pause=1s
+	Check Query Result    SELECT COUNT(*) FROM resources WHERE parent_id=0 AND poller_id=1 AND enabled=1    ==    ${50}    retry_timeout=30s    retry_pause=1s
+	Check Query Result    SELECT COUNT(*) FROM services s LEFT JOIN hosts h ON h.host_id=s.host_id AND s.enabled=1 WHERE h.instance_id=1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+	Check Query Result    SELECT COUNT(*) FROM resources WHERE parent_id<>0 AND poller_id=1 AND enabled=1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
 	Disconnect From Database
 
         Ctn Stop Engine
@@ -441,37 +444,13 @@ BECSS_CRYPTED_GRPC2
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
     Ctn Clear Broker Logs
+    Ctn Clear Prot Files
+
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
 	${result}    Ctn In Bbdo2
 	Should Not Be True    ${result}    We should be in BBDO3 in this test.
-        Sleep    2s
-        Ctn Kindly Stop Broker
-        Ctn Stop Engine
-    END
-
-BECSS_CRYPTED_GRPC3
-    [Documentation]    Start-Stop grpc version Broker/Engine only engine crypted
-    [Tags]    broker    engine    start-stop
-    Ctn Config Centralized Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
-    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Ctn Change Broker Tcp Output To Grpc    central
-    Ctn Change Broker Tcp Output To Grpc    module0
-    Ctn Change Broker Tcp Input To Grpc    central
-    Ctn Change Broker Tcp Input To Grpc    rrd
-    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
-    Ctn Clear Broker Logs
-    FOR    ${i}    IN RANGE    0    5
-        Ctn Start Broker    newGeneration=True
-        Ctn Start Engine    newGeneration=True
-        ${result}    Ctn In Bbdo2
-        Should Not Be True    ${result}    We should be in BBDO3 in this test.
         Sleep    2s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
@@ -622,20 +601,18 @@ BECSSBQ1
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    core    debug
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Clear Broker Logs
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Create Bad Queue    central-broker-master.queue.central-broker-unified-sql
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
 
-    ${content}    Create List    stream got corrupted compressed data, skipping next byte    unified_sql: processing pb service
+    ${content}    Create List    stream got corrupted compressed data, skipping next byte    processing pb service status
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should raise an error about the bad queue file and the process service events
-    ${start}    Get Current Date
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

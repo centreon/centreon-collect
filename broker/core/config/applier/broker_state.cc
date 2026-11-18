@@ -109,7 +109,7 @@ void broker_state::add_peer(uint64_t poller_id,
                             bool extended_negotiation,
                             const std::string& engine_conf) {
   assert(poller_id && !broker_name.empty());
-  absl::WriterMutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found == _connected_peers.end()) {
     _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
@@ -138,6 +138,22 @@ void broker_state::add_peer(uint64_t poller_id,
       _start_watch_engine_conf_timer();
     }
 
+    /* Feeding the cache and waking up resources in the database */
+    std::filesystem::path prot_file =
+        pollers_config_dir() / fmt::format("{}.prot", poller_id);
+    std::fstream f(prot_file);
+    if (f) {
+      auto engine_state = std::make_shared<neb::pb_engine_state>();
+      auto& state = engine_state->mut_obj();
+      state.ParseFromIstream(&f);
+      multiplexing::publisher pblshr;
+      _logger->debug("Publishing poller {} configuration", poller_id);
+      pblshr.write(engine_state);
+    } else {
+      _logger->error("Unable to fill global cache: cannot open '{}'",
+                     prot_file.string());
+    }
+
     /* The directory watcher has been started but may be there were <ID>.lck
      * files already present in the cache directory. We need to check them
      * and apply the diff if needed.
@@ -145,7 +161,7 @@ void broker_state::add_peer(uint64_t poller_id,
     _logger->debug("Checking for existing {}.lck file", poller_id);
     uint32_t existing_lck = _get_lck_file_if_exists(poller_id);
     if (existing_lck) {
-      absl::MutexLock lck(&_lck_set_m);
+      absl::MutexLock lck(_lck_set_m);
       _lck_set.insert(existing_lck);
     }
   }
@@ -192,7 +208,7 @@ void broker_state::set_poller_engine_conf(uint32_t poller_id,
                                           const std::string& poller_name,
                                           const std::string& broker_name,
                                           const std::string& engine_conf) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found == _connected_peers.end()) {
     _logger->info("Poller with id {} not found in connected peers", poller_id);
@@ -208,7 +224,7 @@ void broker_state::set_poller_engine_conf(uint32_t poller_id,
 
 bool broker_state::poller_is_up_to_date(uint32_t poller_id,
                                         const std::string& poller_name) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, poller_name, ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id &&
@@ -246,7 +262,7 @@ void broker_state::remove_peer(uint64_t poller_id,
                                const std::string& poller_name,
                                const std::string& broker_name) {
   assert(poller_id && !broker_name.empty());
-  absl::WriterMutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found != _connected_peers.end()) {
     _logger->info("Peer poller: '{}' - broker: '{}' with id {} disconnected",
@@ -266,7 +282,7 @@ void broker_state::remove_peer(uint64_t poller_id,
  * @param poller_id The poller to check.
  */
 bool broker_state::has_connection_from_poller(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id; ++lower)
@@ -281,7 +297,7 @@ bool broker_state::has_connection_from_poller(uint64_t poller_id) const {
  * @return A vector of pairs containing the poller id and the poller name.
  */
 std::vector<broker_state::peer> broker_state::connected_peers() const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(_connected_peers_m);
   std::vector<peer> retval;
   for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
     retval.push_back(it->second);
@@ -296,7 +312,7 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
  * false otherwise.
  */
 bool broker_state::all_engine_peers_acknowledged() const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(_connected_peers_m);
   bool retval = true;
   uint32_t engine_count = 0;
   uint32_t engine_good = 0;
@@ -324,7 +340,7 @@ void broker_state::_check_last_engine_conf() {
   _logger->trace("Checking for new Engine configurations");
   absl::flat_hash_set<uint32_t> pollers_set;
   {
-    absl::MutexLock lck(&_lck_set_m);
+    absl::MutexLock lck(_lck_set_m);
     pollers_set.swap(_lck_set);
   }
 
@@ -467,7 +483,7 @@ void broker_state::_watch_engine_conf(
 void broker_state::_prepare_diff_for_poller(
     uint64_t poller_id,
     std::unique_ptr<engine::configuration::State>&& state) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id; ++lower) {
@@ -552,7 +568,7 @@ void broker_state::_prepare_diff_for_poller(
  * @return A boolean indicating if the poller engine peer needs an update.
  */
 bool broker_state::engine_peer_needs_update(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(_connected_peers_m);
   _logger->trace("engine_peer_needs_update called for poller id {}", poller_id);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
@@ -582,7 +598,7 @@ bool broker_state::engine_peer_needs_update(uint64_t poller_id) const {
  * @param ack
  */
 void broker_state::acknowledge_engine_peer(uint64_t poller_id) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id; ++lower) {
@@ -600,7 +616,7 @@ void broker_state::acknowledge_engine_peer(uint64_t poller_id) {
  * @param poller_id
  */
 void broker_state::set_available_conf_sent_to_engine_peer(uint32_t poller_id) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id; ++lower) {

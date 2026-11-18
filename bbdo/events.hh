@@ -159,7 +159,8 @@ enum data_element {
   de_pb_adaptive_host_status = 56,
   de_pb_agent_stats = 57,
   de_pb_unknown_host = 58,
-  de_pb_agent_host_info = 59
+  de_pb_agent_host_info = 59,
+  de_pb_engine_state = 60,
 };
 }  // namespace neb
 namespace storage {

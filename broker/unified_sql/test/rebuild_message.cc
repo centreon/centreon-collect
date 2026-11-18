@@ -20,7 +20,8 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
-#include "broker/core/bbdo/stream.hh"
+#include "broker/core/bbdo/broker_stream.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -106,9 +107,11 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   (*r->mut_obj().mutable_metric_to_index_id())[5] = 1;
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::basic_stream stm(true);
+  bbdo::broker_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
+  stm.set_negotiate(false);
+  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(r);
   std::vector<char> const& mem1 = memory_stream->get_memory();
 
@@ -153,9 +156,11 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
   }
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::basic_stream stm(true);
+  bbdo::broker_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
+  stm.set_negotiate(false);
+  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(r);
   const std::vector<char>& mem1 = memory_stream->get_memory();
 

@@ -21,7 +21,6 @@
 #include <com/centreon/broker/stats/worker_pool.hh>
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
-#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
@@ -125,9 +124,7 @@ class fact : public io::factory {
   io::endpoint* new_endpoint(
       config::endpoint& cfg [[maybe_unused]],
       const std::map<std::string, std::string>& global_params [[maybe_unused]],
-      bool& is_acceptor,
-      std::shared_ptr<persistent_cache> cache
-      [[maybe_unused]] = std::shared_ptr<persistent_cache>()) const override {
+      bool& is_acceptor) const override {
     endp* p{new endp()};
     is_acceptor = true;
     return p;

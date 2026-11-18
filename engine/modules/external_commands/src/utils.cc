@@ -160,7 +160,7 @@ int close_command_file(void) {
     return OK;
 
   /* the command file wasn't created or was already cleaned up */
-  if (command_file_created == false)
+  if (!command_file_created)
     return OK;
 
   /* reset our flag */
@@ -168,6 +168,10 @@ int close_command_file(void) {
 
   /* close the command file */
   fclose(command_file_fp);
+
+  /* Delete the named pipe */
+  const std::string& command_file{pb_indexed_config.state().command_file()};
+  unlink(command_file.c_str());
 
   return OK;
 }

@@ -92,8 +92,7 @@ bool factory::has_endpoint(const config::endpoint& cfg,
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const absl::flat_hash_map<std::string, std::string>& global_params,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
+    bool& is_acceptor) const {
   // Find TLS parameters (optional).
   bool tls2 = false;
   std::string private_key;

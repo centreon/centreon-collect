@@ -25,18 +25,26 @@ extern "C" {
 #include "lualib.h"
 }
 
+namespace com::centreon::broker::cache {
+class broker_cache;
+}
+
+using com::centreon::broker::cache::broker_cache;
+
 namespace com::centreon::broker::lua {
 
 /**
- *  @class broker_cache broker_cache.hh
- * "com/centreon/broker/lua/broker_cache.hh"
+ *  @class lua_cache lua_cache.hh
+ * "com/centreon/broker/lua/lua_cache.hh"
  *  @brief Class providing cache access to the lua interpreter
  *
  *  This class provides a binding to Lua to access cache.
  */
-class broker_cache {
+class lua_cache {
  public:
-  static void broker_cache_reg(lua_State* L, uint32_t api_version);
+  static void broker_cache_reg(lua_State* L,
+                               broker_cache* const cache,
+                               uint32_t api_version);
 };
 
 }  // namespace com::centreon::broker::lua

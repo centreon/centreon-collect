@@ -18,14 +18,13 @@
 
 add_custom_command(
   DEPENDS process_stat.proto
-  COMMENT "Generating interface files of the proto file (grpc)"
+  COMMENT "Generating interface files of the proto file (grpc/protobuf)"
   OUTPUT process_stat.grpc.pb.cc process_stat.grpc.pb.h
   COMMAND
     protobuf::protoc ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
     --grpc_out="${CMAKE_BINARY_DIR}/common/process_stat" process_stat.proto
   DEPENDS process_stat.proto
-  COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT process_stat.pb.cc process_stat.pb.h
   COMMAND protobuf::protoc ARGS --cpp_out="${CMAKE_BINARY_DIR}/common/process_stat"
   --proto_path=${CMAKE_CURRENT_SOURCE_DIR} process_stat.proto

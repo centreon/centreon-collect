@@ -104,8 +104,8 @@ std::shared_ptr<io::stream> connector::_open(
           _is_input, _grpc_serialized, _extensions);
 #endif
     else {
-      auto retval =
-          std::make_shared<bbdo::basic_stream>(_is_input, _grpc_serialized);
+      auto retval = std::make_shared<bbdo::basic_stream>(
+          _is_input, _grpc_serialized);
       retval->set_substream(stream);
       retval->set_ack_limit(_ack_limit);
       retval->set_coarse(_coarse);

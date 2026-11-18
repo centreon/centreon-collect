@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Centreon (https://www.centreon.com/)
+ * Copyright 2025-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 #include "common/engine_conf/command_helper.hh"
+#include "common/engine_conf/hostgroup_helper.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/tag_helper.hh"
 #include "common/log_v2/log_v2.hh"

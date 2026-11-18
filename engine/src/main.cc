@@ -140,6 +140,7 @@ int main(int argc, char* argv[]) {
   // It must be the first OpenSSL initialization of the process.
   OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, nullptr);
 
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
   // Get global macros.
   nagios_macros* mac(get_global_macros());
 
@@ -526,8 +527,6 @@ int main(int argc, char* argv[]) {
           event_start = time(NULL);
           mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
 
-          engine_logger(logging::log_info_message, logging::basic)
-              << "Event loop start at " << string::ctime(event_start);
           config_logger->info("Event loop start at {}",
                               string::ctime(event_start));
           // Start monitoring all services (doesn't return until a

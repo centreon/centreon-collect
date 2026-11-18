@@ -60,8 +60,10 @@ BECNHG3
     Ctn Config Broker    module    ${4}
 
     Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    debug
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    rrd    core    error
     Ctn Clear Prot Files
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
@@ -74,6 +76,7 @@ BECNHG3
         Ctn Notify Broker Of Engine Config Change    ${i}
     END
 
+    Log To Console    Verify that all 12 hosts are in hostgroup_1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Check Query Result    SELECT COUNT(*) FROM hosts_hostgroups WHERE hostgroup_id=1    ==    ${12}    retry_timeout=30s    retry_pause=2s
     Disconnect From Database

@@ -4,6 +4,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "process_stat.proto";
 import "common.proto";
+import "neb.proto";
 
 package com.centreon.broker;
 
@@ -97,10 +98,26 @@ service Broker {
   rpc Aes256Decrypt(AesMessage) returns (GenericString) {}
 
   rpc GetPeers(google.protobuf.Empty) returns (PeerList) {}
+  rpc GetHostIds(google.protobuf.Empty) returns (IdsList) {}
+  rpc GetHost(GenericNameOrIndex) returns (Host) {}
+  rpc GetServiceIds(google.protobuf.Empty) returns (IdsPairsList) {}
+  rpc GetService(ServiceIdentifier) returns (Service) {}
 }
 
 message PeerList {
   repeated Peer peers = 1;
+}
+
+message IdsList {
+  repeated uint64 ids = 1;
+}
+
+message IdsPairsList {
+  message IdsPair {
+    uint64 host_id = 1;
+    uint64 service_id = 2;
+  }
+  repeated IdsPair pairs = 1;
 }
 
 message Peer {
@@ -169,6 +186,17 @@ message GenericNameOrIndex {
   oneof nameOrIndex {
     string str = 1;
     uint64 idx = 2;
+  }
+}
+
+message ServiceIdentifier {
+  oneof host {
+    string host_name = 1;
+    uint64 host_id = 2;
+  }
+  oneof service {
+    string description = 3;
+    uint64 service_id = 4;
   }
 }
 

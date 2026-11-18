@@ -271,6 +271,8 @@ elif [ -r /etc/issue ] ; then
       $lua_pkg
       libmariadb-dev
       libperl-dev
+      libhttp-daemon-ssl-perl
+      libjson-perl
       librrd-dev
       libssh2-1-dev
       libssl-dev
@@ -279,6 +281,7 @@ elif [ -r /etc/issue ] ; then
       pkg-config
       python3
       python3-pip
+      rrdtool
       zip
       zlib1g-dev
     )

@@ -179,7 +179,9 @@ class basic_stream : public io::stream {
   }
 
  public:
-  basic_stream(bool is_input, bool grpc_serialized = false);
+  basic_stream(
+      bool is_input,
+      bool grpc_serialized = false);
   virtual ~basic_stream();
   basic_stream(const basic_stream&) = delete;
   basic_stream& operator=(const basic_stream&) = delete;

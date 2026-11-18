@@ -54,7 +54,7 @@ TEST_F(event_script_factory, no_filter) {
   std::shared_ptr<persistent_cache> cache;
   bool is_acceptor;
 
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
 }
 
 TEST_F(event_script_factory, several_filter) {
@@ -66,14 +66,14 @@ TEST_F(event_script_factory, several_filter) {
   cfg.params["script_path"] = "/toto.sh";
 
   cfg.write_filters.insert("all");
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.write_filters.clear();
   cfg.write_filters.insert("neb:ServiceStatus");
   cfg.write_filters.insert("neb:AdaptiveServiceStatus");
-  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.write_filters.clear();
   cfg.write_filters.insert("neb:ServiceStatus");
-  ASSERT_NO_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache));
+  ASSERT_NO_THROW(fact.new_endpoint(cfg, {}, is_acceptor));
 }
 
 TEST_F(event_script_factory, onefilter) {
@@ -85,5 +85,5 @@ TEST_F(event_script_factory, onefilter) {
   cfg.params["script_path"] = "/toto.sh";
 
   cfg.write_filters.insert("neb:AdaptiveServiceStatus");
-  ASSERT_NO_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache));
+  ASSERT_NO_THROW(fact.new_endpoint(cfg, {}, is_acceptor));
 }

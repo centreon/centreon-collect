@@ -67,6 +67,7 @@ namespace bam {
  *  will just make a new attempt in 5s.
  */
 class monitoring_stream : public io::stream {
+  const std::string _name;
   const std::string _ext_cmd_file;
 
   /* Logger */
@@ -75,6 +76,15 @@ class monitoring_stream : public io::stream {
   configuration::applier::state _applier;
   /* This mutex is to protect writes to the external command named pipe. */
   mutable std::mutex _ext_cmd_file_m;
+
+  /* We stack external commands because in case of a stopped centengine,
+   * before this modification external commands were lost. And we could have
+   * issues with downtimes. Now, Broker can retry to send them 5s later. */
+  std::deque<std::string> _queue_external_commands
+      ABSL_GUARDED_BY(_queue_external_commands_m);
+  mutable std::mutex _queue_external_commands_m;
+  asio::steady_timer _queue_external_commands_timer;
+  bool _queue_external_commands_stopped;
 
   ba_svc_mapping _ba_mapping;
   mutable std::mutex _statusm;
@@ -86,10 +96,9 @@ class monitoring_stream : public io::stream {
   uint32_t _pending_events;
   unsigned _pending_request;
   database_config _storage_db_cfg;
-  std::shared_ptr<persistent_cache> _cache;
 
   asio::steady_timer _forced_svc_checks_timer;
-  std::mutex _forced_svc_checks_m;
+  mutable std::mutex _forced_svc_checks_m;
   std::unordered_set<std::pair<std::string, std::string>,
                      absl::Hash<std::pair<std::string, std::string>>>
       _forced_svc_checks;
@@ -106,6 +115,7 @@ class monitoring_stream : public io::stream {
   void _prepare();
   void _rebuild();
   void _update_status(std::string const& status);
+  void _async_write_external_commands();
   void _write_external_command(const std::string& cmd);
 
   void _read_cache();
@@ -113,10 +123,10 @@ class monitoring_stream : public io::stream {
   void _execute();
 
  public:
-  monitoring_stream(std::string const& ext_cmd_file,
-                    database_config const& db_cfg,
-                    database_config const& storage_db_cfg,
-                    std::shared_ptr<persistent_cache> cache,
+  monitoring_stream(const std::string& name,
+                    const std::string& ext_cmd_file,
+                    const database_config& db_cfg,
+                    const database_config& storage_db_cfg,
                     const std::shared_ptr<spdlog::logger>& logger);
   ~monitoring_stream();
   monitoring_stream(const monitoring_stream&) = delete;

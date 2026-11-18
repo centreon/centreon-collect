@@ -22,6 +22,7 @@
 
 #include "bbdo/storage/status.hh"
 #include "broker/core/bbdo/stream.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/string.hh"

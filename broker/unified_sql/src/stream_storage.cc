@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2022 Centreon
+ * Copyright 2019-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -293,7 +293,7 @@ void stream::_unified_sql_process_pb_service_status(
             it_index_cache->second.min = pd.min();
             it_index_cache->second.max = pd.max();
             {
-              std::lock_guard<std::mutex> lck(_queues_m);
+              absl::MutexLock lck(_metrics_m);
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
@@ -302,7 +302,7 @@ void stream::_unified_sql_process_pb_service_status(
           }
         }
         if (need_metric_mapping) {
-          auto mm{std::make_shared<storage::pb_metric_mapping>()};
+          auto mm = std::make_shared<storage::pb_metric_mapping>();
           auto& mm_obj = mm->mut_obj();
           mm_obj.set_index_id(index_id);
           mm_obj.set_metric_id(metric_id);
@@ -405,7 +405,7 @@ void stream::_unified_sql_process_service_status(
   auto it_index_cache = _index_cache.find({host_id, service_id});
   uint64_t index_id;
   bool index_locked{false};
-  bool special{!strncmp(ss.host_name.c_str(), BAM_NAME, sizeof(BAM_NAME) - 1)};
+  bool special = absl::StartsWith(ss.host_name, BAM_NAME);
 
   auto add_metric_in_cache = [this](uint64_t index_id, uint64_t host_id,
                                     uint64_t service_id,
@@ -656,7 +656,7 @@ void stream::_unified_sql_process_service_status(
             it_index_cache->second.min = pd.min();
             it_index_cache->second.max = pd.max();
             {
-              std::lock_guard<std::mutex> lck(_queues_m);
+              absl::MutexLock lck(_metrics_m);
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
@@ -729,7 +729,7 @@ void stream::_unified_sql_process_service_status(
 void stream::_update_metrics() {
   std::unordered_map<int32_t, metric_info> metrics;
   {
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock lck(_metrics_m);
     std::swap(_metrics, metrics);
   }
 
@@ -787,10 +787,12 @@ void stream::_check_queues(boost::system::error_code ec) {
     _logger_sql->error("unified_sql: the queues check encountered an error: {}",
                        ec.message());
   else {
+    _logger_sql->trace("unified_sql: checking queues... {}",
+                       _stop_check_queues.load());
     time_t now = time(nullptr);
     size_t sz_metrics;
     {
-      std::lock_guard<std::mutex> lck(_queues_m);
+      absl::MutexLock lck(_metrics_m);
       sz_metrics = _metrics.size();
     }
 
@@ -803,8 +805,7 @@ void stream::_check_queues(boost::system::error_code ec) {
             SPDLOG_LOGGER_TRACE(
                 _logger_sql,
                 "Check if some statements are ready,  hscr_bind connections "
-                "count "
-                "= {}",
+                "count = {}",
                 _hscr_bind->connections_count());
             for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
                  conn++) {
@@ -826,8 +827,7 @@ void stream::_check_queues(boost::system::error_code ec) {
             SPDLOG_LOGGER_TRACE(
                 _logger_sql,
                 "Check if some statements are ready,  sscr_bind connections "
-                "count "
-                "= {}",
+                "count = {}",
                 _sscr_bind->connections_count());
             for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
                  conn++) {
@@ -905,24 +905,29 @@ void stream::_check_queues(boost::system::error_code ec) {
       }
 
       bool customvar_done = false;
-      if (_cv.ready()) {
-        SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new custom variables inserted",
-                            _cv.size());
-        std::string query = _cv.get_query();
-        _mysql.run_query(query, database::mysql_error::update_customvariables,
-                         0);
-        customvar_done = true;
+      {
+        absl::MutexLock lck(_cv_m);
+        if (_cv.ready()) {
+          SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new custom variables inserted",
+                              _cv.size());
+          std::string query = _cv.get_query();
+          _mysql.run_query(query, database::mysql_error::update_customvariables,
+                           0);
+          customvar_done = true;
+        }
+
+        if (_cvs.ready()) {
+          SPDLOG_LOGGER_DEBUG(_logger_sql,
+                              "{} new custom variable status inserted",
+                              _cvs.size());
+          std::string query = _cvs.get_query();
+          _mysql.run_query(query, database::mysql_error::update_customvariables,
+                           0);
+          customvar_done = true;
+        }
       }
 
-      if (_cvs.ready()) {
-        SPDLOG_LOGGER_DEBUG(
-            _logger_sql, "{} new custom variable status inserted", _cvs.size());
-        std::string query = _cvs.get_query();
-        _mysql.run_query(query, database::mysql_error::update_customvariables,
-                         0);
-        customvar_done = true;
-      }
-
+      _logger_sql->trace("Checking downtimes queue...");
       bool downtimes_done = false;
       {
 	SPDLOG_LOGGER_DEBUG(_logger_sql, "BEFORE: {} new downtimes inserted",
@@ -977,7 +982,7 @@ void stream::_check_queues(boost::system::error_code ec) {
 
       // End.
       SPDLOG_LOGGER_DEBUG(_logger_sql,
-                          "unified_sql:_check_queues   - resources: {}, "
+                          "unified_sql: queues emptied:   - resources: {}, "
                           "perfdata: {}, metrics: {}, customvar: "
                           "{}, logs: {}, downtimes: {} comments: {}",
                           resources_done, perfdata_done, metrics_done,
@@ -991,6 +996,7 @@ void stream::_check_queues(boost::system::error_code ec) {
 
     if (!_stop_check_queues) {
       absl::MutexLock l(_timer_m);
+      _logger_sql->trace("unified_sql: rescheduling queues check timer in 5s.");
       _queues_timer.expires_after(std::chrono::seconds(5));
       _queues_timer.async_wait([this](const boost::system::error_code& err) {
         if (!err) {
@@ -1001,10 +1007,11 @@ void stream::_check_queues(boost::system::error_code ec) {
     } else {
       SPDLOG_LOGGER_INFO(_logger_sql,
                          "SQL: check_queues correctly interrupted.");
+      absl::MutexLock lck(_check_queues_m);
       _check_queues_stopped = true;
-      _queues_cond_var.notify_all();
     }
   }
+  _logger_sql->trace("unified_sql: queues check done.");
 }
 
 /**

@@ -18,6 +18,8 @@
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
+#include <absl/synchronization/mutex.h>
+#include <absl/time/time.h>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
@@ -105,7 +107,9 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_instance_configuration,
     &stream::_process_pb_adaptive_service_status,
     &stream::_process_pb_adaptive_host_status,
-    &stream::_process_agent_stats};
+    &stream::_process_agent_stats,
+    &stream::_process_engine_state,
+};
 
 constexpr size_t neb_processing_table_size =
     sizeof(stream::neb_processing_table) /
@@ -244,6 +248,8 @@ stream::stream(const database_config& dbcfg,
 }
 
 stream::~stream() noexcept {
+  assert(_stop_check_queues);
+  _logger_sql->trace("unified sql: stream destruction started");
   {
     absl::MutexLock l(_timer_m);
     _group_clean_timer.cancel();
@@ -254,6 +260,10 @@ stream::~stream() noexcept {
    */
   absl::MutexLock lck(_barrier_timer_m);
   /* If there are data to write, we write them, so we force their readyness. */
+  _logger_sql->debug(
+      "unified sql: flushing queues before destruction, stop asked = {}, "
+      "actually stopped = {}",
+      _stop_check_queues.load(), _check_queues_stopped);
   if (_hscr_bind)
     _hscr_bind->force_ready();
   if (_sscr_bind)
@@ -272,6 +282,7 @@ stream::~stream() noexcept {
     _comments->force_ready();
   if (_logs)
     _logs->force_ready();
+  _logger_sql->debug("unified sql: last queues check before destruction");
   _check_queues({});
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream destruction");
 }
@@ -311,8 +322,8 @@ void stream::_load_caches() {
   std::promise<mysql_result> promise_instance_id;
   std::promise<database::mysql_result> promise_index_data;
   std::promise<mysql_result> promise_hi;
-  std::promise<mysql_result> promise_hg;
-  std::promise<mysql_result> promise_sg;
+  // std::promise<mysql_result> promise_hg;
+  // std::promise<mysql_result> promise_sg;
   std::promise<mysql_result> promise_metrics;
   std::promise<mysql_result> promise_resource;
   std::promise<mysql_result> promise_severity;
@@ -321,8 +332,8 @@ void stream::_load_caches() {
       promise_instance_id.get_future();
   std::future<mysql_result> future_index_data = promise_index_data.get_future();
   std::future<mysql_result> future_hi = promise_hi.get_future();
-  std::future<mysql_result> future_hg = promise_hg.get_future();
-  std::future<mysql_result> future_sg = promise_sg.get_future();
+  // std::future<mysql_result> future_hg = promise_hg.get_future();
+  // std::future<mysql_result> future_sg = promise_sg.get_future();
   std::future<mysql_result> future_metrics = promise_metrics.get_future();
   std::future<mysql_result> future_resource = promise_resource.get_future();
   std::future<mysql_result> future_severity = promise_severity.get_future();
@@ -345,12 +356,13 @@ void stream::_load_caches() {
                                   std::move(promise_hi));
 
   /* hostgroups => _hostgroups_cache */
-  _mysql.run_query_and_get_result("SELECT hostgroup_id, name FROM hostgroups",
-                                  std::move(promise_hg));
+  //_mysql.run_query_and_get_result("SELECT hostgroup_id, name FROM hostgroups",
+  //                                std::move(promise_hg));
 
   /* servicegroups => _servicegroups_cache */
-  _mysql.run_query_and_get_result(
-      "SELECT servicegroup_id, name FROM servicegroups", std::move(promise_sg));
+  //_mysql.run_query_and_get_result(
+  //    "SELECT servicegroup_id, name FROM servicegroups",
+  //    std::move(promise_sg));
 
   /* metrics => _metric_cache */
   _mysql.run_query_and_get_result(
@@ -426,7 +438,6 @@ void stream::_load_caches() {
       } else {
         _logger_sto->debug("unified_sql: loaded index {} of ({}, {})",
                            info.index_id, host_id, service_id);
-        _index_cache[{host_id, service_id}] = std::move(info);
 
         // Create the metric mapping.
         if (bbdo.major_v < 3) {
@@ -434,13 +445,9 @@ void stream::_load_caches() {
               info.index_id, host_id, service_id)};
           pblshr.write(im);
         } else {
-          auto im{std::make_shared<storage::pb_index_mapping>()};
-          auto& im_obj = im->mut_obj();
-          im_obj.set_index_id(info.index_id);
-          im_obj.set_host_id(host_id);
-          im_obj.set_service_id(service_id);
-          pblshr.write(im);
+          _publish_index_mapping(host_id, service_id, info);
         }
+        _index_cache[{host_id, service_id}] = std::move(info);
       }
     }
   } catch (std::exception const& e) {
@@ -476,43 +483,44 @@ void stream::_load_caches() {
   }
 
   /* hostgroups => _hostgroups_cache */
-  _hostgroups_cache.clear();
-  try {
-    mysql_result res(future_hg.get());
-    while (_mysql.fetch_row(res)) {
-      uint32_t hg_id = res.value_as_i32(0);
-      std::string name = res.value_as_str(1);
-      if (hg_id > 0)
-        _hostgroups_cache.insert({hg_id, name});
-      else
-        SPDLOG_LOGGER_ERROR(
-            _logger_sql,
-            "unified_sql: the table 'hostgroups' contains rows with "
-            "hostgroup_id <= 0, you should remove them.");
-    }
-  } catch (const std::exception& e) {
-    throw msg_fmt("SQL: could not get the list of hostgroups id: {}", e.what());
-  }
+  //_hostgroups_cache.clear();
+  // try {
+  //  mysql_result res(future_hg.get());
+  //  while (_mysql.fetch_row(res)) {
+  //    uint32_t hg_id = res.value_as_i32(0);
+  //    std::string name = res.value_as_str(1);
+  //    if (hg_id > 0)
+  //      _hostgroups_cache.insert({hg_id, name});
+  //    else
+  //      SPDLOG_LOGGER_ERROR(
+  //          _logger_sql,
+  //          "unified_sql: the table 'hostgroups' contains rows with "
+  //          "hostgroup_id <= 0, you should remove them.");
+  //  }
+  //} catch (const std::exception& e) {
+  //  throw msg_fmt("SQL: could not get the list of hostgroups id: {}",
+  //  e.what());
+  //}
 
   /* servicegroups => _servicegroups_cache */
-  _servicegroups_cache.clear();
-  try {
-    mysql_result res(future_sg.get());
-    while (_mysql.fetch_row(res)) {
-      uint32_t sg_id = res.value_as_i32(0);
-      std::string name = res.value_as_str(1);
-      if (sg_id > 0)
-        _servicegroups_cache.insert({sg_id, name});
-      else
-        SPDLOG_LOGGER_ERROR(
-            _logger_sql,
-            "unified_sql: the 'servicegroups' table contains rows with "
-            "servicegroup_id <= 0, you should remove them.");
-    }
-  } catch (std::exception const& e) {
-    throw msg_fmt("SQL: could not get the list of servicegroups id: {}",
-                  e.what());
-  }
+  //_servicegroups_cache.clear();
+  // try {
+  //  mysql_result res(future_sg.get());
+  //  while (_mysql.fetch_row(res)) {
+  //    uint32_t sg_id = res.value_as_i32(0);
+  //    std::string name = res.value_as_str(1);
+  //    if (sg_id > 0)
+  //      _servicegroups_cache.insert({sg_id, name});
+  //    else
+  //      SPDLOG_LOGGER_ERROR(
+  //          _logger_sql,
+  //          "unified_sql: the 'servicegroups' table contains rows with "
+  //          "servicegroup_id <= 0, you should remove them.");
+  //  }
+  //} catch (std::exception const& e) {
+  //  throw msg_fmt("SQL: could not get the list of servicegroups id: {}",
+  //                e.what());
+  //}
 
   _cache_svc_cmd.clear();
   _cache_hst_cmd.clear();
@@ -522,7 +530,7 @@ void stream::_load_caches() {
     std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
     _metric_cache.clear();
     {
-      std::lock_guard<std::mutex> lck(_queues_m);
+      absl::MutexLock l(_metrics_m);
       _metrics.clear();
     }
 
@@ -650,11 +658,16 @@ void stream::statistics(nlohmann::json& tree) const {
   size_t perfdata = _perfdata_query->row_count();
   size_t sz_metrics;
   size_t sz_logs = _logs->row_count();
-  size_t sz_cv = _cv.size();
-  size_t sz_cvs = _cvs.size();
+  size_t sz_cv;
+  size_t sz_cvs;
+  {
+    absl::MutexLock lck(_cv_m);
+    sz_cv = _cv.size();
+    sz_cvs = _cvs.size();
+  }
   size_t count;
   {
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock lck(_metrics_m);
     sz_metrics = _metrics.size();
     count = _count;
   }
@@ -808,15 +821,20 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  * @return the number of events to ack.
  */
 int32_t stream::stop() {
-  _logger_sql->trace("unified_sql::stream stop {}", static_cast<void*>(this));
+  _logger_sql->trace("unified_sql: stream stop {}", static_cast<void*>(this));
   int32_t retval = flush();
   /* We give the order to stop the check_queues */
   _stop_check_queues = true;
   /* We wait for the check_queues to be really stopped */
-  std::unique_lock<std::mutex> lck(_queues_m);
-  if (_queues_cond_var.wait_for(lck, std::chrono::seconds(queue_timer_duration),
-                                [this] { return _check_queues_stopped; })) {
-    SPDLOG_LOGGER_INFO(_logger_sql, "SQL: stream correctly stopped");
+  absl::ReleasableMutexLock lck(_check_queues_m);
+  auto check_queues_is_stopped = [this]() { return _check_queues_stopped; };
+
+  _check_queues_m.Await(absl::Condition(&check_queues_is_stopped));
+  if (_check_queues_m.AwaitWithTimeout(
+          absl::Condition(&check_queues_is_stopped),
+          absl::Seconds(queue_timer_duration))) {
+    SPDLOG_LOGGER_INFO(_logger_sql, "SQL: stream correctly stopped {}",
+                       _check_queues_stopped);
   } else {
     SPDLOG_LOGGER_ERROR(_logger_sql,
                         "SQL: stream queues check still running...");
@@ -906,8 +924,9 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
           } else {
             metrics_to_delete.insert(mid);
 
+            auto& cache = config::applier::state::instance().cache();
+            cache.remove_index_mapping(host_id, service_id);
             _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
-            _index_cache.erase({host_id, service_id});
           }
         }
       }
@@ -1101,45 +1120,56 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
   }
 }
 
+/**
+ * @brief Clear the cache of instances for the given instance IDs. All resources
+ * attached to these instances are also removed from the cache.
+ *
+ * @param ids The list of instance IDs to clear from the cache.
+ */
 void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
-  for (auto it = _cache_host_instance.begin();
-       it != _cache_host_instance.end();) {
-    if (std::find(ids.begin(), ids.end(), it->second) != ids.end()) {
-      uint64_t host_id = it->first;
-      _cache_hst_cmd.erase(host_id);
-      for (auto itt = _cache_svc_cmd.begin(); itt != _cache_svc_cmd.end();
-           ++itt) {
-        if (itt->first.first == host_id) {
-          uint64_t svc_id = itt->first.second;
-          auto ridx_it = _index_cache.find({host_id, svc_id});
-          uint64_t index_id = ridx_it->second.index_id;
-          for (auto idx_it = _index_cache.begin(); idx_it != _index_cache.end();
-               ++idx_it) {
-            if (idx_it->first.first == index_id)
-              _index_cache.erase(idx_it);
-            std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
-            for (auto metric_it = _metric_cache.begin();
-                 metric_it != _metric_cache.end(); ++metric_it) {
-              if (metric_it->first.first == index_id)
-                _metric_cache.erase(metric_it);
-            }
-          }
-          _index_cache.erase(ridx_it);
-          _cache_svc_cmd.erase(itt);
+  auto& cache = config::applier::state::instance().cache();
+  for (uint64_t instance_id : ids)
+    cache.remove_instance(instance_id);
 
-          // resources
-          auto res_it = _resources_cache.find({svc_id, host_id});
-          if (res_it != _resources_cache.end())
-            _resources_cache.erase(res_it);
-        }
-        auto res_it = _resources_cache.find({host_id, 0});
-        if (res_it != _resources_cache.end())
-          _resources_cache.erase(res_it);
-      }
-      it = _cache_host_instance.erase(it);
-    } else
-      ++it;
-  }
+  // auto host_ids = cache.host_ids();
+  // for (uint64_t host_id : host_ids) {
+  //   uint64_t instance_id = cache.host(host_id)->obj().instance_id();
+  //   if (std::find(ids.begin(), ids.end(), instance_id) != ids.end()) {
+  //     _cache_hst_cmd.erase(host_id);
+  //     for (auto itt = _cache_svc_cmd.begin(); itt != _cache_svc_cmd.end();
+  //          ++itt) {
+  //       if (itt->first.first == host_id) {
+  //         uint64_t svc_id = itt->first.second;
+  //         auto ridx_it = _index_cache.find({host_id, svc_id});
+  //         uint64_t index_id = ridx_it->second.index_id;
+  //         for (auto idx_it = _index_cache.begin(); idx_it !=
+  //         _index_cache.end();
+  //              ++idx_it) {
+  //           if (idx_it->first.first == index_id)
+  //             _index_cache.erase(idx_it);
+  //           std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
+  //           for (auto metric_it = _metric_cache.begin();
+  //                metric_it != _metric_cache.end(); ++metric_it) {
+  //             if (metric_it->first.first == index_id)
+  //               _metric_cache.erase(metric_it);
+  //           }
+  //         }
+  //         _index_cache.erase(ridx_it);
+  //         _cache_svc_cmd.erase(itt);
+
+  //        // resources
+  //        auto res_it = _resources_cache.find({svc_id, host_id});
+  //        if (res_it != _resources_cache.end())
+  //          _resources_cache.erase(res_it);
+  //      }
+  //      auto res_it = _resources_cache.find({host_id, 0});
+  //      if (res_it != _resources_cache.end())
+  //        _resources_cache.erase(res_it);
+  //    }
+  //    it = _cache_host_instance.erase(it);
+  //  } else
+  //    ++it;
+  //}
 }
 
 void stream::update() {
@@ -1419,10 +1449,6 @@ stream::service_description_id_cache() {
   return _service_description_id_cache;
 }
 
-boost::bimap<uint32_t, std::string>& stream::hostgroups_cache() {
-  return _hostgroups_cache;
-}
-
-boost::bimap<uint32_t, std::string>& stream::servicegroups_cache() {
-  return _servicegroups_cache;
-}
+// boost::bimap<uint32_t, std::string>& stream::servicegroups_cache() {
+//   return _servicegroups_cache;
+// }

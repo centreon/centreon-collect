@@ -37,16 +37,15 @@ TEST(UnifiedSqlFactory, Factory) {
 
   unified_sql::factory factory;
 
-  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["length"] = "42";
-  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor, cache),
-               exceptions::config);
+  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor), exceptions::config);
   cfg.params["db_type"] = "mysql";
   cfg.params["db_name"] = "centreon";
   ASSERT_FALSE(factory.has_endpoint(cfg, nullptr));
   cfg.type = "unified_sql";
   unified_sql::connector* endp = static_cast<unified_sql::connector*>(
-      factory.new_endpoint(cfg, {}, is_acceptor, cache));
+      factory.new_endpoint(cfg, {}, is_acceptor));
 
   unified_sql::connector con;
   con.connect_to(dbcfg, 60, 300, 80, 250, true);
@@ -68,10 +67,9 @@ TEST(UnifiedSqlFactory, FactoryWithFullConf) {
 
   unified_sql::factory factory;
 
-  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor), msg_fmt);
   cfg.params["length"] = "42";
-  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor, cache),
-               exceptions::config);
+  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor), exceptions::config);
   cfg.params["db_type"] = "mysql";
   cfg.params["db_name"] = "centreon";
   cfg.params["interval"] = "43";
@@ -80,7 +78,7 @@ TEST(UnifiedSqlFactory, FactoryWithFullConf) {
   ASSERT_FALSE(factory.has_endpoint(cfg, nullptr));
   cfg.type = "unified_sql";
   unified_sql::connector* endp = static_cast<unified_sql::connector*>(
-      factory.new_endpoint(cfg, {}, is_acceptor, cache));
+      factory.new_endpoint(cfg, {}, is_acceptor));
 
   unified_sql::connector con;
   con.connect_to(dbcfg, 42, 43, 44, 45, false);

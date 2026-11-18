@@ -19,13 +19,9 @@
 
 #include "broker/core/brokerrpc/brokerrpc.hh"
 #include "broker/core/config/applier/broker_state.hh"
-#include "broker/core/config/applier/state.hh"
 
 #include <gtest/gtest.h>
 
-#include <fmt/format.h>
-
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/version.hh"
 
@@ -35,8 +31,7 @@ using namespace com::centreon::broker;
 class BrokerRpc : public ::testing::Test {
  public:
   void SetUp() override {
-    config::applier::state::load<
-        com::centreon::broker::config::applier::broker_state>("");
+    config::applier::state::load<config::applier::broker_state>("");
     io::protocols::load();
     io::events::load();
   }

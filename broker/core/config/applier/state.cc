@@ -154,6 +154,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
           "'module_directory' directory");
   }
 
+  initialize_cache(log_v2::instance().get(log_v2::CORE));
   // Event queue max size (used to limit memory consumption).
   com::centreon::broker::multiplexing::muxer::event_queue_max_size(
       s.event_queue_max_size());
@@ -166,6 +167,11 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   // Enable multiplexing loop.
   if (run_mux)
     com::centreon::broker::multiplexing::engine::instance_ptr()->start();
+}
+
+void state::initialize_cache(const std::shared_ptr<spdlog::logger>& logger) {
+  if (!_global_cache)
+    _global_cache = std::make_unique<cache::broker_cache>(logger);
 }
 
 /**

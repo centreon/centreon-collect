@@ -22,6 +22,7 @@
 #include "bbdo/bbdo.pb.h"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/extension.hh"
+#include "bbdo/bbdo.pb.h"
 
 namespace com::centreon::broker::bbdo {
 
