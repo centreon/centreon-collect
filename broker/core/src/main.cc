@@ -48,7 +48,7 @@ using namespace com::centreon;
 #include <boost/interprocess/managed_mapped_file.hpp>
 
 #include "broker/core/brokerrpc/brokerrpc.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
@@ -339,7 +339,8 @@ int main(int argc, char* argv[]) {
 
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
-        config::applier::init(common::BROKER, "", conf);
+        config::applier::init<
+            com::centreon::broker::config::applier::broker_state>("", conf);
 
         // Apply resulting configuration totally or partially.
         config::applier::state::instance().apply(conf, !check);

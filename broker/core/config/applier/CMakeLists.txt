@@ -17,7 +17,9 @@
 #
 include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/core)
 
-add_library(applier_state STATIC
+add_library(broker_applier_state STATIC
+  broker_state.cc
+  broker_state.hh
   endpoint.cc
   endpoint.hh
   init.cc
@@ -28,10 +30,31 @@ add_library(applier_state STATIC
   state.hh
 )
 
-target_compile_definitions(applier_state PRIVATE BROKER_COMPILATION)
+target_compile_definitions(broker_applier_state PRIVATE BROKER_COMPILATION)
 
-target_precompile_headers(applier_state PRIVATE ../../precomp_inc/precomp.hpp)
+target_precompile_headers(broker_applier_state PRIVATE ../../precomp_inc/precomp.hpp)
 
-set_target_properties(applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(broker_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_dependencies(applier_state process_stat)
+add_dependencies(broker_applier_state process_stat)
+
+add_library(cbmod_applier_state STATIC
+  cbmod_state.cc
+  cbmod_state.hh
+  endpoint.cc
+  endpoint.hh
+  init.cc
+  init.hh
+  modules.cc
+  modules.hh
+  state.cc
+  state.hh
+)
+
+target_compile_definitions(cbmod_applier_state PRIVATE CBMOD_COMPILATION)
+
+target_precompile_headers(cbmod_applier_state PRIVATE ../../precomp_inc/precomp.hpp)
+
+set_target_properties(cbmod_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_dependencies(cbmod_applier_state process_stat)

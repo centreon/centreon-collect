@@ -10,7 +10,7 @@ Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-EBNSVC1
+BENSVC1
     [Documentation]    New services with several pollers
     [Tags]    broker    engine    services    protobuf
     Ctn Config Engine    ${3}    ${50}    ${20}
@@ -19,12 +19,12 @@ EBNSVC1
     Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    3
     Ctn Broker Config Log    central    sql    debug
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
     FOR    ${i}    IN RANGE    ${3}
+        Log To Console    ---- Iteration ${i} ----
         Sleep    10s
         ${srv_by_host}    Evaluate    20 + 4 * $i
         Log To Console    ${srv_by_host} services by host with 50 hosts among 3 pollers.
@@ -46,7 +46,7 @@ EBNSVC1
     Ctn Kindly Stop Broker
 
 Service_increased_huge_check_interval
-    [Documentation]    New services with huge check interval at creation time.
+    [Documentation]    Scenario: New services with huge check interval at creation time.
     ...    Given Engine and Broker are configured with 1 poller and 10 hosts
     ...    When Engine is started
     ...    Then host_1 should be pending
@@ -61,7 +61,6 @@ Service_increased_huge_check_interval
     ...    Then metrics should be created and sent to rrd Broker
     ...    When new service metrics are analyzed
     ...    Then metrics should have minimal heartbeat of 54000 and pdp_per_row of 5400
-
     [Tags]    broker    engine    services    protobuf
     Ctn Config Engine    ${1}    ${10}    ${10}
     Ctn Config Broker    rrd
@@ -77,7 +76,7 @@ Service_increased_huge_check_interval
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    module0    core    error
-    Ctn Config Broker Sql Output    central    unified_sql    10
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    queries_per_transaction    10
     Ctn Engine Config Set Value    0    log_level_checks    trace    1
     Ctn Engine Config Set Value    0    log_level_events    trace    1
     Ctn Broker Config Flush Log    central    0
@@ -92,6 +91,7 @@ Service_increased_huge_check_interval
     Ctn Start Broker
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
     # Start Checkers
     ${result}    Ctn Check Host Status    host_1    4    1    False
     Should Be True    ${result}    host_1 should be pending
@@ -105,12 +105,12 @@ Service_increased_huge_check_interval
     Should Be True    ${result}    'new pb data for metric' not found in RRD logs
 
     FOR    ${idx}    IN RANGE    60
-	Sleep    1s
+        Sleep    1s
         ${index}    Ctn Get Indexes To Rebuild    2
-	IF    len(${index}) == 2
+        IF    len(${index}) == 2
             BREAK
-	ELSE
-	    # If not available, we force checks to have them.
+        ELSE
+            # If not available, we force checks to have them.
             Ctn Schedule Forced Service Check    host_1    service_1
             Ctn Schedule Forced Service Check    host_1    service_2
         END

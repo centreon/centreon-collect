@@ -6,7 +6,6 @@ Library             DatabaseLibrary
 Library             DateTime
 Library             String
 
-
 Resource            ../resources/import.resource
 
 Library             ../resources/Agent.py
@@ -23,6 +22,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     [Documentation]    Given an agent host checked by centagent, we set a first output to check command, 
     ...    modify it, reload engine and expect the new output in resource table
     [Tags]    broker    engine    opentelemetry    MON-63843
+    Ctn Clear Engine White List
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0

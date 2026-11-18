@@ -158,11 +158,11 @@ BENHGU3
 
 BENHG4
     [Documentation]    GIVEN a platform with 3 Engine instances and unified_sql output with 5 connections
-    ...                AND detailed logging is enabled on module0 (neb debug, core and processing error)
-    ...                WHEN I create host group 1 with 3 hosts and reload configurations
-    ...                THEN at least 2 host memberships should be logged within 45 seconds
-    ...                WHEN I rename host group 1 to "hostgroup_test" and reload configurations
-    ...                THEN the hostgroup name should be updated in database within 60 seconds
+    ...    AND detailed logging is enabled on module0 (neb debug, core and processing error)
+    ...    WHEN I create host group 1 with 3 hosts and reload configurations
+    ...    THEN at least 2 host memberships should be logged within 45 seconds
+    ...    WHEN I rename host group 1 to "hostgroup_test" and reload configurations
+    ...    THEN the hostgroup name should be updated in database within 60 seconds
     [Tags]    broker    engine    hostgroup
     ${test_direct_grpc}    Ctn Is Using Direct Grpc
     IF    ${test_direct_grpc}
@@ -215,18 +215,18 @@ BENHG4
 
 BENHGU4_${test_label}
     [Documentation]    GIVEN a platform with 3 Engine instances and unified_sql output with 5 connections
-    ...                AND detailed trace/debug logging is enabled (sql, lua, core)
-    ...                AND a Lua output dumps host groups to /tmp/lua-engine.log
-    ...                AND BBDO protocol version is configured based on test parameter
-    ...                WHEN I create host group 1 with 3 hosts and reload configurations
-    ...                THEN all 3 host memberships should be logged and stored in database within 60 seconds
-    ...                AND the hostgroup should appear in the Lua output file
-    ...                WHEN I rename host group 1 to "hostgroup_test" and reload configurations
-    ...                THEN the hostgroup name should be updated in database within 60 seconds
-    ...                AND the renamed hostgroup should appear in the Lua output file
-    ...                WHEN I remove the host group configuration and reload
-    ...                THEN the hostgroup should be deleted from database within 60 seconds
-    ...                AND no hostgroup should appear in the Lua output file after 10 seconds
+    ...    AND detailed trace/debug logging is enabled (sql, lua, core)
+    ...    AND a Lua output dumps host groups to /tmp/lua-engine.log
+    ...    AND BBDO protocol version is configured based on test parameter
+    ...    WHEN I create host group 1 with 3 hosts and reload configurations
+    ...    THEN all 3 host memberships should be logged and stored in database within 60 seconds
+    ...    AND the hostgroup should appear in the Lua output file
+    ...    WHEN I rename host group 1 to "hostgroup_test" and reload configurations
+    ...    THEN the hostgroup name should be updated in database within 60 seconds
+    ...    AND the renamed hostgroup should appear in the Lua output file
+    ...    WHEN I remove the host group configuration and reload
+    ...    THEN the hostgroup should be deleted from database within 60 seconds
+    ...    AND no hostgroup should appear in the Lua output file after 10 seconds
     [Tags]    broker    engine    hostgroup
     Ctn Config Engine    ${3}
     Ctn Engine Config Set Value    ${0}    log_level_config    debug

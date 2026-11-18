@@ -18,6 +18,7 @@
 
 #ifndef CCB_IO_DATA_HH
 #define CCB_IO_DATA_HH
+#include <fmt/ostream.h>
 
 #include "google/protobuf/io/zero_copy_stream.h"
 namespace com::centreon::broker::io {

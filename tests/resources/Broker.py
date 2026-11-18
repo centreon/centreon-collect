@@ -1701,9 +1701,14 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     | Should Be True | ${result} |
     """
     limit = time.time() + timeout
+    to_search = ""
     while time.time() < limit:
         res = getoutput(
             f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
+        if "rrdtool: not found" in res:
+            logger.console("rrdtool not installed. Please install it.")
+            return False
+        logger.console(f"rrdtool info output:\n{res}")
         escaped_key = key.replace("[", "\\[").replace("]", "\\]")
         line_search = re.compile(
             rf"{escaped_key}\s*=\s*{value}")
@@ -1711,6 +1716,7 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
             if (line_search.match(line)):
                 return True
         time.sleep(5)
+    logger.console(f"Failed to find: {to_search} in rrd info for metric {metric_id}")
     return False
 
 

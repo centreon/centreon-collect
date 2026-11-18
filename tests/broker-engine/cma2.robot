@@ -20,7 +20,15 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 *** Test Cases ***
 
 BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
-    [Documentation]    Given and agent who has to execute checks with different intervals, we expect to find these intervals in data_bin
+    [Documentation]    GIVEN a Centreon Engine with OpenTelemetry server module configured
+    ...                AND an OTEL connector using centreon_agent processor with 5s export period
+    ...                AND 3 passive services configured with different check intervals (1, 2, 3 minutes)
+    ...                AND interval_length is set to 10 seconds
+    ...                WHEN the Engine, Broker and Agent are started
+    ...                THEN service_1 should execute checks every 10 seconds (1*10) with 5s tolerance
+    ...                AND service_2 should execute checks every 20 seconds (2*10) with 5s tolerance
+    ...                AND service_3 should execute checks every 30 seconds (3*10) with 5s tolerance
+    ...                AND all check intervals should be verified within 80 seconds
     [Tags]    broker    engine    opentelemetry    MON-164494
     Ctn Config Engine    ${1}    ${2}    ${3}
     Ctn Add Otl ServerModule

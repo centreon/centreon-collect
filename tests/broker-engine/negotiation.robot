@@ -248,8 +248,8 @@ BEDWENF
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should log a message when a new file of the form <poller_id>.lck is created in the cache_config_directory
 
-    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot    timeout=30s
-    Wait Until Removed    ${VarRoot}/lib/centreon-broker/pollers-configuration/new-1.prot    timeout=30s
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
+    Wait Until Removed    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/new-1.prot    timeout=30s
 
     ${content}    Create List    Publishing global diff state    processing global diff state
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -259,7 +259,7 @@ BEDWENF
     Ctn Kindly Stop Broker
 
     ${result}    Ctn Check State Configurations Are Equal
-    ...    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot
     ...    ${VarRoot}/lib/centreon-engine/config0/state.prot
     Should Be True    ${result}    Engine configurations seen by Broker and seen by Engine should be equal
 
@@ -285,15 +285,15 @@ BEDWEND
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
     Ctn Clear Broker Logs
-    Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
-    Create Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration
-    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration    timeout=30s
+    Remove Directory    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration    timeout=30s
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=${True}
     Ctn Start Engine    newGeneration=${True}
 
-    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot    timeout=30s
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
 
     # The configuration in the cache directory is updated.
     # We create a service on poller 0, host 1 and with command 29
@@ -305,7 +305,7 @@ BEDWEND
     Log To Console    File ${VarRoot}/lib/centreon/config/1.lck re-created
     Create File    ${VarRoot}/lib/centreon/config/1.lck
 
-    ${content}    Create List    Processing differential configuration.    INITIAL SERVICE STATE: host_1;service_1001;
+    ${content}    Create List    Starting to reload differential configuration.    INITIAL SERVICE STATE: host_1;service_1001;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should log a message when watching for changes in the cache_config_directory
 
@@ -322,6 +322,6 @@ BEDWEND
     Ctn Kindly Stop Broker
 
     ${result}    Ctn Check State Configurations Are Equal
-    ...    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot
     ...    ${VarRoot}/lib/centreon-engine/config0/state.prot
     Should Be True    ${result}    Engine configurations seen by Broker and seen by Engine should be equal

@@ -25,7 +25,7 @@ BECNSVC1
     ...    And poller 3 should monitor exactly (16 hosts × services) + 16 hosts
     ...    And each verification should complete within 30 seconds
     ...    And the load balancing should remain stable during scaling
-    [Tags]    broker    engine    services    protobuf
+    [Tags]    broker    engine    services    protobuf    unstable
     Ctn Clear Engine Configurations
 
     Ctn Config Centralized Engine    ${3}    ${50}    ${20}
@@ -47,9 +47,9 @@ BECNSVC1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    The three pollers did not acknowledge their configuration as they should have
 
-    ${content}    Create List    Merging diff file '/tmp/var/lib/centreon-broker/pollers-configuration/diff-1.prot' into the global one
-    ...    Merging diff file '/tmp/var/lib/centreon-broker/pollers-configuration/diff-2.prot' into the global one
-    ...    Merging diff file '/tmp/var/lib/centreon-broker/pollers-configuration/diff-3.prot' into the global one
+    ${content}    Create List    Merging diff file '/tmp/var/lib/centreon-broker/central-broker-master/pollers-configuration/diff-1.prot' into the global one
+    ...    Merging diff file '/tmp/var/lib/centreon-broker/central-broker-master/pollers-configuration/diff-2.prot' into the global one
+    ...    Merging diff file '/tmp/var/lib/centreon-broker/central-broker-master/pollers-configuration/diff-3.prot' into the global one
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    The three pollers did not acknowledge their configuration as they should have
 

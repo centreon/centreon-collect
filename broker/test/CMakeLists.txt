@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2023 Centreon
+# Copyright 2016-2026 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -111,10 +111,10 @@ target_link_libraries(
   ut_broker
   PRIVATE
 	  -Wl,--whole-archive
-          applier_state
+          broker_applier_state
           rokerbase
           centreon_process
-          bbdo
+          broker_bbdo
 	  -Wl,--no-whole-archive
           brokerrpc
           centreon_common
@@ -138,9 +138,9 @@ target_link_libraries(
 add_dependencies(
   ut_broker
   test_util
-  applier_state
+  broker_applier_state
   rokerbase
-  bbdo
+  broker_bbdo
   multiplexing
   centreon_common)
 

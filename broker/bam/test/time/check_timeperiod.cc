@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
@@ -141,8 +142,8 @@ static void parse_file(char const* filename, options& opt) {
 class BamTime : public ::testing::Test {
  public:
   void SetUp() override {
-    config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
-                          0);
+    config::applier::init<com::centreon::broker::config::applier::broker_state>(
+        "", 0, "test_broker", 0);
   }
 
   void TearDown() override { config::applier::deinit(); }

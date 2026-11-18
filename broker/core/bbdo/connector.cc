@@ -20,8 +20,12 @@
 
 #include <cassert>
 
+#if defined(BROKER_COMPILATION)
+#include "broker/core/bbdo/broker_stream.hh"
+#elif defined(CBMOD_COMPILATION)
+#include "broker/core/bbdo/cbmod_stream.hh"
+#endif
 #include "broker/core/bbdo/internal.hh"
-#include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
@@ -74,7 +78,8 @@ std::shared_ptr<io::stream> connector::open() {
   // We must have a lower layer.
   if (_from)
     // Open lower layer connection and add our own layer.
-    retval = _open(_from->open());
+    retval =
+        _open(config::applier::state::instance().peer_type(), _from->open());
   return retval;
 }
 
@@ -84,12 +89,31 @@ std::shared_ptr<io::stream> connector::open() {
  *  @return Open stream.
  */
 std::shared_ptr<io::stream> connector::_open(
+    common::PeerType peer_type,
     std::shared_ptr<io::stream> stream) {
-  std::unique_ptr<bbdo::stream> bbdo_stream;
+  std::shared_ptr<io::stream> retval;
   if (stream) {
+    std::shared_ptr<bbdo::stream> bbdo_stream;
+#if defined BROKER_COMPILATION
+    if (peer_type == common::BROKER)
+      bbdo_stream = std::make_shared<bbdo::broker_stream>(
+          _is_input, _grpc_serialized, _extensions);
+#elif defined CBMOD_COMPILATION
+    if (peer_type == common::ENGINE)
+      bbdo_stream = std::make_shared<bbdo::cbmod_stream>(
+          _is_input, _grpc_serialized, _extensions);
+#endif
+    else {
+      auto retval =
+          std::make_shared<bbdo::basic_stream>(_is_input, _grpc_serialized);
+      retval->set_substream(stream);
+      retval->set_ack_limit(_ack_limit);
+      retval->set_coarse(_coarse);
+      retval->set_timeout(_timeout);
+      return retval;
+    }
+
     // if _is_input, the stream is an input
-    bbdo_stream = std::make_unique<bbdo::stream>(_is_input, _grpc_serialized,
-                                                 _extensions);
     bbdo_stream->set_substream(stream);
     bbdo_stream->set_coarse(_coarse);
     bbdo_stream->set_negotiate(_negotiate);
@@ -101,6 +125,7 @@ std::shared_ptr<io::stream> connector::_open(
       throw;
     }
     bbdo_stream->set_ack_limit(_ack_limit);
+    retval = bbdo_stream;
   }
-  return bbdo_stream;
+  return retval;
 }

@@ -352,7 +352,6 @@ target_link_libraries(
   global_cache
   bbdo_bbdo
   pb_broker_lib
-  bbdo
   ctncrypto
   process_stat)
 
@@ -371,8 +370,8 @@ target_link_libraries(
   sql
   brokerrpc
   rokerbase
-  applier_state
-  bbdo
+  broker_applier_state
+  broker_bbdo
   multiplexing
   centreon_common
   centreon_process

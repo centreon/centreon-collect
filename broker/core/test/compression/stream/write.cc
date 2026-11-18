@@ -17,8 +17,9 @@
  *
  */
 #include <gtest/gtest.h>
-#include "com/centreon/broker/compression/stream.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
+#include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -31,8 +32,9 @@ class CompressionStreamWrite : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
-                            0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "test_broker", 0);
     } catch (const std::exception& e) {
       (void)e;
     }
