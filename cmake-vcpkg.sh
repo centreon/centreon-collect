@@ -20,8 +20,10 @@ show_help() {
 cat << EOF
 Usage: ${0##*/} -n=[yes|no] -v
 
-This program build Centreon-broker
+This program builds Centreon-broker, Centreon-engine, Centreon-agent and their
+modules through cmake and vcpkg.
 
+    -b|--build-dir : specify build directory
     -f|--force    : force rebuild
     -r|--release  : Build on release mode
     -og           : C++14 standard
@@ -69,6 +71,8 @@ find_vcpkg() {
 export VCPKG_ROOT="$(realpath -m "${VCPKG_ROOT:-$(find_vcpkg)}")"
 export PATH="$VCPKG_ROOT:$PATH"
 echo "vcpkg used: $VCPKG_ROOT"
+BUILD_DIR="$SRC_DIR/build"
+force=0
 
 COMPILER=gcc
 CC=gcc
@@ -84,6 +88,12 @@ do
       echo "Forced rebuild"
       force=1
       shift
+      ;;
+    -b|--build-dir)
+      echo "Build directory specified: $2"
+      # Absolute, as every path given to cmake.
+      BUILD_DIR="$(realpath -m "$2")"
+      shift 2
       ;;
     -og)
       echo "C++14 applied on this compilation"
@@ -316,8 +326,8 @@ elif [ -r /etc/issue ] ; then
 fi
 
 if [ "$force" = "1" ] ; then
-  echo "Build forced, removing the '$SRC_DIR/build' directory before recreating it"
-  rm -rf "$SRC_DIR/build"
+  echo "Build forced, removing the '$BUILD_DIR' directory before recreating it"
+  rm -rf "$BUILD_DIR"
   # A vcpkg shared through VCPKG_ROOT belongs to other trees too: only the
   # local one is removed.
   if [ "$VCPKG_ROOT" = "$LOCAL_VCPKG" ] ; then
@@ -325,7 +335,7 @@ if [ "$force" = "1" ] ; then
   else
     echo "Shared vcpkg '$VCPKG_ROOT' kept"
   fi
-  mkdir "$SRC_DIR/build"
+  mkdir "$BUILD_DIR"
 fi
 
 if [ ! -d "$VCPKG_ROOT" ] ; then
@@ -350,10 +360,10 @@ else
 fi
 
 if [[ "$maj" == "Raspbian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$SRC_DIR/build" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S "$SRC_DIR"
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S "$SRC_DIR"
 
 elif [[ "$maj" == "Debian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$SRC_DIR/build" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S "$SRC_DIR"
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S "$SRC_DIR"
 else
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$SRC_DIR/build" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -S "$SRC_DIR" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -S "$SRC_DIR" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
 fi

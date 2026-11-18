@@ -115,7 +115,6 @@ target_link_libraries(
           rokerbase
           centreon_process
 	  -Wl,--no-whole-archive
-          conflictmgr
           centreon_common
           centreon_hexdump
           centreon_grpc
@@ -140,7 +139,6 @@ add_dependencies(
   roker
   rokerbase
   multiplexing
-  conflictmgr
   centreon_common)
 
 target_precompile_headers(ut_broker PRIVATE precomp_inc/precomp.hh)

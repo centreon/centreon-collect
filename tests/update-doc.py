@@ -33,7 +33,6 @@ def complete_doc(dico, ff):
     in_documentation = False
     gherkin = False
     test_name = ""
-    indent = 0
     for line in content:
         if in_documentation:
             m = rd.match(line)
@@ -41,24 +40,28 @@ def complete_doc(dico, ff):
                 if gherkin:
                     txt = m.group(2)
                     txt = txt.strip()
+                    nl = ''
                     if len(txt) > 0:
-                        if txt.startswith("When "):
-                            txt = txt.replace("When", "**When**", 1)
-                        if txt.startswith("Given "):
-                            txt = txt.replace("Given", "**Given**", 1)
-                        if txt.startswith("Then "):
-                            txt = txt.replace("Then", "**Then**", 1)
-                        if txt.startswith("And "):
-                            txt = txt.replace("And", "**And**", 1)
-                        if txt.startswith("Scenario: "):
-                            txt = txt.replace("Scenario:", "**Scenario:**", 1)
-                        previous_indent = indent
-                        indent = len(m.group(1)) // 4
-                        if previous_indent == indent:
-                            nl = ""
-                        else:
-                            nl = "\n"
-                        dico[test_name] += f"\n  {nl}{' ' * indent} * {txt}"
+                        if txt.upper().startswith("WHEN "):
+                            txt = re.sub(r"When", "* **WHEN**", txt, flags=re.IGNORECASE, count=1)
+                            #txt = txt.replace("When", "* **When**", 1)
+                        if txt.upper().startswith("GIVEN "):
+                            txt = re.sub(r"Given", "* **GIVEN**", txt, flags=re.IGNORECASE, count=1)
+                            #txt = txt.replace("Given", "* **Given**", 1)
+                            nl = '\n'
+                        if txt.upper().startswith("THEN "):
+                            txt = re.sub(r"Then", "* **THEN**", txt, flags=re.IGNORECASE, count=1)
+                            #txt = txt.replace("Then", "* **Then**", 1)
+                        if txt.upper().startswith("AND WHEN "):
+                            txt = re.sub(r"And when", "* **AND WHEN**", txt, flags=re.IGNORECASE, count=1)
+                            #txt = txt.replace("And", "* **And**", 1)
+                        if txt.upper().startswith("AND "):
+                            txt = re.sub(r"And", "* **AND**", txt, flags=re.IGNORECASE, count=1)
+                            #txt = txt.replace("And", "* **And**", 1)
+                        if txt.upper().startswith("SCENARIO: "):
+                            txt = re.sub(r"Scenario:", "**SCENARIO:**", txt, flags=re.IGNORECASE, count=1)
+                            #txt = txt.replace("Scenario:", "**Scenario:**", 1)
+                        dico[test_name] += f"{nl}\n     {txt}"
                 else:
                     dico[test_name] += " " + m.group(2)
                 continue
@@ -73,12 +76,12 @@ def complete_doc(dico, ff):
                 m = r.match(line)
                 if m:
                     in_documentation = True
-                    if m.group(1).startswith("Given") or m.group(1).startswith("When"):
+                    if m.group(1).upper().startswith("GIVEN") or m.group(1).upper().startswith("WHEN"):
                         gherkin = True
-                        dico[test_name] = "\n      * " + m.group(1)
-                    elif m.group(1).startswith("Scenario:") or m.group(1).startswith("Feature:"):
+                        dico[test_name] = "\n     * " + re.sub(r"(Given|When)", lambda m: f"**{m.group(1).upper()}**", m.group(1), flags=re.IGNORECASE)
+                    elif m.group(1).upper().startswith("SCENARIO:") or m.group(1).upper().startswith("FEATURE:"):
                         gherkin = True
-                        txt = m.group(1).replace("Scenario:", "**Scenario:**").replace("Feature:", "**Feature:**").replace("Given", "**Given**")
+                        txt = re.sub(r"(Scenario:|Feature:)", lambda m: f"**{m.group(1).upper()}**", m.group(1), flags=re.IGNORECASE)
                         dico[test_name] = txt
                     else:
                         gherkin = False
