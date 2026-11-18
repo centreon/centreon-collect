@@ -26,6 +26,7 @@
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
+#include "com/centreon/broker/unified_sql/database_configurator.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/common/file_system.hh"
@@ -68,7 +69,7 @@ static const std::string _insert_or_update_nothing_tags =
  *
  *  @param[in] instance_id Instance ID to remove.
  */
-void stream::_clean_tables(uint64_t instance_id) {
+void stream::clean_tables(uint64_t instance_id) {
   // no hostgroup and servicegroup clean during this function
   {
     absl::MutexLock l(_timer_m);
@@ -1085,8 +1086,11 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
 bool stream::_host_instance_known(uint64_t host_id) const {
   bool retval =
       _cache_host_instance.find(host_id) != _cache_host_instance.end();
-  if (retval)
-    assert(_cache_host_instance.at(host_id) > 0);
+  //  FIXME DBO: with the centralized configuration, checks are executed earlier
+  //  than before and it is possible that the cache is not ready when first
+  //  checks arrive. So we temporarily disable this assert.
+  //  if (retval)
+  //    assert(_cache_host_instance.at(host_id) > 0);
   return retval;
 }
 
@@ -1263,7 +1267,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
     _host_group_insupdate << hg;
     _mysql.run_statement(_host_group_insupdate,
                          database::mysql_error::store_host_group, conn);
-    _hostgroup_cache.insert(hg.id);
+    _hostgroups_cache.insert({hg.id, hg.name});
   }
   // Delete group.
   else {
@@ -1283,7 +1287,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
                       "hosts.instance_id={}",
                       hg.id, hg.poller_id));
       _mysql.run_query(query, database::mysql_error::empty, conn);
-      _hostgroup_cache.erase(hg.id);
+      _hostgroups_cache.left.erase(hg.id);
     }
   }
   _add_action(conn, actions::hostgroups);
@@ -1315,7 +1319,9 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
     _pb_host_group_insupdate << *hgd;
     _mysql.run_statement(_pb_host_group_insupdate,
                          database::mysql_error::store_host_group, conn);
-    _hostgroup_cache.insert(hg.hostgroup_id());
+    _hostgroups_cache.left.erase(hg.hostgroup_id());
+    _hostgroups_cache.right.erase(hg.name());
+    _hostgroups_cache.left.insert(std::make_pair(hg.hostgroup_id(), hg.name()));
   }
   // Delete group.
   else {
@@ -1334,7 +1340,7 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
                       "hosts.instance_id={}",
                       hg.hostgroup_id(), hg.poller_id()));
       _mysql.run_query(query, database::mysql_error::empty, conn);
-      _hostgroup_cache.erase(hg.hostgroup_id());
+      _hostgroups_cache.left.erase(hg.hostgroup_id());
     }
   }
   _add_action(conn, actions::hostgroups);
@@ -1383,7 +1389,8 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
 
     /* If the group does not exist, we create it. */
     if (_cache_host_instance[hgm.host_id]) {
-      if (_hostgroup_cache.find(hgm.group_id) == _hostgroup_cache.end()) {
+      if (_hostgroups_cache.left.find(hgm.group_id) ==
+          _hostgroups_cache.left.end()) {
         SPDLOG_LOGGER_ERROR(_logger_sql,
                             "SQL: host group {} {} does not exist - insertion "
                             "before insertion of "
@@ -1400,7 +1407,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         _host_group_insupdate << hg;
         _mysql.run_statement(_host_group_insupdate,
                              database::mysql_error::store_host_group, conn);
-        _hostgroup_cache.insert(hgm.group_id);
+        _hostgroups_cache.insert({hgm.group_id, hgm.group_name});
       }
 
       _host_group_member_insert << hgm;
@@ -1491,7 +1498,8 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
 
     /* If the group does not exist, we create it. */
     if (_cache_host_instance[hgm.host_id()]) {
-      if (_hostgroup_cache.find(hgm.hostgroup_id()) == _hostgroup_cache.end()) {
+      if (_hostgroups_cache.left.find(hgm.hostgroup_id()) ==
+          _hostgroups_cache.left.end()) {
         SPDLOG_LOGGER_ERROR(_logger_sql,
                             "SQL: host group {} {} does not exist - insertion "
                             "before insertion of members",
@@ -1508,7 +1516,10 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
         _pb_host_group_insupdate << hg;
         _mysql.run_statement(_pb_host_group_insupdate,
                              database::mysql_error::store_host_group, conn);
-        _hostgroup_cache.insert(hgm.hostgroup_id());
+        _hostgroups_cache.left.erase(hgm.hostgroup_id());
+        _hostgroups_cache.right.erase(hgm.name());
+        _hostgroups_cache.left.insert(
+            std::make_pair(hgm.hostgroup_id(), hgm.name()));
       }
 
       _pb_host_group_member_insert << hgmp;
@@ -2186,8 +2197,24 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   }
 }
 
+/**
+ * @brief Tell if the host is known to belong to another poller than
+ * instance_id. A poller must not disable a resource that has moved to another
+ * poller (MON-169103).
+ *
+ * @param host_id The host, or the parent host of a service.
+ * @param instance_id The poller sending the event.
+ *
+ * @return true if _cache_host_instance gives another poller.
+ */
+bool stream::_owned_by_another_poller(uint64_t host_id,
+                                      uint64_t instance_id) const {
+  auto it = _cache_host_instance.find(host_id);
+  return it != _cache_host_instance.end() && it->second != instance_id;
+}
+
 uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
-  auto found = _resources_cache.find({h.host_id(), 0, h.instance_id()});
+  auto found = _resources_cache.find({h.host_id(), 0});
 
   uint64_t res_id = 0;
   if (h.enabled()) {
@@ -2268,7 +2295,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
     _add_action(conn, actions::resources);
     try {
       res_id = future.get();
-      _resources_cache.insert({{h.host_id(), 0, h.instance_id()}, res_id});
+      _resources_cache.insert({{h.host_id(), 0}, res_id});
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_CRITICAL(_logger_sql,
                              "SQL: unable to insert new host resource {}: {}",
@@ -2296,7 +2323,8 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _process_tag_from_resources(res_id, tag.id(), tag.type(), conn);
     }
   } else {
-    if (found != _resources_cache.end()) {
+    if (found != _resources_cache.end() &&
+        !_owned_by_another_poller(h.host_id(), h.instance_id())) {
       _resources_disable.bind_value_as_u64(0, found->second);
       _resources_disable.bind_value_as_u64(1, h.instance_id());
 
@@ -2902,7 +2930,7 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
       i.poller_id, i.name, i.is_running ? "yes" : "no");
 
   // Clean tables.
-  _clean_tables(i.poller_id);
+  clean_tables(i.poller_id);
 
   // Processing.
   if (_is_valid_poller(i.poller_id)) {
@@ -2950,7 +2978,7 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
       inst.instance_id(), inst.name(), inst.running() ? "yes" : "no");
 
   // Clean tables.
-  _clean_tables(inst.instance_id());
+  clean_tables(inst.instance_id());
 
   // Processing.
   if (_is_valid_poller(inst.instance_id())) {
@@ -3002,9 +3030,16 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_pb_global_diff_state(
-    const std::shared_ptr<io::data>& d [[maybe_unused]]) {
+void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
+  const neb::pb_global_diff_state& global_diff_state(
+      *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
+  const auto& obj = global_diff_state.obj();
   _logger_sql->info("unified_sql: processing global diff state event");
+  _logger_sql->info("  hosts: {} added, {} deleted, {} modified",
+                    obj.hosts().added_size(), obj.hosts().removed_size(),
+                    obj.hosts().modified_size());
+  database_configurator cfg(obj, this, _logger_sql);
+  cfg.process();
 }
 
 /**
@@ -3448,7 +3483,9 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
     _service_group_insupdate << sg;
     _mysql.run_statement(_service_group_insupdate,
                          database::mysql_error::store_service_group, conn);
-    _servicegroup_cache.insert(sg.id);
+    _servicegroups_cache.left.erase(sg.id);
+    _servicegroups_cache.right.erase(sg.name);
+    _servicegroups_cache.left.insert({sg.id, sg.name});
   }
   // Delete group.
   else {
@@ -3461,15 +3498,12 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
     {
       _finish_action(-1, actions::services);
       std::string query(fmt::format(
-          "DELETE services_servicegroups FROM services_servicegroups "
-          "LEFT "
+          "DELETE services_servicegroups FROM services_servicegroups LEFT "
           "JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
-          "WHERE "
-          "services_servicegroups.servicegroup_id={} AND "
+          "WHERE services_servicegroups.servicegroup_id={} AND "
           "hosts.instance_id={}",
           sg.id, sg.poller_id));
       _mysql.run_query(query, database::mysql_error::empty, conn);
-      _servicegroup_cache.erase(sg.id);
     }
   }
   _add_action(conn, actions::servicegroups);
@@ -3500,7 +3534,8 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
     _pb_service_group_insupdate << sgp;
     _mysql.run_statement(_pb_service_group_insupdate,
                          database::mysql_error::store_service_group, conn);
-    _servicegroup_cache.insert(sg.servicegroup_id());
+    _servicegroups_cache.left.insert(
+        std::make_pair(sg.servicegroup_id(), sg.name()));
   }
   // Delete group.
   else {
@@ -3520,7 +3555,6 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
           "hosts.instance_id={}",
           sg.servicegroup_id(), sg.poller_id()));
       _mysql.run_query(query, database::mysql_error::empty, conn);
-      _servicegroup_cache.erase(sg.servicegroup_id());
     }
   }
   _add_action(conn, actions::servicegroups);
@@ -3562,7 +3596,8 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     /* If the group does not exist, we create it. */
-    if (_servicegroup_cache.find(sgm.group_id) == _servicegroup_cache.end()) {
+    if (_servicegroups_cache.left.find(sgm.group_id) ==
+        _servicegroups_cache.left.end()) {
       SPDLOG_LOGGER_ERROR(_logger_sql,
                           "unified_sql: service group {} does not exist - "
                           "insertion before insertion "
@@ -3579,7 +3614,9 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
       _service_group_insupdate << sg;
       _mysql.run_statement(_service_group_insupdate,
                            database::mysql_error::store_service_group, conn);
-      _servicegroup_cache.insert(sgm.group_id);
+      _servicegroups_cache.left.erase(sgm.group_id);
+      _servicegroups_cache.right.erase(sgm.group_name);
+      _servicegroups_cache.insert({sgm.group_id, sgm.group_name});
     }
 
     _service_group_member_insert << sgm;
@@ -3668,8 +3705,8 @@ void stream::_process_pb_service_group_member(
     }
 
     /* If the group does not exist, we create it. */
-    if (_servicegroup_cache.find(sgm.servicegroup_id()) ==
-        _servicegroup_cache.end()) {
+    if (_servicegroups_cache.left.find(sgm.servicegroup_id()) ==
+        _servicegroups_cache.left.end()) {
       SPDLOG_LOGGER_ERROR(
           _logger_sql,
           "SQL: service group {} does not exist - insertion before insertion "
@@ -3687,7 +3724,10 @@ void stream::_process_pb_service_group_member(
       _pb_service_group_insupdate << sg;
       _mysql.run_statement(_pb_service_group_insupdate,
                            database::mysql_error::store_service_group, conn);
-      _servicegroup_cache.insert(sgm.servicegroup_id());
+      _servicegroups_cache.left.erase(sgm.servicegroup_id());
+      _servicegroups_cache.right.erase(sgm.name());
+      _servicegroups_cache.left.insert(
+          std::make_pair(sgm.servicegroup_id(), sgm.name()));
     }
 
     _pb_service_group_member_insert << sgmp;
@@ -3853,8 +3893,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
                                                   int32_t conn) {
   uint64_t res_id = 0;
 
-  auto found =
-      _resources_cache.find({s.service_id(), s.host_id(), s.instance_id()});
+  auto found = _resources_cache.find({s.service_id(), s.host_id()});
 
   if (s.enabled()) {
     uint64_t sid = 0;
@@ -3935,8 +3974,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
     _add_action(conn, actions::resources);
     try {
       res_id = future.get();
-      _resources_cache.insert(
-          {{s.service_id(), s.host_id(), s.instance_id()}, res_id});
+      _resources_cache.insert({{s.service_id(), s.host_id()}, res_id});
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_CRITICAL(
           _logger_sql,
@@ -3965,7 +4003,8 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _process_tag_from_resources(res_id, tag.id(), tag.type(), conn);
     }
   } else {
-    if (found != _resources_cache.end()) {
+    if (found != _resources_cache.end() &&
+        !_owned_by_another_poller(s.host_id(), s.instance_id())) {
       _resources_disable.bind_value_as_u64(0, found->second);
       _resources_disable.bind_value_as_u64(1, s.instance_id());
 

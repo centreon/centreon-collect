@@ -82,11 +82,13 @@ class indexed_diff_state {
       _modified_hostescalations;
   absl::flat_hash_set<uint64_t> _removed_hostescalations;
 
-  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Hostgroup>>
       _added_hostgroups;
-  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Hostgroup>>
       _modified_hostgroups;
-  absl::flat_hash_set<std::string> _removed_hostgroups;
+  absl::flat_hash_set<std::pair<std::string, uint32_t>> _removed_hostgroups;
 
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _added_hosts;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _modified_hosts;
@@ -106,11 +108,13 @@ class indexed_diff_state {
       _modified_anomalydetections;
   absl::flat_hash_set<std::pair<uint64_t, uint64_t>> _removed_anomalydetections;
 
-  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Servicegroup>>
       _added_servicegroups;
-  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Servicegroup>>
       _modified_servicegroups;
-  absl::flat_hash_set<std::string> _removed_servicegroups;
+  absl::flat_hash_set<std::pair<std::string, uint32_t>> _removed_servicegroups;
 
   absl::flat_hash_map<uint64_t, std::unique_ptr<Servicedependency>>
       _added_servicedependencies;
@@ -267,7 +271,8 @@ class indexed_diff_state {
   }
 
  public:
-  void add_diff_state(DiffState& state);
+  void add_diff_state(DiffState& state,
+                      const std::shared_ptr<spdlog::logger>& logger);
   auto& added_timeperiods() const { return _added_timeperiods; }
   auto& modified_timeperiods() const { return _modified_timeperiods; }
   auto& removed_timeperiods() const { return _removed_timeperiods; }

@@ -83,3 +83,7 @@ if(WITH_TESTING)
       PARENT_SCOPE)
 endif(WITH_TESTING)
 
+add_library(broker_cache STATIC
+  broker_cache.cc
+)
+

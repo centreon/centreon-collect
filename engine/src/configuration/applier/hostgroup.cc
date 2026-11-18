@@ -38,8 +38,9 @@ void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
   config_logger->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
 
   // Add host group to the global configuration state.
-  pb_indexed_config.mut_hostgroups().emplace(obj.hostgroup_name(),
-                                             std::make_unique<Hostgroup>(obj));
+  pb_indexed_config.mut_hostgroups().emplace(
+      std::make_pair(obj.hostgroup_name(), 0),
+      std::make_unique<Hostgroup>(obj));
 
   // Create host group.
   auto hg = std::make_shared<com::centreon::engine::hostgroup>(
@@ -111,12 +112,13 @@ void applier::hostgroup::modify_object(
  *  @param[in] obj  The new hostgroup to remove from the monitoring
  *                  engine.
  */
-void applier::hostgroup::remove_object(const std::string& key) {
+void applier::hostgroup::remove_object(
+    const std::pair<std::string, uint32_t>& key) {
   // Logging.
-  config_logger->debug("Removing host group '{}'", key);
+  config_logger->debug("Removing host group '{}'", key.second);
 
   // Find host group.
-  hostgroup_map::iterator it = engine::hostgroup::hostgroups.find(key);
+  hostgroup_map::iterator it = engine::hostgroup::hostgroups.find(key.first);
   if (it != engine::hostgroup::hostgroups.end()) {
     engine::hostgroup* grp(it->second.get());
 

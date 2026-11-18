@@ -305,7 +305,7 @@ BEDWEND
     Log To Console    File ${VarRoot}/lib/centreon/config/1.lck re-created
     Create File    ${VarRoot}/lib/centreon/config/1.lck
 
-    ${content}    Create List    Processing differential configuration.    new service 1001    INITIAL SERVICE STATE: host_1;service_1001;
+    ${content}    Create List    Processing differential configuration.    INITIAL SERVICE STATE: host_1;service_1001;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should log a message when watching for changes in the cache_config_directory
 

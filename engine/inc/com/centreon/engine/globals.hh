@@ -147,6 +147,11 @@ extern uint32_t instance_heartbeat_interval;
 extern std::unique_ptr<com::centreon::common::crypto::aes256>
     credentials_decrypt;
 
+namespace com::centreon::engine {
+class enginerpc;
+}
+extern std::unique_ptr<com::centreon::engine::enginerpc> rpc;
+
 void init_loggers();
 
 constexpr std::string_view default_cma_pki_dir = "/etc/pki/centreon-engine";

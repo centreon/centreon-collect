@@ -345,13 +345,13 @@ void stream::_load_caches() {
   _mysql.run_query_and_get_result("SELECT host_id,instance_id FROM hosts",
                                   std::move(promise_hi));
 
-  /* hostgroups => _hostgroup_cache */
-  _mysql.run_query_and_get_result("SELECT hostgroup_id FROM hostgroups",
+  /* hostgroups => _hostgroups_cache */
+  _mysql.run_query_and_get_result("SELECT hostgroup_id, name FROM hostgroups",
                                   std::move(promise_hg));
 
-  /* servicegroups => _servicegroup_cache */
-  _mysql.run_query_and_get_result("SELECT servicegroup_id FROM servicegroups",
-                                  std::move(promise_sg));
+  /* servicegroups => _servicegroups_cache */
+  _mysql.run_query_and_get_result(
+      "SELECT servicegroup_id, name FROM servicegroups", std::move(promise_sg));
 
   /* metrics => _metric_cache */
   _mysql.run_query_and_get_result(
@@ -363,7 +363,7 @@ void stream::_load_caches() {
 
   /* resources => _resources_cache */
   _mysql.run_query_and_get_result(
-      "SELECT resource_id, id, parent_id, poller_id FROM resources",
+      "SELECT resource_id, id, parent_id FROM resources",
       std::move(promise_resource));
 
   /* severities => _severities_cache */
@@ -476,14 +476,15 @@ void stream::_load_caches() {
                   e.what());
   }
 
-  /* hostgroups => _hostgroup_cache */
-  _hostgroup_cache.clear();
+  /* hostgroups => _hostgroups_cache */
+  _hostgroups_cache.clear();
   try {
     mysql_result res(future_hg.get());
     while (_mysql.fetch_row(res)) {
-      int32_t hg_id = res.value_as_i32(0);
+      uint32_t hg_id = res.value_as_i32(0);
+      std::string name = res.value_as_str(1);
       if (hg_id > 0)
-        _hostgroup_cache.insert(hg_id);
+        _hostgroups_cache.insert({hg_id, name});
       else
         SPDLOG_LOGGER_ERROR(
             _logger_sql,
@@ -494,19 +495,20 @@ void stream::_load_caches() {
     throw msg_fmt("SQL: could not get the list of hostgroups id: {}", e.what());
   }
 
-  /* servicegroups => _servicegroup_cache */
-  _servicegroup_cache.clear();
+  /* servicegroups => _servicegroups_cache */
+  _servicegroups_cache.clear();
   try {
     mysql_result res(future_sg.get());
     while (_mysql.fetch_row(res)) {
-      int32_t sg_id = res.value_as_i32(0);
-      if (sg_id <= 0)
+      uint32_t sg_id = res.value_as_i32(0);
+      std::string name = res.value_as_str(1);
+      if (sg_id > 0)
+        _servicegroups_cache.insert({sg_id, name});
+      else
         SPDLOG_LOGGER_ERROR(
             _logger_sql,
             "unified_sql: the 'servicegroups' table contains rows with "
             "servicegroup_id <= 0, you should remove them.");
-      else
-        _servicegroup_cache.insert(sg_id);
     }
   } catch (std::exception const& e) {
     throw msg_fmt("SQL: could not get the list of servicegroups id: {}",
@@ -564,8 +566,8 @@ void stream::_load_caches() {
     try {
       mysql_result res{future_resource.get()};
       while (_mysql.fetch_row(res)) {
-        _resources_cache[{res.value_as_u64(1), res.value_as_u64(2),
-                          res.value_as_u64(3)}] = res.value_as_u64(0);
+        _resources_cache[{res.value_as_u64(1), res.value_as_u64(2)}] =
+            res.value_as_u64(0);
       }
     } catch (const std::exception& e) {
       throw msg_fmt("unified sql: could not get the list of resources: {}",
@@ -574,10 +576,15 @@ void stream::_load_caches() {
 
     try {
       mysql_result res{future_severity.get()};
+      _logger_sql->debug("loading severities cache");
       while (_mysql.fetch_row(res)) {
         _severities_cache[{res.value_as_u64(1),
                            static_cast<uint16_t>(res.value_as_u32(2))}] =
             res.value_as_u64(0);
+        _logger_sql->trace(
+            "loading severities cache: id={} type={} severity_id={}",
+            res.value_as_u64(1), static_cast<uint16_t>(res.value_as_u32(2)),
+            res.value_as_u64(0));
       }
     } catch (const std::exception& e) {
       throw msg_fmt("unified sql: could not get the list of severities: {}",
@@ -880,7 +887,7 @@ void stream::process_stop(const std::shared_ptr<io::data>& d) {
                     stop.poller_id());
 
   // Clean tables.
-  _clean_tables(stop.poller_id());
+  clean_tables(stop.poller_id());
 
   // Processing.
   if (_is_valid_poller(stop.poller_id())) {
@@ -1173,11 +1180,11 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
           _cache_svc_cmd.erase(itt);
 
           // resources
-          auto res_it = _resources_cache.find({svc_id, host_id, it->second});
+          auto res_it = _resources_cache.find({svc_id, host_id});
           if (res_it != _resources_cache.end())
             _resources_cache.erase(res_it);
         }
-        auto res_it = _resources_cache.find({host_id, 0, it->second});
+        auto res_it = _resources_cache.find({host_id, 0});
         if (res_it != _resources_cache.end())
           _resources_cache.erase(res_it);
       }
@@ -1445,4 +1452,29 @@ void stream::_init_statements() {
       _mysql.prepare_statement(*_sscr_resources_update);
     }
   }
+}
+
+mysql& stream::get_mysql() {
+  return _mysql;
+}
+
+bool stream::supports_bulk_prepared_statements() const {
+  return _bulk_prepared_statement;
+}
+
+absl::flat_hash_map<std::string, uint64_t>& stream::host_name_id_cache() {
+  return _host_name_id_cache;
+}
+
+absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
+stream::service_description_id_cache() {
+  return _service_description_id_cache;
+}
+
+boost::bimap<uint32_t, std::string>& stream::hostgroups_cache() {
+  return _hostgroups_cache;
+}
+
+boost::bimap<uint32_t, std::string>& stream::servicegroups_cache() {
+  return _servicegroups_cache;
 }

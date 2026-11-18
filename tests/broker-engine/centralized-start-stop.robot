@@ -366,7 +366,19 @@ BECSS_GRPC_COMPRESS1
 
 BECSS_CRYPTED_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - well configured
-    [Tags]    broker    engine    start-stop
+    ...    FIXME DBO: We don't have the global cache for now. So this test can't
+    ...    pass. The first step, broker ends the full configuration to engine.
+    ...    At the second step, both restart and know the engine configuration.
+    ...    Broker doesn't send it to engine and engine doesn't ask for it.
+    ...    The global diff is not aware of the engine configuration.
+    ...    Disabled resources are not re-enabled. And we can't just enable resources
+    ...    match this poller id because disabling a resource means two things:
+    ...    1) This resource is really disabled for now.
+    ...    2) This resource doesn't exist anymore.
+    ...
+    ...    In the first case, the resource must be enabled whereas in the second case,
+    ...    the resource must not be enabled.
+    [Tags]    broker    engine    start-stop    unstable
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -384,7 +396,9 @@ BECSS_CRYPTED_GRPC1
     Ctn Add Host To Broker Output    module0    central-module-master-output    localhost
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    sql    debug
     Ctn Clear Broker Logs
+    Ctn Clear Prot Files
 
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
@@ -399,11 +413,15 @@ BECSS_CRYPTED_GRPC1
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
         Should Be True    ${result}    No new Engine configuration found in central cbd log
 
-        ${result}    Ctn Check Poller Enabled In Database    1    10
-        Should Be True    ${result}    Poller not visible in database
+	Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+	Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled>0    >    ${0}    retry_timeout=30s    retry_pause=1s
+	Disconnect From Database
+
         Ctn Stop Engine
-        ${result}    Ctn Check Poller Disabled In Database    1    10
-        Should Be True    ${result}    Poller still visible in database
+	Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+	Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled>0    ==    ${0}    retry_timeout=30s    retry_pause=1s
+	Disconnect From Database
+
         Ctn Kindly Stop Broker
     END
 

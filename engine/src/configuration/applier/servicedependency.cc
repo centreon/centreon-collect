@@ -203,7 +203,7 @@ void applier::servicedependency::_expand_services(
   // Host groups.
   for (auto& hgn : hg) {
     // Find host group
-    auto found = s.hostgroups().find(hgn);
+    auto found = s.hostgroups().find(std::make_pair(hgn, cbm->poller_id()));
     if (found == s.hostgroups().end())
       throw engine_error() << fmt::format("Could not resolve host group '{}'",
                                           hgn);
@@ -221,7 +221,7 @@ void applier::servicedependency::_expand_services(
   // Service groups.
   for (auto& sgn : sg) {
     // Find service group.
-    auto found = s.servicegroups().find(sgn);
+    auto found = s.servicegroups().find(std::make_pair(sgn, cbm->poller_id()));
     if (found == s.servicegroups().end())
       throw engine_error() << fmt::format(
           "Coulx not resolve service group '{}'", sgn);
