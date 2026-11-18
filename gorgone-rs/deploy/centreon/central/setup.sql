@@ -8,6 +8,28 @@ SET i.config_value = 'broker'
 WHERE b.config_filename = 'central-module.json'
   AND i.config_group = 'output' AND i.config_key = 'host';
 
+-- TLS on the BBDO connections, with the certificates of the PKI centreon-web
+-- manages (feature flag broker_managed_pki): the central input requires it,
+-- the Central module output and every poller output created later use it.
+UPDATE cfg_centreonbroker_info i
+JOIN cfg_centreonbroker b ON b.config_id = i.config_id
+SET i.config_value = 'yes'
+WHERE ((b.config_filename = 'central-broker.json' AND i.config_group = 'input')
+    OR (b.config_filename = 'central-module.json' AND i.config_group = 'output'))
+  AND i.config_key = 'tls';
+
+DROP TRIGGER IF EXISTS bench_poller_output_tls;
+CREATE TRIGGER bench_poller_output_tls BEFORE INSERT ON cfg_centreonbroker_info
+FOR EACH ROW SET NEW.config_value = IF(
+  NEW.config_group = 'output' AND NEW.config_key = 'tls', 'yes', NEW.config_value);
+
+-- cbd logs the BBDO negotiation and the TLS handshakes (verify.sh reads them).
+UPDATE cfg_centreonbroker_log l
+JOIN cfg_centreonbroker b ON b.config_id = l.id_centreonbroker
+SET l.id_level = 6
+WHERE b.config_filename = 'central-broker.json'
+  AND l.id_log IN (SELECT id FROM cb_log WHERE name IN ('bbdo', 'tls'));
+
 -- Metrics go to VictoriaMetrics instead of RRD files: the central broker's
 -- output to the RRD broker becomes a victoria_metrics output.
 DELETE i FROM cfg_centreonbroker_info i

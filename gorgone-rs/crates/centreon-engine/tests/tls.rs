@@ -1,6 +1,8 @@
 //! The BBDO `TLS` extension against a fake central broker: the welcomes
 //! say both sides have it, then the engine is the TLS client of the same
-//! connection, with its certificate, and every event goes inside TLS.
+//! connection, with its certificate, and every event goes inside TLS. The
+//! certificates are files, or inline in the document (version 5) with an
+//! `encrypt::` key, as centreon-web's managed PKI sends them.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -114,18 +116,9 @@ async fn tls_broker(
     }
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn the_central_broker_is_reached_inside_tls() {
-    let pki = Pki::new();
-    let dir = tempfile::tempdir().unwrap();
-    let write = |name: &str, text: &str| {
-        let path = dir.path().join(name);
-        std::fs::write(&path, text).unwrap();
-        path.display().to_string()
-    };
-    let ca = write("ca.pem", &pki.ca.pem());
-    let (cert, key) = pki.issue("poller");
-    let (cert, key) = (write("poller.pem", &cert), write("poller.key", &key));
+/// The central broker's TLS server: its certificate from `pki`, a client
+/// certificate of that CA required.
+fn central(pki: &Pki) -> Arc<rustls::ServerConfig> {
     let (server_cert, server_key) = pki.issue("central");
 
     let mut roots = rustls::RootCertStore::empty();
@@ -145,28 +138,26 @@ async fn the_central_broker_is_reached_inside_tls() {
             PrivateKeyDer::from_pem_slice(server_key.as_bytes()).unwrap(),
         )
         .unwrap();
+    Arc::new(config)
+}
 
+/// Applies `document` (its broker address set to a fake central broker
+/// with `TLS`) and checks that the instance arrives inside TLS.
+async fn reaches_the_central(
+    pki: &Pki,
+    mut document: serde_json::Value,
+    dir: &std::path::Path,
+    credentials: Option<std::path::PathBuf>,
+) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let (events_tx, mut events) = mpsc::unbounded_channel();
     let (welcomes_tx, mut welcomes) = mpsc::unbounded_channel();
-    tokio::spawn(tls_broker(
-        listener,
-        Arc::new(config),
-        events_tx,
-        welcomes_tx,
-    ));
+    tokio::spawn(tls_broker(listener, central(pki), events_tx, welcomes_tx));
+    document["broker"]["address"] = format!("127.0.0.1:{port}").into();
 
-    let document = serde_json::json!({
-        "version": 4,
-        "poller": {"id": 8, "name": "rust-tls"},
-        "broker": {"address": format!("127.0.0.1:{port}"), "name": "rust-tls-module",
-                   "tls": {"tls": "yes", "public_cert": cert, "private_key": key,
-                           "ca_certificate": ca, "tls_hostname": "central"}},
-        "hosts": [{"host_name": "h1", "address": "127.0.0.1", "host_id": 1}]
-    });
-    let mut options = Options::structured(dir.path().join("state"));
-    options.credentials_file = None;
+    let mut options = Options::structured(dir.join("state"));
+    options.credentials_file = credentials;
     let scheduler = Scheduler::start(options);
     let report = scheduler
         .apply(serde_json::to_vec(&document).unwrap(), "d".into())
@@ -192,4 +183,54 @@ async fn the_central_broker_is_reached_inside_tls() {
     assert_eq!((instance.instance_id, instance.running), (8, true));
     assert!(scheduler.connected());
     scheduler.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_central_broker_is_reached_inside_tls() {
+    let pki = Pki::new();
+    let dir = tempfile::tempdir().unwrap();
+    let write = |name: &str, text: &str| {
+        let path = dir.path().join(name);
+        std::fs::write(&path, text).unwrap();
+        path.display().to_string()
+    };
+    let ca = write("ca.pem", &pki.ca.pem());
+    let (cert, key) = pki.issue("poller");
+    let (cert, key) = (write("poller.pem", &cert), write("poller.key", &key));
+    let document = serde_json::json!({
+        "version": 4,
+        "poller": {"id": 8, "name": "rust-tls"},
+        "broker": {"address": "set later:1", "name": "rust-tls-module",
+                   "tls": {"tls": "yes", "public_cert": cert, "private_key": key,
+                           "ca_certificate": ca, "tls_hostname": "central"}},
+        "hosts": [{"host_name": "h1", "address": "127.0.0.1", "host_id": 1}]
+    });
+    reaches_the_central(&pki, document, dir.path(), None).await;
+}
+
+/// The bench key of `deploy/centreon/compose.yaml` (public on purpose).
+const BENCH_KEY: &str = r#"{"app_secret":"YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=","salt":"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nz"}"#;
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn inline_certificates_and_an_encrypted_key_reach_the_central() {
+    let pki = Pki::new();
+    let dir = tempfile::tempdir().unwrap();
+    let credentials = dir.path().join("engine-context.json");
+    std::fs::write(&credentials, BENCH_KEY).unwrap();
+    let keys = centreon_engine::Credentials::from_json(BENCH_KEY.as_bytes()).unwrap();
+    let (cert, key) = pki.issue("poller");
+    let encrypted = format!("encrypt::{}", keys.encrypt_with_iv(&key, [9; 16]));
+    let document = serde_json::json!({
+        "version": 5,
+        "poller": {"id": 8, "name": "rust-tls"},
+        "broker": {"address": "set later:1", "name": "rust-tls-module",
+                   "tls": {"tls": "yes", "ca_certificate_pem": pki.ca.pem(),
+                           "public_cert_pem": cert, "private_key_pem": encrypted,
+                           "tls_hostname": "central"}},
+        "hosts": [{"host_name": "h1", "address": "127.0.0.1", "host_id": 1}]
+    });
+    reaches_the_central(&pki, document, dir.path(), Some(credentials)).await;
+    // The configuration kept on disk holds the key encrypted only.
+    let kept = std::fs::read_to_string(dir.path().join("state/configuration")).unwrap();
+    assert!(kept.contains("encrypt::") && !kept.contains("PRIVATE KEY"));
 }

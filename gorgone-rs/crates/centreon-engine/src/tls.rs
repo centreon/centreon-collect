@@ -11,6 +11,10 @@
 //! name against `tls_hostname` only when set (`verify_peers3` /
 //! `verify_peers2`); without a CA, Broker verifies nothing, nor does the
 //! engine.
+//!
+//! The certificates are files on the poller, or inline PEM (version 5 of
+//! the document, the PKI centreon-web manages): an inline value wins over
+//! its path.
 
 use std::sync::Arc;
 
@@ -21,6 +25,8 @@ use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName, UnixTime};
 use rustls::{ClientConfig, DigitallySignedStruct, RootCertStore, SignatureScheme};
 
+#[cfg(test)]
+use crate::broker_conf::PrivateKeyPem;
 use crate::broker_conf::{TlsConf, TlsMode};
 
 /// Name of the extension in the welcome (`tls/src/main.cc:69`).
@@ -29,7 +35,7 @@ pub const EXTENSION: &str = "TLS";
 /// What the engine announces for `conf`: the extension when it can do it.
 /// `Err` when TLS is mandatory and cannot be done.
 pub fn offered(conf: &TlsConf) -> Result<bool, String> {
-    let certificate = conf.public_cert.is_some() && conf.private_key.is_some();
+    let certificate = conf.has_certificate();
     match conf.mode {
         TlsMode::No => Ok(false),
         _ if certificate => Ok(true),
@@ -68,6 +74,48 @@ fn certificates(path: &str) -> Result<Vec<CertificateDer<'static>>, String> {
         return Err(format!("{path}: no certificate"));
     }
     Ok(certs)
+}
+
+/// Certificates of an inline PEM (`label` names it in the errors).
+fn inline_certificates(label: &str, pem: &str) -> Result<Vec<CertificateDer<'static>>, String> {
+    let certs = CertificateDer::pem_slice_iter(pem.as_bytes())
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("{label}: {error}"))?;
+    if certs.is_empty() {
+        return Err(format!("{label}: no certificate"));
+    }
+    Ok(certs)
+}
+
+/// The certificates of `pem` when set, else of the file `path`, with the
+/// name the errors give them.
+fn certificates_of(
+    pem: Option<&str>,
+    pem_label: &str,
+    path: Option<&str>,
+) -> Option<Result<(Vec<CertificateDer<'static>>, String), String>> {
+    match (pem, path) {
+        (Some(pem), _) => {
+            Some(inline_certificates(pem_label, pem).map(|certs| (certs, pem_label.to_owned())))
+        }
+        (None, Some(path)) => Some(certificates(path).map(|certs| (certs, path.to_owned()))),
+        (None, None) => None,
+    }
+}
+
+/// The private key of `conf`: inline (decrypted) when set, else its file.
+/// An error never quotes the key.
+fn private_key(conf: &TlsConf) -> Result<PrivateKeyDer<'static>, String> {
+    const LABEL: &str = "broker.tls.private_key_pem";
+    if let Some(inline) = &conf.private_key_pem {
+        let pem = inline.pem().map_err(|error| format!("{LABEL}: {error}"))?;
+        return PrivateKeyDer::from_pem_slice(pem.as_bytes())
+            .map_err(|_| format!("{LABEL}: not a PEM private key"));
+    }
+    let Some(path) = &conf.private_key else {
+        return Err("TLS needs a private key".to_owned());
+    };
+    PrivateKeyDer::from_pem_file(path).map_err(|error| format!("{path}: {error}"))
 }
 
 fn provider() -> Arc<CryptoProvider> {
@@ -169,17 +217,23 @@ pub fn client(
     conf: &TlsConf,
     address: &str,
 ) -> Result<(ClientConfig, ServerName<'static>), String> {
-    let (Some(cert), Some(key)) = (&conf.public_cert, &conf.private_key) else {
+    if !conf.has_certificate() {
         return Err("TLS needs public_cert and private_key".to_owned());
-    };
+    }
     let provider = provider();
     let builder = ClientConfig::builder_with_provider(provider.clone())
         .with_safe_default_protocol_versions()
         .map_err(|error| error.to_string())?;
-    let verifier: Arc<dyn ServerCertVerifier> = match &conf.ca_certificate {
-        Some(ca) => {
+    let ca = certificates_of(
+        conf.ca_certificate_pem.as_deref(),
+        "broker.tls.ca_certificate_pem",
+        conf.ca_certificate.as_deref(),
+    )
+    .transpose()?;
+    let verifier: Arc<dyn ServerCertVerifier> = match ca {
+        Some((authorities, ca)) => {
             let mut roots = RootCertStore::empty();
-            for cert in certificates(ca)? {
+            for cert in authorities {
                 roots.add(cert).map_err(|error| format!("{ca}: {error}"))?;
             }
             let webpki =
@@ -194,8 +248,13 @@ pub fn client(
         }
         None => Arc::new(Unverified(provider.signature_verification_algorithms)),
     };
-    let chain = certificates(cert)?;
-    let key = PrivateKeyDer::from_pem_file(key).map_err(|error| format!("{key}: {error}"))?;
+    let (chain, cert) = certificates_of(
+        conf.public_cert_pem.as_deref(),
+        "broker.tls.public_cert_pem",
+        conf.public_cert.as_deref(),
+    )
+    .ok_or("TLS needs public_cert")??;
+    let key = private_key(conf)?;
     let config = builder
         .dangerous()
         .with_custom_certificate_verifier(verifier)
@@ -246,5 +305,78 @@ mod tests {
         // No certificate: anonymous TLS, not offered (auto) or refused (yes).
         assert!(!offered(&conf(TlsMode::Auto, false)).unwrap());
         assert!(offered(&conf(TlsMode::Yes, false)).is_err());
+        // Inline certificate and key count as a certificate.
+        let inline = TlsConf {
+            mode: TlsMode::Yes,
+            public_cert_pem: Some("pem".into()),
+            private_key_pem: Some(PrivateKeyPem::new(Ok("pem".into()))),
+            ..TlsConf::default()
+        };
+        assert!(offered(&inline).unwrap());
+    }
+
+    fn pki() -> (
+        rcgen::CertifiedIssuer<'static, rcgen::KeyPair>,
+        String,
+        String,
+    ) {
+        let mut params = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
+        params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+        let ca = rcgen::CertifiedIssuer::self_signed(params, rcgen::KeyPair::generate().unwrap())
+            .unwrap();
+        let key = rcgen::KeyPair::generate().unwrap();
+        let cert = rcgen::CertificateParams::new(vec!["poller".to_owned()])
+            .unwrap()
+            .signed_by(&key, &ca)
+            .unwrap();
+        (ca, cert.pem(), key.serialize_pem())
+    }
+
+    #[test]
+    fn builds_a_client_from_inline_pem() {
+        let (ca, cert, key) = pki();
+        let conf = TlsConf {
+            mode: TlsMode::Yes,
+            ca_certificate_pem: Some(ca.pem()),
+            public_cert_pem: Some(cert.clone()),
+            private_key_pem: Some(PrivateKeyPem::new(Ok(key.clone()))),
+            tls_hostname: Some("central".into()),
+            // Paths that do not exist: the inline values win.
+            ca_certificate: Some("/nonexistent/ca.pem".into()),
+            public_cert: Some("/nonexistent/c.pem".into()),
+            private_key: Some("/nonexistent/k.pem".into()),
+        };
+        let (_, name) = client(&conf, "broker:5669").unwrap();
+        assert_eq!(name.to_str(), "central");
+        // The key of a document that could not be decrypted: the reason,
+        // never the value.
+        let undecrypted = TlsConf {
+            private_key_pem: Some(PrivateKeyPem::new(Err("no key to decrypt it".into()))),
+            ..conf.clone()
+        };
+        let error = client(&undecrypted, "broker:5669").unwrap_err();
+        assert!(
+            error.contains("broker.tls.private_key_pem: no key to decrypt it"),
+            "{error}"
+        );
+        let garbage = TlsConf {
+            private_key_pem: Some(PrivateKeyPem::new(Ok("not a key".into()))),
+            ..conf.clone()
+        };
+        let error = client(&garbage, "broker:5669").unwrap_err();
+        assert!(error.contains("not a PEM private key"), "{error}");
+        let no_cert = TlsConf {
+            public_cert_pem: Some("no pem here".into()),
+            ..conf.clone()
+        };
+        assert!(
+            client(&no_cert, "broker:5669")
+                .unwrap_err()
+                .contains("broker.tls.public_cert_pem: no certificate")
+        );
+        // The key never appears in a debug print.
+        assert!(!format!("{conf:?}").contains("PRIVATE KEY"));
+        assert!(format!("{conf:?}").contains("PrivateKeyPem(..)"));
+        let _ = key;
     }
 }

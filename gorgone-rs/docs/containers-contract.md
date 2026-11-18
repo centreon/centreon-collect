@@ -105,3 +105,30 @@ every web container: `CENTREON_ENGINE_CONTEXT` (the file content, from a
 secret) or `ENGINE_CONTEXT_PATH` (a mounted secret file). The replicas also
 share their PHP sessions through a Redis-protocol store
 (`SESSION_REDIS_URL`), never through a shared directory.
+
+## TLS between the pollers and the central broker
+
+With the feature flag `broker_managed_pki`, the administrator only switches
+TLS on (the `tls` of the module outputs and of the central input):
+centreon-web issues the certificates from a CA it keeps in its database
+(table `broker_pki`, private keys encrypted with the engine-context key), so
+every web replica issues from the same CA with no shared volume and no
+certificate to copy by hand. Delivery uses the existing pushes, no new
+channel:
+
+- a centreon-engine container gets its CA, certificate and key inline in its
+  structured configuration (version 5, the key as an `encrypt::` value it
+  decrypts with `/etc/centreon-engine/engine-context.json`): nothing is
+  written on disk in clear;
+- an engine container (`cbmod`) and the broker container (`cbd`) get them as
+  files of the `broker` target, under `/etc/centreon-broker/pki/`
+  (`ca.crt`, `poller.crt`, `poller.key` for a module, `central.crt`,
+  `central.key` for the central input), the keys with mode 0640 and owned by
+  the user of the agent that writes them, which is the user of `cbd` or of
+  the engine in these images. The `broker` push of the Central poller goes
+  to both its components: each gets both certificates.
+
+`cbd` asks every poller for its certificate and refuses one of another CA;
+the pollers check the certificate of `cbd` and its name (`tls_hostname`,
+the host of their output). gorgone-server stores the `broker` bundles, keys
+of the C++ pollers included, as it stores the engine-context key itself.

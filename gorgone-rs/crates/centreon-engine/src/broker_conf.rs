@@ -49,7 +49,9 @@ impl TlsMode {
 
 /// TLS of the connection to the central broker: the `tls`,
 /// `private_key`, `public_cert`, `ca_certificate` and `tls_hostname` keys
-/// of the `cbmod` output (paths on the poller).
+/// of the `cbmod` output (paths on the poller), or the certificates
+/// themselves (`*_pem`, version 5 of the document): an inline value wins
+/// over its path.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TlsConf {
     pub mode: TlsMode,
@@ -57,6 +59,44 @@ pub struct TlsConf {
     pub public_cert: Option<String>,
     pub ca_certificate: Option<String>,
     pub tls_hostname: Option<String>,
+    /// PEM of the CA certificate(s) the central broker is checked against.
+    pub ca_certificate_pem: Option<String>,
+    /// PEM of the certificate chain of the poller.
+    pub public_cert_pem: Option<String>,
+    /// The private key of the poller, decrypted.
+    pub private_key_pem: Option<PrivateKeyPem>,
+}
+
+impl TlsConf {
+    /// Whether a certificate and its key are given, as paths or inline.
+    #[must_use]
+    pub fn has_certificate(&self) -> bool {
+        (self.public_cert.is_some() || self.public_cert_pem.is_some())
+            && (self.private_key.is_some() || self.private_key_pem.is_some())
+    }
+}
+
+/// An inline private key: its PEM once decrypted, or why it could not be
+/// decrypted (the connection then fails with that reason). Never printed.
+#[derive(Clone, PartialEq, Eq)]
+pub struct PrivateKeyPem(Result<String, String>);
+
+impl PrivateKeyPem {
+    #[must_use]
+    pub fn new(pem: Result<String, String>) -> Self {
+        Self(pem)
+    }
+
+    /// The PEM, or why there is none.
+    pub fn pem(&self) -> Result<&str, &str> {
+        self.0.as_deref().map_err(String::as_str)
+    }
+}
+
+impl std::fmt::Debug for PrivateKeyPem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("PrivateKeyPem(..)")
+    }
 }
 
 fn string_of(value: &Value) -> Option<String> {
@@ -114,6 +154,7 @@ pub fn parse(text: &str) -> Result<BrokerConf, String> {
             public_cert: path("public_cert").or_else(|| path("certificate")),
             ca_certificate: path("ca_certificate"),
             tls_hostname: path("tls_hostname"),
+            ..TlsConf::default()
         };
         Some(if host.contains(':') && !host.starts_with('[') {
             format!("[{host}]:{port}")
@@ -176,6 +217,7 @@ mod tests {
                 public_cert: Some("/etc/c.pem".into()),
                 ca_certificate: Some("/etc/ca.pem".into()),
                 tls_hostname: Some("central".into()),
+                ..TlsConf::default()
             }
         );
     }

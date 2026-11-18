@@ -82,8 +82,9 @@ impl Credentials {
         }
     }
 
-    /// Encrypts with a given IV (the key self-test and the tests).
-    pub(crate) fn encrypt_with_iv(&self, plain: &str, iv: [u8; IV_LEN]) -> String {
+    /// Encrypts with a given IV: the key self-test, and tests that need a
+    /// value as centreon-web encrypts it. The engine never encrypts.
+    pub fn encrypt_with_iv(&self, plain: &str, iv: [u8; IV_LEN]) -> String {
         let cipher = cbc::Encryptor::<Aes256>::new(&self.first.into(), &iv.into())
             .encrypt_padded_vec_mut::<Pkcs7>(plain.as_bytes());
         let tag = mac(&self.second, &cipher)

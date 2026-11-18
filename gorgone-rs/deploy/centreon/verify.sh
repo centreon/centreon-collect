@@ -1070,7 +1070,7 @@ import json, sys
 sys.stdin.readline()
 d = json.load(sys.stdin)
 notify = [s for s in d["services"] if s["service_description"] == "rust-notify"][0]
-ok = (d["version"] == 4 and d["settings"].get("enable_flap_detection") is True
+ok = (d["version"] >= 4 and d["settings"].get("enable_flap_detection") is True
       and d["settings"].get("check_service_freshness") is True
       and any(c.get("contact_name") == "rust-admin" and c.get("email") == "rust-admin@bench.local"
               for c in d.get("contacts", []))
@@ -1244,6 +1244,146 @@ centreon_engine_restart_keeps_states() {
           AND d.deletion_time IS NULL")" == "1 0 1" ]]
 }
 
+# --- TLS with the PKI centreon-web manages (feature flag broker_managed_pki).
+
+# pki_file <service> <path>: a file of a container, on stdout.
+pki_file() {
+  "${COMPOSE[@]}" exec -T "$1" cat "$2"
+}
+
+# The central input requires TLS with the central certificate of the managed
+# CA (valid for the name the pollers use, "broker"), asks for the poller
+# certificates and does not check their name (no tls_hostname).
+central_input_uses_managed_pki() {
+  local dir
+  dir=$(mktemp -d)
+  pki_file broker /etc/centreon-broker/central-broker.json > "${dir}/central.json" || return 1
+  pki_file broker /etc/centreon-broker/pki/ca.crt > "${dir}/ca.crt" || return 1
+  pki_file broker /etc/centreon-broker/pki/central.crt > "${dir}/central.crt" || return 1
+  python3 -I -c '
+import json, sys
+inputs = json.load(open(sys.argv[1]))["centreonBroker"]["input"]
+tcp = [i for i in inputs if i["type"] == "ipv4"]
+ok = tcp and all(i["tls"] == "yes" and i["public_cert"] == "/etc/centreon-broker/pki/central.crt"
+                 and i["private_key"] == "/etc/centreon-broker/pki/central.key"
+                 and i["ca_certificate"] == "/etc/centreon-broker/pki/ca.crt"
+                 and "tls_hostname" not in i for i in tcp)
+sys.exit(0 if ok else 1)' "${dir}/central.json" || return 1
+  openssl verify -CAfile "${dir}/ca.crt" "${dir}/central.crt" > /dev/null || return 1
+  openssl x509 -in "${dir}/central.crt" -noout -ext subjectAltName | grep -q 'DNS:broker' || return 1
+  [[ "$("${COMPOSE[@]}" exec -T broker stat -c %a /etc/centreon-broker/pki/central.key)" == 640 ]]
+}
+
+# poller_module_uses_managed_pki <service> <poller>: the C++ module of a
+# poller sends with TLS, its own certificate of the managed CA (common name:
+# the poller name), the CA, and checks the name of the central broker.
+poller_module_uses_managed_pki() {
+  local dir module
+  dir=$(mktemp -d)
+  module=$("${COMPOSE[@]}" exec -T "$1" sh -c \
+    'grep -l "\"output\"" /etc/centreon-broker/*.json | xargs grep -l poller.crt | head -n 1') || return 1
+  [[ -n "${module}" ]] || return 1
+  pki_file "$1" "${module}" > "${dir}/module.json" || return 1
+  pki_file "$1" /etc/centreon-broker/pki/ca.crt > "${dir}/ca.crt" || return 1
+  pki_file "$1" /etc/centreon-broker/pki/poller.crt > "${dir}/poller.crt" || return 1
+  python3 -I -c '
+import json, sys
+outputs = json.load(open(sys.argv[1]))["centreonBroker"]["output"]
+tcp = [o for o in outputs if o["type"] == "ipv4"]
+ok = tcp and all(o["tls"] == "yes" and o["public_cert"] == "/etc/centreon-broker/pki/poller.crt"
+                 and o["private_key"] == "/etc/centreon-broker/pki/poller.key"
+                 and o["ca_certificate"] == "/etc/centreon-broker/pki/ca.crt"
+                 and o["tls_hostname"] == o["host"] for o in tcp)
+sys.exit(0 if ok else 1)' "${dir}/module.json" || return 1
+  openssl verify -CAfile "${dir}/ca.crt" "${dir}/poller.crt" > /dev/null || return 1
+  openssl x509 -in "${dir}/poller.crt" -noout -subject | grep -q "CN *= *$2\$" || return 1
+  [[ "$("${COMPOSE[@]}" exec -T "$1" stat -c %a /etc/centreon-broker/pki/poller.key)" == 640 ]]
+}
+
+# Every poller connected to the central broker did the TLS handshake and
+# had its certificate checked against the CA: the input requires TLS, cbd
+# logged a checked handshake per poller and refused none of them.
+every_poller_in_tls() {
+  local log
+  log=$("${COMPOSE[@]}" logs broker 2>&1)
+  for poller in Central poller engine centreon-engine; do
+    instance_running "${poller}" || return 1
+  done
+  (($(grep -c "Server hostname used for certificate verification" <<< "${log}") >= 4)) || return 1
+  (($(grep -c "and peer has 'TLS'" <<< "${log}") >= 4))
+}
+
+# The structured configuration of the centreon-engine carries the CA, its
+# certificate and its key inline, the key encrypted: no clear private key in
+# the document web wrote, the one the engine keeps, nor its logs.
+centreon_engine_inline_pki() {
+  local kept sent log
+  kept=$("${COMPOSE[@]}" exec -T centreon-engine cat \
+    /var/lib/centreon-engine/engine-configuration/configuration) || return 1
+  sent=$(docker cp "$("${COMPOSE[@]}" ps -q web):/var/cache/centreon/config/engine/$(node_of centreon-engine)/engine-configuration.json" - | tar -xOf -) || return 1
+  for document in "${kept#*$'\n'}" "${sent}"; do
+    python3 -I -c '
+import json, sys
+document = json.loads(sys.stdin.read())
+tls = document["broker"]["tls"]
+ok = (document["version"] == 5 and tls["tls"] == "yes" and tls["tls_hostname"] == "broker"
+      and tls["ca_certificate_pem"].startswith("-----BEGIN CERTIFICATE-----")
+      and tls["public_cert_pem"].startswith("-----BEGIN CERTIFICATE-----")
+      and tls["private_key_pem"].startswith("encrypt::")
+      and not {"private_key", "public_cert", "ca_certificate"} & tls.keys())
+sys.exit(0 if ok else 1)' <<< "${document}" || return 1
+    ! grep -q 'PRIVATE KEY' <<< "${document}" || return 1
+  done
+  # Read whole first: grep -q closing the pipe early would fail it (pipefail).
+  log=$("${COMPOSE[@]}" logs centreon-engine 2>&1)
+  ! grep -q 'PRIVATE KEY' <<< "${log}" || return 1
+  grep -q 'TLS with the central broker' <<< "${log}"
+}
+
+# broker.tls of the document web last wrote for the centreon-engine.
+centreon_engine_sent_tls() {
+  docker cp "$("${COMPOSE[@]}" ps -q web):/var/cache/centreon/config/engine/$(node_of centreon-engine)/engine-configuration.json" - \
+    | tar -xOf - | python3 -I -c 'import json, sys; print(json.dumps(json.load(sys.stdin)["broker"]["tls"], sort_keys=True))'
+}
+
+# Another export issues nothing: same certificates in the database, same
+# TLS section in the centreon-engine document, same files for cbd.
+pki_stable_across_exports() {
+  local certificates tls files
+  certificates=$(sql "SELECT GROUP_CONCAT(subject, ' ', fingerprint ORDER BY subject) FROM centreon.broker_pki")
+  tls=$(centreon_engine_sent_tls) || return 1
+  files=$("${COMPOSE[@]}" exec -T broker sh -c 'cat /etc/centreon-broker/pki/* | sha256sum') || return 1
+  [[ -n "${certificates}" && -n "${tls}" ]] || return 1
+  clapi POLLERGENERATE centreon-engine > /dev/null || return 1
+  clapi POLLERGENERATE Central > /dev/null || return 1
+  clapi CFGMOVE Central | grep -q 'Central: done' || return 1
+  sleep 5
+  [[ "$(sql "SELECT GROUP_CONCAT(subject, ' ', fingerprint ORDER BY subject) FROM centreon.broker_pki")" == "${certificates}" ]] || return 1
+  [[ "$(centreon_engine_sent_tls)" == "${tls}" ]] || return 1
+  [[ "$("${COMPOSE[@]}" exec -T broker sh -c 'cat /etc/centreon-broker/pki/* | sha256sum')" == "${files}" ]]
+}
+
+# A poller presenting a certificate of another CA (rogue-poller.py, a BBDO
+# client offering TLS) is refused by cbd and stored nowhere.
+rogue_poller_refused() {
+  local dir address before
+  dir=$(mktemp -d)
+  openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 1 \
+    -subj "/CN=rogue ca" -keyout "${dir}/ca.key" -out "${dir}/ca.crt" 2> /dev/null || return 1
+  openssl req -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj "/CN=rogue-poller" \
+    -keyout "${dir}/rogue.key" -out "${dir}/rogue.csr" 2> /dev/null || return 1
+  printf 'extendedKeyUsage=clientAuth\n' > "${dir}/rogue.ext"
+  openssl x509 -req -in "${dir}/rogue.csr" -CA "${dir}/ca.crt" -CAkey "${dir}/ca.key" \
+    -CAcreateserial -days 1 -extfile "${dir}/rogue.ext" -out "${dir}/rogue.crt" 2> /dev/null || return 1
+  address=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
+    "$("${COMPOSE[@]}" ps -q broker)") || return 1
+  before=$("${COMPOSE[@]}" logs broker 2>&1 | grep -c 'TLS: peer certificate is invalid' || true)
+  python3 -I "$(dirname "$0")/rogue-poller.py" "${address}" 5669 "${dir}/rogue.crt" "${dir}/rogue.key" || return 1
+  sleep 2
+  (($("${COMPOSE[@]}" logs broker 2>&1 | grep -c 'TLS: peer certificate is invalid' || true) > before)) || return 1
+  [[ $(sql "SELECT COUNT(*) FROM centreon_storage.instances WHERE name = 'rogue-poller' OR instance_id = 4040") == 0 ]]
+}
+
 check "the web image is a web server only: no shell, collect, Gorgone or plugin" web_image_is_slim
 check "the web image carries no rrdtool" web_image_has_no_rrdtool
 check "no volume is shared between containers" no_shared_volume
@@ -1334,6 +1474,22 @@ check "centreon-engine: a restart keeps states, attempts, downtime and acknowled
   centreon_engine_restart_keeps_states
 check "centreon-engine: the configuration survives a container restart" \
   centreon_engine_survives_a_restart
+check "managed PKI: the central input requires TLS with its certificate of the web CA" \
+  central_input_uses_managed_pki
+check "managed PKI: the Central module sends with TLS and its poller certificate" \
+  poller_module_uses_managed_pki central-engine Central
+check "managed PKI: the engine container module sends with TLS and its poller certificate" \
+  poller_module_uses_managed_pki engine engine
+check "managed PKI: the poller module sends with TLS and its poller certificate" \
+  poller_module_uses_managed_pki poller poller
+check "managed PKI: every poller reaches the central broker in TLS, its certificate checked" \
+  every_poller_in_tls
+check "managed PKI: centreon-engine gets its certificates inline, no clear private key" \
+  centreon_engine_inline_pki
+check "managed PKI: another export issues no certificate (same TLS document section and files)" \
+  pki_stable_across_exports
+check "managed PKI: a poller certificate of another CA is refused by the central broker" \
+  rogue_poller_refused
 check "a job submitted to either gorgone-server replica reaches every node" jobs_cross_replicas
 # Last: the agents move between the gorgone-server replicas.
 check "an agent fails over to the other gorgone-server replica" failover_to_other_replica

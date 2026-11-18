@@ -88,8 +88,10 @@ x-web: &web
     VICTORIA_METRICS_URL: http://victoria-metrics:8428
     # The engines schedule recurring downtimes; the web cron no longer does.
     # Pollers marked as run by centreon-engine get a structured
-    # configuration instead of .cfg files.
-    CENTREON_FEATURE_FLAGS: engine_recurring_downtimes,engine_structured_configuration
+    # configuration instead of .cfg files. The BBDO connections to the
+    # central broker use TLS with certificates of a CA centreon-web manages
+    # (central/setup.sql switches TLS on).
+    CENTREON_FEATURE_FLAGS: engine_recurring_downtimes,engine_structured_configuration,broker_managed_pki
     # Sessions opened on one replica are valid on the other.
     SESSION_REDIS_URL: tcp://valkey:6379
     # Credentials encryption key, the same in every replica and pushed to the

@@ -1,5 +1,5 @@
-//! The structured configuration document, versions 1 to 4
-//! (`gorgone-rs/schemas/engine-configuration.v4.json`): what centreon-web
+//! The structured configuration document, versions 1 to 5
+//! (`gorgone-rs/schemas/engine-configuration.v5.json`): what centreon-web
 //! sends instead of the `.cfg` files. Its objects become the raw objects of
 //! the file reader, so that templates are resolved and objects checked by
 //! the same code ([`cfg::build`]): both inputs give the same model.
@@ -22,6 +22,11 @@
 //! broker. Nothing changes meaning; a new version for the same reason as
 //! version 3.
 //!
+//! Version 5 adds the certificates of that connection inline
+//! (`broker.tls.ca_certificate_pem`, `public_cert_pem`, `private_key_pem`),
+//! the PKI centreon-web manages: the key is an `encrypt::` value,
+//! decrypted with the key of the macros.
+//!
 //! Every object refuses a field it does not know: a field the engine would
 //! ignore is a behaviour it would silently not have (a check period, a
 //! downtime...), so the whole document is refused and the configuration in
@@ -35,7 +40,7 @@ use crate::cfg::{self, Kind, LogLevel, MonitoringConfig, RawObject, Report, Sett
 
 /// Latest version of the document format this engine reads; it also
 /// reads the previous ones.
-pub const VERSION: u32 = 4;
+pub const VERSION: u32 = 5;
 
 /// The whole document.
 #[derive(Debug, Clone, Deserialize)]
@@ -288,8 +293,9 @@ pub(crate) struct Broker {
 }
 
 /// `tls`, `private_key`, `public_cert`, `ca_certificate`, `tls_hostname`
-/// of the `cbmod` output: paths on the poller.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+/// of the `cbmod` output: paths on the poller. Version 5: the same
+/// certificates inline, `private_key_pem` as an `encrypt::` value.
+#[derive(Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct BrokerTlsDoc {
     pub tls: String,
@@ -297,11 +303,63 @@ pub(crate) struct BrokerTlsDoc {
     pub public_cert: Option<String>,
     pub ca_certificate: Option<String>,
     pub tls_hostname: Option<String>,
+    pub ca_certificate_pem: Option<String>,
+    pub public_cert_pem: Option<String>,
+    pub private_key_pem: Option<String>,
+}
+
+/// The key stays out of the debug print, even encrypted.
+impl std::fmt::Debug for BrokerTlsDoc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BrokerTlsDoc")
+            .field("tls", &self.tls)
+            .field("private_key", &self.private_key)
+            .field("public_cert", &self.public_cert)
+            .field("ca_certificate", &self.ca_certificate)
+            .field("tls_hostname", &self.tls_hostname)
+            .field("ca_certificate_pem", &self.ca_certificate_pem.is_some())
+            .field("public_cert_pem", &self.public_cert_pem.is_some())
+            .field("private_key_pem", &self.private_key_pem.is_some())
+            .finish()
+    }
+}
+
+impl BrokerTlsDoc {
+    /// The first version 5 field given, if any.
+    fn version_5_field(&self) -> Option<&'static str> {
+        [
+            ("broker.tls.ca_certificate_pem", &self.ca_certificate_pem),
+            ("broker.tls.public_cert_pem", &self.public_cert_pem),
+            ("broker.tls.private_key_pem", &self.private_key_pem),
+        ]
+        .into_iter()
+        .find_map(|(name, value)| value.is_some().then_some(name))
+    }
+
+    /// A value given both as a path and inline.
+    fn ambiguous(&self) -> Option<&'static str> {
+        [
+            (
+                "ca_certificate",
+                &self.ca_certificate,
+                &self.ca_certificate_pem,
+            ),
+            ("public_cert", &self.public_cert, &self.public_cert_pem),
+            ("private_key", &self.private_key, &self.private_key_pem),
+        ]
+        .into_iter()
+        .find_map(|(name, path, pem)| (path.is_some() && pem.is_some()).then_some(name))
+    }
 }
 
 impl Broker {
-    /// The TLS settings of the connection (no TLS without them).
-    pub fn tls_conf(&self) -> crate::broker_conf::TlsConf {
+    /// The TLS settings of the connection (no TLS without them). An
+    /// `encrypt::` key is decrypted with `credentials` (the key of the
+    /// macros), `raw::` removed; an error says why, never the value.
+    pub fn tls_conf(
+        &self,
+        credentials: Option<&crate::crypto::Credentials>,
+    ) -> crate::broker_conf::TlsConf {
         let Some(tls) = &self.tls else {
             return crate::broker_conf::TlsConf::default();
         };
@@ -311,12 +369,33 @@ impl Broker {
                 .map(|v| v.trim().to_owned())
                 .filter(|v| !v.is_empty())
         };
+        let pem = |value: &Option<String>| value.clone().filter(|v| !v.trim().is_empty());
+        let key = pem(&tls.private_key_pem).map(|value| {
+            let plain = if let Some(raw) = value.strip_prefix("raw::") {
+                Ok(raw.to_owned())
+            } else if let Some(encrypted) = value.strip_prefix("encrypt::") {
+                match credentials {
+                    Some(keys) => keys
+                        .decrypt(encrypted)
+                        .map_err(|error| format!("cannot be decrypted: {error}")),
+                    None => {
+                        Err("encrypted, and no key to decrypt it (engine-context.json)".to_owned())
+                    }
+                }
+            } else {
+                Ok(value)
+            };
+            crate::broker_conf::PrivateKeyPem::new(plain)
+        });
         crate::broker_conf::TlsConf {
             mode: crate::broker_conf::TlsMode::parse(&tls.tls).unwrap_or_default(),
             private_key: path(&tls.private_key),
             public_cert: path(&tls.public_cert),
             ca_certificate: path(&tls.ca_certificate),
             tls_hostname: path(&tls.tls_hostname),
+            ca_certificate_pem: pem(&tls.ca_certificate_pem),
+            public_cert_pem: pem(&tls.public_cert_pem),
+            private_key_pem: key,
         }
     }
 }
@@ -1145,6 +1224,17 @@ pub(crate) fn parse(bytes: &[u8]) -> Result<(Parsed, Report), String> {
             "{field} needs version 4 of the configuration document"
         ));
     }
+    if document.version < 5
+        && let Some(field) = document
+            .broker
+            .tls
+            .as_ref()
+            .and_then(BrokerTlsDoc::version_5_field)
+    {
+        return refuse(format!(
+            "{field} needs version 5 of the configuration document"
+        ));
+    }
     let (mut config, report) = model(&document);
     // Version 1 values are literal: centreon-web decrypted them.
     config.secret_prefixes = document.version >= 2;
@@ -1153,6 +1243,16 @@ pub(crate) fn parse(bytes: &[u8]) -> Result<(Parsed, Report), String> {
         report
             .errors
             .push("poller: id must be at least 1 and name not empty".to_owned());
+    }
+    if let Some(name) = document
+        .broker
+        .tls
+        .as_ref()
+        .and_then(BrokerTlsDoc::ambiguous)
+    {
+        report
+            .errors
+            .push(format!("broker.tls: {name} and {name}_pem are both given"));
     }
     if !valid_address(&document.broker.address) {
         report.errors.push(format!(
@@ -1587,15 +1687,56 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn inline_tls_key_is_decrypted_with_the_macro_key() {
+        let keys =
+            crate::crypto::Credentials::from_json(crate::crypto::tests::BENCH_KEY.as_bytes())
+                .unwrap();
+        let document = |key: &str| {
+            format!(
+                r#"{{"version": 5, "poller": {{"id": 1, "name": "p"}},
+                    "broker": {{"address": "b:1", "tls": {{"tls": "yes",
+                    "ca_certificate_pem": "CA", "public_cert_pem": "CERT",
+                    "private_key_pem": "{key}", "tls_hostname": "b"}}}}}}"#
+            )
+        };
+        let encrypted = format!("encrypt::{}", crate::crypto::tests::FROM_WEB.trim());
+        let (parsed, _) = parse(document(&encrypted).as_bytes()).unwrap();
+        let conf = parsed.broker.tls_conf(Some(&keys));
+        assert_eq!(conf.ca_certificate_pem.as_deref(), Some("CA"));
+        assert_eq!(conf.public_cert_pem.as_deref(), Some("CERT"));
+        assert_eq!(
+            conf.private_key_pem.as_ref().unwrap().pem(),
+            Ok("s3cr3t-value")
+        );
+        assert!(conf.has_certificate());
+        // Neither the decrypted key nor its ciphertext is printed.
+        let printed = format!("{:?} {:?}", parsed.broker, conf);
+        assert!(!printed.contains("s3cr3t") && !printed.contains(&encrypted[10..30]));
+        // Without the key file: the reason, not the value.
+        let conf = parsed.broker.tls_conf(None);
+        let error = conf.private_key_pem.unwrap().pem().unwrap_err().to_owned();
+        assert!(error.contains("no key to decrypt it"), "{error}");
+        // A forged value does not decrypt.
+        let forged = encrypted.replace('A', "B");
+        let (parsed, _) = parse(document(&forged).as_bytes()).unwrap();
+        let conf = parsed.broker.tls_conf(Some(&keys));
+        assert!(conf.private_key_pem.unwrap().pem().is_err());
+        // raw:: and a literal key are taken as they are.
+        let (parsed, _) = parse(document("raw::PLAIN").as_bytes()).unwrap();
+        let conf = parsed.broker.tls_conf(Some(&keys));
+        assert_eq!(conf.private_key_pem.unwrap().pem(), Ok("PLAIN"));
+    }
+
+    #[test]
     fn refuses_unknown_fields_and_versions() {
         let unknown = WEB_LIKE.replace(r#""host_id": 13"#, r#""host_id": 13, "notes_url": "x""#);
         let report = parse(unknown.as_bytes()).unwrap_err();
         assert!(report.contains("unknown field `notes_url`"), "{report}");
         assert!(report.contains("Total Errors:   1"), "{report}");
 
-        let newer = unknown.replace(r#""version": 4"#, r#""version": 5"#);
+        let newer = unknown.replace(r#""version": 4"#, r#""version": 6"#);
         let report = parse(newer.as_bytes()).unwrap_err();
-        assert!(report.contains("version 5 is not supported"), "{report}");
+        assert!(report.contains("version 6 is not supported"), "{report}");
 
         // Version 1 takes no version 2 field, and keeps its values literal.
         let old = WEB_LIKE.replace(r#""version": 4"#, r#""version": 1"#);
@@ -1608,6 +1749,27 @@ pub(crate) mod tests {
         let v3 = WEB_LIKE.replace(r#""version": 4"#, r#""version": 3"#);
         let report = parse(v3.as_bytes()).unwrap_err();
         assert!(report.contains("needs version 4"), "{report}");
+        // Version 4 takes no inline certificate.
+        let inline = WEB_LIKE.replace(
+            r#""name": "rust-poller-module"}"#,
+            r#""name": "rust-poller-module", "tls": {"tls": "yes", "public_cert_pem": "x"}}"#,
+        );
+        let report = parse(inline.as_bytes()).unwrap_err();
+        assert!(
+            report.contains("broker.tls.public_cert_pem needs version 5"),
+            "{report}"
+        );
+        let both = inline
+            .replace(r#""version": 4"#, r#""version": 5"#)
+            .replace(
+                r#""public_cert_pem": "x""#,
+                r#""public_cert_pem": "x", "public_cert": "/c""#,
+            );
+        let report = parse(both.as_bytes()).unwrap_err();
+        assert!(
+            report.contains("public_cert and public_cert_pem are both given"),
+            "{report}"
+        );
         let level = WEB_LIKE.replace(
             r#""log_level_external_command": "info""#,
             r#""log_level_external_command": "loud""#,
@@ -1646,7 +1808,7 @@ pub(crate) mod tests {
         // The schema is the contract of centreon-web: same objects, same
         // field names as the model.
         let schema = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../schemas/engine-configuration.v4.json");
+            .join("../../schemas/engine-configuration.v5.json");
         let schema: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(schema).unwrap()).unwrap();
         let keys = |value: &serde_json::Value| -> Vec<String> {

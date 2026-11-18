@@ -605,7 +605,12 @@ impl Core {
 
     /// Puts a checked document in force.
     fn install_document(&mut self, parsed: Parsed, digest: String) -> Installed {
-        let tls = parsed.broker.tls_conf();
+        // The keys of this apply decrypt the inline private key.
+        self.load_credentials();
+        let tls = parsed.broker.tls_conf(self.credentials.as_ref());
+        if let Some(Err(error)) = tls.private_key_pem.as_ref().map(|key| key.pem()) {
+            tracing::error!("broker.tls.private_key_pem: {error}");
+        }
         let target = Target {
             address: self
                 .options

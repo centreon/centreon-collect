@@ -230,8 +230,8 @@ sources: [scheduler-design.md](scheduler-design.md).
 
 - Configuration input (`[scheduler] input`): `structured` (default of
   `centreon-engine`) takes the JSON document of
-  [`schemas/engine-configuration.v4.json`](../schemas/engine-configuration.v4.json)
-  (or versions 1 to 3) through `ApplyEngineConfiguration` jobs, with no file on
+  [`schemas/engine-configuration.v5.json`](../schemas/engine-configuration.v5.json)
+  (or versions 1 to 4) through `ApplyEngineConfiguration` jobs, with no file on
   the poller, after the `engine_context` key its `encrypt::` values need;
   `files` reads the `.cfg` files of the `engine` target, checked by the
   engine's own parser (same staging, same `Total Errors:` report). Both give

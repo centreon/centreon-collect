@@ -334,7 +334,9 @@ pub fn applied_digest(dest: &Path, marker: &str) -> Option<String> {
 /// Every file is written next to its destination and renamed over it, so a
 /// reader never sees a partial file. Works on mount points and shared
 /// volumes, unlike a directory swap. A file gets 0644, or 0755 when it is
-/// executable in the bundle.
+/// executable in the bundle, without the read bits of the group or the
+/// others when the bundle withholds them (a private key sent as 0600 or
+/// 0640 stays so).
 pub fn apply(
     bundle: &[u8],
     expected_digest: &str,
@@ -393,12 +395,14 @@ pub fn apply_with_file_mode(
         let target = dest.join(&rel);
         let parent = target.parent().unwrap_or(dest);
         fs::create_dir_all(parent).map_err(io_err(parent))?;
-        // Only the executable bit is taken from the bundle.
-        let executable = entry.header().mode().unwrap_or(0) & 0o111 != 0;
+        // Only the executable bit is taken from the bundle, and the read
+        // bits it withholds from the group and the others.
+        let bundled = entry.header().mode().unwrap_or(0o644);
+        let executable = bundled & 0o111 != 0;
         let mode = match file_mode {
             Some(mode) => mode & 0o777,
-            None if executable => 0o755,
-            None => 0o644,
+            None if executable => 0o755 & (bundled | 0o700),
+            None => 0o644 & (bundled | 0o700),
         };
         budget -= write_atomic(&target, mode, |file| {
             let copied =
@@ -728,6 +732,42 @@ mod tests {
                 & 0o777
         };
         assert_eq!((mode("hook.sh"), mode("centengine.cfg")), (0o755, 0o644));
+    }
+
+    #[test]
+    fn private_files_stay_private() {
+        let entries = [
+            ("pki/poller.key".to_owned(), 0o640, b"key".to_vec()),
+            ("pki/central.key".to_owned(), 0o600, b"key".to_vec()),
+            ("pki/ca.crt".to_owned(), 0o644, b"ca".to_vec()),
+        ];
+        let mut tar = tar::Builder::new(Vec::new());
+        for (name, mode, data) in &entries {
+            let mut header = tar::Header::new_ustar();
+            header.set_size(data.len() as u64);
+            header.set_mode(*mode);
+            header.set_cksum();
+            tar.append_data(&mut header, name, data.as_slice()).unwrap();
+        }
+        // What centreon-web sends: a plain tar, made a bundle by gorgone-server.
+        let bundle = from_tar(&tar.into_inner().unwrap(), DEFAULT_MAX_UNPACKED).unwrap();
+        let dest = tempfile::tempdir().unwrap();
+        apply(&bundle, &digest(&bundle), dest.path(), &OPTIONS).unwrap();
+        let mode = |name: &str| {
+            fs::metadata(dest.path().join(name))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777
+        };
+        assert_eq!(
+            (
+                mode("pki/poller.key"),
+                mode("pki/central.key"),
+                mode("pki/ca.crt")
+            ),
+            (0o640, 0o600, 0o644)
+        );
     }
 
     #[test]

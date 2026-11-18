@@ -158,7 +158,10 @@ async fn real_cbd_decodes_and_stores_the_events() {
             && events.iter().any(|e| is(e, 54) && e["poller_id"] == 42)
     })
     .await;
-    let host = events.iter().find(|e| is(e, 30)).unwrap();
+    let host = events
+        .iter()
+        .find(|e| is(e, 30) && e["host_id"] == 9001)
+        .unwrap();
     assert_eq!(host["name"], "rust-h1");
     assert_eq!(host["alias"], "Rust host");
     assert_eq!(host["instance_id"], 42);
@@ -217,4 +220,122 @@ async fn real_cbd_decodes_and_stores_the_events() {
             "cbd did not negotiate TLS"
         );
     }
+}
+
+/// The bench key of `deploy/centreon/compose.yaml` (public on purpose).
+const BENCH_KEY: &str = r#"{"app_secret":"YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=","salt":"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nz"}"#;
+
+fn read(dir: &str, name: &str) -> String {
+    std::fs::read_to_string(Path::new(dir).join(name)).unwrap()
+}
+
+/// A structured document (version 5) with the certificates inline and the
+/// key encrypted, as centreon-web's managed PKI sends them: cbd checks the
+/// poller certificate against its CA, the engine the certificate of cbd.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "needs a cbd: run tests/real-cbd/run.sh"]
+async fn real_cbd_takes_inline_certificates_of_its_ca() {
+    let Ok(tls) = std::env::var("GORGONE_TEST_CBD_TLS") else {
+        println!("TLS=1 not set: skipped");
+        return;
+    };
+    let address = std::env::var("GORGONE_TEST_CBD_ADDRESS").expect("GORGONE_TEST_CBD_ADDRESS");
+    let events_file =
+        PathBuf::from(std::env::var("GORGONE_TEST_CBD_EVENTS").expect("GORGONE_TEST_CBD_EVENTS"));
+    let dir = tempfile::tempdir().unwrap();
+    let credentials = dir.path().join("engine-context.json");
+    std::fs::write(&credentials, BENCH_KEY).unwrap();
+    let keys = centreon_engine::Credentials::from_json(BENCH_KEY.as_bytes()).unwrap();
+    let key = format!(
+        "encrypt::{}",
+        keys.encrypt_with_iv(&read(&tls, "inline.key"), [3; 16])
+    );
+    let plugin = dir.path().join("plugin.sh");
+    std::fs::write(&plugin, "#!/bin/sh\necho \"$2\"\nexit $1\n").unwrap();
+    std::fs::set_permissions(&plugin, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let document = serde_json::json!({
+        "version": 5,
+        "poller": {"id": 43, "name": "rust-inline"},
+        "broker": {"address": address, "name": "rust-inline-module",
+                   "tls": {"tls": "yes", "ca_certificate_pem": read(&tls, "ca.pem"),
+                           "public_cert_pem": read(&tls, "inline.pem"),
+                           "private_key_pem": key, "tls_hostname": "central"}},
+        "commands": [{"command_name": "dummy",
+                      "command_line": format!("{} $ARG1$ \"$ARG2$\"", plugin.display())}],
+        "hosts": [{"host_name": "rust-inline-h", "address": "127.0.0.1", "host_id": 9101,
+                   "check_command": "dummy!0!up"}]
+    });
+    let mut options = Options::structured(dir.path().join("state"));
+    options.credentials_file = Some(credentials);
+    let scheduler = Scheduler::start(options);
+    let report = scheduler
+        .apply(serde_json::to_vec(&document).unwrap(), "inline".into())
+        .await
+        .unwrap();
+    assert!(report.contains("Total Errors:   0"), "{report}");
+    wait_for(
+        &events_file,
+        "instance and host of the inline poller",
+        |events| {
+            events
+                .iter()
+                .any(|e| is(e, 44) && e["instance_id"] == 43 && e["running"] == true)
+                && events.iter().any(|e| is(e, 30) && e["host_id"] == 9101)
+        },
+    )
+    .await;
+    assert!(scheduler.connected());
+    scheduler.shutdown().await;
+}
+
+/// A poller certificate of another CA: cbd refuses it (mutual
+/// authentication), nothing of that poller is stored.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "needs a cbd: run tests/real-cbd/run.sh"]
+async fn real_cbd_refuses_a_poller_of_another_ca() {
+    let Ok(tls) = std::env::var("GORGONE_TEST_CBD_TLS") else {
+        println!("TLS=1 not set: skipped");
+        return;
+    };
+    let address = std::env::var("GORGONE_TEST_CBD_ADDRESS").expect("GORGONE_TEST_CBD_ADDRESS");
+    let events_file =
+        PathBuf::from(std::env::var("GORGONE_TEST_CBD_EVENTS").expect("GORGONE_TEST_CBD_EVENTS"));
+    let dir = tempfile::tempdir().unwrap();
+    let main = write_config(dir.path());
+    let (host, port) = address.rsplit_once(':').unwrap();
+    // The rogue poller trusts the real CA: only cbd's check can refuse it.
+    let module = serde_json::json!({"centreonBroker": {"poller_id": 44,
+        "poller_name": "rust-rogue", "broker_name": "rust-rogue-module",
+        "output": [{"name": "rogue-output", "type": "ipv4", "host": host, "port": port,
+                    "protocol": "bbdo", "negotiation": "yes", "tls": "yes",
+                    "public_cert": format!("{tls}/rogue.pem"),
+                    "private_key": format!("{tls}/rogue.key"),
+                    "ca_certificate": format!("{tls}/ca.pem"), "tls_hostname": "central"}]}});
+    std::fs::write(dir.path().join("module.json"), module.to_string()).unwrap();
+    let mut options = Options::new(main);
+    options.broker_address = Some(address);
+    let scheduler = Scheduler::start(options);
+    let log_file = events_file.with_file_name("cbd.log");
+    let mut refused = false;
+    for _ in 0..60 {
+        let log = std::fs::read_to_string(&log_file).unwrap_or_default();
+        // GnuTLS reports GNUTLS_CERT_INVALID before SIGNER_NOT_FOUND
+        // (`params::validate_cert`); the dump then shows nothing of it.
+        if log.contains("peer certificate is invalid")
+            || log.contains("peer certificate was not issued by a trusted authority")
+        {
+            refused = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
+    assert!(refused, "cbd did not refuse the certificate of another CA");
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    assert!(
+        !dump(&events_file)
+            .iter()
+            .any(|e| e["instance_id"] == 44 || e["poller_id"] == 44),
+        "cbd stored events of the rogue poller"
+    );
+    scheduler.shutdown().await;
 }

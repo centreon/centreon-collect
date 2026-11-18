@@ -146,7 +146,16 @@ configuration as Engine does by default, which works with every central.
   `private_key`, `public_cert` (`certificate` for a `bbdo_client`),
   `ca_certificate` and `tls_hostname` keys of the `cbmod` output
   (`broker/tls/src/factory.cc:42-118`), from the `cbmod` file or
-  `broker.tls` of the document (version 4). Paths on the poller.
+  `broker.tls` of the document (version 4). Paths on the poller, or, from
+  version 5, the certificates themselves: `ca_certificate_pem`,
+  `public_cert_pem` and `private_key_pem`, the key an `encrypt::` value
+  decrypted at each apply with the key of the macros
+  (`engine-context.json`, `crypto.rs`). A value is given as a path or
+  inline, not both (the document is refused). The decrypted key lives in
+  memory only (`PrivateKeyPem`, never printed); the document, the kept
+  snapshot and gorgone-server's blob hold the ciphertext. A key that does
+  not decrypt (no key file, another key) is logged by name, and each
+  connection attempt fails with that reason.
 - **Negotiation** (`stream.cc:947-982`): the engine lists `TLS` in its
   welcome when it can do it; TLS is in force when the welcome of `cbd` lists
   it too. With `tls = yes` and a `cbd` that does not list it, the engine
@@ -173,11 +182,37 @@ configuration as Engine does by default, which works with every central.
   chain only); without a CA, nothing is checked, as Broker. The engine
   presents its certificate: `cbd` asks for one when it has a CA
   (`GNUTLS_CERT_REQUEST`) and checks it the same way.
+- **Managed PKI** (centreon-web, feature flag `broker_managed_pki`): the
+  administrator only switches TLS on (`tls` `yes`/`auto` on the module
+  output and on the central input); centreon-web issues the certificates
+  from a CA it creates on first need (EC P-256, 10 years), one client
+  certificate per poller (common name: the poller name, `clientAuth`, one
+  year) and one server certificate for the central broker inputs
+  (`serverAuth`, subjectAltName: every host the TLS outputs of the pollers
+  name), all in its table `broker_pki`, keys encrypted with the
+  engine-context key. A certificate is issued again only when missing,
+  expiring within 30 days, issued by another CA, made for another name, or
+  its key does not decrypt: an unchanged configuration exports the same
+  certificates. A centreon-engine poller gets them inline (version 5, the
+  key `encrypt::`); a C++ poller (`cbmod`) and the central `cbd` get files
+  in `pki/` of their broker configuration bundle (`ca.crt`, `poller.crt`,
+  `poller.key`, `central.crt`, `central.key`; keys sent as mode 0640, the
+  agent keeps the read bits the bundle withholds). Each output also gets
+  `tls_hostname` = its host, so the poller checks the name of `cbd`; the
+  central input gets no `tls_hostname`, so `cbd` accepts any poller
+  certificate of the CA and refuses any other (mutual authentication,
+  `GNUTLS_CERT_REQUEST` + `verify_peers2`). Design and storage: the web
+  side, `Core\Broker\Application\Pki\BrokerPki`.
 - **Tests**: `tests/tls.rs` (a fake central broker with rustls, client
-  certificate required); `tests/real-cbd/run.sh` with `TLS=1` makes the
-  `cbd` input `tls: yes` with certificates of a CA made with `openssl`, and
-  checks that `cbd` negotiates TLS, completes the handshake and stores the
-  events. The integration bench keeps its plain input.
+  certificate required; certificate files, and inline certificates with an
+  `encrypt::` key whose snapshot holds no clear key);
+  `tests/real-cbd/run.sh` with `TLS=1` makes the `cbd` input `tls: yes`
+  with EC certificates of a CA made with `openssl` as centreon-web issues
+  them, and checks that `cbd` negotiates TLS, completes the handshake and
+  stores the events (certificate files, then inline certificates from a
+  version 5 document), and that it refuses a poller certificate of another
+  CA. The integration bench runs with the managed PKI, every poller in
+  TLS (`deploy/centreon/verify.sh`).
 - No new crate: `rustls` and `tokio-rustls` (ring) were in `Cargo.lock`;
   `rcgen` for the test certificates too.
 
@@ -389,9 +424,11 @@ reads:
 configuration is one JSON document, never a file on the poller.
 
 - **Format**: JSON, documented by
-  [`schemas/engine-configuration.v3.json`](../schemas/engine-configuration.v3.json)
-  (versions 1 and 2: [`v1`](../schemas/engine-configuration.v1.json),
-  [`v2`](../schemas/engine-configuration.v2.json)),
+  [`schemas/engine-configuration.v5.json`](../schemas/engine-configuration.v5.json)
+  (versions 1 to 4: [`v1`](../schemas/engine-configuration.v1.json),
+  [`v2`](../schemas/engine-configuration.v2.json),
+  [`v3`](../schemas/engine-configuration.v3.json),
+  [`v4`](../schemas/engine-configuration.v4.json)),
   read by the serde model of `crates/centreon-engine/src/document.rs`. JSON
   rather than protobuf: PHP writes it with `json_encode`, protobuf would
   need a PHP library and generated classes in centreon-web. Content:
@@ -432,7 +469,7 @@ configuration is one JSON document, never a file on the poller.
   engine of version 1 would run the plugins with the ciphertext. A version
   1 document using a version 2 field is refused by name. The engine
   reports the versions it reads in its heartbeat (`centreon-engine 0.1.0
-(configuration 1-4)`), and gorgone-server refuses (409) a document newer
+(configuration 1-5)`), and gorgone-server refuses (409) a document newer
   than what the node reads before submitting the job; an engine that
   reports no range reads version 1.
 - **Version 3** (batch 2b): host and service groups, severities, tags,
@@ -469,7 +506,15 @@ configuration is one JSON document, never a file on the poller.
   meaning; a new version for the reason of version 3 (centreon-web sends
   contacts for nearly every poller). The engine reports `configuration
 1-4`; gorgone-server accepts versions 1 to 4; a version 1 to 3 document
-  using a version 4 field is refused by name; centreon-web sends version 4.
+  using a version 4 field is refused by name.
+- **Version 5** (managed PKI): `broker.tls.ca_certificate_pem`,
+  `public_cert_pem` and `private_key_pem` (section "TLS to the central
+  broker" above). Nothing changes meaning; a new version for the reason of
+  version 3: with the feature flag, centreon-web sends the certificates to
+  every poller in TLS, and an engine reading 1-4 would refuse each document
+  at apply time. The engine reports `configuration 1-5`; gorgone-server
+  accepts versions 1 to 5; a version 1 to 4 document using a version 5
+  field is refused by name; centreon-web sends version 5.
 - **Relations in the document**: groups as the generator writes them
   (`hostgroup_id`, `hostgroup_name`, `alias`, `members` as host names;
   `servicegroup_id`, `servicegroup_name`, `alias`, `members` as `[host,
@@ -1227,7 +1272,7 @@ restart = "scheduler:reload"
   The retention file is `<state_dir>/retention.json`.
 - **Node state**: the heartbeat reports the engine state as
   `reachable = configuration loaded`, version `centreon-engine <version>
-(configuration 1-4)`,
+(configuration 1-5)`,
   and, with the structured input, the digest of the document in force as
   applied to `target`.
 - The crate is a separate library; without the feature the agent binary
