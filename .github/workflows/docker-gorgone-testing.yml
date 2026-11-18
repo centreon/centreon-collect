@@ -70,6 +70,9 @@ jobs:
           pull: true
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-dependencies-${{ matrix.distrib }}:${{ needs.get-environment.outputs.stability == 'unstable' && needs.get-environment.outputs.major_version || steps.docker-tag.outputs.tag }}
+          secrets: |
+            "PULP_INTERNAL_REPO_USERNAME=${{ secrets.PULP_INTERNAL_REPO_USERNAME }}"
+            "PULP_INTERNAL_REPO_PASSWORD=${{ secrets.PULP_INTERNAL_REPO_PASSWORD }}"
 
   set-skip-label:
     needs: [get-environment, dockerize]

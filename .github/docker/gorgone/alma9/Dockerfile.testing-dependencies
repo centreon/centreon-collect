@@ -7,7 +7,9 @@ ARG PNPM_VERSION=10.24.0
 
 COPY .github/docker/gorgone/package.json .github/docker/gorgone/pnpm-lock.yaml /usr/local/src/
 
-RUN bash -e <<EOF
+RUN --mount=type=secret,id=PULP_INTERNAL_REPO_USERNAME \
+    --mount=type=secret,id=PULP_INTERNAL_REPO_PASSWORD \
+    bash -e <<EOF
 
 echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 echo 'max_parallel_downloads=10' >> /etc/dnf/dnf.conf
@@ -15,7 +17,15 @@ echo 'fastestmirror=True' >> /etc/dnf/dnf.conf
 
 dnf install -y dnf-plugins-core zstd mariadb iproute epel-release procps lsof
 dnf config-manager --set-enabled crb
-dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el9/centreon-${VERSION}.repo
+
+if [[ "${IS_CLOUD}" == "true" ]]; then
+  dnf config-manager --add-repo https://$(cat /run/secrets/PULP_INTERNAL_REPO_USERNAME):$(cat /run/secrets/PULP_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el9/centreon-${VERSION}-internal.repo
+  sed -i "s#packages.centreon.com/rpm-standard-internal#$(cat /run/secrets/PULP_INTERNAL_REPO_USERNAME):$(cat /run/secrets/PULP_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal#" /etc/yum.repos.d/centreon-${VERSION}-internal.repo
+else
+  dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el9/centreon-${VERSION}.repo
+fi
+dnf config-manager --set-enabled 'centreon*'
+
 dnf install -y python3.11 python3.11-pip
 pip3.11 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
 pip3.11 cache purge
