@@ -84,7 +84,7 @@ def ctn_get_engine_conf_path(idx: int):
 
 
 class EngineInstance:
-    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
+    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True, centralized: bool = False):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
@@ -96,12 +96,13 @@ class EngineInstance:
         self.host_cmd = {}
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
-        self.build_configs(hosts, srv_by_host, 0, custom_command, check_active)
+        self.build_configs(hosts, srv_by_host, centralized,
+                           0, custom_command, check_active)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
         makedirs(CONF_DIR, mode=0o777, exist_ok=True)
         makedirs(ENGINE_HOME, mode=0o777, exist_ok=True)
-        makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
+        makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-engine/", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
 
@@ -711,9 +712,14 @@ passive_checks_enabled 1
 """
             ff.write(content)
 
-    def build_configs(self, hosts: int, services_by_host: int, debug_level=0, custom_command: str = "", check_active: bool = True):
+    def build_configs(self, hosts: int, services_by_host: int, centralized: bool, debug_level=0, custom_command: str = "", check_active: bool = True):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
+        if exists(f"{VAR_ROOT}/lib/centreon/config"):
+            shutil.rmtree(f"{VAR_ROOT}/lib/centreon/config")
+        if exists(f"{VAR_ROOT}/lib/centreon-engine/config0"):
+            shutil.rmtree(f"{VAR_ROOT}/lib/centreon-engine/config0")
+
         r = 0
         if hosts % self.instances > 0:
             r = 1
@@ -726,7 +732,11 @@ passive_checks_enabled 1
                 nb_hosts = hosts
                 hosts = 0
 
-            config_dir = "{}/config{}".format(CONF_DIR, inst)
+            if centralized:
+                config_dir = f"{VAR_ROOT}/lib/centreon/config/{inst + 1}"
+            else:
+                config_dir = f"{CONF_DIR}/config{inst}"
+
             makedirs(config_dir)
             with open(f"{config_dir}/centengine.cfg", "w") as f:
                 bb = self._create_centengine(inst, debug_level=debug_level)
@@ -925,6 +935,10 @@ define contact {
             if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
                 makedirs(f"{ENGINE_HOME}/config{inst}/rw")
 
+            if centralized:
+                with open(f"{VAR_ROOT}/lib/centreon/config/{inst + 1}.lck", "w"):
+                    pass
+
     def centengine_conf_add_bam(self):
         """
         centengine_conf_add_bam _entengine Conf Add Bam_
@@ -960,6 +974,24 @@ define contact {
 
 
 engine = None
+
+
+def ctn_config_centralized_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
+    """
+    Configure all the necessary files for num instances of centengine.
+    These configurations are sent to centengine instances by central cbd.
+
+    Args:
+        num (int): How many engine configurations to start
+        hosts (int, optional): Defaults to 50.
+        srv_by_host (int, optional): Defaults to 20.
+        custom_command: if True, services will use check.sh instead of check.pl, services will have some extra macros
+        check_active: if false, all services and hosts will use only passive checks
+    """
+    global engine
+    engine = EngineInstance(num, hosts, srv_by_host,
+                            custom_command, check_active, True)
+    return engine
 
 
 def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
