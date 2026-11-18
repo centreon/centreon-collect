@@ -50,9 +50,10 @@ database, VictoriaMetrics), never one shared with another container.
   acknowledgements survive a restart in `/var/lib/centreon-engine/retention.json`.
   The engine checks and applies it in process
   and sends the results to the central broker input (TCP 5669) the
-  document names. Its plugins are in the image (Debian
-  `monitoring-plugins-basic`, reachable as `/usr/lib64/nagios/plugins`, the
-  `$USER1$` centreon-web gives new pollers).
+  document names. The image is Alpine: the static binary, the time zone files
+  and the basic plugins (Alpine `monitoring-plugins`, reachable as
+  `/usr/lib64/nagios/plugins`, the `$USER1$` centreon-web gives new pollers,
+  and as `/usr/lib/nagios/plugins`).
 
 ## Broker container image
 

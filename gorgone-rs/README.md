@@ -202,11 +202,11 @@ broker excluded; resident memory of the whole process. Same laptop:
 | 10 000   | 1 min    | 166.7    | 4.2 %                    | 0.25 ms       | 36 MiB          |
 
 Images of the bench, layers summed (`docker history`) / `docker save`:
-`centreon-engine` (Debian slim, basic plugins, `centreon-engine` binary of
-7.0 MB) 114 MB / 40 MB,
+`centreon-engine` (Alpine, basic plugins, time zones, static `centreon-engine`
+binary) 31 MB / 13 MB (Debian slim before: 114 MB / 40 MB),
 against 313 MB / 87 MB for the engine image plus 160 MB / 54 MB for the
 broker image a poller needs today. The bench image adds Perl for its
-provisioning script (170 MB / 52 MB).
+provisioning script (74 MB / 22 MB).
 
 ## Add a collector in one command
 

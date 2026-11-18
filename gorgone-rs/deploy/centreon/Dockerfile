@@ -59,7 +59,7 @@ COPY --link --chmod=644 deploy/centreon/broker/agent.toml \
 #   program (the agent built with its engine, cargo feature `scheduler`)
 #   takes the structured configuration centreon-web sends, runs the checks
 #   and sends the results to the central broker over BBDO
-#   (docs/scheduler-design.md), with Debian's basic plugins. No .cfg file,
+#   (docs/scheduler-design.md), with Alpine's basic plugins. No .cfg file,
 #   no gorgone-agent.
 FROM rust:1.97-alpine AS build-engine
 RUN apk add --no-cache musl-dev
@@ -72,14 +72,17 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     && mkdir /out \
     && cp target/release/centreon-engine /out/
 
-FROM debian:trixie-slim AS centreon-engine
-# centreon-web gives new pollers $USER1$=/usr/lib64/nagios/plugins.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends monitoring-plugins-basic \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /var/log/apt/* /var/log/dpkg.log \
-    && install -d -m 755 /usr/lib64/nagios \
-    && ln -s /usr/lib/nagios/plugins /usr/lib64/nagios/plugins \
-    && useradd --system --home-dir /var/lib/centreon-engine --shell /usr/sbin/nologin \
+FROM alpine:3.22 AS centreon-engine
+# The binary is static (musl): Alpine only brings the basic plugins and the
+# time zone files the engine reads. centreon-web gives new pollers
+# $USER1$=/usr/lib64/nagios/plugins; /usr/lib/nagios/plugins is the Debian
+# path older configurations may name.
+RUN apk add --no-cache monitoring-plugins tzdata \
+    && install -d -m 755 /usr/lib64/nagios /usr/lib/nagios \
+    && ln -s /usr/lib/monitoring-plugins /usr/lib64/nagios/plugins \
+    && ln -s /usr/lib/monitoring-plugins /usr/lib/nagios/plugins \
+    && addgroup -S centreon-engine \
+    && adduser -S -D -H -G centreon-engine -h /var/lib/centreon-engine -s /sbin/nologin \
        centreon-engine \
     && install -d -o centreon-engine -g centreon-engine -m 750 /var/lib/centreon-engine \
     && install -d -o root -g centreon-engine -m 775 /etc/centreon-engine
@@ -97,9 +100,7 @@ ENTRYPOINT ["/usr/bin/centreon-engine"]
 # (register.pl, Perl): provisioning only, nothing the monitoring needs.
 FROM centreon-engine AS centreon-engine-bench
 USER root
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends perl \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /var/log/apt/* /var/log/dpkg.log \
+RUN apk add --no-cache perl \
     && install -d -m 755 /usr/local/lib/gorgone
 # Created first: a COPY --chmod would give its mode to a directory it creates.
 COPY --chmod=644 deploy/centreon/engine/register.pl deploy/centreon/centreon-engine/objects.clapi \
