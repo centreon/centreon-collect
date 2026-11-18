@@ -1178,7 +1178,7 @@ not_remove_host_and_service_in_downtime
     # host_2 and service_2 are removed together. On reload, hosts are removed
     # before services: when service_2 is removed, its downtime is cancelled and
     # a notification is sent while its host does not exist anymore.
-    Ctn Engine Config Remove Service Host    ${0}    host_2
+    Ctn Engine Config Remove All Services From Host    ${0}    host_2
     Ctn Engine Config Remove Host    ${0}    host_2
 
     ${start}    Ctn Get Round Current Date

@@ -32,6 +32,7 @@ from subprocess import getoutput
 import subprocess as subp
 from robot.api import logger
 import json
+from pathlib import Path
 import glob
 import os.path
 import grpc
@@ -2485,7 +2486,8 @@ def ctn_check_service_status_in_resources(host_id: int, service_id: int, expecte
                     row = result[0]
                     # insert a duplicate value at the mid of the day
                     state = row['status']
-                    logger.console(f"status of service {host_id}:{service_id} is {state}")
+                    logger.console(
+                        f"status of service {host_id}:{service_id} is {state}")
                     if int(state) == int(expected):
                         retval = True
                         break
@@ -2514,7 +2516,8 @@ def ctn_check_service_status_in_services(host_id: int, service_id: int, expected
                     row = result[0]
                     # insert a duplicate value at the mid of the day
                     state = row['state']
-                    logger.console(f"status of service {host_id}:{service_id} is {state}")
+                    logger.console(
+                        f"status of service {host_id}:{service_id} is {state}")
                     if int(state) == int(expected):
                         retval = True
                         break
@@ -2574,6 +2577,7 @@ def ctn_check_host_status_in_hosts(host_id: int, expected: int, timeout: int = 3
                         break
         time.sleep(1)
     return retval
+
 
 def ctn_add_duplicate_metrics(metric_ids):
     """
@@ -3716,3 +3720,14 @@ def ctn_broker_get_bbdo_version():
             return conf["centreonBroker"]["bbdo_version"]
         else:
             return "2.0.0"
+
+
+def ctn_notify_broker_of_engine_config_change(idx: int):
+    """
+    Notify the broker of a change in the engine configuration.
+
+    Args:
+        idx (int): The index of the configuration to notify.
+    """
+    lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
+    Path(lck_file).touch()
