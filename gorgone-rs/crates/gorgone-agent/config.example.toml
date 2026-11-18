@@ -35,6 +35,15 @@ server_url = "https://central.example.com:5556"
 # token = "..."
 token_file = "/etc/centreon-gorgone/agent.token"
 
+# In place of node_id and token: a one-time enrolment token given by
+# centreon-web (collector enrolment). On its first start the agent trades it
+# for a node id and a credential of its own, kept in state_dir/identity
+# (0600); later starts ignore it. Requires state_dir; exclusive with token.
+# name and address are reported at enrolment (the host name by default).
+# enrolment_token = "..."
+# name = "poller-paris"
+# address = "10.0.0.7"
+
 # Directory where the job journal survives a restart. Unset by default: the
 # journal then lives in memory only and a restart forgets it. When set, after
 # a restart the agent resends the events the server did not acknowledge,

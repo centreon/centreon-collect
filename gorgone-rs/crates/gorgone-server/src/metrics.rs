@@ -177,6 +177,12 @@ pub(crate) static CENTCORE_UNSUPPORTED: Family<2> = Family::labelled(
     "command",
     ["SENDEXPORTFILE", "STARTWORKER"],
 );
+/// Answers to `Enroll` calls.
+pub(crate) static ENROLMENTS: Family<3> = Family::labelled(
+    "gorgone_enrolments_total",
+    "outcome",
+    ["enrolled", "pending", "refused"],
+);
 
 /// Every metric, in the Prometheus text exposition format.
 pub(crate) fn render() -> String {
@@ -195,6 +201,7 @@ pub(crate) fn render() -> String {
     CENTCORE_FILES_REFUSED.render(&mut out);
     CENTCORE_DROPPED.render(&mut out);
     CENTCORE_UNSUPPORTED.render(&mut out);
+    ENROLMENTS.render(&mut out);
     out
 }
 

@@ -1227,6 +1227,24 @@ reload = "scheduler:reload"
 restart = "scheduler:reload"
 ```
 
+- **Defaults**: nothing else than `server_url` and an enrolment token is
+  required. When the configuration does not say otherwise, `state_dir` is
+  `/var/lib/centreon-engine`, the `engine_context` target writes
+  `/etc/centreon-engine` (mode 0640, no pruning), the external commands
+  below are allowed, and `services.engine` reload and restart and
+  `services.broker` reload are `scheduler:reload`.
+- **Identity** (`DESIGN.md`, Enrolment): with `enrolment_token`
+  (`CENTREON_ENGINE__ENROLMENT_TOKEN`) and no identity in `state_dir`, the
+  program first generates its credential, keeps it in
+  `<state_dir>/identity` (0600), and calls `Enroll` until the server gives
+  it a node id (a fleet token waits for the central to create the poller),
+  retrying with backoff and logging why (server down, token not pushed yet,
+  unknown, expired or used up). It then writes the node id next to the
+  credential and connects as that node. Later starts read the identity and
+  ignore the token; a configured `node_id` that differs from the kept one
+  is an error. `name` and `address` (reported at enrolment) default to the
+  host name. `node_id` and `token` keep working for a poller declared by
+  hand.
 - At start the engine loads the kept document (structured) or the files of
   the target (files); without one it waits for a deployment. Then it
   connects to the central broker and starts checking.

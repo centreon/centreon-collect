@@ -208,6 +208,39 @@ against 313 MB / 87 MB for the engine image plus 160 MB / 54 MB for the
 broker image a poller needs today. The bench image adds Perl for its
 provisioning script (170 MB / 52 MB).
 
+## Add a collector in one command
+
+With the feature flags `collector_enrolment`, `gorgone_api_commands` and
+`engine_structured_configuration` of centreon-web, an administrator creates
+an enrolment, then runs the command it answers on the new machine:
+
+```bash
+# A named collector: the poller is created at once, the token is single use.
+curl -s -X POST -H "X-AUTH-TOKEN: $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"name": "collector-paris"}' https://central/centreon/api/latest/configuration/collectors/enrolments
+# Or a fleet token: the poller is created when a machine enrols, named after
+# its host name; it expires (24 h by default) and may be limited in uses.
+#   -d '{"fleet": true, "max_uses": 20, "expires_in": 86400}'
+```
+
+The answer holds the token (shown once: only its SHA-256 is kept, by
+gorgone-server) and the command:
+
+```bash
+docker run -d --restart always --name collector-paris --hostname collector-paris \
+  -e CENTREON_ENGINE__SERVER_URL=https://gorgone.example:5556 \
+  -e CENTREON_ENGINE__ENROLMENT_TOKEN=<token> <centreon-engine image>
+```
+
+The collector enrols with its own credential, the web cron (every minute)
+creates the poller of a fleet enrolment and sends the first configuration
+once the collector is connected (TLS certificates from the managed PKI when
+it is on); its results reach the central broker. Deleting the poller in
+centreon-web deletes the node in gorgone-server and revokes its credential.
+`GET /centreon/api/latest/configuration/collectors/enrolments` lists the
+enrolments. Design: `docs/DESIGN.md` (Enrolment); the bench service
+`collector-2` does exactly this (`deploy/centreon/verify.sh`).
+
 ## Containers
 
 `deploy/Dockerfile` builds static binaries into two distroless images.

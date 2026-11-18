@@ -65,6 +65,13 @@ impl AgentGateway for Gateway {
     type SessionStream = ReceiverStream<Result<ServerFrame, Status>>;
     type FetchBlobStream = ReceiverStream<Result<BlobChunk, Status>>;
 
+    async fn enroll(
+        &self,
+        _request: Request<gorgone_proto::agent::EnrollRequest>,
+    ) -> Result<Response<gorgone_proto::agent::EnrollResponse>, Status> {
+        Err(Status::unimplemented("no enrolment in these tests"))
+    }
+
     async fn session(
         &self,
         request: Request<Streaming<AgentFrame>>,

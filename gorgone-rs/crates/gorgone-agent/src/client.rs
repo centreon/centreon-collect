@@ -59,6 +59,34 @@ fn read(path: &Path) -> Result<Vec<u8>, AgentError> {
 /// Builds the client. The channel connects on first use and reconnects by
 /// itself, so this only fails on invalid settings.
 pub(crate) fn connect(config: &AgentConfig) -> Result<GatewayClient, AgentError> {
+    let endpoint = endpoint(config)?;
+    let mut authorization = config
+        .token
+        .as_ref()
+        .map(|token| metadata_value("token", &format!("Bearer {}", token.expose())))
+        .transpose()?;
+    if let Some(value) = &mut authorization {
+        value.set_sensitive(true);
+    }
+    let auth = Auth {
+        node_id: metadata_value("node_id", &config.node_id)?,
+        authorization,
+    };
+    Ok(AgentGatewayClient::with_interceptor(
+        endpoint.connect_lazy(),
+        auth,
+    ))
+}
+
+/// Client without node metadata, for the enrolment.
+pub(crate) fn connect_anonymous(
+    config: &AgentConfig,
+) -> Result<AgentGatewayClient<Channel>, AgentError> {
+    Ok(AgentGatewayClient::new(endpoint(config)?.connect_lazy()))
+}
+
+/// Endpoint of the server gateway, with its TLS settings.
+fn endpoint(config: &AgentConfig) -> Result<Endpoint, AgentError> {
     let mut endpoint = Endpoint::from_shared(config.server_url.clone())?
         .connect_timeout(CONNECT_TIMEOUT)
         .tcp_keepalive(Some(KEEP_ALIVE_INTERVAL))
@@ -87,23 +115,7 @@ pub(crate) fn connect(config: &AgentConfig) -> Result<GatewayClient, AgentError>
     } else {
         tracing::warn!("server_url is not https: token and jobs travel in clear text");
     }
-
-    let mut authorization = config
-        .token
-        .as_ref()
-        .map(|token| metadata_value("token", &format!("Bearer {}", token.expose())))
-        .transpose()?;
-    if let Some(value) = &mut authorization {
-        value.set_sensitive(true);
-    }
-    let auth = Auth {
-        node_id: metadata_value("node_id", &config.node_id)?,
-        authorization,
-    };
-    Ok(AgentGatewayClient::with_interceptor(
-        endpoint.connect_lazy(),
-        auth,
-    ))
+    Ok(endpoint)
 }
 
 /// Downloads blobs with `FetchBlob`.

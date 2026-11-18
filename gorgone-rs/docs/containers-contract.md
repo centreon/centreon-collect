@@ -29,13 +29,18 @@ database, VictoriaMetrics), never one shared with another container.
 
 - A centreon-engine container runs the `centreon-engine` program alone
   (`docs/scheduler-design.md`): no `gorgone-agent`, no `centengine`, no
-  `cbd`, no broker module, no `.cfg` file. Configuration
-  `/etc/centreon-engine/centreon-engine.toml` (format of the agent; the
-  `GORGONE_AGENT__` variables and, over them, `CENTREON_ENGINE__` ones),
-  state in `/var/lib/centreon-engine` (job journal, and the configuration in
-  force under `engine-configuration/`, loaded again at start: the container
-  filesystem, or a volume, must survive a restart for the poller to resume
-  without a new push). centreon-web marks its poller with
+  `cbd`, no broker module, no `.cfg` file. Its image has no configuration
+  file: `CENTREON_ENGINE__SERVER_URL` and `CENTREON_ENGINE__ENROLMENT_TOKEN`
+  are enough (a collector added through an enrolment, `DESIGN.md`); an
+  optional `/etc/centreon-engine/centreon-engine.toml` (format of the agent;
+  the `GORGONE_AGENT__` variables and, over them, `CENTREON_ENGINE__` ones)
+  sets anything else, such as a `node_id` and `token` declared by hand (the
+  bench `centreon-engine` service). State in `/var/lib/centreon-engine`: the
+  node identity (`identity`, 0600: node id and the credential the program
+  generated), the job journal, and the configuration in force under
+  `engine-configuration/`, loaded again at start: the container filesystem,
+  or a volume, must survive a restart for the poller to keep its identity
+  and resume without a new push. centreon-web marks its poller with
   `nagios_server.engine_name = centreon-engine` and, with the feature flag
   `engine_structured_configuration`, sends it the structured configuration
   (`ApplyEngineConfiguration`) instead of the `engine`, `broker` and

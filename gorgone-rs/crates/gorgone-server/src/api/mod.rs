@@ -1,6 +1,7 @@
 //! REST API: native `/v1`, legacy `/api`, probes and metrics.
 
 mod auth;
+mod enrolment;
 mod legacy;
 mod native;
 
@@ -145,6 +146,16 @@ pub(crate) fn router(state: Shared) -> Router {
             get(native::get_job).delete(native::cancel_job),
         )
         .route("/v1/jobs/{id}/events", get(native::job_events))
+        .route("/v1/enrolment-tokens", get(enrolment::list_tokens))
+        .route(
+            "/v1/enrolment-tokens/{id}",
+            put(enrolment::put_token).delete(enrolment::delete_token),
+        )
+        .route("/v1/enrolments", get(enrolment::list_enrolments))
+        .route("/v1/enrolments/{id}", get(enrolment::get_enrolment))
+        .route("/v1/enrolments/{id}/assign", post(enrolment::assign))
+        .route("/v1/enrolments/{id}/reject", post(enrolment::reject))
+        .route("/v1/enrolments/{id}/complete", post(enrolment::complete))
         .nest("/api", legacy::router())
         .layer(DefaultBodyLimit::max(SMALL_BODY))
         .layer(guard());

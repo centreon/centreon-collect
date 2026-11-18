@@ -5,6 +5,7 @@ pub mod cli;
 mod client;
 pub mod config;
 mod engine_api;
+mod enrolment;
 mod executor;
 mod http_post;
 mod journal;
@@ -82,6 +83,23 @@ pub async fn run(
     config: AgentConfig,
     shutdown: impl Future<Output = ()>,
 ) -> Result<(), AgentError> {
+    // Held until this function returns: two agents must not share a journal.
+    let _state_lock = match &config.state_dir {
+        Some(dir) => {
+            let lock = store::lock_state_dir(dir).map_err(|source| AgentError::Io {
+                path: dir.clone(),
+                source,
+            })?;
+            Some(lock.ok_or_else(|| AgentError::StateDirLocked(dir.clone()))?)
+        }
+        None => None,
+    };
+    tokio::pin!(shutdown);
+    // A new node first trades its enrolment token for an identity.
+    let config = tokio::select! {
+        config = enrolment::resolve(config) => config?,
+        () = &mut shutdown => return Ok(()),
+    };
     let client = client::connect(&config)?;
     let engine = EngineApi::connect(&config.engine)?;
     let monitoring = Monitoring::start(&config);
@@ -188,17 +206,6 @@ pub async fn run(
             max_output: config.max_output_bytes,
         },
     };
-    // Held until this function returns: two agents must not share a journal.
-    let _state_lock = match &config.state_dir {
-        Some(dir) => {
-            let lock = store::lock_state_dir(dir).map_err(|source| AgentError::Io {
-                path: dir.clone(),
-                source,
-            })?;
-            Some(lock.ok_or_else(|| AgentError::StateDirLocked(dir.clone()))?)
-        }
-        None => None,
-    };
     let journal_dir = config.state_dir.as_ref().map(|dir| dir.join("journal"));
     let journal = Journal::open(
         config.job_history,
@@ -243,7 +250,6 @@ pub async fn run(
         "agent started"
     );
     let mut session = tokio::spawn(session.run(stop.clone()));
-    tokio::pin!(shutdown);
     tokio::select! {
         () = &mut shutdown => {}
         ended = &mut session => {

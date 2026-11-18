@@ -3386,3 +3386,198 @@ async fn engine_agent_without_component_still_gets_every_push() {
 
     server.shutdown().await;
 }
+
+fn sha256_hex(text: &str) -> String {
+    use sha2::Digest;
+    sha2::Sha256::digest(text.as_bytes())
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+async fn enroll(
+    addr: SocketAddr,
+    token: &str,
+    credential: &str,
+) -> Result<gorgone_proto::agent::EnrollResponse, Status> {
+    let mut client = AgentGatewayClient::new(plain_channel(addr).await);
+    client
+        .enroll(gorgone_proto::agent::EnrollRequest {
+            token: token.into(),
+            credential: credential.into(),
+            name: "collector-host".into(),
+            address: "collector-host".into(),
+            agent_version: "test".into(),
+            component: String::new(),
+        })
+        .await
+        .map(tonic::Response::into_inner)
+}
+
+async fn put_token(rest: &Rest, id: &str, body: &Value) -> (u16, Value) {
+    Rest::json(
+        rest.request("PUT", &format!("/v1/enrolment-tokens/{id}"))
+            .json(body),
+    )
+    .await
+}
+
+#[tokio::test]
+async fn enrolment_with_a_bound_token_gives_a_per_node_credential() {
+    use gorgone_proto::agent::enroll_response::State;
+    let db = TestDb::new();
+    // Shared-token mode on: enrolled nodes must still require their credential.
+    let server = start(&db, |_| {}).await;
+    let rest = Rest::new(&server);
+    let node = unique_node();
+    let token = format!("token-{node}");
+    let credential = format!("credential-of-{node}-0123456789abcdef");
+
+    // Unknown token (not pushed yet): refused, the agent retries later.
+    let refused = enroll(server.agent_addr, &token, &credential)
+        .await
+        .unwrap_err();
+    assert_eq!(refused.code(), Code::PermissionDenied);
+    // A short credential is refused before anything is looked up.
+    let short = enroll(server.agent_addr, &token, "short")
+        .await
+        .unwrap_err();
+    assert_eq!(short.code(), Code::InvalidArgument);
+
+    let token_id = format!("tid-{node}");
+    let body = json!({ "token_hash": sha256_hex(&token), "node_id": node, "name": "named", "expires_in_s": 60 });
+    let (status, answer) = put_token(&rest, &token_id, &body).await;
+    assert_eq!(status, 201, "{answer}");
+    // Idempotent; the hash is never served back.
+    assert_eq!(put_token(&rest, &token_id, &body).await.0, 200);
+    let (_, tokens) = rest.get("/v1/enrolment-tokens").await;
+    assert!(!tokens.to_string().contains(&sha256_hex(&token)));
+    // A bound token is single use.
+    let many = json!({ "token_hash": sha256_hex(&node), "node_id": node, "expires_in_s": 60, "max_uses": 2 });
+    assert_eq!(put_token(&rest, &format!("o-{node}"), &many).await.0, 400);
+
+    let enrolled = enroll(server.agent_addr, &token, &credential)
+        .await
+        .unwrap();
+    assert_eq!(enrolled.state, State::Enrolled as i32);
+    assert_eq!(enrolled.node_id, node);
+    // Retried with the same credential: same answer.
+    let again = enroll(server.agent_addr, &token, &credential)
+        .await
+        .unwrap();
+    assert_eq!(again.node_id, node);
+    // Reused with another credential: refused.
+    let reused = enroll(server.agent_addr, &token, &format!("{credential}-2"))
+        .await
+        .unwrap_err();
+    assert_eq!(reused.code(), Code::PermissionDenied);
+
+    // The node opens sessions with its credential only, even with auto_enroll.
+    let wrong = FakeAgent::connect(server.agent_addr, &node, Some("integration-test")).await;
+    assert_eq!(wrong.err().unwrap().code(), Code::Unauthenticated);
+    let mut agent = FakeAgent::connect(server.agent_addr, &node, Some(&credential))
+        .await
+        .unwrap();
+    assert!(connected(&rest, &node).await);
+    let (_, mine) = rest
+        .get(&format!("/v1/enrolments/{}", enrolled.enrolment_id))
+        .await;
+    assert_eq!(mine["state"], "enrolled");
+    assert_eq!(mine["node_id"], node.as_str());
+    assert_eq!(mine["name"], "named");
+    let complete = format!("/v1/enrolments/{}/complete", enrolled.enrolment_id);
+    assert_eq!(rest.post(&complete, &json!({})).await.0, 204);
+    assert_eq!(rest.post(&complete, &json!({})).await.0, 204);
+
+    // Deleting the node revokes the credential: the session closes and no
+    // new one is accepted, auto_enroll or not.
+    let (status, _) = delete(&rest, &format!("/v1/nodes/{node}")).await;
+    assert_eq!(status, 204);
+    agent.expect_closed(STEP).await;
+    let refused = FakeAgent::connect(server.agent_addr, &node, Some(&credential)).await;
+    assert_eq!(refused.err().unwrap().code(), Code::Unauthenticated);
+    let (_, revoked) = rest
+        .get(&format!("/v1/enrolments/{}", enrolled.enrolment_id))
+        .await;
+    assert_eq!(revoked["state"], "revoked");
+    // An auto-enrolled node of the shared-token mode still works.
+    FakeAgent::connect(server.agent_addr, &unique_node(), Some("integration-test"))
+        .await
+        .unwrap();
+
+    server.shutdown().await;
+}
+
+#[tokio::test]
+async fn fleet_enrolment_waits_for_the_central_to_assign_a_node() {
+    use gorgone_proto::agent::enroll_response::State;
+    let db = TestDb::new();
+    let server = start(&db, |c| c.auto_enroll = false).await;
+    let rest = Rest::new(&server);
+    let suffix = unique_node();
+    let token = format!("fleet-{suffix}");
+    let body = json!({ "token_hash": sha256_hex(&token), "expires_in_s": 60, "max_uses": 1 });
+    assert_eq!(put_token(&rest, &format!("f-{suffix}"), &body).await.0, 201);
+
+    let credential = format!("fleet-credential-{suffix}-0123456789");
+    let pending = enroll(server.agent_addr, &token, &credential)
+        .await
+        .unwrap();
+    assert_eq!(pending.state, State::Pending as i32);
+    assert!(pending.node_id.is_empty());
+    // Asking again does not use the token again; another machine is refused.
+    let again = enroll(server.agent_addr, &token, &credential)
+        .await
+        .unwrap();
+    assert_eq!(again.enrolment_id, pending.enrolment_id);
+    let second = enroll(server.agent_addr, &token, &format!("{credential}-other")).await;
+    assert_eq!(second.unwrap_err().code(), Code::PermissionDenied);
+
+    let (_, listed) = rest
+        .get(&format!("/v1/enrolments/{}", pending.enrolment_id))
+        .await;
+    assert_eq!(listed["state"], "pending");
+    assert_eq!(listed["name"], "collector-host");
+
+    let node = unique_node();
+    let assign = format!("/v1/enrolments/{}/assign", pending.enrolment_id);
+    let (status, assigned) = rest
+        .post(&assign, &json!({ "node_id": node, "name": "fleet-poller" }))
+        .await;
+    assert_eq!(status, 200, "{assigned}");
+    assert_eq!(assigned["state"], "enrolled");
+    let (status, _) = rest.post(&assign, &json!({ "node_id": "elsewhere" })).await;
+    assert_eq!(status, 409);
+
+    let enrolled = enroll(server.agent_addr, &token, &credential)
+        .await
+        .unwrap();
+    assert_eq!(enrolled.state, State::Enrolled as i32);
+    assert_eq!(enrolled.node_id, node);
+    let _agent = FakeAgent::connect(server.agent_addr, &node, Some(&credential))
+        .await
+        .unwrap();
+    assert!(connected(&rest, &node).await);
+    let (_, shown) = rest.get(&format!("/v1/nodes/{node}")).await;
+    assert_eq!(shown["name"], "fleet-poller");
+
+    // A rejected enrolment answers an error from then on.
+    let token2 = format!("fleet2-{suffix}");
+    let body = json!({ "token_hash": sha256_hex(&token2), "expires_in_s": 60 });
+    assert_eq!(
+        put_token(&rest, &format!("f2-{suffix}"), &body).await.0,
+        201
+    );
+    let pending = enroll(server.agent_addr, &token2, &credential)
+        .await
+        .unwrap();
+    let reject = format!("/v1/enrolments/{}/reject", pending.enrolment_id);
+    assert_eq!(rest.post(&reject, &json!({})).await.0, 204);
+    let refused = enroll(server.agent_addr, &token2, &credential).await;
+    assert_eq!(refused.unwrap_err().code(), Code::PermissionDenied);
+    // Deleting the token stops further enrolments.
+    let (status, _) = delete(&rest, &format!("/v1/enrolment-tokens/f2-{suffix}")).await;
+    assert_eq!(status, 204);
+
+    server.shutdown().await;
+}

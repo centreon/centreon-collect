@@ -148,8 +148,9 @@ impl fmt::Debug for Secret {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentConfig {
-    /// Identifier of this poller on the central (`nagios_server.id`).
-    #[serde(deserialize_with = "lenient::string")]
+    /// Identifier of this poller on the central (`nagios_server.id`). May
+    /// be left out with `enrolment_token`: the enrolment gives it.
+    #[serde(default, deserialize_with = "lenient::string")]
     pub node_id: String,
     /// Part of the node this agent drives, `engine` by default: a node may
     /// have one agent per component (an engine and its broker in separate
@@ -164,6 +165,17 @@ pub struct AgentConfig {
     /// File holding the enrolment token; used when `token` is not set.
     #[serde(default, deserialize_with = "lenient::option_path")]
     pub token_file: Option<PathBuf>,
+    /// One-time enrolment token given by the central, in place of `node_id`
+    /// and `token`: on its first start the agent trades it for a node id and
+    /// its own credential, kept in `state_dir`; later starts ignore it.
+    #[serde(default)]
+    pub enrolment_token: Option<Secret>,
+    /// Name proposed at enrolment; the host name when unset.
+    #[serde(default, deserialize_with = "lenient::option")]
+    pub name: Option<String>,
+    /// Address reported at enrolment; the host name when unset.
+    #[serde(default, deserialize_with = "lenient::option")]
+    pub address: Option<String>,
     /// Directory where the job journal survives a restart; memory only when unset.
     #[serde(default, deserialize_with = "lenient::option_path")]
     pub state_dir: Option<PathBuf>,
@@ -905,6 +917,83 @@ fn overlay_env(
     Ok(())
 }
 
+/// State directory of `centreon-engine` when the configuration sets none.
+pub const ENGINE_STATE_DIR: &str = "/var/lib/centreon-engine";
+/// Directory of the `engine_context` target of `centreon-engine` when the
+/// configuration sets none: where the engine reads the key by default.
+pub const ENGINE_CONTEXT_DIR: &str = "/etc/centreon-engine";
+/// External commands `centreon-engine` takes when the configuration lists
+/// none: those its engine handles.
+pub const ENGINE_ALLOWED_COMMANDS: &[&str] = &[
+    "SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK",
+    "PROCESS_(HOST|SERVICE)_CHECK_RESULT",
+    "SCHEDULE_(HOST|SVC)_DOWNTIME",
+    "SCHEDULE_HOST_SVC_DOWNTIME",
+    "DEL_(HOST|SVC)_DOWNTIME",
+    "ACKNOWLEDGE_(HOST|SVC)_PROBLEM",
+    "REMOVE_(HOST|SVC)_ACKNOWLEDGEMENT",
+    "ADD_(HOST|SVC)_COMMENT",
+    "DEL_(HOST|SVC)_COMMENT",
+    "DEL_ALL_(HOST|SVC)_COMMENTS",
+    "(ENABLE|DISABLE)_(HOST_|SVC_|HOST_SVC_)?NOTIFICATIONS",
+    "(ENABLE|DISABLE)_(HOST|SVC)_EVENT_HANDLER",
+    "(ENABLE|DISABLE)_EVENT_HANDLERS",
+    "(ENABLE|DISABLE)_(HOST_|SVC_)?FLAP_DETECTION",
+];
+
+/// Table `key` of `table`, created when absent.
+fn sub_table<'a>(table: &'a mut Table, key: &str) -> Result<&'a mut Table, ConfigError> {
+    match table
+        .entry(key)
+        .or_insert_with(|| Value::Table(Table::new()))
+    {
+        Value::Table(sub) => Ok(sub),
+        _ => Err(ConfigError::Invalid(format!("{key}: not a table"))),
+    }
+}
+
+/// What `centreon-engine` needs and the configuration does not say, so that
+/// `server_url` and an enrolment token are enough: its state directory, the
+/// `engine_context` target the key is pushed to, the external commands its
+/// engine handles, and reload and restart in process.
+fn engine_defaults(table: &mut Table) -> Result<(), ConfigError> {
+    table
+        .entry("state_dir")
+        .or_insert_with(|| Value::String(ENGINE_STATE_DIR.to_owned()));
+    sub_table(table, "engine")?
+        .entry("allowed_commands")
+        .or_insert_with(|| {
+            Value::Array(
+                ENGINE_ALLOWED_COMMANDS
+                    .iter()
+                    .map(|command| Value::String((*command).to_owned()))
+                    .collect(),
+            )
+        });
+    let targets = sub_table(table, "targets")?;
+    if !targets.contains_key("engine_context") {
+        let mut context = Table::new();
+        context.insert("path".into(), Value::String(ENGINE_CONTEXT_DIR.to_owned()));
+        context.insert("prune".into(), Value::Boolean(false));
+        context.insert("file_mode".into(), Value::String("0640".into()));
+        targets.insert("engine_context".into(), Value::Table(context));
+    }
+    let services = sub_table(table, "services")?;
+    for (service, operations) in [
+        ("engine", &["reload", "restart"][..]),
+        ("broker", &["reload"][..]),
+    ] {
+        if !services.contains_key(service) {
+            let actions = operations
+                .iter()
+                .map(|op| ((*op).to_owned(), Value::String(SCHEDULER_RELOAD.to_owned())))
+                .collect();
+            services.insert(service.to_owned(), Value::Table(actions));
+        }
+    }
+    Ok(())
+}
+
 impl AgentConfig {
     /// Loads the configuration from `file` (skipped when absent or `None`)
     /// and from the `GORGONE_AGENT__` environment variables, which win.
@@ -943,6 +1032,7 @@ impl AgentConfig {
         scheduler
             .entry("input")
             .or_insert_with(|| Value::String("structured".to_owned()));
+        engine_defaults(&mut table)?;
         Self::finish(table)
     }
 
@@ -1000,8 +1090,28 @@ impl AgentConfig {
 
     fn validate(&self) -> Result<(), ConfigError> {
         let invalid = |message: &str| Err(ConfigError::Invalid(message.to_owned()));
-        if self.node_id.trim().is_empty() {
-            return invalid("node_id must not be empty");
+        match &self.enrolment_token {
+            Some(token) => {
+                if token.expose().is_empty()
+                    || !token.expose().bytes().all(|b| b.is_ascii_graphic())
+                {
+                    return invalid(
+                        "enrolment_token must be non-empty visible ASCII, without space",
+                    );
+                }
+                if self.token.is_some() {
+                    return invalid("enrolment_token and token (or token_file) are exclusive");
+                }
+                if self.state_dir.is_none() {
+                    return invalid(
+                        "enrolment_token requires state_dir, where the node identity is kept",
+                    );
+                }
+            }
+            None if self.node_id.trim().is_empty() => {
+                return invalid("node_id must not be empty (or set enrolment_token)");
+            }
+            None => {}
         }
         if !gorgone_core::valid_component(&self.component) {
             return invalid("component must be 1 to 32 characters among a-z, 0-9, _ and -");
@@ -1014,9 +1124,11 @@ impl AgentConfig {
         }
         match &self.token {
             Some(token) if token.expose().is_empty() => return invalid("token must not be empty"),
-            // A client certificate is the only accepted substitute for the token.
-            None if self.tls.cert_file.is_none() => {
-                return invalid("token or token_file is required without a client certificate");
+            // A client certificate or an enrolment are the substitutes for the token.
+            None if self.tls.cert_file.is_none() && self.enrolment_token.is_none() => {
+                return invalid(
+                    "token or token_file is required without a client certificate or an enrolment_token",
+                );
             }
             _ => {}
         }
@@ -1886,14 +1998,67 @@ mod tests {
         ]))
         .unwrap();
         assert_eq!(config.node_id, "5");
-        // A structured input needs a state directory.
-        std::fs::write(
-            &file,
-            "server_url = \"http://gorgone:5556\"\ntoken = \"t\"\n",
+        // The server address and an enrolment token are enough: the rest
+        // has defaults (state directory, key target, external commands,
+        // in-process reload).
+        let config = AgentConfig::load_engine_with(
+            None,
+            env(&[
+                ("CENTREON_ENGINE__SERVER_URL", "http://gorgone:5556"),
+                ("CENTREON_ENGINE__ENROLMENT_TOKEN", "abc"),
+            ]),
         )
         .unwrap();
-        let error = load(env(&[("CENTREON_ENGINE__NODE_ID", "5")])).unwrap_err();
-        assert!(error.to_string().contains("requires state_dir"), "{error}");
+        assert!(config.node_id.is_empty());
+        assert_eq!(config.state_dir, Some(PathBuf::from(ENGINE_STATE_DIR)));
+        assert_eq!(
+            config.targets["engine_context"].path,
+            Some(PathBuf::from(ENGINE_CONTEXT_DIR))
+        );
+        assert_eq!(
+            config.engine.allowed_commands.len(),
+            ENGINE_ALLOWED_COMMANDS.len()
+        );
+        for (service, operation) in [
+            ("engine", Operation::Reload),
+            ("engine", Operation::Restart),
+            ("broker", Operation::Reload),
+        ] {
+            assert_eq!(
+                config.services[service].action(operation),
+                Some(ServiceAction::SchedulerReload)
+            );
+        }
+        // What the file says wins over the defaults.
+        let config = load(env(&[("CENTREON_ENGINE__NODE_ID", "5")])).unwrap();
+        assert_eq!(config.state_dir, Some(PathBuf::from("/var/lib/e")));
+    }
+
+    #[test]
+    fn enrolment_token_replaces_node_id_and_token() {
+        let base = "server_url = \"http://gorgone:5556\"\n";
+        let config = AgentConfig::from_toml(&format!(
+            "{base}enrolment_token = \"e\"\nstate_dir = \"/s\"\nname = \"n\"\n"
+        ))
+        .unwrap();
+        assert!(config.node_id.is_empty() && config.token.is_none());
+        assert_eq!(config.name.as_deref(), Some("n"));
+        assert!(format!("{config:?}").contains("<redacted>"));
+        for (extra, needle) in [
+            ("enrolment_token = \"e\"\n", "requires state_dir"),
+            (
+                "enrolment_token = \"e\"\nstate_dir = \"/s\"\ntoken = \"t\"\n",
+                "exclusive",
+            ),
+            (
+                "enrolment_token = \"a b\"\nstate_dir = \"/s\"\n",
+                "visible ASCII",
+            ),
+            ("token = \"t\"\n", "node_id must not be empty"),
+        ] {
+            let error = AgentConfig::from_toml(&format!("{base}{extra}")).unwrap_err();
+            assert!(error.to_string().contains(needle), "{extra}: {error}");
+        }
     }
 
     #[test]

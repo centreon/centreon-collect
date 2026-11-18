@@ -36,6 +36,14 @@ sql() {
   "${COMPOSE[@]}" exec -T db mariadb --skip-ssl -uroot -pcentreon -N -e "$1"
 }
 
+# log_has <service> <pattern>: the logs are read whole first; grep -q closing
+# the pipe early would fail it under pipefail once the log is long.
+log_has() {
+  local log
+  log=$("${COMPOSE[@]}" logs "$1" 2>&1)
+  grep -q -- "$2" <<< "${log}"
+}
+
 web_token() {
   curl -s -X POST -H 'Content-Type: application/json' \
     -d '{"security":{"credentials":{"login":"admin","password":"Centreon!2021"}}}' \
@@ -163,7 +171,7 @@ web_command_reaches_engine() {
     -d '{"check":{"is_forced":true},"resources":[{"type":"host","id":14,"parent":null}]}' \
     "${WEB_URL}/api/latest/monitoring/resources/check"
   sleep 5
-  "${COMPOSE[@]}" logs central-engine | grep -q 'EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK'
+  log_has central-engine 'EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK'
 }
 
 # An external command for a container-only poller goes through the gRPC API
@@ -172,7 +180,7 @@ grpc_command_reaches_engine() {
   gorgone_api POST "/v1/nodes/$(node_of engine)/jobs" -H 'Content-Type: application/json' \
     -d "{\"engine_commands\":{\"commands\":[\"[$(date +%s)] DISABLE_NOTIFICATIONS\"]}}"
   sleep 3
-  "${COMPOSE[@]}" logs engine | grep -q 'EXTERNAL COMMAND: DISABLE_NOTIFICATIONS'
+  log_has engine 'EXTERNAL COMMAND: DISABLE_NOTIFICATIONS'
 }
 
 # The engine API must only be reachable through the socket shared with the
@@ -312,7 +320,7 @@ recurring_downtime_scheduled_by_engine() {
   clapi POLLERRELOAD Central > /dev/null
   for _ in $(seq 60); do
     if [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.downtimes WHERE host_id = 14 AND COALESCE(service_id, 0) = 0 AND comment_data = '[Downtime cycle #${id}]' AND deletion_time IS NULL")" == 1 ]]; then
-      "${COMPOSE[@]}" logs central-engine | grep -q "Recurring downtime #${id}: host downtime"
+      log_has central-engine "Recurring downtime #${id}: host downtime"
       return
     fi
     sleep 5
@@ -821,7 +829,7 @@ centreon_engine_recurring_downtime() {
     if [[ "$(sql "SELECT COUNT(*) FROM centreon_storage.downtimes WHERE host_id = ${host_id}
           AND COALESCE(service_id, 0) = 0 AND comment_data = '[Downtime cycle #${id}]'
           AND deletion_time IS NULL")" == 1 ]]; then
-      "${COMPOSE[@]}" logs centreon-engine | grep -q "Recurring downtime #${id}: host downtime"
+      log_has centreon-engine "Recurring downtime #${id}: host downtime"
       return
     fi
     sleep 5
@@ -1384,9 +1392,223 @@ rogue_poller_refused() {
   [[ $(sql "SELECT COUNT(*) FROM centreon_storage.instances WHERE name = 'rogue-poller' OR instance_id = 4040") == 0 ]]
 }
 
+# ---- Collector added in one command (enrolment token) ----
+
+COLLECTOR=collector-2
+# Token of the fleet enrolment of collector-2, created below; never printed.
+COLLECTOR_TOKEN=""
+
+# web_api <method> <path> [json body]: the centreon-web API v2.
+web_api() {
+  local data=()
+  [[ -n "${3:-}" ]] && data=(-d "$3")
+  curl -s -m 120 -X "$1" -H 'Content-Type: application/json' -H "X-AUTH-TOKEN: $(web_token)" \
+    "${data[@]}" "${WEB_URL}/api/latest$2"
+}
+
+collector_node() {
+  node_of "${COLLECTOR}"
+}
+
+# The admin flow: a single-use fleet enrolment through the centreon-web API,
+# then the collector started with nothing but the gorgone-server address and
+# the token. The web cron creates its poller by itself; the bench then adds a
+# host and a service to it through CLAPI, as an admin would, before the first
+# configuration is sent.
+start_collector() {
+  local answer
+  answer=$(web_api POST /configuration/collectors/enrolments '{"fleet":true,"max_uses":1,"expires_in":3600}') || return 1
+  COLLECTOR_TOKEN=$(python3 -I -c '
+import json, sys
+answer = json.load(sys.stdin)
+env = answer["environment"]
+ok = (answer["type"] == "fleet" and answer["max_uses"] == 1 and set(env) == {
+    "CENTREON_ENGINE__SERVER_URL", "CENTREON_ENGINE__ENROLMENT_TOKEN"}
+    and env["CENTREON_ENGINE__SERVER_URL"] == "http://gorgone:5556"
+    and "gorgone-rs-centreon-collector" in answer["command"])
+print(answer["token"] if ok else "")' <<< "${answer}") || return 1
+  [[ -n "${COLLECTOR_TOKEN}" ]] || return 1
+  COLLECTOR_ENROLMENT_TOKEN=${COLLECTOR_TOKEN} "${COMPOSE[@]}" up -d --scale "${COLLECTOR}=1" "${COLLECTOR}" > /dev/null 2>&1 || return 1
+  for _ in $(seq 75); do
+    [[ "$(sql "SELECT engine_name FROM centreon.nagios_server WHERE name = '${COLLECTOR}'")" == centreon-engine ]] && break
+    sleep 2
+  done
+  [[ -n "$(collector_node)" ]] || return 1
+  clapi ADD "collector-h1;Collector host;127.0.0.1;rust-host-tpl;${COLLECTOR};" HOST | grep -qv '"error"' || return 1
+  clapi ADD "collector-h1;collector-ok;rust-svc-tpl" SERVICE | grep -qv '"error"' || return 1
+  for _ in $(seq 30); do
+    gorgone_api GET "/v1/nodes/$(collector_node)" | grep -q '"connected":true' && return 0
+    sleep 2
+  done
+  return 1
+}
+
+# The poller exists without anything registering it: created by the web cron
+# from the enrolment, in the platform topology, run by centreon-engine.
+collector_poller_created_by_itself() {
+  [[ "$(sql "SELECT COUNT(*) FROM centreon.nagios_server n
+        JOIN centreon.platform_topology t ON t.server_id = n.id AND t.pending = '0'
+        WHERE n.name = '${COLLECTOR}' AND n.engine_name = 'centreon-engine'")" == 1 ]]
+}
+
+# The node authenticates with a credential of its own (hash stored by
+# gorgone-server, not the empty one of the shared bench token), kept in the
+# state directory of the collector; the token is in no log.
+collector_has_its_own_credential() {
+  local node logs
+  node=$(collector_node)
+  gorgone_api GET /v1/enrolments | python3 -I -c '
+import json, sys
+node = sys.argv[1]
+enrolments = [e for e in json.load(sys.stdin)["enrolments"] if e["node_id"] == node]
+sys.exit(0 if len(enrolments) == 1 and enrolments[0]["state"] in ("enrolled", "completed")
+         and enrolments[0]["name"] == "collector-2" else 1)' "${node}" || return 1
+  [[ "$(sql "SELECT LENGTH(token_hash) FROM gorgone.nodes WHERE id = '${node}'")" == 64 ]] || return 1
+  "${COMPOSE[@]}" exec -T "${COLLECTOR}" sh -c \
+    "grep -qx 'node_id=${node}' /var/lib/centreon-engine/identity \
+     && [ \"\$(stat -c %a /var/lib/centreon-engine/identity)\" = 600 ]" || return 1
+  logs=$("${COMPOSE[@]}" logs "${COLLECTOR}" 2>&1; "${COMPOSE[@]}" logs gorgone-server gorgone-server-b 2>&1)
+  ! grep -qF -- "${COLLECTOR_TOKEN}" <<< "${logs}"
+}
+
+# The first configuration came by itself (web cron: generate, move, restart
+# once the collector connected): the engine applied it, with the host added
+# through CLAPI, and the enrolment is completed. The bench exported nothing.
+collector_configured_automatically() {
+  local node log
+  node=$(collector_node)
+  for _ in $(seq 75); do
+    if gorgone_api GET /v1/enrolments | python3 -I -c '
+import json, sys
+node = sys.argv[1]
+sys.exit(0 if any(e["node_id"] == node and e["state"] == "completed"
+                  for e in json.load(sys.stdin)["enrolments"]) else 1)' "${node}"; then
+      break
+    fi
+    sleep 2
+  done
+  gorgone_api GET "/v1/nodes/${node}" | python3 -I -c '
+import json, sys
+node = json.load(sys.stdin)
+sys.exit(0 if node["applied"].get("engine") and node["engine"]["reachable"] else 1)' || return 1
+  "${COMPOSE[@]}" exec -T "${COLLECTOR}" grep -q collector-h1 \
+    /var/lib/centreon-engine/engine-configuration/configuration || return 1
+  # Read whole first: grep -q closing the pipe early would fail it (pipefail).
+  log=$("${COMPOSE[@]}" logs web-cron web-cron-b 2>&1)
+  grep -q "poller #${node}: first configuration sent" <<< "${log}"
+}
+
+# Results of the service added through CLAPI reach centreon_storage.
+collector_results_stored() {
+  for _ in $(seq 60); do
+    [[ "$(sql "SELECT CONCAT(s.state, ' ', s.checked) FROM centreon_storage.services s
+          JOIN centreon_storage.hosts h ON h.host_id = s.host_id
+          JOIN centreon_storage.instances i ON i.instance_id = h.instance_id
+          WHERE i.name = '${COLLECTOR}' AND h.name = 'collector-h1'
+            AND s.description = 'collector-ok' AND s.enabled = 1")" == "0 1" ]] && return 0
+    sleep 2
+  done
+  return 1
+}
+
+# Its certificates came from the managed PKI with the configuration.
+collector_in_tls() {
+  local log
+  log=$("${COMPOSE[@]}" logs "${COLLECTOR}" 2>&1)
+  ! grep -q 'PRIVATE KEY' <<< "${log}" || return 1
+  grep -q 'TLS with the central broker' <<< "${log}" && instance_running "${COLLECTOR}"
+}
+
+# A named enrolment creates its poller at once, run by centreon-engine, and
+# answers its token once: neither the web nor gorgone-server serves it again.
+named_enrolment_creates_its_poller() {
+  local answer token id ok=1
+  answer=$(web_api POST /configuration/collectors/enrolments '{"name":"collector-named"}') || return 1
+  token=$(python3 -I -c 'import json,sys; print(json.load(sys.stdin)["token"])' <<< "${answer}") || return 1
+  id=$(python3 -I -c 'import json,sys; a=json.load(sys.stdin); print(a["poller_id"] if a["type"] == "named" and a["max_uses"] == 1 else "")' <<< "${answer}")
+  if [[ -n "${id}" && ${#token} == 64 ]] \
+    && [[ "$(sql "SELECT engine_name FROM centreon.nagios_server WHERE id = ${id} AND name = 'collector-named'")" == centreon-engine ]] \
+    && gorgone_api GET /v1/enrolment-tokens | grep -q "\"node_id\":\"${id}\"" \
+    && ! gorgone_api GET /v1/enrolment-tokens | grep -qF -- "${token}" \
+    && ! web_api GET /configuration/collectors/enrolments | grep -qF -- "${token}"; then
+    ok=0
+  fi
+  clapi DEL collector-named INSTANCE > /dev/null
+  return "${ok}"
+}
+
+# Another machine presenting the same single-use token is refused.
+collector_token_single_use() {
+  local name=gorgone-rs-collector-reuse network refused=1
+  network=$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' \
+    "$("${COMPOSE[@]}" ps -q "${COLLECTOR}")") || return 1
+  docker rm -f "${name}" > /dev/null 2>&1
+  # The token goes through the environment, never on a command line.
+  CENTREON_ENGINE__ENROLMENT_TOKEN=${COLLECTOR_TOKEN} docker run -d --name "${name}" --network "${network}" \
+    -e CENTREON_ENGINE__SERVER_URL=http://gorgone:5556 -e CENTREON_ENGINE__ENROLMENT_TOKEN \
+    gorgone-rs-centreon-collector > /dev/null || return 1
+  for _ in $(seq 15); do
+    if grep -q 'enrolment failed.*PermissionDenied' <<< "$(docker logs "${name}" 2>&1)"; then
+      refused=0
+      break
+    fi
+    sleep 2
+  done
+  docker rm -f "${name}" > /dev/null 2>&1
+  return "${refused}"
+}
+
+# A restart reconnects with the kept identity, the used-up token ignored.
+collector_restart_keeps_identity() {
+  local node before
+  node=$(collector_node)
+  before=$("${COMPOSE[@]}" logs "${COLLECTOR}" 2>&1 | grep -c 'using the identity kept' || true)
+  "${COMPOSE[@]}" restart "${COLLECTOR}" > /dev/null 2>&1 || return 1
+  for _ in $(seq 30); do
+    if (($("${COMPOSE[@]}" logs "${COLLECTOR}" 2>&1 | grep -c 'using the identity kept' || true) > before)) \
+      && gorgone_api GET "/v1/nodes/${node}" | grep -q '"connected":true'; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+# Deleting the poller in centreon-web (CLAPI here) deletes its node in
+# gorgone-server: its credential is revoked and its sessions refused, even
+# though this bench accepts unknown nodes (auto_enroll).
+collector_deletion_revokes() {
+  local node
+  node=$(collector_node)
+  clapi DEL "${COLLECTOR}" INSTANCE | grep -qv '"error"' || return 1
+  for _ in $(seq 75); do
+    if gorgone_api GET /v1/enrolments | python3 -I -c '
+import json, sys
+node = sys.argv[1]
+sys.exit(0 if any(e["node_id"] == node and e["state"] == "revoked"
+                  for e in json.load(sys.stdin)["enrolments"]) else 1)' "${node}"; then
+      break
+    fi
+    sleep 2
+  done
+  # The collector keeps trying, and is refused: its node does not come back.
+  for _ in $(seq 45); do
+    if grep -q 'Unauthenticated' <<< "$("${COMPOSE[@]}" logs "${COLLECTOR}" 2>&1)"; then
+      sleep 5
+      [[ "$(gorgone_api GET "/v1/nodes/${node}" -o /dev/null -w '%{http_code}')" == 404 ]]
+      return
+    fi
+    sleep 2
+  done
+  return 1
+}
+
 check "the web image is a web server only: no shell, collect, Gorgone or plugin" web_image_is_slim
 check "the web image carries no rrdtool" web_image_has_no_rrdtool
 check "no volume is shared between containers" no_shared_volume
+# First: the web cron sets the collector up while the other checks run.
+check "collector: a fleet enrolment from the web API, collector-2 started with only its token" \
+  start_collector
 check "the three agents are connected to gorgone-server" all_nodes_connected
 check "the broker image carries no Python, control API, RRD nor legacy SQL output" broker_image_is_slim
 check "the Central poller has an engine and a broker session" central_has_engine_and_broker_sessions
@@ -1490,6 +1712,20 @@ check "managed PKI: another export issues no certificate (same TLS document sect
   pki_stable_across_exports
 check "managed PKI: a poller certificate of another CA is refused by the central broker" \
   rogue_poller_refused
+check "collector: its poller appears in the web by itself, run by centreon-engine" \
+  collector_poller_created_by_itself
+check "collector: connected with its own credential, not the shared token, kept 0600" \
+  collector_has_its_own_credential
+check "collector: first configuration sent by the web cron, with the host added through CLAPI" \
+  collector_configured_automatically
+check "collector: results of its service reach centreon_storage" collector_results_stored
+check "collector: TLS to the central broker with certificates of the managed PKI" collector_in_tls
+check "collector: a named enrolment creates its poller and shows its token once" \
+  named_enrolment_creates_its_poller
+check "collector: the single-use token is refused to another machine" collector_token_single_use
+check "collector: a restart reconnects with the kept identity, without the token" \
+  collector_restart_keeps_identity
+check "collector: deleting its poller in the web revokes its credential" collector_deletion_revokes
 check "a job submitted to either gorgone-server replica reaches every node" jobs_cross_replicas
 # Last: the agents move between the gorgone-server replicas.
 check "an agent fails over to the other gorgone-server replica" failover_to_other_replica

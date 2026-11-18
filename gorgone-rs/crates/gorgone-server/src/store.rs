@@ -25,6 +25,13 @@ use tracing::{debug, warn};
 use crate::error::Error;
 use crate::metrics;
 
+#[path = "store_enrolment.rs"]
+mod enrolment;
+pub(crate) use enrolment::{
+    AssignOutcome, EnrolOutcome, EnrolRequest, EnrolmentRow, EnrolmentTokenRow, MAX_CREDENTIAL_LEN,
+    MIN_CREDENTIAL_LEN, NewEnrolmentToken, enrolment_state,
+};
+
 /// Size of one stored blob chunk, also the size of a `FetchBlob` frame.
 pub(crate) const CHUNK_SIZE: usize = 1 << 20;
 
@@ -654,6 +661,32 @@ impl Store {
                 node_id VARCHAR(191) NOT NULL PRIMARY KEY,
                 next_seq BIGINT NOT NULL)"
                 .to_owned(),
+            // Enrolment tokens given by the central (hashes only), and the
+            // enrolments made with them (credential hashes only).
+            "CREATE TABLE IF NOT EXISTS enrolment_tokens (
+                id VARCHAR(191) NOT NULL PRIMARY KEY,
+                token_hash VARCHAR(64) NOT NULL UNIQUE,
+                node_id VARCHAR(191) NULL,
+                name VARCHAR(255) NULL,
+                expires_at BIGINT NOT NULL,
+                max_uses BIGINT NULL,
+                uses BIGINT NOT NULL DEFAULT 0,
+                created_at BIGINT NOT NULL)"
+                .to_owned(),
+            "CREATE TABLE IF NOT EXISTS enrolments (
+                id VARCHAR(191) NOT NULL PRIMARY KEY,
+                token_id VARCHAR(191) NOT NULL,
+                credential_hash VARCHAR(64) NOT NULL,
+                state VARCHAR(16) NOT NULL,
+                node_id VARCHAR(191) NULL,
+                name VARCHAR(255) NOT NULL,
+                address VARCHAR(255) NOT NULL,
+                agent_version VARCHAR(191) NOT NULL,
+                component VARCHAR(32) NOT NULL,
+                created_at BIGINT NOT NULL,
+                updated_at BIGINT NOT NULL,
+                UNIQUE (token_id, credential_hash))"
+                .to_owned(),
             // Latest `ApplyConfig` job of each target of a node.
             "CREATE TABLE IF NOT EXISTS node_config (
                 node_id VARCHAR(191) NOT NULL,
@@ -714,6 +747,8 @@ impl Store {
             ),
             // Copies of a configuration push, for its cancellation.
             ("idx_jobs_parent", "jobs (parent_id)"),
+            // Enrolments of a node, for its revocation.
+            ("idx_enrolments_node", "enrolments (node_id)"),
         ] {
             let create = format!("CREATE INDEX IF NOT EXISTS {name} ON {target}");
             if sqlx::query(&create).execute(&self.pool).await.is_err() {
@@ -867,9 +902,10 @@ impl Store {
         Ok(row.map(|r| r.try_get("token_hash")).transpose()?)
     }
 
-    /// Removes a node, its sessions and its components. False when it did
-    /// not exist.
+    /// Removes a node, its sessions and its components, and revokes the
+    /// enrolments that gave it its credential. False when it did not exist.
     pub(crate) async fn delete_node(&self, id: &str) -> Result<bool, Error> {
+        self.revoke_node_enrolments(id).await?;
         for table in ["agent_sessions", "node_config", "node_components"] {
             let sql = format!("DELETE FROM {table} WHERE node_id = ?");
             sqlx::query(&sql).bind(id).execute(&self.pool).await?;

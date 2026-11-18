@@ -5,8 +5,10 @@
 #   Perl gorgoned;
 # - engine: the engine image of this branch (engine/README.md) with its
 #   agent, which registers the poller and deploys it when asked;
-# - centreon-engine (runtime) and centreon-engine-bench (plus the
-#   provisioning script): the centreon-engine program, no engine nor broker.
+# - centreon-engine (runtime, the image of a collector added with an
+#   enrolment token) and centreon-engine-bench (plus the provisioning script
+#   and the shared bench token): the centreon-engine program, no engine nor
+#   broker.
 # Build context: gorgone-rs/.
 
 ARG POLLER_IMAGE=docker.centreon.com/centreon/centreon-poller-alma9:develop
@@ -82,8 +84,11 @@ RUN apt-get update \
     && install -d -o centreon-engine -g centreon-engine -m 750 /var/lib/centreon-engine \
     && install -d -o root -g centreon-engine -m 775 /etc/centreon-engine
 # /etc/centreon-engine takes the key file of the engine_context target.
+# No configuration file: the server address and an enrolment token, given by
+# environment, are enough (CENTREON_ENGINE__SERVER_URL,
+# CENTREON_ENGINE__ENROLMENT_TOKEN); the node identity is kept in
+# /var/lib/centreon-engine.
 COPY --from=build-engine /out/centreon-engine /usr/bin/centreon-engine
-COPY --chmod=644 deploy/centreon/centreon-engine/centreon-engine.toml /etc/centreon-engine/centreon-engine.toml
 USER centreon-engine
 WORKDIR /var/lib/centreon-engine
 ENTRYPOINT ["/usr/bin/centreon-engine"]
@@ -99,6 +104,8 @@ RUN apt-get update \
 # Created first: a COPY --chmod would give its mode to a directory it creates.
 COPY --chmod=644 deploy/centreon/engine/register.pl deploy/centreon/centreon-engine/objects.clapi \
      deploy/centreon/centreon-engine/notify-mail.pl /usr/local/lib/gorgone/
+# Registered by register.pl with the shared bench token, not enrolled.
+COPY --chmod=644 deploy/centreon/centreon-engine/centreon-engine.toml /etc/centreon-engine/centreon-engine.toml
 COPY --chmod=755 deploy/centreon/centreon-engine/entrypoint.sh /usr/local/lib/gorgone/entrypoint.sh
 USER centreon-engine
 ENTRYPOINT ["/usr/local/lib/gorgone/entrypoint.sh"]

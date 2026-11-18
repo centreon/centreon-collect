@@ -22,6 +22,10 @@
 #   centreon-engine  a poller without centengine nor cbd: the centreon-engine
 #                    program takes a structured configuration (no .cfg) and
 #                    sends the results to the central broker
+#   collector-2      a collector added the one-command way: the centreon-engine
+#                    runtime image with only the gorgone-server address and an
+#                    enrolment token (scale 0, started by verify.sh
+#                    once it created the token through the centreon-web API)
 #   mailpit          SMTP sink of the notifications of centreon-engine
 #   poller           the Centreon poller test image, driven by gorgone-agent
 #
@@ -91,7 +95,15 @@ x-web: &web
     # configuration instead of .cfg files. The BBDO connections to the
     # central broker use TLS with certificates of a CA centreon-web manages
     # (central/setup.sql switches TLS on).
-    CENTREON_FEATURE_FLAGS: engine_recurring_downtimes,engine_structured_configuration,broker_managed_pki
+    # Collectors are added with an enrolment token (collector_enrolment): the
+    # web cron creates the poller of a fleet enrolment and sends the first
+    # configuration.
+    CENTREON_FEATURE_FLAGS: engine_recurring_downtimes,engine_structured_configuration,broker_managed_pki,collector_enrolment
+    # Given to the collectors in the command of an enrolment, and where their
+    # broker module sends the results.
+    COLLECTOR_SERVER_URL: http://gorgone:5556
+    COLLECTOR_BROKER_ADDRESS: broker
+    COLLECTOR_IMAGE: gorgone-rs-centreon-collector
     # Sessions opened on one replica are valid on the other.
     SESSION_REDIS_URL: tcp://valkey:6379
     # Credentials encryption key, the same in every replica and pushed to the
@@ -313,6 +325,25 @@ services:
       POLLER_NAME: centreon-engine
       GORGONE_DEPLOY: "true"
       CENTREON_ENGINE_LOG: info
+
+  # A collector added in one command: nothing but the gorgone-server address
+  # and an enrolment token. It enrols, the web cron creates its poller and
+  # sends it its configuration. verify.sh creates the token through the
+  # centreon-web API, then starts it:
+  #   COLLECTOR_ENROLMENT_TOKEN=... docker compose up -d --scale collector-2=1 collector-2
+  collector-2:
+    build:
+      context: ../..
+      dockerfile: deploy/centreon/Dockerfile
+      target: centreon-engine
+    image: ${COLLECTOR_IMAGE:-gorgone-rs-centreon-collector}
+    hostname: collector-2
+    restart: always
+    # Not started by "up": verify.sh scales it to one with its token.
+    scale: 0
+    environment:
+      CENTREON_ENGINE__SERVER_URL: http://gorgone:5556
+      CENTREON_ENGINE__ENROLMENT_TOKEN: ${COLLECTOR_ENROLMENT_TOKEN:-}
 
   # SMTP sink of the notifications of centreon-engine (notify-mail.pl);
   # verify.sh reads the mails through its API.

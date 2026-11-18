@@ -9,9 +9,11 @@ use gorgone_core::legacy;
 use gorgone_proto::NODE_ID_METADATA;
 use gorgone_proto::agent::agent_frame::Frame as AgentFrameKind;
 use gorgone_proto::agent::agent_gateway_server::AgentGateway;
+use gorgone_proto::agent::enroll_response::State as EnrollState;
 use gorgone_proto::agent::server_frame::Frame;
 use gorgone_proto::agent::{
-    AgentFrame, BlobChunk, EventAck, FetchBlobRequest, Heartbeat, JobEvent, ServerFrame, Welcome,
+    AgentFrame, BlobChunk, EnrollRequest, EnrollResponse, EventAck, FetchBlobRequest, Heartbeat,
+    JobEvent, ServerFrame, Welcome,
 };
 use prost::Message;
 use tokio::sync::{Semaphore, mpsc};
@@ -27,7 +29,8 @@ use crate::events;
 use crate::hub::{Hub, SessionHandle};
 use crate::metrics;
 use crate::store::{
-    FAILED_SEQ, NewEvent, SERVER_SEQ_FLOOR, Store, Termination, Transition, hash_token, state,
+    EnrolOutcome, EnrolRequest, FAILED_SEQ, MAX_CREDENTIAL_LEN, MIN_CREDENTIAL_LEN, NewEvent,
+    SERVER_SEQ_FLOOR, Store, Termination, Transition, hash_token, state,
 };
 
 /// Time left to an agent to send its `Hello`.
@@ -157,7 +160,10 @@ impl Gateway {
                     Err(Status::unauthenticated("invalid node token"))
                 }
             }
-            _ if self.auto_enroll => {
+            // A node deleted after an enrolment keeps its credential refused.
+            _ if self.auto_enroll
+                && !self.store.node_revoked(&node_id).await.map_err(internal)? =>
+            {
                 self.store.ensure_node(&node_id).await.map_err(internal)?;
                 Ok(node_id)
             }
@@ -598,6 +604,88 @@ impl AgentGateway for GatewayService {
         let frames = ReceiverStream::new(rx).take_until(handle.closed.clone().cancelled_owned());
         tokio::spawn(Arc::clone(gateway).run_session(node_id, handle, inbound));
         Ok(Response::new(frames))
+    }
+
+    async fn enroll(
+        &self,
+        request: Request<EnrollRequest>,
+    ) -> Result<Response<EnrollResponse>, Status> {
+        let gateway = &self.0;
+        // Bounded like the opening of sessions: each attempt reads the store.
+        let _opening = Arc::clone(&gateway.opening)
+            .try_acquire_owned()
+            .map_err(|_| Status::resource_exhausted("too many sessions being opened"))?;
+        let enroll = request.into_inner();
+        let credential = enroll.credential.as_str();
+        // Sent back as bearer metadata by the sessions: visible ASCII only.
+        if !(MIN_CREDENTIAL_LEN..=MAX_CREDENTIAL_LEN).contains(&credential.len())
+            || !credential.bytes().all(|b| b.is_ascii_graphic())
+        {
+            return Err(Status::invalid_argument(format!(
+                "credential must be {MIN_CREDENTIAL_LEN} to {MAX_CREDENTIAL_LEN} visible ASCII characters"
+            )));
+        }
+        if enroll.token.is_empty() {
+            return Err(Status::unauthenticated("enrolment token missing"));
+        }
+        let component = if enroll.component.is_empty() {
+            gorgone_core::DEFAULT_COMPONENT
+        } else {
+            enroll.component.as_str()
+        };
+        if !gorgone_core::valid_component(component) {
+            return Err(Status::invalid_argument(
+                "component must be 1 to 32 characters among a-z, 0-9, _ and -",
+            ));
+        }
+        let outcome = gateway
+            .store
+            .enrol(EnrolRequest {
+                token: &enroll.token,
+                credential,
+                name: &enroll.name,
+                address: &enroll.address,
+                agent_version: &enroll.agent_version,
+                component,
+            })
+            .await
+            .map_err(internal)?;
+        metrics::ENROLMENTS.add(
+            match &outcome {
+                EnrolOutcome::Enrolled { .. } => "enrolled",
+                EnrolOutcome::Pending { .. } => "pending",
+                EnrolOutcome::Refused(_) => "refused",
+            },
+            1,
+        );
+        match outcome {
+            EnrolOutcome::Enrolled {
+                enrolment_id,
+                node_id,
+            } => {
+                info!(enrolment = %enrolment_id, node = %node_id, name = %bounded(&enroll.name), "node enrolled");
+                Ok(Response::new(EnrollResponse {
+                    state: EnrollState::Enrolled.into(),
+                    node_id,
+                    enrolment_id,
+                }))
+            }
+            EnrolOutcome::Pending { enrolment_id } => {
+                debug!(enrolment = %enrolment_id, name = %bounded(&enroll.name), "enrolment waits for a node");
+                Ok(Response::new(EnrollResponse {
+                    state: EnrollState::Pending.into(),
+                    node_id: String::new(),
+                    enrolment_id,
+                }))
+            }
+            EnrolOutcome::Refused(reason) => {
+                // The reason stays here: the agent learns nothing about the token.
+                warn!(reason, name = %bounded(&enroll.name), address = %bounded(&enroll.address), "enrolment refused");
+                Err(Status::permission_denied(
+                    "enrolment refused: token unknown, expired, used up, or enrolment revoked",
+                ))
+            }
+        }
     }
 
     async fn fetch_blob(

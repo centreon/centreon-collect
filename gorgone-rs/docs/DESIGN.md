@@ -55,8 +55,16 @@ pollers (ZMQ, SSH, pull, pullwss are dropped), and being a broker module
 ## Domain model
 
 - **Node**: a poller or remote server, identified by `node_id` (the
-  `nagios_server.id` of Centreon, as a string). Has an enrolment token
-  (stored hashed).
+  `nagios_server.id` of Centreon, as a string). Has a token (stored hashed):
+  given by `PUT /v1/nodes/{node}`, or the credential its agent chose when it
+  enrolled (see [Enrolment](#enrolment)).
+- **Enrolment token**: given by the central to add a node with nothing but
+  the server address; stored as its SHA-256, bound to a node (single use) or
+  a fleet token (node chosen later by the central), always expiring, with an
+  optional number of uses.
+- **Enrolment**: one use of a token by one agent credential: `pending`
+  (fleet token, no node yet), `enrolled`, `completed` (the central finished
+  setting the node up), `rejected` or `revoked` (its node was deleted).
 - **Job**: `id` (the legacy "token"), `node_id`, one typed `Action`, a
   deadline, a state.
 - **Job event**: append-only, `(job_id, seq)`; `seq` starts at 1 and is
@@ -123,11 +131,15 @@ event written by the server.
 
 ## Agent protocol (`gorgone.agent.v1`)
 
+`Enroll {token, credential, name, address, agent_version, component}` is the
+only call without node identity, on the same listener and TLS as the
+sessions; see [Enrolment](#enrolment).
+
 `Session` is a bidirectional stream:
 
 1. Agent sends `Hello {node_id, agent_version, capabilities, component,
-targets}`. The enrolment token travels in the `authorization: Bearer`
-   metadata and always identifies the node. With mTLS, the client certificate
+targets}`. The node token (or the credential chosen at enrolment) travels
+   in the `authorization: Bearer` metadata and always identifies the node. With mTLS, the client certificate
    additionally proves the agent is trusted by the CA; it is not read for
    identity. `component` (empty: `engine`) and `targets` (the configuration
    targets the agent maps) are described in [Components](#components-of-a-node).
@@ -154,6 +166,53 @@ overtakes the configuration push submitted before it; `RunCommands` jobs run
 concurrently.
 
 `FetchBlob {digest}` streams the blob in chunks (≤ 1 MiB). Same authentication.
+
+## Enrolment
+
+Adding a node needs only the server address and an enrolment token:
+
+```
+centreon-web                     gorgone-server                      new agent
+ POST enrolment (admin) ──► PUT /v1/enrolment-tokens/{id}
+   token shown once           {token_hash, node_id?, expires_in_s, max_uses?}
+                                                ◄── Enroll(token, credential, name, address)
+                              bound token: node := node_id, its token hash := SHA-256(credential)
+                              fleet token: enrolment pending ──► PENDING (asks again later)
+ cron: GET /v1/enrolments ──►
+   creates the poller,
+   POST /v1/enrolments/{id}/assign {node_id} ──► node created with the credential hash
+                                                ◄── Enroll(same token, same credential)
+                                                ──► ENROLLED {node_id}
+                                                ◄── Session (node_id, Bearer credential)
+ cron: node connected, never configured: export, then POST /v1/enrolments/{id}/complete
+ poller deleted: DELETE /v1/nodes/{id} ──► enrolment revoked, sessions refused
+```
+
+- **Credential chosen by the agent.** The agent generates 32 random bytes,
+  keeps them in its `state_dir` (file `identity`, mode 0600, written
+  atomically) before its first call, and sends them with the token. The
+  server stores only their SHA-256, as the token hash of the node: sessions
+  then authenticate exactly as with a token of `PUT /v1/nodes/{node}`. No
+  secret travels from the server to the agent, and a lost answer is
+  harmless: the same token and credential always get the same answer.
+- **Uses** are counted once per credential, with a compare-and-set in the
+  transaction that records the enrolment: concurrent agents never exceed
+  `max_uses`. A token bound to a node is single use. Expiry uses the
+  database clock (`expires_in_s` is relative).
+- **Fleet tokens** leave the node to the central: the server records a
+  `pending` enrolment with the name and address the agent reported (its
+  host name by default), and the central assigns the node id it chose (the
+  `nagios_server.id` of the poller it created). Node ids stay the poller ids
+  of the central; the server never invents one.
+- **Errors** do not tell an unknown, expired or used-up token apart
+  (`PERMISSION_DENIED`, the reason in the server log only); the agent
+  retries with backoff, so it can start before its token is pushed.
+- **Revocation.** Deleting a node revokes the enrolments that gave it its
+  credential: its sessions are closed and refused, and `auto_enroll` (the
+  development mode that accepts unknown nodes with any token) refuses that
+  node id too, so it cannot come back without a new enrolment.
+- **Existing agents** with a configured `node_id` and token, or with
+  `auto_enroll`, work as before.
 
 ## Components of a node
 
@@ -303,6 +362,11 @@ blobs       (digest PK, size, created_at)
 blob_chunks (digest, idx, data BLOB, PRIMARY KEY (digest, idx))
 leases      (name PK, holder, expires_at)
 meta        (name PK, value)   -- stable server id, shared by all replicas
+enrolment_tokens (id PK, token_hash UNIQUE, node_id NULL, name NULL,
+             expires_at, max_uses NULL, uses, created_at)
+enrolments  (id PK, token_id, credential_hash, state, node_id NULL, name,
+             address, agent_version, component, created_at, updated_at,
+             UNIQUE (token_id, credential_hash))
 ```
 
 ## REST API
@@ -319,7 +383,12 @@ meta        (name PK, value)   -- stable server id, shared by all replicas
 | `POST`           | `/v1/nodes/{node}/config/{target}/validation` | same body; submits `ValidateConfig`                                                                                                                                                                                                                                                                                                                |
 | `PUT`            | `/v1/nodes/{node}/engine-configuration`       | body is the JSON document of a structured engine configuration (version checked here: 1 or 2, and 409 when the engine of the node reports in its heartbeat that it reads an older one only; the rest by the engine); stored compressed (zstd) and submits `ApplyEngineConfiguration`; optional `?id=`, `?requires=`, `?target=` (default `engine`) |
 | `GET`            | `/v1/nodes`, `/v1/nodes/{node}`               | nodes with connection status, applied configuration digests and engine state (of the engine component), and `components`: each one's session, declared targets and reported state                                                                                                                                                                  |
-| `PUT` / `DELETE` | `/v1/nodes/{node}`                            | enrol (returns the token once) / remove a node                                                                                                                                                                                                                                                                                                     |
+| `PUT` / `DELETE` | `/v1/nodes/{node}`                            | enrol (returns the token once) / remove a node, which revokes the enrolments that gave it its credential                                                                                                                                                                                                                                           |
+| `GET`            | `/v1/enrolment-tokens`                        | enrolment tokens, without their hash                                                                                                                                                                                                                                                                                                               |
+| `PUT` / `DELETE` | `/v1/enrolment-tokens/{id}`                   | record a token `{token_hash, node_id?, name?, expires_in_s, max_uses?}` (201, or 200 when the same one is there) / delete it                                                                                                                                                                                                                       |
+| `GET`            | `/v1/enrolments`, `/v1/enrolments/{id}`       | enrolments with state, node, reported name, address and version                                                                                                                                                                                                                                                                                    |
+| `POST`           | `/v1/enrolments/{id}/assign`                  | `{node_id, name?}`: gives a pending enrolment its node, created with the credential of the agent                                                                                                                                                                                                                                                   |
+| `POST`           | `/v1/enrolments/{id}/reject`, `/complete`     | refuse a pending enrolment / mark an enrolled one completed                                                                                                                                                                                                                                                                                        |
 | `GET`            | `/healthz`, `/readyz`, `/metrics`             | probes and Prometheus metrics                                                                                                                                                                                                                                                                                                                      |
 
 JSON action shape: `{"run_commands": {"commands": [{"command": "...", "timeout_s": 30}]}}`,
@@ -362,7 +431,11 @@ writers call the API.
 
 - TLS everywhere (rustls); optional mTLS for agents. The peer listener takes
   the same TLS settings and a shared secret.
-- Agent enrolment token: random 32 bytes, shown once, stored as SHA-256.
+- Node token: random 32 bytes, shown once, stored as SHA-256; or the
+  credential the agent generated at enrolment, stored the same way.
+- Enrolment tokens: generated by the central; only their SHA-256 reaches the
+  server; they expire and their uses are counted (see
+  [Enrolment](#enrolment)).
 - REST API: bearer token or basic auth, plus an allowed-CIDR list (same
   operational model as today).
 - The agent runs unprivileged. Privileged operations are explicit entries of
