@@ -8,6 +8,8 @@
 
 Testing
 __
+coverage
+sccache
 tests/failed
 tests/robotframework
 broker_pb2.py
