@@ -241,13 +241,12 @@ BEDWENF
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should log a message when a new file of the form <poller_id>.lck is created in the cache_config_directory
 
-    ${start}    Ctn Get Round Current Date
     Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot    timeout=30s
     Wait Until Removed    ${VarRoot}/lib/centreon-broker/pollers-configuration/new-1.prot    timeout=30s
 
     ${content}    Create List    Publishing global diff state    processing global diff state
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    Broker unified sql stream should log a message when the global diff state is emitted.
+    Should Be True    ${result}    Broker unified sql stream should log a message when the global diff state is emitted (start=${start}).
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -267,40 +266,30 @@ BEDWEND
     ...    And Engine should update its configuration from a differential configuration
     [Tags]    broker    engine    MON-153802
     Ctn Clear Engine Logs
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Flush Log    central    0
-    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
-    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
-    Create Directory    ${VarRoot}/lib/centreon/config
-    Remove Files    ${VarRoot}/lib/centreon-engine/config0/state.prot
-    ${start}    Ctn Get Round Current Date
-    Ctn Start Broker
-    Ctn Start Engine    ${True}
+    Create Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration
 
-    # We fill the configuration directory with directory "1" in the cache_config_directory
-    Copy Directory
-    ...    ${EtcRoot}/centreon-engine/config0
-    ...    ${VarRoot}/lib/centreon/config/1
-    # We create a file in the cache_config_directory
-    Log To Console    File ${VarRoot}/lib/centreon/config/1.lck created
-    Create File    ${VarRoot}/lib/centreon/config/1.lck
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine    newGeneration=${True}
+
     Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot    timeout=30s
 
     # The configuration in the cache directory is updated.
     # We create a service on poller 0, host 1 and with command 29
     # in the cache directory.
-    Ctn Create Service    ${0}    ${1}    ${29}    ${VarRoot}/lib/centreon/config/1/services.cfg
-    Ctn Engine Config Set Value    ${0}    log_level_config    debug    cfg_file=${VarRoot}/lib/centreon/config/1/centengine.cfg
+    Ctn Create Service    ${0}    ${1}    ${29}
+    Ctn Engine Config Set Value    ${0}    log_level_config    debug
 
     ${start}    Ctn Get Round Current Date
     Log To Console    File ${VarRoot}/lib/centreon/config/1.lck re-created
@@ -312,7 +301,7 @@ BEDWEND
 
     ${content}    Create List    Publishing global diff state    processing global diff state
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    Broker unified sql stream should log a message when the global diff state is emitted.
+    Should Be True    ${result}    Broker unified sql stream should log a message when the global diff state is emitted (start=${start}).
 
     # All the hosts of the poller 1 should be enabled
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
