@@ -149,8 +149,6 @@ static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_ERROR(core_logger, "problem while reloading cbd: {}",
                             e.what());
-        SPDLOG_LOGGER_ERROR(core_logger, "problem while reloading cbd: {}",
-                            e.what());
       }
 
       reload_engine_context(core_logger);
