@@ -92,7 +92,7 @@ target_precompile_headers(${NEB} REUSE_FROM nebbase)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
-add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc
+add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc ${SRC_DIR}/remote_actions.cc
                          ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc)
 
 set_target_properties(cbmod PROPERTIES PREFIX "" POSITION_INDEPENDENT_CODE ON)
