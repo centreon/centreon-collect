@@ -18,7 +18,6 @@
 
 #ifndef CCB_UNIFIED_SQL_DATABASE_CONFIGURATOR_HH
 #define CCB_UNIFIED_SQL_DATABASE_CONFIGURATOR_HH
-#include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "common/engine_conf/state.pb.h"
 
