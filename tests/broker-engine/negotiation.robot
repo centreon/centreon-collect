@@ -167,21 +167,18 @@ BEDWEN
     ...    When the corresponding configuration directory doesn't exist
     ...    Then Broker logs a message telling the directory doesn't exist
     [Tags]    broker    engine    MON-153802
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Flush Log    central    0
-    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+
     Ctn Clear Broker Logs
-    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
-    Create Directory    ${VarRoot}/lib/centreon/config
     ${start}    Ctn Get Round Current Date
-    Ctn Start Broker
-    Ctn Start Engine    ${True}
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
 
     ${content}    Create List    Watching for changes in '${VarRoot}/lib/centreon/config'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -206,14 +203,13 @@ BEDWENF
     ...    And the pollers_config_directory is set (default value) to /var/lib/centreon-broker/pollers-configuration.
     ...    When a file of the form <poller_id>.lck is created after the <poller_id> directory is filled correctly
     ...    Then Broker logs a message telling the file has been created
-    ...    And Broker dumps a file <poller_id>.prot if the pollers_conf directory
+    ...    And Broker dumps a file <poller_id>.prot in the pollers_conf directory
     [Tags]    broker    engine    MON-153802
     Ctn Clear Engine Logs
-    Ctn Config Engine    ${1}
+    Ctn Config Centralized Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    sql    info
@@ -221,29 +217,31 @@ BEDWENF
     Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
-    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Ctn Clear Broker Logs
-    Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
-    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
-    Create Directory    ${VarRoot}/lib/centreon/config
-    Remove Files    ${VarRoot}/lib/centreon-engine/config0/state.prot
+    #Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
+    #Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    #Create Directory    ${VarRoot}/lib/centreon/config
+    #Remove Files    ${VarRoot}/lib/centreon-engine/config0/state.prot
     ${start}    Ctn Get Round Current Date
-    Ctn Start Broker
-    Ctn Start Engine    ${True}
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine    newGeneration=${True}
+
+    Wait Until Created    ${VarRoot}/lib/centreon-engine/config0/state.prot    timeout=30s
+
+    Log To Console    Broker should detect a new Engine configuration
+    Ctn Engine Config Add Service    ${0}    ${1}    ${825}    test_service    command_12
 
     ${content}    Create List    Watching for changes in '${VarRoot}/lib/centreon/config'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should log a message when watching for changes in the cache_config_directory
 
-    Wait Until Created    ${VarRoot}/lib/centreon-engine/config0/state.prot    timeout=30s
-
-    # We fill the configuration directory with directory "1" in the cache_config_directory
-    Copy Directory
-    ...    ${EtcRoot}/centreon-engine/config0
-    ...    ${VarRoot}/lib/centreon/config/1
+    ## We fill the configuration directory with directory "1" in the cache_config_directory
+    #Copy Directory
+    #...    ${EtcRoot}/centreon-engine/config0
+    #...    ${VarRoot}/lib/centreon/config/1
     # We create a file in the cache_config_directory
-    Log To Console    File ${VarRoot}/lib/centreon/config/1.lck created
-    Create File    ${VarRoot}/lib/centreon/config/1.lck
+    #Log To Console    File ${VarRoot}/lib/centreon/config/1.lck created
+    #Create File    ${VarRoot}/lib/centreon/config/1.lck
 
     Log To Console    Broker should detect the new Engine configuration
     ${content}    Create List    New Engine configuration available, change in '1.lck' detected
