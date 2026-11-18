@@ -120,11 +120,11 @@ BERDUC1
 ...    When the broker and engine are started
 ...    Then the Lua virtual machine should be initialized in both broker and engine logs
 ...    And the engine and broker should be connected
-...    When the engine is stopped 
+...    When the engine is stopped
 ...    And the engine is restarted
 ...    And the engine is stopped and broker is kindly stopped
 ...    Then the contents of /tmp/lua-engine.log and /tmp/lua.log should match
-...    And there should be no duplicate events in the logs 
+...    And there should be no duplicate events in the logs
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
@@ -169,7 +169,7 @@ BERDUCU1
 ...    When the Broker and Engine are started
 ...    Then the Lua virtual machine should initialize without errors
 ...    And the Broker and Engine logs should confirm Lua initialization
-...    When the Broker is kindly stopped 
+...    When the Broker is kindly stopped
 ...    Then the cache is cleared and Broker is restarted
 ...    And the Engine is stopped and Broker is kindly stopped again
 ...    Then there should be no duplicated events in the logs
@@ -185,10 +185,10 @@ BERDUCU1
     Ctn Config Broker    module
     Ctn Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Ctn Broker Config Log    module0    lua    debug
+    Ctn Config Broker    rrd
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Flush Log    module0    0
-    Ctn Config Broker    rrd
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker

@@ -236,7 +236,7 @@ BETUSEV1
     Ctn Add Template To Services    1    service_template_2    [503, 504]
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Ctn Config Broker    module
+    Ctn Config Broker    module    2
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
     Ctn Broker Config Log    module0    neb    debug

@@ -56,6 +56,7 @@ BCL4
 *** Keywords ***
 Ctn Start Broker With Args
     [Arguments]    @{options}
+    Ctn Broker Config Flush
     Start Process    /usr/sbin/cbd    @{options}    alias=b1    stdout=/tmp/output.txt
 
 Ctn Wait For broker

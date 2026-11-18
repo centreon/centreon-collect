@@ -130,6 +130,7 @@ BEPBRI1
     Remove File    /tmp/pbresponsiveinstance.log
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    trace
@@ -164,6 +165,7 @@ BEPBCVS
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
@@ -195,6 +197,8 @@ BEPBHostParent
     Ctn Add Parent To Host    0    host_1    host_2
     Ctn Add Parent To Host    0    host_3    host_2
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
@@ -269,6 +273,7 @@ GRPC_CLOUD_FAILURE
 
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config Broker Bbdo Input    central    bbdo_server    5669    grpc
     Ctn Config Broker Bbdo Output    module0    bbdo_client    5669    grpc    localhost
     Ctn Config Broker Sql Output    central    unified_sql
@@ -286,7 +291,7 @@ GRPC_CLOUD_FAILURE
     Ctn Broker Config Input Set    central    central-broker-master-input    ca_certificate    /tmp/ca_1234.crt
     Ctn Broker Config Input Set    central    central-broker-master-input    certificate    /tmp/server_1234.crt
 
-    Ctn Config BBDO3    ${1}
+    Ctn Config BBDO3    ${1}    only_central=True    only_engine=True
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Engine
@@ -297,7 +302,7 @@ GRPC_CLOUD_FAILURE
     ${many_connections}    Ctn Wait For Connections    5669    3    20
     Should Not Be True    ${many_connections}    We should have only one connection to fake grpc server
 
-    Call method    ${grpc_bbdo_server}    stop    1
+    Call Method    ${grpc_bbdo_server}    stop    1
     Sleep    10
 
     Ctn Start Broker    ${True}
