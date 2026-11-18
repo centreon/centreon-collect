@@ -89,6 +89,15 @@ void stream::init(const params& param) {
 
   // Check certificate.
   param.validate_cert(_session);
+  /* validate_cert() throws when a CA is set and the peer does not match. */
+  _peer_verified = param.has_trusted_ca();
+}
+
+/**
+ * @brief The peer is verified when a CA was configured for the handshake.
+ */
+bool stream::peer_verified() const {
+  return _peer_verified || io::stream::peer_verified();
 }
 
 /**

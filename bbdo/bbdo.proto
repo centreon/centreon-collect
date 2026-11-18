@@ -40,6 +40,9 @@ message Welcome {
   string broker_name = 5;
   com.centreon.common.PeerType peer_type = 6;
   bool extended_negotiation = 7;
+  /* The sender accepts downstream remote actions (commands, configuration)
+   * on this stream. Set by a poller only when its configuration allows it. */
+  bool remote_actions = 8;
 }
 
 /* io::bbdo, bbdo::de_pb_ack, 50 */
@@ -63,4 +66,50 @@ message EngineConfiguration {
       5;  // Engine uses this to send the conf version
   bool need_update =
       6;  // Broker uses this to tell Engine if an update is needed
+}
+
+enum RemoteStatus {
+  REMOTE_UNKNOWN = 0;
+  REMOTE_DELIVERED = 1;
+  REMOTE_APPLIED = 2;
+  REMOTE_REJECTED = 3;
+}
+
+/* Downstream events (central Broker -> poller cbmod). They travel on the
+ * existing BBDO stream, are consumed by the BBDO layer and are never published
+ * to the muxers. */
+
+/* io::bbdo, bbdo::de_pb_remote_command, 61 */
+message RemoteCommand {
+  string request_id = 1;
+  uint64 deadline = 2;  // epoch seconds, the poller drops expired commands
+  repeated string commands = 3;  // "[ts] CMD;args", centengine.cmd format
+}
+
+/* io::bbdo, bbdo::de_pb_config_chunk, 62 */
+message ConfigChunk {
+  string request_id = 1;
+  uint32 index = 2;     // file index in the deployment
+  string target = 3;    // "engine" or "broker"
+  string path = 4;      // relative path under the target directory
+  string sha256 = 5;    // hex SHA-256 of the whole file
+  bytes data = 6;       // part of the file content
+  bool last = 7;        // last chunk of this file
+}
+
+/* io::bbdo, bbdo::de_pb_config_commit, 63 */
+message ConfigCommit {
+  string request_id = 1;
+  string action = 2;  // "none", "reload" or "restart"
+  uint32 files_count = 3;
+}
+
+/* io::bbdo, bbdo::de_pb_remote_result, 64 */
+message RemoteResult {
+  string request_id = 1;
+  int32 index = 2;  // command index, -1 for the whole request
+  RemoteStatus status = 3;
+  string message = 4;
+  string config_version = 5;
+  repeated string plugins_missing = 6;
 }

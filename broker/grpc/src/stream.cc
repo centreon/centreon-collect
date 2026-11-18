@@ -428,6 +428,23 @@ bool stream<bireactor_class>::wait_for_all_events_written(unsigned ms_timeout) {
                               [this]() { return _write_queue.empty(); });
 }
 
+/**
+ * @brief The peer is verified when the channel is encrypted and, as a client,
+ * the server certificate is checked against a configured CA or, as a server,
+ * the client sent the configured authorization token (the server does not
+ * request client certificates).
+ *
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+bool stream<bireactor_class>::peer_verified() const {
+  if (!_conf->is_crypted())
+    return false;
+  if (_class_name == "client")
+    return !_conf->get_ca().empty();
+  return !_conf->get_authorization().empty();
+}
+
 namespace com::centreon::broker::grpc {
 
 template class stream<

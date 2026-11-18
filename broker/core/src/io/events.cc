@@ -228,6 +228,14 @@ events::events() : _logger{log_v2::instance().get(log_v2::CONFIG)} {
   register_event(bbdo::pb_engine_configuration::static_type(),
                  "EngineConfiguration",
                  &bbdo::pb_engine_configuration::operations);
+  register_event(bbdo::pb_remote_command::static_type(), "RemoteCommand",
+                 &bbdo::pb_remote_command::operations);
+  register_event(bbdo::pb_config_chunk::static_type(), "ConfigChunk",
+                 &bbdo::pb_config_chunk::operations);
+  register_event(bbdo::pb_config_commit::static_type(), "ConfigCommit",
+                 &bbdo::pb_config_commit::operations);
+  register_event(bbdo::pb_remote_result::static_type(), "RemoteResult",
+                 &bbdo::pb_remote_result::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,
