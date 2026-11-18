@@ -1,0 +1,35 @@
+# SNMP load test of centreon-engine (README.md). Started by run.sh:
+# the agents and the sink first, then the engine once gen-config.py has
+# written its configuration from the agents' addresses.
+name: snmp-load
+
+x-build: &build
+  context: ../..
+  dockerfile: deploy/snmp-load/Dockerfile
+  additional_contexts:
+    plugins: ${PLUGINS_DIR:?set PLUGINS_DIR to a centreon-plugins checkout}
+
+services:
+  snmpd:
+    image: snmp-load-snmpd
+    build: { <<: *build, target: snmpd }
+    deploy:
+      replicas: ${AGENTS:-20}
+
+  sink:
+    image: snmp-load-sink
+    build: { <<: *build, target: sink }
+    user: "${UID:-1000}"
+    volumes:
+      - ${RESULTS_DIR:-./results}:/data
+
+  engine:
+    image: snmp-load-engine
+    build: { <<: *build, target: engine }
+    profiles: [engine]
+    depends_on: [sink]
+    environment:
+      CENTREON_ENGINE_LOG: ${ENGINE_LOG:-warn}
+      CENTREON_ENGINE__SCHEDULER__MAX_CONCURRENT_CHECKS: ${MAX_CONCURRENT_CHECKS:-256}
+    volumes:
+      - ${CONF_DIR:-./conf}:/etc/centreon-engine/conf:ro
