@@ -44,7 +44,7 @@ std::shared_ptr<engine::broker::handle> loader::add_module(
     const std::string& args) {
   // Little hook to stop to load this old module.
   if (filename.find("cbmod.so") != std::string::npos) {
-    config_logger->error(
+    config_logger->warn(
         "Broker module '{}' is deprecated and will be removed in future "
         "versions. Please remove this module from your configuration.",
         filename);
