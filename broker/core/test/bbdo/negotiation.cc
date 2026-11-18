@@ -24,7 +24,7 @@
 #include <thread>
 
 #include "broker/core/bbdo/stream.hh"
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/raw.hh"
 

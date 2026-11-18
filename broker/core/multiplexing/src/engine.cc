@@ -21,7 +21,7 @@
 #include "bbdo/neb.pb.h"
 
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"

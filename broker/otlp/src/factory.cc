@@ -19,7 +19,7 @@
 #include "com/centreon/broker/otlp/factory.hh"
 
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/otlp/connector.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"

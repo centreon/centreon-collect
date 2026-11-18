@@ -17,7 +17,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 #include "com/centreon/broker/time/timezone_locker.hh"

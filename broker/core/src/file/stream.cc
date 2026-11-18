@@ -21,7 +21,7 @@
 #include <fmt/chrono.h>
 
 #include "broker.pb.h"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/math.hh"
 #include "common/log_v2/log_v2.hh"

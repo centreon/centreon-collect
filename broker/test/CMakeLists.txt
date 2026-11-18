@@ -76,7 +76,7 @@ add_executable(rpc_client ${TESTS_DIR}/rpc/client.cc)
 add_dependencies(rpc_client centreon_common)
 
 target_link_libraries(
-  rpc_client
+  rpc_client PRIVATE
   pb_broker_lib
   process_stat
   centreon_common
@@ -110,10 +110,11 @@ set_property(TARGET ut_broker PROPERTY ENABLE_EXPORTS ON)
 target_link_libraries(
   ut_broker
   PRIVATE
-          roker
 	  -Wl,--whole-archive
+          applier_state
           rokerbase
           centreon_process
+          bbdo
 	  -Wl,--no-whole-archive
           centreon_common
           centreon_hexdump
@@ -136,8 +137,9 @@ target_link_libraries(
 add_dependencies(
   ut_broker
   test_util
-  roker
+  applier_state
   rokerbase
+  bbdo
   multiplexing
   centreon_common)
 

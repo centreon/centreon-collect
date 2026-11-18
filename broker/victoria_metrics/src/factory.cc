@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/victoria_metrics/factory.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/victoria_metrics/connector.hh"
 #include "com/centreon/common/pool.hh"

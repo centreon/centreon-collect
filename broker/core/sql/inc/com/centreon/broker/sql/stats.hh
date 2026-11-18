@@ -20,7 +20,7 @@
 #define CCB_STATS_HH
 
 #include <boost/circular_buffer.hpp>
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 
 namespace com::centreon::broker {
 

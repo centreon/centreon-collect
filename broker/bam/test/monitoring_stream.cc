@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "bbdo/bam/ba_status.hh"
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "common/log_v2/log_v2.hh"

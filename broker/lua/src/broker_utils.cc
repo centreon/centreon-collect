@@ -19,7 +19,7 @@
 #include "com/centreon/broker/lua/broker_utils.hh"
 
 #include <absl/strings/str_split.h>
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "common/crypto/base64.hh"
 
 #include <openssl/evp.h>

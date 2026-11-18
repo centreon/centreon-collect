@@ -25,8 +25,8 @@
 #include <cerrno>
 #include <iomanip>
 #include <sstream>
-#include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
+#include "broker/core/config/applier/endpoint.hh"
+#include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/stats/builder.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"

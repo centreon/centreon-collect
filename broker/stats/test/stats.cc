@@ -19,8 +19,8 @@
 #include <gtest/gtest.h>
 #include <com/centreon/broker/stats/parser.hh>
 #include <com/centreon/broker/stats/worker_pool.hh>
-#include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/endpoint.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"

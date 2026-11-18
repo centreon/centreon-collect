@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include <gtest/gtest.h>
 
 using namespace com::centreon::broker;
