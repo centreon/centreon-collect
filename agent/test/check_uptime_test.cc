@@ -30,6 +30,10 @@ using namespace std::string_literals;
 class native_check_uptime_test : public testing::Test {
  public:
   Service serv;
+  // fixed current time so that the boot time in the output is deterministic
+  const std::chrono::system_clock::time_point now =
+      std::chrono::sys_days{std::chrono::year{2026} / 11 / 18} +
+      std::chrono::hours{12};
 
   native_check_uptime_test() {
     serv.set_service_description("serv");
@@ -55,9 +59,12 @@ TEST_F(native_check_uptime_test, ok) {
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, &output, &perf);
+      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output,
+                      &perf);
   ASSERT_EQ(status, e_status::ok);
-  ASSERT_EQ(output, "OK: System uptime is: 5d 1h 1m 1s");
+  ASSERT_EQ(output,
+            "OK: System uptime is: 5d 1h 1m 1s"
+            " (last reboot: 2026-11-13T10:58:59Z)");
   ASSERT_EQ(perf.name(), "uptime");
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 5 + 3600 + 60 + 1);
@@ -86,9 +93,12 @@ TEST_F(native_check_uptime_test, ok_m) {
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, &output, &perf);
+      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output,
+                      &perf);
   ASSERT_EQ(status, e_status::ok);
-  ASSERT_EQ(output, "OK: System uptime is: 5d 1h 1m 1s");
+  ASSERT_EQ(output,
+            "OK: System uptime is: 5d 1h 1m 1s"
+            " (last reboot: 2026-11-13T10:58:59Z)");
   ASSERT_EQ(perf.name(), "uptime");
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 5 + 3600 + 60 + 1);
@@ -117,9 +127,12 @@ TEST_F(native_check_uptime_test, ok_h) {
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, &output, &perf);
+      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output,
+                      &perf);
   ASSERT_EQ(status, e_status::ok);
-  ASSERT_EQ(output, "OK: System uptime is: 5d 1h 1m 1s");
+  ASSERT_EQ(output,
+            "OK: System uptime is: 5d 1h 1m 1s"
+            " (last reboot: 2026-11-13T10:58:59Z)");
   ASSERT_EQ(perf.name(), "uptime");
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 5 + 3600 + 60 + 1);
@@ -148,9 +161,12 @@ TEST_F(native_check_uptime_test, ok_d) {
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, &output, &perf);
+      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output,
+                      &perf);
   ASSERT_EQ(status, e_status::ok);
-  ASSERT_EQ(output, "OK: System uptime is: 5d 1h 1m 1s");
+  ASSERT_EQ(output,
+            "OK: System uptime is: 5d 1h 1m 1s"
+            " (last reboot: 2026-11-13T10:58:59Z)");
   ASSERT_EQ(perf.name(), "uptime");
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 5 + 3600 + 60 + 1);
@@ -179,9 +195,12 @@ TEST_F(native_check_uptime_test, ok_w) {
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 14 + 3600 + 60 + 1) * 1000, &output, &perf);
+      checker.compute((86400 * 14 + 3600 + 60 + 1) * 1000, now, &output,
+                      &perf);
   ASSERT_EQ(status, e_status::ok);
-  ASSERT_EQ(output, "OK: System uptime is: 14d 1h 1m 1s");
+  ASSERT_EQ(output,
+            "OK: System uptime is: 14d 1h 1m 1s"
+            " (last reboot: 2026-11-04T10:58:59Z)");
   ASSERT_EQ(perf.name(), "uptime");
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 14 + 3600 + 60 + 1);
@@ -210,9 +229,11 @@ TEST_F(native_check_uptime_test, warning) {
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 3 + 3600 + 1) * 1000, &output, &perf);
+      checker.compute((86400 * 3 + 3600 + 1) * 1000, now, &output, &perf);
   ASSERT_EQ(status, e_status::warning);
-  ASSERT_EQ(output, "WARNING: System uptime is: 3d 1h 0m 1s");
+  ASSERT_EQ(output,
+            "WARNING: System uptime is: 3d 1h 0m 1s"
+            " (last reboot: 2026-11-15T10:59:59Z)");
   ASSERT_EQ(perf.name(), "uptime");
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 3 + 3600 + 1);
@@ -241,9 +262,11 @@ TEST_F(native_check_uptime_test, warning_bis) {
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 3 + 3600 + 1) * 1000, &output, &perf);
+      checker.compute((86400 * 3 + 3600 + 1) * 1000, now, &output, &perf);
   ASSERT_EQ(status, e_status::warning);
-  ASSERT_EQ(output, "WARNING: System uptime is: 3d 1h 0m 1s");
+  ASSERT_EQ(output,
+            "WARNING: System uptime is: 3d 1h 0m 1s"
+            " (last reboot: 2026-11-15T10:59:59Z)");
   ASSERT_EQ(perf.name(), "uptime");
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 3 + 3600 + 1);
@@ -272,9 +295,12 @@ TEST_F(native_check_uptime_test, critical) {
 
   std::string output;
   com::centreon::common::perfdata perf;
-  e_status status = checker.compute((86400 + 3600 * 4) * 1000, &output, &perf);
+  e_status status = checker.compute((86400 + 3600 * 4) * 1000, now, &output,
+                                    &perf);
   ASSERT_EQ(status, e_status::critical);
-  ASSERT_EQ(output, "CRITICAL: System uptime is: 1d 4h 0m 0s");
+  ASSERT_EQ(output,
+            "CRITICAL: System uptime is: 1d 4h 0m 0s"
+            " (last reboot: 2026-11-17T08:00:00Z)");
   ASSERT_EQ(perf.name(), "uptime");
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 + 3600 * 4);
@@ -302,9 +328,12 @@ TEST_F(native_check_uptime_test, critical_bis) {
 
   std::string output;
   com::centreon::common::perfdata perf;
-  e_status status = checker.compute((86400 + 3600 * 4) * 1000, &output, &perf);
+  e_status status = checker.compute((86400 + 3600 * 4) * 1000, now, &output,
+                                    &perf);
   ASSERT_EQ(status, e_status::critical);
-  ASSERT_EQ(output, "CRITICAL: System uptime is: 1d 4h 0m 0s");
+  ASSERT_EQ(output,
+            "CRITICAL: System uptime is: 1d 4h 0m 0s"
+            " (last reboot: 2026-11-17T08:00:00Z)");
   ASSERT_EQ(perf.name(), "uptime");
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 + 3600 * 4);

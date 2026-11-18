@@ -971,8 +971,9 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS_MACRO
 
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
-    [Documentation]    agent check service with native check uptime and we expect to get it in check result
-    [Tags]    broker    engine    opentelemetry    MON-147919
+    [Documentation]    agent check service with native check uptime and we expect to get it in check result,
+    ...    with the last reboot time in ISO 8601 UTC in the output
+    [Tags]    broker    engine    opentelemetry    MON-147919    MON-177154
 
     ${run_env}    Ctn Run Env
     Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
@@ -1015,6 +1016,14 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
     Should Be True    ${result}    resources table not updated
+
+    ${result}    ${content}    Ctn Check Service Output Resource Status With Timeout RT
+    ...    host_1    service_1    60    ${start}    0    HARD    OK: System uptime is:
+    Should Be True    ${result}    service_1 output not updated
+    Should Match Regexp
+    ...    ${content}[output]
+    ...    ^OK: System uptime is: .+ \\(last reboot: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z\\)
+    ...    the output of service_1 should end with the last reboot time in ISO 8601 UTC
 
     ${expected_perfdata}    Ctn Get Uptime
     ${result}    Ctn Check Service Perfdata    host_1    service_1    60    600    ${expected_perfdata}

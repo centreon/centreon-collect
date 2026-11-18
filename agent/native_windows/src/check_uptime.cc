@@ -103,7 +103,8 @@ void check_uptime::start_check([[maybe_unused]] const duration& timeout) {
   }
   std::string output;
   common::perfdata perf;
-  e_status status = compute(GetTickCount64(), &output, &perf);
+  e_status status = compute(GetTickCount64(), std::chrono::system_clock::now(),
+                            &output, &perf);
 
   asio::post(
       *_io_context, [me = shared_from_this(), this, out = std::move(output),
@@ -116,15 +117,17 @@ void check_uptime::start_check([[maybe_unused]] const duration& timeout) {
  * @brief calculate status, output and perfdata from uptime
  *
  * @param ms_uptime
+ * @param now current time, used to compute the boot time
  * @param output
  * @param perfs
  * @return e_status
  */
 e_status check_uptime::compute(uint64_t ms_uptime,
+                               const std::chrono::system_clock::time_point& now,
                                std::string* output,
                                common::perfdata* perf) {
   std::chrono::system_clock::time_point boot_tp =
-      std::chrono::system_clock::now() - std::chrono::milliseconds(ms_uptime);
+      now - std::chrono::milliseconds(ms_uptime);
   uint64_t uptime = ms_uptime / 1000;
   uint64_t uptime_bis = uptime;
 
@@ -186,8 +189,8 @@ void check_uptime::help(std::ostream& help_stream) {
     }
   }
   Examples of output:
-    OK: System uptime is: 5d 1h 1m 1s
-    CRITICAL: System uptime is: 1d 4h 0m 0s
+    OK: System uptime is: 5d 1h 1m 1s (last reboot: 2026-11-13T10:58:59Z)
+    CRITICAL: System uptime is: 1d 4h 0m 0s (last reboot: 2026-11-17T08:00:00Z)
   Metrics:
     uptime
 )";

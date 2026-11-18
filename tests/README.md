@@ -636,7 +636,7 @@ Here is the list of the currently implemented tests:
       * 'No storage found (filters issue)'.
       * Between each filter, a filter that refuses all drives is applied in order to be sure that
       * OK state comes from the new filter.
-143. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME**: agent check service with native check uptime and we expect to get it in check result
+143. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME**: agent check service with native check uptime and we expect to get it in check result, with the last reboot time in ISO 8601 UTC in the output
 144. **BEOTEL_CENTREON_AGENT_CHECK_PROCESS**: 
       * Given an agent with eventlog check, we expect to get the correct status for thr centagent process running on windows host
 145. **BEOTEL_CENTREON_AGENT_CHECK_SERVICE**: 
