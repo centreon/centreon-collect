@@ -22,12 +22,12 @@
 
 #include <grpcpp/server.h>
 
-#include "com/centreon/broker/broker_impl.hh"
+#include "broker/core/brokerrpc/broker_impl.hh"
 
 namespace com::centreon::broker {
 
 /**
- * @class brokerrpc brokerrpc.hh "com/centreon/broker/brokerrpc.hh"
+ * @class brokerrpc brokerrpc.hh "broker/core/brokerrpc/brokerrpc.hh"
  * @brief This is the entry point to the Broker gRPC server
  */
 class brokerrpc final {
@@ -36,8 +36,7 @@ class brokerrpc final {
 
  public:
   brokerrpc(const std::string& address,
-            uint16_t port,
-            const std::string& broker_name);
+            uint16_t port);
   brokerrpc() = delete;
   brokerrpc(const brokerrpc&) = delete;
   ~brokerrpc() = default;

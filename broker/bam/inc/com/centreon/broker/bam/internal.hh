@@ -21,7 +21,7 @@
 
 #include "bam.pb.h"
 #include "bbdo/bam_state.pb.h"
-#include "broker.pb.h"
+#include "broker/broker.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 

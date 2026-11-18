@@ -116,6 +116,7 @@ target_link_libraries(
           centreon_process
           bbdo
 	  -Wl,--no-whole-archive
+          brokerrpc
           centreon_common
           centreon_hexdump
           centreon_grpc

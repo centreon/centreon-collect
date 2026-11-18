@@ -75,6 +75,7 @@ else()
 endif()
 
 include_directories(
+  ${CMAKE_BINARY_DIR}
   ${CMAKE_BINARY_DIR}/bbdo
   ${CMAKE_BINARY_DIR}/common/process_stat
   "${PROJECT_SOURCE_DIR}/core/inc"
@@ -93,29 +94,6 @@ add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
 
 # link_directories(${mariadb-connector-c_LIB_DIRS})
-add_custom_command(
-  DEPENDS ${SRC_DIR}/broker.proto
-  COMMENT "Generating interface files of the proto file (grpc)"
-  OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
-  COMMAND
-    protobuf::protoc ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat --grpc_out="${SRC_DIR}"
-    ${SRC_DIR}/broker.proto
-  DEPENDS ${SRC_DIR}/broker.proto
-  COMMENT "Generating interface files of the proto file (protobuf)"
-  OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
-  COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat
-    ${SRC_DIR}/broker.proto
-    WORKING_DIRECTORY ${SRC_DIR})
-
-add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
-                                                "${SRC_DIR}/broker.pb.h")
-
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
                     ${CMAKE_SOURCE_DIR}/common/inc
                     ${CMAKE_SOURCE_DIR}/bbdo)
@@ -297,25 +275,9 @@ endif()
 # Broker vars
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
+add_subdirectory(core/brokerrpc)
 add_subdirectory(core/multiplexing)
 add_subdirectory(core/config/applier)
-
-add_library(pb_broker_lib STATIC
-    ${SRC_DIR}/broker.grpc.pb.cc
-    ${SRC_DIR}/broker.grpc.pb.h
-    ${SRC_DIR}/broker.pb.cc
-    ${SRC_DIR}/broker.pb.h
-  )
-
-add_dependencies(pb_broker_lib process_stat pb_common_lib centreon_engine_conf)
-
-target_link_libraries(pb_broker_lib
-  PRIVATE
-  process_stat
-  centreon_engine_conf
-)
-
-set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(core/bbdo)
 add_subdirectory(core/cache)
@@ -324,8 +286,6 @@ add_subdirectory(core/cache)
 set(LIBROKER_SOURCES
     # Sources.
     ${SRC_DIR}/bbdo2_to_bbdo3.cc
-    ${SRC_DIR}/broker_impl.cc
-    ${SRC_DIR}/brokerrpc.cc
     ${SRC_DIR}/compression/factory.cc
     ${SRC_DIR}/compression/opener.cc
     ${SRC_DIR}/compression/stack_array.cc
@@ -409,6 +369,7 @@ target_link_libraries(
   -Wl,--whole-archive
   log_v2
   sql
+  brokerrpc
   rokerbase
   applier_state
   bbdo

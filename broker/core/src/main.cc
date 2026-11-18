@@ -47,10 +47,11 @@ using namespace com::centreon;
 #include <boost/interprocess/allocators/private_node_allocator.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 
-#include "com/centreon/broker/brokerrpc.hh"
+#include "broker/core/brokerrpc/brokerrpc.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/state.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
@@ -357,7 +358,7 @@ int main(int argc, char* argv[]) {
       SPDLOG_LOGGER_INFO(core_logger, "Start of grpc server on {}:{}",
                          default_listen_address, default_port);
       std::unique_ptr<brokerrpc, std::function<void(brokerrpc*)> > rpc(
-          new brokerrpc(default_listen_address, default_port, broker_name),
+          new brokerrpc(default_listen_address, default_port),
           [](brokerrpc* rpc) {
             rpc->shutdown();
             delete rpc;

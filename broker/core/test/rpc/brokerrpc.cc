@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/brokerrpc.hh"
+#include "broker/core/brokerrpc/brokerrpc.hh"
 #include "broker/core/config/applier/state.hh"
 
 #include <gtest/gtest.h>
@@ -60,12 +60,12 @@ class BrokerRpc : public ::testing::Test {
 };
 
 TEST_F(BrokerRpc, StartStop) {
-  brokerrpc brpc("0.0.0.0", 40000, "test");
+  brokerrpc brpc("0.0.0.0", 40000);
   ASSERT_NO_THROW(brpc.shutdown());
 }
 
 TEST_F(BrokerRpc, GetVersion) {
-  brokerrpc brpc("0.0.0.0", 40000, "test");
+  brokerrpc brpc("0.0.0.0", 40000);
   auto output = execute("GetVersion");
 #if CENTREON_BROKER_PATCH == 0
   ASSERT_EQ(output.size(), 2u);
@@ -82,7 +82,7 @@ TEST_F(BrokerRpc, GetVersion) {
 }
 
 TEST_F(BrokerRpc, GetMuxerStats) {
-  brokerrpc brpc("0.0.0.0", 40000, "test");
+  brokerrpc brpc("0.0.0.0", 40000);
   std::vector<std::string> vectests{
       "name: mx1, queue_file: qufl_, "
       "unacknowledged_events: "

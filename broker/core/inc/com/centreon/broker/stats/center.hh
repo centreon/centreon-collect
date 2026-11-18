@@ -20,7 +20,7 @@
 #define CCB_STATS_CENTER_HH
 
 #include <absl/synchronization/mutex.h>
-#include "broker.pb.h"
+#include "broker/broker.pb.h"
 
 namespace com::centreon::broker::stats {
 /**
