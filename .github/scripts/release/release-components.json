@@ -21,7 +21,10 @@
         "cmake-vcpkg.sh",
         "CMakeLists.txt",
         "CMakeListsLinux.txt",
-        "vcpkg.json"
+        "vcpkg.json",
+        ".version",
+        "common",
+        "tests"
       ]
     },
     "centreon-common": {
@@ -29,7 +32,9 @@
       "bundle_component": "centreon-common",
       "paths": [
         "packaging/centreon-common",
-        ".version.centreon-common"
+        ".version.centreon-common",
+        ".version",
+        "selinux/centreon-common"
       ]
     },
     "centreon-gorgone": {
@@ -37,7 +42,9 @@
       "bundle_component": "centreon-gorgone",
       "paths": [
         "gorgone",
-        ".version.centreon-gorgone"
+        ".version.centreon-gorgone",
+        ".version",
+        "perl-libs"
       ]
     },
     "centreon-monitoring-agent": {
@@ -45,7 +52,17 @@
       "bundle_component": "centreon-monitoring-agent",
       "paths": [
         "agent",
-        ".version.centreon-monitoring-agent"
+        ".version.centreon-monitoring-agent",
+        ".version",
+        "common",
+        "custom-triplets",
+        "overlays",
+        "packaging/centreon-monitoring-agent",
+        "selinux/centreon-monitoring-agent",
+        "CMakeLists.txt",
+        "CMakeListsLinux.txt",
+        "CMakeListsWindows.txt",
+        "vcpkg.json"
       ]
     }
   },
