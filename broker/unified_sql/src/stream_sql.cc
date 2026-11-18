@@ -3002,10 +3002,8 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
  *
  * @return The number of events that can be acknowledged.
  */
-void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
-  const neb::pb_global_diff_state& global_diff_state(
-      *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
-  const auto& obj = global_diff_state.obj();
+void stream::_process_pb_global_diff_state(
+    const std::shared_ptr<io::data>& d [[maybe_unused]]) {
   _logger_sql->info("unified_sql: processing global diff state event");
 }
 

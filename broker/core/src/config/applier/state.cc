@@ -622,7 +622,7 @@ bool state::set_engine_conf_watcher_occupied(bool occupied,
  * false otherwise.
  */
 bool state::all_engine_peers_acknowledged() const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(_connected_peers_m);
   for (const auto& peer : _connected_peers) {
     if (peer.second.peer_type == common::ENGINE &&
         !peer.second.conf_acknowledged)
@@ -739,7 +739,7 @@ void state::_check_last_engine_conf(bool first_call) {
 void state::_prepare_diff_for_poller(
     uint64_t poller_id,
     std::unique_ptr<engine::configuration::State>&& state) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id; ++lower) {
@@ -823,7 +823,7 @@ void state::_prepare_diff_for_poller(
  * @return A boolean indicating if the poller engine peer needs an update.
  */
 bool state::engine_peer_needs_update(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id; ++lower) {
@@ -843,7 +843,7 @@ bool state::engine_peer_needs_update(uint64_t poller_id) const {
  * @param ack
  */
 void state::acknowledge_engine_peer(uint64_t poller_id, bool ack) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id; ++lower) {
@@ -862,7 +862,7 @@ void state::acknowledge_engine_peer(uint64_t poller_id, bool ack) {
  */
 void state::set_diff_state(const std::shared_ptr<io::data>& diff) {
   assert(diff.unique());
-  absl::MutexLock lck(&_diff_state_m);
+  absl::MutexLock lck(_diff_state_m);
   auto diff_state =
       std::static_pointer_cast<com::centreon::broker::bbdo::pb_diff_state>(
           diff);
@@ -873,7 +873,7 @@ void state::set_diff_state(const std::shared_ptr<io::data>& diff) {
 
 std::unique_ptr<com::centreon::engine::configuration::DiffState>
 state::diff_state() {
-  absl::MutexLock lck(&_diff_state_m);
+  absl::MutexLock lck(_diff_state_m);
   return std::move(_diff_state);
 }
 
