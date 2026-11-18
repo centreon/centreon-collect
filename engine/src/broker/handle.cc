@@ -204,7 +204,8 @@ void handle::open() {
                               "returned an error");
 
   } catch (std::exception const& e) {
-    process_logger->error("fail to load broker module {}", e.what());
+    process_logger->error("fail to load broker module '{}': {}", _filename,
+                          e.what());
     close();
     throw;
   }

@@ -231,8 +231,8 @@ void stream::_update_stats() {
                   log_v2::instance()
                       .get(log_v2::CORE)
                       ->info(
-                          "Retention file will be terminated at {:%Y-%m-%d "
-                          "%H:%M:%S}",
+                          "The processing of retention data is expected to "
+                          "finish on {:%Y-%m-%d %H:%M:%S}",
                           tm);
                 }
               } else
