@@ -8,7 +8,7 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  Debuginfo package for centagent.
+  Debuginfo package for centreon-monitoring-agent.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://www.centreon.com"
@@ -35,7 +35,7 @@ overrides:
       - centreon-monitoring-agent-dbgsym
 
 rpm:
-  summary: Debuginfo package for centagent.
+  summary: Debuginfo package for centreon-monitoring-agent.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
