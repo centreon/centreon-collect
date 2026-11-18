@@ -114,10 +114,10 @@ class state {
         const std::string& engine_conf_version,
         const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept;
-  std::vector<uint32_t> _get_current_lck_files() noexcept;
+  uint32_t _get_lck_file_if_exists(uint32_t poller_id) noexcept;
   std::vector<uint32_t> _watch_engine_conf();
   void _start_watch_engine_conf_timer();
-  void _check_last_engine_conf(bool first_call = false);
+  void _check_last_engine_conf(uint64_t forced_poller_id = 0);
   void _prepare_diff_for_poller(
       uint64_t poller_id,
       std::unique_ptr<engine::configuration::State>&& state)
@@ -191,7 +191,7 @@ class state {
   bool all_engine_peers_acknowledged() const;
   void set_engine_conf(const std::string& engine_conf);
   const std::string& engine_conf() const;
-  void set_poller_engine_conf(uint64_t poller_id,
+  void set_poller_engine_conf(uint32_t poller_id,
                               const std::string& poller_name,
                               const std::string& broker_name,
 

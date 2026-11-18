@@ -325,22 +325,23 @@ void state::add_peer(uint64_t poller_id,
       _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
           com::centreon::common::pool::instance().io_context());
       _start_watch_engine_conf_timer();
-
-      /* The directory watcher has been started but may be there were <ID>.lck
-       * files already present in the cache directory. We need to check them
-       * and apply the diff if needed.
-       */
-      boost::asio::post(com::centreon::common::pool::instance().io_context(),
-                        [this]() {
-                          if (set_engine_conf_watcher_occupied(
-                                  true, "applier::state::watcher")) {
-                            _logger->debug("Checking for existing lck files");
-                            _check_last_engine_conf(true);
-                            set_engine_conf_watcher_occupied(
-                                false, "applier::state::watcher");
-                          }
-                        });
     }
+
+    /* The directory watcher has been started but may be there were <ID>.lck
+     * files already present in the cache directory. We need to check them
+     * and apply the diff if needed.
+     */
+    boost::asio::post(
+        com::centreon::common::pool::instance().io_context(),
+        [this, poller_id]() {
+          if (set_engine_conf_watcher_occupied(true,
+                                               "applier::state::watcher")) {
+            _logger->debug("Checking for existing {}.lck file", poller_id);
+            uint32_t existing_lck = _get_lck_file_if_exists(poller_id);
+            _check_last_engine_conf(existing_lck);
+            set_engine_conf_watcher_occupied(false, "applier::state::watcher");
+          }
+        });
   }
 }
 
@@ -350,7 +351,7 @@ void state::add_peer(uint64_t poller_id,
  * @param poller_id The poller ID.
  * @param engine_conf The new Engine configuration version.
  */
-void state::set_poller_engine_conf(uint64_t poller_id,
+void state::set_poller_engine_conf(uint32_t poller_id,
                                    const std::string& poller_name,
                                    const std::string& broker_name,
                                    const std::string& engine_conf) {
@@ -505,42 +506,29 @@ const std::filesystem::path& state::proto_conf() const {
  * This method is used to check if some Engine configurations are already
  * present in the cache directory when the watcher is started.
  *
- * @return A vector of poller IDs for which a .lck file is present in the
- * cache configuration directory.
+ * @return The poller ID if <poller_id>.lck file exists in the cache
+ * configuration directory, 0 otherwise.
  */
-std::vector<uint32_t> state::_get_current_lck_files() noexcept {
-  std::vector<uint32_t> retval;
-  if (_cache_config_dir_watcher) {
-    std::error_code ec;
-
-    std::filesystem::directory_iterator it(_cache_config_dir, ec);
-    if (ec) {
-      _logger->error("Cannot iterate in cache config directory '{}': {}",
-                     _cache_config_dir.string(), ec.message());
-      return retval;
-    }
-
-    for (const auto& entry : it) {
-      bool is_regular = entry.is_regular_file(ec);
-      if (ec) {
-        _logger->warn("Cannot check if '{}' is a regular file: {}",
-                      entry.path().string(), ec.message());
-        continue;
-      }
-
-      if (is_regular && entry.path().extension() == ".lck") {
-        std::string name = entry.path().stem().string();
-        uint32_t poller_id;
-        if (absl::SimpleAtoi(name, &poller_id)) {
-          _logger->debug("Found '{}.lck' for poller id '{}'", name, poller_id);
-          retval.push_back(poller_id);
-        } else {
-          _logger->warn("Cannot parse poller id from lck file '{}.lck'", name);
-        }
-      }
-    }
+uint32_t state::_get_lck_file_if_exists(uint32_t poller_id) noexcept {
+  if (!_cache_config_dir_watcher) {
+    return 0;
   }
-  return retval;
+
+  std::error_code ec;
+  std::filesystem::path lck_file(_cache_config_dir /
+                                 fmt::format("{}.lck", poller_id));
+
+  if (!std::filesystem::is_regular_file(lck_file, ec)) {
+    if (ec) {
+      _logger->warn("Cannot check if '{}' is a regular file: {}",
+                    lck_file.string(), ec.message());
+    }
+    return 0;
+  }
+
+  _logger->debug("Found lock file '{}' for poller id {}", lck_file.string(),
+                 poller_id);
+  return poller_id;
 }
 
 /**
@@ -665,11 +653,17 @@ void state::_start_watch_engine_conf_timer() {
  * @param forced_poller_id The poller ID to check for a new Engine
  * configuration. If it is 0, the check is based on the inotify results.
  */
-void state::_check_last_engine_conf(bool first_call) {
-  _logger->debug("Checking if there is a new Engine configuration - forced: {}",
-                 first_call);
-  auto pollers_vec =
-      first_call ? _get_current_lck_files() : _watch_engine_conf();
+void state::_check_last_engine_conf(uint64_t forced_poller_id) {
+  std::vector<uint32_t> pollers_vec;
+  if (forced_poller_id) {
+    _logger->debug(
+        "Checking if there is a new Engine configuration for poller {}",
+        forced_poller_id);
+    pollers_vec.push_back(forced_poller_id);
+  } else {
+    _logger->debug("Checking if there is a new Engine configuration available");
+    pollers_vec = _watch_engine_conf();
+  }
   std::error_code ec;
   for (uint32_t poller_id : pollers_vec) {
     auto state = std::make_unique<engine::configuration::State>();
