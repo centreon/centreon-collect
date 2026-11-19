@@ -167,7 +167,7 @@ yum install python3-devel -y
 
 On deb based system, we have to install:
 ```
-apt-get install python3-dev
+apt-get install python3-dev openssh-server
 ```
 
 And then we can install the required python modules:
