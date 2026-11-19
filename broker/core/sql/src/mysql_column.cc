@@ -260,7 +260,7 @@ void mysql_column::reserve(size_t s) {
  *
  * @param str The string to add to the column.
  */
-void mysql_column::_push_value_str(const fmt::string_view& str) {
+void mysql_column::_push_value_str(const std::string_view& str) {
   std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
   assert(_indicator.size() == _row_count && _error.size() == _row_count &&
          _length.size() == _row_count && vector->size() == _row_count);
@@ -296,7 +296,7 @@ void mysql_column::_push_null_str() {
  * @param row The row concerned by the insertion.
  * @param str The content to set into the column.
  */
-void mysql_column::set_value_str(size_t row, const fmt::string_view& str) {
+void mysql_column::set_value_str(size_t row, const std::string_view& str) {
   assert(_type == MYSQL_TYPE_STRING);
   size_t size = str.size();
   std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);

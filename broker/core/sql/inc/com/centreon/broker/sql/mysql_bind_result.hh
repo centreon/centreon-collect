@@ -246,7 +246,7 @@ class mysql_bind_result : public mysql_bind_base {
    * @param range A non negative integer.
    * @param value The string to set.
    */
-  // void set_value_as_str(size_t range, const fmt::string_view& value);
+  // void set_value_as_str(size_t range, const std::string_view& value);
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_STRING.

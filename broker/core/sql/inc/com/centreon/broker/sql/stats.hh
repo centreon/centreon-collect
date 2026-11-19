@@ -1,5 +1,5 @@
 /**
- * Copyright 2023-2024 Centreon
+ * Copyright 2023-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,7 @@
 #include <boost/circular_buffer.hpp>
 #include "broker/core/config/applier/state.hh"
 
-namespace com::centreon::broker {
-
-namespace sql {
+namespace com::centreon::broker::sql {
 
 /**
  * @class stats stats.hh
@@ -65,7 +63,7 @@ class stats {
           _start_time(std::chrono::system_clock::now()),
           _query_len(query.size()) {
       _query = query.size() > 50
-                   ? fmt::format("{}...", fmt::string_view(query.data(), 50))
+                   ? fmt::format("{}...", std::string_view(query.data(), 50))
                    : query;
     }
     ~query_span() noexcept {
@@ -112,7 +110,7 @@ class stats {
           _start_time(std::chrono::system_clock::now()),
           _statement_id{stmt_id},
           _query{query.size() > 50
-                     ? fmt::format("{}...", fmt::string_view(query.data(), 50))
+                     ? fmt::format("{}...", std::string_view(query.data(), 50))
                      : query} {}
     ~stmt_span() noexcept {
       uint32_t top_s =
@@ -219,8 +217,6 @@ class stats {
   loop average_loop() const;
 };
 
-}  // namespace sql
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::sql
 
 #endif /* !CCB_STATS_HH */

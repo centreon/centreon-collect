@@ -1,5 +1,5 @@
 /**
- * Copyright 2023-2024 Centreon
+ * Copyright 2023-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -377,7 +377,7 @@ class mysql_stmt_base {
    * @param value The value to set.
    */
   virtual void bind_value_as_str(size_t range,
-                                 const fmt::string_view& value) = 0;
+                                 const std::string_view& value) = 0;
   /**
    * @brief Set the given value at the column named key in the prepared
    * statement at the current row. The type of the column must be
@@ -387,7 +387,7 @@ class mysql_stmt_base {
    * @param value The value to set.
    */
   void bind_value_as_str_k(const std::string& key,
-                           const fmt::string_view& value);
+                           const std::string_view& value);
   /**
    * @brief Set the NULL value at the column named key in the prepared
    * statement at the current row. The type of the column must be

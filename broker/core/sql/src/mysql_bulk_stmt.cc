@@ -112,6 +112,6 @@ BIND_VALUE(f32, float)
 BIND_VALUE(f64, double)
 BIND_VALUE(tiny, char)
 BIND_VALUE(bool, bool)
-BIND_VALUE(str, const fmt::string_view&)
+BIND_VALUE(str, const std::string_view&)
 
 #undef BIND_VALUE
