@@ -27,9 +27,22 @@
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::broker::cache {
+
+/* State shared by the periodic save timer and the cache. The timer handler
+ * may run after the cache is destroyed: it only reaches the cache through
+ * this state, which the destructor detaches under the mutex. */
+struct broker_cache::periodic_save {
+  absl::Mutex m;
+  broker_cache* cache ABSL_GUARDED_BY(m);
+  asio::steady_timer timer;
+
+  explicit periodic_save(broker_cache* c)
+      : cache{c}, timer{com::centreon::common::pool::io_context()} {}
+};
 
 /**
  * @brief Constructor
@@ -65,11 +78,56 @@ broker_cache::broker_cache(std::shared_ptr<spdlog::logger> logger)
  * @brief Destructor
  */
 broker_cache::~broker_cache() noexcept {
+  if (_periodic_save) {
+    absl::MutexLock lck(_periodic_save->m);
+    _periodic_save->cache = nullptr;
+    _periodic_save->timer.cancel();
+  }
   if (!config::applier::state::instance().supports_centralized_conf()) {
     /* Here, we are in legacy mode. We have to save the cache. If Broker is
      * restarted, it must keep the same cache. */
     _save_cache();
   }
+}
+
+/**
+ * @brief Start the periodic save of the cache. Called by cbd outside the
+ * centralized configuration, where the cache file is the only way to get the
+ * configuration back after a crash (the centralized configuration rebuilds
+ * the cache from the <poller_id>.prot files). Calling it again does nothing.
+ */
+void broker_cache::start_periodic_save() {
+  if (_periodic_save)
+    return;
+  SPDLOG_LOGGER_INFO(_logger,
+                     "broker_cache: configuration saved every {}s when changed",
+                     _save_interval.count());
+  _periodic_save = std::make_shared<periodic_save>(this);
+  absl::MutexLock lck(_periodic_save->m);
+  _arm_periodic_save(_periodic_save);
+}
+
+/**
+ * @brief Arm the periodic save timer; at each expiry, the cache is written if
+ * its configuration changed since the last save.
+ *
+ * @param ps The periodic save state, its mutex held by the caller.
+ */
+void broker_cache::_arm_periodic_save(
+    const std::shared_ptr<periodic_save>& ps) {
+  ps->timer.expires_after(_save_interval);
+  ps->timer.async_wait([ps](const boost::system::error_code& err) {
+    if (err)
+      return;
+    absl::MutexLock lck(ps->m);
+    if (!ps->cache)
+      return;
+    /* Cleared before the snapshot: a change made during the save is saved
+     * at the next expiry. */
+    if (ps->cache->_conf_changed.exchange(false))
+      ps->cache->_save_cache();
+    _arm_periodic_save(ps);
+  });
 }
 
 /**
@@ -90,6 +148,7 @@ broker_cache::~broker_cache() noexcept {
  */
 void broker_cache::merge(
     const com::centreon::engine::configuration::State& state) {
+  _mark_conf_changed();
   absl::WriterMutexLock lck{_mutex};
 
   /* Work on instances */
@@ -289,6 +348,7 @@ void broker_cache::merge(
  */
 void broker_cache::apply(
     const com::centreon::engine::configuration::DiffState& diff) {
+  _mark_conf_changed();
   absl::WriterMutexLock lck{_mutex};
 
   _logger->debug("Applying configuration diff for poller id {} and name '{}'",
@@ -959,6 +1019,7 @@ void broker_cache::update_instance(
     const std::shared_ptr<neb::pb_instance>& instance) {
   if (!section_enabled(CACHE_INSTANCES | CACHE_OTEL))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
   auto& obj = instance->obj();
   if (section_enabled(CACHE_INSTANCES)) {
@@ -986,6 +1047,7 @@ void broker_cache::update_instance(
 void broker_cache::remove_instance(uint64_t instance_id) {
   if (!section_enabled(CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
   _instances.erase(instance_id);
 
@@ -1012,6 +1074,7 @@ void broker_cache::update_servicegroup(
     const std::shared_ptr<neb::pb_service_group>& servicegroup) {
   if (!section_enabled(CACHE_GROUPS))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
 
   const auto& sg_id = servicegroup->obj().servicegroup_id();
@@ -1069,6 +1132,7 @@ void broker_cache::update_hostgroup(
     const std::shared_ptr<neb::pb_host_group>& hostgroup) {
   if (!section_enabled(CACHE_GROUPS))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
 
   const auto& hg_id = hostgroup->obj().hostgroup_id();
@@ -1212,6 +1276,7 @@ void broker_cache::update_hostgroup_member(
     const std::shared_ptr<neb::pb_host_group_member>& hostgroup_member) {
   if (!section_enabled(CACHE_GROUPS))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
 
   const auto& hgm_obj = hostgroup_member->obj();
@@ -1272,6 +1337,7 @@ void broker_cache::update_servicegroup_member(
     const std::shared_ptr<neb::pb_service_group_member>& servicegroup_member) {
   if (!section_enabled(CACHE_GROUPS))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
 
   const auto& sgm_obj = servicegroup_member->obj();
@@ -1345,6 +1411,7 @@ void broker_cache::update_metric_mapping(
 void broker_cache::update_host(const std::shared_ptr<neb::pb_host>& host) {
   if (!section_enabled(CACHE_HOSTS))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
   auto& index = _hosts.get<by_id>();
   auto& h = host->obj();
@@ -1459,6 +1526,7 @@ void broker_cache::update_host(
     const std::shared_ptr<neb::pb_adaptive_host>& host) {
   if (!section_enabled(CACHE_HOSTS))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
   auto& ah = host->obj();
   auto& index = _hosts.get<by_id>();
@@ -1545,6 +1613,7 @@ void broker_cache::update_host(
 void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
   if (!section_enabled(CACHE_SERVICES))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
 
   auto& index = _services.get<by_id>();
@@ -1641,6 +1710,7 @@ void broker_cache::update_service(
     const std::shared_ptr<neb::pb_adaptive_service>& svc) {
   if (!section_enabled(CACHE_SERVICES))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock l{_mutex};
 
   auto& as = svc->obj();
@@ -1733,6 +1803,7 @@ void broker_cache::update_severity(
     const std::shared_ptr<neb::pb_severity>& evt) {
   if (!section_enabled(CACHE_SEVERITIES))
     return;
+  _mark_conf_changed();
   auto& obj = evt->obj();
   absl::WriterMutexLock lck{_mutex};
   auto it = _severities.find({obj.id(), obj.type()});
@@ -1762,6 +1833,7 @@ broker_cache::severities() const {
 void broker_cache::update_tag(const std::shared_ptr<neb::pb_tag>& evt) {
   if (!section_enabled(CACHE_TAGS))
     return;
+  _mark_conf_changed();
   auto& obj = evt->obj();
   auto key = std::make_pair(obj.id(), obj.type());
   absl::WriterMutexLock lck{_mutex};
@@ -1900,6 +1972,7 @@ void broker_cache::set_db_id_for_severity(uint64_t config_id,
                                           uint64_t db_id) {
   if (!section_enabled(CACHE_SEVERITIES))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock lck{_mutex};
   auto it = _severities.find({config_id, type});
   if (it != _severities.end())
@@ -1922,6 +1995,7 @@ void broker_cache::set_db_id_for_severity(uint64_t config_id,
 void broker_cache::erase_severity(uint64_t config_id, uint32_t type) {
   if (!section_enabled(CACHE_SEVERITIES))
     return;
+  _mark_conf_changed();
   absl::WriterMutexLock lck{_mutex};
   _severities.erase({config_id, type});
 }
@@ -2643,6 +2717,14 @@ void broker_cache::_load_cache() {
       for (const auto& inst_pair : to_load.instances())
         _instances.insert({inst_pair.id(), inst_pair.name()});
 
+      for (const auto& sev : to_load.severities())
+        _severities.insert(
+            {{sev.id(), static_cast<uint32_t>(sev.type())}, {sev.level(), 0}});
+      for (const auto& tag : to_load.tags()) {
+        auto t = std::make_shared<neb::pb_tag>();
+        t->mut_obj().CopyFrom(tag);
+        _tags.insert_or_assign({tag.id(), tag.type()}, std::move(t));
+      }
       for (const auto& otel : to_load.otel_services())
         _otel_services.insert_or_assign(
             otel.host_id(), otel_service{otel.name(), otel.name_space()});
@@ -2696,19 +2778,8 @@ void broker_cache::_load_cache() {
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
                          _cache_file.string());
     }
-    ifs.close();
-    /* The cache is written only at a clean stop: once read, it is moved
-     * aside so that a crash restarts from an empty cache instead of reading
-     * this stale one again. The moved file stays there for analysis. */
-    std::filesystem::path loaded{_cache_file};
-    loaded += ".loaded";
-    std::error_code ec;
-    std::filesystem::rename(_cache_file, loaded, ec);
-    if (ec)
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "broker_cache: cannot move cache file '{}' to '{}': "
-                          "{}",
-                          _cache_file.string(), loaded.string(), ec.message());
+    /* The file stays in place: the periodic save rewrites it once the
+     * configuration changes, so a crash restarts from a recent copy. */
   } else {
     SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache file '{}' does not exist",
                        _cache_file.string());
@@ -2722,6 +2793,7 @@ void broker_cache::_load_cache() {
  */
 void broker_cache::_save_cache() {
   SPDLOG_LOGGER_INFO(_logger, "broker_cache: saving cache...");
+  const auto start = std::chrono::steady_clock::now();
   BrokerCache to_save;
   {
     absl::ReaderMutexLock lck{_mutex};
@@ -2734,6 +2806,14 @@ void broker_cache::_save_cache() {
       auto* h = to_save.add_hosts();
       h->CopyFrom(host->obj());
     }
+    for (const auto& [key, sev] : _severities) {
+      auto* s = to_save.add_severities();
+      s->set_id(key.first);
+      s->set_type(static_cast<Severity::Type>(key.second));
+      s->set_level(sev.level);
+    }
+    for (const auto& [key, tag] : _tags)
+      to_save.add_tags()->CopyFrom(tag->obj());
     for (const auto& [host_id, otel] : _otel_services) {
       auto* o = to_save.add_otel_services();
       o->set_host_id(host_id);
@@ -2775,21 +2855,44 @@ void broker_cache::_save_cache() {
       }
     }
   }
-  /* Saving the BrokerCache */
-  std::ofstream ofs{_cache_file, std::ios::binary | std::ios::trunc};
-  if (!ofs) {
-    SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot open cache file '{}'",
-                        _cache_file.string());
-  } else {
-    if (!to_save.SerializeToOstream(&ofs)) {
+  const auto copied = std::chrono::steady_clock::now();
+  /* Saving the BrokerCache in a temporary file, then renamed: a crash during
+   * the write never leaves a truncated cache file. */
+  std::filesystem::path tmp{_cache_file};
+  tmp += ".tmp";
+  {
+    std::ofstream ofs{tmp, std::ios::binary | std::ios::trunc};
+    if (!ofs) {
+      SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot open cache file '{}'",
+                          tmp.string());
+      return;
+    }
+    if (!to_save.SerializeToOstream(&ofs) || !ofs.flush()) {
       SPDLOG_LOGGER_ERROR(_logger,
                           "broker_cache: cannot serialize cache to file '{}'",
-                          _cache_file.string());
-    } else {
-      SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache saved to file '{}'",
-                         _cache_file.string());
+                          tmp.string());
+      return;
     }
   }
+  std::error_code ec;
+  std::filesystem::rename(tmp, _cache_file, ec);
+  if (ec) {
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "broker_cache: cannot move cache file '{}' to '{}': {}",
+                        tmp.string(), _cache_file.string(), ec.message());
+    return;
+  }
+  SPDLOG_LOGGER_INFO(
+      _logger,
+      "broker_cache: cache saved to file '{}' in {} ms ({} ms under lock, {} "
+      "bytes)",
+      _cache_file.string(),
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - start)
+          .count(),
+      std::chrono::duration_cast<std::chrono::milliseconds>(copied - start)
+          .count(),
+      to_save.ByteSizeLong());
 }
 
 void broker_cache::update_index_mapping(
@@ -2839,8 +2942,10 @@ otel_service_field otel_service_field_of(uint64_t service_id,
  * @param instance_id originating poller, or zero for older senders.
  * @param is_name true for OTEL_SERVICE_NAME, false for OTEL_SERVICE_NAMESPACE.
  * @param value
+ *
+ * @return true if the stored identity changed.
  */
-void broker_cache::_set_host_otel_service(uint64_t host_id,
+bool broker_cache::_set_host_otel_service(uint64_t host_id,
                                           uint64_t instance_id,
                                           bool is_name,
                                           std::string_view value) {
@@ -2856,19 +2961,28 @@ void broker_cache::_set_host_otel_service(uint64_t host_id,
                           "Ignoring OTel custom variable of host {} from "
                           "poller {}: no matching host owner",
                           host_id, instance_id);
-      return;
+      return false;
     }
   }
   auto exist = _otel_services.find(host_id);
   if (!value.empty()) {
     if (exist == _otel_services.end())
       exist = _otel_services.emplace(host_id, otel_service{}).first;
-    (is_name ? exist->second.name : exist->second.name_space) = value;
-  } else if (exist != _otel_services.end()) {
-    (is_name ? exist->second.name : exist->second.name_space).clear();
-    if (exist->second.name.empty() && exist->second.name_space.empty())
-      _otel_services.erase(exist);
+    std::string& field = is_name ? exist->second.name : exist->second.name_space;
+    if (field == value)
+      return false;
+    field = value;
+    return true;
   }
+  if (exist == _otel_services.end())
+    return false;
+  std::string& field = is_name ? exist->second.name : exist->second.name_space;
+  if (field.empty())
+    return false;
+  field.clear();
+  if (exist->second.name.empty() && exist->second.name_space.empty())
+    _otel_services.erase(exist);
+  return true;
 }
 
 /**
@@ -2915,9 +3029,10 @@ void broker_cache::update_custom_variable(
   if (field == otel_service_field::none)
     return;
   absl::WriterMutexLock l{_mutex};
-  _set_host_otel_service(in.host_id(), in.instance_id(),
-                         field == otel_service_field::name,
-                         in.enabled() ? in.value() : std::string_view());
+  if (_set_host_otel_service(in.host_id(), in.instance_id(),
+                             field == otel_service_field::name,
+                             in.enabled() ? in.value() : std::string_view()))
+    _mark_conf_changed();
 }
 
 /**
@@ -2936,8 +3051,9 @@ void broker_cache::update_custom_variable(
   if (field == otel_service_field::none)
     return;
   absl::WriterMutexLock l{_mutex};
-  _set_host_otel_service(in.host_id(), in.instance_id(),
-                         field == otel_service_field::name, in.value());
+  if (_set_host_otel_service(in.host_id(), in.instance_id(),
+                             field == otel_service_field::name, in.value()))
+    _mark_conf_changed();
 }
 
 /**

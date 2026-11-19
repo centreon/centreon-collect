@@ -58,6 +58,12 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
     else
       set_pollers_config_dir(s.pollers_config_dir());
   }
+
+  /* Outside the centralized configuration, the cache file is the only way to
+   * get the pollers configuration back after a crash: it is saved
+   * periodically. */
+  if (!supports_centralized_conf())
+    cache().start_periodic_save();
 }
 
 /**

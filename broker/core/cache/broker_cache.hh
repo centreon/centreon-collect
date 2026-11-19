@@ -19,10 +19,12 @@
 #define CCB_CACHE_BROKER_CACHE_HH
 #include <absl/base/thread_annotations.h>
 #include <absl/container/btree_set.h>
+#include <atomic>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
+#include <chrono>
 #include <filesystem>
 #include <optional>
 
@@ -410,7 +412,7 @@ class broker_cache {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
-  void _set_host_otel_service(uint64_t host_id,
+  bool _set_host_otel_service(uint64_t host_id,
                               uint64_t instance_id,
                               bool is_name,
                               std::string_view value)
@@ -427,6 +429,16 @@ class broker_cache {
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);
   void _save_cache() ABSL_LOCKS_EXCLUDED(_mutex);
 
+  /* Periodic save of the cache (cbd outside the centralized configuration):
+   * every _save_interval, the cache is written if its configuration data
+   * changed. Real-time statuses do not count, to spare the disk. */
+  static constexpr std::chrono::seconds _save_interval{10};
+  std::atomic_bool _conf_changed{false};
+  struct periodic_save;
+  std::shared_ptr<periodic_save> _periodic_save;
+  void _mark_conf_changed() { _conf_changed.store(true); }
+  static void _arm_periodic_save(const std::shared_ptr<periodic_save>& ps);
+
  public:
   broker_cache(std::shared_ptr<spdlog::logger> logger);
   broker_cache(const broker_cache&) = delete;
@@ -439,6 +451,7 @@ class broker_cache {
   bool section_enabled(uint32_t section) const noexcept {
     return (_enabled_sections.load(std::memory_order_relaxed) & section) != 0;
   }
+  void start_periodic_save();
   void merge(const com::centreon::engine::configuration::State& state)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void apply(const com::centreon::engine::configuration::DiffState& diff)
