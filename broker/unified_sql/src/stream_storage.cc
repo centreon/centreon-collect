@@ -104,10 +104,11 @@ void stream::_unified_sql_process_pb_service_status(
       host_id, service_id);
   auto it_index_cache = _index_cache.find({host_id, service_id});
   if (it_index_cache == _index_cache.end()) {
-    _logger_sql->critical(
-        "sql: could not find index for service({}, {}) - maybe the poller with "
-        "that service should be restarted",
-        host_id, service_id);
+    SPDLOG_LOGGER_WARN(_logger_sql,
+                       "sql: could not find index for service ({}, {}) - "
+                       "configuration export may be pending on the poller, "
+                       "or the poller may need a restart",
+                       host_id, service_id);
     return;
   }
 
