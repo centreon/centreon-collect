@@ -598,3 +598,33 @@ TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
       "1674715598\n",
       req.body());
 }
+
+/* The severity of a host status is the database id of the host severity. */
+TEST_F(victoria_request_test, host_status_severity) {
+  auto& bc = config::applier::state::instance().cache();
+  auto hst = std::make_shared<neb::pb_host>();
+  hst->mut_obj().set_host_id(31);
+  hst->mut_obj().set_name("host 31");
+  hst->mut_obj().set_enabled(true);
+  hst->mut_obj().set_severity_id(7);
+  bc.publish(hst);
+  bc.set_db_id_for_severity(7, Severity_Type_HOST, 12);
+
+  http_tsdb::line_protocol_query dummy_metric(
+      http_tsdb::line_protocol_query::data_type::metric, _logger);
+  http_tsdb::line_protocol_query dummy_status(
+      http_tsdb::line_protocol_query::data_type::status, _logger);
+  victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
+                                "/", _logger, 0, dummy_metric, dummy_status,
+                                "toto");
+  Status status;
+  status.set_host_id(31);
+  status.set_service_id(0);
+  status.set_index_id(5);
+  status.set_time(1674715598);
+  status.set_state(1);
+  req.add_status(status);
+  ASSERT_NE(req.body().find("host_id=31,serv_id=0,severity_id=12"),
+            std::string::npos)
+      << req.body();
+}
