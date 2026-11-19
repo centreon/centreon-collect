@@ -759,8 +759,9 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
 
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
-    [Documentation]    agent check service with native check storage and we expect to get it in check result
-    [Tags]    broker    engine    opentelemetry    MON-147936
+    [Documentation]    agent check service with native check storage and we expect to get it in check result,
+    ...    with the <drive>:#storage.space.free.bytes, usage.bytes and usage.percentage perfdata
+    [Tags]    broker    engine    opentelemetry    MON-147936    MON-177154
 
     ${run_env}    Ctn Run Env
     Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
@@ -808,6 +809,17 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
     ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_perfdata}
     Should be True    ${result}    data_bin not updated
 
+    ${drive_c}    Create List    C
+    ${expected_perfdata}    Ctn Get Drive Space Statistics    storage.space.usage.percentage    ${drive_c}
+    ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_perfdata}    all_expected=True
+    Should Be True    ${result}    C:#storage.space.usage.percentage not found or unexpected
+    # drive usage changes while tests run: 1 GiB tolerance on byte values
+    FOR    ${metric}    IN    storage.space.free.bytes    storage.space.usage.bytes
+        ${expected_perfdata}    Ctn Get Drive Space Statistics    ${metric}    ${drive_c}
+        ${result}    Ctn Check Service Perfdata    host_1    service_1    60    ${1073741824}    ${expected_perfdata}    all_expected=True
+        Should Be True    ${result}    C:#${metric} not found or unexpected
+    END
+
 
     #a small threshold to make service_1 warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
@@ -836,7 +848,8 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_STORAGE_TYPE
     ...    'No storage found (filters issue)'.
     ...    Between each filter, a filter that refuses all drives is applied in order to be sure that
     ...    OK state comes from the new filter.
-    [Tags]    broker    engine    opentelemetry    MON-199565    MON-207844
+    ...    C:#storage.space.usage.percentage is also expected for each filter.
+    [Tags]    broker    engine    opentelemetry    MON-199565    MON-207844    MON-177154
 
     ${run_env}    Ctn Run Env
     Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
@@ -845,6 +858,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_STORAGE_TYPE
 
     ${drive_c}    Create List    C
     ${expected_perfdata}    Ctn Get Drive Statistics    free_{}:\\    ${drive_c}
+    ${expected_space_perfdata}    Ctn Get Drive Space Statistics    storage.space.usage.percentage    ${drive_c}
     ${idx}    Set Variable    ${0}
     # hrstoragefixeddisk is the default value of FILTERSTORAGETYPE macro
     FOR    ${filter}    IN
@@ -866,6 +880,8 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_STORAGE_TYPE
         Should Contain    ${output}    OK: All storages are ok    filter-storage-type ${filter}: unexpected output
         ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_perfdata}
         Should Be True    ${result}    filter-storage-type ${filter}: C: perfdata not found
+        ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_space_perfdata}    all_expected=True
+        Should Be True    ${result}    filter-storage-type ${filter}: C:#storage.space.usage.percentage not found
     END
 
     # storage type is compared to drive type and not to file system format (MON-207844)
@@ -881,7 +897,8 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS
     ...    when filter-fs or exclude-fs refuses a drive, then this drive is refused before any system call
     ...    on it (no GetVolumeInformation or GetDiskFreeSpaceEx), so no error is logged even for drives
     ...    without media. filter-fs and exclude-fs are case insensitive.
-    [Tags]    broker    engine    opentelemetry    MON-201438    MON-207844
+    ...    With filter-fs c:.*, the count perfdata is 1 and C:#storage.space.usage.percentage is sent.
+    [Tags]    broker    engine    opentelemetry    MON-201438    MON-207844    MON-177154
 
     ${run_env}    Ctn Run Env
     Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
@@ -897,6 +914,10 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS
     Should Contain    ${output}    OK: All storages are ok
     ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_perfdata}
     Should Be True    ${result}    C: perfdata not found
+    ${expected_perfdata}    Ctn Get Drive Space Statistics    storage.space.usage.percentage    ${drive_c}
+    Set To Dictionary    ${expected_perfdata}    count=${1}
+    ${result}    Ctn Check Service Perfdata    host_1    service_1    60    0.5    ${expected_perfdata}    all_expected=True
+    Should Be True    ${result}    count should be 1 and C:#storage.space.usage.percentage should be sent
 
     # other drives are refused by filter-fs
     ${drives}    Ctn Get Drive Names
@@ -927,7 +948,8 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS_MACRO
     ...    when backslashes are escaped once or twice (legacy form) in these macros,
     ...    then both forms give the same result: C: is checked with FILTERFS and refused with EXCLUDEFS.
     ...    A FILTERFS that matches no drive still refuses every drive.
-    [Tags]    broker    engine    opentelemetry    MON-207863
+    ...    C:#storage.space.usage.percentage is also expected with each FILTERFS form.
+    [Tags]    broker    engine    opentelemetry    MON-207863    MON-177154
 
     ${run_env}    Ctn Run Env
     Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
@@ -936,6 +958,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS_MACRO
 
     ${drive_c}    Create List    C
     ${expected_perfdata}    Ctn Get Drive Statistics    free_{}:\\    ${drive_c}
+    ${expected_space_perfdata}    Ctn Get Drive Space Statistics    storage.space.usage.percentage    ${drive_c}
     ${idx}    Set Variable    ${0}
     # robot unescapes backslashes, so macros are C:\\.* and C:\\\\.*
     # they don't end with a backslash because engine cfg parser reads it as a line continuation
@@ -951,6 +974,8 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS_MACRO
         Should Contain    ${output}    OK: All storages are ok    FILTERFS ${filter_fs}: unexpected output
         ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_perfdata}
         Should Be True    ${result}    FILTERFS ${filter_fs}: C: perfdata not found
+        ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_space_perfdata}    all_expected=True
+        Should Be True    ${result}    FILTERFS ${filter_fs}: C:#storage.space.usage.percentage not found
     END
 
     # FILTERFS that matches no drive

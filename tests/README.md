@@ -616,18 +616,20 @@ Here is the list of the currently implemented tests:
 138. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE_FILTER_STATE**: 
       * Given a windows agent with native service check, 
       * we filter on CentreonMonitoringAgent service and use warning-state and critical-state to trigger status changes
-139. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE**: agent check service with native check storage and we expect to get it in check result
+139. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE**: agent check service with native check storage and we expect to get it in check result, with the <drive>:#storage.space.free.bytes, usage.bytes and usage.percentage perfdata
 140. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS**: 
       * Given a windows agent with native check storage,
       * when filter-fs or exclude-fs refuses a drive, then this drive is refused before any system call
       * on it (no GetVolumeInformation or GetDiskFreeSpaceEx), so no error is logged even for drives
       * without media. filter-fs and exclude-fs are case insensitive.
+      * With filter-fs c:.*, the count perfdata is 1 and C:#storage.space.usage.percentage is sent.
 141. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS_MACRO**: 
       * Given a windows agent with native check storage whose filter-fs and exclude-fs
       * come from FILTERFS and EXCLUDEFS service macros,
       * when backslashes are escaped once or twice (legacy form) in these macros,
       * then both forms give the same result: C: is checked with FILTERFS and refused with EXCLUDEFS.
       * A FILTERFS that matches no drive still refuses every drive.
+      * C:#storage.space.usage.percentage is also expected with each FILTERFS form.
 142. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_STORAGE_TYPE**: 
       * Given a windows agent with native check storage,
       * when filter-storage-type contains a storage type (hrstoragefixeddisk, whatever its case)
@@ -636,6 +638,7 @@ Here is the list of the currently implemented tests:
       * 'No storage found (filters issue)'.
       * Between each filter, a filter that refuses all drives is applied in order to be sure that
       * OK state comes from the new filter.
+      * C:#storage.space.usage.percentage is also expected for each filter.
 143. **BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME**: agent check service with native check uptime and we expect to get it in check result, with the last reboot time in ISO 8601 UTC in the output
 144. **BEOTEL_CENTREON_AGENT_CHECK_PROCESS**: 
       * Given an agent with eventlog check, we expect to get the correct status for thr centagent process running on windows host

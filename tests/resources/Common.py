@@ -2447,7 +2447,7 @@ def ctn_compare_string_with_file(string_to_compare: str, file_path: str):
     return True
 
 
-def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: float, expected: dict):
+def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: float, expected: dict, all_expected: bool = False):
     """
     Check if performance data are near as expected.
         host (str): The hostname of the service to check.
@@ -2455,6 +2455,8 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
         timeout (int): The timeout value for the check.
         precision (float): The precision required for the performance data comparison.
         expected (dict): A dictionary containing the expected performance data values.
+        all_expected (bool): if True, wait until every expected metric is found,
+            otherwise expected metrics that are not found are ignored.
     """
     limit = time.time() + timeout
     query = f"""SELECT sub_query.metric_name, db.value FROM data_bin db JOIN
@@ -2476,6 +2478,7 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
                 cursor.execute(query)
                 result = cursor.fetchall()
                 if len(result) >= len(expected):
+                    found = set()
                     for res in result:
                         logger.console(
                             f"metric: {res['metric_name']}, value: {res['value']}")
@@ -2484,11 +2487,15 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
                         # as windows agent is not restarted, he can send metrics from previous tests once engine is restarted, so we ignore them
                         if metric not in expected:
                             continue
+                        found.add(metric)
                         if expected[metric] is not None and abs(value - expected[metric]) > precision:
                             logger.console(
                                 f"ERROR unexpected value for {metric}, expected: {expected[metric]}, found: {value}")
                             return False
-                    return True
+                    if not all_expected or len(found) == len(expected):
+                        return True
+                    logger.console(
+                        f"metrics not found yet: {set(expected) - found}")
         time.sleep(1)
     logger.console(f"unexpected result: {result}")
     return False

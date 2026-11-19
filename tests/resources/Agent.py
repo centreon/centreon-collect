@@ -317,6 +317,39 @@ def ctn_get_drive_statistics(drive_name_format: str, drive_names: list = None):
         return None
 
 
+def ctn_get_drive_space_statistics(metric: str, drive_names: list = None):
+    """
+    ctn_get_drive_space_statistics
+    return a dictionary of the expected values of the <drive>:#<metric> perfdata
+    of the storage check, indexed by perfdata names (C:#storage.space.free.bytes...)
+    Args:
+        metric: storage.space.free.bytes, storage.space.usage.bytes or
+            storage.space.usage.percentage
+        drive_names: if not None, only these drive letters are returned
+    """
+    if environ.get("RUN_ENV", "") == "WSL":
+        drive_dict = {}
+        json_test_args = environ.get("JSON_TEST_PARAMS")
+        test_args = json.loads(json_test_args)
+        for drive in test_args["drive"]:
+            if drive_names is not None and drive['Name'] not in drive_names:
+                continue
+            if drive['Free'] is None:
+                continue
+            if metric == "storage.space.free.bytes":
+                value = drive['Free']
+            elif metric == "storage.space.usage.bytes":
+                value = drive['Used']
+            elif metric == "storage.space.usage.percentage":
+                value = (100 * drive['Used']) / (drive['Used'] + drive['Free'])
+            else:
+                raise ValueError(f"unknown storage metric: {metric}")
+            drive_dict[f"{drive['Name']}:#{metric}"] = value
+        return drive_dict
+    else:
+        return None
+
+
 def ctn_get_uptime():
     """
     ctn_get_uptime
