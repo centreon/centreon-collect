@@ -24,6 +24,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 #include <filesystem>
+#include <optional>
 
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -159,6 +160,7 @@ using HostgroupContainer = boost::multi_index::multi_index_container<
                                           hostgroup_name_extractor>>>;
 
 struct by_pair {};
+struct by_triplet {};
 struct by_host {};
 struct by_hostgroup {};
 struct by_servicegroup {};
@@ -240,7 +242,7 @@ using ServiceServicegroupContainer = boost::multi_index::multi_index_container<
     indexed_service_servicegroup,
     boost::multi_index::indexed_by<
         boost::multi_index::ordered_unique<
-            boost::multi_index::tag<by_pair>,
+            boost::multi_index::tag<by_triplet>,
             service_servicegroup_triplet_extractor>,
         boost::multi_index::ordered_non_unique<
             boost::multi_index::tag<by_service>,
@@ -415,6 +417,12 @@ class broker_cache {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _set_otel_service_from_conf(
       const com::centreon::engine::configuration::Host& cfg)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _unlink_hostgroup_members(uint64_t hostgroup_id,
+                                 std::optional<uint64_t> poller_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _unlink_servicegroup_members(uint64_t servicegroup_id,
+                                    std::optional<uint64_t> poller_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);
   void _save_cache() ABSL_LOCKS_EXCLUDED(_mutex);

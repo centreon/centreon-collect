@@ -542,6 +542,140 @@ TEST_F(BrokerCacheTest, UpdateHostgroupMemberWithoutHostgroup) {
   ASSERT_THAT(_cache->hostgroup_members(1), ::testing::ElementsAre(1u));
 }
 
+/* Given a host group shared by poller 1 (hosts 1, 2) and poller 2 (host 3)
+ * When poller 1 removes the group (Engine sends no member removal)
+ * Then only the hosts of poller 1 leave the group
+ * And when poller 2 removes it too, the group and its links are gone. */
+TEST_F(BrokerCacheTest, RemovedHostgroupUnlinksItsMembers) {
+  publish_hosts(1, 2, 1);
+  publish_hosts(3, 3, 2);
+
+  auto hostgroup = [](uint64_t poller_id, bool enabled) {
+    auto hg = std::make_shared<neb::pb_host_group>();
+    auto& obj = hg->mut_obj();
+    obj.set_hostgroup_id(5);
+    obj.set_name("hg5");
+    obj.set_poller_id(poller_id);
+    obj.set_enabled(enabled);
+    return hg;
+  };
+  auto member = [](uint64_t host_id, uint64_t poller_id) {
+    auto hgm = std::make_shared<neb::pb_host_group_member>();
+    auto& obj = hgm->mut_obj();
+    obj.set_hostgroup_id(5);
+    obj.set_host_id(host_id);
+    obj.set_name("hg5");
+    obj.set_poller_id(poller_id);
+    obj.set_enabled(true);
+    return hgm;
+  };
+  _cache->update_hostgroup(hostgroup(1, true));
+  _cache->update_hostgroup(hostgroup(2, true));
+  _cache->update_hostgroup_member(member(1, 1));
+  _cache->update_hostgroup_member(member(2, 1));
+  _cache->update_hostgroup_member(member(3, 2));
+  ASSERT_THAT(_cache->hostgroup_members(5),
+              ::testing::UnorderedElementsAre(1u, 2u, 3u));
+
+  _cache->update_hostgroup(hostgroup(1, false));
+  ASSERT_TRUE(_cache->hostgroup(5));
+  ASSERT_THAT(_cache->hostgroup_members(5), ::testing::ElementsAre(3u));
+  ASSERT_THAT(_cache->hostgroups(1), ::testing::IsEmpty());
+
+  _cache->update_hostgroup(hostgroup(2, false));
+  ASSERT_FALSE(_cache->hostgroup(5));
+  ASSERT_THAT(_cache->hostgroup_members(5), ::testing::IsEmpty());
+  ASSERT_THAT(_cache->hostgroups(3), ::testing::IsEmpty());
+}
+
+/* Given a service group shared by poller 1 (services of host 1) and poller 2
+ * (a service of host 3)
+ * When poller 1 removes the group (Engine sends no member removal)
+ * Then only the services of poller 1 leave the group
+ * And when poller 2 removes it too, the group and its links are gone. */
+TEST_F(BrokerCacheTest, RemovedServicegroupUnlinksItsMembers) {
+  publish_hosts(1, 1, 1);
+  publish_hosts(3, 3, 2);
+  publish_services(1, 2, 1);
+  publish_services(7, 7, 3);
+
+  auto servicegroup = [](uint64_t poller_id, bool enabled) {
+    auto sg = std::make_shared<neb::pb_service_group>();
+    auto& obj = sg->mut_obj();
+    obj.set_servicegroup_id(6);
+    obj.set_name("sg6");
+    obj.set_poller_id(poller_id);
+    obj.set_enabled(enabled);
+    return sg;
+  };
+  auto member = [](uint64_t host_id, uint64_t service_id, uint64_t poller_id) {
+    auto sgm = std::make_shared<neb::pb_service_group_member>();
+    auto& obj = sgm->mut_obj();
+    obj.set_servicegroup_id(6);
+    obj.set_host_id(host_id);
+    obj.set_service_id(service_id);
+    obj.set_name("sg6");
+    obj.set_poller_id(poller_id);
+    obj.set_enabled(true);
+    return sgm;
+  };
+  _cache->update_servicegroup(servicegroup(1, true));
+  _cache->update_servicegroup(servicegroup(2, true));
+  _cache->update_servicegroup_member(member(1, 1, 1));
+  _cache->update_servicegroup_member(member(1, 2, 1));
+  _cache->update_servicegroup_member(member(3, 7, 2));
+  ASSERT_EQ(_cache->servicegroup_members(6).size(), 3u);
+
+  _cache->update_servicegroup(servicegroup(1, false));
+  ASSERT_TRUE(_cache->servicegroup(6));
+  ASSERT_THAT(_cache->servicegroup_members(6),
+              ::testing::ElementsAre(std::make_pair(3, 7)));
+  ASSERT_THAT(_cache->servicegroups(1, 2), ::testing::IsEmpty());
+
+  _cache->update_servicegroup(servicegroup(2, false));
+  ASSERT_FALSE(_cache->servicegroup(6));
+  ASSERT_THAT(_cache->servicegroup_members(6), ::testing::IsEmpty());
+  ASSERT_THAT(_cache->servicegroups(3, 7), ::testing::IsEmpty());
+}
+
+/* Given a host and a service added to groups 9 then 4
+ * When their groups are queried
+ * Then they come sorted by group id. */
+TEST_F(BrokerCacheTest, GroupsSortedById) {
+  publish_hosts(1, 1, 1);
+  publish_services(2, 2, 1);
+  for (uint64_t id : {9, 4}) {
+    auto hgm = std::make_shared<neb::pb_host_group_member>();
+    auto& hobj = hgm->mut_obj();
+    hobj.set_hostgroup_id(id);
+    hobj.set_host_id(1);
+    hobj.set_name(fmt::format("hg{}", id));
+    hobj.set_poller_id(1);
+    hobj.set_enabled(true);
+    _cache->update_hostgroup_member(hgm);
+
+    auto sgm = std::make_shared<neb::pb_service_group_member>();
+    auto& sobj = sgm->mut_obj();
+    sobj.set_servicegroup_id(id);
+    sobj.set_host_id(1);
+    sobj.set_service_id(2);
+    sobj.set_name(fmt::format("sg{}", id));
+    sobj.set_poller_id(1);
+    sobj.set_enabled(true);
+    _cache->update_servicegroup_member(sgm);
+  }
+
+  std::vector<uint64_t> hg_ids;
+  for (const auto& hg : _cache->hostgroups(1))
+    hg_ids.push_back(hg->obj().hostgroup_id());
+  ASSERT_THAT(hg_ids, ::testing::ElementsAre(4u, 9u));
+
+  std::vector<uint64_t> sg_ids;
+  for (const auto& sg : _cache->servicegroups(1, 2))
+    sg_ids.push_back(sg->obj().servicegroup_id());
+  ASSERT_THAT(sg_ids, ::testing::ElementsAre(4u, 9u));
+}
+
 TEST_F(BrokerCacheTest, UpdateServicegroup) {
   publish_hosts(1, 1, 1);
   publish_services(1, 1, 1);

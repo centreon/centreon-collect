@@ -380,7 +380,8 @@ void broker_cache::apply(
       _fill_host(&h->mut_obj(), host);
       auto [it, inserted] = hosts_by_id.insert(h);
       if (!inserted)
-        hosts_by_id.replace(it, h);      if (section_enabled(CACHE_OTEL))
+        hosts_by_id.replace(it, h);
+      if (section_enabled(CACHE_OTEL))
         _set_otel_service_from_conf(host);
     }
 
@@ -390,7 +391,8 @@ void broker_cache::apply(
       _fill_host(&h->mut_obj(), host);
       auto [it, inserted] = hosts_by_id.insert(h);
       if (!inserted)
-        hosts_by_id.replace(it, h);      if (section_enabled(CACHE_OTEL))
+        hosts_by_id.replace(it, h);
+      if (section_enabled(CACHE_OTEL))
         _set_otel_service_from_conf(host);
     }
   }
@@ -1047,9 +1049,14 @@ void broker_cache::update_servicegroup(
     }
   } else if (auto found = _servicegroups.get<by_id>().find(sg_id);
              found != _servicegroups.end()) {
+    /* Engine only sends the group removal, not one removal per member: the
+     * links between the group and the services of this poller go with it. */
+    _unlink_servicegroup_members(sg_id, poller_id);
     const_cast<absl::flat_hash_set<uint64_t>&>(found->second).erase(poller_id);
-    if (found->second.empty())
+    if (found->second.empty()) {
+      _unlink_servicegroup_members(sg_id, std::nullopt);
       _servicegroups.erase(found);
+    }
   }
 }
 
@@ -1128,13 +1135,71 @@ void broker_cache::update_hostgroup(
         "Host group '{}' (id {}) is disabled for poller {}. Removing it from "
         "Broker cache.",
         hostgroup->obj().name(), hg_id, poller_id);
+    /* Engine only sends the group removal, not one removal per member: the
+     * links between the group and the hosts of this poller go with it. */
+    _unlink_hostgroup_members(hg_id, poller_id);
     const_cast<absl::flat_hash_set<uint64_t>&>(found->second).erase(poller_id);
     if (found->second.empty()) {
       SPDLOG_LOGGER_INFO(_logger,
                          "Removing host group '{}' (id {}) from Broker cache.",
                          found->first->obj().name(), hg_id);
+      _unlink_hostgroup_members(hg_id, std::nullopt);
       _hostgroups.erase(found);
     }
+  }
+}
+
+/**
+ * @brief Remove the links between a host group and its member hosts.
+ *
+ * @param hostgroup_id The host group.
+ * @param poller_id    Only the hosts of this poller, or every member when
+ *                     empty (the group leaves the cache).
+ */
+void broker_cache::_unlink_hostgroup_members(
+    uint64_t hostgroup_id,
+    std::optional<uint64_t> poller_id) {
+  auto& by_group = _host_hostgroups.get<by_hostgroup>();
+  auto [it, end] = by_group.equal_range(hostgroup_id);
+  while (it != end) {
+    bool unlink = true;
+    if (poller_id) {
+      auto host_it = _hosts.find(it->host_id);
+      unlink = host_it != _hosts.end() &&
+               (*host_it)->obj().instance_id() == *poller_id;
+    }
+    if (unlink)
+      it = by_group.erase(it);
+    else
+      ++it;
+  }
+}
+
+/**
+ * @brief Remove the links between a service group and its member services.
+ *
+ * @param servicegroup_id The service group.
+ * @param poller_id       Only the services whose host belongs to this poller,
+ *                        or every member when empty (the group leaves the
+ *                        cache).
+ */
+void broker_cache::_unlink_servicegroup_members(
+    uint64_t servicegroup_id,
+    std::optional<uint64_t> poller_id) {
+  auto& by_group = _service_servicegroups.get<by_servicegroup>();
+  auto [it, end] = by_group.equal_range(servicegroup_id);
+  while (it != end) {
+    bool unlink;
+    if (poller_id) {
+      auto host_it = _hosts.find(it->host_id);
+      unlink = host_it != _hosts.end() &&
+               (*host_it)->obj().instance_id() == *poller_id;
+    } else
+      unlink = true;
+    if (unlink)
+      it = by_group.erase(it);
+    else
+      ++it;
   }
 }
 
@@ -2261,10 +2326,11 @@ std::vector<std::shared_ptr<neb::pb_host_group>> broker_cache::hostgroups(
     uint64_t host_id) const {
   absl::ReaderMutexLock l{_mutex};
   std::vector<std::shared_ptr<neb::pb_host_group>> retval;
-  auto& indexed_by_host = _host_hostgroups.get<by_host>();
-  auto range = indexed_by_host.equal_range(host_id);
-  retval.reserve(std::distance(range.first, range.second));
-  for (auto it = range.first; it != range.second; ++it)
+  /* by_pair is ordered by (host_id, hostgroup_id): the groups come sorted by
+   * id, as Lua scripts and the tests of develop expect. */
+  auto& indexed_by_pair = _host_hostgroups.get<by_pair>();
+  auto it = indexed_by_pair.lower_bound(std::make_pair(host_id, uint64_t{0}));
+  for (; it != indexed_by_pair.end() && it->host_id == host_id; ++it)
     retval.push_back(it->hostgroup);
   return retval;
 }
@@ -2307,12 +2373,14 @@ std::vector<std::shared_ptr<neb::pb_service_group>> broker_cache::servicegroups(
     uint64_t service_id) const {
   absl::ReaderMutexLock l{_mutex};
   std::vector<std::shared_ptr<neb::pb_service_group>> retval;
-  auto& indexed_by_service = _service_servicegroups.get<by_service>();
-  auto range =
-      indexed_by_service.equal_range(std::make_pair(host_id, service_id));
-
-  retval.reserve(std::distance(range.first, range.second));
-  for (auto it = range.first; it != range.second; ++it)
+  /* by_triplet is ordered by (host_id, service_id, servicegroup_id): the
+   * groups come sorted by id, as Lua scripts and the tests of develop expect. */
+  auto& indexed_by_triplet = _service_servicegroups.get<by_triplet>();
+  auto it = indexed_by_triplet.lower_bound(
+      std::make_tuple(host_id, service_id, uint64_t{0}));
+  for (; it != indexed_by_triplet.end() && it->host_id == host_id &&
+         it->service_id == service_id;
+       ++it)
     retval.push_back(it->servicegroup);
   return retval;
 }
