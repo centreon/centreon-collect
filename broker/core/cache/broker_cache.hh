@@ -44,6 +44,7 @@ struct by_id {};
 struct by_name {};
 struct by_service {};
 struct by_instance {};
+struct by_severity {};
 
 namespace cache {
 struct host_id_extractor {
@@ -57,6 +58,13 @@ struct host_name_extractor {
   using result_type = std::string_view;
   std::string_view operator()(const std::shared_ptr<neb::pb_host>& h) const {
     return h->obj().name();
+  }
+};
+
+struct host_severity_extractor {
+  using result_type = uint64_t;
+  result_type operator()(const std::shared_ptr<neb::pb_host>& h) const {
+    return h->obj().severity_id();
   }
 };
 
@@ -75,6 +83,9 @@ using HostContainer = boost::multi_index::multi_index_container<
         boost::multi_index::hashed_non_unique<
             boost::multi_index::tag<by_instance>,
             host_instance_extractor>,
+        boost::multi_index::hashed_non_unique<
+            boost::multi_index::tag<by_severity>,
+            host_severity_extractor>,
         boost::multi_index::hashed_unique<boost::multi_index::tag<by_name>,
                                           host_name_extractor>>>;
 
@@ -82,6 +93,13 @@ struct service_id_extractor {
   using result_type = std::pair<uint64_t, uint64_t>;
   result_type operator()(const std::shared_ptr<neb::pb_service>& h) const {
     return {h->obj().host_id(), h->obj().service_id()};
+  }
+};
+
+struct service_severity_extractor {
+  using result_type = uint64_t;
+  result_type operator()(const std::shared_ptr<neb::pb_service>& h) const {
+    return h->obj().severity_id();
   }
 };
 
@@ -97,6 +115,9 @@ using ServiceContainer = boost::multi_index::multi_index_container<
     boost::multi_index::indexed_by<
         boost::multi_index::ordered_unique<boost::multi_index::tag<by_id>,
                                            service_id_extractor>,
+        boost::multi_index::hashed_non_unique<
+            boost::multi_index::tag<by_severity>,
+            service_severity_extractor>,
         boost::multi_index::ordered_unique<boost::multi_index::tag<by_name>,
                                            service_name_extractor>>>;
 
@@ -128,10 +149,9 @@ using HostgroupContainer = boost::multi_index::multi_index_container<
                                           hostgroup_name_extractor>>>;
 
 struct by_pair {};
-struct by_first {};
-struct by_second {};
 struct by_host {};
 struct by_hostgroup {};
+struct by_servicegroup {};
 
 struct indexed_host_hostgroup {
   uint64_t host_id;
@@ -169,6 +189,55 @@ using HostHostgroupContainer = boost::multi_index::multi_index_container<
         boost::multi_index::ordered_non_unique<
             boost::multi_index::tag<by_hostgroup>,
             host_hostgroup_second_extractor>>>;
+
+struct indexed_service_servicegroup {
+  uint64_t host_id;
+  uint64_t service_id;
+  std::shared_ptr<neb::pb_service_group> servicegroup;
+
+  indexed_service_servicegroup(
+      uint64_t host_id,
+      uint64_t service_id,
+      std::shared_ptr<neb::pb_service_group> servicegroup)
+      : host_id{host_id},
+        service_id{service_id},
+        servicegroup{std::move(servicegroup)} {}
+};
+
+struct service_servicegroup_triplet_extractor {
+  using result_type = std::tuple<uint64_t, uint64_t, uint64_t>;
+  result_type operator()(const indexed_service_servicegroup& ssg) const {
+    return {ssg.host_id, ssg.service_id,
+            ssg.servicegroup->obj().servicegroup_id()};
+  }
+};
+
+struct service_servicegroup_by_service_extractor {
+  using result_type = std::pair<uint64_t, uint64_t>;
+  result_type operator()(const indexed_service_servicegroup& ssg) const {
+    return {ssg.host_id, ssg.service_id};
+  }
+};
+
+struct service_servicegroup_by_servicegroup_extractor {
+  using result_type = uint64_t;
+  result_type operator()(const indexed_service_servicegroup& ssg) const {
+    return ssg.servicegroup->obj().servicegroup_id();
+  }
+};
+
+using ServiceServicegroupContainer = boost::multi_index::multi_index_container<
+    indexed_service_servicegroup,
+    boost::multi_index::indexed_by<
+        boost::multi_index::ordered_unique<
+            boost::multi_index::tag<by_pair>,
+            service_servicegroup_triplet_extractor>,
+        boost::multi_index::ordered_non_unique<
+            boost::multi_index::tag<by_service>,
+            service_servicegroup_by_service_extractor>,
+        boost::multi_index::ordered_non_unique<
+            boost::multi_index::tag<by_servicegroup>,
+            service_servicegroup_by_servicegroup_extractor>>>;
 
 struct servicegroup_id_extractor {
   using result_type = uint64_t;
@@ -223,6 +292,16 @@ using IndexMappingContainer = boost::multi_index::multi_index_container<
                                           indexmapping_service_id_extractor>>>;
 
 class broker_cache {
+ public:
+  struct severity {
+    uint32_t level;
+    /* This db_id is the ID of the severity in the database. It is initialized
+     * to 0 when the severity is not yet stored in the database, and updated
+     * when done.
+     */
+    uint64_t db_id;
+  };
+
  private:
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -245,9 +324,7 @@ class broker_cache {
   ServicegroupContainer _servicegroups ABSL_GUARDED_BY(_mutex);
   /* Association between services and servicegroups. The first two values are
    * host_id:service_id of the service and the last is the servicegroup ID. */
-  absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
-                  std::shared_ptr<neb::pb_service_group>>
-      _service_servicegroups ABSL_GUARDED_BY(_mutex);
+  ServiceServicegroupContainer _service_servicegroups ABSL_GUARDED_BY(_mutex);
 
   IndexMappingContainer _index_mappings ABSL_GUARDED_BY(_mutex);
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
@@ -258,8 +335,8 @@ class broker_cache {
       _metric_mappings ABSL_GUARDED_BY(_mutex);
 
   /* Key for severities is {severity_id, severity_type},
-   * value is the severity level. */
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, uint32_t> _severities
+   * value is the struct severity defined earlier (fields are level and ID) */
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, severity> _severities
       ABSL_GUARDED_BY(_mutex);
 
   /* BAM relations from BA to BV */
@@ -273,8 +350,11 @@ class broker_cache {
       _dimension_bas ABSL_GUARDED_BY(_mutex);
 
   void _fill_host(Host* host,
-                  const com::centreon::engine::configuration::Host& cfg)
+                  const com::centreon::engine::configuration::Host& cfg,
+                  uint64_t poller_id_hint = 0)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  template <typename ConfigType>
+  void _fill_service_common(Service* obj, const ConfigType& cfg);
   void _fill_service(Service* service,
                      const com::centreon::engine::configuration::Service& cfg)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
@@ -313,7 +393,6 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_host(const std::shared_ptr<neb::pb_host>& host)
       ABSL_LOCKS_EXCLUDED(_mutex);
-  void remove_host(uint64_t host_id) ABSL_LOCKS_EXCLUDED(_mutex);
   void update_host(const std::shared_ptr<neb::pb_host_status>& status)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_host(const std::shared_ptr<neb::pb_adaptive_host>& host)
@@ -321,8 +400,6 @@ class broker_cache {
   void update_host(const std::shared_ptr<neb::pb_adaptive_host_status>& status)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_service(const std::shared_ptr<neb::pb_service>& service)
-      ABSL_LOCKS_EXCLUDED(_mutex);
-  void remove_service(uint64_t host_id, uint64_t service_id)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_service(const std::shared_ptr<neb::pb_service_status>& status)
       ABSL_LOCKS_EXCLUDED(_mutex);
@@ -346,23 +423,24 @@ class broker_cache {
       uint64_t service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<storage::pb_index_mapping> get_index_mapping(
       uint64_t index_id) const ABSL_LOCKS_EXCLUDED(_mutex);
-  std::shared_ptr<storage::pb_index_mapping> index_mapping(
-      uint64_t index_id) const ABSL_LOCKS_EXCLUDED(_mutex);
-  std::shared_ptr<storage::pb_index_mapping> index_mapping(
-      uint64_t host_id,
-      uint64_t service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<storage::pb_metric_mapping> get_metric_mapping(
       uint64_t metric_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<std::pair<uint64_t, uint64_t>> service_ids() const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host_group> hostgroup(uint64_t hostgroup_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
+  std::shared_ptr<neb::pb_host_group> hostgroup(const std::string& name) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> hostgroup_ids() const ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_service_group> servicegroup(
       uint64_t servicegroup_id) const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> servicegroup_ids() const ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<std::shared_ptr<neb::pb_host_group>> hostgroups(
       uint64_t host_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<uint64_t> hostgroup_members(uint64_t hostgroup_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<std::pair<uint64_t, uint64_t>> servicegroup_members(
+      uint64_t servicegroup_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<std::shared_ptr<neb::pb_service_group>> servicegroups(
       uint64_t host_id,
       uint64_t service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
@@ -372,8 +450,16 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   uint32_t severity(uint64_t host_id, uint64_t service_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
-  void update_severity(const std::shared_ptr<neb::pb_custom_variable>& cv)
+  void update_severity(const std::shared_ptr<neb::pb_severity>& evt)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  void set_db_id_for_severity(uint64_t config_id, uint32_t type, uint64_t db_id)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void erase_severity(uint64_t config_id, uint32_t type)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  uint64_t get_db_id_for_severity(uint64_t severity_id, uint32_t type)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, struct severity>
+  severities() const ABSL_LOCKS_EXCLUDED(_mutex);
   void update_dimension_ba_bv_relation(
       const std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>& rel)
       ABSL_LOCKS_EXCLUDED(_mutex);
@@ -399,4 +485,4 @@ class broker_cache {
 }  // namespace cache
 }  // namespace com::centreon::broker
 
-#endif  // !CCB_MULTIPLEXING_ENGINE_HH
+#endif  // !CCB_CACHE_BROKER_CACHE_HH

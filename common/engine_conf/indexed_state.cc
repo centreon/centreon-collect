@@ -467,6 +467,7 @@ void indexed_state::diff_with_new_config(
         PairGroupPoller>(
       new_state.mutable_hostgroups(), _hostgroups, logger,
       [poller_id = new_state.poller_id()](Hostgroup* obj) {
+        obj->set_poller_id(poller_id);
         return std::make_pair(obj->hostgroup_name(), poller_id);
       },
       [](PairGroupPoller* key_type,
@@ -506,6 +507,7 @@ void indexed_state::diff_with_new_config(
         PairGroupPoller>(
       new_state.mutable_servicegroups(), _servicegroups, logger,
       [poller_id = new_state.poller_id()](Servicegroup* obj) {
+        obj->set_poller_id(poller_id);
         return std::make_pair(obj->servicegroup_name(), poller_id);
       },
       [](PairGroupPoller* key_type,

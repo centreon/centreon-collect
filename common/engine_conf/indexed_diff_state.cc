@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Centreon (https://www.centreon.com/)
+ * Copyright 2025-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +26,31 @@
 namespace com::centreon::engine::configuration {
 
 /**
- * @brief merge the content of the given diff state with this global diff
+ * @brief Merge the content of the given diff state with this global diff
  * state.
  *
+ * The global diff state aggregates per-poller diff states before being
+ * published as a `pb_global_diff_state` event. Two code paths exist:
+ *
+ * - **Full state path** (`diff_state.has_state()` is true): the poller sent
+ *   its complete configuration as a `pb_engine_state`. Individual `Host`
+ *   objects inside the embedded `State` message do not carry their own
+ *   `poller_id`, so the key-builder lambda explicitly calls
+ *   `obj->set_poller_id(poller_id)` (captured from `diff_state.poller_id()`,
+ *   which is set from `diff_state.state().poller_id()`). This ensures that
+ *   when `broker_cache::apply()` later processes the global diff, the host
+ *   objects already have a valid `poller_id`, which is required for the
+ *   group-link removal logic.
+ *
+ * - **Differential path** (`diff_state.has_state()` is false): `DiffHost`
+ *   objects in the diff do not carry `poller_id` either, so the same
+ *   lambda pattern is applied: `obj->set_poller_id(poller_id)` is called
+ *   before the key is returned. `diff_state.poller_id()` is set upstream
+ *   in `indexed_state.cc` (`result->set_poller_id(new_state.poller_id())`).
+ *
  * @param diff_state DiffState to merge with this global diff state. Once
- * merged, this diff state is almost empty.
+ *                   merged, this diff state is almost empty.
+ * @param logger     Logger for debug/trace output.
  */
 void indexed_diff_state::add_diff_state(
     configuration::DiffState& diff_state,
@@ -82,9 +102,13 @@ void indexed_diff_state::add_diff_state(
         _added_contactgroups, _modified_contactgroups, _removed_contactgroups,
         [](Contactgroup* obj) { return obj->contactgroup_name(); });
 
-    _add_message<Host, uint64_t>(diff_state.mutable_state()->mutable_hosts(),
-                                 _added_hosts, _modified_hosts, _removed_hosts,
-                                 [](Host* obj) { return obj->host_id(); });
+    _add_message<Host, uint64_t>(
+        diff_state.mutable_state()->mutable_hosts(), _added_hosts,
+        _modified_hosts, _removed_hosts,
+        [poller_id = diff_state.poller_id()](Host* obj) {
+          obj->set_poller_id(poller_id);
+          return obj->host_id();
+        });
 
     logger->debug("There are {} added hosts", _added_hosts.size());
 
@@ -92,6 +116,7 @@ void indexed_diff_state::add_diff_state(
         diff_state.mutable_state()->mutable_hostgroups(), _added_hostgroups,
         _modified_hostgroups, _removed_hostgroups,
         [poller_id = diff_state.poller_id()](Hostgroup* obj) {
+          obj->set_poller_id(poller_id);
           return std::make_pair(obj->hostgroup_name(), poller_id);
         });
 
@@ -117,6 +142,7 @@ void indexed_diff_state::add_diff_state(
         diff_state.mutable_state()->mutable_servicegroups(),
         _added_servicegroups, _modified_servicegroups, _removed_servicegroups,
         [poller_id = diff_state.poller_id()](Servicegroup* obj) {
+          obj->set_poller_id(poller_id);
           return std::make_pair(obj->servicegroup_name(), poller_id);
         });
 
@@ -148,6 +174,7 @@ void indexed_diff_state::add_diff_state(
   } else {
     logger->debug("Adding differential configuration for poller {}",
                   diff_state.poller_id());
+    logger->trace("diff: {}", diff_state.DebugString());
     _add_diff_message<DiffTimeperiod, Timeperiod, std::string>(
         diff_state.mutable_timeperiods(), _added_timeperiods,
         _modified_timeperiods, _removed_timeperiods,
@@ -193,13 +220,22 @@ void indexed_diff_state::add_diff_state(
 
     _add_diff_message<DiffHost, Host, uint64_t>(
         diff_state.mutable_hosts(), _added_hosts, _modified_hosts,
-        _removed_hosts, [](Host* obj) { return obj->host_id(); });
+        _removed_hosts, [poller_id = diff_state.poller_id()](Host* obj) {
+          obj->set_poller_id(poller_id);
+          return obj->host_id();
+        });
+
+    logger->debug(
+        "{} hosts added, {} hosts modified and {} hosts removed in the "
+        "global diff state",
+        _added_hosts.size(), _modified_hosts.size(), _removed_hosts.size());
 
     _add_diff_message<DiffHostgroup, Hostgroup,
                       std::pair<std::string, uint32_t>, PairGroupPoller>(
         diff_state.mutable_hostgroups(), _added_hostgroups,
         _modified_hostgroups, _removed_hostgroups,
         [poller_id = diff_state.poller_id()](Hostgroup* obj) {
+          obj->set_poller_id(poller_id);
           return std::make_pair(obj->hostgroup_name(), poller_id);
         },
         [](const PairGroupPoller& proto_key) {
@@ -216,6 +252,11 @@ void indexed_diff_state::add_diff_state(
         [](const HostServiceId& proto_key) {
           return std::make_pair(proto_key.host_id(), proto_key.service_id());
         });
+    logger->debug(
+        "{} services added, {} services modified and {} services removed in "
+        "the global diff state",
+        _added_services.size(), _modified_services.size(),
+        _removed_services.size());
 
     _add_diff_message<DiffAnomalydetection, Anomalydetection,
                       std::pair<uint64_t, uint64_t>, HostServiceId>(
@@ -233,6 +274,7 @@ void indexed_diff_state::add_diff_state(
         diff_state.mutable_servicegroups(), _added_servicegroups,
         _modified_servicegroups, _removed_servicegroups,
         [poller_id = diff_state.poller_id()](Servicegroup* obj) {
+          obj->set_poller_id(poller_id);
           return std::make_pair(obj->servicegroup_name(), poller_id);
         },
         [](const PairGroupPoller& proto_key) {

@@ -103,21 +103,21 @@ BECNSG2
     END
 
 BECNSG3
-    [Documentation]    FIXME DBO: This test is broken because we currently have no cache. Test about lua cache. But the centralized configuration currently breaks the broker cache.
-    ...    FIXME: we have to fix this test when the centralized broker cache will be done.
-    [Tags]    broker    engine    servicegroup    MON-153802    unstable
+    [Documentation]    Test about lua cache. But the centralized configuration currently breaks the broker cache.
+    [Tags]    broker    engine    servicegroup    MON-153802
     Ctn Config Centralized Engine    ${3}
     Ctn Engine Config Set Value    ${0}    log_level_config    debug
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
 
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    lua    trace
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Source Log    central    1
     Ctn Broker Config Source Log    module0    1
-    Ctn Config BBDO3    ${3}
-    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}test-dump-groups.lua
     Ctn Clear Retention
     Ctn Clear Prot Files
@@ -159,9 +159,8 @@ BECNSG3
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Check Query Result    SELECT COUNT(*) FROM services_servicegroups WHERE servicegroup_id=1    ==    ${9}    retry_timeout=30s    retry_pause=2s
+    Check Query Result    SELECT count(*) FROM servicegroups s JOIN services_servicegroups sg ON s.servicegroup_id = sg.servicegroup_id WHERE s.servicegroup_id=1 AND name='servicegroup_test'    ==    ${9}    retry_timeout=30s    retry_pause=1s
     Disconnect From Database
-    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    9    30    servicegroup_test
-    Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
 
     Log To Console    \nservicegroup_1 renamed to servicegroup_test
 
@@ -174,15 +173,20 @@ BECNSG3
     Should Be True    len("""${grep_result}""") > 10    servicegroup_test not found in /tmp/lua-engine.log
 
     # remove servicegroup
-    Ctn Config Engine    ${3}
-    Ctn Reload Engine
-    Ctn Reload Broker
+    Ctn Remove Service Group    ${0}    ${1}
+    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Remove Service Group    ${1}    ${1}
+    Ctn Notify Broker Of Engine Config Change    ${1}
+    Ctn Remove Service Group    ${2}    ${1}
+    Ctn Notify Broker Of Engine Config Change    ${2}
 
-    Log To Console    \nRemove servicegroup 1
+    Log To Console    \nservice group 1 removed from poller 1 and 2, then 3
 
-    ${result}    Ctn Check Number Of Relations Between Servicegroup And Services    1    0    30
-    Should Be True    ${result}    still a relation between the servicegroup 1 and services.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT count(*) FROM servicegroups s JOIN services_servicegroups sg ON s.servicegroup_id = sg.servicegroup_id WHERE s.servicegroup_id=1    ==    ${0}    retry_timeout=30s    retry_pause=1s
+    Disconnect From Database
 
+    Log To Console    Waiting to observe no service group in database
     # Waiting to observe no service group.
     FOR    ${index}    IN RANGE    60
         Create File    /tmp/lua-engine.log
@@ -190,7 +194,10 @@ BECNSG3
         ${grep_result}    Grep File    /tmp/lua-engine.log    no service_group_name
         IF    len("""${grep_result}""") > 0    BREAK
     END
+
+    Log To Console    Still waiting to observe no service group in database, sleeping a bit more
     Sleep    10s
     # Do we still have no service group?
+    Log To Console    Checking if there is still no service group in broker cache
     ${grep_result}    Grep File    /tmp/lua-engine.log    service_group_name:
     Should Be True    len("""${grep_result}""") == 0    The servicegroup 1 still exists
