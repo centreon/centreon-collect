@@ -21,6 +21,7 @@ BEMC1
     Ctn Config Broker    module    ${2}
     Ctn Config BBDO3    ${2}
     Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    cache    debug
     Ctn Broker Config Log    central    lua    trace
     Remove File    /tmp/test-LUA.log
     Ctn Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}dump_host.lua
@@ -98,6 +99,7 @@ BEMC2
     Ctn Config Broker    module    ${2}
     Ctn Config BBDO3    ${2}
     Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    cache    debug
     Ctn Broker Config Log    central    lua    trace
     Remove File    /tmp/test-LUA.log
     Ctn Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}dump_service.lua

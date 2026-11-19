@@ -73,8 +73,7 @@ class victoria_request_test : public ::testing::Test {
                      &storage::pb_status::operations);
   }
   void SetUp() override {
-    config::applier::state::instance().clear_cache(
-        log_v2::instance().get(log_v2::CORE));
+    config::applier::state::instance().clear_cache();
     config::applier::state::instance().cache().enable_section(
         cache::broker_cache::CACHE_ALL);
     _logger = log_v2::instance().get(log_v2::VICTORIA_METRICS);

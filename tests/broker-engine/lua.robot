@@ -296,6 +296,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Broker Config Log    central    neb    trace
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    cache    debug
     Ctn Broker Config Add Lua Output    central    test-LUA    ${SCRIPTS}/dump_host.lua
 
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
@@ -595,6 +596,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Broker Config Log    central    neb    trace
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    cache    debug
     Ctn Broker Config Add Lua Output    central    test-LUA    ${SCRIPTS}/dump_service.lua
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
 
