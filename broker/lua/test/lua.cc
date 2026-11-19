@@ -1497,6 +1497,49 @@ TEST_F(LuaTest, PbHostGroupCacheTest) {
   std::filesystem::remove("/tmp/log");
 }
 
+// Given a host member of two host groups
+// When a query for its host groups is made
+// Then the lua array contains both groups.
+TEST_F(LuaTest, HostGroupCacheTestSeveralGroups) {
+  std::map<std::string, lua::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto& cache = config::applier::state::instance().cache();
+  auto hst{std::make_shared<neb::pb_host>()};
+  hst->mut_obj().set_host_id(23);
+  hst->mut_obj().set_name("host_two_groups");
+  cache.publish(hst);
+  for (uint64_t group_id : {31, 32}) {
+    auto member{std::make_shared<neb::host_group_member>()};
+    member->host_id = 23;
+    member->group_id = group_id;
+    member->group_name = fmt::format("group{}", group_id);
+    member->enabled = true;
+    member->poller_id = 14;
+    cache.publish(member);
+  }
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hg = broker_cache:get_hostgroups(23)\n"
+               "  broker_log:info(1, 'group count ' .. #hg)\n"
+               "  for i,v in ipairs(hg) do\n"
+               "    broker_log:info(1, 'member of ' .. broker.json_encode(v))\n"
+               "  end\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(std::string::npos, lst.find("group count 2"));
+  ASSERT_NE(std::string::npos, lst.find("\"group_id\":31"));
+  ASSERT_NE(std::string::npos, lst.find("\"group_id\":32"));
+
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
+}
+
 // When a query for a service group name is made
 // And the cache does not know about it
 // Then nil is returned by the lua method.

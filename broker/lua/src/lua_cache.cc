@@ -496,8 +496,8 @@ static int l_broker_cache_get_hostgroups(lua_State* L) {
   const auto hostgroups = cache->hostgroups(id);
 
   lua_newtable(L);
+  int i = 1;
   for (auto& hg : hostgroups) {
-    int i = 1;
     lua_createtable(L, 0, 2);
     const HostGroup& hgo = hg->obj();
     lua_pushinteger(L, hgo.hostgroup_id());
