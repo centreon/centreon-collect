@@ -2604,6 +2604,19 @@ void broker_cache::_load_cache() {
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
                          _cache_file.string());
     }
+    ifs.close();
+    /* The cache is written only at a clean stop: once read, it is moved
+     * aside so that a crash restarts from an empty cache instead of reading
+     * this stale one again. The moved file stays there for analysis. */
+    std::filesystem::path loaded{_cache_file};
+    loaded += ".loaded";
+    std::error_code ec;
+    std::filesystem::rename(_cache_file, loaded, ec);
+    if (ec)
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "broker_cache: cannot move cache file '{}' to '{}': "
+                          "{}",
+                          _cache_file.string(), loaded.string(), ec.message());
   } else {
     SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache file '{}' does not exist",
                        _cache_file.string());

@@ -919,3 +919,27 @@ TEST_F(BrokerCacheTest, DimensionTruncateClearsBam) {
   ASSERT_FALSE(_cache->dimension_ba(1));
   ASSERT_FALSE(_cache->dimension_bv(2));
 }
+
+/* The cache file is written only at a clean stop: once read, it is moved
+ * aside, so that a crash does not read a stale cache again. */
+TEST_F(BrokerCacheTest, CacheFileMovedAsideOnceLoaded) {
+  publish_hosts(1, 3, 1);
+  std::error_code ec;
+  std::filesystem::remove("/tmp/broker_cache_test.cache.loaded", ec);
+
+  /* Clean stop: saved. */
+  _cache.reset();
+  ASSERT_TRUE(std::filesystem::exists("/tmp/broker_cache_test.cache"));
+
+  /* Restart: read, then moved aside. */
+  _cache = std::make_unique<broker_cache>(_logger);
+  _cache->enable_section(broker_cache::CACHE_ALL);
+  ASSERT_EQ(_cache->host_ids().size(), 3u);
+  ASSERT_FALSE(std::filesystem::exists("/tmp/broker_cache_test.cache"));
+  ASSERT_TRUE(std::filesystem::exists("/tmp/broker_cache_test.cache.loaded"));
+
+  /* A crash now would leave no cache file: the next start is empty. */
+  broker_cache after_crash(_logger);
+  after_crash.enable_section(broker_cache::CACHE_ALL);
+  ASSERT_TRUE(after_crash.host_ids().empty());
+}
