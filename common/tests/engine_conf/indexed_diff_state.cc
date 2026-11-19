@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 #include "common/engine_conf/command_helper.hh"
+#include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/tag_helper.hh"
@@ -208,4 +209,49 @@ TEST_F(IndexedDiffState, ModifyAddTag) {
   ASSERT_EQ(global_diff.added_tags().size(), 0);
   ASSERT_EQ(global_diff.removed_tags().size(), 0);
   ASSERT_EQ(global_diff.modified_tags().size(), 1);
+}
+
+/* We want to start with a diff just containing a state. Then we add a diff with
+ * added hosts. */
+TEST_F(IndexedDiffState, AddHosts) {
+  configuration::indexed_diff_state global_diff;
+  configuration::DiffState diff_state;
+
+  diff_state.mutable_state()->set_poller_id(1);
+  for (int i = 1; i <= 10; i++) {
+    auto* host = diff_state.mutable_state()->add_hosts();
+    configuration::host_helper host_hlp(host);
+    host->set_host_id(i);
+    host->set_host_name(fmt::format("host_{}", i));
+    host->set_poller_id(1);
+  }
+
+  global_diff.add_diff_state(diff_state, _logger);
+
+  ASSERT_EQ(global_diff.added_hosts().size(), 10);
+
+  configuration::DiffState diff_state2;
+  diff_state2.mutable_state()->set_poller_id(2);
+  for (int i = 11; i <= 15; i++) {
+    auto* host = diff_state2.mutable_state()->add_hosts();
+    configuration::host_helper host_hlp(host);
+    host->set_host_id(i);
+    host->set_host_name(fmt::format("host_{}", i));
+    host->set_poller_id(2);
+  }
+  global_diff.add_diff_state(diff_state2, _logger);
+
+  ASSERT_EQ(global_diff.added_hosts().size(), 15);
+
+  configuration::DiffState diff_state3;
+  for (int i = 16; i <= 20; i++) {
+    auto* host = diff_state3.mutable_hosts()->add_added();
+    configuration::host_helper host_hlp(host);
+    host->set_host_id(i);
+    host->set_host_name(fmt::format("host_{}", i));
+    host->set_poller_id(3);
+  }
+  global_diff.add_diff_state(diff_state3, _logger);
+
+  ASSERT_EQ(global_diff.added_hosts().size(), 20);
 }
