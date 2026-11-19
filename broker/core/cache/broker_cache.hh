@@ -47,6 +47,16 @@ struct by_instance {};
 struct by_severity {};
 
 namespace cache {
+/**
+ * @brief OTel service identity of a host, given by its OTEL_SERVICE_NAME and
+ * OTEL_SERVICE_NAMESPACE custom variables. A field is empty when its custom
+ * variable is not set.
+ */
+struct otel_service {
+  std::string name;
+  std::string name_space;
+};
+
 struct host_id_extractor {
   using result_type = uint64_t;
   result_type operator()(const std::shared_ptr<neb::pb_host>& h) const {
@@ -312,6 +322,8 @@ class broker_cache {
     CACHE_SEVERITIES = 1 << 5,
     CACHE_BAM = 1 << 6,
     CACHE_TAGS = 1 << 7,
+    /* OTel service identity of hosts, read by the otlp output. */
+    CACHE_OTEL = 1 << 8,
     CACHE_ALL = 0xFFFFFFFF,
   };
 
@@ -331,6 +343,9 @@ class broker_cache {
 
   mutable absl::Mutex _mutex;
   absl::flat_hash_map<uint64_t, std::string> _instances ABSL_GUARDED_BY(_mutex);
+  /* host_id => OTel service identity (section CACHE_OTEL). */
+  absl::flat_hash_map<uint64_t, otel_service> _otel_services
+      ABSL_GUARDED_BY(_mutex);
 
   HostContainer _hosts ABSL_GUARDED_BY(_mutex);
   ServiceContainer _services ABSL_GUARDED_BY(_mutex);
@@ -393,6 +408,14 @@ class broker_cache {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  void _set_host_otel_service(uint64_t host_id,
+                              uint64_t instance_id,
+                              bool is_name,
+                              std::string_view value)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _set_otel_service_from_conf(
+      const com::centreon::engine::configuration::Host& cfg)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);
   void _save_cache() ABSL_LOCKS_EXCLUDED(_mutex);
 
@@ -535,6 +558,14 @@ class broker_cache {
       const std::shared_ptr<storage::pb_index_mapping>& index_mapping)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void remove_index_mapping(uint64_t host_id, uint64_t service_id)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void update_custom_variable(
+      const std::shared_ptr<neb::pb_custom_variable>& cv)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void update_custom_variable(
+      const std::shared_ptr<neb::pb_custom_variable_status>& cvs)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  otel_service host_otel_service(uint64_t host_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
 };
 }  // namespace cache

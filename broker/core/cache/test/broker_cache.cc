@@ -736,3 +736,158 @@ TEST_F(BrokerCacheTest, Merge) {
   ASSERT_EQ(_cache->servicegroup(1)->obj().name(), "new_sg1");
   ASSERT_EQ(_cache->servicegroup(5)->obj().name(), "sg5");
 }
+
+namespace {
+std::shared_ptr<neb::pb_custom_variable> otel_cv(uint64_t host_id,
+                                                 uint64_t instance_id,
+                                                 const std::string& name,
+                                                 const std::string& value,
+                                                 bool enabled = true) {
+  auto cv = std::make_shared<neb::pb_custom_variable>();
+  auto& obj = cv->mut_obj();
+  obj.set_host_id(host_id);
+  obj.set_service_id(0);
+  obj.set_instance_id(instance_id);
+  obj.set_name(name);
+  obj.set_value(value);
+  obj.set_enabled(enabled);
+  return cv;
+}
+}  // namespace
+
+/* The OTel identity of a host comes from its OTEL_SERVICE_NAME and
+ * OTEL_SERVICE_NAMESPACE custom variables (case ignored), only from the poller
+ * owning the host, and a deletion clears it. */
+TEST_F(BrokerCacheTest, OtelServiceFromCustomVariables) {
+  publish_hosts(1, 2, 1);
+  _cache->publish(otel_cv(1, 1, "OTEL_SERVICE_NAME", "my_service"));
+  _cache->publish(otel_cv(1, 1, "otel_service_namespace", "my_namespace"));
+  auto otel = _cache->host_otel_service(1);
+  ASSERT_EQ(otel.name, "my_service");
+  ASSERT_EQ(otel.name_space, "my_namespace");
+
+  /* Not the owner of host 2. */
+  _cache->publish(otel_cv(2, 2, "OTEL_SERVICE_NAME", "stolen"));
+  ASSERT_TRUE(_cache->host_otel_service(2).name.empty());
+
+  /* A service custom variable is not an OTel identity. */
+  auto svc_cv = otel_cv(2, 1, "OTEL_SERVICE_NAME", "svc");
+  svc_cv->mut_obj().set_service_id(3);
+  _cache->publish(svc_cv);
+  ASSERT_TRUE(_cache->host_otel_service(2).name.empty());
+
+  /* Deletion of the name, then of the namespace. */
+  _cache->publish(otel_cv(1, 1, "OTEL_SERVICE_NAME", "", false));
+  otel = _cache->host_otel_service(1);
+  ASSERT_TRUE(otel.name.empty());
+  ASSERT_EQ(otel.name_space, "my_namespace");
+
+  /* A custom variable status (CHANGE_CUSTOM_HOST_VAR) also counts. */
+  auto cvs = std::make_shared<neb::pb_custom_variable_status>();
+  cvs->mut_obj().set_host_id(1);
+  cvs->mut_obj().set_instance_id(1);
+  cvs->mut_obj().set_name("OTEL_SERVICE_NAMESPACE");
+  cvs->mut_obj().set_value("");
+  _cache->publish(cvs);
+  otel = _cache->host_otel_service(1);
+  ASSERT_TRUE(otel.name.empty());
+  ASSERT_TRUE(otel.name_space.empty());
+}
+
+/* Without the CACHE_OTEL section, nothing is kept. */
+TEST_F(BrokerCacheTest, OtelServiceSectionDisabled) {
+  broker_cache local_cache(_logger);
+  local_cache.enable_section(broker_cache::CACHE_HOSTS);
+  auto h = std::make_shared<neb::pb_host>();
+  h->mut_obj().set_host_id(1);
+  h->mut_obj().set_name("host_1");
+  h->mut_obj().set_enabled(true);
+  h->mut_obj().set_instance_id(1);
+  local_cache.publish(h);
+  local_cache.publish(otel_cv(1, 1, "OTEL_SERVICE_NAME", "my_service"));
+  ASSERT_TRUE(local_cache.host_otel_service(1).name.empty());
+}
+
+/* A starting engine sends its custom variables again but no deletion for the
+ * ones removed while it was stopped: its hosts start blank. */
+TEST_F(BrokerCacheTest, OtelServiceResetOnInstanceStart) {
+  publish_hosts(1, 1, 1);
+  publish_hosts(2, 2, 2);
+  _cache->publish(otel_cv(1, 1, "OTEL_SERVICE_NAME", "s1"));
+  _cache->publish(otel_cv(2, 2, "OTEL_SERVICE_NAME", "s2"));
+
+  auto inst = std::make_shared<neb::pb_instance>();
+  inst->mut_obj().set_instance_id(1);
+  inst->mut_obj().set_name("poller_1");
+  inst->mut_obj().set_running(true);
+  _cache->publish(inst);
+
+  ASSERT_TRUE(_cache->host_otel_service(1).name.empty());
+  ASSERT_EQ(_cache->host_otel_service(2).name, "s2");
+}
+
+/* A host moved to another poller gets its identity only from the new poller,
+ * a removed host loses it. */
+TEST_F(BrokerCacheTest, OtelServiceResetOnHostMoveAndRemoval) {
+  publish_hosts(1, 2, 1);
+  _cache->publish(otel_cv(1, 1, "OTEL_SERVICE_NAME", "s1"));
+  _cache->publish(otel_cv(2, 1, "OTEL_SERVICE_NAME", "s2"));
+
+  publish_hosts(1, 1, 2);
+  ASSERT_TRUE(_cache->host_otel_service(1).name.empty());
+  _cache->publish(otel_cv(1, 1, "OTEL_SERVICE_NAME", "old poller"));
+  ASSERT_TRUE(_cache->host_otel_service(1).name.empty());
+  _cache->publish(otel_cv(1, 2, "OTEL_SERVICE_NAME", "new poller"));
+  ASSERT_EQ(_cache->host_otel_service(1).name, "new poller");
+
+  auto h = std::make_shared<neb::pb_host>();
+  h->mut_obj().set_host_id(2);
+  h->mut_obj().set_instance_id(1);
+  h->mut_obj().set_enabled(false);
+  _cache->publish(h);
+  ASSERT_TRUE(_cache->host_otel_service(2).name.empty());
+}
+
+/* In centralized configuration, the identity comes from the host custom
+ * variables of the configuration, and survives a cache save and reload. */
+TEST_F(BrokerCacheTest, OtelServiceFromConfAndPersistence) {
+  com::centreon::engine::configuration::State state;
+  state.set_poller_id(1);
+  auto* host = state.add_hosts();
+  host->set_host_id(1);
+  host->set_host_name("host_1");
+  host->set_poller_id(1);
+  auto* cv = host->add_customvariables();
+  cv->set_name("OTEL_SERVICE_NAME");
+  cv->set_value("conf_service");
+  cv = host->add_customvariables();
+  cv->set_name("OTEL_SERVICE_NAMESPACE");
+  cv->set_value("conf_namespace");
+  _cache->merge(state);
+
+  auto otel = _cache->host_otel_service(1);
+  ASSERT_EQ(otel.name, "conf_service");
+  ASSERT_EQ(otel.name_space, "conf_namespace");
+
+  /* Saved by the destructor, read back by the constructor. */
+  _cache.reset();
+  _cache = std::make_unique<broker_cache>(_logger);
+  _cache->enable_section(broker_cache::CACHE_ALL);
+  otel = _cache->host_otel_service(1);
+  ASSERT_EQ(otel.name, "conf_service");
+  ASSERT_EQ(otel.name_space, "conf_namespace");
+
+  /* The variable removed from the configuration clears the field. */
+  com::centreon::engine::configuration::DiffState diff;
+  auto* modified = diff.mutable_hosts()->add_modified();
+  modified->set_host_id(1);
+  modified->set_host_name("host_1");
+  modified->set_poller_id(1);
+  cv = modified->add_customvariables();
+  cv->set_name("OTEL_SERVICE_NAME");
+  cv->set_value("conf_service");
+  _cache->apply(diff);
+  otel = _cache->host_otel_service(1);
+  ASSERT_EQ(otel.name, "conf_service");
+  ASSERT_TRUE(otel.name_space.empty());
+}

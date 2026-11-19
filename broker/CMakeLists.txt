@@ -83,7 +83,6 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/bam/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
-  "${PROJECT_SOURCE_DIR}/core/cache/inc"
   "${PROJECT_SOURCE_DIR}/core/sql/inc"
   ${CMAKE_BINARY_DIR}/common/engine_conf
   "${MARIADB_INCLUDE_DIRS}")
@@ -349,7 +348,6 @@ target_include_directories(rokerbase
 target_link_libraries(
   rokerbase PRIVATE
   sql
-  global_cache
   broker_cache
   bbdo_bbdo
   pb_broker_lib

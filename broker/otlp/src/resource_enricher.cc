@@ -18,65 +18,60 @@
 
 #include "com/centreon/broker/otlp/resource_enricher.hh"
 
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/state.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::otlp;
 
 /**
- * @brief Host name, from the global cache.
+ * @brief Host name, from broker_cache.
  *
  * @param host_id
- * @return the name, or nullopt if the cache is not loaded or the host is
- * unknown
+ * @return the name, or nullopt if the applier state is not loaded or the host
+ * is unknown
  */
-std::optional<std::string> global_cache_enricher::host_name(uint64_t host_id) {
-  auto instance = cache::global_cache::instance_ptr();
-  if (!instance)
+std::optional<std::string> broker_cache_enricher::host_name(uint64_t host_id) {
+  if (!config::applier::state::loaded())
     return std::nullopt;
-
-  cache::global_cache::lock l;
-  const cache::host* h = instance->get_host(host_id, l);
+  auto h = config::applier::state::instance().cache().host(host_id);
   if (!h)
     return std::nullopt;
-  return std::string(h->name().c_str(), h->name().length());
+  return h->obj().name();
 }
 
 /**
- * @brief Service description, from the global cache.
+ * @brief Service description, from broker_cache.
  *
  * @param host_id
  * @param service_id
- * @return the description, or nullopt if the cache is not loaded or the service
- * is unknown
+ * @return the description, or nullopt if the applier state is not loaded or
+ * the service is unknown
  */
-std::optional<std::string> global_cache_enricher::service_description(
+std::optional<std::string> broker_cache_enricher::service_description(
     uint64_t host_id,
     uint64_t service_id) {
-  auto instance = cache::global_cache::instance_ptr();
-  if (!instance)
+  if (!config::applier::state::loaded())
     return std::nullopt;
-
-  cache::global_cache::lock l;
-  const cache::service* s = instance->get_service(host_id, service_id, l);
+  auto s =
+      config::applier::state::instance().cache().service(host_id, service_id);
   if (!s)
     return std::nullopt;
-  return std::string(s->description().c_str(), s->description().length());
+  return s->obj().description();
 }
 
 /**
- * @brief OTEL_SERVICE_NAME and OTEL_SERVICE_NAMESPACE of a host, from the
- * global cache.
+ * @brief OTEL_SERVICE_NAME and OTEL_SERVICE_NAMESPACE of a host, from
+ * broker_cache.
  *
  * @param host_id
- * @return the identity; a field is empty when its custom variable is not set or
- * the cache is not loaded
+ * @return the identity; a field is empty when its custom variable is not set
+ * or the applier state is not loaded
  */
-otel_service global_cache_enricher::host_otel_service(uint64_t host_id) {
-  auto instance = cache::global_cache::instance_ptr();
-  if (!instance)
+otel_service broker_cache_enricher::host_otel_service(uint64_t host_id) {
+  if (!config::applier::state::loaded())
     return {};
-
-  cache::otel_service found = instance->get_otel_service(host_id);
+  cache::otel_service found =
+      config::applier::state::instance().cache().host_otel_service(host_id);
   return {std::move(found.name), std::move(found.name_space)};
 }

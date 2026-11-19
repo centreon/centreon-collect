@@ -838,6 +838,14 @@ message TagInfo {
 }
 
 /* Ignore */
+/* OTel service identity of a host, saved in the broker cache file. */
+message OtelService {
+  uint64 host_id = 1;
+  string name = 2;
+  string name_space = 3;
+}
+
+/* Ignore */
 message BrokerCache {
   message InstancePair {
     uint64 id = 1;
@@ -879,6 +887,9 @@ message BrokerCache {
     repeated HostServiceId services = 3;
   }
   repeated ServiceGroupPair servicegroups = 7;
+
+  /* OTel service identity of hosts (section CACHE_OTEL) */
+  repeated OtelService otel_services = 8;
 }
 
 /* Ignore */

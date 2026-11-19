@@ -25,7 +25,6 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/otlp/test")
 # needs the shared gRPC client base adds it itself.
 include_directories(inc
   ${PROJECT_SOURCE_DIR}/neb/inc
-  ${PROJECT_SOURCE_DIR}/core/cache/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
 )
 
@@ -70,12 +69,11 @@ set_target_properties("${OTLP}" PROPERTIES PREFIX ""
 # pb_otel_grpc_lib carries the MetricsService stub; pb_open_telemetry_lib (the
 # messages) arrives transitively through centreon_pb_bbdo. Neither tree is
 # duplicated into this module: see broker/doc/otlp_output_architecture.md.
-add_dependencies("${OTLP}" pb_otel_grpc_lib pb_neb_lib global_cache)
+add_dependencies("${OTLP}" pb_otel_grpc_lib pb_neb_lib)
 
 target_link_libraries("${OTLP}"
   pb_otel_grpc_lib
   pb_open_telemetry_lib
-  global_cache
   centreon_grpc
   centreon_common
   pb_neb_lib centreon_pb_bbdo fmt::fmt)

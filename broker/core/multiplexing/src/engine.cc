@@ -25,7 +25,6 @@
 
 #include "bbdo/neb.pb.h"
 
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -425,14 +424,6 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
 
     kiew = std::make_shared<std::deque<std::shared_ptr<io::data>>>();
     std::swap(_kiew, *kiew);
-
-    // we first write data to cache because output may need it
-    auto cache_to_feed = cache::global_cache::instance_ptr();
-    if (cache_to_feed) {
-      for (const auto& evt : *kiew) {
-        cache_to_feed->write(evt);
-      }
-    }
 
     // completion object
     // it will be destroyed at the end of the scope of this function and at

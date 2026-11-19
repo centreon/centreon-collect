@@ -18,6 +18,7 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 
 #include <memory>
+#include <absl/strings/match.h>
 #include "absl/synchronization/mutex.h"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/events.hh"
@@ -116,6 +117,8 @@ void broker_cache::merge(
       auto [it, inserted] = index.insert(h);
       if (!inserted)
         index.replace(it, h);
+      if (section_enabled(CACHE_OTEL))
+        _set_otel_service_from_conf(host);
     }
   }
 
@@ -377,7 +380,8 @@ void broker_cache::apply(
       _fill_host(&h->mut_obj(), host);
       auto [it, inserted] = hosts_by_id.insert(h);
       if (!inserted)
-        hosts_by_id.replace(it, h);
+        hosts_by_id.replace(it, h);      if (section_enabled(CACHE_OTEL))
+        _set_otel_service_from_conf(host);
     }
 
     /* Modifying hosts */
@@ -386,7 +390,8 @@ void broker_cache::apply(
       _fill_host(&h->mut_obj(), host);
       auto [it, inserted] = hosts_by_id.insert(h);
       if (!inserted)
-        hosts_by_id.replace(it, h);
+        hosts_by_id.replace(it, h);      if (section_enabled(CACHE_OTEL))
+        _set_otel_service_from_conf(host);
     }
   }
 
@@ -690,6 +695,7 @@ void broker_cache::apply(
     absl::flat_hash_set<uint64_t> removed_host_severity_ids;
 
     for (uint64_t host_id : diff.hosts().removed()) {
+      _otel_services.erase(host_id);
       auto host_it = hosts_by_id.find(host_id);
       if (host_it != hosts_by_id.end()) {
         auto& obj = (*host_it)->obj();
@@ -949,14 +955,25 @@ void broker_cache::_fill_anomaly_detection(
  */
 void broker_cache::update_instance(
     const std::shared_ptr<neb::pb_instance>& instance) {
-  if (!section_enabled(CACHE_INSTANCES))
+  if (!section_enabled(CACHE_INSTANCES | CACHE_OTEL))
     return;
   absl::WriterMutexLock l{_mutex};
   auto& obj = instance->obj();
-  if (obj.running())
-    _instances.insert_or_assign(obj.instance_id(), obj.name());
-  else
-    _instances.erase(obj.instance_id());
+  if (section_enabled(CACHE_INSTANCES)) {
+    if (obj.running())
+      _instances.insert_or_assign(obj.instance_id(), obj.name());
+    else
+      _instances.erase(obj.instance_id());
+  }
+
+  /* A starting engine dumps its custom variables again but sends no deletion
+   * for the ones removed while it was stopped, so its hosts start blank. */
+  if (obj.running() && section_enabled(CACHE_OTEL)) {
+    auto& host_by_instance = _hosts.get<by_instance>();
+    auto range = host_by_instance.equal_range(obj.instance_id());
+    for (auto it = range.first; it != range.second; ++it)
+      _otel_services.erase((*it)->obj().host_id());
+  }
 }
 
 /**
@@ -979,6 +996,7 @@ void broker_cache::remove_instance(uint64_t instance_id) {
     auto upper =
         index_svc.upper_bound(std::make_pair((*it)->obj().host_id() + 1, 0));
     index_svc.erase(lower, upper);
+    _otel_services.erase((*it)->obj().host_id());
     it = host_by_instance.erase(it);
   }
 }
@@ -1269,13 +1287,25 @@ void broker_cache::update_host(const std::shared_ptr<neb::pb_host>& host) {
                       h.name(), h.host_id(), h.enabled());
   auto it = index.find(h.host_id());
   if (h.enabled()) {
-    if (it != index.end())
+    if (it != index.end()) {
+      /* Host moved to another poller: its OTel identity is now given only by
+       * the custom variables this poller sends after the host. */
+      const uint64_t previous_instance = (*it)->obj().instance_id();
+      if (h.instance_id() && previous_instance &&
+          h.instance_id() != previous_instance &&
+          _otel_services.erase(h.host_id()))
+        SPDLOG_LOGGER_DEBUG(_logger,
+                            "Host {} moved from poller {} to {}, OTel "
+                            "service identity reset",
+                            h.host_id(), previous_instance, h.instance_id());
       index.replace(it, host);
-    else
+    } else
       index.insert(host);
   } else {
     if (it != index.end())
       index.erase(it);
+    /* Engine sends no custom variable deletion for a removed host. */
+    _otel_services.erase(h.host_id());
   }
 }
 
@@ -2375,6 +2405,23 @@ void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
     case make_type(io::neb, neb::de_pb_tag):
       update_tag(std::static_pointer_cast<neb::pb_tag>(evt));
       break;
+    case neb::pb_custom_variable::static_type():
+      update_custom_variable(
+          std::static_pointer_cast<neb::pb_custom_variable>(evt));
+      break;
+    case make_type(io::neb, neb::de_custom_variable):
+      update_custom_variable(std::static_pointer_cast<neb::pb_custom_variable>(
+          bbdo2_to_bbdo3(evt)));
+      break;
+    case neb::pb_custom_variable_status::static_type():
+      update_custom_variable(
+          std::static_pointer_cast<neb::pb_custom_variable_status>(evt));
+      break;
+    case make_type(io::neb, neb::de_custom_variable_status):
+      update_custom_variable(
+          std::static_pointer_cast<neb::pb_custom_variable_status>(
+              bbdo2_to_bbdo3(evt)));
+      break;
     default:
       break;
   }
@@ -2477,6 +2524,10 @@ void broker_cache::_load_cache() {
       for (const auto& inst_pair : to_load.instances())
         _instances.insert({inst_pair.id(), inst_pair.name()});
 
+      for (const auto& otel : to_load.otel_services())
+        _otel_services.insert_or_assign(
+            otel.host_id(), otel_service{otel.name(), otel.name_space()});
+
       for (const auto& host : to_load.hosts()) {
         auto h = std::make_shared<neb::pb_host>();
         h->mut_obj().CopyFrom(host);
@@ -2551,6 +2602,12 @@ void broker_cache::_save_cache() {
       auto* h = to_save.add_hosts();
       h->CopyFrom(host->obj());
     }
+    for (const auto& [host_id, otel] : _otel_services) {
+      auto* o = to_save.add_otel_services();
+      o->set_host_id(host_id);
+      o->set_name(otel.name);
+      o->set_name_space(otel.name_space);
+    }
     for (const auto& svc : _services) {
       auto* s = to_save.add_services();
       s->CopyFrom(svc->obj());
@@ -2623,5 +2680,146 @@ void broker_cache::remove_index_mapping(uint64_t host_id, uint64_t service_id) {
   absl::WriterMutexLock l{_mutex};
   auto& index = _index_mappings.get<by_service>();
   index.erase(std::make_pair(host_id, service_id));
+}
+
+namespace {
+/* Field of the OTel service identity a host custom variable sets, if any. */
+enum class otel_service_field { none, name, name_space };
+
+otel_service_field otel_service_field_of(uint64_t service_id,
+                                         std::string_view var_name) {
+  if (service_id)
+    return otel_service_field::none;
+  if (absl::EqualsIgnoreCase(var_name, "OTEL_SERVICE_NAME"))
+    return otel_service_field::name;
+  if (absl::EqualsIgnoreCase(var_name, "OTEL_SERVICE_NAMESPACE"))
+    return otel_service_field::name_space;
+  return otel_service_field::none;
+}
+}  // namespace
+
+/**
+ * @brief Store the OTEL_SERVICE_NAME (is_name) or OTEL_SERVICE_NAMESPACE
+ * custom variable of a host; an empty value clears it. An entry is erased once
+ * both are cleared.
+ *
+ * @param host_id
+ * @param instance_id originating poller, or zero for older senders.
+ * @param is_name true for OTEL_SERVICE_NAME, false for OTEL_SERVICE_NAMESPACE.
+ * @param value
+ */
+void broker_cache::_set_host_otel_service(uint64_t host_id,
+                                          uint64_t instance_id,
+                                          bool is_name,
+                                          std::string_view value) {
+  SPDLOG_LOGGER_TRACE(_logger, "OTel service {} of host {}: '{}'",
+                      is_name ? "name" : "namespace", host_id, value);
+  /* New senders publish the host first: the variable is kept only if it comes
+   * from the poller owning the host. Older senders have no instance id. */
+  if (instance_id) {
+    auto host = _hosts.get<by_id>().find(host_id);
+    if (host == _hosts.get<by_id>().end() ||
+        (*host)->obj().instance_id() != instance_id) {
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "Ignoring OTel custom variable of host {} from "
+                          "poller {}: no matching host owner",
+                          host_id, instance_id);
+      return;
+    }
+  }
+  auto exist = _otel_services.find(host_id);
+  if (!value.empty()) {
+    if (exist == _otel_services.end())
+      exist = _otel_services.emplace(host_id, otel_service{}).first;
+    (is_name ? exist->second.name : exist->second.name_space) = value;
+  } else if (exist != _otel_services.end()) {
+    (is_name ? exist->second.name : exist->second.name_space).clear();
+    if (exist->second.name.empty() && exist->second.name_space.empty())
+      _otel_services.erase(exist);
+  }
+}
+
+/**
+ * @brief Set the OTel service identity of a host from its configuration
+ * (centralized configuration): a custom variable absent from the
+ * configuration clears its field.
+ *
+ * @param cfg The host configuration.
+ */
+void broker_cache::_set_otel_service_from_conf(
+    const engine::configuration::Host& cfg) {
+  otel_service otel;
+  for (const auto& cv : cfg.customvariables()) {
+    switch (otel_service_field_of(0, cv.name())) {
+      case otel_service_field::name:
+        otel.name = cv.value();
+        break;
+      case otel_service_field::name_space:
+        otel.name_space = cv.value();
+        break;
+      default:
+        break;
+    }
+  }
+  if (otel.name.empty() && otel.name_space.empty())
+    _otel_services.erase(cfg.host_id());
+  else
+    _otel_services.insert_or_assign(cfg.host_id(), std::move(otel));
+}
+
+/**
+ * @brief Process a custom variable: only the OTel service identity of hosts
+ * is kept (section CACHE_OTEL).
+ *
+ * @param cv The custom variable, a deletion has enabled=false.
+ */
+void broker_cache::update_custom_variable(
+    const std::shared_ptr<neb::pb_custom_variable>& cv) {
+  if (!section_enabled(CACHE_OTEL))
+    return;
+  const auto& in = cv->obj();
+  const otel_service_field field =
+      otel_service_field_of(in.service_id(), in.name());
+  if (field == otel_service_field::none)
+    return;
+  absl::WriterMutexLock l{_mutex};
+  _set_host_otel_service(in.host_id(), in.instance_id(),
+                         field == otel_service_field::name,
+                         in.enabled() ? in.value() : std::string_view());
+}
+
+/**
+ * @brief Process a custom variable status, sent on CHANGE_CUSTOM_HOST_VAR and
+ * CHANGE_CUSTOM_SVC_VAR: only the OTel service identity of hosts is kept.
+ *
+ * @param cvs The custom variable status.
+ */
+void broker_cache::update_custom_variable(
+    const std::shared_ptr<neb::pb_custom_variable_status>& cvs) {
+  if (!section_enabled(CACHE_OTEL))
+    return;
+  const auto& in = cvs->obj();
+  const otel_service_field field =
+      otel_service_field_of(in.service_id(), in.name());
+  if (field == otel_service_field::none)
+    return;
+  absl::WriterMutexLock l{_mutex};
+  _set_host_otel_service(in.host_id(), in.instance_id(),
+                         field == otel_service_field::name, in.value());
+}
+
+/**
+ * @brief OTel service identity of a host, empty fields if unknown.
+ *
+ * @param host_id
+ *
+ * @return The identity, by copy.
+ */
+otel_service broker_cache::host_otel_service(uint64_t host_id) const {
+  absl::ReaderMutexLock l{_mutex};
+  auto found = _otel_services.find(host_id);
+  if (found == _otel_services.end())
+    return {};
+  return found->second;
 }
 }  // namespace com::centreon::broker::cache

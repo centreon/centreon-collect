@@ -43,7 +43,7 @@ constexpr std::string_view k_test_table = R"({
 })";
 
 /* Names without a memory-mapped cache: the applier state is not loaded under
- * unit tests, so global_cache would have nothing to resolve. */
+ * unit tests, so broker_cache would have nothing to resolve. */
 class fake_enricher : public resource_enricher {
  public:
   absl::flat_hash_map<uint64_t, std::string> hosts;

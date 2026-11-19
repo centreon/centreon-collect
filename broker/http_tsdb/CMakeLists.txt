@@ -25,8 +25,7 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/http_tsdb/test")
 include_directories(inc 
     ${INC_DIR} 
     ${HTTP_INC_DIR} 
-    ${CMAKE_BINARY_DIR}/common/process_stat
-    ${PROJECT_SOURCE_DIR}/core/cache/inc)
+    ${CMAKE_BINARY_DIR}/common/process_stat)
 
 # Sources.
 set(SOURCES
@@ -46,8 +45,7 @@ set(HEADERS
 
 add_library(http_tsdb STATIC ${SOURCES} ${HEADERS})
 add_dependencies(http_tsdb pb_neb_lib pb_header_lib process_stat pb_storage_lib
-                 pb_bam_lib pb_common_lib target_broker_message
-                 target_cache_protobuf)
+                 pb_bam_lib pb_common_lib target_broker_message)
 target_include_directories(http_tsdb PRIVATE ${INC_DIR})
 
 target_precompile_headers(http_tsdb PRIVATE precomp_inc/precomp.hh)

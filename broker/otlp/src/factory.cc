@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/otlp/factory.hh"
 
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/otlp/connector.hh"
 #include "com/centreon/broker/persistent_cache.hh"
@@ -197,12 +197,12 @@ io::endpoint* factory::new_endpoint(
                     config::applier::state::instance().cache_dir(), cfg.name),
         log_v2::instance().get(log_v2::OTL));
 
-  /* host.name resolution needs the persistent cache. Guarded because the
-   * applier state is not loaded under unit tests. */
+  /* host.name, service description and OTel identity come from broker_cache.
+   * Guarded because the applier state is not loaded under unit tests. */
   if (config::applier::state::loaded())
-    cache::global_cache::load(
-        com::centreon::common::pool::io_context_ptr(),
-        config::applier::state::instance().cache_dir() + ".cache.global");
+    config::applier::state::instance().cache().enable_section(
+        cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
+        cache::broker_cache::CACHE_OTEL);
 
   SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::OTL),
                      "otlp: endpoint '{}' exporting to {}", cfg.name,
