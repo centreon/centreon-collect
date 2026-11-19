@@ -20,6 +20,9 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdio>
+#include <fstream>
+
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -43,6 +46,17 @@ config::endpoint make_cfg(
   cfg.params = params;
   cfg.params.emplace("endpoint", "collector:4317");
   return cfg;
+}
+
+/**
+ * @brief Write a file, replacing its content.
+ *
+ * @param path file path
+ * @param content file content
+ */
+void write_file(const std::string& path, const std::string& content) {
+  std::ofstream f(path, std::ios::trunc);
+  f << content;
 }
 
 }  // namespace
@@ -106,14 +120,53 @@ TEST(otlp_factory, grpc_target_is_taken_from_endpoint) {
   EXPECT_FALSE(conf->grpc->is_crypted());
 }
 
-TEST(otlp_factory, tls_material_is_forwarded_to_grpc_config) {
-  auto conf =
-      factory::parse_config(make_cfg({{"encryption", "true"},
-                                      {"ca_certificate", "/etc/ssl/ca.pem"},
-                                      {"certificate", "/etc/ssl/broker.crt"},
-                                      {"private_key", "/etc/ssl/broker.key"}}));
+/* The TLS parameters are file paths: grpc_config receives the PEM content. */
+TEST(otlp_factory, tls_files_are_read_into_grpc_config) {
+  const std::string dir = ::testing::TempDir();
+  const std::string ca = dir + "otlp_factory_ca.pem";
+  const std::string cert = dir + "otlp_factory_broker.crt";
+  const std::string key = dir + "otlp_factory_broker.key";
+  write_file(ca, "ca content");
+  write_file(cert, "cert content");
+  write_file(key, "key content");
+
+  auto conf = factory::parse_config(make_cfg({{"encryption", "true"},
+                                              {"ca_certificate", ca},
+                                              {"certificate", cert},
+                                              {"private_key", key}}));
   ASSERT_TRUE(conf->grpc);
   EXPECT_TRUE(conf->grpc->is_crypted());
+  EXPECT_EQ(conf->grpc->get_ca(), "ca content");
+  EXPECT_EQ(conf->grpc->get_cert(), "cert content");
+  EXPECT_EQ(conf->grpc->get_key(), "key content");
+
+  std::remove(ca.c_str());
+  std::remove(cert.c_str());
+  std::remove(key.c_str());
+}
+
+TEST(otlp_factory, unreadable_tls_file_is_rejected) {
+  for (const char* param : {"ca_certificate", "certificate", "private_key"}) {
+    try {
+      factory::parse_config(make_cfg(
+          {{"encryption", "true"}, {param, "/nonexistent/otlp_factory.pem"}}));
+      ADD_FAILURE() << param << ": a missing file must be rejected";
+    } catch (const msg_fmt& e) {
+      EXPECT_NE(std::string(e.what()).find(param), std::string::npos)
+          << e.what();
+      EXPECT_NE(std::string(e.what()).find("otlp-export"), std::string::npos)
+          << e.what();
+    }
+  }
+}
+
+/* Without encryption the TLS files are neither needed nor read. */
+TEST(otlp_factory, tls_files_are_ignored_without_encryption) {
+  auto conf = factory::parse_config(
+      make_cfg({{"ca_certificate", "/nonexistent/otlp_factory.pem"}}));
+  ASSERT_TRUE(conf->grpc);
+  EXPECT_FALSE(conf->grpc->is_crypted());
+  EXPECT_TRUE(conf->grpc->get_ca().empty());
 }
 
 TEST(otlp_factory, rejects_non_numeric_values) {
@@ -135,7 +188,7 @@ TEST(otlp_factory, host_ip_exclude_link_local) {
   auto conf = factory::parse_config(make_cfg());
   EXPECT_FALSE(conf->host_ip_exclude_link_local);
 
-  conf = factory::parse_config(
-      make_cfg({{"host_ip_exclude_link_local", "true"}}));
+  conf =
+      factory::parse_config(make_cfg({{"host_ip_exclude_link_local", "true"}}));
   EXPECT_TRUE(conf->host_ip_exclude_link_local);
 }

@@ -21,6 +21,7 @@
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/otlp/connector.hh"
+#include "com/centreon/common/file_system.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -88,6 +89,27 @@ bool get_bool(const config::endpoint& cfg, const std::string& key, bool def) {
   return out;
 }
 
+/**
+ * @brief Read the PEM file named by a TLS parameter of an endpoint.
+ *
+ * @param cfg endpoint configuration
+ * @param key parameter name, its value is a file path
+ * @return the file content, or an empty string if the parameter is absent or
+ * empty
+ * @throw msg_fmt if the file cannot be read
+ */
+std::string read_tls_file(const config::endpoint& cfg, const std::string& key) {
+  const std::string path = get_string(cfg, key, "");
+  if (path.empty())
+    return {};
+  try {
+    return com::centreon::common::read_file_content(path);
+  } catch (const std::exception& e) {
+    throw msg_fmt("otlp: cannot read '{}' for endpoint '{}': {}", key, cfg.name,
+                  e.what());
+  }
+}
+
 }  // namespace
 
 /**
@@ -121,9 +143,16 @@ otlp_config::pointer factory::parse_config(const config::endpoint& cfg) {
     throw msg_fmt("otlp: no 'endpoint' defined for endpoint '{}'", cfg.name);
 
   const bool encryption = get_bool(cfg, "encryption", false);
+  // The TLS parameters are file paths, as in the gRPC module; they are only
+  // read when encryption is on.
+  std::string certificate, private_key, ca_certificate;
+  if (encryption) {
+    certificate = read_tls_file(cfg, "certificate");
+    private_key = read_tls_file(cfg, "private_key");
+    ca_certificate = read_tls_file(cfg, "ca_certificate");
+  }
   conf->grpc = std::make_shared<com::centreon::common::grpc::grpc_config>(
-      endpoint, encryption, get_string(cfg, "certificate", ""),
-      get_string(cfg, "private_key", ""), get_string(cfg, "ca_certificate", ""),
+      endpoint, encryption, certificate, private_key, ca_certificate,
       get_string(cfg, "ca_name", ""), get_bool(cfg, "compression", false),
       static_cast<int>(get_uint(cfg, "keepalive_interval", 30)));
 

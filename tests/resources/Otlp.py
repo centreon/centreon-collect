@@ -217,8 +217,12 @@ class Otlp(metrics_service_pb2_grpc.MetricsServiceServicer):
         return self.ctn_wait_for_otlp_point(host, "centreon.robot_probe", probe)
 
     @keyword
-    def ctn_start_otlp_collector(self, capture_path: str):
-        """Listen on an OS-assigned loopback port and return host:port."""
+    def ctn_start_otlp_collector(self, capture_path: str, cert: str = "",
+                                 key: str = ""):
+        """Listen on an OS-assigned loopback port and return host:port.
+
+        With cert and key (PEM file paths), the collector only accepts TLS.
+        """
         self.ctn_stop_otlp_collector()
         self._points.clear()
         path = Path(capture_path)
@@ -229,7 +233,13 @@ class Otlp(metrics_service_pb2_grpc.MetricsServiceServicer):
         metrics_service_pb2_grpc.add_MetricsServiceServicer_to_server(
             self, self._server)
         try:
-            port = self._server.add_insecure_port("127.0.0.1:0")
+            if cert:
+                credentials = grpc.ssl_server_credentials(
+                    [(Path(key).read_bytes(), Path(cert).read_bytes())])
+                port = self._server.add_secure_port("127.0.0.1:0",
+                                                    credentials)
+            else:
+                port = self._server.add_insecure_port("127.0.0.1:0")
             if not port:
                 raise RuntimeError("Cannot bind the OTLP test collector")
             self._server.start()

@@ -387,6 +387,48 @@ OTLP_MAPPING_RELOAD
     Ctn Wait For Otlp Point    robot-host    robot.cpu.percent    27
     Ctn Log OTLP Step    check    robot_cpu=27% still exported as robot.cpu.percent=27
 
+OTLP_TLS_EXPORT
+    [Documentation]    Scenario: The OTLP output reads its CA certificate from the path in its configuration
+    ...    Given the collector only accepts TLS, with a self-signed certificate for 127.0.0.1
+    ...    And the OTLP output has encryption on and ca_certificate set to the path of that certificate
+    ...    When a check result is received
+    ...    Then it is exported to the collector over TLS
+    [Tags]    MON-215511
+    ${cert}    Set Variable    ${EtcRoot}/centreon-broker/otlp-collector.crt
+    ${key}    Set Variable    ${EtcRoot}/centreon-broker/otlp-collector.key
+    Ctn Create Key And Certificate    localhost    ${key}    ${cert}    ${True}
+    ${collector}    Ctn Start Otlp Collector    ${BROKER_LOG}/otlp.jsonl    ${cert}    ${key}
+    Ctn Broker Config Output Set    central    robot-otlp    endpoint    ${collector}
+    Ctn Broker Config Output Set    central    robot-otlp    encryption    true
+    Ctn Broker Config Output Set    central    robot-otlp    ca_certificate    ${cert}
+    Ctn Log OTLP Step    config    TLS collector on ${collector}, ca_certificate=${cert}
+    Ctn Start OTLP Event Stream
+    Ctn Send OTLP Host    10
+    Ctn Check BBDO OTLP Identity    centreon-broker    centreon
+
+OTLP_TLS_MISSING_FILE
+    [Documentation]    Scenario: A TLS file that cannot be read is reported with the parameter that names it
+    ...    Given the OTLP output has encryption on and ca_certificate set to a path that does not exist
+    ...    When Broker starts
+    ...    Then Broker stops with an error
+    ...    And it logs that it cannot read ca_certificate for the robot-otlp endpoint
+    [Tags]    MON-215511
+    Ctn Broker Config Output Set    central    robot-otlp    encryption    true
+    Ctn Broker Config Output Set    central    robot-otlp    ca_certificate    /nonexistent/otlp-ca.crt
+    Ctn Log OTLP Step    config    ca_certificate=/nonexistent/otlp-ca.crt
+    ${start}    Get Current Date
+    # Not b1: the teardown would expect a Broker that stops on SIGTERM
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=otlp_bad_tls
+    ...    stdout=${BROKER_LOG}/central-broker-master-stdout.log
+    ...    stderr=${BROKER_LOG}/central-broker-master-stderr.log
+    ${result}    Wait For Process    otlp_bad_tls    timeout=60s    on_timeout=kill
+    Should Be True    ${result.rc} > 0    Broker should exit with an error code, got ${result.rc}.
+    Ctn Log OTLP Step    check    Broker exited with code ${result.rc}
+    ${content}    Create List    otlp: cannot read 'ca_certificate' for endpoint 'robot-otlp'
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker should report the unreadable ca_certificate file.
+    Ctn Log OTLP Step    check    Broker logged "otlp: cannot read 'ca_certificate' for endpoint 'robot-otlp'"
+
 
 *** Keywords ***
 Ctn Config OTLP Stack
@@ -435,7 +477,11 @@ Ctn Stop OTLP Stack
         IF    ${engine_started}
             Ctn Stop Engine Broker And Save Logs    only_central=${True}
         ELSE
-            Ctn Kindly Stop Broker    only_central=${True}
+            # OTLP_TLS_MISSING_FILE starts no b1: its Broker exits on its own
+            ${broker_started}    Run Keyword And Return Status    Get Process Object    b1
+            IF    ${broker_started}
+                Ctn Kindly Stop Broker    only_central=${True}
+            END
             Ctn Save Logs If Failed
         END
     FINALLY
