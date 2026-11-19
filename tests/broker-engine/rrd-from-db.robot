@@ -320,6 +320,7 @@ BRRD_RRDLEN
 
     #update rrdlen
     Ctn Broker Config Output Set    central    central-broker-unified-sql    length    86400    # 1 day
+    Ctn Broker Config Flush
     Ctn Reload Broker
 
     Ctn Rebuild Rrd Graphs From Db    ${index}
