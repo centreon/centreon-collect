@@ -22,7 +22,7 @@
 #include <gtest/gtest.h>
 
 #include <com/centreon/broker/rrd/connector.hh>
-#include <com/centreon/broker/rrd/output.hh>
+#include <com/centreon/broker/rrd/stream.hh>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 

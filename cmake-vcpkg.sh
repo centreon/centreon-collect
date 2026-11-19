@@ -339,6 +339,7 @@ if [ "$force" = "1" ] ; then
     echo "Shared vcpkg '$VCPKG_ROOT' kept"
   fi
   mkdir "$BUILD_DIR"
+  ln -s ../overlays build/overlays
 fi
 
 if [ ! -d "$VCPKG_ROOT" ] ; then

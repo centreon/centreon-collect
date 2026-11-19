@@ -76,6 +76,7 @@ class state {
 
   state(const state&) = delete;
   state& operator=(const state&) = delete;
+  void set_cache_dir(const std::filesystem::path& cache_dir);
   virtual void apply(const config::state& s, bool run_mux = true);
   virtual void add_peer(uint64_t poller_id,
                         const std::string& poller_name,

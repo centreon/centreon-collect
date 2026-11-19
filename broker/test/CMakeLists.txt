@@ -23,6 +23,7 @@ set(WDOG_TESTS_DIR ${PROJECT_SOURCE_DIR}/watchdog/test)
 
 # Include directories.
 include_directories(${CMAKE_SOURCE_DIR}/bbdo)
+include_directories(${CMAKE_BINARY_DIR}/broker/rrd)
 include_directories(${PROJECT_SOURCE_DIR}/bam/inc)
 include_directories(${PROJECT_SOURCE_DIR}/bam/test)
 include_directories(${PROJECT_SOURCE_DIR}/storage/src)

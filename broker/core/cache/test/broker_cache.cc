@@ -39,11 +39,13 @@ class BrokerCacheTest : public ::testing::Test {
 
  public:
   void SetUp() override {
-    /* build/.cache may be clangd's cache directory: ignore errors. */
+    /* Each test starts with an empty cache: since e20ce2f3e6 the cache file
+     * is shared by the whole process when no cache directory is set. */
     std::error_code ec;
-    std::filesystem::remove(".cache", ec);
+    std::filesystem::remove("/tmp/broker_cache_test.cache", ec);
     _logger = log_v2::instance().get(log_v2::CORE);
     config::applier::state::load<config::applier::broker_state>("unittest");
+    config::applier::state::instance().set_cache_dir("/tmp/broker_cache_test");
     _cache = std::make_unique<broker_cache>(_logger);
     _cache->enable_section(
         com::centreon::broker::cache::broker_cache::CACHE_ALL);
