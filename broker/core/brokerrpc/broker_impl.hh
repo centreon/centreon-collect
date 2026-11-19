@@ -167,6 +167,10 @@ class broker_impl final : public Broker::Service {
                              const ::google::protobuf::Empty* request,
                              SeverityList* response) override;
 
+  grpc::Status GetTopology(grpc::ServerContext* context,
+                           const ::google::protobuf::Empty* request,
+                           TopologyResponse* response) override;
+
  public:
   broker_impl();
 };

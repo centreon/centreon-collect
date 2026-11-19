@@ -47,6 +47,8 @@ class broker_state : public state {
      * php and no <ID>.prot file, this flag is set to true. And this is the
      * way for Broker to ask its configuration to Engine. */
     bool conf_unknown;
+    /* poller_id of the remote peer that is in front of this peer. */
+    uint64_t via_remote;
   };
   struct peer {
     engine_peer peer;
