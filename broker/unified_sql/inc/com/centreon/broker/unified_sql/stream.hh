@@ -251,8 +251,6 @@ class stream : public io::stream {
       _metric_cache;
   misc::shared_mutex _metric_cache_m;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>
-      _severities_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
   /* key: (id, parent_id), so (host_id, 0) for a host and
@@ -537,10 +535,6 @@ class stream : public io::stream {
   mysql& get_mysql();
   bool supports_bulk_prepared_statements() const;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>&
-  severities_cache() {
-    return _severities_cache;
-  }
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& tags_cache() {
     return _tags_cache;
   }
