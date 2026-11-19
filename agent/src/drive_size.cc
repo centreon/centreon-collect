@@ -661,8 +661,10 @@ void check_drive_size::_completion_handler(
       }
     }
 
+    std::string mount_point = fs.mount_point.empty() ? fs.fs : fs.mount_point;
+
     centreon::common::perfdata& perf = perfs.emplace_back();
-    perf.name((_free_threshold ? "free_" : "used_") + fs.mount_point);
+    perf.name((_free_threshold ? "free_" : "used_") + mount_point);
 
     if (_prct_threshold) {
       perf.unit("%");
@@ -681,7 +683,6 @@ void check_drive_size::_completion_handler(
     }
 
     // remove last \ in order to print C:#storage.space.free.bytes
-    std::string mount_point = fs.mount_point;
     auto last_sep = mount_point.rfind('\\');
     if (last_sep != std::string::npos && last_sep) {
       mount_point.resize(last_sep, ' ');
@@ -721,7 +722,7 @@ void check_drive_size::_completion_handler(
   }
   if (output.empty()) {
     using namespace std::literals;
-    if (perfs.empty()) {
+    if (result.empty()) {
       output = "No storage found (filters issue)"sv;
       status = e_status::critical;
     } else {
