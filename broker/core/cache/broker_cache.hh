@@ -541,6 +541,9 @@ class broker_cache {
   void update_dimension_ba_bv_relation(
       const std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>& rel)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  void truncate_dimensions(
+      const std::shared_ptr<bam::pb_dimension_truncate_table_signal>& signal)
+      ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<uint64_t> dimension_bvs_for_ba(uint64_t ba_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
 

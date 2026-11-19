@@ -891,3 +891,31 @@ TEST_F(BrokerCacheTest, OtelServiceFromConfAndPersistence) {
   ASSERT_EQ(otel.name, "conf_service");
   ASSERT_TRUE(otel.name_space.empty());
 }
+
+/* A dimension truncate signal starting a BAM update forgets the BA, the BV and
+ * their relations, sent again after it; a signal ending it keeps them. */
+TEST_F(BrokerCacheTest, DimensionTruncateClearsBam) {
+  auto rel = std::make_shared<bam::pb_dimension_ba_bv_relation_event>();
+  rel->mut_obj().set_ba_id(1);
+  rel->mut_obj().set_bv_id(2);
+  _cache->publish(rel);
+  auto ba = std::make_shared<bam::pb_dimension_ba_event>();
+  ba->mut_obj().set_ba_id(1);
+  _cache->publish(ba);
+  auto bv = std::make_shared<bam::pb_dimension_bv_event>();
+  bv->mut_obj().set_bv_id(2);
+  _cache->publish(bv);
+  ASSERT_EQ(_cache->dimension_bvs_for_ba(1).size(), 1u);
+
+  auto signal = std::make_shared<bam::pb_dimension_truncate_table_signal>();
+  signal->mut_obj().set_update_started(false);
+  _cache->publish(signal);
+  ASSERT_EQ(_cache->dimension_bvs_for_ba(1).size(), 1u);
+
+  signal = std::make_shared<bam::pb_dimension_truncate_table_signal>();
+  signal->mut_obj().set_update_started(true);
+  _cache->publish(signal);
+  ASSERT_TRUE(_cache->dimension_bvs_for_ba(1).empty());
+  ASSERT_FALSE(_cache->dimension_ba(1));
+  ASSERT_FALSE(_cache->dimension_bv(2));
+}

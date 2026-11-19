@@ -1875,6 +1875,23 @@ void broker_cache::update_dimension_ba_bv_relation(
 }
 
 /**
+ * @brief A dimension truncate signal starting a BAM configuration update: the
+ * BA, BV and their relations are sent again after it, so they are all
+ * forgotten (otherwise the relations accumulate).
+ *
+ * @param signal The signal, only update_started=true clears.
+ */
+void broker_cache::truncate_dimensions(
+    const std::shared_ptr<bam::pb_dimension_truncate_table_signal>& signal) {
+  if (!section_enabled(CACHE_BAM) || !signal->obj().update_started())
+    return;
+  absl::WriterMutexLock l(_mutex);
+  _dimension_ba_bv_relations.clear();
+  _dimension_bvs.clear();
+  _dimension_bas.clear();
+}
+
+/**
  * @brief Get the list of BV IDs associated with a given BA ID.
  *
  * @param ba_id The business activity ID.
@@ -2386,6 +2403,16 @@ void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
     case make_type(io::bam, bam::de_dimension_bv_event):
       update_dimension_bv_event(
           std::static_pointer_cast<bam::pb_dimension_bv_event>(
+              bbdo2_to_bbdo3(evt)));
+      break;
+    case make_type(io::bam, bam::de_pb_dimension_truncate_table_signal):
+      truncate_dimensions(
+          std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(
+              evt));
+      break;
+    case make_type(io::bam, bam::de_dimension_truncate_table_signal):
+      truncate_dimensions(
+          std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(
               bbdo2_to_bbdo3(evt)));
       break;
     case make_type(io::storage, storage::de_index_mapping):
