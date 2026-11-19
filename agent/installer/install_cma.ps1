@@ -58,9 +58,14 @@
 .EXAMPLE
     .\install-centreon-agent.ps1 -Version "24.10-latest" -Endpoint "https://centreon.example.com" -HostName "myhost"
     Installation using a specific version (24.10-latest instead of default 25.10-latest).
+.EXAMPLE
+    .\install-centreon-agent.ps1 -Endpoint "h:1" -LogFile "C:\Program Files\Centreon\agent.log"
+    A value with spaces must be quoted. From cmd.exe (powershell -File ...), use double quotes: single quotes do not quote there.
 #>
 
-[CmdletBinding()]
+# No positional parameters: an unquoted value with spaces is refused instead of
+# having its next word silently bound to -Version or -Token.
+[CmdletBinding(PositionalBinding=$false)]
 param(
     [Parameter(Mandatory=$false)]
     [string]$Version = "25.10",
@@ -304,6 +309,19 @@ function Download-Installer {
     }
 }
 
+# Function to format one installer argument as /NAME="value".
+# Start-Process joins -ArgumentList with spaces without quoting, so an unquoted
+# value with spaces (C:\Program Files\...) would reach the installer cut at the
+# first space. Quotes typed in the value are removed so they are not doubled.
+function Format-InstallerArg {
+    param(
+        [string]$Name,
+        [string]$Value
+    )
+    $unquoted = $Value -replace '"', ''
+    return "/$Name=`"$unquoted`""
+}
+
 # Function to build installer arguments
 function Build-InstallerArgs {
     $args = @()
@@ -312,25 +330,25 @@ function Build-InstallerArgs {
     $args += "/VERYSILENT"
     
     # Add all other parameters if they are provided (in key=value format)
-    if ($Endpoint) { $args += "/ENDPOINT=$Endpoint" }
-    if ($HostName) { $args += "/HOST=$HostName" }
-    if ($Components) { $args += "/COMPONENTS=$Components" }
-    if ($CommonName) { $args += "/COMMONNAME=$CommonName" }
-    if ($Fingerprint) { $args += "/FINGERPRINT=$Fingerprint" }
-    if ($Token) { $args += "/TOKEN=$Token" }
-    if ($Reverse) { $args += "/REVERSE=$Reverse" }
-    if ($Encryption) { $args += "/ENCRYPTION=$Encryption" }
-    if ($Cert) { $args += "/CERT=$Cert" }
-    if ($Key) { $args += "/KEY=$Key" }
-    if ($CA) { $args += "/CA=$CA" }
-    if ($LogType) { $args += "/LOGTYPE=$LogType" }
-    if ($LogFile) { $args += "/LOGFILE=$LogFile" }
-    if ($LogLevel) { $args += "/LOGLEVEL=$LogLevel" }
-    if ($MaxFileSize) { $args += "/MAXFILESIZE=$MaxFileSize" }
-    if ($MaxNumber) { $args += "/MAXNUMBER=$MaxNumber" }
-    if ($CustomCheckFile) { $args += "/CUSTOMCHECKFILE=$CustomCheckFile" }
-    if ($HostTemplate)  {$args += "/HOSTTEMPLATE=$HostTemplate"}
-    if ($PluginSrc) { $args += "/PLUGINSRC=$PluginSrc" }
+    if ($Endpoint) { $args += Format-InstallerArg "ENDPOINT" $Endpoint }
+    if ($HostName) { $args += Format-InstallerArg "HOST" $HostName }
+    if ($Components) { $args += Format-InstallerArg "COMPONENTS" $Components }
+    if ($CommonName) { $args += Format-InstallerArg "COMMONNAME" $CommonName }
+    if ($Fingerprint) { $args += Format-InstallerArg "FINGERPRINT" $Fingerprint }
+    if ($Token) { $args += Format-InstallerArg "TOKEN" $Token }
+    if ($Reverse) { $args += Format-InstallerArg "REVERSE" $Reverse }
+    if ($Encryption) { $args += Format-InstallerArg "ENCRYPTION" $Encryption }
+    if ($Cert) { $args += Format-InstallerArg "CERT" $Cert }
+    if ($Key) { $args += Format-InstallerArg "KEY" $Key }
+    if ($CA) { $args += Format-InstallerArg "CA" $CA }
+    if ($LogType) { $args += Format-InstallerArg "LOGTYPE" $LogType }
+    if ($LogFile) { $args += Format-InstallerArg "LOGFILE" $LogFile }
+    if ($LogLevel) { $args += Format-InstallerArg "LOGLEVEL" $LogLevel }
+    if ($MaxFileSize) { $args += Format-InstallerArg "MAXFILESIZE" $MaxFileSize }
+    if ($MaxNumber) { $args += Format-InstallerArg "MAXNUMBER" $MaxNumber }
+    if ($CustomCheckFile) { $args += Format-InstallerArg "CUSTOMCHECKFILE" $CustomCheckFile }
+    if ($HostTemplate) { $args += Format-InstallerArg "HOSTTEMPLATE" $HostTemplate }
+    if ($PluginSrc) { $args += Format-InstallerArg "PLUGINSRC" $PluginSrc }
     
     return $args
 }
