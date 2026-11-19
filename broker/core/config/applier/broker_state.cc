@@ -29,8 +29,10 @@ namespace com::centreon::broker::config::applier {
  * @brief Destructor of the state class.
  */
 broker_state::~broker_state() {
-  if (_watch_engine_conf_timer)
+  if (_watch_engine_conf_timer) {
+    _watch_engine_conf_stopped.store(true);
     _watch_engine_conf_timer->cancel();
+  }
 }
 
 /**
@@ -623,6 +625,10 @@ void broker_state::_check_last_engine_conf() {
  *
  */
 void broker_state::_start_watch_engine_conf_timer() {
+  bool expected = false;
+  if (!_watch_engine_conf_stopped.compare_exchange_strong(expected, false))
+    return;
+
   _logger->trace(
       "Starting watch engine configuration timer with a 5 seconds delay");
   _watch_engine_conf_timer->expires_after(std::chrono::seconds(5));
@@ -749,8 +755,8 @@ void broker_state::_prepare_diff_for_poller(
           diff_state->SerializeToOstream(&df);
           df.close();
 
-          /* The new configuration to send to the poller is new-<poller ID>.prot
-           * Once sent to it, this file must be renamed into <poller ID>.prot
+          /* The new configuration to send to the poller is new-<poller-ID>.prot
+           * Once sent to it, this file must be renamed into <poller-ID>.prot
            * and the diff file can be removed. */
           lower->second.available_conf = new_version;
           lower->second.available_conf_sent = false;
