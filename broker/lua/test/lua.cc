@@ -78,6 +78,8 @@ class LuaTest : public ::testing::Test {
           com::centreon::broker::config::applier::broker_state>(
           "", 0, "test_broker", 0);
       config::applier::state::instance().clear_cache(_logger);
+      config::applier::state::instance().cache().enable_section(
+          com::centreon::broker::cache::broker_cache::CACHE_ALL);
     } catch (std::exception const& e) {
       (void)e;
     }

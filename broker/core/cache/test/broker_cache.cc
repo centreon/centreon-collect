@@ -45,6 +45,8 @@ class BrokerCacheTest : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::CORE);
     config::applier::state::load<config::applier::broker_state>("unittest");
     _cache = std::make_unique<broker_cache>(_logger);
+    _cache->enable_section(
+        com::centreon::broker::cache::broker_cache::CACHE_ALL);
   }
   void TearDown() override {
     _cache.reset();
