@@ -208,6 +208,7 @@ message State {
   uint32 max_file_descriptors = 144;
   string config_version = 145;  // Will be used very soon.
   string broker_module_cfg_file = 146;
+  repeated Recurringdowntime recurringdowntimes = 147;
 }
 
 message Value {
@@ -695,5 +696,37 @@ message Tag {
   Object obj = 1;
   KeyType key = 2;  //  - Default value: 0, -1
   optional string tag_name = 3;
+}
+
+message HostServiceId {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+}
+
+// One `period` line of a recurringdowntime object, in local time.
+message RecurringdowntimePeriod {
+  enum Kind {
+    weekly = 0;   // days: 1..7, 1 = Monday
+    monthly = 1;  // days: 1..31
+    nth = 2;      // days: one weekday, rank: 1..4 or -1 for the last one
+  }
+  Kind kind = 1;
+  repeated uint32 days = 2;
+  int32 rank = 3;
+  uint32 start_minute = 4;  // minutes since local midnight
+  uint32 end_minute = 5;    // up to 1440 (24:00)
+  bool fixed = 6;
+  uint32 duration = 7;  // seconds, flexible downtimes only
+}
+
+// Recurring downtime rule (Centreon "downtime cycle"), keyed by downtime_id.
+message Recurringdowntime {
+  Object obj = 1;
+  uint64 downtime_id = 2;
+  optional string downtime_name = 3;
+  optional string timezone = 4;
+  repeated uint64 host_ids = 5;
+  repeated HostServiceId service_ids = 6;
+  repeated RecurringdowntimePeriod periods = 7;
 }
 

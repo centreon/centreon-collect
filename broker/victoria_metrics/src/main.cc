@@ -28,6 +28,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/victoria_metrics/factory.hh"
+#include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -93,6 +94,18 @@ void broker_module_init(void const* arg) {
                        "pb_metric", &storage::pb_metric::operations);
       e.register_event(make_type(io::storage, storage::de_pb_status),
                        "pb_status", &storage::pb_status::operations);
+
+      // Rebuild and removal of graphs, sent by unified_sql; same names as
+      // the RRD output, the first registration wins.
+      e.register_event(make_type(io::storage, storage::de_remove_graph),
+                       "remove_graph", &storage::remove_graph::operations,
+                       storage::remove_graph::entries);
+      e.register_event(make_type(io::storage, storage::de_rebuild_message),
+                       "rebuild_message",
+                       &storage::pb_rebuild_message::operations);
+      e.register_event(make_type(io::storage, storage::de_remove_graph_message),
+                       "remove_graphs_message",
+                       &storage::pb_remove_graph_message::operations);
     }
 
     // Register  layer.

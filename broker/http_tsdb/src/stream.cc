@@ -25,6 +25,7 @@
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -130,7 +131,8 @@ stream::stream(const std::string& name,
       _success_request_stat{{0, 0}, {0, 0}},
       _failed_request_stat{{0, 0}, {0, 0}},
       _metric_stat{{0, 0}, {0, 0}},
-      _status_stat{{0, 0}, {0, 0}} {
+      _status_stat{{0, 0}, {0, 0}},
+      _pending_requests(0) {
   _http_client =
       common::http::client::load(io_context, logger, conf, conn_creator);
 }
@@ -321,6 +323,10 @@ int32_t stream::stop() {
  */
 void stream::send_request(const request::pointer& request) {
   request->content_length(request->body().length());
+  {
+    std::lock_guard<std::mutex> l(_protect);
+    ++_pending_requests;
+  }
   _http_client->send(request, [me = shared_from_this(), request](
                                   const boost::beast::error_code& err,
                                   const std::string& detail,
@@ -369,9 +375,19 @@ void stream::send_handler(const boost::beast::error_code& err,
               .count());
     }
   };
-  if (err) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail to send {} events to database: {} , {}",
-                        request->get_nb_data(), err.message(), detail);
+  unsigned status = response ? response->result_int() : 0;
+  // 5xx and 429: the server may accept the same data later
+  bool retryable_status = status >= 500 || status == 429;
+  if (err || retryable_status) {
+    if (err)
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "{}: fail to send {} events to database: {} , {}",
+                          get_name(), request->get_nb_data(), err.message(),
+                          detail);
+    else
+      SPDLOG_LOGGER_ERROR(
+          _logger, "{}: database answered {} to {} events, they will be resent",
+          get_name(), status, request->get_nb_data());
     std::lock_guard<std::mutex> l(_protect);
     add_to_stat(_failed_request_stat, 1);
     actu_stat_avg();
@@ -379,6 +395,20 @@ void stream::send_handler(const boost::beast::error_code& err,
       request->append(_request);
     }
     _request = request;
+    --_pending_requests;
+    _pending_cv.notify_all();
+  } else if (status >= 400) {
+    // the server refuses this content: resending it would loop forever
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "{}: database refused {} events with status {}: {}",
+                        get_name(), request->get_nb_data(), status,
+                        response->body().substr(0, 512));
+    std::lock_guard<std::mutex> l(_protect);
+    add_to_stat(_failed_request_stat, 1);
+    actu_stat_avg();
+    _acknowledged += request->get_nb_data();
+    --_pending_requests;
+    _pending_cv.notify_all();
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "{} metrics and {} status sent to database",
                         request->get_nb_metric(), request->get_nb_status());
@@ -388,7 +418,60 @@ void stream::send_handler(const boost::beast::error_code& err,
     add_to_stat(_status_stat, request->get_nb_status());
     actu_stat_avg();
     _acknowledged += request->get_nb_data();
+    --_pending_requests;
+    _pending_cv.notify_all();
   }
+}
+
+duration stream::answer_timeout() const {
+  return _conf->get_connect_timeout() + _conf->get_send_timeout() +
+         _conf->get_receive_timeout() + std::chrono::seconds(5);
+}
+
+void stream::drain_requests() {
+  request::pointer to_send;
+  {
+    std::lock_guard<std::mutex> l(_protect);
+    to_send.swap(_request);
+  }
+  if (to_send)
+    send_request(to_send);
+  std::unique_lock<std::mutex> l(_protect);
+  if (!_pending_cv.wait_for(l, answer_timeout(),
+                            [this] { return _pending_requests == 0; }))
+    throw msg_fmt("{}: {} requests to the database still unanswered",
+                  get_name(), _pending_requests);
+  if (_request)
+    throw msg_fmt("{}: fail to send {} events to the database", get_name(),
+                  _request->get_nb_data());
+}
+
+http::response_ptr stream::send_sync(const http::request_ptr& request) {
+  request->content_length(request->body().length());
+  using result = std::pair<std::string, http::response_ptr>;
+  auto answer = std::make_shared<std::promise<result>>();
+  std::future<result> future = answer->get_future();
+  _http_client->send(request, [answer](const boost::beast::error_code& err,
+                                       const std::string& detail,
+                                       const http::response_ptr& response) {
+    if (err)
+      answer->set_value(
+          {fmt::format("{} {}", err.message(), detail), response});
+    else
+      answer->set_value({std::string(), response});
+  });
+  std::string target(request->target());
+  if (future.wait_for(answer_timeout()) != std::future_status::ready)
+    throw msg_fmt("{}: no answer to {} in time", get_name(), target);
+  result res = future.get();
+  if (!res.first.empty())
+    throw msg_fmt("{}: fail to send {}: {}", get_name(), target, res.first);
+  if (!res.second)
+    throw msg_fmt("{}: no answer to {}", get_name(), target);
+  if (res.second->result_int() >= 300)
+    throw msg_fmt("{}: {} answered {}: {}", get_name(), target,
+                  res.second->result_int(), res.second->body().substr(0, 512));
+  return res.second;
 }
 
 /**

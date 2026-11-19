@@ -32,3 +32,14 @@ updates:
     allow:
       - dependency-type: "direct"
       - dependency-type: "production"
+
+  - package-ecosystem: cargo
+    directory: '/gorgone-rs'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    labels:
+      - 'dependencies'
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "production"

@@ -71,6 +71,7 @@ request::request(boost::beast::http::verb method,
 
 static constexpr std::string_view _sz_metric = "metric,id=";
 static constexpr std::string_view _sz_status = "status,id=";
+static constexpr std::string_view _sz_index_id = ",index_id=";
 static constexpr std::string_view _sz_name = ",name=";
 static constexpr std::string_view _sz_unit = ",unit=";
 static constexpr std::string_view _sz_host_id = ",host_id=";
@@ -80,6 +81,17 @@ static constexpr std::string_view _sz_val = " val=";
 
 void request::add_metric(const storage::pb_metric& metric) {
   absl::StrAppend(&body(), _sz_metric, metric.obj().metric_id());
+  // unified_sql publishes the metric mapping before the first point
+  uint64_t index_id =
+      cache::global_cache::instance_ptr()->get_index_id_from_metric_id(
+          metric.obj().metric_id());
+  if (index_id)
+    absl::StrAppend(&body(), _sz_index_id, index_id);
+  else
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "victoria_metrics: index of metric {} unknown, point "
+                        "written without index_id",
+                        metric.obj().metric_id());
   absl::StrAppend(&body(), _sz_name, string_filter(metric.obj().name()));
   absl::StrAppend(&body(), _sz_host_id, metric.obj().host_id(), _sz_serv_id,
                   metric.obj().service_id());

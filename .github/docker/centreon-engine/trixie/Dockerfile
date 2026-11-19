@@ -106,7 +106,6 @@ apt-get install -y --no-install-recommends \
     libnet-curl-perl \
     libcrypt-openssl-aes-perl \
     libssh-session-perl \
-    python3-minimal \
     libmariadb3 \
     libgnutls30t64 \
     libssl3 \

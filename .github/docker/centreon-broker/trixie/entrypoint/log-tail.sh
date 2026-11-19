@@ -9,9 +9,9 @@
 #        foreground before cbd starts: symlinks the log to /dev/stdout
 #        instead of tailing it.
 
-MODE=tail
+MODE="tail"
 if [ "$1" = "--link-stdout" ]; then
-    MODE=link
+    MODE="link"
     shift
 fi
 CONFIG="$1"
@@ -19,47 +19,32 @@ DEFAULT_DIR="/var/log/centreon-broker"
 
 [ -n "$CONFIG" ] && [ -f "$CONFIG" ] || exit 0
 
-LOG_DIR=$(python3 -c "
-import json
-try:
-    with open('$CONFIG') as f:
-        c = json.load(f)
-    print(c.get('centreonBroker', {}).get('log', {}).get('directory') or '')
-except Exception:
-    pass
-" 2>/dev/null)
-LOG_DIR="${LOG_DIR:-$DEFAULT_DIR}"
+# Value of the first "<key>": "<string>" or "<key>": <number> of the
+# config. No JSON parser in the image: the keys read here (directory,
+# filename, max_size, broker_name) appear once in a broker configuration,
+# under centreonBroker.log for the first three.
+json_value() {
+    tr -d '\n' < "$CONFIG" \
+        | grep -o "\"$1\"[[:space:]]*:[[:space:]]*\(\"[^\"]*\"\|[0-9]*\)" \
+        | head -n 1 \
+        | sed 's/^[^:]*:[[:space:]]*//; s/^"//; s/"$//'
+}
 
-LOG_FILE=$(python3 -c "
-import json
-try:
-    with open('$CONFIG') as f:
-        c = json.load(f)
-    cb = c.get('centreonBroker', {})
-    name = cb.get('log', {}).get('filename') or ''
-    if not name:
-        name = cb.get('broker_name', '') + '.log'
-    print(name)
-except Exception:
-    pass
-" 2>/dev/null)
+LOG_DIR=$(json_value directory)
+LOG_DIR="${LOG_DIR:-$DEFAULT_DIR}"
+LOG_FILE=$(json_value filename)
+if [ -z "$LOG_FILE" ]; then
+    LOG_FILE="$(json_value broker_name).log"
+fi
 
 [ -n "$LOG_FILE" ] && [ "$LOG_FILE" != ".log" ] || exit 0
 
-LOG_PATH="$LOG_DIR/$LOG_FILE"
+LOG_PATH="${LOG_DIR%/}/$LOG_FILE"
 
 if [ "$MODE" = "link" ]; then
     # log.max_size > 0: cbd rotates (renames) the log, moving the symlink
     # aside. Sinks are only built at start, so this check is enough.
-    MAX_SIZE=$(python3 -c "
-import json
-try:
-    with open('$CONFIG') as f:
-        c = json.load(f)
-    print(int(c.get('centreonBroker', {}).get('log', {}).get('max_size') or 0))
-except Exception:
-    print(0)
-" 2>/dev/null)
+    MAX_SIZE=$(json_value max_size)
     if [ "${MAX_SIZE:-0}" != "0" ]; then
         echo "WARNING: broker log rotation is on (log max_size=$MAX_SIZE), $LOG_PATH stays a file, tailing it instead of linking it to /dev/stdout" >&2
     elif ln -sfn /dev/stdout "$LOG_PATH"; then
@@ -94,6 +79,5 @@ touch "$LOG_PATH" 2>/dev/null || true
 # own stdout/stderr are already the container's real stdout/stderr by
 # normal fd inheritance - reaching into /proc/1/fd/1 is both unnecessary and
 # can fail with "Permission denied" depending on the container runtime/init
-# setup (confirmed: a direct `cbd`-owned PID 1 in one environment; real
-# failure observed once PID 1 became the api_control.py wrapper instead).
+# setup.
 exec tail -F "$LOG_PATH"

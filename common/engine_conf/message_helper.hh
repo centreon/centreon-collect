@@ -72,6 +72,7 @@ class timeperiod_helper;
 class anomalydetection_helper;
 class severity_helper;
 class tag_helper;
+class recurringdowntime_helper;
 class state_helper;
 
 using ::google::protobuf::Message;
@@ -112,7 +113,8 @@ class message_helper {
     severity = 16,
     tag = 17,
     state = 18,
-    nb_types = 19,
+    recurringdowntime = 19,
+    nb_types = 20,
   };
 
  private:
@@ -267,6 +269,10 @@ class message_helper {
       case state:
         retval = std::make_unique<state_helper>(
             static_cast<const state_helper&>(other));
+        break;
+      case recurringdowntime:
+        retval = std::make_unique<recurringdowntime_helper>(
+            static_cast<const recurringdowntime_helper&>(other));
         break;
       default:
         break;

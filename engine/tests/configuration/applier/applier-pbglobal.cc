@@ -56,3 +56,27 @@ TEST_F(ApplierGlobal, PbPollerName) {
 
   ASSERT_EQ(st.poller_name(), "poller-test");
 }
+
+// Given rpc_listen_address written as a gRPC Unix domain socket URI
+// Then the parser keeps the value as is, and the default stays localhost.
+TEST_F(ApplierGlobal, PbRpcListenAddressUnixSocket) {
+  configuration::parser parser;
+  configuration::State st;
+  configuration::state_helper st_hlp(&st);
+
+  ASSERT_EQ(st.rpc_listen_address(), "localhost");
+
+  std::remove("/tmp/test-config-rpc-unix.cfg");
+
+  std::ofstream ofs("/tmp/test-config-rpc-unix.cfg");
+  ofs << "rpc_listen_address=unix:/var/lib/centreon-engine/rw/engine.sock"
+      << std::endl;
+  ofs.close();
+  configuration::error_cnt err;
+
+  parser.parse("/tmp/test-config-rpc-unix.cfg", &st, err);
+  std::remove("/tmp/test-config-rpc-unix.cfg");
+
+  ASSERT_EQ(st.rpc_listen_address(),
+            "unix:/var/lib/centreon-engine/rw/engine.sock");
+}

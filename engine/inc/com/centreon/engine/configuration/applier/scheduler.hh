@@ -92,6 +92,7 @@ class scheduler {
   timed_event* _evt_command_check;
   timed_event* _evt_hfreshness_check;
   timed_event* _evt_orphan_check;
+  timed_event* _evt_recurring_downtime;
   timed_event* _evt_reschedule_checks;
   timed_event* _evt_retention_save;
   timed_event* _evt_sfreshness_check;

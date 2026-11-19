@@ -39,6 +39,7 @@
 #include "servicegroup_helper.hh"
 #include "severity_helper.hh"
 #include "state_helper.hh"
+#include "recurringdowntime_helper.hh"
 #include "tag_helper.hh"
 #include "timeperiod_helper.hh"
 
@@ -352,6 +353,10 @@ void parser::_parse_object_definitions(const std::string& path,
                 pb_config->mutable_hostescalations()->AddAllocated(
                     static_cast<Hostescalation*>(msg.release()));
                 break;
+              case message_helper::recurringdowntime:
+                pb_config->mutable_recurringdowntimes()->AddAllocated(
+                    static_cast<Recurringdowntime*>(msg.release()));
+                break;
               default:
                 _logger->critical("Attempt to add an object of unknown type");
             }
@@ -463,6 +468,10 @@ void parser::_parse_object_definitions(const std::string& path,
         msg = std::make_unique<Hostescalation>();
         msg_helper = std::make_unique<hostescalation_helper>(
             static_cast<Hostescalation*>(msg.get()));
+      } else if (type == "recurringdowntime") {
+        msg = std::make_unique<Recurringdowntime>();
+        msg_helper = std::make_unique<recurringdowntime_helper>(
+            static_cast<Recurringdowntime*>(msg.get()));
       } else {
         _logger->error("Type '{}' not yet supported by the parser", type);
         assert(1 == 18);
@@ -612,6 +621,9 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
 
   for (const Connector& c : pb_config->connectors())
     _pb_helper.at(&c)->check_validity(err);
+
+  for (const Recurringdowntime& rd : pb_config->recurringdowntimes())
+    _pb_helper.at(&rd)->check_validity(err);
 }
 
 /**

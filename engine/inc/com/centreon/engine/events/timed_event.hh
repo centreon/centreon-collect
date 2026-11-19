@@ -50,6 +50,7 @@ class timed_event {
   void _exec_event_expire_host_ack();
   void _exec_event_expire_service_ack();
   void _exec_event_enginerpc_check();
+  void _exec_event_recurring_downtime();
   void _exec_event_user_function();
 
  public:
@@ -83,6 +84,7 @@ class timed_event {
     EVENT_EXPIRE_HOST_ACK,     // remove expired host acknowledgement
     EVENT_EXPIRE_SERVICE_ACK,  // remove expired service acknowledgement
     EVENT_ENGINERPC_CHECK,     // EngineRPC command check
+    EVENT_RECURRING_DOWNTIME,  // schedule the recurring downtimes
     EVENT_SLEEP = 98,          // asynchronous sleep event that occurs when
                                // event queues are empty
     EVENT_USER_FUNCTION = 99   // USER-defined function (modules)

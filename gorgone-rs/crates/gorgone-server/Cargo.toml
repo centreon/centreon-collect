@@ -1,0 +1,46 @@
+[package]
+name = "gorgone-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+default = ["sqlite", "mysql"]
+# Store backends; a build may carry only one.
+sqlite = ["sqlx/sqlite"]
+mysql = ["sqlx/mysql"]
+
+[dependencies]
+anyhow = "1.0.104"
+axum = { version = "0.8", default-features = false, features = ["tokio", "http1", "http2", "json", "query"] }
+base64 = "0.22"
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
+getrandom = "0.2"
+gorgone-core = { version = "0.1.0", path = "../gorgone-core" }
+gorgone-proto = { version = "0.1.0", path = "../gorgone-proto" }
+libc = "0.2.191"
+prost = "0.14"
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.10"
+sqlx = { version = "0.8", default-features = false, features = ["any", "runtime-tokio", "tls-rustls-ring-webpki"] }
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "fs"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12", "logging"] }
+tokio-stream = { version = "0.1.19", default-features = false, features = ["sync"] }
+tokio-util = { version = "0.7.20", default-features = false }
+toml = { version = "1.2.1", default-features = false, features = ["std", "parse", "serde"] }
+tonic = { version = "0.14", default-features = false, features = ["router", "transport", "codegen", "tls-ring"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "json", "smallvec"] }
+
+[dev-dependencies]
+rcgen = "0.14.10"
+tempfile = { version = "3.27.0", default-features = false }
+tokio = { version = "1.54.1", features = ["io-util"] }
+
+[[bin]]
+name = "gorgone-server"
+path = "src/main.rs"

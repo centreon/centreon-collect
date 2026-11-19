@@ -1,0 +1,304 @@
+//! Gorgone agent: dials `gorgone-server`, keeps one control stream and runs
+//! the typed jobs it receives, within what the local configuration allows.
+
+pub mod cli;
+mod client;
+pub mod config;
+mod engine_api;
+mod enrolment;
+mod executor;
+mod http_post;
+mod journal;
+mod monitoring;
+mod node_state;
+mod process;
+mod rotation;
+mod scheduler;
+mod session;
+mod store;
+
+use std::future::Future;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
+
+use gorgone_core::allowlist::{Allowlist, AllowlistError};
+use tokio_util::sync::CancellationToken;
+
+pub use crate::config::{AgentConfig, ConfigError};
+use crate::engine_api::EngineApi;
+use crate::executor::{
+    ApplyConfigExecutor, ConfigChecker, EngineCommandsExecutor, EngineTransport,
+    RunCommandsExecutor, ServiceControlExecutor, remove_leftovers,
+};
+use crate::journal::Journal;
+use crate::monitoring::Monitoring;
+use crate::node_state::NodeState;
+use crate::scheduler::{Executors, Scheduler};
+use crate::session::{Backoff, Session};
+
+/// Time left to cancelled jobs to stop, then to the last events to be
+/// acknowledged, when the agent stops.
+const SHUTDOWN_FLUSH: Duration = Duration::from_secs(5);
+/// Subdirectory of `state_dir` keeping the digests the remote destinations
+/// accepted, next to the job journal.
+const REMOTE_APPLIED_DIR: &str = "remote-applied";
+
+/// Errors stopping the agent before or while it runs.
+#[derive(Debug, thiserror::Error)]
+pub enum AgentError {
+    /// Invalid configuration.
+    #[error(transparent)]
+    Config(#[from] ConfigError),
+    /// Invalid `commands.allowlist` pattern.
+    #[error(transparent)]
+    Allowlist(#[from] AllowlistError),
+    /// Invalid server URL or TLS material.
+    #[error("invalid server connection settings: {0}")]
+    Transport(#[from] tonic::transport::Error),
+    /// A value cannot be sent as gRPC metadata.
+    #[error("{0} contains characters that cannot be sent as metadata")]
+    Metadata(String),
+    /// A TLS file could not be read, or the state directory is unusable.
+    #[error("{path}: {source}")]
+    Io {
+        /// File or directory involved.
+        path: PathBuf,
+        /// Underlying error.
+        source: std::io::Error,
+    },
+    /// Another agent already runs with the same `state_dir`.
+    #[error("{0} is locked by another gorgone-agent: one state_dir per agent")]
+    StateDirLocked(PathBuf),
+    /// A task of the agent stopped on its own, which is a bug.
+    #[error("agent task stopped unexpectedly: {0}")]
+    SessionTask(#[from] tokio::task::JoinError),
+}
+
+/// Runs the agent until `shutdown` resolves, then lets the running jobs
+/// finish for `shutdown_grace_s` and returns.
+///
+/// Connection failures are never fatal: the agent reconnects forever. Only
+/// invalid settings make this return an error, before anything is started.
+pub async fn run(
+    config: AgentConfig,
+    shutdown: impl Future<Output = ()>,
+) -> Result<(), AgentError> {
+    // Held until this function returns: two agents must not share a journal.
+    let _state_lock = match &config.state_dir {
+        Some(dir) => {
+            let lock = store::lock_state_dir(dir).map_err(|source| AgentError::Io {
+                path: dir.clone(),
+                source,
+            })?;
+            Some(lock.ok_or_else(|| AgentError::StateDirLocked(dir.clone()))?)
+        }
+        None => None,
+    };
+    tokio::pin!(shutdown);
+    // A new node first trades its enrolment token for an identity.
+    let (config, identity) = tokio::select! {
+        resolved = enrolment::resolve(config) => resolved?,
+        () = &mut shutdown => return Ok(()),
+    };
+    let (client, bearer) = client::connect(&config)?;
+    let engine = EngineApi::connect(&config.engine)?;
+    let monitoring = Monitoring::start(&config);
+    let state = {
+        let targets = config.targets.clone();
+        let engine_api = engine.is_some() || monitoring.is_some();
+        let remote_dir = config
+            .state_dir
+            .as_ref()
+            .map(|dir| dir.join(REMOTE_APPLIED_DIR));
+        tokio::task::spawn_blocking(move || {
+            // What an agent killed during a configuration check left behind.
+            for path in targets.values().filter_map(|target| target.path.as_ref()) {
+                remove_leftovers(path);
+            }
+            NodeState::load(&targets, engine_api, remote_dir.as_deref())
+        })
+        .await?
+    };
+    let state = Arc::new(state);
+    // The structured configuration kept from a former run is applied.
+    let structured = monitoring.as_ref().and_then(Monitoring::applied);
+    if let Some((target, digest)) = &structured {
+        state.set_applied(target, digest.clone());
+    }
+    // Cancelled on every way out, so that no background task outlives `run`.
+    let stop = CancellationToken::new();
+    let _stop_guard = stop.clone().drop_guard();
+    if let Some(engine) = engine.clone() {
+        let (state, stop) = (state.clone(), stop.clone());
+        tokio::spawn(async move { state.watch_engine(engine, stop).await });
+    }
+    if let Some(monitoring) = monitoring.clone() {
+        let (state, stop) = (state.clone(), stop.clone());
+        tokio::spawn(async move {
+            let mut monitoring = monitoring;
+            loop {
+                state.set_engine(monitoring.engine_state());
+                if let Some((target, Some(digest))) = monitoring.applied() {
+                    state.set_applied(&target, Some(digest));
+                }
+                tokio::select! {
+                    changed = monitoring.changed() => if !changed { return },
+                    () = stop.cancelled() => return,
+                }
+            }
+        });
+    }
+    // The built-in scheduler, when enabled, is the engine of this agent.
+    let engine_transport = match (&monitoring, &engine) {
+        (Some(monitoring), _) => EngineTransport::Scheduler(monitoring.clone()),
+        (None, Some(engine)) => EngineTransport::Grpc(engine.clone()),
+        (None, None) => EngineTransport::Pipe(config.engine.command_file.clone()),
+    };
+    // The engine checks what it will load; a local command stands in for it
+    // when the agent does not reach its API.
+    let checker = match (&monitoring, &engine, config.engine.verify_argv()?) {
+        (Some(monitoring), _, _) => Some(ConfigChecker::Scheduler {
+            monitoring: monitoring.clone(),
+            broker_config: config.scheduler.broker_config.clone(),
+        }),
+        (None, Some(engine), _) => Some(ConfigChecker::Grpc(engine.clone())),
+        (None, None, Some(argv)) => Some(ConfigChecker::Command {
+            argv,
+            timeout: config.default_command_timeout(),
+            kill_grace: config.kill_grace(),
+        }),
+        (None, None, None) => None,
+    };
+    let executors = Executors {
+        run_commands: RunCommandsExecutor {
+            allowlist: Allowlist::new(&config.commands.allowlist)?,
+            shell: config.commands.shell,
+            default_timeout: config.default_command_timeout(),
+            kill_grace: config.kill_grace(),
+            max_output: config.max_output_bytes,
+        },
+        engine_commands: EngineCommandsExecutor {
+            transport: engine_transport,
+            allowed: Allowlist::new(&config.engine.allowed_commands)?,
+        },
+        apply_config: ApplyConfigExecutor {
+            targets: config.targets.clone(),
+            max_bundle_bytes: config.max_bundle_bytes,
+            max_unpacked_bytes: config.max_unpacked_bytes,
+            fetcher: client::GrpcBlobFetcher {
+                client: client.clone(),
+            },
+            state: state.clone(),
+            checker,
+            max_output: config.max_output_bytes,
+            http_timeout: config.http_post_timeout(),
+            bearer: config.http_bearer_token.clone(),
+            monitoring: monitoring.clone(),
+        },
+        service_control: ServiceControlExecutor {
+            services: config.services.clone(),
+            engine,
+            monitoring: monitoring.clone(),
+            http_timeout: config.http_post_timeout(),
+            bearer: config.http_bearer_token.clone(),
+            timeout: config.default_command_timeout(),
+            kill_grace: config.kill_grace(),
+            max_output: config.max_output_bytes,
+        },
+    };
+    let journal_dir = config.state_dir.as_ref().map(|dir| dir.join("journal"));
+    let journal = Journal::open(
+        config.job_history,
+        config.max_buffered_event_bytes,
+        journal_dir.as_deref(),
+    )
+    .map_err(|source| AgentError::Io {
+        path: journal_dir.unwrap_or_default(),
+        source,
+    })?;
+    let journal = Arc::new(journal);
+    let scheduler = Arc::new(Scheduler::new(
+        journal.clone(),
+        executors,
+        config.max_concurrent_jobs,
+    ));
+    // The credential chosen at enrolment is rotated by this agent; a token
+    // of the configuration belongs to its administrator.
+    let rotation = identity
+        .zip(config.state_dir.clone())
+        .map(|(identity, dir)| {
+            let period = (config.credential_rotation_days > 0).then(|| {
+                Duration::from_secs(u64::from(config.credential_rotation_days) * 24 * 3600)
+            });
+            let rotation = Arc::new(rotation::Rotation::new(
+                dir,
+                identity,
+                bearer,
+                client.clone(),
+                period,
+            ));
+            tokio::spawn(Arc::clone(&rotation).run(stop.clone()));
+            rotation
+        });
+    let session = Session {
+        client,
+        rotation,
+        node_id: config.node_id.clone(),
+        component: config.component.clone(),
+        // A structured engine configuration is routed like a target push.
+        targets: config
+            .targets
+            .keys()
+            .cloned()
+            .chain(structured.iter().map(|(target, _)| target.clone()))
+            .collect(),
+        engine_configuration: structured.is_some(),
+        journal: journal.clone(),
+        scheduler: scheduler.clone(),
+        state,
+        backoff: Backoff::new(
+            Duration::from_millis(config.reconnect.min_ms),
+            Duration::from_millis(config.reconnect.max_ms),
+        ),
+    };
+
+    tracing::info!(
+        node_id = %config.node_id,
+        component = %config.component,
+        server_url = %config.server_url,
+        "agent started"
+    );
+    let mut session = tokio::spawn(session.run(stop.clone()));
+    tokio::select! {
+        () = &mut shutdown => {}
+        ended = &mut session => {
+            ended?;
+            return Ok(());
+        }
+    }
+
+    tracing::info!("stopping: no new job is taken");
+    scheduler.drain();
+    let grace = Duration::from_secs(config.shutdown_grace_s);
+    if tokio::time::timeout(grace, journal.idle()).await.is_err() {
+        tracing::warn!("jobs still running after {grace:?}: cancelling them");
+        journal.cancel_all();
+        let _ = tokio::time::timeout(SHUTDOWN_FLUSH, journal.idle()).await;
+    }
+    // The session stays up a little longer so that the last events get through.
+    if tokio::time::timeout(SHUTDOWN_FLUSH, journal.settled())
+        .await
+        .is_err()
+    {
+        tracing::warn!("stopping with events the server did not acknowledge");
+    }
+    if let Some(monitoring) = &monitoring {
+        // The central marks the poller stopped.
+        monitoring.shutdown().await;
+    }
+    stop.cancel();
+    session.await?;
+    tracing::info!("agent stopped");
+    Ok(())
+}

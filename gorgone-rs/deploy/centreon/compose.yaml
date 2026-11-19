@@ -1,0 +1,406 @@
+# Integration bench with real Centreon components, each in its own container,
+# with no volume shared between containers and no RRD file: configuration and
+# control go over the network, graphs are read from VictoriaMetrics.
+#
+#   db               MariaDB (Centreon databases and the gorgone-server store)
+#   gorgone-server,  two replicas of the Rust control plane, each alone in a
+#   gorgone-server-b distroless image, sharing the store; the agents and
+#                    centreon-web reach them by one name, "gorgone"
+#   web-install      sets the Centreon databases up once, then exits
+#   web, web-b       two replicas of centreon-web served by FrankenPHP: a
+#                    single static binary in a scratch image, no shell, no
+#                    package manager; same sessions and same encryption key
+#   valkey           the PHP session store the web replicas share
+#   web-cron,        two replicas of the centreon-web scheduled tasks, same
+#   web-cron-b       image: each job runs once per schedule (MariaDB locks)
+#   victoria-metrics the time series store graphs are read from
+#   broker           the central broker (cbd): SQL and VictoriaMetrics outputs,
+#                    with the gorgone-agent of the "broker" component of the
+#                    Central poller, which receives its configuration and key
+#   central-engine   the engine of the "Central" poller with its gorgone-agent
+#   engine           a second container-only poller, same image
+#   centreon-engine  a poller without centengine nor cbd: the centreon-engine
+#                    program takes a structured configuration (no .cfg) and
+#                    sends the results to the central broker
+#   collector-2      a collector added the one-command way: the centreon-engine
+#                    runtime image with only the gorgone-server address and an
+#                    enrolment token (scale 0, started by verify.sh
+#                    once it created the token through the centreon-web API)
+#   collector-3,     two more collectors sharing a fleet token that asks for an
+#   collector-4      approval (scale 0): verify.sh approves the first one and
+#                    rejects the second one
+#   mailpit          SMTP sink of the notifications of centreon-engine
+#   poller           the Centreon poller test image, driven by gorgone-agent
+#
+# The database and VictoriaMetrics keep their data in their own volume. Local
+# test use only: plaintext listeners, throwaway credentials.
+#
+#   export CENTREON_SRC=/path/to/centreon   # checkout of the gorgone API branch
+#   docker compose -f deploy/centreon/compose.yaml up --build -d
+#   deploy/centreon/verify.sh
+#   docker compose -f deploy/centreon/compose.yaml down -v
+#
+# Web UI: http://localhost:4000 and http://localhost:4001 (admin /
+# Centreon!2021, the test image defaults). The engine and broker images are
+# built from this branch: engine/README.md and broker/README.md.
+
+name: gorgone-rs-centreon
+
+x-gorgone-api: &gorgone-api
+  GORGONE_API_USERNAME: centreon-web
+  # Throwaway value shared by the containers of this bench.
+  GORGONE_API_PASSWORD: bench-only
+
+x-engine: &engine
+  build:
+    context: ../..
+    dockerfile: deploy/centreon/Dockerfile
+    target: engine
+    args:
+      ENGINE_IMAGE: ${ENGINE_IMAGE:-centreon-engine-trixie:gorgone-poc}
+  # "restart" is: the agent asks the engine to exit, docker starts the
+  # container again; its filesystem, and so the agent journal, is kept.
+  restart: always
+  depends_on:
+    central-setup:
+      condition: service_completed_successfully
+
+x-engine-env: &engine-env
+  <<: *gorgone-api
+  # The engine API has no authentication: it is served on a socket inside the
+  # container, for the agent next to it; nothing listens on the network.
+  ENGINE_RPC_LISTEN_ADDRESS: unix:/var/lib/centreon-engine/rw/engine.sock
+  WEB_HOST: web
+  GORGONE_HOST: gorgone
+  BROKER_HOST: broker
+  # Register the poller when needed, then generate, push and restart once.
+  GORGONE_DEPLOY: "true"
+
+x-web: &web
+  build:
+    context: ${CENTREON_SRC:?set CENTREON_SRC to a checkout of centreon/centreon with the Gorgone API branch}
+    dockerfile: .github/docker/centreon-web/frankenphp/Dockerfile
+  image: ${WEB_IMAGE:-centreon-web-frankenphp:gorgone-poc}
+  environment:
+    <<: *gorgone-api
+    MYSQL_HOST: db
+    MYSQL_ROOT_PASSWORD: centreon
+    MYSQL_USER: centreon
+    MYSQL_PASSWORD: centreon
+    CENTREON_DATASET: "1"
+    # The legacy pages call the internal API: without this they reuse the
+    # port published on the host, which nothing listens on in the container.
+    CENTREON_INTERNAL_API_BASE_URL: 127.0.0.1:80
+    GORGONE_API_ADDRESS: gorgone
+    VICTORIA_METRICS_URL: http://victoria-metrics:8428
+    # The engines schedule recurring downtimes; the web cron no longer does.
+    # Pollers marked as run by centreon-engine get a structured
+    # configuration instead of .cfg files. The BBDO connections to the
+    # central broker use TLS with certificates of a CA centreon-web manages
+    # (central/setup.sql switches TLS on).
+    # Collectors are added with an enrolment token (collector_enrolment): the
+    # web cron creates the poller of a fleet enrolment and sends the first
+    # configuration.
+    CENTREON_FEATURE_FLAGS: engine_recurring_downtimes,engine_structured_configuration,broker_managed_pki,collector_enrolment
+    # Given to the collectors in the command of an enrolment, and where their
+    # broker module sends the results.
+    COLLECTOR_SERVER_URL: http://gorgone:5556
+    COLLECTOR_BROKER_ADDRESS: broker
+    COLLECTOR_IMAGE: gorgone-rs-centreon-collector
+    # gorgone-server is only reachable on this network: the command the page
+    # gives must join it.
+    COLLECTOR_DOCKER_NETWORK: gorgone-rs-centreon_default
+    # Sessions opened on one replica are valid on the other.
+    SESSION_REDIS_URL: tcp://valkey:6379
+    # Credentials encryption key, the same in every replica and pushed to the
+    # pollers. Bench only, public on purpose: low-entropy base64 values in the
+    # right format. A real platform passes a secret here or in a file
+    # (ENGINE_CONTEXT_PATH).
+    CENTREON_ENGINE_CONTEXT: '{"app_secret":"YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=","salt":"c3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nz"}'
+
+x-gorgone-server: &gorgone-server
+  build:
+    context: ../..
+    dockerfile: deploy/Dockerfile
+    target: server
+  # One image for both replicas.
+  image: ${GORGONE_SERVER_IMAGE:-gorgone-rs-centreon-gorgone-server}
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: on-failure
+  networks:
+    default:
+      aliases: [gorgone]
+
+x-gorgone-server-env: &gorgone-server-env
+  GORGONE_SERVER__DATABASE_URL: mysql://centreon:centreon@db/gorgone
+  GORGONE_SERVER__REST_LISTEN: 0.0.0.0:8085
+  GORGONE_SERVER__AGENT_LISTEN: 0.0.0.0:5556
+  # Wake-up hints between the replicas.
+  GORGONE_SERVER__PEER_LISTEN: 0.0.0.0:5557
+  # Throwaway value shared by the replicas of this bench.
+  GORGONE_SERVER__PEER_TOKEN: bench-peer-only
+  GORGONE_SERVER__ALLOW_PLAINTEXT: "true"
+  GORGONE_SERVER__REST__BASIC_USERNAME: centreon-web
+  GORGONE_SERVER__REST__BASIC_PASSWORD: bench-only
+  # Bench only: agents are accepted without enrolment.
+  GORGONE_SERVER__AUTO_ENROLL: "true"
+  # Bench only: tokens that enrol nothing more are purged after 5 seconds
+  # (one day by default), so that verify.sh sees the purge.
+  GORGONE_SERVER__ENROLMENT_TOKEN_RETENTION_S: "5"
+
+x-web-serve: &web-serve
+  depends_on:
+    web-install:
+      condition: service_completed_successfully
+    gorgone-server:
+      condition: service_started
+    gorgone-server-b:
+      condition: service_started
+    valkey:
+      condition: service_healthy
+  healthcheck:
+    # No shell nor curl in the image: PHP checks the API itself.
+    test: ["CMD", "/usr/local/bin/frankenphp", "php-cli", "/usr/local/lib/centreon-container/healthcheck.php"]
+    interval: 2s
+    retries: 150
+    timeout: 5s
+
+services:
+  db:
+    image: ${MYSQL_IMAGE:-bitnamilegacy/mariadb:11.8}
+    environment:
+      # Throwaway values of the Centreon test images.
+      MARIADB_ROOT_PASSWORD: centreon
+      MARIADB_USER: centreon
+      MARIADB_PASSWORD: centreon
+      MARIADB_DATABASE: gorgone
+      MARIADB_EXTRA_FLAGS: "--skip-name-resolve --innodb-flush-method=nosync --innodb-log-file-size=32M --secure-file-priv= --skip-ssl"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/3306 && sleep 3 && </dev/tcp/127.0.0.1/3306'"]
+      interval: 5s
+      timeout: 15s
+      retries: 40
+
+  victoria-metrics:
+    image: ${VICTORIA_METRICS_IMAGE:-victoriametrics/victoria-metrics:v1.155.0}
+    command: ["-retentionPeriod=1y"]
+    ports: ["127.0.0.1:8428:8428"]
+    volumes:
+      - victoria-metrics-data:/victoria-metrics-data
+
+  # Two replicas sharing the store, as behind a Kubernetes Service: the name
+  # "gorgone" resolves to both, and each one keeps its own name for verify.sh.
+  gorgone-server:
+    <<: *gorgone-server
+    environment:
+      <<: *gorgone-server-env
+      GORGONE_SERVER__REPLICA_ID: gorgone-server
+      GORGONE_SERVER__PEER_ADVERTISE_ADDR: http://gorgone-server:5557
+    ports: ["127.0.0.1:8085:8085"]
+
+  gorgone-server-b:
+    <<: *gorgone-server
+    environment:
+      <<: *gorgone-server-env
+      GORGONE_SERVER__REPLICA_ID: gorgone-server-b
+      GORGONE_SERVER__PEER_ADVERTISE_ADDR: http://gorgone-server-b:5557
+    ports: ["127.0.0.1:8086:8085"]
+
+  web-install:
+    <<: *web
+    command: ["install"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Valkey, the BSD-licensed fork of Redis (same protocol, same PHP
+  # extension). Sessions only: nothing is persisted, no volume.
+  valkey:
+    image: ${VALKEY_IMAGE:-valkey/valkey:8.1-alpine}
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    # The image declares a /data volume: kept in memory instead.
+    tmpfs: [/data]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      retries: 30
+
+  web:
+    <<: [*web, *web-serve]
+    ports: ["127.0.0.1:4000:80"]
+
+  # A second replica, as behind a load balancer.
+  web-b:
+    <<: [*web, *web-serve]
+    ports: ["127.0.0.1:4001:80"]
+
+  web-cron:
+    <<: *web
+    command: ["cron"]
+    depends_on:
+      web-install:
+        condition: service_completed_successfully
+
+  # A second replica: the replica that takes the MariaDB lock of a minute runs
+  # the jobs due then, the other skips them.
+  web-cron-b:
+    <<: *web
+    command: ["cron"]
+    depends_on:
+      web-install:
+        condition: service_completed_successfully
+
+  # centreon-web sets a new platform up for a broker on its own host, writing
+  # RRD files: send the flows to the broker container and to VictoriaMetrics.
+  central-setup:
+    image: ${MYSQL_IMAGE:-bitnamilegacy/mariadb:11.8}
+    depends_on:
+      web:
+        condition: service_healthy
+    configs:
+      - source: central-setup-sql
+        target: /setup.sql
+    entrypoint: ["bash", "-c", "mariadb --skip-ssl -hdb -uroot -pcentreon centreon < /setup.sql"]
+
+  broker:
+    # The broker image of this branch (broker/README.md) with its agent.
+    build:
+      context: ../..
+      dockerfile: deploy/centreon/Dockerfile
+      target: broker
+      args:
+        BROKER_IMAGE: ${BROKER_IMAGE:-centreon-broker-trixie:gorgone-poc}
+    hostname: broker
+    # "restart" is: the agent stops cbd, docker starts the container again;
+    # its filesystem, and so the configuration and the agent journal, is kept.
+    restart: always
+    depends_on:
+      gorgone-server:
+        condition: service_started
+      gorgone-server-b:
+        condition: service_started
+    environment:
+      # The "broker" component of the Central poller (agent.toml): its own
+      # session, the pushes of the broker configuration and of the key, and
+      # the broker service. cbd starts once the first configuration arrives.
+      GORGONE_AGENT__NODE_ID: "1"
+      BROKER_WAIT_FOR_CONFIG: "true"
+
+  central-engine:
+    <<: *engine
+    hostname: central-engine
+    # Its broker registers its component first: the configuration pushes of
+    # the deployment are then routed to both.
+    depends_on:
+      central-setup:
+        condition: service_completed_successfully
+      broker:
+        condition: service_started
+    environment:
+      <<: *engine-env
+      # The "Central" poller exists from the installation: no registration.
+      POLLER_NAME: Central
+      GORGONE_AGENT__NODE_ID: "1"
+
+  engine:
+    <<: *engine
+    hostname: engine
+    environment:
+      <<: *engine-env
+      POLLER_NAME: engine
+
+  # A poller with no centengine and no cbd: the centreon-engine program takes
+  # the structured configuration centreon-web sends through gorgone-server,
+  # runs the checks and sends the results to the central broker
+  # (docs/scheduler-design.md). Registers and deploys itself.
+  centreon-engine:
+    build:
+      context: ../..
+      dockerfile: deploy/centreon/Dockerfile
+      target: centreon-engine-bench
+    image: ${CENTREON_ENGINE_IMAGE:-gorgone-rs-centreon-centreon-engine}
+    hostname: centreon-engine
+    restart: always
+    depends_on:
+      central-setup:
+        condition: service_completed_successfully
+    environment:
+      <<: *gorgone-api
+      WEB_HOST: web
+      GORGONE_HOST: gorgone
+      BROKER_HOST: broker
+      POLLER_NAME: centreon-engine
+      GORGONE_DEPLOY: "true"
+      CENTREON_ENGINE_LOG: info
+
+  # A collector added in one command: nothing but the gorgone-server address
+  # and an enrolment token. It enrols, the web cron creates its poller and
+  # sends it its configuration. verify.sh creates the token through the
+  # centreon-web API, then starts it:
+  #   COLLECTOR_ENROLMENT_TOKEN=... docker compose up -d --scale collector-2=1 collector-2
+  collector-2:
+    build:
+      context: ../..
+      dockerfile: deploy/centreon/Dockerfile
+      target: centreon-engine
+    image: ${COLLECTOR_IMAGE:-gorgone-rs-centreon-collector}
+    hostname: collector-2
+    restart: always
+    # Not started by "up": verify.sh scales it to one with its token.
+    scale: 0
+    environment:
+      CENTREON_ENGINE__SERVER_URL: http://gorgone:5556
+      CENTREON_ENGINE__ENROLMENT_TOKEN: ${COLLECTOR_ENROLMENT_TOKEN:-}
+
+  # Two collectors of a fleet whose token asks for an approval: verify.sh
+  # approves collector-3 (its poller is created then) and rejects
+  # collector-4 (no poller). Same image as collector-2, which builds it.
+  collector-3:
+    image: ${COLLECTOR_IMAGE:-gorgone-rs-centreon-collector}
+    hostname: collector-3
+    restart: always
+    scale: 0
+    environment:
+      CENTREON_ENGINE__SERVER_URL: http://gorgone:5556
+      CENTREON_ENGINE__ENROLMENT_TOKEN: ${COLLECTOR_APPROVAL_TOKEN:-}
+
+  collector-4:
+    image: ${COLLECTOR_IMAGE:-gorgone-rs-centreon-collector}
+    hostname: collector-4
+    restart: always
+    scale: 0
+    environment:
+      CENTREON_ENGINE__SERVER_URL: http://gorgone:5556
+      CENTREON_ENGINE__ENROLMENT_TOKEN: ${COLLECTOR_APPROVAL_TOKEN:-}
+
+  # SMTP sink of the notifications of centreon-engine (notify-mail.pl);
+  # verify.sh reads the mails through its API.
+  mailpit:
+    image: ${MAILPIT_IMAGE:-axllent/mailpit:v1.21.8}
+    ports: ["127.0.0.1:8025:8025"]
+
+  poller:
+    build:
+      context: ../..
+      dockerfile: deploy/centreon/Dockerfile
+      target: poller
+      args:
+        POLLER_IMAGE: ${POLLER_IMAGE:-docker.centreon.com/centreon/centreon-poller-alma9:develop}
+    hostname: poller
+    depends_on:
+      central-setup:
+        condition: service_completed_successfully
+    environment:
+      <<: *gorgone-api
+      WEB_HOST: web
+      GORGONE_HOST: gorgone
+      BROKER_HOST: broker
+
+configs:
+  central-setup-sql:
+    file: ./central/setup.sql
+
+volumes:
+  victoria-metrics-data:

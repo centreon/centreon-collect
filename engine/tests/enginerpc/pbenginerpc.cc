@@ -19,8 +19,13 @@
 
 #include <gtest/gtest.h>
 
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
 #include <chrono>
 
+#include <absl/strings/str_join.h>
+#include <grpcpp/create_channel.h>
 #include <fstream>
 #include <thread>
 
@@ -43,10 +48,12 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/engine/version.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
+#include "engine.grpc.pb.h"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -1795,6 +1802,277 @@ TEST_F(EngineRpc, ProcessHostCheckResultBadHost) {
   erpc.shutdown();
 }
 
+TEST_F(EngineRpc, ProcessExternalCommand) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  _host->set_checks_enabled(true);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  auto output =
+      execute(fmt::format("ProcessExternalCommand '[1700000000] "
+                          "DISABLE_HOST_CHECK;{}'",
+                          _host->name()));
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(output.size(), 1u);
+  ASSERT_EQ(output.front(), "ProcessExternalCommand: 0");
+  ASSERT_FALSE(_host->active_checks_enabled());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ProcessExternalCommandEmpty) {
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("ProcessExternalCommand ''");
+  ASSERT_EQ(output.size(), 2u);
+  ASSERT_EQ(output.front(),
+            "ProcessExternalCommand failed: 3 command must not be empty");
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ProcessExternalCommandSeveralLines) {
+  enginerpc erpc("0.0.0.0", 40001);
+  _host->set_checks_enabled(true);
+  auto output = execute(fmt::format(
+      "ProcessExternalCommand '[1700000000] DISABLE_HOST_CHECK;{0}\n"
+      "[1700000000] DISABLE_HOST_CHECK;{0}'",
+      _host->name()));
+  ASSERT_EQ(output.size(), 2u);
+  ASSERT_EQ(output.front(),
+            "ProcessExternalCommand failed: 3 command must be a single line "
+            "without control characters");
+  command_manager::instance().execute();
+  ASSERT_TRUE(_host->active_checks_enabled());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ProcessExternalCommandMalformed) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  _host->set_checks_enabled(true);
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  // No "[<timestamp>] " prefix.
+  auto output = execute(fmt::format(
+      "ProcessExternalCommand 'DISABLE_HOST_CHECK;{}'", _host->name()));
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(output.size(), 2u);
+  ASSERT_EQ(output.front(),
+            "ProcessExternalCommand failed: 3 command is malformed or "
+            "unknown, expected format: \"[<timestamp>] "
+            "<COMMAND_NAME>;<arguments>\"");
+  ASSERT_TRUE(_host->active_checks_enabled());
+  erpc.shutdown();
+}
+
+TEST_F(EngineRpc, ProcessExternalCommandUnknown) {
+  enginerpc erpc("0.0.0.0", 40001);
+  std::unique_ptr<std::thread> th;
+  std::condition_variable condvar;
+  std::mutex mutex;
+  bool continuerunning = false;
+
+  call_command_manager(th, &condvar, &mutex, &continuerunning);
+  auto output = execute(fmt::format(
+      "ProcessExternalCommand '[1700000000] NOT_A_COMMAND;{}'", _host->name()));
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    continuerunning = true;
+  }
+  condvar.notify_one();
+  th->join();
+
+  ASSERT_EQ(output.size(), 2u);
+  ASSERT_EQ(output.front(),
+            "ProcessExternalCommand failed: 3 command is malformed or "
+            "unknown, expected format: \"[<timestamp>] "
+            "<COMMAND_NAME>;<arguments>\"");
+  erpc.shutdown();
+}
+
+/**
+ * @brief A configuration of one host and one service in a directory of its
+ * own, for the VerifyConfiguration tests. ut_engine is not centengine: the
+ * RPC is told to run the one of the build tree (tests run from build/).
+ */
+class verify_configuration_dir {
+  const std::filesystem::path _dir;
+
+  void _write(const std::string& name, const std::string& content) const {
+    std::ofstream f(_dir / name);
+    f << content;
+  }
+
+ public:
+  /**
+   * @param name Name of the test, the directory is unique to it.
+   * @param check_command Check command of the service; only "cmd" exists.
+   */
+  verify_configuration_dir(const std::string& name,
+                           const std::string& check_command)
+      : _dir(fmt::format("/tmp/ut_engine_verify_{}_{}", getpid(), name)) {
+    std::filesystem::remove_all(_dir);
+    std::filesystem::create_directories(_dir);
+    _write("centengine.cfg",
+           fmt::format("cfg_file={0}/objects.cfg\n"
+                       "resource_file={0}/resource.cfg\n",
+                       _dir.string()));
+    _write("resource.cfg", "$USER1$=/usr/lib64/nagios/plugins\n");
+    _write("objects.cfg",
+           fmt::format("define command {{\n"
+                       "    command_name    cmd\n"
+                       "    command_line    /bin/true\n"
+                       "}}\n"
+                       "define host {{\n"
+                       "    host_name            verified_host\n"
+                       "    address              127.0.0.1\n"
+                       "    check_command        cmd\n"
+                       "    max_check_attempts   3\n"
+                       "    _HOST_ID             1\n"
+                       "}}\n"
+                       "define service {{\n"
+                       "    host_name            verified_host\n"
+                       "    service_description  verified_service\n"
+                       "    check_command        {}\n"
+                       "    max_check_attempts   3\n"
+                       "    _SERVICE_ID          1\n"
+                       "}}\n",
+                       check_command));
+    engine_impl::set_verify_executable(
+        std::filesystem::absolute("engine/centengine").string());
+  }
+
+  ~verify_configuration_dir() {
+    engine_impl::set_verify_executable("/proc/self/exe");
+    std::error_code ec;
+    std::filesystem::remove_all(_dir, ec);
+  }
+
+  std::string main_file() const { return (_dir / "centengine.cfg").string(); }
+  std::string dir() const { return _dir.string(); }
+};
+
+static bool contains_line(const std::list<std::string>& lines,
+                          const std::string& expected) {
+  return std::any_of(lines.begin(), lines.end(),
+                     [&expected](const std::string& line) {
+                       return line.find(expected) != std::string::npos;
+                     });
+}
+
+TEST_F(EngineRpc, VerifyConfigurationValid) {
+  verify_configuration_dir conf("valid", "cmd");
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration " + conf.main_file());
+  erpc.shutdown();
+
+  ASSERT_FALSE(output.empty());
+  ASSERT_EQ(output.front(), "VerifyConfiguration: 0")
+      << absl::StrJoin(output, "\n");
+  ASSERT_TRUE(contains_line(output, "Checked 1 hosts."));
+  ASSERT_TRUE(contains_line(output, "Checked 1 services."));
+  ASSERT_TRUE(contains_line(output, "Total Errors:   0"));
+  // The verified configuration is not the one of this process.
+  ASSERT_EQ(engine::host::hosts.count("verified_host"), 0u);
+}
+
+TEST_F(EngineRpc, VerifyConfigurationBroken) {
+  verify_configuration_dir conf("broken", "missing_cmd");
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration " + conf.main_file());
+  erpc.shutdown();
+
+  ASSERT_FALSE(output.empty());
+  ASSERT_EQ(output.front(), "VerifyConfiguration: 1")
+      << absl::StrJoin(output, "\n");
+  ASSERT_TRUE(contains_line(output, "missing_cmd"))
+      << absl::StrJoin(output, "\n");
+}
+
+TEST_F(EngineRpc, VerifyConfigurationConcurrent) {
+  verify_configuration_dir valid("concurrent_valid", "cmd");
+  verify_configuration_dir broken("concurrent_broken", "missing_cmd");
+  // The destructor of `broken` runs first and restores the default too.
+  enginerpc erpc("0.0.0.0", 40001);
+  std::list<std::string> valid_output, broken_output;
+  std::thread valid_th([&] {
+    valid_output = execute("VerifyConfiguration " + valid.main_file());
+  });
+  std::thread broken_th([&] {
+    broken_output = execute("VerifyConfiguration " + broken.main_file());
+  });
+  valid_th.join();
+  broken_th.join();
+  erpc.shutdown();
+
+  ASSERT_FALSE(valid_output.empty());
+  ASSERT_EQ(valid_output.front(), "VerifyConfiguration: 0");
+  ASSERT_TRUE(contains_line(valid_output, "Total Errors:   0"));
+  ASSERT_FALSE(contains_line(valid_output, "missing_cmd"));
+  ASSERT_FALSE(broken_output.empty());
+  ASSERT_EQ(broken_output.front(), "VerifyConfiguration: 1");
+  ASSERT_TRUE(contains_line(broken_output, "missing_cmd"));
+}
+
+TEST_F(EngineRpc, VerifyConfigurationEmptyPath) {
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration ''");
+  erpc.shutdown();
+  ASSERT_EQ(output.size(), 1u);
+  ASSERT_EQ(output.front(),
+            "VerifyConfiguration failed: 3 path must not be empty");
+}
+
+TEST_F(EngineRpc, VerifyConfigurationRelativePath) {
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration engine/centengine.cfg");
+  erpc.shutdown();
+  ASSERT_EQ(output.size(), 1u);
+  ASSERT_EQ(output.front(),
+            "VerifyConfiguration failed: 3 path must be absolute");
+}
+
+TEST_F(EngineRpc, VerifyConfigurationControlCharacter) {
+  enginerpc erpc("0.0.0.0", 40001);
+  auto output = execute("VerifyConfiguration '/tmp/ut_engine_verify\tx.cfg'");
+  erpc.shutdown();
+  ASSERT_EQ(output.size(), 1u);
+  ASSERT_EQ(output.front(),
+            "VerifyConfiguration failed: 3 path must not contain control "
+            "characters");
+}
+
+TEST_F(EngineRpc, VerifyConfigurationMissingFile) {
+  verify_configuration_dir conf("missing", "cmd");
+  enginerpc erpc("0.0.0.0", 40001);
+  auto missing = execute("VerifyConfiguration " + conf.dir() + "/absent.cfg");
+  // A directory is not a regular file.
+  auto directory = execute("VerifyConfiguration " + conf.dir());
+  erpc.shutdown();
+  ASSERT_EQ(missing.size(), 1u);
+  ASSERT_EQ(missing.front(),
+            "VerifyConfiguration failed: 3 path must be an existing regular "
+            "file");
+  ASSERT_EQ(directory.size(), 1u);
+  ASSERT_EQ(directory.front(), missing.front());
+}
+
 TEST_F(EngineRpc, NewThresholdsFile) {
   CreateFile(
       "/tmp/thresholds_file.json",
@@ -1812,4 +2090,96 @@ TEST_F(EngineRpc, NewThresholdsFile) {
   ASSERT_EQ(output.front(), "NewThresholdsFile: 0");
   command_manager::instance().execute();
   ASSERT_EQ(_ad->get_thresholds_file(), "/tmp/thresholds_file.json");
+}
+
+TEST(enginerpc_test, tcp_address_gets_the_port) {
+  ASSERT_FALSE(enginerpc::is_unix_socket("localhost"));
+  ASSERT_EQ(enginerpc::listening_address("localhost", 50155),
+            "localhost:50155");
+  ASSERT_EQ(enginerpc::listening_address("0.0.0.0", 40001), "0.0.0.0:40001");
+}
+
+TEST(enginerpc_test, unix_socket_address_is_used_as_is) {
+  ASSERT_TRUE(enginerpc::is_unix_socket("unix:/run/engine.sock"));
+  ASSERT_EQ(enginerpc::listening_address("unix:/run/engine.sock", 50155),
+            "unix:/run/engine.sock");
+}
+
+TEST(enginerpc_test, host_name_starting_with_unix_is_tcp) {
+  ASSERT_FALSE(enginerpc::is_unix_socket("unix"));
+  ASSERT_EQ(enginerpc::listening_address("unixhost", 50155), "unixhost:50155");
+}
+
+/* GetVersion through the Unix domain socket of the server. */
+static grpc::Status get_version_on(const std::string& address) {
+  auto stub = com::centreon::engine::Engine::NewStub(
+      grpc::CreateChannel(address, grpc::InsecureChannelCredentials()));
+  grpc::ClientContext context;
+  context.set_deadline(std::chrono::system_clock::now() +
+                       std::chrono::seconds(10));
+  const ::google::protobuf::Empty e;
+  com::centreon::engine::Version version;
+  return stub->GetVersion(&context, e, &version);
+}
+
+TEST_F(EngineRpc, UnixSocketAnswersWithOwnerAndGroupMode) {
+  const std::string path =
+      fmt::format("/tmp/ut_engine_rpc_mode_{}.sock", getpid());
+  const std::string address = "unix:" + path;
+  unlink(path.c_str());
+  mode_t mask = umask(022);
+  {
+    enginerpc erpc(address, 40001);
+    ASSERT_TRUE(erpc.listening());
+    struct stat st;
+    ASSERT_EQ(stat(path.c_str(), &st), 0);
+    ASSERT_TRUE(S_ISSOCK(st.st_mode));
+    ASSERT_EQ(st.st_mode & 07777, 0660u);
+    grpc::Status status = get_version_on(address);
+    ASSERT_TRUE(status.ok()) << status.error_message();
+    erpc.shutdown();
+  }
+  // The umask of the process is restored once the server is started.
+  ASSERT_EQ(umask(mask), 022u);
+  unlink(path.c_str());
+}
+
+TEST_F(EngineRpc, UnixSocketReplacesStaleSocket) {
+  const std::string path =
+      fmt::format("/tmp/ut_engine_rpc_stale_{}.sock", getpid());
+  const std::string address = "unix:" + path;
+  unlink(path.c_str());
+  // A socket file nobody listens on, as a killed Engine leaves it.
+  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  ASSERT_GE(fd, 0);
+  struct sockaddr_un addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
+  ASSERT_EQ(bind(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)),
+            0);
+  close(fd);
+  struct stat st;
+  ASSERT_EQ(stat(path.c_str(), &st), 0);
+
+  enginerpc erpc(address, 40001);
+  ASSERT_TRUE(erpc.listening());
+  grpc::Status status = get_version_on(address);
+  ASSERT_TRUE(status.ok()) << status.error_message();
+  erpc.shutdown();
+  unlink(path.c_str());
+}
+
+TEST_F(EngineRpc, UnixSocketDoesNotReplaceRegularFile) {
+  const std::string path =
+      fmt::format("/tmp/ut_engine_rpc_file_{}.sock", getpid());
+  CreateFile(path, "not a socket");
+
+  enginerpc erpc("unix:" + path, 40001);
+  ASSERT_FALSE(erpc.listening());
+  struct stat st;
+  ASSERT_EQ(stat(path.c_str(), &st), 0);
+  ASSERT_TRUE(S_ISREG(st.st_mode));
+  erpc.shutdown();
+  unlink(path.c_str());
 }

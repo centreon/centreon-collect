@@ -327,8 +327,10 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
                                 "/", _logger, 0, metric_columns, status_columns,
                                 "toto");
 
+  // metric 145 belongs to index 45 (metric mapping above): index_id label;
+  // min and max are no longer default tags, a change would start a new series
   Metric metric;
-  metric.set_metric_id(123);
+  metric.set_metric_id(145);
   metric.set_value(1.5782);
   metric.set_time(1674715597);
   metric.set_host_id(14);
@@ -347,9 +349,9 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
   status.set_service_id(78);
   req.add_status(status);
   ASSERT_EQ(
-      "metric,id=123,name=metric\\ name,host_id=14,serv_id=78,unit=metric\\ "
-      "unit,severity_id=3,"
-      "host=my\\ host,serv=my\\ service/tutu\\ ,min=0.456,max=0.987,"
+      "metric,id=145,index_id=45,name=metric\\ name,host_id=14,serv_id=78,"
+      "unit=metric\\ unit,severity_id=3,"
+      "host=my\\ host,serv=my\\ service/tutu\\ ,"
       "host_grp=88\\,89,serv_grp=1278\\,1279,host_tag_cat=tag89,host_tag_grp="
       "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=tag112\\,tag123 "
       "val=1.5782 1674715597\n"

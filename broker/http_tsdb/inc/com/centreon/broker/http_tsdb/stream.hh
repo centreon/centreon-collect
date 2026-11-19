@@ -124,6 +124,9 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   stat_average _recv_avg;
 
   mutable std::mutex _protect;
+  // requests handed to the http client and not answered yet
+  unsigned _pending_requests;
+  std::condition_variable _pending_cv;
 
   stream(const std::string& name,
          const std::shared_ptr<asio::io_context>& io_context,
@@ -141,6 +144,28 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
                     const http::response_ptr& response);
 
   void add_to_stat(stat& to_maj, unsigned to_add);
+
+  /**
+   * @brief Send the buffered request and wait until every request handed to
+   * the http client has been answered. To call from the failover thread only.
+   * @throw msg_fmt if a request failed (its events are kept in the buffer) or
+   * if the answers do not come in time.
+   */
+  void drain_requests();
+
+  /**
+   * @brief Send a request outside the event buffer and wait for its answer.
+   * To call from the failover thread only.
+   * @return the answer, whose status is 2xx.
+   * @throw msg_fmt on a transport error, a timeout or a status >= 300.
+   */
+  http::response_ptr send_sync(const http::request_ptr& request);
+
+  /**
+   * @brief Longest time we wait for an answer: connect, send and receive
+   * timeouts plus a margin.
+   */
+  duration answer_timeout() const;
 
  public:
   using pointer = std::shared_ptr<stream>;

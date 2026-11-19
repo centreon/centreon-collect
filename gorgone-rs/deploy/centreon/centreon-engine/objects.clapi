@@ -1,0 +1,92 @@
+# Objects of the centreon-engine poller, created through CLAPI by register.pl objects:
+# OBJECT;ACTION;values (CLAPI splits values on ';': none in a value).
+# @POLLER@ is the poller name. An object that already exists is kept (the
+# container may start again).
+# The poller runs centreon-engine: centreon-web sends it a structured
+# configuration (feature flag engine_structured_configuration).
+INSTANCE;SETPARAM;@POLLER@;engine_name;centreon-engine
+CMD;ADD;rust-check-dummy;check;$USER1$/check_dummy $ARG1$ "$ARG2$|value=$ARG1$"
+HTPL;ADD;rust-host-tpl;Rust poller host;;;;
+HTPL;SETPARAM;rust-host-tpl;check_command;rust-check-dummy
+HTPL;SETPARAM;rust-host-tpl;check_command_arguments;!0!host up
+HTPL;SETPARAM;rust-host-tpl;max_check_attempts;2
+HTPL;SETPARAM;rust-host-tpl;check_interval;1
+HTPL;SETPARAM;rust-host-tpl;retry_check_interval;1
+STPL;ADD;rust-svc-tpl;Rust poller service;
+STPL;SETPARAM;rust-svc-tpl;check_command;rust-check-dummy
+STPL;SETPARAM;rust-svc-tpl;check_command_arguments;!0!fine
+STPL;SETPARAM;rust-svc-tpl;max_check_attempts;2
+STPL;SETPARAM;rust-svc-tpl;normal_check_interval;1
+STPL;SETPARAM;rust-svc-tpl;retry_check_interval;1
+HOST;ADD;rust-h1;Rust host 1;127.0.0.1;rust-host-tpl;@POLLER@;
+HOST;ADD;rust-h2;Rust host 2;127.0.0.2;rust-host-tpl;@POLLER@;
+SERVICE;ADD;rust-h1;rust-ok;rust-svc-tpl
+SERVICE;ADD;rust-h1;rust-crit;rust-svc-tpl
+SERVICE;SETPARAM;rust-h1;rust-crit;check_command_arguments;!2!broken
+SERVICE;ADD;rust-h2;rust-warn;rust-svc-tpl
+SERVICE;SETPARAM;rust-h2;rust-warn;check_command_arguments;!1!degraded
+# The length and a hash of $_HOSTSECRET$ (set by verify.sh, encrypted), not
+# its value: proves centreon-engine decrypted it without printing it.
+CMD;ADD;rust-secret-length;check;/bin/sh -c 'printf "secret-length %s sha %.12s" "$${#1}" "$$(printf %s "$$1" | sha256sum)"' sh "$_HOSTSECRET$"
+SERVICE;ADD;rust-h1;rust-secret;rust-svc-tpl
+SERVICE;SETPARAM;rust-h1;rust-secret;check_command;rust-secret-length
+# Given a check period that excludes the current time by verify.sh.
+SERVICE;ADD;rust-h2;rust-period;rust-svc-tpl
+# Groups, a category and a severity (rust-sev, given its level by verify.sh:
+# CLAPI asks an icon for that).
+HG;ADD;rust-hg;Rust hosts
+HG;ADDMEMBER;rust-hg;rust-h1|rust-h2
+SG;ADD;rust-sg;Rust services
+SG;ADDSERVICE;rust-sg;rust-h1,rust-ok
+HC;ADD;rust-cat;Rust category
+HC;ADDMEMBER;rust-cat;rust-h1
+HC;ADD;rust-sev;Rust severity
+HC;ADDMEMBER;rust-sev;rust-h1
+# A parent DOWN, and its child UNREACHABLE behind it.
+HOST;ADD;rust-parent;Rust parent;127.0.0.3;rust-host-tpl;@POLLER@;
+HOST;SETPARAM;rust-parent;check_command_arguments;!2!gone
+HOST;SETPARAM;rust-parent;max_check_attempts;1
+HOST;ADD;rust-child;Rust child;127.0.0.4;rust-host-tpl;@POLLER@;
+HOST;SETPARAM;rust-child;check_command_arguments;!2!no route
+HOST;SETPARAM;rust-child;max_check_attempts;1
+HOST;ADDPARENT;rust-child;rust-parent
+# Not checked while its master, rust-crit, is CRITICAL.
+SERVICE;ADD;rust-h1;rust-dependent;rust-svc-tpl
+DEP;ADD;rust-dep;Rust dependency;SERVICE;rust-h1,rust-crit
+DEP;ADDCHILD;rust-dep;rust-h1,rust-dependent
+DEP;SETPARAM;rust-dep;execution_failure_criteria;c
+# Notifications: a contact (CLAPI finds it by its alias, here its name too)
+# notified by mail (Mailpit, notify-mail.pl: no
+# shell, no local mailer), of rust-notify, CRITICAL, renotified every
+# minute; its event handler records each call in a file of the container.
+CMD;ADD;rust-notify-mail;notif;/usr/bin/perl /usr/local/lib/gorgone/notify-mail.pl mailpit:1025 $CONTACTEMAIL$ "** $NOTIFICATIONTYPE$ Service Alert: $HOSTNAME$/$SERVICEDESC$ is $SERVICESTATE$ **" "number $NOTIFICATIONNUMBER$, contact $CONTACTNAME$, date $LONGDATETIME$, output: $SERVICEOUTPUT$"
+CMD;ADD;rust-handler;misc;/bin/sh -c 'echo "$$*" >> /var/lib/centreon-engine/handled' sh $HOSTNAME$ $SERVICEDESC$ $SERVICESTATE$ $SERVICESTATETYPE$ $SERVICEATTEMPT$
+CONTACT;ADD;rust-admin;rust-admin;rust-admin@bench.local;Bench-Contact-2026!;0;0;en_US;local
+CONTACT;SETPARAM;rust-admin;enable_notifications;1
+CONTACT;SETPARAM;rust-admin;hostnotifopt;d,u,r
+CONTACT;SETPARAM;rust-admin;servicenotifopt;w,c,r,f,s
+CONTACT;SETPARAM;rust-admin;hostnotifperiod;24x7
+CONTACT;SETPARAM;rust-admin;svcnotifperiod;24x7
+CONTACT;SETPARAM;rust-admin;hostnotifcmd;rust-notify-mail
+CONTACT;SETPARAM;rust-admin;svcnotifcmd;rust-notify-mail
+# On a host of their own: the recurring downtime of rust-h1 and the host
+# downtime of rust-h2 would hold their notifications back.
+HOST;ADD;rust-notif;Rust notifications;127.0.0.5;rust-host-tpl;@POLLER@;
+SERVICE;ADD;rust-notif;rust-notify;rust-svc-tpl
+SERVICE;SETPARAM;rust-notif;rust-notify;check_command_arguments;!2!notify me
+SERVICE;SETPARAM;rust-notif;rust-notify;notifications_enabled;1
+SERVICE;SETPARAM;rust-notif;rust-notify;notification_interval;1
+SERVICE;SETPARAM;rust-notif;rust-notify;service_notification_options;w,c,r,f,s
+SERVICE;SETPARAM;rust-notif;rust-notify;event_handler;rust-handler
+SERVICE;SETPARAM;rust-notif;rust-notify;event_handler_enabled;1
+SERVICE;ADDCONTACT;rust-notif;rust-notify;rust-admin
+# Flapping: passive results alternated by verify.sh.
+SERVICE;ADD;rust-notif;rust-flap;rust-svc-tpl
+SERVICE;SETPARAM;rust-notif;rust-flap;active_checks_enabled;0
+SERVICE;SETPARAM;rust-notif;rust-flap;flap_detection_enabled;1
+# Freshness: passive only, an active check once its result is 30 s old.
+SERVICE;ADD;rust-notif;rust-fresh;rust-svc-tpl
+SERVICE;SETPARAM;rust-notif;rust-fresh;check_command_arguments;!0!refreshed by the engine
+SERVICE;SETPARAM;rust-notif;rust-fresh;active_checks_enabled;0
+SERVICE;SETPARAM;rust-notif;rust-fresh;check_freshness;1
+SERVICE;SETPARAM;rust-notif;rust-fresh;freshness_threshold;30

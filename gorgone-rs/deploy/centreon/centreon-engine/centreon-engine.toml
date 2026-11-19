@@ -1,0 +1,61 @@
+# centreon-engine of the centreon-engine container: the whole poller. It takes
+# the structured configuration centreon-web sends through gorgone-server
+# (apply_engine_configuration jobs, no file), runs the checks and sends the
+# results to the central broker over BBDO: no centengine, no cbd, no .cfg.
+# The node id comes from the environment (CENTREON_ENGINE__NODE_ID).
+server_url = "http://gorgone:5556"
+# Bench value: gorgone-server enrols nodes automatically here.
+token = "integration-test"
+# On the container's own filesystem: job journal and the configuration in
+# force (engine-configuration/), which a restart loads again.
+state_dir = "/var/lib/centreon-engine"
+
+[commands]
+allowlist = []
+
+[engine]
+# Handled by the engine: checks, passive results, downtimes, notification,
+# event handler and flap detection switches, acknowledgements and comments;
+# the other ones the web may send are refused by the engine.
+allowed_commands = [
+  'SCHEDULE_(FORCED_)?(HOST|SVC)_CHECK',
+  'PROCESS_(HOST|SERVICE)_CHECK_RESULT',
+  'SCHEDULE_(HOST|SVC)_DOWNTIME',
+  'SCHEDULE_HOST_SVC_DOWNTIME',
+  'DEL_(HOST|SVC)_DOWNTIME',
+  'ACKNOWLEDGE_(HOST|SVC)_PROBLEM',
+  'REMOVE_(HOST|SVC)_ACKNOWLEDGEMENT',
+  'ADD_(HOST|SVC)_COMMENT',
+  'DEL_(HOST|SVC)_COMMENT',
+  'DEL_ALL_(HOST|SVC)_COMMENTS',
+  '(ENABLE|DISABLE)_(HOST_|SVC_|HOST_SVC_)?NOTIFICATIONS',
+  '(ENABLE|DISABLE)_(HOST|SVC)_EVENT_HANDLER',
+  '(ENABLE|DISABLE)_EVENT_HANDLERS',
+  '(ENABLE|DISABLE)_(HOST_|SVC_)?FLAP_DETECTION',
+]
+
+# The key centreon-web encrypts credentials with, pushed before each
+# configuration: the engine decrypts the encrypt:: macro values with it
+# (scheduler.credentials_file, /etc/centreon-engine/engine-context.json by
+# default).
+[targets.engine_context]
+path = "/etc/centreon-engine"
+prune = false
+file_mode = "0640"
+
+[scheduler]
+# Always enabled for centreon-engine; "structured" is its default input.
+input = "structured"
+# Target the applied configuration is reported under, as an Engine push.
+target = "engine"
+# Plugins running at once.
+max_concurrent_checks = 64
+
+# Reload and restart: the engine puts the configuration it keeps in force
+# again (the changes come with the apply_engine_configuration jobs).
+[services.engine]
+reload = "scheduler:reload"
+restart = "scheduler:reload"
+
+[services.broker]
+reload = "scheduler:reload"

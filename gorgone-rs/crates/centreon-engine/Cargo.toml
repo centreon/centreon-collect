@@ -1,0 +1,38 @@
+[package]
+name = "centreon-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "centreon-engine: monitoring core of a Centreon poller; runs its checks from the Engine files or a structured configuration and sends the results to Centreon Broker over BBDO"
+
+[dependencies]
+# encrypt:: macros (AES-256-CBC, HMAC-SHA3-512, `common/crypto/aes256.cc`):
+# aes, cbc and sha3 are the only crates this one adds to Cargo.lock (with
+# cipher, inout and keccak), from the RustCrypto family the workspace
+# already builds (hmac, sha2, digest). Every other one was already there.
+aes = "0.8.4"
+base64 = "0.22"
+cbc = { version = "0.1.2", features = ["alloc"] }
+hmac = "0.12.1"
+sha3 = "0.10.8"
+gorgone-proto = { version = "0.1.0", path = "../gorgone-proto" }
+nix = { version = "0.31.3", default-features = false, features = ["signal"] }
+prost = "0.14"
+# TLS to the central broker (BBDO extension `TLS`): the rustls stack the
+# workspace already builds (gorgone-server, tonic `tls-ring` of the agent),
+# no new crate in Cargo.lock.
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["rt", "macros", "net", "process", "time", "sync", "io-util"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12", "logging"] }
+tokio-util = "0.7.20"
+tracing = "0.1.44"
+
+[dev-dependencies]
+# Certificates of the TLS test, as the server tests make them.
+rcgen = "0.14.10"
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "test-util"] }
