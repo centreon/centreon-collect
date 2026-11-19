@@ -59,7 +59,7 @@ connector::~connector() {}
  */
 void connector::connect_to(
     std::string const& lua_script,
-    std::map<std::string, misc::variant> const& cfg_params) {
+    std::map<std::string, variant> const& cfg_params) {
   _conf_params = cfg_params;
   _lua_script = lua_script;
 }

@@ -22,7 +22,6 @@
 #include "com/centreon/broker/simu/luabinding.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::simu;
 
 /**
@@ -32,7 +31,7 @@ using namespace com::centreon::broker::simu;
  *  @param[in] port                    port
  */
 stream::stream(std::string const& lua_script,
-               std::map<std::string, misc::variant> const& conf_params,
+               std::map<std::string, variant> const& conf_params,
                const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("simu"), _logger(logger) {
   _luabinding = new luabinding(lua_script, conf_params, _logger);

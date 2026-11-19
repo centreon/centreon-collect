@@ -20,7 +20,7 @@
 #define CCB_LUA_CONNECTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/misc/variant.hh"
+#include "com/centreon/broker/lua/luabinding.hh"
 
 namespace com::centreon::broker::lua {
 
@@ -37,16 +37,16 @@ class connector : public io::endpoint {
   ~connector();
   connector& operator=(connector const&) = delete;
   void connect_to(std::string const& lua_script,
-                  std::map<std::string, misc::variant> const& cfg_params);
+                  std::map<std::string, variant> const& cfg_params);
   std::shared_ptr<io::stream> open() override;
 
-  const std::map<std::string, misc::variant>& conf_params() const {
+  const std::map<std::string, variant>& conf_params() const {
     return _conf_params;
   }
 
  private:
   std::string _lua_script;
-  std::map<std::string, misc::variant> _conf_params;
+  std::map<std::string, variant> _conf_params;
 };
 
 }  // namespace com::centreon::broker::lua
