@@ -188,6 +188,25 @@ def parse_proto_file(filepath):
         for enum_name, enum_body in extract_blocks(msg_body, "enum"):
             enums.append((f"{msg_name}_{enum_name}", enum_body))
 
+    # Messages nested inside messages are not supported: they are not
+    # generated, their bodies are removed from their parent and the parent
+    # fields using them are ignored.
+    nested_names = set()
+    stripped_messages = []
+    for msg_name, msg_body in messages:
+        nested = extract_blocks(msg_body, "message")
+        for nested_name, nested_body in nested:
+            nested_names.add(nested_name)
+            msg_body = re.sub(
+                rf'\bmessage\s+{nested_name}\s*\{{\s*{re.escape(nested_body)}\s*\}}',
+                ' ', msg_body)
+            msg_body = re.sub(
+                rf'(?:(?:optional|required|repeated)\s+)?{nested_name}\s+\w+\s*=\s*\d+[^;]*;',
+                ' ', msg_body)
+        stripped_messages.append((msg_name, msg_body))
+    messages = [(name, body) for name, body in stripped_messages
+                if name not in nested_names]
+
     return enums, messages
 
 
