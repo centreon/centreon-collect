@@ -796,6 +796,104 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
   }
 }
 
+TEST_F(drive_size_test, test_fs_filter_free_bytes) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "warning" : "1000000000:", "critical" : "100000000:", "unit": "b",
+        "free": true, "filter-type": "^(hrfsfat$|hrfsfat32)$"})"_json;
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+  e_status status = e_status::unknown;
+
+  auto is_complete = [&]() { return !perfs.empty(); };
+
+  auto checker = std::make_shared<check_drive_size>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      serv, check_args, nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          int check_status,
+          const std::list<com::centreon::common::perfdata>& perfdata,
+          const std::list<std::string>& outputs) {
+        absl::MutexLock lck(wait_m);
+        status = static_cast<e_status>(check_status);
+        perfs = perfdata;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  checker->start_check(std::chrono::seconds(1));
+
+  absl::MutexLock lck(wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  ASSERT_EQ(status, e_status::warning);
+  ASSERT_EQ(output, "WARNING: /boot/efi Total: 0G Used: 0G Free: 0G");
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(
+      check_storage_perfs(perfs, "storage.space.free.bytes", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 2);
+
+  for (const auto& p : legacy_perfs) {
+    ASSERT_EQ(p.unit(), "B");
+    ASSERT_EQ(p.min(), 0);
+    ASSERT_EQ(p.warning_low(), 1000000000);
+    ASSERT_EQ(p.critical_low(), 100000000);
+    ASSERT_TRUE(std::isnan(p.warning()));
+    ASSERT_TRUE(std::isnan(p.critical()));
+    if (p.name() == "free_/boot/efi") {
+      ASSERT_EQ(p.value(), 524224000);
+      ASSERT_EQ(p.max(), 524248000);
+    } else if (p.name() == "free_/data") {
+      ASSERT_EQ(p.value(), 3000000000);
+      ASSERT_EQ(p.max(), 6072708000);
+    } else {
+      FAIL() << "Unexpected perfdata name: " << p.name();
+    }
+  }
+}
+
+TEST_F(drive_size_test, test_fs_no_storage_found) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "warning" : "1000000", "critical" : 20000000, "unit": "b",
+        "filter-fs": "^no_such_fs$"})"_json;
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+  e_status status = e_status::unknown;
+
+  auto is_complete = [&]() { return !perfs.empty(); };
+
+  auto checker = std::make_shared<check_drive_size>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      serv, check_args, nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          int check_status,
+          const std::list<com::centreon::common::perfdata>& perfdata,
+          const std::list<std::string>& outputs) {
+        absl::MutexLock lck(wait_m);
+        status = static_cast<e_status>(check_status);
+        perfs = perfdata;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  checker->start_check(std::chrono::seconds(1));
+
+  absl::MutexLock lck(wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  ASSERT_EQ(status, e_status::critical);
+  ASSERT_EQ(output, "No storage found (filters issue)");
+  ASSERT_EQ(perfs.size(), 1);
+  ASSERT_EQ(perfs.front().name(), "count");
+  ASSERT_EQ(perfs.front().min(), 0);
+  ASSERT_EQ(perfs.front().value(), 0);
+}
+
 TEST_F(drive_size_test, test_fs_format_filter) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =

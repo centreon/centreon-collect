@@ -683,10 +683,8 @@ void check_drive_size::_completion_handler(
     }
 
     // remove last \ in order to print C:#storage.space.free.bytes
-    auto last_sep = mount_point.rfind('\\');
-    if (last_sep != std::string::npos && last_sep) {
-      mount_point.resize(last_sep, ' ');
-    }
+    if (mount_point.size() > 1 && mount_point.back() == '\\')
+      mount_point.pop_back();
     centreon::common::perfdata& perf_free = perfs.emplace_back();
     perf_free.unit("B");
     perf_free.name(mount_point + "#storage.space.free.bytes");
@@ -813,6 +811,7 @@ void check_drive_size::help(std::ostream& help_stream) {
   Examples of output:
     WARNING: C:\ Total: 322G Used: 39.54% Free: 60.46% CRITICAL: D:\ Total: 5G Used: 50.60% Free: 49.40%
   Metrics:
+    count=2;;;0;
     C:#storage.space.free.bytes=7394013184B;;;0;105088212992
     C:#storage.space.usage.bytes=97694199808B;;;0;105088212992
     C:#storage.space.usage.percentage=12.04%;;;0;100

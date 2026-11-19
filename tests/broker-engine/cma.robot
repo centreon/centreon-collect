@@ -916,7 +916,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE_FILTER_FS
     Should Be True    ${result}    C: perfdata not found
     ${expected_perfdata}    Ctn Get Drive Space Statistics    storage.space.usage.percentage    ${drive_c}
     Set To Dictionary    ${expected_perfdata}    count=${1}
-    ${result}    Ctn Check Service Perfdata    host_1    service_1    60    0.5    ${expected_perfdata}    all_expected=True
+    ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1   ${expected_perfdata}    all_expected=True
     Should Be True    ${result}    count should be 1 and C:#storage.space.usage.percentage should be sent
 
     # other drives are refused by filter-fs
