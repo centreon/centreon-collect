@@ -306,6 +306,9 @@ void stream::_unified_sql_process_pb_service_status(
           auto& mm_obj = mm->mut_obj();
           mm_obj.set_index_id(index_id);
           mm_obj.set_metric_id(metric_id);
+          mm_obj.set_min(pd.min());
+          mm_obj.set_max(pd.max());
+          mm_obj.set_uom(pd.unit());
           to_publish.emplace_back(std::move(mm));
         }
 
@@ -930,8 +933,8 @@ void stream::_check_queues(boost::system::error_code ec) {
       _logger_sql->trace("Checking downtimes queue...");
       bool downtimes_done = false;
       {
-	SPDLOG_LOGGER_DEBUG(_logger_sql, "BEFORE: {} new downtimes inserted",
-                              _downtimes->row_count());
+        SPDLOG_LOGGER_DEBUG(_logger_sql, "BEFORE: {} new downtimes inserted",
+                            _downtimes->row_count());
         absl::flat_hash_map<std::tuple<time_t, uint64_t, uint64_t>,
                             std::shared_ptr<neb::pb_downtime>>
             local_downtimes;

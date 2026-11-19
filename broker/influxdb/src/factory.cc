@@ -20,7 +20,7 @@
 #include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
 
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/influxdb/connector.hh"
 #include "com/centreon/common/pool.hh"
@@ -164,11 +164,13 @@ io::endpoint* factory::new_endpoint(
           chk_bool(chk_str(object["is_tag"])),
           http_tsdb::column::parse_type(chk_str(object["type"])));
 
-  if (config::applier::state::loaded()) {  // false only happens in UTs
-    cache::global_cache::load(
-        com::centreon::common::pool::io_context_ptr(),
-        config::applier::state::instance().cache_dir() + ".cache.global");
-  }
+  /* Sections of the broker cache read by this output. */
+  if (config::applier::state::loaded())  // false only happens in UTs
+    config::applier::state::instance().cache().enable_section(
+      cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
+      cache::broker_cache::CACHE_INSTANCES |
+      cache::broker_cache::CACHE_METRIC_MAPPINGS |
+      cache::broker_cache::CACHE_GROUPS | cache::broker_cache::CACHE_TAGS);
 
   // Connector.
   std::unique_ptr<influxdb::connector> c(new influxdb::connector);

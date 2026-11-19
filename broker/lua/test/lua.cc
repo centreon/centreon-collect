@@ -32,7 +32,6 @@
 #include "bbdo/storage/status.hh"
 #include "broker/test/test_server.hh"
 #include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/lua/connector.hh"
 #include "com/centreon/broker/lua/factory.hh"
@@ -89,9 +88,7 @@ class LuaTest : public ::testing::Test {
   void TearDown() override {
     // The cache must be destroyed before the applier deinit() call.
     config::applier::deinit();
-    cache::global_cache::unload();
-    ::remove("/tmp/broker_test_cache.rt");
-    ::remove("/tmp/broker_test_cache.cnf");
+    ::remove("/tmp/broker_test.cache");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 

@@ -21,7 +21,6 @@
 #include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
 #include <string>
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/lua/connector.hh"
 #include "com/centreon/common/pool.hh"
@@ -198,12 +197,6 @@ io::endpoint* factory::new_endpoint(
         }
       }
     }
-  }
-
-  if (config::applier::state::loaded()) {  // false only happens in UTs
-    cache::global_cache::load(
-        com::centreon::common::pool::io_context_ptr(),
-        config::applier::state::instance().cache_dir() + ".cache.global");
   }
 
   // Connector.

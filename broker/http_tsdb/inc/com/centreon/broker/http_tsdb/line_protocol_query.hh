@@ -24,9 +24,6 @@
 #include "neb.pb.h"
 
 namespace com::centreon::broker {
-namespace cache {
-class global_cache;
-}
 namespace http_tsdb {
 /**
  *  @class line_protocol_query line_protocol_query.hh
@@ -69,7 +66,6 @@ class line_protocol_query {
   void _throw_on_invalid(data_type macro_type,
                          const std::string_view& macro_value);
 
-  std::shared_ptr<cache::global_cache> _cache;
 
  private:
   // Compiled data.

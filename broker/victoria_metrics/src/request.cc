@@ -20,8 +20,7 @@
 #include "bbdo/neb.pb.h"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/config/applier/state.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
@@ -131,12 +130,15 @@ void request::add_status(const storage::pb_status& status) {
  */
 void request::append_metric_info(const Metric& metric) {
   absl::StrAppend(&body(), _sz_unit, string_filter(metric.unit()));
-  cache::global_cache::lock l;
-  std::optional<int32_t> sev =
-      cache::global_cache::instance_ptr()->get_severity(metric.host_id(),
-                                                        metric.service_id());
-  if (sev) {
-    absl::StrAppend(&body(), _sz_severity_id, *sev);
+  auto& bc = config::applier::state::instance().cache();
+  auto svc = bc.service(metric.host_id(), metric.service_id());
+  if (svc) {
+    uint64_t sev_id = svc->obj().severity_id();
+    if (sev_id) {
+      uint64_t db_id = bc.get_db_id_for_severity(sev_id, 0);
+      if (db_id)
+        absl::StrAppend(&body(), _sz_severity_id, db_id);
+    }
   }
 }
 
@@ -148,11 +150,14 @@ void request::append_metric_info(const Metric& metric) {
 void request::append_status_info(const Status& status) {
   absl::StrAppend(&body(), _sz_host_id, status.host_id(), _sz_serv_id,
                   status.service_id());
-  cache::global_cache::lock l;
-  std::optional<int32_t> sev =
-      cache::global_cache::instance_ptr()->get_severity(status.host_id(),
-                                                        status.service_id());
-  if (sev) {
-    absl::StrAppend(&body(), _sz_severity_id, *sev);
+  auto& bc = config::applier::state::instance().cache();
+  auto svc = bc.service(status.host_id(), status.service_id());
+  if (svc) {
+    uint64_t sev_id = svc->obj().severity_id();
+    if (sev_id) {
+      uint64_t db_id = bc.get_db_id_for_severity(sev_id, 0);
+      if (db_id)
+        absl::StrAppend(&body(), _sz_severity_id, db_id);
+    }
   }
 }
