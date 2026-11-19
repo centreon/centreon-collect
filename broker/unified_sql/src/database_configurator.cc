@@ -1256,9 +1256,8 @@ void database_configurator::_add_host_resources_mariadb(
     bind->set_value_as_u64(5, msg.poller_id());
     if (msg.has_severity_id()) {
       uint64_t db_sid = bc.get_db_id_for_severity(msg.severity_id(), 1);
-      _logger->trace(
-          "host {} has severity_id config={} => db_sid={}", msg.host_id(),
-          msg.severity_id(), db_sid);
+      _logger->trace("host {} has severity_id config={} => db_sid={}",
+                     msg.host_id(), msg.severity_id(), db_sid);
       if (db_sid)
         bind->set_value_as_u64(6, db_sid);
       else
@@ -2266,7 +2265,8 @@ void database_configurator::_add_service_resources_mariadb(
     auto h = global_cache.host(msg.host_id());
     bind->set_value_as_u64(5, h->obj().instance_id());
     if (msg.has_severity_id()) {
-      uint64_t db_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
+      uint64_t db_sid =
+          global_cache.get_db_id_for_severity(msg.severity_id(), 0);
       if (db_sid)
         bind->set_value_as_u64(6, db_sid);
       else
@@ -2274,7 +2274,9 @@ void database_configurator::_add_service_resources_mariadb(
     } else
       bind->set_null_u64(6);
     bind->set_value_as_str(
-        7, common::truncate_utf8(msg.display_name(),
+        7, common::truncate_utf8(msg.display_name().empty()
+                                     ? msg.service_description()
+                                     : msg.display_name(),
                                  get_centreon_storage_resources_col_size(
                                      centreon_storage_resources_name)));
     bind->set_null_str(8);
@@ -2365,7 +2367,9 @@ void database_configurator::_add_service_resources_mysql(
         msg.service_id(), msg.host_id(), get_service_type(msg),
         msg.max_check_attempts(), h->obj().instance_id(),
         svc_sid ? fmt::to_string(svc_sid) : "NULL",
-        misc::string::escape(msg.display_name(),
+        misc::string::escape(msg.display_name().empty()
+                                 ? msg.service_description()
+                                 : msg.display_name(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
         misc::string::escape(msg.host_name(),
@@ -2483,7 +2487,8 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     auto h = global_cache.host(msg.host_id());
     bind->set_value_as_u64(5, h->obj().instance_id());
     if (msg.has_severity_id()) {
-      uint64_t db_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
+      uint64_t db_sid =
+          global_cache.get_db_id_for_severity(msg.severity_id(), 0);
       if (db_sid)
         bind->set_value_as_u64(6, db_sid);
       else
@@ -2577,8 +2582,7 @@ void database_configurator::_add_anomalydetection_resources_mysql(
         "({},{},NULL,{},4,1,1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
         "1)",
         msg.service_id(), msg.host_id(), 4, msg.max_check_attempts(),
-        h->obj().instance_id(),
-        ad_sid ? fmt::to_string(ad_sid) : "NULL",
+        h->obj().instance_id(), ad_sid ? fmt::to_string(ad_sid) : "NULL",
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
