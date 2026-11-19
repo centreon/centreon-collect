@@ -1302,8 +1302,20 @@ void broker_cache::update_host(const std::shared_ptr<neb::pb_host>& host) {
     } else
       index.insert(host);
   } else {
-    if (it != index.end())
+    if (it != index.end()) {
+      /* A poller the host has left may still send its deletion: it must not
+       * remove the host now owned by another poller (develop #3367). */
+      const uint64_t owner = (*it)->obj().instance_id();
+      if (h.instance_id() && owner && h.instance_id() != owner) {
+        SPDLOG_LOGGER_DEBUG(_logger,
+                            "cache: ignoring stale deletion of host {} from "
+                            "poller {} "
+                            "(currently owned by poller {})",
+                            h.host_id(), h.instance_id(), owner);
+        return;
+      }
       index.erase(it);
+    }
     /* Engine sends no custom variable deletion for a removed host. */
     _otel_services.erase(h.host_id());
   }
@@ -1483,8 +1495,20 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
     else
       index.insert(svc);
   } else {
-    if (it != index.end())
+    if (it != index.end()) {
+      /* A poller the service has left may still send its deletion: it must
+       * not remove the service now owned by another poller (develop #3367). */
+      const uint64_t owner = (*it)->obj().instance_id();
+      if (s.instance_id() && owner && s.instance_id() != owner) {
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
+            "cache: ignoring stale deletion of service ({},{}) from poller {} "
+            "(currently owned by poller {})",
+            s.host_id(), s.service_id(), s.instance_id(), owner);
+        return;
+      }
       index.erase(it);
+    }
   }
 }
 

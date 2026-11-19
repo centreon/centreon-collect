@@ -943,3 +943,54 @@ TEST_F(BrokerCacheTest, CacheFileMovedAsideOnceLoaded) {
   after_crash.enable_section(broker_cache::CACHE_ALL);
   ASSERT_TRUE(after_crash.host_ids().empty());
 }
+
+namespace {
+std::shared_ptr<neb::pb_host> moved_host(uint64_t instance_id, bool enabled) {
+  auto h = std::make_shared<neb::pb_host>();
+  h->mut_obj().set_host_id(1);
+  h->mut_obj().set_name("host_1");
+  h->mut_obj().set_instance_id(instance_id);
+  h->mut_obj().set_enabled(enabled);
+  return h;
+}
+
+std::shared_ptr<neb::pb_service> moved_service(uint64_t instance_id,
+                                               bool enabled) {
+  auto s = std::make_shared<neb::pb_service>();
+  s->mut_obj().set_host_id(1);
+  s->mut_obj().set_service_id(2);
+  s->mut_obj().set_description("svc_2");
+  s->mut_obj().set_instance_id(instance_id);
+  s->mut_obj().set_enabled(enabled);
+  return s;
+}
+}  // namespace
+
+/* develop #3367: a host moved from poller 10 to poller 20; poller 10 sends its
+ * deletion after poller 20 sent the host: the host stays. */
+TEST_F(BrokerCacheTest, HostMovedBetweenPollers) {
+  _cache->publish(moved_host(10, true));
+  _cache->publish(moved_host(20, true));
+  _cache->publish(moved_host(10, false));
+  auto h = _cache->host(1);
+  ASSERT_TRUE(h);
+  ASSERT_EQ(h->obj().instance_id(), 20u);
+
+  /* The deletion from the owner removes it. */
+  _cache->publish(moved_host(20, false));
+  ASSERT_FALSE(_cache->host(1));
+}
+
+/* develop #3367, the same for a service. */
+TEST_F(BrokerCacheTest, ServiceMovedBetweenPollers) {
+  _cache->publish(moved_host(20, true));
+  _cache->publish(moved_service(10, true));
+  _cache->publish(moved_service(20, true));
+  _cache->publish(moved_service(10, false));
+  auto s = _cache->service(1, 2);
+  ASSERT_TRUE(s);
+  ASSERT_EQ(s->obj().instance_id(), 20u);
+
+  _cache->publish(moved_service(20, false));
+  ASSERT_FALSE(_cache->service(1, 2));
+}
