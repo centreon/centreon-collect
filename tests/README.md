@@ -1055,7 +1055,7 @@ Here is the list of the currently implemented tests:
 320. **EBPN1**: verify relation parent child when delete parent.
 321. **EBPN2**: verify relation parent child when delete child.
 322. **EBPS2**: 1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
-323. **EBSAU2**: New hosts with action_url with more than 2000 characters
+323. **EBSAU2**: New services with action_url with more than 2000 characters
 324. **EBSG_1**: Scenario: Service group creation and membership updates with unified SQL and BBDO3
       * And a service group 1 is defined with 7 members across hosts (including host_1 services 1-5 and host_2 services 6-7)
       * When the broker and engine start and the engine becomes ready
@@ -1064,9 +1064,9 @@ Here is the list of the currently implemented tests:
       * When service host_1/service_1 is removed and servicegroup_1 members are updated to exclude service_1
       * And the engine is reloaded
       * Then the system reports 6 relations between servicegroup 1 and its services
-325. **EBSN3**: New hosts with notes with more than 500 characters
+325. **EBSN3**: New services with notes with more than 500 characters
 326. **EBSN4**: New hosts with No Alias / Alias and have A Template
-327. **EBSNU1**: New hosts with notes_url with more than 2000 characters
+327. **EBSNU1**: New services with notes_url with more than 2000 characters
 328. **ENGINE_ENCRYPTION_BAD_CONF**: 
       * Given an engine with configured encryption, but without key and salt, 
       * we give him several macros and we expect to retrieve them in logs without decrypt.
@@ -1308,51 +1308,61 @@ Here is the list of the currently implemented tests:
       * Then exports still carry new/new
       * When poller 20 removes both macros
       * Then the identity falls back to centreon-broker/centreon
-382. **RENAME_PARENT**: 
+382. **OTLP_TLS_EXPORT**: Scenario: The OTLP output reads its CA certificate from the path in its configuration
+      * Given the collector only accepts TLS, with a self-signed certificate for 127.0.0.1
+      * And the OTLP output has encryption on and ca_certificate set to the path of that certificate
+      * When a check result is received
+      * Then it is exported to the collector over TLS
+383. **OTLP_TLS_MISSING_FILE**: Scenario: A TLS file that cannot be read is reported with the parameter that names it
+      * Given the OTLP output has encryption on and ca_certificate set to a path that does not exist
+      * When Broker starts
+      * Then Broker stops with an error
+      * And it logs that it cannot read ca_certificate for the robot-otlp endpoint
+384. **RENAME_PARENT**: 
       * Given an host with a parent host. We rename the parent host and check if the child host is still linked to the parent.
       * Engine mustn't crash and log an error on reload.
-383. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
-384. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
-385. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
-386. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
-387. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
-388. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. Broker should run correctly.
-389. **Service_increased_huge_check_interval**: New services with huge check interval at creation time. Given Engine and Broker are configured with 1 poller and 10 hosts When Engine is started Then host_1 should be pending When a check result with metrics is processed for service_1 Then metrics should be created and sent to rrd broker When service_1 metrics are analyzed Then metrics should have minimal heartbeat of 3000 and pdp_per_row of 300 When a new service is created with a check interval of 90 And Engine is reloaded Then the new service should be pending When a check result with metrics is processed for the new service Then metrics should be created and sent to rrd Broker When new service metrics are analyzed Then metrics should have minimal heartbeat of 54000 and pdp_per_row of 5400
-390. **Services_and_bulks_${id}**: One service is configured with one metric with a name of 150 to 1021 characters.
-391. **Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-392. **Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
-393. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
-394. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
-395. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
-396. **VICT_ONE_CHECK_STATUS**: 
+385. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
+386. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
+387. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
+388. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
+389. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
+390. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. Broker should run correctly.
+391. **Service_increased_huge_check_interval**: New services with huge check interval at creation time. Given Engine and Broker are configured with 1 poller and 10 hosts When Engine is started Then host_1 should be pending When a check result with metrics is processed for service_1 Then metrics should be created and sent to rrd broker When service_1 metrics are analyzed Then metrics should have minimal heartbeat of 3000 and pdp_per_row of 300 When a new service is created with a check interval of 90 And Engine is reloaded Then the new service should be pending When a check result with metrics is processed for the new service Then metrics should be created and sent to rrd Broker When new service metrics are analyzed Then metrics should have minimal heartbeat of 54000 and pdp_per_row of 5400
+392. **Services_and_bulks_${id}**: One service is configured with one metric with a name of 150 to 1021 characters.
+393. **Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
+394. **Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+395. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
+396. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
+397. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
+398. **VICT_ONE_CHECK_STATUS**: 
       * Given a Victoria Metrics setup with Centreon Broker
       * When a service check result is processed
       * Then the service status transitions through OK, WARNING, and CRITICAL states
       * And the corresponding status updates are sent to Victoria Metrics
-397. **Whitelist_Directory_NotReadable**: 
+399. **Whitelist_Directory_NotReadable**: 
       * Given a centengine started by centreon-engine user, whitelist directories are not readable and centengine must log an error
-398. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
-399. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
-400. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
-401. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
-402. **Whitelist_NotReadable**: 
+400. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
+401. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
+402. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
+403. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
+404. **Whitelist_NotReadable**: 
       * Given a centengine started by centreon-engine user, whitelist files are not readable and centengine must log an error
-403. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
-404. **Whitelist_Service**: test allowed and forbidden commands for services
-405. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
-406. **metric_mapping**: Check if metric name exists using a stream connector
-407. **not1**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
-408. **not10**: This test case involves scheduling downtime on a down host that already had a critical notification. When The Host return to UP state we should receive a recovery notification.
-409. **not11**: This test case involves configuring one service and checking that three alerts are sent for it.
-410. **not12**: Escalations
-411. **not13**: notification for a dependencies host
-412. **not14**: notification for a Service dependency
-413. **not15**: several notification commands for the same user.
-414. **not16**: notification for dependencies services group
-415. **not17**: notification for a dependensies host group
-416. **not18**: notification delay where first notification delay equal retry check
-417. **not19**: notification delay where first notification delay greater than retry check 
-418. **not1_2**: Scenario: Service notification command expands contact macros
+405. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
+406. **Whitelist_Service**: test allowed and forbidden commands for services
+407. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
+408. **metric_mapping**: Check if metric name exists using a stream connector
+409. **not1**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
+410. **not10**: This test case involves scheduling downtime on a down host that already had a critical notification. When The Host return to UP state we should receive a recovery notification.
+411. **not11**: This test case involves configuring one service and checking that three alerts are sent for it.
+412. **not12**: Escalations
+413. **not13**: notification for a dependencies host
+414. **not14**: notification for a Service dependency
+415. **not15**: several notification commands for the same user.
+416. **not16**: notification for dependencies services group
+417. **not17**: notification for a dependensies host group
+418. **not18**: notification delay where first notification delay equal retry check
+419. **not19**: notification delay where first notification delay greater than retry check 
+420. **not1_2**: Scenario: Service notification command expands contact macros
       * Given a single service 'service_1' is assigned to contact 'John_Doe' with notifications enabled, options (w,c,r), and period 24x7
       * And 'service_1' has check/retry intervals of 1 and max check attempts of 1
       * And contact 'John_Doe' uses notification command 'command_with_macro' with macros
@@ -1360,22 +1370,22 @@ Here is the list of the currently implemented tests:
       * Then the service reaches HARD CRITICAL
       * And a service notification is logged for 'service_1' in CRITICAL state using 'command_with_macro'
       * And the processed notification command in logs is "/bin/echo pager address5 " showing macros are expanded
-419. **not1_WL_KO**: This test case configures a single service. When it is in non-OK HARD state a notification should be sent but it is not allowed by the whitelist
-420. **not1_WL_OK**: This test case configures a single service. When it is in non-OK HARD state a notification is sent because it is allowed by the whitelist
-421. **not1_reload**: This test case configures a single service and set the service in a non-OK HARD state so engine sends a notification. Then the service is removed from the configuration and Engine is reloaded. And Engine doesn't crash.
-422. **not2**: This test case configures a single service and verifies that a recovery notification is sent
-423. **not20**: notification delay where first notification delay smaller than retry check
-424. **not21**: No notifications should be sent for UNKNOWN services when host goes DOWN. When a host transitions to DOWN (soft or hard), services become UNKNOWN due to host unreachability. These services should not trigger notifications.
-425. **not3**: This test case configures a single service and verifies the notification system's behavior during and after downtime
-426. **not4**: This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
-427. **not5**: This test case configures two services with two different users being notified when the services transition to a critical state.
-428. **not6**: This test case validate the behavior when the notification time period is set to null.
-429. **not7**: This test case simulates a host alert scenario.
-430. **not8**: This test validates the critical host notification.
-431. **not9**: This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
-432. **not_in_timeperiod_with_send_recovery_notifications_anyways**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is sent outside timeperiod when _send_recovery_notifications_anyways is set
-433. **not_in_timeperiod_without_send_recovery_notifications_anyways**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is not sent outside timeperiod when _send_recovery_notifications_anyways is not set
-434. **not_remove_host_and_service_in_downtime**: 
+421. **not1_WL_KO**: This test case configures a single service. When it is in non-OK HARD state a notification should be sent but it is not allowed by the whitelist
+422. **not1_WL_OK**: This test case configures a single service. When it is in non-OK HARD state a notification is sent because it is allowed by the whitelist
+423. **not1_reload**: This test case configures a single service and set the service in a non-OK HARD state so engine sends a notification. Then the service is removed from the configuration and Engine is reloaded. And Engine doesn't crash.
+424. **not2**: This test case configures a single service and verifies that a recovery notification is sent
+425. **not20**: notification delay where first notification delay smaller than retry check
+426. **not21**: No notifications should be sent for UNKNOWN services when host goes DOWN. When a host transitions to DOWN (soft or hard), services become UNKNOWN due to host unreachability. These services should not trigger notifications.
+427. **not3**: This test case configures a single service and verifies the notification system's behavior during and after downtime
+428. **not4**: This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
+429. **not5**: This test case configures two services with two different users being notified when the services transition to a critical state.
+430. **not6**: This test case validate the behavior when the notification time period is set to null.
+431. **not7**: This test case simulates a host alert scenario.
+432. **not8**: This test validates the critical host notification.
+433. **not9**: This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
+434. **not_in_timeperiod_with_send_recovery_notifications_anyways**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is sent outside timeperiod when _send_recovery_notifications_anyways is set
+435. **not_in_timeperiod_without_send_recovery_notifications_anyways**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is not sent outside timeperiod when _send_recovery_notifications_anyways is not set
+436. **not_remove_host_and_service_in_downtime**: 
       * Given a service in a fixed downtime whose notification options contain 's'
       * When the service and its host are removed from the configuration and engine is reloaded
       * Then the host is removed before the service, so the service downtime is cancelled
@@ -1605,4 +1615,4 @@ Here is the list of the currently implemented tests:
 11. **BWVC6**: Broker is tuned with strange keys APP_SECRET and salt that are not base64 encoded.
 
 
-713 tests currently implemented.
+715 tests currently implemented.
