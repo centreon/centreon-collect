@@ -27,6 +27,7 @@ namespace com::centreon::broker::bam {
 struct service_state {
   uint64_t host_id = 0;
   uint64_t service_id = 0;
+  uint64_t instance_id = 0;
   State current_state = State::UNKNOWN;
   State last_hard_state = State::UNKNOWN;
   time_t last_check = 0;

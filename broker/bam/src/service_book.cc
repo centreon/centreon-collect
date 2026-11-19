@@ -134,8 +134,29 @@ void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
       _book.find(std::make_pair(t->obj().host_id(), t->obj().service_id()));
   if (found == _book.end())
     return;
+  found->second.state.instance_id = t->obj().instance_id();
   for (auto l : found->second.listeners)
     l->service_update(t, visitor);
+}
+
+/**
+ * @brief Reset downtime tracking for all services belonging to the given
+ * poller instance. Called when a poller disconnects so that on reconnect,
+ * downtimes are re-evaluated and inherited downtimes on BAs are rescheduled.
+ *
+ * @param instance_id The poller instance ID that stopped.
+ * @param visitor     The stream to write events into.
+ */
+void service_book::reset_downtime_state(uint64_t instance_id,
+                                        io::stream* visitor) {
+  _logger->debug(
+      "BAM: service_book::reset_downtime_state for instance {}", instance_id);
+  for (auto& [key, ssl] : _book) {
+    if (ssl.state.instance_id != instance_id)
+      continue;
+    for (auto l : ssl.listeners)
+      l->reset_downtime_state(visitor);
+  }
 }
 
 /**

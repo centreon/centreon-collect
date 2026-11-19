@@ -34,6 +34,7 @@
 #include "com/centreon/broker/bam/reporting_stream.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 
 using namespace com::centreon::broker;
@@ -56,7 +57,8 @@ static constexpr multiplexing::muxer_filter _monitoring_stream_filter = {
     inherited_downtime::static_type(),
     pb_inherited_downtime::static_type(),
     extcmd::pb_ba_info::static_type(),
-    pb_services_book_state::static_type()};
+    pb_services_book_state::static_type(),
+    neb::pb_instance::static_type()};
 
 static constexpr multiplexing::muxer_filter _monitoring_forbidden_filter =
     multiplexing::muxer_filter(_monitoring_stream_filter).reverse();
