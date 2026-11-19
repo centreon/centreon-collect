@@ -123,18 +123,19 @@ void broker_cache::merge(
       std::tie(found, inserted) = hg_index.emplace(
           hostgroup, absl::flat_hash_set<uint64_t>{hg_poller_id});
     } else {
-      /* We can const_cast because keys of the multiindex are in found->first,
-       * we don't change found->first here even if the hostgroup changed. */
-      absl::flat_hash_set<uint64_t>& set =
-          const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
       if (found->first->obj().name() != hg.hostgroup_name()) {
         auto extracted = std::move(
             const_cast<std::pair<std::shared_ptr<neb::pb_host_group>,
                                  absl::flat_hash_set<uint64_t>>&>(*found));
         hg_index.erase(found);
         extracted.first->mut_obj().set_name(hg.hostgroup_name());
-        hg_index.insert(std::move(extracted));
+        std::tie(found, inserted) = hg_index.insert(std::move(extracted));
       }
+      /* Taken after a possible re-insertion: the erased node is gone.
+       * We can const_cast because the keys of the multiindex are in
+       * found->first and we do not change them here. */
+      absl::flat_hash_set<uint64_t>& set =
+          const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
       auto& obj = const_cast<HostGroup&>(found->first->mut_obj());
       obj.set_enabled(true);
       obj.set_alias(hg.alias());
@@ -193,19 +194,19 @@ void broker_cache::merge(
       std::tie(found, inserted) = sg_index.emplace(
           servicegroup, absl::flat_hash_set<uint64_t>{sg_poller_id});
     } else {
-      /* We can const_cast because keys of the multiindex are in found->first,
-       * we don't change found->first here even if the servicegroup changed.
-       */
-      absl::flat_hash_set<uint64_t>& set =
-          const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
       if (found->first->obj().name() != sg.servicegroup_name()) {
         auto extracted = std::move(
             const_cast<std::pair<std::shared_ptr<neb::pb_service_group>,
                                  absl::flat_hash_set<uint64_t>>&>(*found));
         sg_index.erase(found);
         extracted.first->mut_obj().set_name(sg.servicegroup_name());
-        sg_index.insert(std::move(extracted));
+        std::tie(found, inserted) = sg_index.insert(std::move(extracted));
       }
+      /* Taken after a possible re-insertion: the erased node is gone.
+       * We can const_cast because the keys of the multiindex are in
+       * found->first and we do not change them here. */
+      absl::flat_hash_set<uint64_t>& set =
+          const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
       auto& obj = const_cast<ServiceGroup&>(found->first->mut_obj());
       obj.set_enabled(true);
       obj.set_alias(sg.alias());
