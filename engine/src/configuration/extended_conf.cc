@@ -79,13 +79,58 @@ void extended_conf::reload() {
 }
 
 /**
+ * @brief Reload all optional configuration files if needed and apply their
+ * fields directly to a DiffState.
+ *
+ * Unlike update_state() which parses each JSON file into a State and then
+ * calls MergeFrom(), this method parses directly into a DiffState where every
+ * scalar field is declared `optional`. This correctly handles fields whose
+ * value happens to be the proto3 default (e.g. LogLevel::trace == 0): because
+ * DiffState uses optional fields, JSON presence is tracked precisely via
+ * has_xxx(), so even a zero-valued override is injected into @p diff and
+ * subsequently applied by _apply_diff_conf().
+ *
+ * Fields present in the JSON but absent from DiffState (e.g. repeated object
+ * lists from State) are silently ignored via ignore_unknown_fields.
+ *
+ * @param diff  The DiffState to enrich (modified in place).
+ */
+void extended_conf::update_diff_state(DiffState& diff) {
+  for (const auto& conf_file : _confs) {
+    conf_file->reload();
+    std::ifstream f(conf_file->_path, std::ios::in);
+    std::string content;
+    if (f) {
+      f.seekg(0, std::ios::end);
+      content.resize(f.tellg());
+      f.seekg(0, std::ios::beg);
+      f.read(&content[0], content.size());
+      f.close();
+      DiffState ext_diff;
+      google::protobuf::util::JsonParseOptions options;
+      options.ignore_unknown_fields = true;
+      options.case_insensitive_enum_parsing = true;
+      auto status [[maybe_unused]] =
+          google::protobuf::util::JsonStringToMessage(content, &ext_diff,
+                                                      options);
+      diff.MergeFrom(ext_diff);
+    } else {
+      SPDLOG_LOGGER_ERROR(
+          conf_file->_logger,
+          "extended_conf::extended_conf : fail to read json content '{}': {}",
+          conf_file->_path, strerror(errno));
+    }
+  }
+}
+
+/**
  * @brief reload all optional configuration files if needed
  * Then these configuration content are applied to dest
  *
  * @param dest
  */
 void extended_conf::update_state(State* pb_config) {
-  for (auto& conf_file : _confs) {
+  for (const auto& conf_file : _confs) {
     conf_file->reload();
     std::ifstream f(conf_file->_path, std::ios::in);
     std::string content;

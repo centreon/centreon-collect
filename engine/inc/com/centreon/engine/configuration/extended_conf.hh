@@ -46,7 +46,9 @@ class extended_conf {
   extended_conf& operator=(const extended_conf&) = delete;
   void reload();
 
+  static bool empty() { return _confs.empty(); }
   static void update_state(State* pb_config);
+  static void update_diff_state(DiffState& diff);
 
   template <class file_path_iterator>
   static void load_all(file_path_iterator begin, file_path_iterator);

@@ -2,7 +2,7 @@
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
  * Copyright 2011-2013 Merethis
- * Copyright 2013-2025 Centreon
+ * Copyright 2013-2026 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -130,8 +130,26 @@ static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
   configuration::error_cnt err;
   process_logger->info("Starting to reload differential configuration.");
   try {
-    process_logger->info("Configuration reloaded, main loop continuing.");
+    /* For differential diffs (the normal case): inject extended_conf scalar
+     * overrides directly into the DiffState optional fields before the single
+     * apply_diff() call.  MergeFrom is safe because extended_conf has no
+     * repeated objects to conflict with the broker diff. */
+    if (!diff_conf->has_state() && !configuration::extended_conf::empty()) {
+      process_logger->info("Enriching diff state with extended conf.");
+      configuration::extended_conf::update_diff_state(*diff_conf);
+    }
     configuration::applier::state::instance().apply_diff(*diff_conf, err);
+    /* For full-state diffs (initial connection): _processing_diff() routes
+     * directly into _processing(embedded_state) and ignores the outer
+     * DiffState optional fields.  Apply extended_conf as a second lightweight
+     * DiffState after the fact.  The second pass only carries scalar fields
+     * (no objects), so the overhead is negligible. */
+    if (diff_conf->has_state() && !configuration::extended_conf::empty()) {
+      process_logger->info("Applying extended conf on top of full state.");
+      configuration::DiffState ext_diff;
+      configuration::extended_conf::update_diff_state(ext_diff);
+      configuration::applier::state::instance().apply_diff(ext_diff, err);
+    }
   } catch (const std::exception& e) {
     config_logger->error("Error: {}", e.what());
   }
