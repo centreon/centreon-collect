@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
@@ -84,7 +84,7 @@ EBBPS1
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
     Check Query Result
-		...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 2    ==    ${0}    retry_timeout=120s    retry_pause=1s
+    ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 2    ==    ${0}    retry_timeout=120s    retry_pause=1s
     Disconnect From Database
 
 EBBPS2
@@ -289,8 +289,8 @@ RLCode
     ...    end
     ...
     ...    function write(d)
-    ...      broker_log:info(0, "toto")
-    ...      return true
+    ...    broker_log:info(0, "toto")
+    ...    return true
     ...    end
 
     # Create the initial LUA script file
@@ -444,7 +444,6 @@ Services_and_bulks_${id}
     ...    1    1020
     ...    2    150
 
-
 EBMSSMDBD
     [Documentation]    1000 services are configured with 100 metrics each.
     ...    The rrd output is removed from the broker configuration.
@@ -494,11 +493,11 @@ EBMSSMDBD
 
     FOR    ${i}    IN RANGE    ${3}
         Ctn Stop Mysql
-	Sleep    10s
-	Ctn Start Mysql
-	${content}    Create List    could not insert data in data_bin
-	${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
-	Log To Console    ${result}
+        Sleep    10s
+        Ctn Start Mysql
+        ${content}    Create List    could not insert data in data_bin
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+        Log To Console    ${result}
     END
 
 EBMSSMPART
@@ -563,8 +562,8 @@ EBMSSMPART
 
     ${content}    Create List    errno=
     FOR    ${i}    IN RANGE    ${6}
-	${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
-	IF    ${result}    BREAK
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+        IF    ${result}    BREAK
     END
 
     Log To Console    Let's recreate the p2 partition...
@@ -596,8 +595,10 @@ EBMSSMPART
 
     Ctn Init Data Bin Without Partition
 
+
 *** Keywords ***
 Ctn Test Clean
+    [Documentation]    Stop engine and broker, then save logs if the test failed.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     Ctn Save Logs If Failed

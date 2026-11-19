@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine anomaly detection
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -164,7 +164,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
     [Tags]    engine    anomaly    retention    extcmd
     FOR    ${use_grpc}    IN RANGE    1    2
         Ctn Config Engine    ${1}    ${50}    ${20}
-	Ctn Config Broker    module
+        Ctn Config Broker    module
         ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
         ${predict_data}    Evaluate    [[0,50,2, 10],[2648812678,25,-5,6]]
         Ctn Create Anomaly Threshold File V2

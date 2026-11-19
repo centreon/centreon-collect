@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Downtimes Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Downtimes Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -448,7 +448,7 @@ BEDTHOSTFIXED1
     Ctn Broker Config Log    module0    neb    debug
     # Just to be sure if we were in BBDO2 just before
     Ctn Clear Logs
-    Ctn Config BBDO3	1
+    Ctn Config BBDO3    1
 
     Ctn Clear Retention
     ${start}    Get Current Date
@@ -575,7 +575,6 @@ DTIM
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-
 
 BEDTRRD1
     [Documentation]    A service is forced checked then a downtime is set on this service.
@@ -746,5 +745,6 @@ BEDTCANCELCLEAN
 
 *** Keywords ***
 Ctn Clean Downtimes Before Suite
+    [Documentation]    Run suite setup and clear all downtimes before starting the suite.
     Ctn Clean Before Suite
     Ctn Clear Downtimes

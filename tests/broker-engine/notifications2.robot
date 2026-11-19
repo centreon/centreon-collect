@@ -18,6 +18,7 @@ not10
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -85,6 +86,7 @@ not11
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -131,6 +133,7 @@ not12
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Clear Engine White List
     Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
@@ -243,6 +246,7 @@ not13
     [Tags]    broker    engine    host
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Clear Engine White List
     Ctn Engine Config Set Value    ${0}    log_level_config    trace
     Ctn Config Notifications
     Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
@@ -347,6 +351,7 @@ not14
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -455,6 +460,7 @@ not15
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Add Command
     ...    0
@@ -503,6 +509,7 @@ not16
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${4}    ${1}
+    Ctn Clear Engine White List
     Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
@@ -656,6 +663,7 @@ not17
     [Tags]    broker    engine    host    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${4}    ${0}
+    Ctn Clear Engine White List
     Ctn Engine Config Set Value    0    interval_length    10    True
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
     Ctn Add Host Group    ${0}    ${2}    ["host_3", "host_4"]
@@ -764,6 +772,7 @@ not18
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
@@ -812,6 +821,7 @@ not19
     Ctn Clear Retention
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -857,6 +867,7 @@ not20
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
@@ -910,6 +921,7 @@ not_in_timeperiod_without_send_recovery_notifications_anyways
     [Tags]    MON-33121  broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -962,6 +974,7 @@ not_in_timeperiod_with_send_recovery_notifications_anyways
     [Tags]    MON-33121   broker    engine    services    hosts    notification    mon-33121
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r

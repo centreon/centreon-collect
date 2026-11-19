@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine log_v2
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -52,6 +52,7 @@ LOGV2EB1
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ((1,),)
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -99,6 +100,7 @@ LOGV2EBU1
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ((1,),)
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -146,6 +148,7 @@ LOGV2DB1
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ((1,),)
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -191,6 +194,7 @@ LOGV2DB2
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ((0,),)
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -237,6 +241,7 @@ LOGV2EB2
         Sleep    1s
         IF    "${output}" == "((2,),)"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ((2,),)
 
     Ctn Stop Engine
@@ -286,6 +291,7 @@ LOGV2EBU2
         Sleep    1s
         IF    "${output}" == "((2,),)"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ((2,),)
 
     Ctn Stop Engine

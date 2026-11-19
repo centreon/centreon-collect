@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine Creation of services. The goal is to compare the database content and the broker cache.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -25,6 +25,7 @@ BEPS1
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
+    Ctn Clear Broker Cache
     Ctn Start Broker
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
@@ -176,7 +177,6 @@ BEPS3
             ${desc_db_dict}    Evaluate    {(row[0], row[1]): row[2] for row in $desc_db}
             ${desc_cache}    Ctn Get Service Descriptions    ${51001}
             Dictionaries Should Be Equal    ${desc_db_dict}    ${desc_cache}
-
         FINALLY
             Disconnect From Database
         END
@@ -244,7 +244,6 @@ BEPS3R
             ${desc_db_dict}    Evaluate    {(row[0], row[1]): row[2] for row in $desc_db}
             ${desc_cache}    Ctn Get Service Descriptions    ${51001}
             Dictionaries Should Be Equal    ${desc_db_dict}    ${desc_cache}
-
         FINALLY
             Disconnect From Database
         END

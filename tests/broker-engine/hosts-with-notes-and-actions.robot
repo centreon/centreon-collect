@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine Creation of hosts with long action_url, notes and notes_url.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -173,4 +173,3 @@ EBSN4
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-
