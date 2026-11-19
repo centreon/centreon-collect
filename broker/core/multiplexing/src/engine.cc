@@ -431,35 +431,38 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     cb = std::make_shared<detail::callback_caller>(std::move(callback),
                                                    _instance);
 
-    // each muxer publishes the events in an asio thread, this thread feeds
-    // the broker cache. When the last muxer had done his job, cb is
-    // destroyed and _sending_to_subscribers is refreshed
     for (auto& mux : _muxers) {
-      std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
-      if (mux_to_publish_in_asio) {
-        retval = true;
-        asio::post(*_io_context, [kiew, mux_to_publish_in_asio, cb,
-                                  logger = _logger]() {
-          try {
-            mux_to_publish_in_asio->publish(*kiew);
-          }  // pool threads protection
-          catch (const std::exception& ex) {
-            SPDLOG_LOGGER_ERROR(logger, "publish caught exception: {}",
-                                ex.what());
-          } catch (...) {
-            SPDLOG_LOGGER_ERROR(logger, "publish caught unknown exception");
-          }
-        });
-        // Don't let this shared_ptr be the one whose destruction drops the
-        // muxer's last reference while _kiew_m is still locked.
-        muxers.push_back(std::move(mux_to_publish_in_asio));
-      }
+      if (std::shared_ptr<muxer> m = mux.lock())
+        muxers.push_back(std::move(m));
     }
   }
+
+  // The cache is fed before the muxers, so that an output reading it (otlp,
+  // lua, the TSDB outputs...) finds a host before the status that follows it.
+  // It is fed outside _kiew_m: it does not publish anything back.
   auto& cache = config::applier::state::instance().cache();
+  cache.publish(*kiew);
   _center->update(&EngineStats::set_processed_events, _stats,
                   static_cast<uint32_t>(kiew->size()));
-  cache.publish(*kiew);
+
+  // each muxer publishes the events in an asio thread. When the last muxer
+  // had done his job, cb is destroyed and _sending_to_subscribers is refreshed
+  for (auto& mux_to_publish_in_asio : muxers) {
+    retval = true;
+    asio::post(*_io_context,
+               [kiew, mux_to_publish_in_asio, cb, logger = _logger]() {
+                 try {
+                   mux_to_publish_in_asio->publish(*kiew);
+                 }  // pool threads protection
+                 catch (const std::exception& ex) {
+                   SPDLOG_LOGGER_ERROR(logger, "publish caught exception: {}",
+                                       ex.what());
+                 } catch (...) {
+                   SPDLOG_LOGGER_ERROR(logger,
+                                       "publish caught unknown exception");
+                 }
+               });
+  }
 
   return retval;
 }
