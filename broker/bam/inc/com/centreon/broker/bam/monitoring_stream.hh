@@ -82,7 +82,7 @@ class monitoring_stream : public io::stream {
    * issues with downtimes. Now, Broker can retry to send them 5s later. */
   std::deque<std::string> _queue_external_commands
       ABSL_GUARDED_BY(_queue_external_commands_m);
-  mutable std::mutex _queue_external_commands_m;
+  mutable absl::Mutex _queue_external_commands_m;
   asio::steady_timer _queue_external_commands_timer;
   bool _queue_external_commands_stopped;
 
