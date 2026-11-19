@@ -167,8 +167,8 @@ void factory::set_default_values(config::endpoint& cfg) const {
 /**
  * @brief Create the connector of an OTLP output.
  *
- * The global cache is loaded first when the applier state is loaded, because
- * host names are resolved from it.
+ * When the applier state is loaded, the broker_cache sections it reads are
+ * enabled, because host names are resolved from it.
  *
  * @param cfg endpoint configuration
  * @param global_params unused
