@@ -19,17 +19,16 @@
 #ifndef CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #define CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #include "broker/core/config/applier/state.hh"
+#include "common.pb.h"
 
 namespace com::centreon::broker::config::applier {
 class broker_state : public state {
  public:
-  struct peer {
+  struct engine_peer {
     uint64_t poller_id;
     std::string poller_name;
     std::string broker_name;
     time_t connected_since;
-    /* Is it a broker, an engine, a map or an unknown peer? */
-    common::PeerType peer_type;
     /* Does the peer support extended negotiation? */
     bool extended_negotiation;
     /* Does this peer need an update concerning the engine configuration? */
@@ -49,6 +48,25 @@ class broker_state : public state {
      * way for Broker to ask its configuration to Engine. */
     bool conf_unknown;
   };
+  struct peer {
+    engine_peer peer;
+    common::PeerType peer_type;
+  };
+  struct broker_peer {
+    uint64_t poller_id;
+    std::string poller_name;
+    std::string broker_name;
+    time_t connected_since;
+    bool extended_negotiation;
+  };
+  struct unknown_peer {
+    uint64_t poller_id;
+    std::string poller_name;
+    std::string broker_name;
+    time_t connected_since;
+    common::PeerType peer_type;
+    bool extended_negotiation;
+  };
 
  private:
   /* In a Broker configuration, this object contains the configuration cache
@@ -63,9 +81,16 @@ class broker_state : public state {
 
   /* This object is used to watch the _cache_config_dir. */
   std::unique_ptr<file::directory_watcher> _cache_config_dir_watcher;
-  /* This map is indexed by the tuple {poller_id, poller_name, broker_name}. */
-  absl::btree_map<std::tuple<uint64_t, std::string, std::string>, peer>
-      _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
+
+  /* Each map is indexed by the tuple {poller_id, poller_name, broker_name}.
+   * Peers are split by type so callers never need variant dispatch. */
+  using peer_key = std::tuple<uint64_t, std::string, std::string>;
+  absl::flat_hash_map<peer_key, engine_peer> _engine_peers
+      ABSL_GUARDED_BY(_connected_peers_m);
+  absl::flat_hash_map<peer_key, broker_peer> _broker_peers
+      ABSL_GUARDED_BY(_connected_peers_m);
+  absl::flat_hash_map<peer_key, unknown_peer> _unknown_peers
+      ABSL_GUARDED_BY(_connected_peers_m);
   mutable absl::Mutex _connected_peers_m;
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
@@ -109,6 +134,8 @@ class broker_state : public state {
                    const std::string& broker_name) override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool has_connection_from_poller(uint64_t poller_id) const override
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  std::vector<engine_peer> connected_pollers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<peer> connected_peers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);

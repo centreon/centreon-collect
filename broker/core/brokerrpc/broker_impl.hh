@@ -127,6 +127,10 @@ class broker_impl final : public Broker::Service {
                              const AesMessage* request,
                              GenericString* response) override;
 
+  grpc::Status GetPollers(grpc::ServerContext* context,
+                          const ::google::protobuf::Empty* request,
+                          PeerList* response) override;
+
   grpc::Status GetPeers(grpc::ServerContext* context,
                         const ::google::protobuf::Empty* request,
                         PeerList* response) override;
