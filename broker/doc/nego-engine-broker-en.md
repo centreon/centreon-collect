@@ -409,9 +409,42 @@ sequenceDiagram
 
 **Remarks.**
 
-    1. A point of vigilance: In case the second poller is very late, the arrival of the second `ConfigurationInstance` can really be delayed. If `Broker` waits for all `ConfigurationInstance` to update the base, it penalizes E1 data since the cache will take a long time before being updated.
+1. A point of vigilance: In case the second poller is very late, the arrival of the second `ConfigurationInstance` can really be delayed. If `Broker` waits for all `ConfigurationInstance` to update the base, it penalizes E1 data since the cache will take a long time before being updated.
 
-    2. Perhaps the global difference could be made on receiving acknowledgements. And timed with a timeout. For example from the first reception, Broker gives itself a 10s timeout, during this time span, as soon as it receives an acknowledgement, it enriches the global difference with the acknowledged configuration. When the timeout is finished, everything is sent to the database and cache.
+2. Perhaps the global difference could be made on receiving acknowledgements. And timed with a timeout. For example from the first reception, Broker gives itself a 10s timeout, during this time span, as soon as it receives an acknowledgement, it enriches the global difference with the acknowledged configuration. When the timeout is finished, everything is sent to the database and cache.
+
+3. A point of vigilance: we have assumed here that the configuration was coming from
+   php. We also need to be able to recover if the configuration is already on the
+   Engine side, including if it has been deleted on the Broker side.
+
+For point 3., if Engine starts with a configuration already known by Broker, there is
+no issue — the configuration is already in place. However, if an administrator has
+deleted the configuration known by Engine from Broker's side, it would be good for
+Engine to be able to send it to Broker to resolve the issue.
+
+This case is handled as follows: during BBDO negotiation, if Broker finds neither an
+`<ID>.prot` file nor an `<ID>.lck` file for a poller, it sends a
+`DiffState{unknown=true}` to Engine. Engine detects this message and sends its
+current configuration to Broker. Broker receives it, creates the `<ID>.prot` file
+and feeds its cache.
+
+```mermaid
+sequenceDiagram
+    participant E as Engine
+    participant B as Broker
+
+    E ->> B: BBDO connection and negotiation
+    B ->> B: add_peer()
+    note right of B: Broker finds neither <ID>.prot<br/>nor <ID>.lck for this poller.<br/>The conf_unknown flag is set to true.
+    B ->> B: is_peer_conf_known() → false
+    B ->> E: DiffState { unknown = true }
+    note right of B: Broker asks Engine<br/>to send its configuration.
+    E ->> E: Reading state.prot<br/>via get_current_state()
+    E ->> B: pb_diff_state containing the current State
+    note right of E: Engine sends its configuration<br/>on the next write().
+    B ->> B: create_prot_file()
+    note right of B: Broker writes <ID>.prot,<br/>resets conf_unknown to false<br/>and feeds the cache.
+```
 
 If `Engine` is restarted before sending this *event*, it will connect with the new configuration but `Broker` will still have work remnants to perform which can be problematic. To avoid this, we go through a new BBDO *event* (therefore managed outside the event stack); as soon as `Engine` reads the configuration, it emits this new *event* to inform `Broker` as soon as possible that it is taken into account. To apply the configuration on the database, `Broker` waits to have received all these acknowledgements.
 
@@ -559,12 +592,13 @@ stateDiagram-v2
     
     state if_existing_lck_file_for_current_poller_id <<choice>>
     prot_file_created_from_state --> if_existing_lck_file_for_current_poller_id
-    if_existing_lck_file_for_current_poller_id --> keep_lck_file_in_memory: A lck file already exists for the given poller ID
-    if_existing_lck_file_for_current_poller_id --> [*]: No lck file exists for the given poller ID
+    if_existing_lck_file_for_current_poller_id --> keep_lck_file_in_memory: A .lck file exists for this poller ID
+    if_existing_lck_file_for_current_poller_id --> [*]: No .lck file exists for this poller ID
+    keep_lck_file_in_memory: Addition of the ID to the list to process
     keep_lck_file_in_memory --> [*]
 ```
 
-This method memorizes the poller in its peers list. It starts the `Engine` configuration monitoring timer if negotiation is extended and the peer is an `Engine`. And it also checks if a `.lck` file already exists for the poller ID because `inotify` doesn't report files existing before it starts.
+This method memorizes the poller in its peers list. It starts the `Engine` configuration monitoring timer if negotiation is extended and the peer is an `Engine`. And it also checks if a `.lck` file already exists for the poller ID because `inotify` doesn't report files existing before it starts. If such a file is found, the poller ID is added to the list to process on the next timer tick.
 
 Subsequently, the timer is executed as a background task and checks every 5s if a `.lck` file has been modified or created; in this case the list of `.lck` files is enriched then processed as a background task. Let's focus on this part.
 
@@ -582,7 +616,9 @@ stateDiagram-v2
     resolution_de_la_configuration_engine: Resolution and extension of Engine configuration
     resolution_de_la_configuration_engine --> ecriture_dans_fichier__new_ID_prot
     ecriture_dans_fichier__new_ID_prot: Writing configuration in State format<br/> to a new-ID.prot file
-    ecriture_dans_fichier__new_ID_prot --> preparation_de_la_difference
+    ecriture_dans_fichier__new_ID_prot --> suppression_fichier_lck
+    suppression_fichier_lck: Deletion of the ID.lck file<br/>(no-op if already deleted by _watch_engine_conf)
+    suppression_fichier_lck --> preparation_de_la_difference
     preparation_de_la_difference: _prepare_diff_for_poller(poller_id, state)
     preparation_de_la_difference --> fin_pour_chaque_poller_id
     note right of preparation_de_la_difference: This function prepares the difference<br/> between current and new configuration.<br/>It creates diff-ID.prot and new-ID.prot files

@@ -70,6 +70,7 @@ class stream : public basic_stream {
          bool grpc_serialized = false,
          const std::list<std::shared_ptr<io::extension>>& extensions = {});
   void negotiate(negotiation_type neg);
+  virtual bool supports_centralized_conf() const = 0;
   virtual void specific_negotiate(Welcome& obj) = 0;
   void set_negotiate(bool negotiate);
 };

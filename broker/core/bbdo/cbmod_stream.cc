@@ -25,16 +25,37 @@ using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::broker::bbdo {
 
+/**
+ * @brief Send the Engine configuration to the connected Broker peer.
+ * The configuration is sent as a pb_diff_state message containing the full
+ * Engine state, in response to a DiffState{unknown=true} request from Broker.
+ *
+ * @param conf The Engine configuration state to send.
+ */
+void cbmod_stream::send_engine_conf(
+    std::unique_ptr<com::centreon::engine::configuration::State>& conf) {
+  auto pb_conf = std::make_shared<bbdo::pb_diff_state>();
+  auto& obj = pb_conf->mut_obj();
+  obj.set_allocated_state(conf.release());
+  _write(pb_conf);
+}
+
 int32_t cbmod_stream::write(const std::shared_ptr<io::data>& d) {
-  if (_state.peer_type() == common::ENGINE && peer_type() == common::BROKER &&
-      _state.diff_state_applied()) {
-    const std::string& version = _state.engine_conf();
-    _logger->debug("BBDO: Sending diff state '{}' acknowledgement", version);
-    auto diff_state_ack = std::make_shared<bbdo::pb_diff_state_ack>();
-    auto& obj = diff_state_ack->mut_obj();
-    obj.set_poller_id(_state.poller_id());
-    obj.set_config_version(version);
-    _write(diff_state_ack);
+  if (_state.peer_type() == common::ENGINE && peer_type() == common::BROKER) {
+    if (_state.diff_state_applied()) {
+      const std::string& version = _state.engine_conf();
+      _logger->debug("BBDO: Sending diff state '{}' acknowledgement", version);
+      auto diff_state_ack = std::make_shared<bbdo::pb_diff_state_ack>();
+      auto& obj = diff_state_ack->mut_obj();
+      obj.set_poller_id(_state.poller_id());
+      obj.set_config_version(version);
+      _write(diff_state_ack);
+    }
+    if (auto current_conf = _state.current_engine_conf(); current_conf) {
+      _logger->debug("BBDO: Sending current engine configuration '{}' to peer",
+                     current_conf->config_version());
+      send_engine_conf(current_conf);
+    }
   }
 
   return stream::write(d);
@@ -152,6 +173,30 @@ void cbmod_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       break;
     default:
       break;
+  }
+}
+
+/**
+ * @brief Returns true if this stream supports centralized configuration.
+ * This is the case when a proto configuration file (state.prot) is present.
+ *
+ * @return true if centralized configuration is supported, false otherwise.
+ */
+bool cbmod_stream::supports_centralized_conf() const {
+  return !_state.proto_conf().empty();
+}
+
+/**
+ * @brief Fill the Welcome message with cbmod-specific negotiation parameters.
+ * Sets the extended negotiation flag and the current Engine configuration
+ * version if centralized configuration is supported.
+ *
+ * @param obj The Welcome message to fill.
+ */
+void cbmod_stream::specific_negotiate(Welcome& obj) {
+  if (supports_centralized_conf()) {
+    obj.set_extended_negotiation(true);
+    obj.set_engine_conf(_state.engine_conf());
   }
 }
 

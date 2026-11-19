@@ -44,6 +44,10 @@ class broker_state : public state {
     /* The conf_acknowledged flag is set to false when a new configuration
      * concerning this Engine peer must be sent to it. Otherwise, it is true. */
     bool conf_acknowledged;
+    /* If the conf is unknown by broker, that is to say no available conf from
+     * php and no <ID>.prot file, this flag is set to true. And this is the
+     * way for Broker to ask its configuration to Engine. */
+    bool conf_unknown;
   };
 
  private:
@@ -81,6 +85,7 @@ class broker_state : public state {
   uint32_t _get_lck_file_if_exists(uint32_t poller_id) noexcept;
   void _watch_engine_conf(absl::flat_hash_set<uint32_t>* poller_ids);
   void _check_last_engine_conf() ABSL_LOCKS_EXCLUDED(_lck_set_m);
+  bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
 
  public:
   broker_state(const std::shared_ptr<spdlog::logger>& logger)
@@ -96,6 +101,8 @@ class broker_state : public state {
                 bool extended_negotiation,
                 const std::string& engine_conf) override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool is_peer_conf_known(uint64_t poller_id) const override
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void remove_peer(uint64_t poller_id,
                    const std::string& poller_name,
                    const std::string& broker_name) override
@@ -110,9 +117,10 @@ class broker_state : public state {
                               const std::string& poller_name,
                               const std::string& broker_name,
                               const std::string& engine_conf);
+  void set_poller_engine_conf_unknown(uint64_t poller_id, bool unknown);
   bool poller_is_up_to_date(uint32_t poller_id,
                             const std::string& poller_name) const;
-  bool all_engine_peers_acknowledged() const;
+  bool all_engine_peers_acknowledged();
   void set_available_conf_sent_to_engine_peer(uint32_t poller_id);
   void apply(const com::centreon::broker::config::state& s,
              bool run_mux = true) override;
@@ -123,6 +131,8 @@ class broker_state : public state {
   bool supports_centralized_conf() const override {
     return !_pollers_config_dir.empty();
   }
+  void create_prot_file(
+      const com::centreon::engine::configuration::State& conf);
 };
 }  // namespace com::centreon::broker::config::applier
 

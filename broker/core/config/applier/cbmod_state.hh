@@ -49,6 +49,8 @@ class cbmod_state : public state {
   std::atomic_bool _diff_state_applied;
   mutable absl::Mutex _diff_state_m;
   std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
+  std::unique_ptr<com::centreon::engine::configuration::State>
+      _current_engine_state;
 
  public:
   cbmod_state(const std::string& engine_conf_version,
@@ -89,6 +91,10 @@ class cbmod_state : public state {
   bool supports_centralized_conf() const override {
     return !_proto_conf.empty();
   }
+  void set_current_engine_conf(
+      std::unique_ptr<com::centreon::engine::configuration::State>& conf);
+  std::unique_ptr<com::centreon::engine::configuration::State>
+  current_engine_conf();
 };
 }  // namespace com::centreon::broker::config::applier
 

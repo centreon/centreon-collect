@@ -83,6 +83,9 @@ class state {
                         common::PeerType peer_type,
                         bool extended_negotiation,
                         const std::string& engine_conf) = 0;
+  virtual bool is_peer_conf_known(uint64_t poller_id [[maybe_unused]]) const {
+    return true;
+  }
   virtual void remove_peer(uint64_t poller_id,
                            const std::string& poller_name,
                            const std::string& broker_name) = 0;

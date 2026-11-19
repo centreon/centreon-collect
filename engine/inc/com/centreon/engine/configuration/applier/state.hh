@@ -50,6 +50,7 @@ class state {
       error_cnt& err);
 
  public:
+  void get_current_state(configuration::State& cfg);
   void apply(configuration::State& new_cfg,
              error_cnt& err,
              retention::state* state = nullptr);

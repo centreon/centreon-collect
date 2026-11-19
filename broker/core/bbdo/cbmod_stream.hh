@@ -34,12 +34,10 @@ class cbmod_stream : public stream {
       : stream(is_input, grpc_serialized, extensions),
         _state{static_cast<config::applier::cbmod_state&>(
             config::applier::state::instance())} {}
-  void specific_negotiate(Welcome& obj) override {
-    if (!_state.proto_conf().empty()) {
-      obj.set_extended_negotiation(true);
-      obj.set_engine_conf(_state.engine_conf());
-    }
-  }
+  bool supports_centralized_conf() const override;
+  void specific_negotiate(Welcome& obj) override;
+  void send_engine_conf(
+      std::unique_ptr<com::centreon::engine::configuration::State>& conf);
   int32_t write(const std::shared_ptr<io::data>& d) override;
   int32_t stop() override;
 };
