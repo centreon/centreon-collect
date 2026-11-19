@@ -792,8 +792,6 @@ jobs:
       # the dispatched version wins; otherwise the tag's, through get-environment
       CMA_VERSION: ${{ inputs.publish_cma_version || format('{0}.{1}', needs.get-environment.outputs.cma_major_version, needs.get-environment.outputs.cma_minor_version) }}
       PUBLISH_DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_dry_run) && 'true' || 'false' }}
-      WEBAPP_REPO: centreon/WebApp-download
-      WEBAPP_BASE: develop
 
     steps:
       - name: Checkout sources
@@ -811,6 +809,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
+          WEBAPP_REPO: ${{ secrets.WEBAPP_REPO }}
+          WEBAPP_BASE: develop
         run: |
           set -euo pipefail
           pm="$(gh api -H 'Accept: application/vnd.github.raw' \
