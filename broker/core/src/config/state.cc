@@ -37,6 +37,7 @@ state::state()
       _bbdo_version(BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH),
       _command_protocol{"json"},
       _event_queue_max_size{10000},
+      _priority_age_threshold{300},
       _poller_id{0},
       _pool_size{0},
       _log_conf{"/var/log/centreon-broker/",
@@ -62,6 +63,7 @@ state::state(const state& other)
       _command_protocol(other._command_protocol),
       _endpoints(other._endpoints),
       _event_queue_max_size(other._event_queue_max_size),
+      _priority_age_threshold(other._priority_age_threshold),
       _module_dir(other._module_dir),
       _module_list(other._module_list),
       _params(other._params),
@@ -90,6 +92,7 @@ state& state::operator=(state const& other) {
     _command_protocol = other._command_protocol;
     _endpoints = other._endpoints;
     _event_queue_max_size = other._event_queue_max_size;
+    _priority_age_threshold = other._priority_age_threshold;
     _module_dir = other._module_dir;
     _module_list = other._module_list;
     _params = other._params;
@@ -115,6 +118,7 @@ void state::clear() {
   _command_protocol = "json";
   _endpoints.clear();
   _event_queue_max_size = 10000;
+  _priority_age_threshold = 300;
   _module_dir.clear();
   _module_list.clear();
   _params.clear();
@@ -291,6 +295,14 @@ void state::event_queue_max_size(int val) noexcept {
  */
 int state::event_queue_max_size() const noexcept {
   return _event_queue_max_size;
+}
+
+void state::priority_age_threshold(uint32_t val) noexcept {
+  _priority_age_threshold = val;
+}
+
+uint32_t state::priority_age_threshold() const noexcept {
+  return _priority_age_threshold;
 }
 
 /**
