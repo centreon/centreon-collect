@@ -123,6 +123,10 @@ void applier::service::update(const configuration::State& config,
       obj.set_perf_data(*state.performance_data());
     if (state.last_acknowledgement().is_set())
       obj.set_last_acknowledgement(*state.last_acknowledgement());
+    if (state.flapping_comment_id().is_set())
+      obj.set_flapping_comment_id(*state.flapping_comment_id());
+    if (state.acknowledgement_comment_id().is_set())
+      obj.set_acknowledgement_comment_id(*state.acknowledgement_comment_id());
     if (state.last_check().is_set())
       obj.set_last_check(*state.last_check());
     if (state.next_check().is_set() && config.use_retained_scheduling_info() &&
