@@ -536,9 +536,9 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
-          pulp_url: ${{ vars.PULP_API_URL }}
-          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
-          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+          pulp_url: https://pulp-api-dev.int.centreon.com
+          pulp_content_url: https://packages-dev.centreon.com
+          audience: https://pulp.dev.centreon.io
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-deb-pulp:
@@ -597,9 +597,9 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          pulp_url: ${{ vars.PULP_API_URL }}
-          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
-          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+          pulp_url: https://pulp-api-dev.int.centreon.com
+          pulp_content_url: https://packages-dev.centreon.com
+          audience: https://pulp.dev.centreon.io
 
   # Blocking, like every other Pulp job since #3705. Delivery also fails closed when the major is
   # not provisioned — run create-repos-installers.yml in centreon/delivery-tooling for every new
@@ -656,9 +656,9 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           installer_path: agent/installer/${{ env.VERSION_EXE }}
           installer_name: ${{ env.VERSION_EXE }}
-          pulp_url: ${{ vars.PULP_API_URL }}
-          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
-          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+          pulp_url: https://pulp-api-dev.int.centreon.com
+          pulp_content_url: https://packages-dev.centreon.com
+          audience: https://pulp.dev.centreon.io
 
   promote-linux-pulp:
     needs: [get-environment, deliver-rpm-pulp, deliver-deb-pulp]
@@ -693,9 +693,9 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          pulp_url: ${{ vars.PULP_API_URL }}
-          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
-          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+          pulp_url: https://pulp-api-dev.int.centreon.com
+          pulp_content_url: https://packages-dev.centreon.com
+          audience: https://pulp.dev.centreon.io
 
   # Blocking, like its delivery counterpart. Needs no installer file: the relative path carries
   # no stability, so promotion is a content add of the unit already in the testing repository.
@@ -725,9 +725,9 @@ jobs:
           major_version: ${{ needs.get-environment.outputs.cma_major_version }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           installer_name: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe
-          pulp_url: ${{ vars.PULP_API_URL }}
-          pulp_content_url: ${{ vars.PULP_CONTENT_URL }}
-          audience: ${{ vars.PULP_OIDC_AUDIENCE }}
+          pulp_url: https://pulp-api-dev.int.centreon.com
+          pulp_content_url: https://packages-dev.centreon.com
+          audience: https://pulp.dev.centreon.io
 
   # Delivers the github release assets from the Pulp stable repositories, after both Pulp
   # promotions. Strict, so a distrib missing from Pulp fails here instead of dropping its row

@@ -2,31 +2,6 @@
   "schema_version": 1,
   "testing_tag_builds": true,
   "components": {
-    "centreon-collect": {
-      "workflow": "collect.yml",
-      "bundle_component": "centreon-collect",
-      "paths": [
-        ".version.centreon-collect",
-        "bbdo",
-        "broker",
-        "ccc",
-        "clib",
-        "connectors",
-        "custom-triplets",
-        "engine",
-        "packaging/centreon-collect",
-        "overlays",
-        "selinux/centreon-broker",
-        "selinux/centreon-engine",
-        "cmake-vcpkg.sh",
-        "CMakeLists.txt",
-        "CMakeListsLinux.txt",
-        "vcpkg.json",
-        ".version",
-        "common",
-        "tests"
-      ]
-    },
     "centreon-common": {
       "workflow": "common.yml",
       "bundle_component": "centreon-common",
@@ -45,24 +20,6 @@
         ".version.centreon-gorgone",
         ".version",
         "perl-libs"
-      ]
-    },
-    "centreon-monitoring-agent": {
-      "workflow": "monitoring-agent.yml",
-      "bundle_component": "centreon-monitoring-agent",
-      "paths": [
-        "agent",
-        ".version.centreon-monitoring-agent",
-        ".version",
-        "common",
-        "custom-triplets",
-        "overlays",
-        "packaging/centreon-monitoring-agent",
-        "selinux/centreon-monitoring-agent",
-        "CMakeLists.txt",
-        "CMakeListsLinux.txt",
-        "CMakeListsWindows.txt",
-        "vcpkg.json"
       ]
     }
   },
