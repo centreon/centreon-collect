@@ -160,6 +160,8 @@ Setup Gorgone Config
     ...    -e 's/@RETRY_DELAY_MIN@/5/g'
     ...    -e 's/@RETRY_DELAY_MAX@/20/g'
     ...    -e 's/@PROXY_PING@/60/g'
+    ...    -e 's/@PROXY_SYNCHISTORY_TIME@/60/g'
+    ...    -e 's/@PROXY_SYNCHISTORY_TIMEOUT@/30/g'
     ...    -e 's/@HTTPSERVER_CHECK_INTERVAL@/30/g'
     ...    -e 's/@HTTPSERVER_CHECK_TIMEOUT@/60/g'
     ...    -e 's/@HTTPSERVER_TOKEN_CHECK_INTERVAL@/60/g'

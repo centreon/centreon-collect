@@ -398,6 +398,12 @@ sub routing {
                 delete($synctime_nodes->{$target}->{total_msg});
                 $synctime_nodes->{$target}->{got_msg} = 0;
             }
+            # same thing for a PING: ping_send() already set in_progress_ping before this
+            # channel_ready check could run, or it sits locked until the ping_timeout sweep
+            # instead of being retried as soon as the node actually becomes ready.
+            if ($options{action} eq 'PING' && defined($constatus_ping->{$target})) {
+                $constatus_ping->{$target}->{in_progress_ping} = 0;
+            }
             gorgone::standard::library::add_history({
                 dbh => $options{dbh},
                 code => GORGONE_ACTION_FINISH_KO,

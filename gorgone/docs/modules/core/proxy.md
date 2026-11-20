@@ -299,10 +299,10 @@ other node for the combined duration of all of them - the node count (and the AP
 under load) directly sets how often, and for how long, the reactor is unavailable. This was
 identified as a likely contributor to pullwss ping/GETLOG timeouts under load at a high node
 count, independently of `check_httpserver_health()` above (that check still gets an answer - the
-child is busy, not wedged). A separate, still-open investigation found pullwss ping/GETLOG
+child is busy, not wedged). A separate investigation found pullwss ping/GETLOG
 timeouts recurring even at rest, with no evidence of this check (or anything else) blocking the
-reactor at the time - that mechanism is not yet identified; this change is not expected to resolve
-it by itself.
+reactor for any meaningful duration at the time; that mechanism is identified below, in "Internal
+message delivery" - this change does not address it.
 
 A failed list call leaves every connected node as-is (logged, not disconnected): unlike the
 previous per-node call, where a transient failure for one node's own GET closed only that node's
@@ -315,6 +315,32 @@ account is an admin or holds `ROLE_MANAGE_TOKENS` (the by-name endpoint used for
 login check restricts to the caller's own tokens too, but with no such admin/role bypass found;
 gorgone's configured account already fetching tokens it does not own through that endpoint today
 is evidence, not proof, that it is privileged enough for the list too).
+
+#### Internal message delivery: `event()` and the custom dispatch loops
+
+`gorgone::class::module::event()` is the generic internal-socket drain loop every module
+inherits: it reads every pending message and, for each one, calls the matching `action_<name>`
+method if the module defines one. Pool workers (`class.pm`, push_zmq/push_ssh) use this
+convention directly - this is the `event() → proxy()` step in "Message routing flow" above.
+
+`httpserver.pm` and `pullwss::class.pm` don't: PING/GETLOG/PROXYHEALTHCHECK (httpserver.pm) and
+PONG/SETLOGS/ACK (pullwss::class.pm) are dispatched through their own loop instead
+(`read_zmq_events()` calling `proxy()`/`transmit_back()`), reading the same internal socket as
+`event()`. `send_internal_action()` - the generic method every module uses to reply to something,
+e.g. the httpserver child's own `PROXYHEALTHCHECK` ack, or a poller relaying an incoming frame -
+calls `event()` right after sending, as a side effect, to drain anything already queued. A message
+addressed to one of these modules' own dispatch, still in flight when that side-effect call ran,
+used to be read there instead: logged at DEBUG, matched against no `action_<name>` method, and
+dropped - never reaching `proxy()`/`transmit_back()`. This explained both the at-rest pullwss
+ping/GETLOG loss mentioned in "Token revocation check" above (the httpserver child's own
+`PROXYHEALTHCHECK` reply racing an incoming `GETLOG`/`PING` for an unrelated node) and,
+independently, a PONG generated on the poller never reaching the websocket send (the poller
+relaying an incoming frame internally and racing its own reply going back out).
+
+`event()` now calls `unhandled_event()` for any message no `action_<name>` method claims, instead
+of dropping it; the default implementation (`gorgone::class::module`) is a no-op, unchanged for
+modules that only use the `action_<name>` convention. `httpserver.pm` and `pullwss::class.pm`
+override it to hand the message to their own `proxy()`/`transmit_back()` loop.
 
 ## check()
 

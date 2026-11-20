@@ -503,6 +503,16 @@ sub read_zmq_events {
         proxy(message => $message);
     }
 }
+
+# PING/GETLOG/PROXYADDNODE/... are dispatched through proxy() by read_zmq_events(), not
+# through the action_<name> convention gorgone::class::module::event() looks for: a
+# message still on the internal socket when event() runs as a side effect of
+# send_internal_action() lands here instead of being silently dropped.
+sub unhandled_event {
+    my ($self, %options) = @_;
+
+    proxy(message => $options{message});
+}
 sub is_empty {
     my $value = shift;
     if (!defined($value) or $value eq '') {
