@@ -180,18 +180,6 @@ ls /etc/centreon-broker/*.json >/dev/null
 ! ldd /usr/sbin/cbwd | grep -q "not found"
 EOF
 
-# Deps for api_control.py (reload/restart shim). Unpinned: internal shim, not a published library.
-RUN bash -e <<EOF
-python3 -m venv /opt/centreon/venv
-/opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip
-/opt/centreon/venv/bin/pip install --no-cache-dir \
-    fastapi \
-    uvicorn
-chown -R centreon-broker:centreon-broker /opt/centreon/venv
-EOF
-
-ENV PATH="/opt/centreon/venv/bin:$PATH"
-
 # OCI image metadata for supply chain traceability (used by Scout, registries, and auditing)
 ARG BUILD_DATE
 ARG BUILD_VERSION=unknown
@@ -221,8 +209,6 @@ EXPOSE 51001
 EXPOSE 5670
 # gRPC central-rrd
 EXPOSE 51002
-# api_control.py (reload/restart shim)
-EXPOSE 8080
 
 WORKDIR /var/lib/centreon-broker
 
@@ -234,10 +220,9 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
 
 ENTRYPOINT ["/usr/local/lib/centreon-broker/container.sh"]
 
-# Runs cbd under the reload/restart shim by default (POST /reload, POST
-# /restart, GET /health on :8080). Override CMD with
-# ["cbd", "/etc/centreon-broker/central-broker.json"] to run cbd directly.
+# Reload/restart go through gorgone's native gRPC SignalProcess call to cbd
+# (see broker.proto) instead of an HTTP shim around this process.
 # Note: cbd's `-c`/`--check` validates and exits, it is not a config-path flag.
 # A real config must be mounted over central-broker.json - container.sh
 # refuses to start on the untouched package default.
-CMD ["/opt/centreon/venv/bin/python3", "/usr/local/lib/centreon-broker/api_control.py", "/etc/centreon-broker/central-broker.json"]
+CMD ["cbd", "/etc/centreon-broker/central-broker.json"]

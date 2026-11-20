@@ -115,7 +115,8 @@ ENV TYPE= \
     MYSQL_DB_STORAGE=centreon_storage \
     MYSQL_USER=centreon \
     MYSQL_PASSWORD= \
-    GORGONE__GORGONE__MODULES__ACTION__ENGINE_GRPC__ENABLE=true
+    GORGONE__GORGONE__MODULES__ACTION__ENGINE_GRPC__ENABLE=true \
+    GORGONE__GORGONE__MODULES__ACTION__BROKER_GRPC__ENABLE=true
 
 ARG VERSION
 ARG IS_CLOUD
@@ -244,7 +245,6 @@ chmod 775 /var/lib/centreon-gorgone /var/log/centreon-gorgone
 chmod 755 /var/lib/centreon-gorgone/.keys
 chmod 0755 /var/spool/centreon
 chmod 0755 /var/lib/centreon-broker
-rm -f /bin/systemctl
 EOF
 
 # Copy ONLY runtime files from extractor (no package metadata, docs, or systemd files)
@@ -273,11 +273,10 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
 # (heredocs, env vars expand naturally), so they never collide with the
 # poller config.d/40-gorgoned.yaml baked in above.
 
-# Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
-COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
-# gRPC client for the systemctl shim's centengine SignalProcess call (replaces
-# shelling out to the buf Go binary - see grpc-signal.pl for why).
-COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/grpc-signal.pl /usr/local/lib/centreon-gorgone/grpc-signal.pl
+# Copy entrypoint and sudoers (from source repo, not from .deb packages).
+# centengine and cbd reload/restart go through gorgone's own native gRPC
+# client (gorgone::class::engine::grpcsignal) instead of shelling out to
+# systemctl - no fake systemctl/grpc-signal.pl shim needed in this image any more.
 COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/entrypoint /usr/local/lib/centreon-gorgone/
 COPY --link --chmod=600 .github/docker/centreon-gorgone/trixie/sudoers/centreon /etc/sudoers.d/centreon
 COPY --link --chmod=600 gorgone/packaging/sudoers.d/centreon-gorgone /etc/sudoers.d/centreon-gorgone
