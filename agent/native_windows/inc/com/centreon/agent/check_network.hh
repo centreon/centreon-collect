@@ -93,16 +93,18 @@ class network_snapshot {
 
  private:
   std::chrono::steady_clock::time_point _time;
+  // rows of the interface table, allowed by the filter or not
+  size_t _nb_rows;
   interface_map _interfaces;
-  std::shared_ptr<spdlog::logger> _logger;
 
  public:
   network_snapshot(std::chrono::steady_clock::time_point time,
                    std::span<const MIB_IF_ROW2> rows,
                    const interface_filter& filter,
-                   const std::shared_ptr<spdlog::logger>& _logger);
+                   const std::shared_ptr<spdlog::logger>& logger);
 
   std::chrono::steady_clock::time_point get_time() const { return _time; }
+  size_t get_nb_rows() const { return _nb_rows; }
   const interface_map& get_interfaces() const { return _interfaces; }
 };
 
