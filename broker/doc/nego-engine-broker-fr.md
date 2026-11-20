@@ -102,6 +102,8 @@ Négociation entre Engine et Broker
       * [Débordement sur disque (rétention)](#débordement-sur-disque-rétention)
       * [Résultats de benchmark](#résultats-de-benchmark)
       * [Type d'entrée : struct vs pair, emplace_back vs push_back](#type-dentrée--struct-vs-pair-emplace_back-vs-push_back)
+      * [Champ timestamp : heure d'insertion, pas heure de collecte](#champ-timestamp--heure-dinsertion-pas-heure-de-collecte)
+      * [Perte de connexion : `nack_events()`](#perte-de-connexion--nack_events)
   * [BAM : lecture de l'état des downtimes depuis le cache Broker](#bam--lecture-de-létat-des-downtimes-depuis-le-cache-broker)
   * [Implémentation de notification_mode = broker sur zones mono-poller](#implémentation-de-notification_mode--broker-sur-zones-mono-poller)
     * [Endpoints gRPC BrokerRpc](#endpoints-grpc-brokerrpc)
@@ -2840,7 +2842,7 @@ son horodatage :
 | Type d'événement                                               | Règle de classification                                                                                                         | File |
 |----------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|------|
 | `pb_downtime`, `pb_acknowledgement`, `pb_notification_request` | **Toujours prioritaire (P)** — l'âge est sans importance ; ce qui compte c'est que le downtime ou l'acquittement soit encore actif | P |
-| Statut host / service                                          | **Courante (C)** si `now − timestamp_événement < priority_age_threshold` (défaut : 5 min) ; **Historique (H)** sinon              | C ou H |
+| Statut host / service                                          | Inséré en **Courante (C)** ; rétrogradé en **Historique (H)** lorsque `now − heure_insertion ≥ priority_age_threshold` (défaut : 5 min) | C ou H |
 | Données de performance, logs, autres événements volumineuses   | Toujours **Historique (H)**                                                                                                     | H |
 
 Le paramètre `priority_age_threshold` (défaut 5 minutes, soit un intervalle de check typique)
@@ -2945,50 +2947,34 @@ nouvel événement prioritaire est poussé, `_priority_read_pos` désigne déjà
 | Condition | File | Timestamp stocké |
 |-----------|------|-----------------|
 | type ∈ {`pb_downtime`, `pb_acknowledgement`, `pb_notification_request`} | P | `INT64_MAX` |
-| statut host/service ET `now − last_check < priority_age_threshold` | C | `now` (heure d'insertion) |
-| statut host/service ET `now − last_check ≥ priority_age_threshold` | H | `now` (heure d'insertion) |
+| statut host/service | C (à l'insertion) ; promu en H une fois `now − heure_insertion ≥ priority_age_threshold` | `now` (heure d'insertion) |
 | tous les autres types (perf data, logs, …) | H | `now` (heure d'insertion) |
 
 `priority_age_threshold` vaut **5 minutes** par défaut (un intervalle de check typique) et est
 configurable dans la configuration JSON de Broker.
 
-#### Acquittement : `pb_ack` à deux compteurs
+#### Acquittement
 
-`ack_events` est étendu à deux compteurs indépendants — prioritaire (file P) et secondaire
-(files C et H combinées). Broker n'a pas besoin de distinguer C de H : les événements des deux
-files sont livrés dans l'ordre P → C → H, et le compteur secondaire reflète simplement combien
-d'événements non-prioritaires ont été consommés dans ce lot.
-
-```cpp
-void ack_events(uint32_t priority_count, uint32_t secondary_count);
-```
-
-`pb_ack` reçoit deux nouveaux champs (le champ 1 est conservé pour la compatibilité ascendante
-avec les anciens émetteurs, dont le compteur est appliqué aux files secondaires) :
-
-```protobuf
-message Ack {
-  uint32 acknowledged_events           = 1;  // déprécié
-  uint32 priority_acknowledged_events  = 2;
-  uint32 secondary_acknowledged_events = 3;
-}
-```
-
-`read()` reçoit un paramètre de sortie `priority_count` pour que l'appelant puisse calculer la
-répartition après le retour de `write()` :
+`ack_events` prend un seul compteur et draine les files dans l'ordre P → C → H jusqu'à
+épuisement du compteur. Comme les événements sont toujours livrés à l'appelant dans ce même
+ordre, un seul compteur identifie sans ambiguïté quels événements supprimer.
 
 ```cpp
-size_t priority_count = 0;
-muxer.read(to_fill, max, priority_count);
+void ack_events(uint32_t count);
+```
+
+L'appelant lit un lot, l'envoie au stream et acquitte autant que le stream en a accepté :
+
+```cpp
+muxer.read(to_fill, max);
 
 uint32_t written = stream.write(to_fill);
-uint32_t p_acked = std::min(written, (uint32_t)priority_count);
-uint32_t s_acked = written - p_acked;
-muxer.ack_events(p_acked, s_acked);
+muxer.ack_events(written);
 ```
 
-`s_acked` est ensuite appliqué contre les files C puis H dans l'ordre : C d'abord, puis H une
-fois C épuisée.
+`pb_ack` est inchangé — il transporte un seul champ `acknowledged_events`, ce qui est suffisant
+car la file de rétention d'Engine est également un simple FIFO et a seulement besoin de savoir
+combien d'événements Broker a reçus.
 
 #### Débordement sur disque (rétention)
 
