@@ -54,24 +54,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::engine;
 using namespace com::centreon;
 
-static std::shared_ptr<neb::acknowledgement> convert_pb_ack_to_ack(
-    const std::shared_ptr<neb::pb_acknowledgement>& ack) {
-  auto new_ack = std::make_shared<neb::acknowledgement>();
-  const Acknowledgement& obj = static_cast<const Acknowledgement&>(ack->obj());
-  new_ack->acknowledgement_type = obj.type();
-  new_ack->host_id = obj.host_id();
-  new_ack->service_id = obj.service_id();
-  new_ack->author = obj.author();
-  new_ack->comment = obj.comment_data();
-  new_ack->entry_time = obj.entry_time();
-  new_ack->deletion_time = obj.deletion_time();
-  new_ack->is_sticky = obj.sticky();
-  new_ack->notify_contacts = obj.notify_contacts();
-  new_ack->persistent_comment = obj.persistent_comment();
-  new_ack->state = obj.state();
-  return new_ack;
-}
-
 template <typename R>
 static void forward_acknowledgement(const char* author_name,
                                     const char* comment_data,
@@ -105,9 +87,6 @@ static void forward_acknowledgement(const char* author_name,
     ack->notify_contacts = notify_contacts;
     ack->persistent_comment = persistent_comment;
     ack->state = resource->get_current_state();
-
-    // Store acknowledgement.
-    cbm->add_acknowledgement(ack);
 
     // Send event.
     cbm->write(ack);
@@ -170,8 +149,6 @@ static void forward_pb_acknowledgement(const char* author_name,
   ack_obj.set_notify_contacts(notify_contacts);
   ack_obj.set_persistent_comment(persistent_comment);
   ack_obj.set_state(resource->get_current_state());
-
-  cbm->add_acknowledgement(ack);
 
   // Send event.
   cbm->write(ack);
@@ -2657,24 +2634,6 @@ static void forward_host_status(const engine::host* hst,
 
     // Send event(s).
     cbm->write(host_status);
-
-    // Acknowledgement event.
-    auto ack = cbm->find_acknowledgement(host_status->host_id, 0u);
-    if (ack && !host_status->acknowledged) {
-      if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
-            || (!ack->obj().sticky() &&
-                host_status->current_state !=
-                    static_cast<short>(ack->obj().state())))) {
-        neb_logger->debug(
-            "Set deletion time for host acknowledgement on host {}",
-            host_status->host_id);
-        ack->mut_obj().set_deletion_time(time(nullptr));
-        cbm->write(convert_pb_ack_to_ack(std::move(ack)));
-      }
-      cbm->remove_acknowledgement(host_status->host_id, 0u);
-    }
-    neb_logger->debug("Still {} running acknowledgements",
-                      cbm->acknowledgements_count());
   } catch (std::exception const& e) {
     SPDLOG_LOGGER_ERROR(
         neb_logger,
@@ -2692,25 +2651,6 @@ static void forward_pb_host_status(const host* hst,
   SPDLOG_LOGGER_DEBUG(
       neb_logger,
       "callbacks: generating pb host status check result event protobuf");
-
-  // neb_logger->error(" attrib: {} Stacktrace:\n{}", hsd->attributes,
-  //                   get_stack_trace(20));
-
-  auto handle_acknowledgement = [](uint16_t state, auto& hscr) {
-    auto ack = cbm->find_acknowledgement(hscr.host_id(), 0u);
-    if (ack && hscr.acknowledgement_type() == AckType::NONE) {
-      neb_logger->debug("acknowledgement found on host {}", hscr.host_id());
-      if (!(!state  // !(OK or (normal ack and NOK))
-            || (!ack->obj().sticky() && state != ack->obj().state()))) {
-        neb_logger->debug(
-            "Set deletion time for host acknowledgement on host status {}",
-            hscr.host_id());
-        ack->mut_obj().set_deletion_time(time(nullptr));
-        cbm->write(std::move(ack));
-      }
-      cbm->remove_acknowledgement(hscr.host_id(), 0u);
-    }
-  };
 
   uint16_t state =
       hst->has_been_checked() ? hst->get_current_state() : 4;  // Pending state.
@@ -2738,11 +2678,6 @@ static void forward_pb_host_status(const host* hst,
       }
       cbm->write(h);
     }
-
-    // Acknowledgement event.
-    // Only process it when the acknowledgement actually changed.
-    if (attributes & engine::host::STATUS_ACKNOWLEDGEMENT)
-      handle_acknowledgement(state, host);
   } else {
     auto h{std::make_shared<neb::pb_host_status>()};
     com::centreon::broker::HostStatus& hscr = h.get()->mut_obj();
@@ -2793,12 +2728,7 @@ static void forward_pb_host_status(const host* hst,
 
     // Send event(s).
     cbm->write(h);
-
-    // Acknowledgement event.
-    handle_acknowledgement(state, hscr);
   }
-  neb_logger->debug("Still {} running acknowledgements",
-                    cbm->acknowledgements_count());
 }
 
 /**
@@ -4656,30 +4586,6 @@ static void forward_service_status(const engine::service* svc,
 
     // Send event(svc).
     cbm->write(service_status);
-
-    // Acknowledgement event.
-    auto ack = cbm->find_acknowledgement(service_status->host_id,
-                                         service_status->service_id);
-    if (ack && !service_status->acknowledged) {
-      neb_logger->debug("acknowledgement found on service ({}:{})",
-                        service_status->host_id, service_status->service_id);
-      auto& ack_obj = ack->mut_obj();
-      if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
-            ||
-            (!ack_obj.sticky() && service_status->current_state !=
-                                      static_cast<short>(ack_obj.state())))) {
-        neb_logger->debug(
-            "Set deletion time for service acknowledgement on service status "
-            "{}:{}",
-            service_status->host_id, service_status->service_id);
-        ack_obj.set_deletion_time(time(nullptr));
-        cbm->write(convert_pb_ack_to_ack(std::move(ack)));
-      }
-      cbm->remove_acknowledgement(service_status->host_id,
-                                  service_status->service_id);
-    }
-    neb_logger->debug("Still {} running acknowledgements",
-                      cbm->acknowledgements_count());
   } catch (std::exception const& e) {
     SPDLOG_LOGGER_ERROR(
         neb_logger,
@@ -4703,26 +4609,6 @@ static void forward_pb_service_status(const engine::service* svc,
       static_cast<uint32_t>(svc->get_current_state()), attributes,
       static_cast<uint32_t>(svc->get_check_type()), svc->get_last_check());
 
-  auto handle_acknowledgement = [](uint16_t state, auto& r) {
-    neb_logger->debug("Looking for acknowledgement on service ({}:{})",
-                      r.host_id(), r.service_id());
-    auto ack = cbm->find_acknowledgement(r.host_id(), r.service_id());
-    if (ack && r.acknowledgement_type() == AckType::NONE) {
-      neb_logger->debug("acknowledgement found on service ({}:{})", r.host_id(),
-                        r.service_id());
-      auto& ack_obj = ack->mut_obj();
-      if (!(!state  // !(OK or (normal ack and NOK))
-            || (!ack_obj.sticky() && state != ack_obj.state()))) {
-        neb_logger->debug(
-            "Set deletion time for service acknowledgement on pb service "
-            "status {}:{}",
-            r.host_id(), r.service_id());
-        ack_obj.set_deletion_time(time(nullptr));
-        cbm->write(std::move(ack));
-      }
-      cbm->remove_acknowledgement(r.host_id(), r.service_id());
-    }
-  };
   uint16_t state =
       svc->has_been_checked() ? svc->get_current_state() : 4;  // Pending state.
   if (attributes != engine::service::STATUS_ALL) {
@@ -4750,11 +4636,6 @@ static void forward_pb_service_status(const engine::service* svc,
       }
       cbm->write(as);
     }
-
-    // Acknowledgement event.
-    // Only process it when the acknowledgement actually changed.
-    if (attributes & engine::service::STATUS_ACKNOWLEDGEMENT)
-      handle_acknowledgement(state, asscr);
   } else {
     auto s{std::make_shared<neb::pb_service_status>()};
     ServiceStatus& sscr = s.get()->mut_obj();
@@ -4815,12 +4696,7 @@ static void forward_pb_service_status(const engine::service* svc,
 
     // Send event(s).
     cbm->write(s);
-
-    // Acknowledgement event.
-    handle_acknowledgement(state, sscr);
   }
-  neb_logger->debug("Still {} running acknowledgements",
-                    cbm->acknowledgements_count());
 }
 
 /**

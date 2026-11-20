@@ -204,6 +204,14 @@ service Broker {
   rpc GetTags(google.protobuf.Empty) returns (TagList) {}
 
   /**
+   * @brief List the acknowledgements currently held in the Broker cache.
+   *
+   * @return An AcknowledgementList with one Acknowledgement entry per cached
+   * acknowledgement (host acknowledgements have service_id 0).
+   */
+  rpc GetAcknowledgements(google.protobuf.Empty) returns (AcknowledgementList) {}
+
+  /**
    * @brief Schedule a host or service downtime (notification_mode = broker).
    *
    * Only available when the downtime manager has been loaded, i.e. when
@@ -518,6 +526,11 @@ message TagEntry {
 
 message TagList {
   repeated TagEntry entries = 1;
+}
+
+/* Acknowledgement is defined in neb.proto (same package). */
+message AcknowledgementList {
+  repeated Acknowledgement entries = 1;
 }
 
 message ScheduleDowntimeRequest {

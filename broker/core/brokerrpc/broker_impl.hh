@@ -182,6 +182,9 @@ class broker_impl final : public Broker::Service {
   grpc::Status GetTags(grpc::ServerContext* context,
                        const ::google::protobuf::Empty* request,
                        TagList* response) override;
+  grpc::Status GetAcknowledgements(grpc::ServerContext* context,
+                                   const ::google::protobuf::Empty* request,
+                                   AcknowledgementList* response) override;
   grpc::Status ScheduleDowntime(grpc::ServerContext* context,
                                 const ScheduleDowntimeRequest* request,
                                 ScheduleDowntimeResponse* response) override;

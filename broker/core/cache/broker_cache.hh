@@ -29,6 +29,7 @@
 #include <optional>
 
 #include "com/centreon/broker/bam/internal.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
@@ -408,6 +409,11 @@ class broker_cache {
   absl::flat_hash_map<uint64_t, std::shared_ptr<bam::pb_dimension_ba_event>>
       _dimension_bas ABSL_GUARDED_BY(_mutex);
 
+  /* Acknowledgements list. */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      std::shared_ptr<neb::pb_acknowledgement>>
+      _acknowledgements ABSL_GUARDED_BY(_mutex);
+
   /* Active (started) downtimes to persist with the cache (set by broker_state
    * just before the downtime_manager is unloaded). */
   std::vector<Downtime> _active_downtimes_to_save ABSL_GUARDED_BY(_mutex);
@@ -446,6 +452,11 @@ class broker_cache {
       ServicegroupContainer::index<by_id>::type::iterator found,
       const std::shared_ptr<neb::pb_service_group>& replacement)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  std::shared_ptr<neb::pb_acknowledgement> _take_expired_acknowledgement(
+      uint64_t host_id,
+      uint64_t service_id,
+      AckType ack_type,
+      uint16_t state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool _set_host_otel_service(uint64_t host_id,
@@ -626,6 +637,8 @@ class broker_cache {
       std::pair<uint64_t, TagType>,
       std::pair<std::shared_ptr<neb::pb_tag>, absl::flat_hash_set<uint64_t>>>
   tags() const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<std::shared_ptr<neb::pb_acknowledgement>> acknowledgements() const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   void update_dimension_ba_bv_relation(
       const std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>& rel)
       ABSL_LOCKS_EXCLUDED(_mutex);
@@ -657,6 +670,9 @@ class broker_cache {
       const std::shared_ptr<neb::pb_custom_variable_status>& cvs)
       ABSL_LOCKS_EXCLUDED(_mutex);
   otel_service host_otel_service(uint64_t host_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void update_acknowledgement(
+      const std::shared_ptr<neb::pb_acknowledgement>& ack)
       ABSL_LOCKS_EXCLUDED(_mutex);
 };
 }  // namespace cache

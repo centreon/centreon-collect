@@ -115,6 +115,58 @@ BECBAMBRKIDT2
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+BECBAMBRKIDT4
+    [Documentation]    Given BBDO3 / centralized config with notification_mode = broker
+    ...    And a 'worst' BA with one service in critical state
+    ...    And a downtime scheduled on the service via Broker gRPC sets an inherited downtime on the BA
+    ...    When Broker is restarted (Engine stays up; Broker is the downtime authority)
+    ...    Then the started downtimes (the KPI downtime and the inherited BA downtime) are
+    ...    re-injected from the Broker cache and the scheduled_downtime_depth is restored to 1
+    ...    (started downtimes survive a Broker restart; depth is re-derived idempotently)
+    [Tags]    broker    downtime    engine    bam    broker_downtime    start    stop
+    Ctn Config BAM Broker Downtime    ${1}
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
+    Ctn Create Ba With Services    test    worst    ${svc}
+    Ctn Add Bam Config To Broker    central
+
+    ${cmd_1}    Ctn Get Service Command Id    314
+    Ctn Set Command Status    ${cmd_1}    2
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    1
+
+    # KPI critical -> BA critical
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
+
+    # Downtime on the KPI via Broker gRPC -> inherited downtime on the BA
+    Ctn Broker Schedule Service Downtime    host_16    service_314    3600
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
+    Should Be True    ${result}    The BA ba_1 is not in downtime as it should
+
+    # Broker is restarted; Engine stays up. The started downtimes must be persisted at
+    # Broker stop and re-injected into the downtime_manager at Broker restart.
+    Ctn Kindly Stop Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+
+    # After Broker restart, both downtimes must still be present with depth 1
+    # (re-injected from the cache; depth re-derived as a count, not duplicated).
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The KPI downtime must survive the Broker restart
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
+    Should Be True    ${result}    The inherited downtime on BA ba_1 must survive the Broker restart
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 BECBAMBRKIDT3
     [Documentation]    Given BBDO3 / centralized config with notification_mode = broker
     ...    And a 'worst' BA with one service in critical state
