@@ -30,6 +30,7 @@ use gorgone::standard::misc;
 use gorgone::class::sqlquery;
 use gorgone::class::tpapi::clapi;
 use File::Copy;
+use Time::HiRes;
 use EV;
 
 my %handlers = (TERM => {}, HUP => {});
@@ -762,14 +763,38 @@ sub handle_centcore_dir {
         $self->{logger}->writeLogError("[legacycmd] Cannot open directory '" . $self->{config}->{cmd_dir} . "': $!");
         return ;
     }
-    @files = sort {
-        (stat($self->{config}->{cmd_dir} . '/' . $a))[10] <=> (stat($self->{config}->{cmd_dir} . '/' . $b))[10]
-    } (readdir($dh));
+    my (%mtimes, %stat_failures);
+    foreach my $entry (readdir($dh)) {
+        next if ($entry =~ /^\./);
+        my $path = $self->{config}->{cmd_dir} . '/' . $entry;
+        my $mtime = (Time::HiRes::stat($path))[9];
+        if (!defined($mtime)) {
+            my $error = "$!";
+            # Logged once per entry rather than on every pass.
+            if (!$self->{stat_failures}->{$entry}) {
+                my $reason = -l $path ? 'broken symbolic link' : $error;
+                $self->{logger}->writeLogError("[legacycmd] Skipping '$path' ($reason): its commands are not sent until it is fixed or removed");
+            }
+            $stat_failures{$entry} = 1;
+            next;
+        }
+        $mtimes{$entry} = $mtime;
+    }
     closedir($dh);
+    $self->{stat_failures} = \%stat_failures;
+    # Commands must reach the engine in the order they were written, even within
+    # the same second, so files are sorted on their sub-second modification time,
+    # then on their name. A *_read file left by an interrupted pass goes first: it
+    # was ahead of the files still waiting, but marking its processed lines may
+    # have made its modification time newer than theirs.
+    @files = sort {
+        ($b =~ /_read$/) <=> ($a =~ /_read$/)
+            or $mtimes{$a} <=> $mtimes{$b}
+            or $a cmp $b
+    } keys(%mtimes);
 
     my ($code, $handle);
     foreach (@files) {
-        next if ($_ =~ /^\./);
         my $file = $self->{config}->{cmd_dir} . '/' . $_;
         if ($file =~ /_read$/) {
             ($code, $handle) = $self->move_cmd_file(
