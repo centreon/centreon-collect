@@ -9,6 +9,8 @@ Eric Coquard
 Kevin Defives
 David Du Serre-Telmon
 Alexandre Fouillé
+Sylvestre Gallon
 Dorian Guillois
 Andreas Iwanowski
+Matthieu Kermagoret
 Raphael Troiano

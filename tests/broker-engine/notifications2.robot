@@ -11,10 +11,11 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 
-not10
-    [Documentation]    This test case involves scheduling downtime on a down host that already had
-    ...    a critical notification. When The Host return to UP state we should receive a recovery
-    ...    notification.
+host_rec_notif_with_downtime
+    [Documentation]    Scenario: host notifications across a downtime episode until recovery
+    ...    Given a DOWN host for which a downtime is scheduled
+    ...    When the downtime suppresses notifications, then is removed while the host is still DOWN, and the host later returns to UP
+    ...    Then no notification is sent during the downtime, a DOWN notification is sent once it is removed, and a RECOVERY notification is sent on recovery
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -81,8 +82,11 @@ not10
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not11
-    [Documentation]    This test case involves configuring one service and checking that three alerts are sent for it.
+srv_state_alerts_soft_and_hard
+    [Documentation]    Scenario: successive state changes raise SOFT then HARD service alerts
+    ...    Given a service configured with several check attempts
+    ...    When the service stays CRITICAL over successive checks
+    ...    Then SOFT 1, SOFT 2 and HARD 3 service alerts are logged
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -128,8 +132,11 @@ not11
     Ctn Kindly Stop Broker
 
 
-not12
-    [Documentation]    Escalations
+srv_notif_escalations
+    [Documentation]    Scenario: service notifications follow the configured escalations
+    ...    Given services with notification escalations to different contact groups
+    ...    When the services stay CRITICAL across successive notifications
+    ...    Then each escalation level notifies its configured contact group in turn
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
@@ -241,8 +248,11 @@ not12
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The second notification of U4 is not sent
 
-not13
-    [Documentation]    notification for a dependencies host
+host_notif_dependency
+    [Documentation]    Scenario: a host notification is suppressed by a host dependency
+    ...    Given a host depending on another host that has already been notified
+    ...    When the dependent host enters a DOWN state
+    ...    Then it sends no notification because its dependency already notified
     [Tags]    broker    engine    host
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
@@ -346,8 +356,11 @@ not13
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not14
-    [Documentation]    notification for a Service dependency
+srv_notif_dependency
+    [Documentation]    Scenario: a service notification is suppressed by a service dependency
+    ...    Given a service depending on another service that has already been notified
+    ...    When the dependent service enters a CRITICAL state
+    ...    Then it sends no notification because its dependency already notified
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
@@ -455,8 +468,11 @@ not14
     Ctn Kindly Stop Broker
 
 
-not15
-    [Documentation]    several notification commands for the same user.
+srv_notif_multiple_commands
+    [Documentation]    Scenario: a contact with several notification commands runs them all
+    ...    Given a contact configured with two service notification commands
+    ...    When a service enters a CRITICAL HARD state
+    ...    Then a notification is sent through each configured command
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -504,8 +520,11 @@ not15
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not16
-    [Documentation]    notification for dependencies services group
+srvgrp_notif_dependency
+    [Documentation]    Scenario: service notifications are suppressed by a servicegroup dependency
+    ...    Given a servicegroup depending on another servicegroup that has already been notified
+    ...    When a service of the dependent servicegroup enters a CRITICAL state
+    ...    Then it sends no notification because its dependency already notified
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${4}    ${1}
@@ -658,8 +677,11 @@ not16
     Ctn Kindly Stop Broker
 
 
-not17
-    [Documentation]    notification for a dependensies host group
+hostgrp_notif_dependency
+    [Documentation]    Scenario: host notifications are suppressed by a hostgroup dependency
+    ...    Given a hostgroup depending on another hostgroup that has already been notified
+    ...    When a host of the dependent hostgroup enters a DOWN state
+    ...    Then it sends no notification because its dependency already notified
     [Tags]    broker    engine    host    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${4}    ${0}
@@ -767,8 +789,11 @@ not17
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not18
-    [Documentation]    notification delay where first notification delay equal retry check
+first_notif_delay_equal_retry_interval
+    [Documentation]    Scenario: first notification delay equal to the retry interval
+    ...    Given a service whose first_notification_delay equals its retry interval
+    ...    When the service enters a CRITICAL HARD state
+    ...    Then the CRITICAL notification is sent after the delay
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -815,8 +840,11 @@ not18
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not19
-    [Documentation]    notification delay where first notification delay greater than retry check 
+first_notif_delay_gt_retry_interval
+    [Documentation]    Scenario: first notification delay greater than the retry interval
+    ...    Given a service whose first_notification_delay is greater than its retry interval
+    ...    When the service enters a CRITICAL HARD state
+    ...    Then the CRITICAL notification is sent after the delay
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Retention
     Ctn Clear Commands Status
@@ -862,8 +890,11 @@ not19
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not20
-    [Documentation]    notification delay where first notification delay smaller than retry check
+first_notif_delay_lt_retry_interval
+    [Documentation]    Scenario: first notification delay smaller than the retry interval
+    ...    Given a service whose first_notification_delay is smaller than its retry interval
+    ...    When the service enters a CRITICAL HARD state
+    ...    Then the CRITICAL notification is sent after the delay
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -909,14 +940,11 @@ not20
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-not_in_timeperiod_without_send_recovery_notifications_anyways
-    [Documentation]    Scenario: Verify notification is sent when service is in non-OK state and recovery is not sent outside timeperiod
-    ...    Given a configured single service
-    ...    And the service enters a non-OK state
-    ...    When the service remains in a non-OK state
-    ...    Then a notification should be sent
-    ...    And no OK notification should be sent outside the time period
-    ...    When the setting "send_recovery_notifications_anyways" is not set
+rec_notif_outside_tp_not_sent
+    [Documentation]    Scenario: a recovery is not sent outside the notification period when the flag is off
+    ...    Given a CRITICAL service inside its notification period
+    ...    When the service recovers outside its notification period and send_recovery_notifications_anyway is off
+    ...    Then the CRITICAL notification is sent but no RECOVERY notification is sent
 
     [Tags]    MON-33121  broker    engine    services    hosts    notification
     Ctn Clear Commands Status
@@ -963,14 +991,11 @@ not_in_timeperiod_without_send_recovery_notifications_anyways
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Not Be True    ${result}    The notification is sent out of time period
 
-not_in_timeperiod_with_send_recovery_notifications_anyways
-    [Documentation]    Scenario: Verify notification is sent when service is in non-OK state and recovery is sent outside timeperiod if setting is enabled
-    ...    Given a configured single service
-    ...    And the service enters a non-OK state
-    ...    When the service remains in a non-OK state
-    ...    Then a notification should be sent
-    ...    And an OK notification should be sent outside the time period
-    ...    When the setting "_send_recovery_notifications_anyways" is set
+rec_notif_outside_tp_sent_when_enabled
+    [Documentation]    Scenario: a recovery is sent outside the notification period when the flag is on
+    ...    Given a CRITICAL service inside its notification period
+    ...    When the service recovers outside its notification period and send_recovery_notifications_anyway is on
+    ...    Then both the CRITICAL and the RECOVERY notifications are sent
     [Tags]    MON-33121   broker    engine    services    hosts    notification    mon-33121
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}

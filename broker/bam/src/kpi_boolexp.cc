@@ -79,6 +79,14 @@ void kpi_boolexp::impact_soft(impact_values& soft_impact) {
  */
 void kpi_boolexp::link_boolexp(std::shared_ptr<bool_expression>& my_boolexp) {
   _boolexp = my_boolexp;
+  // On a reload the KPI object is recreated with _current_state defaulting to
+  // state_unknown. The boolean expression it is linked to, however, is
+  // preserved and may already know its state. Pull it right away so the KPI
+  // does not expose a transient UNKNOWN state until the next child update.
+  // Guarded on state_known() so cold-start (boolexp not yet known) keeps the
+  // UNKNOWN-until-first-update behavior.
+  if (_boolexp && _boolexp->state_known())
+    _update_state();
 }
 
 /**

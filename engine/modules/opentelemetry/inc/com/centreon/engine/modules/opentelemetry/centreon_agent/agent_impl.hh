@@ -81,6 +81,8 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
 
   virtual ~agent_impl_base() = default;
 
+  static bool wait_no_more_instances(absl::Duration timeout);
+
   virtual void shutdown() = 0;
 
   static void force_check(uint64_t host_id, uint64_t serv_id);

@@ -44,7 +44,7 @@ void applier::host::apply(const configuration::State& config,
        ++it) {
     try {
       com::centreon::engine::host& hst(
-          find_host(get_host_id((*it)->host_name().c_str())));
+          find_host((*it)->host_id()));
       _update(config, **it, hst, scheduling_info_is_ok);
     } catch (...) {
       // ignore exception for the retention.

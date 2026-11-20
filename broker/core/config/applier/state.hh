@@ -109,6 +109,8 @@ class state {
     return *_global_cache;
   }
   virtual bool has_connection_from_poller(uint64_t poller_id) const = 0;
+  virtual void set_instance_running(uint64_t /*poller_id*/,
+                                    bool /*running*/) noexcept {}
   virtual bool supports_centralized_conf() const { return false; }
   void initialize_cache();
   void clear_cache();

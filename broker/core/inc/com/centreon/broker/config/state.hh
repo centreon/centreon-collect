@@ -47,6 +47,7 @@ class state {
   std::string _command_protocol;
   std::list<endpoint> _endpoints;
   int _event_queue_max_size;
+  uint32_t _priority_age_threshold;
   std::string _module_dir;
   std::list<std::string> _module_list;
   absl::btree_map<std::string, std::string> _params;
@@ -127,6 +128,8 @@ class state {
   std::list<endpoint> const& endpoints() const noexcept;
   void event_queue_max_size(int val) noexcept;
   int event_queue_max_size() const noexcept;
+  void priority_age_threshold(uint32_t val) noexcept;
+  uint32_t priority_age_threshold() const noexcept;
   const std::string& module_directory() const noexcept;
   void module_directory(const std::string& dir);
   std::list<std::string>& module_list() noexcept;

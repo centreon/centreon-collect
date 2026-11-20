@@ -170,6 +170,8 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   // Event queue max size (used to limit memory consumption).
   com::centreon::broker::multiplexing::muxer::event_queue_max_size(
       s.event_queue_max_size());
+  com::centreon::broker::multiplexing::muxer::priority_age_threshold(
+      s.priority_age_threshold());
 
   com::centreon::broker::config::state st{s};
 

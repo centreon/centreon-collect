@@ -20,11 +20,7 @@
 
 using namespace com::centreon::common;
 
-/**
- * @brief As it can be called after exit() by another thread, it's never deleted
- *
- */
-pool* pool::_instance;
+std::unique_ptr<pool> pool::_instance;
 
 /**
  * @brief The way to access to the pool.
@@ -46,9 +42,19 @@ pool& pool::instance() {
 void pool::load(const std::shared_ptr<asio::io_context>& io_context,
                 const std::shared_ptr<spdlog::logger>& logger) {
   if (_instance == nullptr)
-    _instance = new pool(io_context, logger);
+    _instance = std::make_unique<pool>(io_context, logger);
   else
     SPDLOG_LOGGER_ERROR(logger, "pool already started.");
+}
+
+/**
+ * @brief Unload the singleton: the pool threads are joined and the pool
+ * releases the io_context. Must be called from main only, once the io_context
+ * is stopped, so that the shutdown tasks are finished before the process
+ * exits.
+ */
+void pool::unload() {
+  _instance.reset();
 }
 
 /**

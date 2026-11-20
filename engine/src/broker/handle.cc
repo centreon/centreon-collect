@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/broker/handle.hh"
+#include "com/centreon/common/deferred_dlclose.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -81,7 +82,12 @@ void handle::close() {
       } else
         deinit(NEBMODULE_FORCE_UNLOAD | NEBMODULE_ENGINE,
                NEBMODULE_NEB_SHUTDOWN);
-      _handle->unload();
+      /* The dlclose() is deferred to the very end of main(): objects created
+       * by the module (asio services registered in the global io_context,
+       * vtables, ...) may still be referenced until the io_context is
+       * destroyed, and calling through them once the library is unmapped
+       * would crash. */
+      com::centreon::common::defer_dlclose(_handle->release());
     }
     _handle.reset();
   }

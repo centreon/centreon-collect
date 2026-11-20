@@ -41,11 +41,17 @@ class library {
   void* resolve(std::string const& symbol);
   void (*resolve_proc(char const* symbol))();
   void (*resolve_proc(std::string const& symbol))();
-  void unload();
+  void* release() noexcept;
 
  private:
   library(library const& right);
   library& operator=(library const& right);
+  /* dlclose() in the middle of the process life is dangerous: code of the
+   * library (vtables, asio services, ...) may still be referenced elsewhere.
+   * Modules must be detached with release() and their dlclose() deferred
+   * (see com::centreon::common::defer_dlclose()). The destructor keeps
+   * unloading as a last resort for never-detached libraries. */
+  void unload();
 
   std::string _filename;
   void* _handle;

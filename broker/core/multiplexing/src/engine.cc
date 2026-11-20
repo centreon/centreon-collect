@@ -379,9 +379,21 @@ class callback_caller {
       if (_callback) {
         _callback();
       }
-      // if data has arrived during sending => send
-      asio::post(*_parent->_io_context,
-                 [me = _parent]() { me->_send_to_subscribers(nullptr); });
+      /* Events may have been pushed into _kiew while this publish was in
+       * flight. Such events were not sent because _sending_to_subscribers was
+       * still true (engine::publish's _send_to_subscribers call returned
+       * false). Now that the flag is reset, flush them, otherwise they would
+       * stay stuck in the queue until the next publish is triggered. The flush
+       * is posted, not called here, so that _send_to_subscribers is never
+       * re-entered from this destructor. */
+      bool pending;
+      {
+        absl::MutexLock lck(_parent->_kiew_m);
+        pending = !_parent->_muxers.empty() && !_parent->_kiew.empty();
+      }
+      if (pending)
+        asio::post(*_parent->_io_context,
+                   [me = _parent]() { me->_send_to_subscribers(nullptr); });
     }
   }
 };

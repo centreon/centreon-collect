@@ -47,7 +47,7 @@ BEPS1
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=30s    retry_pause=1s
             ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
             ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${nb_total}
 
             # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
             ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
@@ -96,7 +96,7 @@ BEPS2
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=30s    retry_pause=1s
             ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
             ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${nb_total}
 
             # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
             ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
@@ -154,7 +154,7 @@ BEPS3
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=60s    retry_pause=1s
             ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
             ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${nb_total}
 
             # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
             ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
@@ -221,7 +221,7 @@ BEPS3R
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=60s    retry_pause=1s
             ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
             ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${nb_total}
 
             # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
             ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
@@ -313,7 +313,7 @@ BEPS4
         Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${1000}    retry_timeout=30s    retry_pause=1s
         ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
         ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-        ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+        ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    expected_count=${1000}
 
         # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
         ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])

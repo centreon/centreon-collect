@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/modules/handle.hh"
+#include "com/centreon/common/deferred_dlclose.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -90,15 +91,14 @@ void handle::_close() {
       _logger->debug("modules: don't unload library '{}'", _filename);
       return;
     }
-    // Reset library handle.
-    _logger->debug("modules: unloading library '{}'", _filename);
-    // Library was not unloaded.
-    if (dlclose(_handle)) {
-      char const* error_str{dlerror()};
-      _logger->info("modules: could not unload library '{}': {}", _filename,
-                    error_str);
-    } else
-      _handle = nullptr;
+    /* The dlclose() is deferred to the very end of main(): objects created
+     * by the module (asio services registered in the global io_context,
+     * vtables, ...) may still be referenced until the io_context is
+     * destroyed, and calling through them once the library is unmapped would
+     * crash. */
+    _logger->debug("modules: deferring unload of library '{}'", _filename);
+    com::centreon::common::defer_dlclose(_handle);
+    _handle = nullptr;
   }
 }
 

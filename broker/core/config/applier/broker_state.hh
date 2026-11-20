@@ -47,6 +47,11 @@ class broker_state : public state {
     bool conf_unknown;
     /* poller_id of the remote peer that is in front of this peer or 0. */
     uint64_t via_remote;
+    /* Set to true only when a pb_instance(running=true) content event has been
+     * received for this peer in the current Broker session. False at TCP
+     * connect time. Used to distinguish real Engine stops from historical
+     * running=false events replayed on Broker reconnect. */
+    bool running = false;
   };
   struct peer {
     uint64_t poller_id;
@@ -147,6 +152,8 @@ class broker_state : public state {
   void _watch_engine_conf(absl::flat_hash_set<uint32_t>* poller_ids);
   void _check_last_engine_conf() ABSL_LOCKS_EXCLUDED(_lck_set_m);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
+  bool _is_engine_peer_connected(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void save_topology_cache() const ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void load_topology_cache() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 
@@ -174,6 +181,8 @@ class broker_state : public state {
                    const std::string& broker_name) override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool has_connection_from_poller(uint64_t poller_id) const override
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void set_instance_running(uint64_t poller_id, bool running) noexcept override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<engine_peer> connected_pollers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
@@ -217,8 +226,8 @@ class broker_state : public state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   /* Relay: pop the pending DiffState for Engine poller N (or nullptr). Called
    * from the ENGINE-connected stream's read() to forward it downstream. */
-  std::shared_ptr<io::data> pop_pending_diff_state_for_engine(uint64_t poller_id)
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  std::shared_ptr<io::data> pop_pending_diff_state_for_engine(
+      uint64_t poller_id) ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   /* Relay: queue a DiffStateAck for forwarding to the upstream central.
    * Called on the ENGINE-connected stream when it receives an ack from Engine.
    */
