@@ -73,7 +73,7 @@ void hostgroup_helper::check_validity(error_cnt& err) const {
 }
 
 void hostgroup_helper::expand(configuration::State& s,
-                              configuration::error_cnt& err) {
+                              configuration::error_cnt& /*err*/) {
   // Browse all hostgroups.
   for (auto& hostgroup_cfg : *s.mutable_hostgroups()) {
     hostgroup_cfg.set_poller_id(s.poller_id());

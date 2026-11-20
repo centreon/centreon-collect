@@ -21,6 +21,7 @@
 
 #include <boost/flyweight/factory_tag.hpp>
 #include "absl/container/node_hash_set.h"
+#include "absl/synchronization/mutex.h"
 
 namespace com::centreon::common {
 
