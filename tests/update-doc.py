@@ -60,7 +60,11 @@ def complete_doc(dico, ff):
                             #txt = txt.replace("And", "* **And**", 1)
                         if txt.upper().startswith("SCENARIO: "):
                             txt = re.sub(r"Scenario:", "**SCENARIO:**", txt, flags=re.IGNORECASE, count=1)
+                            nl = '\n'
                             #txt = txt.replace("Scenario:", "**Scenario:**", 1)
+                        if txt.upper().startswith("BACKGROUND:"):
+                            txt = re.sub(r"Background:", "**BACKGROUND:**", txt, flags=re.IGNORECASE, count=1)
+                            nl = '\n'
                         dico[test_name] += f"{nl}\n     {txt}"
                 else:
                     dico[test_name] += " " + m.group(2)
