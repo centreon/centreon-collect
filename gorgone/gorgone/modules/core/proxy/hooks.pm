@@ -1111,8 +1111,25 @@ sub register_nodes {
             next;
         }
         if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity}) ) {
+            # REGISTERNODES also doubles as this node's periodic keep-alive (every
+            # ping_interval while connected, see pullwss::class::ping): only a genuine
+            # (re)connection - identity was unset - should force an immediate ping below.
+            my $first_connection = !defined($register_nodes->{ $node->{id} }->{identity});
             $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
             $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
+
+            # Don't make constatus (ping_ok) wait for the next scheduled ping, up to
+            # ping_interval away: force one now instead of faking the result.
+            if ($first_connection && defined($constatus_ping->{ $node->{id} })) {
+                $constatus_ping->{ $node->{id} }->{in_progress_ping} = 0;
+                $constatus_ping->{ $node->{id} }->{next_ping} = 0;
+                ping_send(
+                    gorgone => $options{gorgone},
+                    dbh => $options{dbh},
+                    logger => $options{logger},
+                    node_id => $register_nodes->{ $node->{id} }->{id}
+                );
+            }
         }
     }
 }
