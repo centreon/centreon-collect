@@ -26,10 +26,9 @@ namespace com::centreon::engine::commands {
 class command;
 }  // namespace com::centreon::engine::commands
 
-typedef std::unordered_map<
-    std::string,
-    std::shared_ptr<com::centreon::engine::commands::command> >
-    command_map;
+using command_map =
+    absl::flat_hash_map<std::string,
+                        std::shared_ptr<com::centreon::engine::commands::command>>;
 
 namespace com::centreon::engine::commands {
 
