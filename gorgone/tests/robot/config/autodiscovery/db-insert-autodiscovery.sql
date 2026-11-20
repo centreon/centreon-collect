@@ -70,5 +70,6 @@ ALTER TABLE `mod_auto_disco_rule`
 
 
 INSERT INTO `mod_auto_disco_rule` VALUES (2,'OS-Linux-SNMP-Disk-Name','Disk-$name$','1','0','0','','','',1,2,40),
-                                         (3,'OS-Linux-SNMP-injection','Disk-$name$','0','0','0','','','',3,2,40);
+                                         (3,'OS-Linux-SNMP-injection','Disk-$name$','0','0','0','','','',3,2,40),
+                                         (4,'OS-Linux-SNMP-change-vars','Sec-$name$','0','0','0','','','',1,2,40);
 
