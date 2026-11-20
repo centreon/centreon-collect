@@ -414,6 +414,14 @@ class broker_cache {
       Service* service,
       const com::centreon::engine::configuration::Anomalydetection& cfg)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  bool _replace_hostgroup(
+      HostgroupContainer::index<by_id>::type::iterator found,
+      const std::shared_ptr<neb::pb_host_group>& replacement)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  bool _replace_servicegroup(
+      ServicegroupContainer::index<by_id>::type::iterator found,
+      const std::shared_ptr<neb::pb_service_group>& replacement)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool _set_host_otel_service(uint64_t host_id,
