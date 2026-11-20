@@ -1548,7 +1548,8 @@ void broker_cache::update_host(
     auto& index = _hosts.get<by_id>();
     auto found = index.find(host_id);
     if (found != index.end()) {
-      auto& hst = found->get()->mut_obj();
+      auto h = std::make_shared<neb::pb_host>(*found->get());
+      auto& hst = h->mut_obj();
       hst.set_checked(hs.checked());
       hst.set_check_type(static_cast<Host_CheckType>(hs.check_type()));
       hst.set_state(static_cast<Host_State>(hs.state()));
@@ -1575,6 +1576,7 @@ void broker_cache::update_host(
       hst.set_next_host_notification(hs.next_host_notification());
       hst.set_acknowledgement_type(hs.acknowledgement_type());
       hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
+      index.replace(found, h);
       updated = true;
     } else {
       SPDLOG_LOGGER_WARN(_logger,
@@ -1610,7 +1612,8 @@ void broker_cache::update_host(
   auto& index = _hosts.get<by_id>();
   auto found = index.find(ah.host_id());
   if (found != index.end()) {
-    auto& h = found->get()->mut_obj();
+    auto hp = std::make_shared<neb::pb_host>(*found->get());
+    auto& h = hp->mut_obj();
     SPDLOG_LOGGER_DEBUG(_logger,
                         "Updating adaptive host for host '{}' in Broker cache.",
                         ah.host_id());
@@ -1644,6 +1647,7 @@ void broker_cache::update_host(
       h.set_check_period(ah.check_period());
     if (ah.has_notification_period())
       h.set_notification_period(ah.notification_period());
+    index.replace(found, hp);
   } else
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -1665,7 +1669,8 @@ void broker_cache::update_host(
   auto& index = _hosts.get<by_id>();
   auto found = index.find(hs.host_id());
   if (found != index.end()) {
-    auto& hst = found->get()->mut_obj();
+    auto h = std::make_shared<neb::pb_host>(*found->get());
+    auto& hst = h->mut_obj();
     SPDLOG_LOGGER_DEBUG(
         _logger, "Updating adaptive host status for host '{}' in Broker cache.",
         hs.host_id());
@@ -1675,6 +1680,7 @@ void broker_cache::update_host(
       hst.set_acknowledgement_type(hs.acknowledgement_type());
     if (hs.has_notification_number())
       hst.set_notification_number(hs.notification_number());
+    index.replace(found, h);
   } else {
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -1749,7 +1755,8 @@ void broker_cache::update_service(
     return;
   }
 
-  auto& svc = it->get()->mut_obj();
+  auto s = std::make_shared<neb::pb_service>(*it->get());
+  auto& svc = s->mut_obj();
   svc.set_checked(obj.checked());
   svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
   svc.set_state(static_cast<Service_State>(obj.state()));
@@ -1777,6 +1784,7 @@ void broker_cache::update_service(
   svc.set_next_notification(obj.next_notification());
   svc.set_acknowledgement_type(obj.acknowledgement_type());
   svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+  index.replace(it, s);
 }
 
 /**
@@ -1795,7 +1803,8 @@ void broker_cache::update_service(
   auto& index = _services.get<by_id>();
   auto it = index.find(std::make_pair(as.host_id(), as.service_id()));
   if (it != _services.end()) {
-    auto& s = it->get()->mut_obj();
+    auto sp = std::make_shared<neb::pb_service>(*it->get());
+    auto& s = sp->mut_obj();
     if (as.has_notify())
       s.set_notify(as.notify());
     if (as.has_active_checks())
@@ -1826,6 +1835,7 @@ void broker_cache::update_service(
       s.set_check_period(as.check_period());
     if (as.has_notification_period())
       s.set_notification_period(as.notification_period());
+    index.replace(it, sp);
   } else {
     SPDLOG_LOGGER_WARN(
         _logger,
@@ -1862,13 +1872,15 @@ void broker_cache::update_service(
     return;
   }
 
-  auto& svc = it->get()->mut_obj();
+  auto s = std::make_shared<neb::pb_service>(*it->get());
+  auto& svc = s->mut_obj();
   if (obj.has_acknowledgement_type())
     svc.set_acknowledgement_type(obj.acknowledgement_type());
   if (obj.has_scheduled_downtime_depth())
     svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
   if (obj.has_notification_number())
     svc.set_notification_number(obj.notification_number());
+  index.replace(it, s);
 }
 
 /**
