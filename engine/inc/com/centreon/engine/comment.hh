@@ -76,7 +76,6 @@ class comment {
   static bool delete_comment(uint64_t comment_id);
   static void delete_host_comments(uint64_t host_id);
   static void delete_service_comments(uint64_t host_id, uint64_t service_id);
-  static void remove_if_expired_comment(uint64_t comment_id);
   static comment_map comments;
 
  private:
