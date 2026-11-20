@@ -579,9 +579,9 @@ These parameters go in an element of the Broker `output` array. Every value must
 | `name` | `string` | Yes | - | Endpoint name, used in logs and errors. |
 | `endpoint` | `string` | Yes | - | `host:port` of the OTLP gRPC collector. |
 | `encryption` | `bool` | No | `false` | Uses TLS credentials instead of insecure ones. |
-| `certificate` | `string` | No | `""` | Passed unchanged to `grpc_config` / `SslCredentialsOptions` (PEM content). The factory does not read files. |
-| `private_key` | `string` | No | `""` | Same as `certificate`. |
-| `ca_certificate` | `string` | No | `""` | Same as `certificate`. |
+| `certificate` | `string` | No | `""` | Path of the PEM client certificate. Read by `factory::parse_config()` when `encryption` is `true`, ignored otherwise; its content goes to `grpc_config` / `SslCredentialsOptions`. A file that cannot be read makes the endpoint creation fail with `otlp: cannot read '<parameter>' for endpoint '<name>'`. |
+| `private_key` | `string` | No | `""` | Path of the PEM private key of `certificate`. Same rules as `certificate`. |
+| `ca_certificate` | `string` | No | `""` | Path of the PEM CA certificate that validates the collector. Same rules as `certificate`; when empty, gRPC uses the system root certificates. |
 | `ca_name` | `string` | No | `""` | Stored in `grpc_config`. `grpc_client_base` applies it as `GRPC_SSL_TARGET_NAME_OVERRIDE_ARG` only in `TLS_INSECURE` mode. The constructor used by the factory leaves the mode at `NONE`, so the option has no effect for this output. |
 | `compression` | `bool` | No | `false` | Enables gRPC compression (`GRPC_COMPRESS_LEVEL_HIGH`). |
 | `keepalive_interval` | `uint` (s) | No | `30` | gRPC keepalive time. |
