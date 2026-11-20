@@ -20,8 +20,6 @@
 #ifndef CCB_STATS_BUILDER_HH
 #define CCB_STATS_BUILDER_HH
 
-#include <nlohmann/json.hpp>
-
 namespace com::centreon::broker {
 
 // Forward declarations.

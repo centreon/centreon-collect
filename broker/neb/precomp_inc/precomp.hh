@@ -16,32 +16,45 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CC_CORE_PRECOMP_HH
-#define CC_CORE_PRECOMP_HH
+#ifndef CCB_NEB_PRECOMP_HH
+#define CCB_NEB_PRECOMP_HH
 
+#include <chrono>
 #include <condition_variable>
+#include <ctime>
+#include <deque>
 #include <future>
+#include <limits>
 #include <list>
-#include <queue>
-#include <set>
+#include <map>
+#include <stack>
 #include <string>
+#include <string_view>
+#include <thread>
 #include <unordered_map>
 
+#include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/hash/hash.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
 
+#include <absl/strings/string_view.h>
+
+#include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
-#include <boost/container/flat_set.hpp>
 #include <boost/container/string.hpp>
 #include <boost/container/vector.hpp>
 #include <boost/interprocess/allocators/private_node_allocator.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
+#include <boost/optional.hpp>
 
 #include <boost/asio.hpp>
 
-namespace asio = boost::asio;
-
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+
+#include <rapidjson/document.h>
 
 #endif

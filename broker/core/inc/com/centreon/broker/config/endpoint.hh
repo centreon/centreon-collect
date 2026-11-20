@@ -19,6 +19,7 @@
 #ifndef CCB_CONFIG_ENDPOINT_HH
 #define CCB_CONFIG_ENDPOINT_HH
 
+#include <absl/container/btree_map.h>
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
 
@@ -45,7 +46,7 @@ class endpoint {
   time_t buffering_timeout;
   std::list<std::string> failovers;
   std::string name;
-  std::map<std::string, std::string> params;
+  absl::btree_map<std::string, std::string> params;
   std::set<std::string> read_filters;
   time_t read_timeout;
   uint32_t retry_interval;

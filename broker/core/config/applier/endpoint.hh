@@ -19,6 +19,7 @@
 #ifndef CCB_CONFIG_APPLIER_ENDPOINT_HH
 #define CCB_CONFIG_APPLIER_ENDPOINT_HH
 
+#include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
 
 namespace com::centreon::broker {
@@ -36,8 +37,6 @@ class endpoint;
 }  // namespace processing
 
 namespace config {
-// Forward declaration.
-class endpoint;
 
 namespace applier {
 /**
@@ -47,7 +46,7 @@ namespace applier {
  *  Apply the configuration of the configured endpoints.
  */
 class endpoint {
-  std::map<config::endpoint, processing::endpoint*> _endpoints;
+  absl::btree_map<config::endpoint, processing::endpoint*> _endpoints;
   std::timed_mutex _endpointsm;
   std::atomic_bool _discarding;
 
@@ -58,27 +57,28 @@ class endpoint {
   void _discard();
   processing::failover* _create_failover(
       config::endpoint& cfg,
-      const std::map<std::string, std::string>& global_params,
+      const absl::btree_map<std::string, std::string>& global_params,
       std::shared_ptr<multiplexing::muxer> mux,
       std::shared_ptr<io::endpoint> endp,
       std::list<config::endpoint>& l);
   std::shared_ptr<io::endpoint> _create_endpoint(
       config::endpoint& cfg,
-      const std::map<std::string, std::string>& global_params,
+      const absl::btree_map<std::string, std::string>& global_params,
       bool& is_acceptor);
   void _diff_endpoints(
-      std::map<config::endpoint, processing::endpoint*> const& current,
+      absl::btree_map<config::endpoint, processing::endpoint*> const& current,
       std::list<config::endpoint> const& new_endpoints,
       std::list<config::endpoint>& to_create,
       std::list<config::endpoint>& to_delete);
 
  public:
-  typedef std::map<config::endpoint, processing::endpoint*>::iterator iterator;
+  typedef absl::btree_map<config::endpoint, processing::endpoint*>::iterator
+      iterator;
 
   endpoint& operator=(const endpoint&) = delete;
   endpoint(const endpoint&) = delete;
   void apply(std::list<config::endpoint> const& endpoints,
-             const std::map<std::string, std::string>& global_params);
+             const absl::btree_map<std::string, std::string>& global_params);
   iterator endpoints_begin();
   iterator endpoints_end();
   std::timed_mutex& endpoints_mutex();

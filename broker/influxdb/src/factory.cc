@@ -17,8 +17,6 @@
  */
 
 #include "com/centreon/broker/influxdb/factory.hh"
-#include <absl/strings/match.h>
-#include <nlohmann/json.hpp>
 
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
@@ -82,7 +80,8 @@ void factory::set_default_values(config::endpoint& cfg) const {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor) const {
   std::string user(find_param(cfg, "db_user"));
   std::string passwd(find_param(cfg, "db_password"));

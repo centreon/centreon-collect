@@ -17,7 +17,6 @@
  */
 #include "com/centreon/broker/unified_sql/stream.hh"
 
-#include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 
@@ -27,6 +26,8 @@
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "common/log_v2/log_v2.hh"
+
+namespace asio = boost::asio;
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

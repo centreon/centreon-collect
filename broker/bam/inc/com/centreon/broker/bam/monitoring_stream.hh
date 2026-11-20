@@ -19,8 +19,6 @@
 #ifndef CCB_BAM_MONITORING_STREAM_HH
 #define CCB_BAM_MONITORING_STREAM_HH
 
-#include <absl/hash/hash.h>
-
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/sql/database_config.hh"
@@ -83,7 +81,7 @@ class monitoring_stream : public io::stream {
   std::deque<std::string> _queue_external_commands
       ABSL_GUARDED_BY(_queue_external_commands_m);
   mutable absl::Mutex _queue_external_commands_m;
-  asio::steady_timer _queue_external_commands_timer;
+  boost::asio::steady_timer _queue_external_commands_timer;
   bool _queue_external_commands_stopped;
 
   ba_svc_mapping _ba_mapping;
@@ -97,7 +95,7 @@ class monitoring_stream : public io::stream {
   unsigned _pending_request;
   database_config _storage_db_cfg;
 
-  asio::steady_timer _forced_svc_checks_timer;
+  boost::asio::steady_timer _forced_svc_checks_timer;
   mutable std::mutex _forced_svc_checks_m;
   std::unordered_set<std::pair<std::string, std::string>,
                      absl::Hash<std::pair<std::string, std::string>>>

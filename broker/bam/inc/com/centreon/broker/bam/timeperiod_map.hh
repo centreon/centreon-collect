@@ -43,7 +43,7 @@ class timeperiod_map {
       uint32_t ba_id) const;
 
  private:
-  std::map<uint32_t, time::timeperiod::ptr> _map;
+  absl::btree_map<uint32_t, time::timeperiod::ptr> _map;
   typedef std::multimap<uint32_t, std::pair<uint32_t, bool> >
       timeperiod_relation_map;
   timeperiod_relation_map _timeperiod_relations;

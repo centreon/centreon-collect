@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon
+ * Copyright 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,46 +16,31 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CCB_NEB_PRECOMP_HH
-#define CCB_NEB_PRECOMP_HH
+#ifndef CC_RRD_PRECOMP_HH
+#define CC_RRD_PRECOMP_HH
 
-#include <chrono>
 #include <condition_variable>
 #include <ctime>
 #include <deque>
+#include <filesystem>
 #include <future>
-#include <limits>
 #include <list>
-#include <map>
-#include <stack>
 #include <string>
-#include <string_view>
 #include <thread>
-#include <unordered_map>
+#include <vector>
 
-#include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-#include <absl/strings/numbers.h>
-#include <absl/strings/str_split.h>
-
-#include <absl/strings/string_view.h>
-
-#include <boost/circular_buffer.hpp>
-#include <boost/container/flat_map.hpp>
-#include <boost/container/string.hpp>
-#include <boost/container/vector.hpp>
-#include <boost/interprocess/allocators/private_node_allocator.hpp>
-#include <boost/interprocess/managed_mapped_file.hpp>
-#include <boost/optional.hpp>
+#include <absl/container/btree_map.h>
+#include <absl/strings/match.h>
+#include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
-
-namespace asio = boost::asio;
+#include <boost/container/flat_map.hpp>
+#include <boost/system/system_error.hpp>
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/std.h>
 #include <spdlog/spdlog.h>
-
-#include <rapidjson/document.h>
 
 #endif

@@ -33,7 +33,7 @@ using duration = system_clock::duration;
  */
 class http_config {
   // destination or listen address
-  asio::ip::tcp::resolver::results_type _endpoints;
+  boost::asio::ip::tcp::resolver::results_type _endpoints;
 
   std::string _server_name;
   bool _crypted;
@@ -45,7 +45,7 @@ class http_config {
   unsigned _max_send_retry;
   duration _default_http_keepalive_duration;
   unsigned _max_connections;
-  asio::ssl::context_base::method _ssl_method;
+  boost::asio::ssl::context_base::method _ssl_method;
   // path of certificate file
   std::string _certificate_path;
   // path to key file (server case)
@@ -56,7 +56,7 @@ class http_config {
  public:
   using pointer = std::shared_ptr<http_config>;
 
-  http_config(const asio::ip::tcp::endpoint& endpoint,
+  http_config(const boost::asio::ip::tcp::endpoint& endpoint,
               const std::string_view& server_name,
               bool crypted = false,
               duration connect_timeout = std::chrono::seconds(10),
@@ -67,8 +67,8 @@ class http_config {
               unsigned max_send_retry = 5,
               duration default_http_keepalive_duration = std::chrono::hours(1),
               unsigned max_connections = 10,
-              asio::ssl::context_base::method ssl_method =
-                  asio::ssl::context_base::tlsv13_client,
+              boost::asio::ssl::context_base::method ssl_method =
+                  boost::asio::ssl::context_base::tlsv13_client,
               const std::string& certificate_path = "",
               const std::string& key_path = "")
       : _endpoints(
@@ -89,7 +89,7 @@ class http_config {
         _certificate_path(certificate_path),
         _key_path(key_path) {}
 
-  http_config(const asio::ip::tcp::resolver::results_type& endpoints,
+  http_config(const boost::asio::ip::tcp::resolver::results_type& endpoints,
               const std::string_view& server_name,
               bool crypted = false,
               duration connect_timeout = std::chrono::seconds(10),
@@ -100,8 +100,8 @@ class http_config {
               unsigned max_send_retry = 5,
               duration default_http_keepalive_duration = std::chrono::hours(1),
               unsigned max_connections = 10,
-              asio::ssl::context_base::method ssl_method =
-                  asio::ssl::context_base::tlsv13_client,
+              boost::asio::ssl::context_base::method ssl_method =
+                  boost::asio::ssl::context_base::tlsv13_client,
               const std::string& certificate_path = "",
               const std::string& key_path = "")
       : _endpoints(endpoints),
@@ -125,10 +125,10 @@ class http_config {
         _max_send_retry(0),
         _max_connections(0) {}
 
-  const asio::ip::tcp::resolver::results_type& get_endpoints() const {
+  const boost::asio::ip::tcp::resolver::results_type& get_endpoints() const {
     return _endpoints;
   }
-  asio::ip::tcp::endpoint get_endpoint() const {
+  boost::asio::ip::tcp::endpoint get_endpoint() const {
     return _endpoints.begin()->endpoint();
   }
   const std::string& get_server_name() const { return _server_name; }
@@ -145,7 +145,7 @@ class http_config {
     return _default_http_keepalive_duration;
   }
   unsigned get_max_connections() const { return _max_connections; }
-  asio::ssl::context_base::method get_ssl_method() const { return _ssl_method; }
+  boost::asio::ssl::context_base::method get_ssl_method() const { return _ssl_method; }
   const std::string& get_certificate_path() const { return _certificate_path; }
   const std::string& get_key_path() const { return _key_path; }
   void set_verify_peer(bool verify_peer) { _verify_peer = verify_peer; }
@@ -178,7 +178,7 @@ struct formatter<com::centreon::common::http::http_config> {
 };
 
 template <>
-struct formatter<asio::ip::tcp::endpoint> : ostream_formatter {};
+struct formatter<boost::asio::ip::tcp::endpoint> : ostream_formatter {};
 
 }  // namespace fmt
 

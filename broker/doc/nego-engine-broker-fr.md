@@ -5,7 +5,7 @@ Négociation entre Engine et Broker
 * [Négociation entre Engine et Broker](#négociation-entre-engine-et-broker)
 * [Introduction](#introduction)
 * [Nouvelle négociation](#nouvelle-négociation)
-  * [cbmod devient une librairie](#cbmod-devient-une-librairie)
+  * [`cbmod` devient une librairie](#cbmod-devient-une-librairie)
   * [Nouveaux paramètres pour Engine/cbmod](#nouveaux-paramètres-pour-enginecbmod)
   * [Nouveaux paramètres pour Broker](#nouveaux-paramètres-pour-broker)
   * [La négociation](#la-négociation)
@@ -20,7 +20,7 @@ Négociation entre Engine et Broker
     * [Étude de cas](#étude-de-cas)
     * [Mise en pratique](#mise-en-pratique)
   * [Cas épineux](#cas-épineux)
-  * [objets transverses](#objets-transverses)
+  * [Objets transverses](#objets-transverses)
   * [De la nécessité du cache centralisé](#de-la-nécessité-du-cache-centralisé)
   * [Quelques points plus techniques](#quelques-points-plus-techniques)
   * [Split de broker::config::applier::state](#split-de-brokerconfigapplierstate)
@@ -78,22 +78,37 @@ Négociation entre Engine et Broker
   * [Évolution de broker\_state](#évolution-de-broker_state)
   * [Modifications nécessaires](#modifications-nécessaires)
   * [Mise en place](#mise-en-place)
-    * [Étape 1 — Nouveaux messages BBDO ( ✅ implémenté)](#étape-1--nouveaux-messages-bbdo---implémenté)
-    * [Étape 2 — via_remote + détection relais ( ✅ implémenté)](#étape-2--via_remote--détection-relais---implémenté)
-    * [Étape 3 — ConfigRequest envoyé par le relais ( ✅ implémentée)](#étape-3--configrequest-envoyé-par-le-relais---implémentée)
-    * [Étape 4 — Traitement du ConfigRequest au central ( ✅ implémentée)](#étape-4--traitement-du-configrequest-au-central---implémentée)
-    * [Étape 5 — Forward DiffState/ack dans le relais ( ✅ implémenté)](#étape-5--forward-diffstateack-dans-le-relais---implémenté)
-    * [Étape 6 — PHP push via relais ( ✅ implémentée)](#étape-6--php-push-via-relais---implémentée)
-    * [Étape 7 — Migration + ConfigRevoke ( ✅ implémentée)](#étape-7--migration--configrevoke---implémentée)
-    * [Étape 8 — Persistance de la topologie ( ✅ implémentée)](#étape-8--persistance-de-la-topologie---implémentée)
-    * [Étape 9 — gRPC GetTopology ( ✅ implémentée)](#étape-9--grpc-gettopology---implémentée)
+    * [Étape 1 — Nouveaux messages BBDO (✅ implémenté)](#étape-1--nouveaux-messages-bbdo--implémenté)
+    * [Étape 2 — via_remote + détection relais (✅ implémenté)](#étape-2--via_remote--détection-relais--implémenté)
+    * [Étape 3 — ConfigRequest envoyé par le relais (✅ implémentée)](#étape-3--configrequest-envoyé-par-le-relais--implémentée)
+    * [Étape 4 — Traitement du ConfigRequest au central (✅ implémentée)](#étape-4--traitement-du-configrequest-au-central--implémentée)
+    * [Étape 5 — Forward DiffState/ack dans le relais (✅ implémenté)](#étape-5--forward-diffstateack-dans-le-relais--implémenté)
+    * [Étape 6 — PHP push via relais (✅ implémentée)](#étape-6--php-push-via-relais--implémentée)
+    * [Étape 7 — Migration + ConfigRevoke (✅ implémentée)](#étape-7--migration--configrevoke--implémentée)
+    * [Étape 8 — Persistance de la topologie (✅ implémentée)](#étape-8--persistance-de-la-topologie--implémentée)
+    * [Étape 9 — gRPC GetTopology (✅ implémentée)](#étape-9--grpc-gettopology--implémentée)
     * [Infrastructure Robot commune à créer dans tests/resources/ :](#infrastructure-robot-commune-à-créer-dans-testsresources-)
 * [Gestion centralisée des downtimes et acquittements](#gestion-centralisée-des-downtimes-et-acquittements)
   * [Problème](#problème)
-  * [Solution : Broker comme source de vérité](#solution--broker-comme-source-de-vérité)
-  * [Nouveaux messages BBDO](#nouveaux-messages-bbdo)
-  * [Persistance et redémarrage](#persistance-et-redémarrage)
+  * [Solution : le paramètre notification_mode](#solution--le-paramètre-notification_mode)
+  * [Persistance](#persistance)
   * [Migration et downtimes / acquittements](#migration-et-downtimes--acquittements)
+* [Travaux préparatoires avant le Poller HA](#travaux-préparatoires-avant-le-poller-ha)
+  * [File `neb` à double priorité](#file-neb-à-double-priorité)
+    * [Implémentation](#implémentation)
+      * [Conteneur : `std::deque` + index `size_t`](#conteneur--stddeque--index-size_t)
+      * [Classification à l'insertion](#classification-à-linsertion)
+      * [Acquittement : `pb_ack` à deux compteurs](#acquittement--pb_ack-à-deux-compteurs)
+      * [Spill sur disque](#spill-sur-disque)
+      * [Résultats de benchmark](#résultats-de-benchmark)
+      * [Type d'entrée : struct vs pair, emplace_back vs push_back](#type-dentrée--struct-vs-pair-emplace_back-vs-push_back)
+  * [BAM : lecture de l'état des downtimes depuis le cache Broker](#bam--lecture-de-létat-des-downtimes-depuis-le-cache-broker)
+  * [Implémentation de notification_mode = broker sur zones mono-poller](#implémentation-de-notification_mode--broker-sur-zones-mono-poller)
+    * [Endpoints gRPC BrokerRpc](#endpoints-grpc-brokerrpc)
+    * [Inherited downtimes via BrokerRpc](#inherited-downtimes-via-brokerrpc)
+    * [Règles d'escalade](#règles-descalade)
+    * [pb_notification_request](#pb_notification_request)
+  * [Stratégie de test](#stratégie-de-test)
 * [Poller HA](#poller-ha)
   * [Arborescence de configuration des pollers](#arborescence-de-configuration-des-pollers)
   * [Auto-surveillance d'Engine](#auto-surveillance-dengine)
@@ -104,6 +119,7 @@ Négociation entre Engine et Broker
     * [Mode non-HA : compatibilité et zone à un seul poller](#mode-non-ha--compatibilité-et-zone-à-un-seul-poller)
     * [Interface PHP → Broker : le fichier centengine.cfg](#interface-php--broker--le-fichier-centenginecfg)
     * [Héritage de configuration zone → poller](#héritage-de-configuration-zone--poller)
+      * [Évolution du format `centengine.cfg`](#évolution-du-format-centenginecfg)
     * [Activation de la zone : min_pollers](#activation-de-la-zone--min_pollers)
     * [Distribution des ressources sur les pollers](#distribution-des-ressources-sur-les-pollers)
       * [Blocs de co-localisation](#blocs-de-co-localisation)
@@ -111,6 +127,12 @@ Négociation entre Engine et Broker
     * [Comportement lors de la suppression d'un poller de la zone](#comportement-lors-de-la-suppression-dun-poller-de-la-zone)
     * [Protocole de migration d'un host](#protocole-de-migration-dun-host)
     * [Préservation de l'état lors de la migration](#préservation-de-létat-lors-de-la-migration)
+    * [Downtimes et acquittements centralisés](#downtimes-et-acquittements-centralisés)
+      * [notification_mode = engine (défaut)](#notification_mode--engine-défaut)
+      * [notification_mode = broker](#notification_mode--broker)
+    * [Notifications](#notifications)
+      * [notification_mode = engine (défaut)](#notification_mode--engine-défaut-1)
+      * [notification_mode = broker](#notification_mode--broker-1)
     * [Rebalancing par seuil](#rebalancing-par-seuil)
       * [Message Health](#message-health)
       * [Score de charge et seuils](#score-de-charge-et-seuils)
@@ -163,7 +185,7 @@ directement au code d’Engine, il ne connaît que ce qu’il lui transmet.
 Ceci est problématique car, par exemple, `cbmod` ne connaît pas le
 répertoire de configuration d’`Engine`.
 
-## cbmod devient une librairie
+## `cbmod` devient une librairie
 
 Les soucis rencontrés sur `cbmod` peuvent être réduits en le
 transformant en librairie. Cela permettrait à `Engine` de l’utiliser
@@ -177,11 +199,11 @@ directement dans le fichier de configuration `Engine` avec la clé
 `broker_module_cfg_file`. Enfin, suite à des soucis avec le traitement
 des anciennes versions d’`Engine`, il est toujours possible de garder
 l’ancien format de déclaration de module pour `cbmod`. Un message de
-dépréciation est écrit dans les logs mais ça fonctionne.
+dépréciation est écrit dans les logs, mais ça fonctionne.
 
 ## Nouveaux paramètres pour Engine/cbmod
 
-````Actuellement, depuis la modification de `cbmod`, `Engine` démarre avec
+Actuellement, depuis la modification de `cbmod`, `Engine` démarre avec
 essentiellement deux paramètres, de la façon suivante :
 
 `centengine -b /etc/centreon-broker/central-module.json /etc/centreon-engine/centengine.cfg`
@@ -532,7 +554,7 @@ du poller *X*, il crée à côté du répertoire *X*, un fichier `X.lck`.
 `*.lck` dans ce répertoire. Pour cela un timer cadencé à 5 secondes fait
 une lecture sur le descripteur de fichier `inotify`. Ce timer est lancé
 en asynchrone et quand un fichier est détecté, `Broker` fait plusieurs
-tâches:
+tâches :
 
 En complément d’`inotify`, le timer effectue également un scan du répertoire à
 chaque déclenchement. Ce fallback permet de détecter les fichiers `.lck` qu’`inotify`
@@ -639,7 +661,7 @@ Un algorithme pour le regroupement des différentiels pourrait suivre la
 solution suivante :
 
 -   Pour les objets ajoutés, on peut faire la réunion. On aura la
-    globalité des objets ajoutés. A chaque ajout, il faut vérifier parmi
+    globalité des objets ajoutés. À chaque ajout, il faut vérifier parmi
     les supprimés si l’objet n’est pas déjà référencé. S’il l’est on
     peut le déplacer dans les objets modifiés.
 
@@ -654,7 +676,7 @@ solution suivante :
     et s’il l’est, il faut le mettre dans les objets modifiés.
 
 Côté Protobuf, nous avons deux objets de configuration qui sont `State`
-et `DiffState`. Ils sont bien car sérialisables par contre ils ont le souci
+et `DiffState`. Ils sont bien, car sérialisables par contre ils ont le souci
 d'être très limités pour les recherches.
 
 On introduit donc deux nouveaux objets `IndexedState` et `IndexedDiffState` qui
@@ -778,13 +800,13 @@ rencontrer.
 
 ## Cas épineux
 
-Lorsqu’il y a de la rétention, nous avons deux cas qui posent problème :
+Lorsqu’il y a de la rétention, nous avons deux cas qui posent un problème :
 
 1.  si le premier poller est à l’heure et le second a de la rétention.
     Dans le cas où un host est déplacé du second vers le premier, Broker
     risque de recevoir des données du même host en même temps, provenant
     des deux pollers, ceci jusqu’à ce que le second poller rattrape la
-    rétention. En terme de datation, les données arrivant du second
+    rétention. En termes de datation, les données arrivant du second
     poller seront plus anciennes.
 
 2.  Si le second poller a de la rétention et avant que `Broker` ne
@@ -793,7 +815,7 @@ Lorsqu’il y a de la rétention, nous avons deux cas qui posent problème :
     pris en compte l’avant-dernière configuration, et par contre que
     `Broker` n’en soit pas encore informé et qu’il considère
     qu’`Engine`est encore sur la configuration précédente. Par
-    conséquent, le différentiel nouvellement calculé par `Broker` va
+    conséquent, le différentiel, nouvellement calculé par `Broker`, va
     être faux.
 
 Le second cas épineux devrait être réglé grâce à l’introduction de
@@ -844,9 +866,9 @@ Le différentiel avec Hostgroups, Servicegroups implémentés comme les autres d
 
 Le souci est lorsqu'on rassemble les modifications sur ces objets pour l'écriture en base et plus tard pour le cache global de broker.
 
-L'objet neb::service est plus complet que la configuration d'un configuration::service. Du coup, lors de l'initialisation avec un neb::service, on a aussi l'état du service, pending si rien n'est donné au départ. Dans le cas d'un configuration::service, on trouve NULL dans la colonne status de la table `resources` ; ce qui provoque des cas de tests qui peuvent échouer pour le moment et qu'il va falloir réparer.
+L'objet `neb::service` est plus complet que la configuration d'un `configuration::service`. Du coup, lors de l'initialisation avec un neb::service, on a aussi l'état du service, pending si rien n'est donné au départ. Dans le cas d'un configuration::service, on trouve NULL dans la colonne status de la table `resources` ; ce qui provoque des cas de tests qui peuvent échouer pour le moment et qu'il va falloir réparer.
 
-## objets transverses
+## Objets transverses
 
 Nous avons un objet Protobuf DiffState qui est réparti dans un indexed_diff_state, qui, comme son nom l'indique, indexe les objets des conteneurs.
 
@@ -854,9 +876,9 @@ Pour le GlobalDiffState, nous avons actuellement les même objets. Pourrions-nou
 
 Imaginons la structure du global_indexed_diff_state. Cette classe hérite de indexed_diff_state. Traitons le merge d'un DiffState.
 
-* Le poller 1 voit l'arrivée d'un nouveau Hostgroup avec les hosts 6 et 7. Son diff contient un Hostgroup ajouté avec deux membres. Le poller 2 voit le même nouveau Hostgroup auquel on ajoute les hosts 8 et 10.
+* Le poller 1 voit l'arrivée d'un nouveau `Hostgroup` avec les hosts 6 et 7. Son diff contient un `Hostgroup` ajouté avec deux membres. Le poller 2 voit le même nouveau Hostgroup auquel on ajoute les hosts 8 et 10.
 
-	* Etat des lieux : le premier diff va compléter le global diff state avec un nouveau hostgroup et ses membres. Le second diff va aussi compléter le global diff state avec le même nouveau. Leurs contenus ne sont pas mergés, le second écrase le premier.
+	* État des lieux : le premier diff va compléter le global diff state avec un nouveau `hostgroup` et ses membres. Le second diff va aussi compléter le global diff state avec le même nouveau. Leurs contenus ne sont pas mergés, le second écrase le premier.
 	* Evolution : On peut garder la même structure added/modified/removed mais les points de vue des différents pollers ne doivent pas interférer, donc le mieux est d'indexer ces changements par poller. Au niveau du cache global, on a l'état actuel de tous les Hostgroups et on peut vraiment appliquer les changements.
 
 ## De la nécessité du cache centralisé
@@ -1676,12 +1698,12 @@ sont supprimés.
 
 ### Déclencheurs du merge
 
-| Déclencheur | Description |
-|---|---|
-| Jonction détectée | Buffer a rattrapé le RRD courant (écart ≤ step) |
+| Déclencheur        | Description                                                                  |
+|--------------------|------------------------------------------------------------------------------|
+| Jonction détectée  | Buffer a rattrapé le RRD courant (écart ≤ step)                              |
 | Nombre de fichiers | Nombre de fichiers rotatés atteint `retention_buffer_max_files` (défaut : 5) |
-| Schedule | Merge nocturne à faible charge |
-| Manuel | Commande d'administration explicite |
+| Schedule           | Merge nocturne à faible charge                                               |
+| Manuel             | Commande d'administration explicite                                          |
 
 Le paramètre `retention_buffer_max_files` est lu dans le bloc JSON de l'endpoint
 RRD (comme `cache_size`). Quand le nombre de fichiers rotatés d'une métrique
@@ -1766,11 +1788,11 @@ Si Broker crashe alors que des données de rétention sont en cours de buffering
 perdu. La reconstruction est entièrement possible sans fichier de métadonnées
 séparé.
 
-| État perdu | Source de reconstruction |
-|---|---|
-| `last_retention_time[id]` | dernier enregistrement du dernier `.prot` de la métrique |
+| État perdu                  | Source de reconstruction                                               |
+|-----------------------------|------------------------------------------------------------------------|
+| `last_retention_time[id]`   | dernier enregistrement du dernier `.prot` de la métrique               |
 | `earliest_current_time[id]` | inutile à récupérer — réinitialisé à la première donnée courante reçue |
-| `last_partial_merge[id]` | premier enregistrement du plus vieux `.prot` de la métrique − 1 step |
+| `last_partial_merge[id]`    | premier enregistrement du plus vieux `.prot` de la métrique − 1 step   |
 
 **Fichier courant potentiellement tronqué**
 
@@ -1980,10 +2002,10 @@ le moment naturel pour vérifier la jonction du batch qui vient de se terminer.
 
 La jonction est atteinte dès que l'une de ces deux conditions est vraie :
 
-| Condition | Déclencheur |
-|---|---|
-| `last_retention[id] + step ≥ earliest_current[id]` | arrivée d'une donnée courante ou de rétention pour `id` |
-| `last_retention[id] + step ≥ now` | arrivée d'une donnée de rétention (sans donnée courante connue) |
+| Condition                                          | Déclencheur                                                     |
+|----------------------------------------------------|-----------------------------------------------------------------|
+| `last_retention[id] + step ≥ earliest_current[id]` | arrivée d'une donnée courante ou de rétention pour `id`         |
+| `last_retention[id] + step ≥ now`                  | arrivée d'une donnée de rétention (sans donnée courante connue) |
 
 Un troisième déclencheur s'ajoute pour les fins de batch : lorsqu'une donnée de
 rétention présente un écart `timestamp − last_retention[id] > 2 × step`, le batch
@@ -2586,21 +2608,21 @@ switch (peer_type) {
 
 ## Mise en place
 
-### Étape 1 — Nouveaux messages BBDO ( ✅ implémenté)
+### Étape 1 — Nouveaux messages BBDO (✅ implémenté)
   Pas de test Robot à ce stade — la validation est purement à la compilation et aux tests unitaires
   (sérialisation/désérialisation des messages).
 
-### Étape 2 — via_remote + détection relais ( ✅ implémenté)
+### Étape 2 — via_remote + détection relais (✅ implémenté)
   Idem — test unitaire sur is_relay() et la logique de détection.
 
-### Étape 3 — ConfigRequest envoyé par le relais ( ✅ implémentée)
+### Étape 3 — ConfigRequest envoyé par le relais (✅ implémentée)
   → CCCRC1 (`centralized-relay-conf.robot`) : Un relay configuré reçoit un Engine. Vérifier dans
   les logs du central que `ConfigRequest{poller_id=N}` est bien reçu.
 
   Keywords implémentés : `Ctn Config Relay`, `Ctn Start Relay`, `Ctn Stop Relay`
   (dans `tests/resources/Broker.py` et `tests/resources/resources.resource`).
 
-### Étape 4 — Traitement du ConfigRequest au central ( ✅ implémentée)
+### Étape 4 — Traitement du ConfigRequest au central (✅ implémentée)
   → CCCRC2 (`centralized-relay-conf.robot`) : Une configuration de poller est pré-créée avant le
   démarrage du broker central. Vérifier que le central traite le fichier lck, calcule le diff, et
   envoie un `DiffState` non-unknown au relay lors de la réception d'un `ConfigRequest`.
@@ -2608,7 +2630,7 @@ switch (peer_type) {
   CCCRC1 couvre le cas unknown (central sans config → envoie `DiffState{unknown=true}`).
   CCCRC2 couvre le cas diff_ready (central avec config → envoie `DiffState` avec contenu).
 
-### Étape 5 — Forward DiffState/ack dans le relais ( ✅ implémenté)
+### Étape 5 — Forward DiffState/ack dans le relais (✅ implémenté)
   → CCCRC3 (`centralized-relay-conf.robot`) : Config pré-créée pour le poller 1. Le central envoie
   un `DiffState` au relais. Le relais le met en file dans `_pending_diff_states` et le transmet à
   Engine au prochain cycle `read()` du stream ENGINE. Engine l'applique et renvoie un
@@ -2618,7 +2640,7 @@ switch (peer_type) {
   Le handler `pb_diff_state_ack` a également été corrigé pour utiliser `obj.poller_id()` (et non
   `poller_id()`) afin que les acks forwardés soient traités correctement.
 
-### Étape 6 — PHP push via relais ( ✅ implémentée)
+### Étape 6 — PHP push via relais (✅ implémentée)
   Quand PHP pousse un nouveau `.lck` pour un poller dont l'Engine est derrière un relais, le central
   doit router le DiffState résultant via le relais plutôt que de chercher un flux ENGINE direct.
 
@@ -2633,7 +2655,7 @@ switch (peer_type) {
   vérifier dans le log du central "BBDO: sending DiffState to relay for poller 1" puis "received
   diff state ack from poller 1".
 
-### Étape 7 — Migration + ConfigRevoke ( ✅ implémentée)
+### Étape 7 — Migration + ConfigRevoke (✅ implémentée)
   Quand Engine N se reconnecte via un nouveau relais R2 alors qu'il était enregistré derrière R1,
   le central détecte la migration et doit envoyer `ConfigRevoke{poller_id=N}` à R1.
 
@@ -2654,7 +2676,7 @@ switch (peer_type) {
   redémarré → Relay4 envoie ConfigRequest → central détecte la migration → envoie ConfigRevoke
   à Relay3 (vérifié dans le log relay3) + DiffState à Relay4 → ack.
 
-### Étape 8 — Persistance de la topologie ( ✅ implémentée)
+### Étape 8 — Persistance de la topologie (✅ implémentée)
   **Implémentation** :
   - Message protobuf `TopologyCache` ajouté dans `bbdo/bbdo.proto` — format disque pour les
     paires `(poller_id, relay_id)`.
@@ -2670,7 +2692,7 @@ switch (peer_type) {
   Vérifier que le relay se reconnecte et qu'un DiffStateAck est de nouveau reçu (le hint
   topology.cache permet le routage avant la reconnexion du relay).
 
-### Étape 9 — gRPC GetTopology ( ✅ implémentée)
+### Étape 9 — gRPC GetTopology (✅ implémentée)
   **Implémentation** : `broker_impl::GetTopology` itère `connected_peers()` et construit un
   `TopologyResponse` avec `direct_brokers` (peers ENGINE avec `via_remote != 0` groupés sous
   leur relay) et `direct_pollers` (peers ENGINE avec `via_remote == 0`).
@@ -2716,96 +2738,423 @@ et acquittements définis sur A ne sont pas automatiquement transférés à B. L
 sur B sans ses downtimes actifs, risquant de générer de fausses alertes pendant une fenêtre
 de maintenance.
 
-## Solution : Broker comme source de vérité
+## Solution : le paramètre notification_mode
 
-Broker gère les downtimes et acquittements de façon centralisée, en cohérence avec son rôle de
-source de vérité pour la configuration en BBDO3. PHP envoie les downtimes et acquittements à
-Broker (et non plus directement à Engine). Broker les stocke de manière persistante et notifie
-l'Engine concerné via de nouveaux messages BBDO.
+**En mode legacy**, Engine continue de gérer les downtimes, les acquittements et les
+notifications exactement comme il l'a toujours fait. Aucun changement.
 
-**Broker détient toute l'intelligence du cycle de vie des downtimes.** C'est lui qui décide
-quand un downtime se termine, selon les trois cas suivants :
+**En mode configuration centralisée** (BBDO3), le paramètre `notification_mode` dans
+`centengine.cfg` contrôle qui gère les notifications, downtimes et acquittements :
 
-- **Retour à OK** : quand Broker reçoit un résultat de check indiquant que la ressource repasse
-  en état OK, il met fin immédiatement au downtime actif (downtime flexible déclenché ou downtime
-  fixe interrompu).
-- **Expiration de `end_time`** : Broker surveille l'horloge et envoie `DowntimeEnd` à l'Engine
-  dès que la date de fin est atteinte.
-- **Downtimes flexibles** : Broker détecte l'entrée en problème de la ressource, démarre le
-  compteur de durée (`duration`), et envoie `DowntimeEnd` quand ce compteur expire.
+- `notification_mode = engine` **(défaut)** : Engine gère tout exactement comme en mode legacy.
+  PHP continue d'envoyer les commandes de downtime et d'acquittement à Engine via le pipe de
+  commandes. Convient aux zones mono-poller et comme étape de migration depuis le mode legacy.
 
-Engine reçoit `DowntimeStart` / `DowntimeEnd` de Broker et maintient une copie locale de l'état
-actif des downtimes. Cette copie sert uniquement à la suppression des notifications — Engine
-n'exécute plus aucun calcul de cycle de vie ni aucun timer de downtime de son côté.
+- `notification_mode = broker` : Broker devient la seule autorité. PHP envoie les downtimes,
+  acquittements et règles d'escalade à Broker via l'API gRPC `BrokerRpc` ; Broker les stocke
+  directement dans sa base de données. Engine émet des événements `pb_notification_request` au
+  lieu d'exécuter les commandes de notification. Engine n'est jamais informé des downtimes, des
+  acquittements ni des règles d'escalade. Les objets `hostescalation` et `serviceescalation`
+  sont supprimés de `centengine.cfg` entièrement.
+  Ce mode est **obligatoire** en mode Poller HA (plusieurs pollers dans une zone avec
+  distribution automatique des ressources) ; il est aussi disponible comme option sur les zones
+  mono-poller, ce qui permet de construire et valider l'infrastructure avant d'aborder le HA.
 
-Lors d'une migration, aucune action spécifique n'est nécessaire pour les downtimes et
-acquittements — ils restent dans Broker et suivent le host naturellement via le mécanisme
-standard de notification décrit ci-dessous.
+**BAM avec `notification_mode = broker`** : le module BAM s'exécute dans Broker et dispose
+d'un accès direct au store de downtimes. Le problème de synchronisation décrit ci-dessus
+disparaît — il n'existe plus de copie côté Engine susceptible de se désynchroniser.
 
-## Nouveaux messages BBDO
-
-Ces messages sont envoyés par Broker à l'Engine qui supervise le host concerné :
-
-```protobuf
-// Broker → Engine : début d'un downtime sur un host ou service
-message DowntimeStart {
-  uint64 downtime_id = 1;   // identifiant unique attribué par Broker
-  uint64 host_id     = 2;
-  uint64 service_id  = 3;   // 0 pour un downtime d'host
-  int64  start_time  = 4;
-  int64  end_time    = 5;
-  bool   fixed       = 6;
-  int64  duration    = 7;   // pour les downtimes flexibles
-  string author      = 8;
-  string comment     = 9;
-}
-
-// Broker → Engine : fin ou annulation d'un downtime
-message DowntimeEnd {
-  uint64 downtime_id = 1;
-  uint64 host_id     = 2;
-  uint64 service_id  = 3;
-}
-
-// Broker → Engine : acquittement d'un host ou service
-message AckSet {
-  uint64 host_id    = 1;
-  uint64 service_id = 2;   // 0 pour un acquittement d'host
-  string author     = 3;
-  string comment    = 4;
-  bool   sticky     = 5;
-  bool   notify     = 6;
-}
-
-// Broker → Engine : suppression d'un acquittement
-message AckClear {
-  uint64 host_id    = 1;
-  uint64 service_id = 2;
-}
-```
-
-Engine applique ces messages en temps réel pour supprimer ou rétablir les alertes. Il n'a plus
-besoin de recevoir de commandes downtime ou ack directement depuis PHP.
-
-## Persistance et redémarrage
+## Persistance
 
 Broker stocke les downtimes et acquittements dans sa base de données persistante, y compris les
 downtimes futurs dont la fenêtre n'a pas encore commencé. Au redémarrage de Broker, ces objets
-sont rechargés et renvoyés à chaque Engine lors de la reconnexion, au même titre que la
-configuration (via le `DiffState` initial). Au redémarrage d'Engine, Broker lui renvoie
-l'ensemble des downtimes et acquittements actifs pour ses hosts lors de l'envoi du `DiffState`.
+sont rechargés depuis la base — aucune interaction avec Engine n'est nécessaire.
 
 ## Migration et downtimes / acquittements
 
-Lors d'une migration du poller A vers le poller B, Broker envoie à B les `DowntimeStart` et
-`AckSet` correspondant aux hosts migrés immédiatement après le `DiffState(add)`, exactement
-comme il le ferait pour toute reconnexion d'Engine. Engine A reçoit les `DowntimeEnd` et
-`AckClear` correspondants avec le `DiffState(remove)`, pour qu'il cesse de supprimer les
-alertes sur ces hosts.
+Aucune action n'est requise lors d'une migration de host. Les downtimes et acquittements vivent
+dans la base de Broker et restent accessibles quel que soit le poller qui supervise le host
+après la migration. Le `MigrationStateSnapshot` ne contient aucune donnée de downtime ou
+d'acquittement en mode configuration centralisée.
 
-Le `MigrationStateSnapshot` ne contient que l'état des checks (statuts, tentatives, perfdata).
-Les downtimes et acquittements transitent par leur propre canal — le même que lors d'un
-redémarrage.
+# Travaux préparatoires avant le Poller HA
+
+Les travaux décrits dans cette section sont implémentés **avant** le Poller HA. Ils ont deux
+objectifs : construire l'infrastructure de notification côté Broker sur des zones mono-poller,
+et la valider en profondeur avant d'introduire la complexité du HA multi-pollers.
+
+| Ticket | Description                                       |
+|--------|---------------------------------------------------|
+| **T1** | File neb à double priorité                        |
+| **T2** | Suivi de l'état des downtimes dans `global_cache` |
+| **T3** | Endpoints BrokerRpc : downtimes et acquittements  |
+| **T4** | Endpoints BrokerRpc : règles d'escalade           |
+| **T5** | Inherited downtimes via BrokerRpc (BAM)           |
+| **T6** | Émission de `pb_notification_request` dans Engine |
+| **T7** | Service de notification dans Broker               |
+| **T8** | Paramètre `notification_mode`                     |
+| **T9** | Suite de tests pour `notification_mode = broker`  |
+
+```mermaid
+gantt
+    title Travaux préparatoires avant le Poller HA
+    dateFormat  YYYY-MM-DD
+
+    section Infrastructure
+    T1 · File neb à double priorité       :t1, 2026-05-10, 5d
+    T3 · BrokerRpc downtimes et acks      :t3, 2026-05-10, 5d
+    T4 · BrokerRpc règles d'escalade      :t4, 2026-05-10, 3d
+
+    section Engine
+    T6 · pb_notification_request          :t6, 2026-05-10, 4d
+
+    section Cache et BAM
+    T2 · global_cache état downtimes      :t2, after t1 t3, 4d
+    T5 · Inherited downtimes BrokerRpc    :t5, after t3, 3d
+
+    section Service notification
+    T7 · Service de notification Broker   :t7, after t3 t4, 5d
+
+    section Activation
+    T8 · Paramètre notification_mode      :t8, after t6 t7, 2d
+
+    section Validation
+    T9 · Suite de tests mode broker       :t9, after t8 t2 t5, 5d
+```
+
+T1, T3, T4 et T6 n'ont aucune dépendance et peuvent être développés en parallèle. T2
+requiert T1 (chemin neb prioritaire) et T3 (chemin BrokerRpc). T8 requiert T6 (côté Engine)
+et T7 (côté Broker). T9 est bloqué par tous les autres.
+
+## File `neb` à double priorité
+
+Aujourd'hui le module neb maintient une unique file FIFO pour tous les événements de monitoring.
+Quand Engine accumule un gros backlog de rétention (par exemple après deux semaines de
+déconnexion), chaque événement — y compris les downtimes et demandes de notification urgentes —
+doit attendre derrière des heures de résultats de checks avant d'atteindre Broker.
+
+Pour résoudre ce problème, la file d'événements neb est divisée en deux. La file dans laquelle
+un événement est placé est déterminée **à l'insertion**, en fonction du type d'événement et de
+son horodatage :
+
+| Type d'événement                                               | Règle de classification                                                                                                        |
+|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| `pb_downtime`, `pb_acknowledgement`, `pb_notification_request` | **Toujours prioritaire** — l'âge est sans importance ; ce qui compte c'est que le downtime ou l'acquittement soit encore actif |
+| Statut host / service                                          | **Prioritaire** si `now − timestamp_événement < priority_age_threshold` (défaut : 5 min) ; **secondaire** sinon                |
+| Données de performance, logs, autres événements volumineuses   | Toujours secondaire                                                                                                            |
+
+Le paramètre `priority_age_threshold` (défaut 5 minutes, soit un intervalle de check typique)
+est configurable. En fonctionnement normal, tous les résultats de checks sont frais et vont en
+file prioritaire — la file secondaire reste vide et les deux files se comportent de façon
+identique à aujourd'hui. La distinction s'active uniquement en cas de backlog : les vieux
+résultats de checks sont relégués en secondaire pendant que les récents et tous les événements
+de downtime / acquittement passent en premier.
+
+Cela préserve la causalité entre un downtime et la ressource à laquelle il est associé (les deux
+restent dans le namespace `neb`), tout en garantissant que les événements urgents ne sont jamais
+bloqués par des données volumineuses accumulées.
+
+**Frontière avec le namespace `bbdo`**
+
+Les messages du namespace `bbdo` (`pb_diff_state`, `pb_diff_state_ack`, `Health`, `pb_welcome`)
+restent complètement hors-bande — ils contournent les deux files entièrement. Ce sont des
+messages de gestion de connexion et de configuration, pas des entrées du flux d'événements de
+monitoring ; leur livraison doit être indépendante de tout état de file.
+
+```
+namespace bbdo  →  contourne toutes les files  (gestion connexion / configuration)
+neb prioritaire →  vidée en premier            (événements monitoring urgents)
+neb secondaire  →  vidée en dernier            (données monitoring volumineuses)
+```
+
+**Engine connecté avec une file secondaire chargée**
+
+Même quand Engine est actif mais saturé de résultats de checks, un nouveau `pb_downtime` ou
+`pb_notification_request` est placé dans la file prioritaire et livré à Broker immédiatement,
+sans attendre que la file secondaire se vide.
+
+**Reconnexion après une longue absence**
+
+C'est le cas le plus subtil et le plus important. Considérons Engine qui reconnecte après
+plusieurs jours d'absence. Sa file secondaire est chargée (résultats de checks accumulés).
+Immédiatement après la reconnexion, une ressource surveillée tombe — Engine génère un résultat
+de check en temps réel et le place dans la file secondaire. Pendant ce temps, le `pb_downtime`
+de cette ressource — créé il y a plusieurs jours, toujours dans la file prioritaire — passe en
+premier :
+
+```
+Engine reconnecte
+  → file prioritaire se vide : pb_downtime (créé il y a 5 jours, encore actif) → Broker
+  → file secondaire se vide  : résultat DOWN (temps réel) → Broker
+
+Broker reçoit pb_downtime en premier → downtime actif → DOWN arrive → notification supprimée ✓
+```
+
+L'âge de l'événement `pb_downtime` est sans importance : ce qui compte, c'est que le downtime
+soit **encore actif**, pas la date à laquelle il a été créé. La file prioritaire garantit que
+Broker dispose de l'état correct des downtimes avant de traiter le premier résultat de check
+en temps réel.
+
+Les downtimes expirés sont également traités correctement. Un downtime qui a démarré et
+s'est terminé pendant la période de déconnexion apparaît sous la forme d'une paire
+`pb_downtime_start` / `pb_downtime_end`, tous les deux dans la file prioritaire, dans l'ordre.
+Broker les traite en séquence : downtime créé, puis fermé. Quand le premier résultat en temps
+réel arrive, aucun downtime n'est actif — et la notification part correctement.
+
+- `pb_notification_request` reste dans le namespace `neb` ; aucun contournement par le namespace
+  `bbdo` n'est nécessaire.
+- BrokerRpc (chemin 2 ci-dessous) reste le chemin approprié pour les downtimes créés directement
+  via la couche PHP/API, et pour le cas où Engine est complètement déconnecté.
+
+### Implémentation
+
+#### Conteneur : `std::deque` + index `size_t`
+
+Aujourd'hui `_events` est une `std::list<std::shared_ptr<io::data>>` avec un itérateur `_pos`
+pointant vers le prochain événement à lire. `std::list` a été choisi pour la stabilité des
+itérateurs : `push_back` et `pop_front` n'invalident pas les itérateurs vers d'autres éléments.
+Avec un index numérique cette contrainte disparaît.
+
+Chaque entrée de file embarque l'horodatage de l'événement aux côtés du pointeur, extrait une
+seule fois à l'insertion :
+
+```cpp
+struct queue_entry {
+    int64_t                    timestamp;  // extrait à l'insertion, INT64_MAX pour toujours-prioritaire
+    std::shared_ptr<io::data>  event;
+};
+
+std::deque<queue_entry> _priority_events;
+std::deque<queue_entry> _secondary_events;
+size_t _priority_read_pos{0};
+size_t _secondary_read_pos{0};
+```
+
+Stocker le timestamp dans l'entrée élimine tout `dynamic_cast` ou dispatch virtuel au moment de
+la classification. L'ajustement `_pos = --_events.end()` dans `_push_to_queue` (quand la file
+était épuisée) disparaît : lorsque `_priority_read_pos == _priority_events.size()` et qu'un
+nouvel événement prioritaire est poussé, `_priority_read_pos` désigne déjà l'index du nouvel
+élément.
+
+#### Classification à l'insertion
+
+| Condition | File | Timestamp stocké |
+|-----------|------|-----------------|
+| type ∈ {`pb_downtime`, `pb_acknowledgement`, `pb_notification_request`} | Prioritaire | `INT64_MAX` |
+| statut host/service ET `now − last_check < priority_age_threshold` | Prioritaire | `last_check` |
+| statut host/service ET `now − last_check ≥ priority_age_threshold` | Secondaire | `last_check` |
+| tous les autres types (perf data, logs, …) | Secondaire | `0` |
+
+`priority_age_threshold` vaut **5 minutes** par défaut (un intervalle de check typique) et est
+configurable dans la configuration JSON de Broker.
+
+#### Acquittement : `pb_ack` à deux compteurs
+
+`ack_events` est étendu à deux compteurs indépendants — un par file :
+
+```cpp
+void ack_events(uint32_t priority_count, uint32_t secondary_count);
+```
+
+`pb_ack` reçoit deux nouveaux champs (le champ 1 est conservé pour la compatibilité ascendante
+avec les anciens émetteurs, dont le compteur est appliqué à la file secondaire) :
+
+```protobuf
+message Ack {
+  uint32 acknowledged_events           = 1;  // déprécié
+  uint32 priority_acknowledged_events  = 2;
+  uint32 secondary_acknowledged_events = 3;
+}
+```
+
+`read()` reçoit un paramètre de sortie `priority_count` pour que l'appelant puisse calculer la
+répartition après le retour de `write()` :
+
+```cpp
+size_t priority_count = 0;
+muxer.read(to_fill, max, priority_count);
+
+uint32_t written = stream.write(to_fill);
+uint32_t p_acked = std::min(written, (uint32_t)priority_count);
+uint32_t s_acked = written - p_acked;
+muxer.ack_events(p_acked, s_acked);
+```
+
+#### Débordement sur disque (rétention)
+
+Le muxer dispose déjà d'une rétention persistante sur disque via `_file` (`persistent_file`) :
+quand la queue en mémoire est pleine, les événements débordent dans un fichier sur disque afin
+de survivre à un redémarrage de Broker et d'être finalement livrés dès que la connexion se
+rétablit. Ce mécanisme s'appelle **spill sur disque** — le trop-plein qui ne tient plus en RAM
+se déverse dans le fichier de rétention.
+
+Avec la file à double priorité, la politique de débordement est la suivante :
+
+- Les événements secondaires débordent en premier dans `_file` (ils sont les moins urgents).
+- Les événements prioritaires disposent d'une limite mémoire séparée et plus haute avant de
+  déborder.
+- Les événements rechargés depuis `_file` au redémarrage vont dans la file secondaire quelle
+  que soit leur classification d'origine : à ce stade ils constituent un arriéré historique,
+  pas des données temps réel.
+
+#### Résultats de benchmark
+
+Le choix `std::deque` + index `size_t` face à `std::list` + itérateur a été validé par Google
+Benchmark en modélisant le patron d'accès réel du muxer (push / lecture séquentielle / ack) :
+
+| Scénario | Taille file | List | Deque | Ratio |
+|----------|------------|------|-------|-------|
+| SteadyState | 4 096 | 5 323 816 ns | 4 612 033 ns | ×1,15 |
+| BacklogDrain | 131 072 | 21 757 648 ns | 18 809 356 ns | ×1,16 |
+| StatsDistance | 4 096 | 7 340 ns | 1,13 ns | ×6 500 |
+| StatsDistance | 65 536 | 138 620 ns | 1,13 ns | ×122 000 |
+
+`std::deque` est **15 % plus rapide** sur tous les patrons d'accès grâce à la localité cache
+(éléments dans des chunks contigus contre des nœuds dispersés sur le tas).
+
+`StatsDistance` isole `_update_stats()` qui appelle `std::distance(begin, _pos)` — O(N) sur
+`std::list`. Avec `_read_pos` sur `std::deque` cela devient O(1). À 65 536 événements en file,
+la list prend **138 µs** par appel contre **1,13 ns** pour l'index deque — un facteur 122 000.
+
+#### Type d'entrée : struct vs pair, emplace_back vs push_back
+
+Chaque entrée de file est `struct queue_entry { int64_t timestamp; std::shared_ptr<io::data> event; }`.
+Utiliser une struct nommée plutôt que `std::pair<int64_t, shared_ptr<io::data>>` n'a aucun coût
+à l'exécution : le compilateur génère un code identique (même layout mémoire, mêmes offsets de
+champs). La struct est préférée uniquement pour la lisibilité (`.timestamp` / `.event` contre
+`.first` / `.second`).
+
+`emplace_back` n'apporte aucun gain face à `push_back(std::move(e))` sur le chemin d'écriture :
+les événements arrivent déjà construits depuis la couche moteur ou réseau et sont déplacés dans
+la file — il n'y a pas de temporaire à élider. Sur le chemin de lecture, `push_back` copie chaque
+`queue_entry` dans le vecteur de sortie, ce qui incrémente le compteur de références atomique du
+`shared_ptr`. `emplace_back` ne peut pas éviter cela : l'incrément du compteur de références est
+le **coût incompressible** de `read()`, indépendant du conteneur ou de l'API d'insertion.
+
+## BAM : lecture de l'état des downtimes depuis le cache Broker
+
+Le cache mémoire (`global_cache`) ne suit pas encore l'état des downtimes actifs. Il faut
+l'étendre pour le faire. Les downtimes arrivent dans Broker par deux chemins distincts, et les
+deux doivent alimenter le même cache :
+
+**Chemin 1 — via Engine (file neb prioritaire)**
+
+Un downtime est envoyé à Engine via le pipe de commandes externes. Engine le crée en interne
+et émet un événement BBDO `pb_downtime` que Broker intercepte :
+
+```
+commande externe → Engine → pb_downtime → Broker → global_cache.update_downtime(...)
+                            (neb prioritaire)     → centreon_storage.downtimes (existant)
+```
+
+Ce chemin est sûr dans tous les modes :
+- En `notification_mode = engine` : Engine supprime les notifications localement dès que le
+  downtime est créé, sans attendre que Broker reçoive l'événement.
+- En `notification_mode = broker` : `pb_downtime` transite par la file neb prioritaire et arrive
+  chez Broker avant tout résultat de check accumulé, quelle que soit la profondeur du backlog.
+
+**Chemin 2 — via BrokerRpc (downtimes créés côté PHP/API, ou Engine déconnecté)**
+
+Un downtime est envoyé directement à Broker via gRPC. Broker le crée en base et met à jour
+le cache de façon atomique, sans passer par Engine et sans file de rétention :
+
+```
+BrokerRpc::ScheduleHostDowntime → Broker → global_cache.update_downtime(...)   ← immédiat
+                                         → centreon_storage.downtimes
+```
+
+Le downtime est effectif immédiatement quel que soit l'état de connexion ou la profondeur de
+file d'Engine.
+
+Le cache reçoit des mises à jour des deux chemins (chemin 1 pour les événements legacy qui
+transitent toujours, chemin 2 pour les downtimes créés directement). Une fois le cache étendu,
+BAM peut l'interroger directement :
+
+```
+# actuel
+BAM maintient sa propre map de downtimes, mise à jour depuis les événements pb_downtime
+→ risque de désync avec Engine au redémarrage
+
+# après extension du cache
+BAM interroge global_cache.is_in_downtime(host_id, service_id) à la demande
+→ source de vérité unique, cohérente quel que soit le chemin qui a créé le downtime
+```
+
+Cette amélioration est **indépendante du mode** : elle s'applique en mode legacy, en mode
+configuration centralisée et en mode HA. Elle n'élimine pas le problème d'injection des
+inherited downtimes (voir ci-dessous), mais supprime la désynchronisation côté lecture.
+
+## Implémentation de notification_mode = broker sur zones mono-poller
+
+L'option `notification_mode = broker` est implémentée et validée sur des zones mono-poller
+avant tout travail HA. Cela couvre :
+
+### Endpoints gRPC BrokerRpc
+
+Le service `BrokerRpc` reçoit les endpoints de downtime et d'acquittement (voir
+[Downtimes et acquittements centralisés](#downtimes-et-acquittements-centralisés)). PHP passe
+des appels directs au pipe de commandes d'Engine à ces endpoints. Broker stocke les downtimes
+et acquittements directement dans `centreon_storage`.
+
+### Inherited downtimes via BrokerRpc
+
+Dans l'implémentation actuelle de BAM, les inherited downtimes sont injectés dans Engine via
+des commandes externes. Avec `notification_mode = broker`, BAM crée les inherited downtimes
+via les mêmes endpoints `BrokerRpc` que n'importe quel autre downtime. Broker est la seule
+autorité — aucun état côté Engine ne peut être perdu au redémarrage.
+
+Le problème de synchronisation BAM/Engine décrit dans [Problème](#problème) disparaît
+entièrement en mode `notification_mode = broker` : les inherited downtimes survivent aux
+redémarrages d'Engine car ils vivent dans la base de Broker.
+
+En `notification_mode = engine` (comportement legacy), l'injection des inherited downtimes
+dans Engine reste inchangée. L'amélioration de lecture depuis le cache réduit le risque de
+désync côté lecture mais ne résout pas le problème côté écriture.
+
+### Règles d'escalade
+
+En `notification_mode = engine`, les règles d'escalade vivent dans le `centengine.cfg` de
+chaque poller sous forme d'objets `hostescalation` et `serviceescalation`. Engine les évalue
+localement au moment de la notification.
+
+En `notification_mode = broker`, les règles d'escalade quittent entièrement la configuration
+d'Engine. PHP les envoie à Broker via `BrokerRpc` ; Broker les stocke en base et les évalue
+lors du traitement d'un `pb_notification_request`.
+
+Deux conséquences en découlent :
+
+- **Les règles d'escalade survivent à la migration d'un host** — elles vivent dans la base de
+  Broker, indépendamment du poller qui supervise le host à un instant donné. Aucune étape de
+  migration n'est nécessaire.
+- **Les escalades inter-pollers deviennent possibles** — une règle d'escalade peut référencer
+  des hosts ou services répartis sur plusieurs pollers. C'était structurellement impossible dans
+  le modèle par poller, où chaque Engine ne connaissait que ses propres ressources.
+
+Corollaire : les objets `hostescalation` / `serviceescalation` ne constituent plus une
+contrainte de co-localisation dans l'algorithme de distribution des ressources. Le service de
+notification s'exécute dans Broker et accède à toutes les règles d'escalade quel que soit le
+poller — il n'y a aucune obligation que les hosts escaladés partagent un poller.
+
+### pb_notification_request
+
+Engine n'exécute plus les commandes de notification directement. Il émet à la place des
+événements BBDO `pb_notification_request` (voir [Notifications](#notifications-en-mode-ha))
+que Broker transfère au service de notification configuré. Ce service vérifie les downtimes,
+acquittements et règles d'escalade depuis la base de Broker avant d'exécuter la commande.
+
+## Stratégie de test
+
+Les deux modes sont validés sur des zones mono-poller avant de commencer le travail HA :
+
+- `notification_mode = engine` : tous les tests existants doivent passer sans modification —
+  c'est la référence de compatibilité.
+- `notification_mode = broker` : une suite de tests dédiée valide le cycle complet :
+  création de downtime via BrokerRpc, suppression des notifications, acquittement, propagation
+  des inherited downtimes par BAM, et survivabilité au redémarrage d'Engine de tous les
+  enregistrements de downtime.
+
+Une fois les deux modes stables, le Poller HA peut être implémenté avec la certitude que
+l'infrastructure de notification et de downtime est solide.
 
 # Poller HA
 ## Arborescence de configuration des pollers
@@ -2887,8 +3236,8 @@ Une zone est un groupe de pollers pouvant superviser les mêmes ressources. À t
 host est assigné à **exactement un** poller de sa zone. La zone définit les pollers éligibles à
 recevoir un host, pas un partage simultané.
 
-Broker maintient une **table d'assignement** `host → poller` qui est la source de vérité. Cette table
-doit être persistée pour survivre aux redémarrages de Broker.
+Broker maintient une **table d'affectation** `host → poller` qui est la source de vérité. Cette table
+doit être *persistée* pour survivre aux redémarrages de Broker.
 
 ### Mode non-HA : compatibilité et zone à un seul poller
 
@@ -2896,7 +3245,7 @@ Le Poller HA est une **option côté PHP**. Broker et Engine ignorent s'ils opè
 HA ou non — ils traitent toujours des zones, sans branche conditionnelle.
 
 En mode libre, PHP génère des zones à un seul poller. Une zone mono-poller est sémantiquement
-identique à l'ancien modèle par poller : pas de distribution, pas de migration, pas de rebalancing.
+identique à l'ancien modèle par poller : pas de distribution, pas de migration, pas de *rebalancing*.
 Le code Broker est le même dans les deux cas.
 
 **`zone_id` est un identifiant stable, indépendant des `poller_id`s.**
@@ -2923,21 +3272,37 @@ define zone { zone_id 1001  pollers 1 }
 Le rollback est un cas ordinaire de mise à jour de zone : PHP renvoie un `centengine.cfg` avec un seul
 poller, Broker redistribue les ressources via le protocole de migration, le `zone_id` ne change pas.
 
-**Rétrocompatibilité : détection automatique du format**
+**Rétrocompatibilité : objet de configuration auto-descriptif**
 
-Broker détecte le format de `centengine.cfg` à la lecture du `.lck` selon le champ présent :
+L'objet de configuration — qu'il s'agisse d'un fichier `centengine.cfg` sur disque, d'une
+structure en mémoire ou d'un futur message BBDO — porte directement le discriminateur de mode
+dans ses champs. Exactement l'un de `poller_id` ou `zone_id` est renseigné (un `oneof` au sens
+protobuf) :
 
-- **`poller_id` présent** → ancien format. Broker génère automatiquement une zone mono-poller
-  avec `zone_id = poller_id`. `pollers.cfg` n'est pas requis. L'installation existante continue
-  de fonctionner sans aucun changement côté PHP.
-- **`zone_id` présent** → nouveau format zone.
+- **`poller_id` renseigné** → mode legacy. L'objet décrit un poller unique. Broker le traite
+  en interne comme une zone mono-poller (`zone_id = poller_id`). `pollers.cfg` n'est pas requis.
+  L'installation existante continue de fonctionner sans aucun changement côté PHP.
+- **`zone_id` renseigné** → mode configuration centralisée. L'objet décrit une zone complète,
+  potentiellement avec plusieurs pollers.
+
+Cette discrimination est intrinsèque à l'objet : aucune heuristique externe ni convention de
+nom de fichier n'est nécessaire pour déterminer le mode. Elle s'applique identiquement à tous
+les niveaux — fichier, cache, message.
 
 ```
 # ancien centengine.cfg — toujours supporté tel quel
 poller_id=1
 log_file=/var/log/centreon-engine/centengine.log
 ...
-# → Broker crée implicitement : define zone { zone_id 1  pollers 1 }
+# poller_id renseigné → Broker le traite en interne comme une zone mono-poller
+
+# centengine.cfg zone
+define zone {
+  zone_id  1001
+  pollers  1 2 3
+  ...
+}
+# zone_id renseigné → Broker le traite comme une zone complète
 ```
 
 PHP peut migrer progressivement, poller par poller : les anciens pollers continuent de
@@ -2956,8 +3321,8 @@ Le répertoire de zone contient :
 ```
 42/
   centengine.cfg       ← zone_id, liste pollers, paramètres partagés
-  pollers.cfg    ← identité par poller (poller_id, poller_name)
-  hosts.cfg      ← tous les hosts de la zone
+  pollers.cfg          ← identité par poller (poller_id, poller_name)
+  hosts.cfg            ← tous les hosts de la zone
   services.cfg
   commands.cfg
   contacts.cfg
@@ -3108,15 +3473,18 @@ Le nouveau format couvre une zone entière. Voici les changements champ par cham
 - `zone_id` : **remplace `poller_id`** dans `centengine.cfg` — identifiant stable de la zone (espace de nommage PHP, distinct des `poller_id`)
 - `pollers` : liste espace-séparé des `poller_id` de la zone
 
-**Champ ajouté (optionnel)**
+**Champs ajoutés (optionnels)**
 
 - `min_pollers` : seuil d'activation de la zone (défaut : 1 — voir section suivante)
+- `notification_mode` : `engine` (défaut) ou `broker` — contrôle qui gère les notifications,
+  downtimes et acquittements. Forcé à `broker` quand le Poller HA est actif.
 
 **Format**
 
 Le format clé=valeur est conservé tel quel — les définitions existantes sont simplement
 encadrées par `define zone {` en ouverture et `}` en fermeture (voir exemple ci-dessus).
-Seuls `zone_id`, `min_pollers` et `pollers` sont ajoutés comme nouveaux champs.
+Seuls `zone_id`, `min_pollers`, `notification_mode` et `pollers` sont ajoutés comme nouveaux
+champs.
 
 **Nouveau fichier : `pollers.cfg`**
 
@@ -3209,7 +3577,6 @@ transitive des contraintes suivantes :
 
 - `hostdependencies` / `servicedependencies` : les hosts liés doivent être sur le même poller
 - `anomalydetection` : doit être sur le même poller que son service associé
-- `hostescalation` / `serviceescalation` : doivent suivre l'objet supervisé
 
 Un bloc est l'unité atomique de distribution — on ne peut pas en séparer les membres sur des
 pollers différents. Le poids d'un bloc est la somme des services de tous ses hosts.
@@ -3331,35 +3698,41 @@ retour vers la source dans un échange bilatéral :
 
 ```protobuf
 message HostRuntimeState {
-  uint64 host_id           = 1;
-  int32  current_status    = 2;  // UP/DOWN/UNREACHABLE
-  int32  state_type        = 3;  // SOFT/HARD
-  int32  current_attempt   = 4;
-  string output            = 5;
-  string perfdata          = 6;
-  int64  last_check        = 7;
-  int64  last_state_change = 8;
-  bool   acknowledged      = 9;
-  bool   in_downtime       = 10;
+  uint64 host_id                     = 1;
+  int32  current_status              = 2;  // UP/DOWN/UNREACHABLE
+  int32  state_type                  = 3;  // SOFT/HARD
+  int32  current_attempt             = 4;
+  string output                      = 5;
+  string perfdata                    = 6;
+  int64  last_check                  = 7;
+  int64  last_state_change           = 8;
+  bool   acknowledged                = 9;   // indicateur d'affichage ; décision Engine seulement quand notification_mode=engine
+  bool   in_downtime                 = 10;  // indicateur d'affichage ; décision Engine seulement en mode non-HA
+  int64  last_notification           = 11;  // notification_mode=engine uniquement
+  int32  current_notification_number = 12;  // mode non-HA uniquement
 }
 
 message ServiceRuntimeState {
-  uint64 host_id           = 1;
-  uint64 service_id        = 2;
-  int32  current_status    = 3;
-  int32  state_type        = 4;
-  int32  current_attempt   = 5;
-  string output            = 6;
-  string perfdata          = 7;
-  int64  last_check        = 8;
-  int64  last_state_change = 9;
-  bool   acknowledged      = 10;
-  bool   in_downtime       = 11;
+  uint64 host_id                     = 1;
+  uint64 service_id                  = 2;
+  int32  current_status              = 3;
+  int32  state_type                  = 4;
+  int32  current_attempt             = 5;
+  string output                      = 6;
+  string perfdata                    = 7;
+  int64  last_check                  = 8;
+  int64  last_state_change           = 9;
+  bool   acknowledged                = 10;  // indicateur d'affichage ; décision Engine seulement en mode legacy
+  bool   in_downtime                 = 11;  // indicateur d'affichage ; décision Engine seulement en mode legacy
+  int64  last_notification           = 12;  // mode legacy uniquement
+  int32  current_notification_number = 13;  // mode legacy uniquement
 }
 
 message MigrationStateSnapshot {
-  repeated HostRuntimeState    hosts    = 1;
-  repeated ServiceRuntimeState services = 2;
+  repeated HostRuntimeState    hosts            = 1;
+  repeated ServiceRuntimeState services         = 2;
+  repeated Downtime            downtimes        = 3;  // mode non-HA uniquement
+  repeated Acknowledgement     acknowledgements = 4;  // mode non-HA uniquement
 }
 
 // Champ ajouté à DiffState — présent dans tout DiffState d'ajout issu d'une migration.
@@ -3377,6 +3750,115 @@ qu'immédiatement.
 En cas de failover, l'état transmis est celui du dernier message reçu de A avant sa déconnexion,
 potentiellement un peu vieux selon la durée de la panne. C'est toujours préférable à un démarrage
 à zéro.
+
+### Downtimes et acquittements centralisés
+
+C'est le paramètre `notification_mode` qui détermine qui gère les downtimes et les
+acquittements.
+
+#### notification_mode = engine (défaut)
+
+Engine gère les downtimes et les acquittements comme il l'a toujours fait : les commandes
+arrivent via le pipe de commandes externes (`centengine.cmd`), Engine crée les enregistrements
+en interne et émet des événements BBDO `pb_downtime` / `pb_acknowledgement` que Broker stocke
+dans `centreon_storage.downtimes` / `centreon_storage.acknowledgements`.
+
+Ce chemin ne change pas. Les déploiements existants continuent de fonctionner sans modification.
+
+Lors d'une migration de host, Broker lit les downtimes et acquittements actifs depuis
+`centreon_storage` et les inclut dans `MigrationStateSnapshot` (champs 3 et 4). Le moteur
+récepteur recrée ces enregistrements localement avant son premier check.
+
+#### notification_mode = broker
+
+Dans ce mode, Engine ne gère pas les notifications (voir [Notifications](#notifications-en-mode-ha))
+et n'a donc aucun usage des downtimes ou des acquittements. Broker est la seule autorité.
+Ce mode est obligatoire pour Poller HA et disponible comme option sur les zones mono-poller.
+
+Broker expose les endpoints gRPC `BrokerRpc` suivants. L'appelant (UI ou PHP) n'a pas besoin
+de savoir quel poller supervise un host donné :
+
+```protobuf
+service BrokerRpc {
+  rpc ScheduleHostDowntime(HostDowntimeRequest)               returns (CommandResult);
+  rpc ScheduleServiceDowntime(ServiceDowntimeRequest)         returns (CommandResult);
+  rpc DeleteHostDowntime(DeleteDowntimeRequest)               returns (CommandResult);
+  rpc AcknowledgeHostProblem(HostAcknowledgementRequest)      returns (CommandResult);
+  rpc AcknowledgeServiceProblem(ServiceAcknowledgementRequest) returns (CommandResult);
+  rpc RemoveHostAcknowledgement(RemoveAcknowledgementRequest) returns (CommandResult);
+  rpc RemoveServiceAcknowledgement(RemoveAcknowledgementRequest) returns (CommandResult);
+}
+```
+
+Broker stocke le downtime ou l'acquittement directement, sans transit par Engine :
+
+```
+UI/PHP → BrokerRpc::ScheduleHostDowntime(host_id, ...)
+       → Broker stocke directement dans centreon_storage.downtimes
+       → Broker met à jour le flag in_downtime dans son cache et en base
+```
+
+Rien n'est à migrer lors d'un failover ou d'un rebalancing : downtimes et acquittements vivent
+dans la base de Broker et sont immédiatement accessibles quel que soit le poller qui supervise
+le host après la migration.
+
+`acknowledged` et `in_downtime` dans `HostRuntimeState` / `ServiceRuntimeState` sont conservés
+comme indicateurs d'affichage pour l'UI, mais Engine ne prend aucune décision sur leur base
+quand notification_mode=broker.
+
+Les champs 3 et 4 de `MigrationStateSnapshot` (`downtimes`, `acknowledgements`) ne sont pas
+utilisés quand notification_mode=broker. Ils n'existent que pour notification_mode=engine.
+
+### Notifications
+
+#### notification_mode = engine (défaut)
+
+Chaque poller exécute les commandes de notification directement pour les ressources qu'il
+supervise. Toute l'infrastructure de notification (relai mail, scripts, webhooks) doit être
+accessible depuis chaque poller de la zone.
+
+Les champs d'état de notification `last_notification` et `current_notification_number` dans
+`HostRuntimeState` et `ServiceRuntimeState` assurent la continuité lors d'une migration : le
+poller récepteur reprend la chaîne de notification exactement là où le poller source l'avait
+laissée, évitant à la fois les notifications en double et les ruptures de chaîne d'escalade.
+
+Lors d'une migration de host, Broker lit également les downtimes et acquittements
+actifs pour les hosts migrés depuis `centreon_storage` et les inclut dans `MigrationStateSnapshot`
+(champs 3 et 4) pour que le moteur récepteur puisse recréer les enregistrements localement avant
+son premier check.
+
+#### notification_mode = broker
+
+Un service de notification dédié gère toutes les notifications de la zone. Engine n'exécute pas
+les commandes de notification. Lorsqu'Engine détermine qu'une notification est due (changement
+d'état, intervalle de re-notification écoulé, etc.), il émet un événement BBDO
+`pb_notification_request` au lieu d'appeler directement une commande :
+
+```protobuf
+// file neb prioritaire — Engine → Broker : livrée avant tous les événements de la file secondaire.
+// Les demandes de notification ne doivent pas être retardées par des résultats de checks accumulés.
+message NotificationRequest {
+  uint32 poller_id         = 1;
+  uint64 host_id           = 2;
+  uint64 service_id        = 3;   // 0 pour une notification de host
+  int32  notification_type = 4;
+  string contact_name      = 5;
+  string command           = 6;
+  string output            = 7;
+}
+```
+
+Broker transfère `pb_notification_request` au service de notification. Ce service consulte les
+downtimes et acquittements actifs depuis la base de Broker et exécute la commande si les
+conditions de suppression ne sont pas remplies.
+
+Avantages :
+- Seul le service de notification a besoin d'accéder à l'infrastructure de notification
+- Les pollers peuvent être totalement isolés réseau
+- L'historique des notifications et la logique de suppression sont centralisés
+
+Avec `notification_mode = broker`, `MigrationStateSnapshot` ne contient ni état de notification,
+ni downtimes, ni acquittements — Engine ne détient aucune de ces informations.
 
 ### Rebalancing par seuil
 
@@ -3519,7 +4001,7 @@ de 60% à 80% ; l'intérêt d'avoir un intervalle est de pouvoir ainsi travaille
 * on considère un poller trop chargé quand il dépasse 80%.
 * Lorsqu'il est trop charge (charge > 80%), on essaie de réduire sa charge pour qu'il repasse sous les 60%.
 
-L'intervalle [60%;80%] doit être configurable.
+L'intervalle [60% ; 80%] doit être configurable.
 
 Lorsqu'un poller est trop chargé (donc charge > 80%), on doit lui retirer des hosts pour qu'il repasse sous les 60%.
 Le 60% est un objectif, il est difficile de savoir exactement le nombre de hosts à retirer pour l'atteindre. Le tout
@@ -3577,18 +4059,18 @@ Le but est d'écrire la conf préparée par broker d'une traite dans centreon\_s
 ### Cache centralisé
 Tous les streams doivent accéder au même cache qui provient de la configuration en grande partie.
 
-Il est composé de deux parties:
+Il est composé de deux parties :
 * configuration
 * temps réel et autre (l'héritage des caches broker actuels)
 
 Il faut recenser les caches actuellement utilisés. Et ensuite on produit un cache global pour alimenter l'ensemble.
 
 On a la configuration engine globale qui est enrichie au fur et à mesure des envois de conf côté broker.
-Le cache est à part et pointe sur cette configuration globale.
+Le cache est à part et pointe sur cette configuration générale.
 En faisant ça, côté Engine, le cbmod a aussi son cache qui pointe ce coup ci vers la conf Engine dans globals.cc.
 L'alimentation est templatisée car faite soit par Zone, soit par State.
 
-Possibilité de découper:
+Possibilité de découper :
 1. on fait le nouveau cache. Encore assez lourd mais raisonnable.
 2. migrer progressivement les autres caches vers celui-là. Les migrations peuvent être faites en parallèle (influxdb, graphite, VictoriaMetrics, Lua, rrd, unified\_sql).
 3. Un ticket existe déjà pour supprimer les outputs sql et storage.
@@ -3612,14 +4094,14 @@ La prise en compte par Broker du Health doit permettre le rééquilibrage des co
 * retention.dat (côté poller, si ça change on n'a plus l'info)
 * hostdependencies les hosts doivent être sur le même poller.
 * servicedependencies les hosts de ces services doivent être sur le même poller.
-* Hostescalation / Serviceescalation : concerne les notifications. Elles doivent suivre l'objet notifié.
-* Attention aussi aux downtimes
+* Hostescalation / Serviceescalation : les escalades doivent suivre l'objet notifié (contrainte de co-location déjà appliquée par l'algorithme de distribution ; gérée par le service de notification en mode configuration centralisée).
+* Downtimes et acquittements : traités — voir [Downtimes et acquittements centralisés](#downtimes-et-acquittements-centralisés) et [Notifications en mode HA](#notifications-en-mode-ha).
 * Anomalydetection doit être sur le même poller que le service associé. Et sa conf doit suivre.
 * Très difficile de garder la compatibilité avec l'ancien comportement d'engine
 * ping-pong
 * le check de la configuration Engine doit être migré en gRPC sur Broker.
 * dans la table resources, nous n'avons actuellement que poller_id, est-il judicieux d'aussi ajouter la zone_id ? Première
-impression: oui. Même si globalement nous remplaçons poller_id par zone_id, il y a des exceptions !! Les pollers ID gardent
+impression : oui. Même si globalement nous remplaçons poller_id par zone_id, il y a des exceptions !! Les pollers ID gardent
 leur sens par exemple pour accéder aux logs.
 
 # Résolution des soucis

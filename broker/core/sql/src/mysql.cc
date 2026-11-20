@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/strings/str_split.h>
-
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"

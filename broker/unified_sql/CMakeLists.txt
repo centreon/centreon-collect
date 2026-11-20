@@ -62,7 +62,7 @@ set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX ""
 add_dependencies("${UNIFIED_SQL}" pb_rebuild_message_lib
                  pb_remove_graph_message_lib process_stat pb_neb_lib
                  pb_open_telemetry_lib target_broker_message)
-target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hh)
 target_link_libraries(
   ${UNIFIED_SQL} PRIVATE
   bbdo_storage

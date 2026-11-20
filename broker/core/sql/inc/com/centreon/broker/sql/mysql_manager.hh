@@ -18,6 +18,8 @@
 #ifndef CCB_MYSQL_MANAGER_HH
 #define CCB_MYSQL_MANAGER_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/sql/mysql.hh"
 
 namespace com::centreon::broker {
@@ -82,7 +84,7 @@ class mysql_manager {
   static mysql_manager& instance();
   std::vector<std::shared_ptr<mysql_connection>> get_connections(
       database_config const& db_cfg);
-  std::map<std::string, std::string> get_stats();
+  absl::btree_map<std::string, std::string> get_stats();
   void update_connections();
   void clear();
   size_t connections_count() const;

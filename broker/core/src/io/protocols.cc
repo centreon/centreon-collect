@@ -33,8 +33,8 @@ static protocols* gl_protocols = nullptr;
  *
  *  @return Iterator to the beginning of the protocol list.
  */
-std::map<std::string, protocols::protocol>::const_iterator protocols::begin()
-    const {
+absl::btree_map<std::string, protocols::protocol>::const_iterator
+protocols::begin() const {
   return _protocols.begin();
 }
 
@@ -43,8 +43,8 @@ std::map<std::string, protocols::protocol>::const_iterator protocols::begin()
  *
  *  @return Iterator to the end of the protocol list.
  */
-std::map<std::string, protocols::protocol>::const_iterator protocols::end()
-    const {
+absl::btree_map<std::string, protocols::protocol>::const_iterator
+protocols::end() const {
   return _protocols.end();
 }
 

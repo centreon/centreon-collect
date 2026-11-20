@@ -18,7 +18,6 @@
 
 #include "broker/core/bbdo/basic_stream.hh"
 
-#include <absl/strings/str_split.h>
 #include <arpa/inet.h>
 
 #include "bbdo/bbdo/ack.hh"

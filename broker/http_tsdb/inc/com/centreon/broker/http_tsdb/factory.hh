@@ -36,7 +36,7 @@ namespace http_tsdb {
 class factory : public io::factory {
  protected:
   std::string _name;
-  std::shared_ptr<asio::io_context> _io_context;
+  std::shared_ptr<boost::asio::io_context> _io_context;
 
   void create_conf(const config::endpoint& cfg, http_tsdb_config& conf) const;
 
@@ -45,7 +45,7 @@ class factory : public io::factory {
 
  public:
   factory(const std::string& name,
-          const std::shared_ptr<asio::io_context>& io_context);
+          const std::shared_ptr<boost::asio::io_context>& io_context);
   factory(factory const&) = delete;
   ~factory() = default;
 

@@ -19,8 +19,6 @@
 #ifndef CCB_WATCHDOG_CONFIGURATION_PARSER_HH
 #define CCB_WATCHDOG_CONFIGURATION_PARSER_HH
 
-#include <nlohmann/json.hpp>
-
 #include "com/centreon/broker/watchdog/configuration.hh"
 #include "com/centreon/broker/watchdog/instance_configuration.hh"
 

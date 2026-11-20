@@ -19,7 +19,6 @@
 #ifndef CCB_CONFIG_APPLIER_STATE_HH
 #define CCB_CONFIG_APPLIER_STATE_HH
 
-#include <absl/container/btree_map.h>
 #include <boost/asio/steady_timer.hpp>
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/modules.hh"

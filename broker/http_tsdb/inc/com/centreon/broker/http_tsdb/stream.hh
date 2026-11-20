@@ -77,7 +77,7 @@ inline std::ostream& operator<<(std::ostream& str, const request& req) {
  */
 class stream : public io::stream, public std::enable_shared_from_this<stream> {
  protected:
-  std::shared_ptr<asio::io_context> _io_context;
+  std::shared_ptr<boost::asio::io_context> _io_context;
   const std::shared_ptr<spdlog::logger> _logger;
   // Database and http parameters
   std::shared_ptr<http_tsdb_config> _conf;
@@ -111,7 +111,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
    *
    */
   class stat_average {
-    std::map<time_point, unsigned> _points;
+    absl::btree_map<std::chrono::system_clock::time_point, unsigned> _points;
 
    public:
     void add_point(unsigned value);
@@ -126,7 +126,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   mutable std::mutex _protect;
 
   stream(const std::string& name,
-         const std::shared_ptr<asio::io_context>& io_context,
+         const std::shared_ptr<boost::asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const std::shared_ptr<http_tsdb_config>& conf,
          http::connection_creator conn_creator);

@@ -22,6 +22,8 @@
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 #include "com/centreon/common/pool.hh"
 
+namespace asio = boost::asio;
+
 namespace com::centreon::broker {
 namespace tcp {
 

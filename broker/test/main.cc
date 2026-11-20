@@ -25,6 +25,8 @@
 #include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
+namespace asio = boost::asio;
+
 using com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context =

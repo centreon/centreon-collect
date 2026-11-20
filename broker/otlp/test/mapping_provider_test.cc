@@ -28,7 +28,7 @@ using com::centreon::common::perfdata;
 using com::centreon::exceptions::msg_fmt;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
+extern std::shared_ptr<boost::asio::io_context> g_io_context;
 
 namespace {
 

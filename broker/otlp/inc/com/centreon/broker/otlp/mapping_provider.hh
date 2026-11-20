@@ -46,7 +46,7 @@ class mapping_provider : public std::enable_shared_from_this<mapping_provider> {
 
   std::shared_ptr<com::centreon::common::file_watcher> _watcher;
 
-  void _start_watcher(const std::shared_ptr<asio::io_context>& io_context);
+  void _start_watcher(const std::shared_ptr<boost::asio::io_context>& io_context);
 
  public:
   using pointer = std::shared_ptr<mapping_provider>;
@@ -71,7 +71,7 @@ class mapping_provider : public std::enable_shared_from_this<mapping_provider> {
    * broken configuration at startup is reported rather than silently replaced
    * by the empty table.
    */
-  static pointer load(const std::shared_ptr<asio::io_context>& io_context,
+  static pointer load(const std::shared_ptr<boost::asio::io_context>& io_context,
                       const std::filesystem::path& path,
                       const std::shared_ptr<spdlog::logger>& logger);
 

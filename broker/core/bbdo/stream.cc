@@ -18,7 +18,6 @@
 
 #include "broker/core/bbdo/stream.hh"
 
-#include <absl/strings/str_split.h>
 #include <arpa/inet.h>
 
 #include "bbdo/bbdo/ack.hh"
@@ -262,9 +261,8 @@ void stream::negotiate(stream::negotiation_type neg) {
   std::list<std::string> running_config = get_running_config();
 
   // Apply negotiated extensions.
-  SPDLOG_LOGGER_INFO(
-      _logger, "BBDO: we have extensions '{}' and peer has '{}'", extensions,
-      peer_extensions);
+  SPDLOG_LOGGER_INFO(_logger, "BBDO: we have extensions '{}' and peer has '{}'",
+                     extensions, peer_extensions);
   std::list<std::string_view> peer_ext{absl::StrSplit(peer_extensions, ' ')};
   for (auto& ext : _extensions) {
     // Find matching extension in peer extension list.
@@ -275,7 +273,8 @@ void stream::negotiate(stream::negotiation_type neg) {
                     ext->name()) == running_config.end()) {
         SPDLOG_LOGGER_INFO(_logger, "BBDO: applying extension '{}'",
                            ext->name());
-        for (std::map<std::string, io::protocols::protocol>::const_iterator
+        for (absl::btree_map<std::string,
+                             io::protocols::protocol>::const_iterator
                  proto_it = io::protocols::instance().begin(),
                  proto_end = io::protocols::instance().end();
              proto_it != proto_end; ++proto_it) {

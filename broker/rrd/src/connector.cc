@@ -25,6 +25,8 @@
 #include "com/centreon/broker/rrd/stream.hh"
 #include "common/log_v2/log_v2.hh"
 
+namespace asio = boost::asio;
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 using log_v2 = com::centreon::common::log_v2::log_v2;

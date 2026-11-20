@@ -163,7 +163,7 @@ class exporter {
    * @brief This is useful when mysql connections change, we can update
    * observers.
    */
-  asio::steady_timer _connections_watcher;
+  boost::asio::steady_timer _connections_watcher;
 
   void _check_connections(std::shared_ptr<metrics_api::MeterProvider> provider,
                           const boost::system::error_code& ec);

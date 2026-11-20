@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2026 Centreon
+ * Copyright 2022-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,33 +16,35 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CC_RRD_PRECOMP_HH
-#define CC_RRD_PRECOMP_HH
+#ifndef CC_UNIFIED_SQL_PRECOMP_HH
+#define CC_UNIFIED_SQL_PRECOMP_HH
 
 #include <condition_variable>
-#include <ctime>
 #include <deque>
-#include <filesystem>
 #include <future>
+#include <limits>
 #include <list>
+#include <set>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
+#include <absl/container/btree_map.h>
+#include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-#include "absl/container/btree_map.h"
 #include <absl/strings/match.h>
-#include <absl/synchronization/mutex.h>
+#include <absl/strings/str_split.h>
 
 #include <boost/asio.hpp>
-#include <boost/container/flat_map.hpp>
-#include <boost/system/system_error.hpp>
-
-namespace asio = boost::asio;
+#include <boost/container/string.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
 #include <spdlog/fmt/ostr.h>
-#include <spdlog/fmt/std.h>
+#include <spdlog/fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #endif

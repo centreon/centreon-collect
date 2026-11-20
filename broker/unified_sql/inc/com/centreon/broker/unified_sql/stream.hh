@@ -33,6 +33,8 @@
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 #include "com/centreon/common/perfdata.hh"
 
+namespace asio = boost::asio;
+
 namespace com::centreon::broker {
 namespace unified_sql {
 struct int64_not_minus_one {

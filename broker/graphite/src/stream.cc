@@ -27,7 +27,7 @@
 #include "common/crypto/base64.hh"
 #include "common/log_v2/log_v2.hh"
 
-using namespace asio;
+using namespace boost::asio;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
@@ -83,7 +83,7 @@ stream::stream(std::string const& metric_naming,
         _db_host, _db_port, err.message());
   }
 
-  asio::connect(_socket, endpoint, err);
+  boost::asio::connect(_socket, endpoint, err);
   if (err) {
     throw msg_fmt(
         "graphite: can't connect to graphite on host '{}', port '{}' : {}",
@@ -248,7 +248,7 @@ void stream::_commit() {
   if (!_query.empty()) {
     boost::system::error_code err;
 
-    asio::write(_socket, buffer(_query), asio::transfer_all(), err);
+    boost::asio::write(_socket, buffer(_query), boost::asio::transfer_all(), err);
     if (err)
       throw msg_fmt(
           "graphite: can't send data to graphite on host '{}', port '{}' : {}",

@@ -17,7 +17,6 @@
  *
  */
 #include "common/engine_conf/indexed_state.hh"
-#include <absl/container/btree_map.h>
 #include <google/protobuf/util/message_differencer.h>
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/hostescalation_helper.hh"

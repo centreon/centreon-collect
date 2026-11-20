@@ -20,10 +20,10 @@
 #define CENTREON_BROKER_CORE_TEST_TEST_SERVER_HH_
 
 struct test_server_connection {
-  asio::ip::tcp::socket socket;
+  boost::asio::ip::tcp::socket socket;
   char* buf;
 
-  test_server_connection(asio::io_context& ctx, size_t max_buf) : socket{ctx} {
+  test_server_connection(boost::asio::io_context& ctx, size_t max_buf) : socket{ctx} {
     buf = new char[max_buf];
   }
 
@@ -45,7 +45,7 @@ class test_server {
   void wait_for_init();
   std::atomic_bool const& get_bind_ok() { return _bind_ok; };
 
-  bool add_client(asio::ip::tcp::socket& sock, asio::io_context& io);
+  bool add_client(boost::asio::ip::tcp::socket& sock, boost::asio::io_context& io);
 
  private:
   void start_accept();
@@ -62,8 +62,8 @@ class test_server {
   std::mutex _m_init;
   std::condition_variable _cond_init;
   bool _initialised;
-  std::unique_ptr<asio::io_context> _ctx;
-  std::unique_ptr<asio::ip::tcp::acceptor> _acceptor;
+  std::unique_ptr<boost::asio::io_context> _ctx;
+  std::unique_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
   std::list<test_server_connection> _connections;
   std::atomic_size_t _num_connections;
   std::atomic_bool _bind_ok;

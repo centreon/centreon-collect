@@ -51,9 +51,9 @@ std::vector<unsigned char> greeting(uint16_t capabilities) {
  * connection open until it is destroyed.
  */
 class greeting_server {
-  asio::io_context _io_context;
-  asio::ip::tcp::acceptor _acceptor;
-  asio::ip::tcp::socket _socket;
+  boost::asio::io_context _io_context;
+  boost::asio::ip::tcp::acceptor _acceptor;
+  boost::asio::ip::tcp::socket _socket;
   const std::vector<unsigned char> _packet;
   /* Read before the thread starts: the acceptor then belongs to it. */
   const uint16_t _port;
@@ -61,14 +61,14 @@ class greeting_server {
 
  public:
   explicit greeting_server(std::vector<unsigned char> packet)
-      : _acceptor{_io_context, {asio::ip::address_v4::loopback(), 0}},
+      : _acceptor{_io_context, {boost::asio::ip::address_v4::loopback(), 0}},
         _socket{_io_context},
         _packet{std::move(packet)},
         _port{_acceptor.local_endpoint().port()} {
     _acceptor.async_accept(
         _socket, [this](const boost::system::error_code& err) {
           if (!err)
-            asio::async_write(_socket, asio::buffer(_packet),
+            boost::asio::async_write(_socket, boost::asio::buffer(_packet),
                               [](const boost::system::error_code&, size_t) {});
         });
     _thread =
@@ -120,9 +120,9 @@ TEST(mysql_tls_probe_test, error_packet_is_left_to_libmariadb) {
  * ever sent, as with a server stuck before its greeting. The probe must give
  * up after its timeout. */
 TEST(mysql_tls_probe_test, silent_server_times_out) {
-  asio::io_context io_context;
-  asio::ip::tcp::acceptor acceptor{io_context,
-                                   {asio::ip::address_v4::loopback(), 0}};
+  boost::asio::io_context io_context;
+  boost::asio::ip::tcp::acceptor acceptor{io_context,
+                                   {boost::asio::ip::address_v4::loopback(), 0}};
   auto start = std::chrono::steady_clock::now();
   std::optional<bool> result = server_advertises_tls(
       "127.0.0.1", acceptor.local_endpoint().port(),

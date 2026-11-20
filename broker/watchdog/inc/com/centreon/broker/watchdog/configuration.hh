@@ -29,12 +29,13 @@ namespace com::centreon::broker::watchdog {
  */
 class configuration {
  public:
-  typedef std::map<std::string, instance_configuration> instance_map;
+  typedef absl::btree_map<std::string, instance_configuration> instance_map;
 
   configuration();
   ~configuration();
-  configuration(std::string const& log_filename,
-                std::map<std::string, instance_configuration> const& instances);
+  configuration(
+      std::string const& log_filename,
+      absl::btree_map<std::string, instance_configuration> const& instances);
   configuration(configuration const& other);
   configuration& operator=(configuration const& other);
 

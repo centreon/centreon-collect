@@ -30,11 +30,11 @@ namespace com::centreon::common {
  * @param handler job to do
  */
 template <class handler_type>
-void defer(const std::shared_ptr<asio::io_context>& io_context,
+void defer(const std::shared_ptr<boost::asio::io_context>& io_context,
            const std::chrono::system_clock::duration& delay,
            handler_type&& handler) {
-  std::shared_ptr<asio::system_timer> timer(
-      std::make_shared<asio::system_timer>(*io_context));
+  std::shared_ptr<boost::asio::system_timer> timer(
+      std::make_shared<boost::asio::system_timer>(*io_context));
   timer->expires_after(delay);
   timer->async_wait([io_context, timer, m_handler = std::move(handler)](
                         const boost::system::error_code& err) {
@@ -53,11 +53,11 @@ void defer(const std::shared_ptr<asio::io_context>& io_context,
  * @param handler job to do
  */
 template <class handler_type>
-void defer(const std::shared_ptr<asio::io_context>& io_context,
+void defer(const std::shared_ptr<boost::asio::io_context>& io_context,
            const std::chrono::system_clock::time_point& tp,
            handler_type&& handler) {
-  std::shared_ptr<asio::system_timer> timer(
-      std::make_shared<asio::system_timer>(*io_context));
+  std::shared_ptr<boost::asio::system_timer> timer(
+      std::make_shared<boost::asio::system_timer>(*io_context));
   timer->expires_at(tp);
   timer->async_wait([io_context, timer, m_handler = std::move(handler)](
                         const boost::system::error_code& err) {

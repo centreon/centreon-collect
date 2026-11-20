@@ -36,7 +36,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  @param[in] port                    port
  */
 stream::stream(const std::string& lua_script,
-               const std::map<std::string, variant>& conf_params)
+               const absl::btree_map<std::string, variant>& conf_params)
     : io::stream("lua"),
       _luabinding(lua_script, conf_params),
       _logger{log_v2::instance().get(log_v2::LUA)} {}

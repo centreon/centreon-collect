@@ -92,7 +92,7 @@ class process : public child_process<use_mutex> {
   using child_process<use_mutex>::_proc;
   using child_process<use_mutex>::_use_stderr_pipe;
 
-  asio::system_timer _timeout_timer ABSL_GUARDED_BY(_protect);
+  boost::asio::system_timer _timeout_timer ABSL_GUARDED_BY(_protect);
 
   using handler_type = std::function<void(const process<use_mutex>& proc,
                                           int /*exit_code*/,

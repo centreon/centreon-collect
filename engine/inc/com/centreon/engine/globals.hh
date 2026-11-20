@@ -35,7 +35,7 @@
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
+extern std::shared_ptr<boost::asio::io_context> g_io_context;
 
 extern std::shared_ptr<spdlog::logger> checks_logger;
 extern std::shared_ptr<spdlog::logger> commands_logger;

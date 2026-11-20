@@ -19,11 +19,17 @@
 #include "com/centreon/broker/lua/broker_utils.hh"
 
 #include <absl/strings/str_split.h>
+#include <fmt/format.h>
+#include <sys/stat.h>
 #include "broker/core/config/applier/state.hh"
 #include "common/crypto/base64.hh"
 
 #include <openssl/evp.h>
 #include <nlohmann/json.hpp>
+#include <cstdlib>
+#include <cstring>
+#include <iomanip>
+#include <sstream>
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"

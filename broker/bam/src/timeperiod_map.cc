@@ -79,9 +79,9 @@ bool timeperiod_map::operator==(timeperiod_map const& other) const {
  */
 com::centreon::broker::time::timeperiod::ptr timeperiod_map::get_timeperiod(
     uint32_t id) const {
-  std::map<uint32_t,
-           com::centreon::broker::time::timeperiod::ptr>::const_iterator found =
-      _map.find(id);
+  absl::btree_map<uint32_t,
+                  com::centreon::broker::time::timeperiod::ptr>::const_iterator
+      found = _map.find(id);
   if (found == _map.end())
     return (com::centreon::broker::time::timeperiod::ptr());
   else

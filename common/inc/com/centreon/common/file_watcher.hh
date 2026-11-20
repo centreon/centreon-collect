@@ -56,14 +56,14 @@ class file_watcher : public std::enable_shared_from_this<file_watcher> {
   // platform specific state defined in file_watcher.cc
   struct impl;
 
-  std::shared_ptr<asio::io_context> _io_context;
+  std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
   const std::filesystem::path _watched_path;
   // directory actually watched (parent of _watched_path)
   const std::filesystem::path _parent_path;
   // name of the file to filter events on, inside _parent_path
   const std::filesystem::path _file_name;
-  asio::steady_timer _debounce_timer;
+  boost::asio::steady_timer _debounce_timer;
   on_change_handler _on_change;
   std::unique_ptr<impl> _impl;
   absl::Mutex _mutex;
@@ -78,7 +78,7 @@ class file_watcher : public std::enable_shared_from_this<file_watcher> {
       ABSL_LOCKS_EXCLUDED(_mutex);
 
  public:
-  file_watcher(const std::shared_ptr<asio::io_context>& io_context,
+  file_watcher(const std::shared_ptr<boost::asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                const std::filesystem::path& watched_path,
                on_change_handler&& on_change);
@@ -88,7 +88,7 @@ class file_watcher : public std::enable_shared_from_this<file_watcher> {
   file_watcher& operator=(const file_watcher&) = delete;
 
   static std::shared_ptr<file_watcher> load(
-      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<boost::asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       const std::filesystem::path& watched_path,
       on_change_handler&& on_change);

@@ -43,7 +43,7 @@ add_executable("${WATCHDOG}"
 )
 
 target_link_libraries(${WATCHDOG} pthread fmt::fmt spdlog::spdlog nlohmann_json::nlohmann_json)
-target_precompile_headers(${WATCHDOG} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${WATCHDOG} PRIVATE precomp_inc/precomp.hh)
 
 if (WITH_TESTING)
   # Testing.

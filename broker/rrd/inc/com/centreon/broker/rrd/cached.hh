@@ -32,6 +32,8 @@ using namespace com::centreon;
 using namespace com::centreon::exceptions;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
+namespace asio = boost::asio;
+
 namespace com::centreon::broker::rrd {
 
 template <typename T>
