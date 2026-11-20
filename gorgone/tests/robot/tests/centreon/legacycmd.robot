@@ -82,6 +82,45 @@ Legacycmd reports a final batch result over the HTTP API
     Should Be Equal As Integers    ${result}[code]    2    an untracked batch always reports accepted
     Should Be Equal As Integers    ${result}[data][tracked]    0    EXTERNALCMD must not be tracked
 
+Legacycmd reports a final batch result quickly while it is pending
+    [Documentation]    Regression test for MON-214478: check_pending_batches() alone only nudges
+    ...    a pending target and polls the local history every 5s, so a copy that actually takes
+    ...    1-2.5s could still take a full 5s cycle - or more, see legacycmd.md - to be noticed.
+    ...    check_pending_batches_fast() adds a 1s sweep on top for exactly this reason. This
+    ...    batch has a single target, well under legacycmd_fast_poll_max_targets (default 3), so
+    ...    the fast sweep's remote nudge is expected to run every cycle here, not fall back to
+    ...    the unchanged 5s sweep (that part is for k8s-helm's multi-poller replay to judge).
+    [Tags]    gorgone    legacycmd    MON-214478
+    ${central}=    Set Variable    pullwss_gorgone_central_legacycmd_fast
+    ${poller}=    Set Variable    pullwss_gorgone_poller2_legacycmd_fast
+    [Teardown]    Legacycmd Final Result Teardown    central=${central}    poller=${poller}
+
+    @{central_config}    Create List    ${ROOT_CONFIG}legacycmd.yaml    ${ROOT_CONFIG}engine.yaml    ${ROOT_CONFIG}actions.yaml
+    @{poller_config}    Create List     ${ROOT_CONFIG}actions.yaml    ${ROOT_CONFIG}engine.yaml
+    Setup Two Gorgone Instances
+    ...    central_config=${central_config}
+    ...    communication_mode=pullwss
+    ...    central_name=${central}
+    ...    poller_name=${poller}
+    ...    poller_config=${poller_config}
+
+    Stage Engine And vmware Configuration    poller_id=2    comm=pullwss
+
+    ${command}    Create Dictionary    command=SENDCFGFILE    target=2
+    ${body}    Create List    ${command}
+    ${start_time}    Get Time    str=epoch
+    ${response}    POST    http://127.0.0.1:8085/api/centreon/legacycmd/command    json=${body}
+    ${status}    ${result}    Ctn Get Legacycmd Final Result    token=${response.json()}[token]    timeout=15
+    ${end_time}    Get Time    str=epoch
+    ${duration}    Evaluate    ${end_time} - ${start_time}
+    Log To Console    SENDCFGFILE batch result took ${duration} seconds
+    Should Be True    ${status}    No final batch result found: ${result}
+    Should Be Equal As Integers    ${result}[code]    2    batch should report success, got: ${result}
+    # real copy work is 1-2.5s (vmware+engine+broker); the old 5s-only sweep could add a full
+    # cycle or more on top (up to ~20s, see legacycmd.md) - 8s stays a comfortable margin above
+    # the ~3-5s the 1s fast sweep is meant to give, while staying well under the old worst case.
+    Should Be True    ${duration} < 8    batch took ${duration}s, expected the 1s fast poll to keep this well under the old cycle : ${result}
+
 Legacycmd retries loading the pollers cache right away after a database outage
     [Documentation]    Given gorgone-central's pollers cache fails to load (e.g. cfg_nagios
     ...    unavailable while an install is still running)
