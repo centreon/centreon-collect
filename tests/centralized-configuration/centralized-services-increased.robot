@@ -37,7 +37,6 @@ BECNSVC1
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
 
     ${start}    Ctn Get Round Current Date
