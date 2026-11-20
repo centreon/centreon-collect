@@ -88,7 +88,13 @@ target_link_libraries(
   ssl
   z
   dl
-  pthread)
+  pthread
+  # libcentreon_engine_conf.so (through pb_broker_lib) leaves these symbols to
+  # the executable; they must come after it for GNU ld.
+  centreon_engine_conf
+  log_v2
+  centreon_file_system
+  protobuf::libprotobuf)
 
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
