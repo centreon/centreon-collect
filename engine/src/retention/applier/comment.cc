@@ -49,7 +49,7 @@ void applier::comment::apply(list_comment const& lst) {
  *  @param[in] obj The comment to add into the host.
  */
 void applier::comment::_add_host_comment(
-    retention::comment const& obj) throw() {
+    retention::comment const& obj) noexcept {
   host_map::const_iterator it(host::hosts.find(obj.host_name()));
   if (it == host::hosts.end() || !it->second)
     return;

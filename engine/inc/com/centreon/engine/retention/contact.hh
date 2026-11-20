@@ -33,23 +33,23 @@ class contact : public object {
  public:
   contact();
   contact(contact const& right);
-  ~contact() throw() override;
+  ~contact() noexcept override;
   contact& operator=(contact const& right);
-  bool operator==(contact const& right) const throw();
-  bool operator!=(contact const& right) const throw();
+  bool operator==(contact const& right) const noexcept;
+  bool operator!=(contact const& right) const noexcept;
   bool set(char const* key, char const* value) override;
 
-  std::string const& contact_name() const throw();
-  map_customvar const& customvariables() const throw();
-  opt<std::string> const& host_notification_period() const throw();
-  opt<bool> const& host_notifications_enabled() const throw();
-  opt<time_t> const& last_host_notification() const throw();
-  opt<time_t> const& last_service_notification() const throw();
-  opt<unsigned long> const& modified_attributes() const throw();
-  opt<unsigned long> const& modified_host_attributes() const throw();
-  opt<unsigned long> const& modified_service_attributes() const throw();
-  opt<std::string> const& service_notification_period() const throw();
-  opt<bool> const& service_notifications_enabled() const throw();
+  std::string const& contact_name() const noexcept;
+  map_customvar const& customvariables() const noexcept;
+  opt<std::string> const& host_notification_period() const noexcept;
+  opt<bool> const& host_notifications_enabled() const noexcept;
+  opt<time_t> const& last_host_notification() const noexcept;
+  opt<time_t> const& last_service_notification() const noexcept;
+  opt<unsigned long> const& modified_attributes() const noexcept;
+  opt<unsigned long> const& modified_host_attributes() const noexcept;
+  opt<unsigned long> const& modified_service_attributes() const noexcept;
+  opt<std::string> const& service_notification_period() const noexcept;
+  opt<bool> const& service_notifications_enabled() const noexcept;
 
  private:
   struct setters {

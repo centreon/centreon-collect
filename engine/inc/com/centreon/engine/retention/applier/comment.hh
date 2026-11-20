@@ -31,8 +31,8 @@ class comment {
   void apply(list_comment const& lst);
 
  private:
-  void _add_host_comment(retention::comment const& obj) throw();
-  void _add_service_comment(retention::comment const& obj) throw();
+  void _add_host_comment(retention::comment const& obj) noexcept;
+  void _add_service_comment(retention::comment const& obj) noexcept;
 };
 }  // namespace applier
 }  // namespace retention

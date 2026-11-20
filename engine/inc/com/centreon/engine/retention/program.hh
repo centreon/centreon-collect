@@ -32,33 +32,33 @@ class program : public object {
  public:
   program();
   program(program const& right);
-  ~program() throw() override;
+  ~program() noexcept override;
   program& operator=(program const& right);
-  bool operator==(program const& right) const throw();
-  bool operator!=(program const& right) const throw();
+  bool operator==(program const& right) const noexcept;
+  bool operator!=(program const& right) const noexcept;
   bool set(char const* key, char const* value) override;
 
-  opt<bool> const& active_host_checks_enabled() const throw();
-  opt<bool> const& active_service_checks_enabled() const throw();
-  opt<bool> const& check_host_freshness() const throw();
-  opt<bool> const& check_service_freshness() const throw();
-  opt<bool> const& enable_event_handlers() const throw();
-  opt<bool> const& enable_flap_detection() const throw();
-  opt<bool> const& enable_notifications() const throw();
-  opt<std::string> const& global_host_event_handler() const throw();
-  opt<std::string> const& global_service_event_handler() const throw();
-  opt<unsigned long> const& modified_host_attributes() const throw();
-  opt<unsigned long> const& modified_service_attributes() const throw();
-  opt<unsigned long> const& next_comment_id() const throw();
-  opt<unsigned long> const& next_downtime_id() const throw();
-  opt<unsigned long> const& next_event_id() const throw();
-  opt<unsigned long> const& next_notification_id() const throw();
-  opt<unsigned long> const& next_problem_id() const throw();
-  opt<bool> const& obsess_over_hosts() const throw();
-  opt<bool> const& obsess_over_services() const throw();
-  opt<bool> const& passive_host_checks_enabled() const throw();
-  opt<bool> const& passive_service_checks_enabled() const throw();
-  opt<bool> const& process_performance_data() const throw();
+  opt<bool> const& active_host_checks_enabled() const noexcept;
+  opt<bool> const& active_service_checks_enabled() const noexcept;
+  opt<bool> const& check_host_freshness() const noexcept;
+  opt<bool> const& check_service_freshness() const noexcept;
+  opt<bool> const& enable_event_handlers() const noexcept;
+  opt<bool> const& enable_flap_detection() const noexcept;
+  opt<bool> const& enable_notifications() const noexcept;
+  opt<std::string> const& global_host_event_handler() const noexcept;
+  opt<std::string> const& global_service_event_handler() const noexcept;
+  opt<unsigned long> const& modified_host_attributes() const noexcept;
+  opt<unsigned long> const& modified_service_attributes() const noexcept;
+  opt<unsigned long> const& next_comment_id() const noexcept;
+  opt<unsigned long> const& next_downtime_id() const noexcept;
+  opt<unsigned long> const& next_event_id() const noexcept;
+  opt<unsigned long> const& next_notification_id() const noexcept;
+  opt<unsigned long> const& next_problem_id() const noexcept;
+  opt<bool> const& obsess_over_hosts() const noexcept;
+  opt<bool> const& obsess_over_services() const noexcept;
+  opt<bool> const& passive_host_checks_enabled() const noexcept;
+  opt<bool> const& passive_service_checks_enabled() const noexcept;
+  opt<bool> const& process_performance_data() const noexcept;
 
  private:
   struct setters {

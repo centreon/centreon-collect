@@ -33,7 +33,7 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& right) {
   return *this;
 }
 
-bool anomalydetection::operator==(anomalydetection const& right) const throw() {
+bool anomalydetection::operator==(anomalydetection const& right) const noexcept {
   if (!(static_cast<const service&>(*this) ==
         static_cast<const service&>(right))) {
     return false;
@@ -41,7 +41,7 @@ bool anomalydetection::operator==(anomalydetection const& right) const throw() {
   return _sensitivity == right._sensitivity;
 }
 
-bool anomalydetection::operator!=(anomalydetection const& right) const throw() {
+bool anomalydetection::operator!=(anomalydetection const& right) const noexcept {
   return !operator==(right);
 }
 

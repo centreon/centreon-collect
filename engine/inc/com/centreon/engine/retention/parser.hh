@@ -30,7 +30,7 @@ class state;
 class parser {
  public:
   parser();
-  ~parser() throw();
+  ~parser() noexcept;
   void parse(std::string const& path, state& retention);
 
  private:

@@ -38,7 +38,7 @@ state::state(state const& right) {
 /**
  *  Destructor.
  */
-state::~state() throw() {}
+state::~state() noexcept {}
 
 /**
  *  Copy operator.
@@ -68,7 +68,7 @@ state& state::operator=(state const& right) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool state::operator==(state const& right) const throw() {
+bool state::operator==(state const& right) const noexcept {
   return (_comments == right._comments && _contacts == right._contacts &&
           _downtimes == right._downtimes && _globals == right._globals &&
           _hosts == right._hosts && _info == right._info &&
@@ -83,7 +83,7 @@ bool state::operator==(state const& right) const throw() {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool state::operator!=(state const& right) const throw() {
+bool state::operator!=(state const& right) const noexcept {
   return (!operator==(right));
 }
 
@@ -92,7 +92,7 @@ bool state::operator!=(state const& right) const throw() {
  *
  *  @return The comment list.
  */
-list_comment& state::comments() throw() {
+list_comment& state::comments() noexcept {
   return (_comments);
 }
 
@@ -101,7 +101,7 @@ list_comment& state::comments() throw() {
  *
  *  @return The comment list.
  */
-list_comment const& state::comments() const throw() {
+list_comment const& state::comments() const noexcept {
   return (_comments);
 }
 
@@ -110,7 +110,7 @@ list_comment const& state::comments() const throw() {
  *
  *  @return The contact list.
  */
-list_contact& state::contacts() throw() {
+list_contact& state::contacts() noexcept {
   return (_contacts);
 }
 
@@ -119,7 +119,7 @@ list_contact& state::contacts() throw() {
  *
  *  @return The contact list.
  */
-list_contact const& state::contacts() const throw() {
+list_contact const& state::contacts() const noexcept {
   return (_contacts);
 }
 
@@ -128,7 +128,7 @@ list_contact const& state::contacts() const throw() {
  *
  *  @return The downtime list.
  */
-list_downtime& state::downtimes() throw() {
+list_downtime& state::downtimes() noexcept {
   return (_downtimes);
 }
 
@@ -137,7 +137,7 @@ list_downtime& state::downtimes() throw() {
  *
  *  @return The downtime list.
  */
-list_downtime const& state::downtimes() const throw() {
+list_downtime const& state::downtimes() const noexcept {
   return (_downtimes);
 }
 
@@ -146,7 +146,7 @@ list_downtime const& state::downtimes() const throw() {
  *
  *  @return The globals.
  */
-program& state::globals() throw() {
+program& state::globals() noexcept {
   return (_globals);
 }
 
@@ -155,7 +155,7 @@ program& state::globals() throw() {
  *
  *  @return The globals.
  */
-program const& state::globals() const throw() {
+program const& state::globals() const noexcept {
   return (_globals);
 }
 
@@ -164,7 +164,7 @@ program const& state::globals() const throw() {
  *
  *  @return The host list.
  */
-list_host& state::hosts() throw() {
+list_host& state::hosts() noexcept {
   return (_hosts);
 }
 
@@ -173,7 +173,7 @@ list_host& state::hosts() throw() {
  *
  *  @return The host list.
  */
-list_host const& state::hosts() const throw() {
+list_host const& state::hosts() const noexcept {
   return (_hosts);
 }
 
@@ -182,7 +182,7 @@ list_host const& state::hosts() const throw() {
  *
  *  @return The informations.
  */
-info& state::informations() throw() {
+info& state::informations() noexcept {
   return (_info);
 }
 
@@ -191,7 +191,7 @@ info& state::informations() throw() {
  *
  *  @return The informations.
  */
-info const& state::informations() const throw() {
+info const& state::informations() const noexcept {
   return (_info);
 }
 
@@ -200,7 +200,7 @@ info const& state::informations() const throw() {
  *
  *  @return The service list.
  */
-list_service& state::services() throw() {
+list_service& state::services() noexcept {
   return (_services);
 }
 

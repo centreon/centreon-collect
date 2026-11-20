@@ -31,24 +31,24 @@ class downtime : public object {
 
   downtime(type_id type);
   downtime(downtime const& right);
-  ~downtime() throw() override;
+  ~downtime() noexcept override;
   downtime& operator=(downtime const& right);
-  bool operator==(downtime const& right) const throw();
-  bool operator!=(downtime const& right) const throw();
+  bool operator==(downtime const& right) const noexcept;
+  bool operator!=(downtime const& right) const noexcept;
   bool set(char const* key, char const* value) override;
 
-  std::string author() const throw();
-  std::string comment_data() const throw();
-  unsigned long downtime_id() const throw();
-  type_id downtime_type() const throw();
-  unsigned long duration() const throw();
-  time_t end_time() const throw();
-  time_t entry_time() const throw();
-  bool fixed() const throw();
-  std::string host_name() const throw();
-  std::string service_description() const throw();
-  time_t start_time() const throw();
-  unsigned long triggered_by() const throw();
+  std::string author() const noexcept;
+  std::string comment_data() const noexcept;
+  unsigned long downtime_id() const noexcept;
+  type_id downtime_type() const noexcept;
+  unsigned long duration() const noexcept;
+  time_t end_time() const noexcept;
+  time_t entry_time() const noexcept;
+  bool fixed() const noexcept;
+  std::string host_name() const noexcept;
+  std::string service_description() const noexcept;
+  time_t start_time() const noexcept;
+  unsigned long triggered_by() const noexcept;
 
  private:
   struct setters {
