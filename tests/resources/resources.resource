@@ -214,13 +214,17 @@ Ctn Kindly Stop Broker
                 Log To Console    We don't check RRD duplicates here (bbdo2 or explicitly asked)
             END
 
-	    # We check negative metric_id
-	    ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
-	    IF    len("""${result}""") > 0
-                Log To Console    The central logs contain errors about metrics with negative IDs.
-                Ctn Save Logs
-                Remove File    ${centralLog}
-	    END
+            # We check negative metric_id (the log may be missing if cbd was
+            # stopped before it applied its configuration)
+            ${centralLog_exists}    Run Keyword And Return Status    File Should Exist    ${centralLog}
+            IF    ${centralLog_exists}
+                ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+                IF    len("""${result}""") > 0
+                    Log To Console    The central logs contain errors about metrics with negative IDs.
+                    Ctn Save Logs
+                    Remove File    ${centralLog}
+                END
+            END
         END
     END
 
