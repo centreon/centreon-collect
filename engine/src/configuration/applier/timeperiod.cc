@@ -21,7 +21,6 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 
