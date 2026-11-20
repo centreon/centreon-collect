@@ -95,6 +95,7 @@ BEMC2
     ...                (DELETE with instance_id=1) must not evict service_1 from broker cache.
     [Tags]    broker    engine    cache    MON-197731
     Ctn Config Engine    ${2}    ${5}    ${1}
+    Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${2}
     Ctn Config BBDO3    ${2}
