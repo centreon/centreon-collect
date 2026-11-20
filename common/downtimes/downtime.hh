@@ -70,6 +70,7 @@ class downtime {
   void notify_broker_load();
   bool unschedule();
   bool subscribe();
+  bool reload();
   bool handle();
   uint64_t host_id() const;
   void print(std::ostream& os) const;
@@ -85,6 +86,8 @@ class downtime {
   uint32_t get_duration() const;
   bool is_in_effect() const;
   void start_flex_downtime();
+  uint64_t get_comment_id() const;
+  void set_comment_id(uint64_t comment_id);
 };
 
 }  // namespace com::centreon::common::downtimes

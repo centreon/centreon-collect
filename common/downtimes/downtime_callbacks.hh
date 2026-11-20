@@ -45,7 +45,11 @@ class downtime_callbacks {
                                            uint64_t service_id,
                                            const std::string& author,
                                            const std::string& comment_data) = 0;
-  virtual void delete_downtime_comment(uint64_t comment_id) = 0;
+  /* host_id/service_id let an integrator that owns the comment store (Broker)
+   * resolve the instance_id needed to address the row; Engine ignores them. */
+  virtual void delete_downtime_comment(uint64_t comment_id,
+                                       uint64_t host_id,
+                                       uint64_t service_id) = 0;
 
   virtual bool cancel_downtime(uint64_t host_id,
                                uint64_t service_id,
