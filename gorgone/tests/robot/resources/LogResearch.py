@@ -108,6 +108,38 @@ def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.
     return False, f"timeout reached while querying {uri}"
 
 
+def ctn_get_api_log_regardless_of_code_with_timeout(token: str, node_path='', host='http://127.0.0.1:8085', timeout=15):
+    """! Like ctn_get_api_log_with_timeout, but returns the first log entry found no matter its
+        code. ctn_get_api_log_with_timeout (via parse_json_response) only treats a per-command
+        result (code 100, GORGONE_MODULE_ACTION_COMMAND_RESULT) as a terminal answer and keeps
+        polling past every other code, including a KO (code 1, GORGONE_ACTION_FINISH_KO) - fine
+        for the action_command/pkg_install tests it was written for, but wrong for
+        action_actionengine (whose own codes are 1/2, GORGONE_ACTION_FINISH_KO/OK) and for any
+        test whose correct, expected outcome is itself a KO.
+        @param token: token to search in the API
+        @param node_path: part of the API URL defining if we use the local gorgone or another one, ex node/2/
+        @param timeout: timeout in seconds
+        @param host: gorgone API URL with the port
+        @return True/first log entry found, or False/a timeout message on failure.
+        """
+    limit_date = time.time() + timeout
+    uri = host + "/api/" + node_path + "log/" + token
+    while time.time() < limit_date:
+        response = requests.get(uri)
+        if response.status_code != 200 and response.status_code != 404:
+            time.sleep(1)
+            continue
+        api_json = response.json()
+        if 'error' in api_json and api_json['error'] == "no_log":
+            time.sleep(1)
+            continue
+        if len(api_json.get("data", [])) > 0:
+            return True, api_json["data"][0]
+        time.sleep(1)
+
+    return False, f"timeout reached while querying {uri}"
+
+
 def ctn_get_api_log_count_with_timeout(token: str, count=0, node_path='', host='http://127.0.0.1:8085', timeout=15, ):
     """! Query gorgone log API until the response contain at least one log, and send back the number of log found.
         @param token: token to search in the API
