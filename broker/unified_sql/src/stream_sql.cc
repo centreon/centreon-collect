@@ -383,23 +383,27 @@ void stream::_update_hosts_and_services_of_instance(uint64_t id,
  *  @param instance_id The id of the instance to have its timestamp updated.
  */
 void stream::_update_timestamp(uint64_t instance_id) {
-  std::lock_guard<std::mutex> l(_stored_timestamps_m);
-  // Find the state of an existing timestamp if it exists.
-  auto found = _stored_timestamps.find(instance_id);
-  if (found != _stored_timestamps.end()) {
-    // Update a suddenly alive instance
-    if (found->second.get_state() == stored_timestamp::unresponsive) {
-      _update_hosts_and_services_of_instance(instance_id, true);
-    }
-  } else {
-    _update_hosts_and_services_of_instance(instance_id, true);
+  bool back_alive;
+  {
+    std::lock_guard<std::mutex> l(_stored_timestamps_m);
+    // A new instance or a suddenly alive one.
+    auto found = _stored_timestamps.find(instance_id);
+    back_alive = found == _stored_timestamps.end() ||
+                 found->second.get_state() == stored_timestamp::unresponsive;
+
+    // Insert the timestamp and its state in the store.
+    stored_timestamp& timestamp = _stored_timestamps[instance_id];
+    timestamp = stored_timestamp(instance_id, stored_timestamp::responsive);
+    if (_oldest_timestamp > timestamp.get_timestamp())
+      _oldest_timestamp = timestamp.get_timestamp();
   }
 
-  // Insert the timestamp and its state in the store.
-  stored_timestamp& timestamp = _stored_timestamps[instance_id];
-  timestamp = stored_timestamp(instance_id, stored_timestamp::responsive);
-  if (_oldest_timestamp > timestamp.get_timestamp())
-    _oldest_timestamp = timestamp.get_timestamp();
+  /* Outside the lock: _update_hosts_and_services_of_instance() flushes the
+   * queues, and the pending downtimes processed there come back here through
+   * _is_valid_poller(). The instance is already responsive, so they don't go
+   * further. */
+  if (back_alive)
+    _update_hosts_and_services_of_instance(instance_id, true);
 }
 
 bool stream::_is_valid_poller(uint64_t instance_id) {
