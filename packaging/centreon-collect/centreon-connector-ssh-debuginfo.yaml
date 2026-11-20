@@ -8,7 +8,7 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  Debuginfo package for centreon-connector-perl.
+  Debuginfo package for centreon-connector-ssh.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://www.centreon.com"
@@ -35,7 +35,7 @@ overrides:
       - centreon-connector-ssh-dbgsym
 
 rpm:
-  summary: Debuginfo package for centreon-connector-perl.
+  summary: Debuginfo package for centreon-connector-ssh.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}

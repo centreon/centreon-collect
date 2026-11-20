@@ -38,7 +38,7 @@ overrides:
       - centreon-clib-dbgsym
 
 rpm:
-  summary: Centreon core library.
+  summary: Debuginfo package for centreon-clib.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
