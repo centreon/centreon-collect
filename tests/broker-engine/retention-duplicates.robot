@@ -377,7 +377,6 @@ BERDUC3U2
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -402,9 +401,7 @@ BERDUC3U2
     Should Be True    ${result}    Lua not started in centengine
 
     # Let's wait for all the services configuration.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    Engine should log initial service states before we proceed.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${start}    Ctn Get Round Current Date
     # Let's wait for a first service status.
