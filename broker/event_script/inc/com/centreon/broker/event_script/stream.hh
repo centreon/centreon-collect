@@ -96,8 +96,8 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
          const std::chrono::system_clock::duration& timeout);
 
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  int write(const std::shared_ptr<io::data>& d) override;
-  int32_t stop() override;
+  uint32_t write(const std::shared_ptr<io::data>& d) override;
+  uint32_t stop() override;
 };
 
 }  // namespace com::centreon::broker::event_script

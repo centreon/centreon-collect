@@ -72,11 +72,11 @@ class stream : public io::stream {
    *  Destructor.
    */
   ~stream() noexcept = default;
-  int flush() override;
+  uint32_t flush() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void statistics(nlohmann::json& tree) const override;
-  int write(std::shared_ptr<io::data> const& d) override;
-  int32_t stop() override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t stop() override;
 };
 }  // namespace influxdb
 

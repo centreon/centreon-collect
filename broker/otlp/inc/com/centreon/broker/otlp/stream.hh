@@ -73,7 +73,7 @@ class stream : public io::stream {
   std::optional<pending_export> _prepare_send_locked();
   /** Hand a detached batch to the exporter. Call without _protect held. */
   void _dispatch(pending_export&& batch);
-  int _take_acknowledged_locked();
+  uint32_t _take_acknowledged_locked();
   void _save_host_metadata();
 
  public:
@@ -86,9 +86,9 @@ class stream : public io::stream {
   ~stream() noexcept override = default;
 
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  int write(const std::shared_ptr<io::data>& d) override;
-  int flush() override;
-  int32_t stop() override;
+  uint32_t write(const std::shared_ptr<io::data>& d) override;
+  uint32_t flush() override;
+  uint32_t stop() override;
   void statistics(nlohmann::json& tree) const override;
 };
 

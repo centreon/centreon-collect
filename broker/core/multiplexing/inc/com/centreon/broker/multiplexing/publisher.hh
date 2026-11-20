@@ -40,9 +40,9 @@ class publisher : public io::stream {
   publisher& operator=(const publisher&) = delete;
   bool read(std::shared_ptr<io::data>& d,
             time_t deadline = (time_t)-1) override;
-  int32_t write(const std::shared_ptr<io::data>& d) override;
-  int32_t write(const std::deque<std::shared_ptr<io::data>>& to_publish);
-  int32_t stop() override;
+  uint32_t write(const std::shared_ptr<io::data>& d) override;
+  uint32_t write(const std::deque<std::shared_ptr<io::data>>& to_publish);
+  uint32_t stop() override;
 };
 }  // namespace com::centreon::broker::multiplexing
 

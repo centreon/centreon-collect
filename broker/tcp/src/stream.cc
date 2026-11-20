@@ -149,12 +149,12 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   return !timeout;
 }
 
-int32_t stream::flush() {
+uint32_t stream::flush() {
   return _connection->flush();
 }
 
-int32_t stream::stop() {
-  int32_t retval = 0;
+uint32_t stream::stop() {
+  uint32_t retval = 0;
   try {
     retval = flush();
   } catch (const std::exception& e) {
@@ -170,7 +170,7 @@ int32_t stream::stop() {
  *
  *  @return Number of events acknowledged.
  */
-int32_t stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream::write(std::shared_ptr<io::data> const& d) {
   _logger->trace("write event of type {} on tcp stream", d->type());
   // Check that data exists and should be processed.
   assert(d);

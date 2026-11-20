@@ -183,7 +183,7 @@ TEST_F(CompressionStreamWrite, Flush) {
   ASSERT_TRUE(!_substream->get_buffer() || _substream->get_buffer()->empty());
 
   // When
-  int retval(_stream->flush());
+  uint32_t retval(_stream->flush());
 
   // Then
   ASSERT_EQ(retval, 0);

@@ -79,8 +79,8 @@ bool stream::read(std::shared_ptr<io::data>& d,
  *
  * @return number of events to report to the muxer
  */
-int stream::_take_acknowledged_locked() {
-  const int acknowledged = static_cast<int>(_acknowledged);
+uint32_t stream::_take_acknowledged_locked() {
+  const uint32_t acknowledged = _acknowledged;
   _acknowledged = 0;
   return acknowledged;
 }
@@ -160,12 +160,12 @@ void stream::_dispatch(pending_export&& batch) {
  * @param d event
  * @return number of events to acknowledge
  */
-int stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream::write(std::shared_ptr<io::data> const& d) {
   SPDLOG_LOGGER_TRACE(_logger, "OTLP: event category:{}, element:{}",
                       category_of_type(d->type()), element_of_type(d->type()));
 
   std::optional<pending_export> to_send;
-  int acknowledged;
+  uint32_t acknowledged;
 
   {
     std::lock_guard<std::mutex> l(_protect);
@@ -226,9 +226,9 @@ int stream::write(std::shared_ptr<io::data> const& d) {
  *
  * @return number of events to acknowledge
  */
-int stream::flush() {
+uint32_t stream::flush() {
   std::optional<pending_export> to_send;
-  int acknowledged;
+  uint32_t acknowledged;
 
   {
     std::lock_guard<std::mutex> l(_protect);
@@ -270,10 +270,10 @@ void stream::_save_host_metadata() {
  *
  * @return number of events to acknowledge
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   SPDLOG_LOGGER_TRACE(_logger, "OTPL: stream Try to stop");
   std::optional<pending_export> to_send;
-  int acknowledged;
+  uint32_t acknowledged;
 
   {
     std::lock_guard<std::mutex> l(_protect);

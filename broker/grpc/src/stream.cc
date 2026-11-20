@@ -283,7 +283,7 @@ void stream<bireactor_class>::OnWriteDone(bool ok) {
  * @throw msg_fmt is object is not alive (after shutdown or an error)
  */
 template <class bireactor_class>
-int32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
   if (!_alive)
     throw(exceptions::connection_closed("{} connection is down",
                                         __PRETTY_FUNCTION__));
@@ -391,10 +391,10 @@ void stream<bireactor_class>::shutdown() {
  * @brief does nothing
  *
  * @tparam bireactor_class
- * @return int32_t
+ * @return uint32_t
  */
 template <class bireactor_class>
-int32_t stream<bireactor_class>::flush() {
+uint32_t stream<bireactor_class>::flush() {
   return 0;
 }
 
@@ -405,7 +405,7 @@ int32_t stream<bireactor_class>::flush() {
  * @return int32_t
  */
 template <class bireactor_class>
-int32_t stream<bireactor_class>::stop() {
+uint32_t stream<bireactor_class>::stop() {
   std::lock_guard l(_protect);
   if (_alive) {
     SPDLOG_LOGGER_DEBUG(_logger, "{:p} {}::stop", static_cast<void*>(this),

@@ -185,7 +185,7 @@ class connection_send_bagot : public http::connection_base {
   void receive_request(http::request_callback_type&& callback
                        [[maybe_unused]]) override {}
 
-  asio::ip::tcp::socket& get_socket() { return _not_used; }
+  asio::ip::tcp::socket& get_socket() override { return _not_used; }
 };
 
 std::atomic_uint connection_send_bagot::success(0);

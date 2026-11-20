@@ -147,8 +147,8 @@ class stream : public io::stream {
   ~stream() noexcept;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void update() override;
-  int32_t write(std::shared_ptr<io::data> const& d) override;
-  int32_t stop() override { return 0; }
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t stop() override { return 0; }
 
   /**
    * @brief Block until all currently queued background merge tasks complete.

@@ -39,7 +39,7 @@ class engine_command : public io::stream {
                  std::string const& command_module_path);
   ~engine_command();
   bool read(std::shared_ptr<io::data>& d, time_t deadline = (time_t)-1);
-  int write(std::shared_ptr<io::data> const& d);
+  uint32_t write(std::shared_ptr<io::data> const& d);
 
  private:
   engine_command(engine_command const& other);

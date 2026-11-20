@@ -40,7 +40,7 @@ void cbmod_stream::send_engine_conf(
   _write(pb_conf);
 }
 
-int32_t cbmod_stream::write(const std::shared_ptr<io::data>& d) {
+uint32_t cbmod_stream::write(const std::shared_ptr<io::data>& d) {
   if (_state.peer_type() == common::ENGINE && peer_type() == common::BROKER) {
     if (_state.diff_state_applied()) {
       const std::string& version = _state.engine_conf();
@@ -61,8 +61,8 @@ int32_t cbmod_stream::write(const std::shared_ptr<io::data>& d) {
   return stream::write(d);
 }
 
-int32_t cbmod_stream::stop() {
-  int32_t retval = stream::stop();
+uint32_t cbmod_stream::stop() {
+  uint32_t retval = stream::stop();
   if (poller_id() && !broker_name().empty() && !poller_name().empty())
     _state.remove_peer(poller_id(), poller_name(), broker_name());
   return retval;

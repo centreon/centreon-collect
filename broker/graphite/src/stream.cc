@@ -103,9 +103,9 @@ stream::~stream() {
  *
  *  @return Number of events acknowledged.
  */
-int32_t stream::flush() {
+uint32_t stream::flush() {
   _logger->debug("graphite: commiting {} queries", _actual_query);
-  int32_t ret(_pending_queries);
+  uint32_t ret(_pending_queries);
   if (_actual_query != 0)
     _commit();
   _actual_query = 0;
@@ -119,9 +119,9 @@ int32_t stream::flush() {
  *
  * @return the number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _logger->trace("graphite::stream stop {}", static_cast<void*>(this));
-  int32_t retval = flush();
+  uint32_t retval = flush();
   _logger->info("graphite stopped with {} events acknowledged", retval);
   return retval;
 }
@@ -159,7 +159,7 @@ void stream::statistics(nlohmann::json& tree) const {
  *
  *  @return Number of events acknowledged.
  */
-int stream::write(std::shared_ptr<io::data> const& data) {
+uint32_t stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_queries;
   if (!validate(data, get_name()))

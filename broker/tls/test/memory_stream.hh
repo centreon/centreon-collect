@@ -51,7 +51,7 @@ class StreamMemoryStream : public com::centreon::broker::io::stream {
     return true;
   }
 
-  int write(std::shared_ptr<com::centreon::broker::io::data> const& d) {
+  uint32_t write(std::shared_ptr<com::centreon::broker::io::data> const& d) {
     using namespace com::centreon::broker;
     if (!d || d->type() != io::raw::static_type())
       throw com::centreon::exceptions::msg_fmt("invalid data sent to {}",
@@ -65,7 +65,7 @@ class StreamMemoryStream : public com::centreon::broker::io::stream {
     return 1;
   }
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 
   void shutdown(bool shut_it_down = true) { _shutdown = shut_it_down; }
 

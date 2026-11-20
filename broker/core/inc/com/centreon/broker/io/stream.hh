@@ -56,10 +56,10 @@ class stream {
  public:
   stream(const std::string& name);
   virtual ~stream() noexcept = default;
-  virtual int32_t stop() = 0;
+  virtual uint32_t stop() = 0;
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;
-  virtual int flush();
+  virtual uint32_t flush();
   virtual std::string peer() const;
   virtual bool read(std::shared_ptr<io::data>& d,
                     time_t deadline = (time_t)-1) = 0;
@@ -68,7 +68,7 @@ class stream {
   virtual void statistics(nlohmann::json& tree) const;
   virtual void update();
   bool validate(std::shared_ptr<io::data> const& d, std::string const& error);
-  virtual int write(std::shared_ptr<data> const& d) = 0;
+  virtual uint32_t write(std::shared_ptr<data> const& d) = 0;
   const std::string& get_name() const { return _name; }
 
   virtual bool wait_for_all_events_written(unsigned ms_timeout);

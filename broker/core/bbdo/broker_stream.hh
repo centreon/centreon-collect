@@ -39,7 +39,7 @@ class broker_stream : public stream {
   bool supports_centralized_conf() const override;
   void specific_negotiate(Welcome& obj) override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  int32_t stop() override;
+  uint32_t stop() override;
 };
 }  // namespace com::centreon::broker::bbdo
 

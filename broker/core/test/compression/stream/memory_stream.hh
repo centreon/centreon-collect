@@ -51,7 +51,7 @@ class CompressionStreamMemoryStream : public com::centreon::broker::io::stream {
     return true;
   }
 
-  int write(
+  uint32_t write(
       std::shared_ptr<com::centreon::broker::io::data> const& d) override {
     using namespace com::centreon::broker;
     if (!d || d->type() != io::raw::static_type())
@@ -66,7 +66,7 @@ class CompressionStreamMemoryStream : public com::centreon::broker::io::stream {
     return 1;
   }
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 
   void shutdown(bool shut_it_down = true) { _shutdown = shut_it_down; }
 
