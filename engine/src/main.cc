@@ -36,6 +36,7 @@ namespace po = boost::program_options;
 #include <spdlog/spdlog.h>
 
 #include <absl/container/btree_map.h>
+#include <absl/strings/str_split.h>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
@@ -58,8 +59,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
-#include "com/centreon/engine/logging/broker.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
@@ -67,7 +66,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
-#include "com/centreon/logging/engine.hh"
 #include "common/crypto/cert_tree.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/log_v2/log_v2.hh"
@@ -165,8 +163,6 @@ int main(int argc, char* argv[]) {
   init_loggers();
   configuration::applier::logging::instance();
   com::centreon::common::pool::load(g_io_context, runtime_logger);
-
-  logging::broker backend_broker_log;
 
   int retval = EXIT_FAILURE;
   try {
@@ -457,8 +453,6 @@ int main(int argc, char* argv[]) {
               p.parse(new_conf->state_retention_file(), state);
             } catch (const std::exception& e) {
               config_logger->error("{}", e.what());
-              engine_logger(logging::log_config_error, logging::basic)
-                  << e.what();
             }
           }
 
@@ -484,10 +478,6 @@ int main(int argc, char* argv[]) {
                 absl::StrSplit(m, absl::MaxSplits(' ', 1));
             broker::loader::instance().add_module(p.first, p.second);
           }
-
-          // Add broker backend.
-          com::centreon::logging::engine::instance().add(
-              &backend_broker_log, logging::log_all, logging::basic);
 
           // Apply configuration.
           configuration::applier::state::instance().apply(*new_conf, err,
@@ -534,8 +524,6 @@ int main(int argc, char* argv[]) {
           com::centreon::engine::events::loop::instance().run();
 
           if (sigshutdown) {
-            engine_logger(logging::log_process_info, logging::basic)
-                << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
             SPDLOG_LOGGER_INFO(process_logger,
                                "Caught SIG {}, shutting down ...",
                                sigs[sig_id]);
@@ -555,8 +543,6 @@ int main(int argc, char* argv[]) {
 
           // Shutdown stuff.
           if (sigshutdown) {
-            engine_logger(logging::log_process_info, logging::basic)
-                << "Successfully shutdown ... (PID=" << getpid() << ")";
             SPDLOG_LOGGER_INFO(process_logger,
                                "Successfully shutdown ... (PID={})", getpid());
           }
@@ -564,8 +550,6 @@ int main(int argc, char* argv[]) {
           retval = EXIT_SUCCESS;
         } catch (std::exception const& e) {
           // Log.
-          engine_logger(logging::log_runtime_error, logging::basic)
-              << "Error: " << e.what();
           SPDLOG_LOGGER_ERROR(process_logger, "Error: {}", e.what());
           // Send program data to broker.
           broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
@@ -578,8 +562,6 @@ int main(int argc, char* argv[]) {
     cleanup();
     spdlog::shutdown();
   } catch (std::exception const& e) {
-    engine_logger(logging::log_runtime_error, logging::basic)
-        << "Error: " << e.what();
     SPDLOG_LOGGER_ERROR(process_logger, "Error: {}", e.what());
   }
 

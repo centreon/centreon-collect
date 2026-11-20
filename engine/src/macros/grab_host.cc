@@ -21,7 +21,6 @@
 #include "com/centreon/engine/macros/grab_host.hh"
 
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/clear_host.hh"
 #include "com/centreon/engine/macros/clear_hostgroup.hh"
 #include "com/centreon/engine/macros/clear_service.hh"
@@ -29,11 +28,9 @@
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/macros/grab.hh"
 #include "com/centreon/engine/macros/misc.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::macros;
-using namespace com::centreon::engine::logging;
 
 /**
  *  Generate total services macros.
@@ -223,7 +220,7 @@ static std::string get_host_children(host& hst, nagios_macros* mac) {
  */
 static std::string get_host_id(host& hst, nagios_macros* mac) {
   (void)mac;
-  return (string::from(com::centreon::engine::get_host_id(hst.name())).c_str());
+  return fmt::to_string(com::centreon::engine::get_host_id(hst.name()));
 }
 
 /**
@@ -454,8 +451,6 @@ int grab_standard_host_macro_r(nagios_macros* mac,
     }
     // Non-existent macro.
     else {
-      engine_logger(dbg_macros, basic)
-          << "UNHANDLED HOST MACRO #" << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED HOST MACRO #{}! THIS IS A BUG!",
                            macro_type);
       retval = ERROR;

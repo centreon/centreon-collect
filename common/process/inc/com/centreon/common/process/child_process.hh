@@ -111,13 +111,13 @@ class child_process
   void _on_completion();
 
  protected:
-  const std::shared_ptr<asio::io_context> _io_context;
+  const std::shared_ptr<boost::asio::io_context> _io_context;
   const std::shared_ptr<spdlog::logger> _logger;
-  asio::readable_pipe _stdout_pipe ABSL_GUARDED_BY(_protect);
-  asio::readable_pipe _stderr_pipe ABSL_GUARDED_BY(_protect);
+  boost::asio::readable_pipe _stdout_pipe ABSL_GUARDED_BY(_protect);
+  boost::asio::readable_pipe _stderr_pipe ABSL_GUARDED_BY(_protect);
   bool _use_stderr_pipe;  // as _stderr_pipe needs _protect lock, we use it
                           // instead of _stderr_pipe.is_open()
-  asio::writable_pipe _stdin_pipe ABSL_GUARDED_BY(_protect);
+  boost::asio::writable_pipe _stdin_pipe ABSL_GUARDED_BY(_protect);
   detail::boost_process* _proc = nullptr;
   mutable detail::mutex<use_mutex> _protect;
 
@@ -146,7 +146,7 @@ class child_process
    *        operations (reads, writes, process wait).
    * @param logger spdlog logger instance shared with the caller.
    */
-  child_process(const std::shared_ptr<asio::io_context> io_context,
+  child_process(const std::shared_ptr<boost::asio::io_context> io_context,
                 const std::shared_ptr<spdlog::logger>& logger)
       : _io_context(io_context),
         _logger(logger),

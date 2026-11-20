@@ -20,10 +20,8 @@
 
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 dependency::dependency(size_t key,
                        const std::string& dependent_hostname,
@@ -42,8 +40,6 @@ dependency::dependency(size_t key,
       _circular_path_checked{false},
       _contains_circular_path{false} {
   if (dependent_hostname.empty() || hostname.empty()) {
-    engine_logger(log_config_error, basic)
-        << "Error: NULL host name in host dependency definition";
     config_logger->error("Error: NULL host name in host dependency definition");
     throw engine_error() << "Could not create execution "
                          << "dependency of '" << dependent_hostname << "' on '"

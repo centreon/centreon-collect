@@ -34,7 +34,7 @@ add_library(
 target_link_libraries(
   "80-event_script" PRIVATE fmt::fmt)
 
-target_precompile_headers("80-event_script" PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers("80-event_script" PRIVATE precomp_inc/precomp.hh)
 set_target_properties("80-event_script" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 

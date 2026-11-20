@@ -34,7 +34,7 @@ class receiver : public io::stream {
   receiver();
   ~receiver();
   bool read(std::shared_ptr<io::data>& d, time_t deadline);
-  int write(std::shared_ptr<io::data> const& d);
+  uint32_t write(std::shared_ptr<io::data> const& d);
 
  private:
   receiver(receiver const& other);

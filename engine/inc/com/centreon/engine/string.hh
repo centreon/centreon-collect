@@ -24,20 +24,12 @@
 #include <cstring>
 #include <fstream>
 #include <limits>
-#include <list>
-#include <set>
 #include <sstream>
 #include <string>
 
 namespace com::centreon::engine {
 
 namespace string {
-bool get_next_line(std::ifstream& stream, std::string& line, unsigned int& pos);
-
-inline char const* chkstr(char const* str) noexcept {
-  return str ? str : "\"NULL\"";
-}
-
 inline std::string ctime(time_t const& time) {
   char buf[64];
   buf[0] = 0;
@@ -67,13 +59,6 @@ inline char* dup(const std::string_view& value) {
   return strncpy(buf, value.data(), value.size());
 }
 
-template <typename T>
-std::string from(T value) {
-  std::ostringstream oss;
-  oss << value;
-  return oss.str();
-}
-
 inline char const* setstr(char*& buf, char const* value = NULL) {
   delete[] buf;
   return (buf = string::dup(value));
@@ -86,15 +71,6 @@ inline char const* setstr(char*& buf, T value) {
 }
 
 bool split(std::string& line, char const** key, char const** value, char delim);
-bool split(std::string const& line,
-           std::string& key,
-           std::string& value,
-           char delim);
-void split(std::string const& data, std::list<std::string>& out, char delim);
-void split(std::string const& data, std::set<std::string>& out, char delim);
-void split(std::string const& data,
-           std::set<std::pair<std::string, std::string> >& out,
-           char delim);
 
 template <typename T>
 inline bool to(char const* str, T& data) {
@@ -194,14 +170,9 @@ inline bool to(char const* str, U& data) {
   data = static_cast<U>(tmp);
   return true;
 }
-std::string& trim(std::string& str) noexcept;
-std::string& trim_left(std::string& str) noexcept;
-std::string& trim_right(std::string& str) noexcept;
 std::string extract_perfdata(std::string const& perfdata,
                              std::string const& metric) noexcept;
 std::string& remove_thresholds(std::string& perfdata) noexcept;
-
-void unescape(char* buffer);
 
 void unescape(std::string& str);
 

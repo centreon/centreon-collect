@@ -85,14 +85,14 @@ class test_visitor : public io::stream {
  public:
   test_visitor(const std::string& name) : io::stream(name) {}
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 
   bool read(std::shared_ptr<io::data>& d __attribute__((unused)),
             time_t deadline __attribute__((unused))) override {
     return true;
   }
 
-  int32_t write(const std::shared_ptr<io::data>& d) override {
+  uint32_t write(const std::shared_ptr<io::data>& d) override {
     /* We keep kpi_events */
     switch (d->type()) {
       case 393221:

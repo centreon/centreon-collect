@@ -27,7 +27,7 @@
 #include "common/crypto/base64.hh"
 #include "common/log_v2/log_v2.hh"
 
-using namespace asio;
+namespace asio = boost::asio;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
@@ -73,7 +73,7 @@ stream::stream(std::string const& metric_naming,
   }
 
   boost::system::error_code err;
-  ip::tcp::resolver resolver{_io_context};
+  asio::ip::tcp::resolver resolver{_io_context};
 
   auto endpoint = resolver.resolve(_db_host, std::to_string(_db_port), err);
 
@@ -83,7 +83,7 @@ stream::stream(std::string const& metric_naming,
         _db_host, _db_port, err.message());
   }
 
-  asio::connect(_socket, endpoint, err);
+  boost::asio::connect(_socket, endpoint, err);
   if (err) {
     throw msg_fmt(
         "graphite: can't connect to graphite on host '{}', port '{}' : {}",
@@ -103,9 +103,9 @@ stream::~stream() {
  *
  *  @return Number of events acknowledged.
  */
-int32_t stream::flush() {
+uint32_t stream::flush() {
   _logger->debug("graphite: commiting {} queries", _actual_query);
-  int32_t ret(_pending_queries);
+  uint32_t ret(_pending_queries);
   if (_actual_query != 0)
     _commit();
   _actual_query = 0;
@@ -119,9 +119,9 @@ int32_t stream::flush() {
  *
  * @return the number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _logger->trace("graphite::stream stop {}", static_cast<void*>(this));
-  int32_t retval = flush();
+  uint32_t retval = flush();
   _logger->info("graphite stopped with {} events acknowledged", retval);
   return retval;
 }
@@ -159,7 +159,7 @@ void stream::statistics(nlohmann::json& tree) const {
  *
  *  @return Number of events acknowledged.
  */
-int stream::write(std::shared_ptr<io::data> const& data) {
+uint32_t stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_queries;
   if (!validate(data, get_name()))
@@ -248,7 +248,7 @@ void stream::_commit() {
   if (!_query.empty()) {
     boost::system::error_code err;
 
-    asio::write(_socket, buffer(_query), asio::transfer_all(), err);
+    asio::write(_socket, asio::buffer(_query), asio::transfer_all(), err);
     if (err)
       throw msg_fmt(
           "graphite: can't send data to graphite on host '{}', port '{}' : {}",

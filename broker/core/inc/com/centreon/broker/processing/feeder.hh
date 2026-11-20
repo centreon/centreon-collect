@@ -24,6 +24,8 @@
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/processing/stat_visitable.hh"
 
+namespace asio = boost::asio;
+
 namespace com::centreon::broker {
 
 // Forward declaration.

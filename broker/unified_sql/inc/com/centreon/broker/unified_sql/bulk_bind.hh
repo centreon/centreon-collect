@@ -83,6 +83,18 @@ class bulk_bind {
   void init_from_stmt(int32_t conn) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
   void lock() ABSL_EXCLUSIVE_LOCK_FUNCTION(_queue_m);
   void unlock() ABSL_UNLOCK_FUNCTION(_queue_m);
+
+  class ABSL_SCOPED_LOCKABLE scoped_lock {
+    bulk_bind& _bb;
+
+   public:
+    explicit scoped_lock(bulk_bind& bb)
+        ABSL_EXCLUSIVE_LOCK_FUNCTION(bb._queue_m)
+        : _bb(bb) {
+      _bb.lock();
+    }
+    ~scoped_lock() ABSL_UNLOCK_FUNCTION() { _bb.unlock(); }
+  };
 };
 }  // namespace com::centreon::broker::unified_sql
 

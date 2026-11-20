@@ -45,8 +45,8 @@ add_library("${GRAPHITE}" SHARED
 target_link_libraries("${GRAPHITE}" 
   http_tsdb
   bbdo_storage 
-  fmt::fmt)
-target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hpp)
+  spdlog::spdlog)
+target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hh)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${GRAPHITE}" nebbase target_broker_message)

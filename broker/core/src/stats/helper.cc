@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/stats/helper.hh"
 
+#include <absl/container/btree_map.h>
+
 #include "broker/core/config/applier/endpoint.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/endpoint.hh"
@@ -59,7 +61,7 @@ void com::centreon::broker::stats::get_generic_stats(
  */
 void com::centreon::broker::stats::get_mysql_stats(
     nlohmann::json& object) noexcept {
-  std::map<std::string, std::string> stats(
+  absl::btree_map<std::string, std::string> stats(
       mysql_manager::instance().get_stats());
   for (auto it = stats.begin(), end = stats.end(); it != end; ++it)
     object[it->first] = it->second;

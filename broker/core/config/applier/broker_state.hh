@@ -51,14 +51,14 @@ class broker_state : public state {
   struct peer {
     uint64_t poller_id;
     std::string poller_name;
-    std::string broker_name;
+    std::string broker_name{};
     time_t connected_since;
     bool extended_negotiation;
     common::PeerType peer_type;
     // Engine-specific (valid when peer_type == ENGINE):
-    std::string available_conf;
-    std::string engine_conf;
-    uint64_t via_remote;
+    std::string available_conf{};
+    std::string engine_conf{};
+    uint64_t via_remote{0};
   };
   struct broker_peer {
     uint64_t poller_id;

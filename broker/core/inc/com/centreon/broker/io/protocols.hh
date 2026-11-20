@@ -19,6 +19,8 @@
 #ifndef CCB_IO_PROTOCOLS_HH
 #define CCB_IO_PROTOCOLS_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/io/factory.hh"
 
 namespace com::centreon::broker {
@@ -42,8 +44,8 @@ class protocols {
   ~protocols() noexcept;
   protocols(protocols const& p) = delete;
   protocols& operator=(protocols const& p) = delete;
-  std::map<std::string, protocol>::const_iterator begin() const;
-  std::map<std::string, protocol>::const_iterator end() const;
+  absl::btree_map<std::string, protocol>::const_iterator begin() const;
+  absl::btree_map<std::string, protocol>::const_iterator end() const;
   static protocols& instance();
   static void load();
   void reg(const std::string& name,
@@ -56,10 +58,10 @@ class protocols {
  private:
   protocols();
 
-  std::map<std::string, protocol> _protocols;
+  absl::btree_map<std::string, protocol> _protocols;
 };
 }  // namespace io
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_PROTOCOLS_HH

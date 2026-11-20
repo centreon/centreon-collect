@@ -20,12 +20,10 @@
 
 #include "com/centreon/engine/macros/process.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 /*
  * replace macros in notification commands with their values,

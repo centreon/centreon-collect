@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/misc/misc.hh"
 
+#include <absl/container/btree_map.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -153,7 +154,7 @@ std::vector<char> misc::from_hex(std::string const& str) {
 std::string misc::dump_filters(const multiplexing::muxer_filter& filters) {
   io::events::events_container all_event_container =
       io::events::instance().get_events_by_category_name("all");
-  std::map<uint32_t, std::string> name_by_id;
+  absl::btree_map<uint32_t, std::string> name_by_id;
 
   for (io::events::events_container::const_iterator
            it = all_event_container.begin(),

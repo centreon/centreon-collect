@@ -26,6 +26,11 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 
+namespace asio = boost::asio;
+using system_clock = std::chrono::system_clock;
+using time_point = system_clock::time_point;
+using duration = system_clock::duration;
+
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::http_tsdb;
@@ -143,7 +148,7 @@ stream::~stream() {}
  *
  * @return int number of metric and status sent
  */
-int stream::flush() {
+uint32_t stream::flush() {
   request::pointer to_send;
   {
     std::lock_guard<std::mutex> l(_protect);
@@ -220,7 +225,7 @@ void stream::statistics(nlohmann::json& tree) const {
  * @param data
  * @return int
  */
-int stream::write(std::shared_ptr<io::data> const& data) {
+uint32_t stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   unsigned acknowledged = 0;
   if (!validate(data, get_name())) {
@@ -305,8 +310,8 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   return acknowledged;
 }
 
-int32_t stream::stop() {
-  int32_t retval = flush();
+uint32_t stream::stop() {
+  uint32_t retval = flush();
   _http_client->shutdown();
   SPDLOG_LOGGER_INFO(_logger, "{} stream stopped with {} acknowledged events",
                      get_name(), retval);

@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/sql/database_config.hh"
+#include <absl/container/btree_map.h>
 #include <absl/strings/ascii.h>
 #include <boost/beast.hpp>
 #include "com/centreon/broker/config/endpoint.hh"
@@ -119,7 +120,7 @@ database_config::database_config(const std::string& type,
  */
 database_config::database_config(
     const config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params)
+    const absl::btree_map<std::string, std::string>& global_params)
     : _extension_directory{DEFAULT_MARIADB_EXTENSION_DIR},
       _config_logger{log_v2::instance().get(log_v2::CONFIG)} {
   // db_type
@@ -190,7 +191,10 @@ database_config::database_config(
   } else if (common::vault::vault_access::is_vault_prefixed(_password)) {
     try {
       _password =
-          common::vault::vault_access::load(global_params, _config_logger)
+          common::vault::vault_access::load(
+              std::map<std::string, std::string>(global_params.begin(),
+                                                 global_params.end()),
+              _config_logger)
               ->decrypt(_password);
       _config_logger->info(
           "Database password obtained from Vault configuration");

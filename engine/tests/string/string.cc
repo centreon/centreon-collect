@@ -22,22 +22,6 @@
 
 using namespace com::centreon::engine;
 
-TEST(string_utils, trim) {
-  std::string str("Hi guys!");
-  string::trim(str);
-  ASSERT_EQ(str, "Hi guys!");
-
-  str = " a b c  ";
-  string::trim(str);
-  ASSERT_EQ(str, "a b c");
-
-  str =
-      "performance_data=rta=0.053ms;3000.000;5000.000;0; pl=0%;80;100;0;100 "
-      "rtmax=0.053ms;;;; rtmin=0.053ms;;;;";
-  string::trim(str);
-  ASSERT_EQ(str, "performance_data=rta=0.053ms");
-}
-
 TEST(string_utils, extractPerfdataSimple) {
   std::string perfdata(
       "metric_2=2;3;7;1;9 metric=12;25;50;0;118 metric_1=28;13;54;0;80");
@@ -185,70 +169,55 @@ TEST(string_utils, c_strtok_test7) {
 }
 
 TEST(string_utils, unescape) {
-  char str[100];
-  strcpy(str, "az\\ner\\nty\\n");
+  std::string str = "az\\ner\\nty\\n";
   string::unescape(str);
-  ASSERT_TRUE(strcmp(str, "az\ner\nty\n") == 0);
+  ASSERT_EQ(str, "az\ner\nty\n");
 }
 
-TEST(string_utils, unescape1) {
-  char str[100];
-  strcpy(str, "az\\ner\\nty\\n");
+TEST(string_utils, unescape_tab) {
+  std::string str = "az\\ter\\tty\\n";
   string::unescape(str);
-  ASSERT_TRUE(strcmp(str, "az\ner\nty\n") == 0);
+  ASSERT_EQ(str, "az\ter\tty\n");
 }
 
-TEST(string_utils, unescape2) {
-  char str[100];
-  strcpy(str, "az\\ter\\tty\\n");
+TEST(string_utils, unescape_trailing_backslash) {
+  std::string str = "azerty\\";
   string::unescape(str);
-  ASSERT_TRUE(strcmp(str, "az\ter\tty\n") == 0);
+  ASSERT_EQ(str, "azerty\\");
 }
 
-TEST(string_utils, unescape3) {
-  char str[100];
-  strcpy(str, "azerty\\");
+TEST(string_utils, unescape_trailing_backslash2) {
+  std::string str = "az\\nerty\\";
   string::unescape(str);
-  ASSERT_TRUE(strcmp(str, "azerty\\") == 0);
+  ASSERT_EQ(str, "az\nerty\\");
 }
 
-TEST(string_utils, unescape4) {
-  char str[100];
-  strcpy(str, "az\\nerty\\");
+TEST(string_utils, unescape_mixed) {
+  std::string str = "az\\nerty\\\\\\\\\\a";
   string::unescape(str);
-  ASSERT_TRUE(strcmp(str, "az\nerty\\") == 0);
+  ASSERT_EQ(str, "az\nerty\\\\\\a");
 }
 
-TEST(string_utils, unescape5) {
-  char str[100];
-  strcpy(str, "az\\nerty\\\\\\\\\\a");
+TEST(string_utils, unescape_mixed2) {
+  std::string str = "az\\nerty\\\\\\\\\\az";
   string::unescape(str);
-  ASSERT_TRUE(strcmp(str, "az\nerty\\\\\\a") == 0);
+  ASSERT_EQ(str, "az\nerty\\\\\\az");
 }
 
-TEST(string_utils, unescape6) {
-  char str[100];
-  strcpy(str, "az\\nerty\\\\\\\\\\az");
+TEST(string_utils, unescape_mixed3) {
+  std::string str = "az\\nerty\\\\\\\\\\az\\";
   string::unescape(str);
-  ASSERT_TRUE(strcmp(str, "az\nerty\\\\\\az") == 0);
+  ASSERT_EQ(str, "az\nerty\\\\\\az\\");
 }
 
-TEST(string_utils, unescape7) {
-  char str[100];
-  strcpy(str, "az\\nerty\\\\\\\\\\az\\");
+TEST(string_utils, unescape_empty) {
+  std::string str;
   string::unescape(str);
-  ASSERT_TRUE(strcmp(str, "az\nerty\\\\\\az\\") == 0);
+  ASSERT_EQ(str, "");
 }
 
-TEST(string_utils, unescape8) {
-  char str[100];
-  strcpy(str, "");
+TEST(string_utils, unescape_no_escape) {
+  std::string str = "no backslash here";
   string::unescape(str);
-  ASSERT_TRUE(strcmp(str, "") == 0);
-}
-
-TEST(string_utils, unescape9) {
-  char* s = nullptr;
-  string::unescape(s);
-  ASSERT_EQ(s, nullptr);
+  ASSERT_EQ(str, "no backslash here");
 }

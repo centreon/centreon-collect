@@ -17,6 +17,8 @@
  */
 
 #include "grpc_config.hh"
+
+#include <absl/strings/ascii.h>
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/globals.hh"
 

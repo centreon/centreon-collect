@@ -21,6 +21,8 @@
 
 #include <gtest/gtest.h>
 
+namespace asio = boost::asio;
+
 static uint32_t const timeout_ms = 5;
 static uint32_t const buff_size = 1024;
 

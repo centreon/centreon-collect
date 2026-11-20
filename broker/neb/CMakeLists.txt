@@ -68,7 +68,7 @@ target_link_libraries(nebbase PRIVATE centreon_pb_bbdo spdlog::spdlog)
 
 set_target_properties(nebbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_compile_definitions(nebbase PRIVATE SPDLOG_COMPILED_LIB)
-target_precompile_headers(nebbase PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(nebbase PRIVATE precomp_inc/precomp.hh)
 
 # Centreon Broker module.
 set(NEB "10-neb")

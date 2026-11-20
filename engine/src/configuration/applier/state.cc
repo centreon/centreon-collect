@@ -59,7 +59,6 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
 using com::centreon::common::log_v2::log_v2;
 using com::centreon::engine::logging::broker_sink_mt;
 
@@ -632,9 +631,6 @@ void applier::state::_apply(const configuration::State& new_cfg,
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Obsessive compulsive service processor command '"
-          << temp_command_name << "' is not defined anywhere!";
       config_logger->error(
           "Error: Obsessive compulsive service processor command '{}' is not "
           "defined anywhere!",
@@ -699,10 +695,6 @@ void applier::state::_check_serviceescalations() const {
         }
       }
       if (!found) {
-        engine_logger(log_config_error, basic)
-            << "Error on serviceescalation !!! The service "
-            << srv->get_hostname() << "/" << srv->get_description()
-            << " contains a non existing service escalation";
         config_logger->error(
             "Error on serviceescalation !!! The service {}/{} contains a non "
             "existing service escalation",
@@ -711,12 +703,6 @@ void applier::state::_check_serviceescalations() const {
       }
     }
     if (s.size() != srv->get_escalations().size()) {
-      engine_logger(log_config_error, basic)
-          << "Error on serviceescalation !!! Some escalations are stored "
-             "several times in service "
-          << srv->get_hostname() << "/" << srv->get_description()
-          << "set size: " << s.size()
-          << " ; list size: " << srv->get_escalations().size();
       config_logger->error(
           "Error on serviceescalation !!! Some escalations are stored "
           "several times in service {}/{} set size: {} ; list size: {}",
@@ -734,12 +720,6 @@ void applier::state::_check_serviceescalations() const {
       if (p.second.get() == se->notifier_ptr) {
         found = true;
         if (se->get_hostname() != p.second->get_hostname()) {
-          engine_logger(log_config_error, basic)
-              << "Error on serviceescalation !!! The notifier seen by the "
-                 "escalation is wrong. "
-              << "Host name given by the escalation is " << se->get_hostname()
-              << " whereas the hostname from the notifier is "
-              << p.second->get_hostname() << ".";
           config_logger->error(
               "Error on serviceescalation !!! The notifier seen by the "
               "escalation is wrong. Host name given by the escalation is {} "
@@ -748,13 +728,6 @@ void applier::state::_check_serviceescalations() const {
           throw engine_error() << "This is a bug";
         }
         if (se->get_description() != p.second->get_description()) {
-          engine_logger(log_config_error, basic)
-              << "Error on serviceescalation !!! The notifier seen by the "
-                 "escalation is wrong. "
-              << "Service description given by the escalation is "
-              << se->get_description()
-              << " whereas the service description from the notifier is "
-              << p.second->get_description() << ".";
           config_logger->error(
               "Error on serviceescalation !!! The notifier seen by the "
               "escalation is wrong. Service description given by the "
@@ -767,11 +740,6 @@ void applier::state::_check_serviceescalations() const {
       }
     }
     if (!found) {
-      engine_logger(log_config_error, basic)
-          << "Error on serviceescalation !!! The notifier seen by the "
-             "escalation is wrong "
-          << "The bug is detected on escalation concerning host "
-          << se->get_hostname() << " and service " << se->get_description();
       config_logger->error(
           "Error on serviceescalation !!! The notifier seen by the "
           "escalation is wrong The bug is detected on escalation concerning "
@@ -801,9 +769,6 @@ void applier::state::_check_hostescalations() const {
         }
       }
       if (!found) {
-        engine_logger(log_config_error, basic)
-            << "Error on hostescalation !!! The host " << hst->get_name()
-            << " contains a non existing host escalation";
         config_logger->error(
             "Error on hostescalation !!! The host {} contains a non existing "
             "host escalation",
@@ -821,12 +786,6 @@ void applier::state::_check_hostescalations() const {
       if (p.second.get() == he->notifier_ptr) {
         found = true;
         if (he->get_hostname() != p.second->get_name()) {
-          engine_logger(log_config_error, basic)
-              << "Error on hostescalation !!! The notifier seen by the "
-                 "escalation is wrong. "
-              << "Host name given by the escalation is " << he->get_hostname()
-              << " whereas the hostname from the notifier is "
-              << p.second->get_name() << ".";
           config_logger->error(
               "Error on hostescalation !!! The notifier seen by the escalation "
               "is wrong. Host name given by the escalation is {} whereas the "
@@ -838,11 +797,6 @@ void applier::state::_check_hostescalations() const {
       }
     }
     if (!found) {
-      engine_logger(log_config_error, basic)
-          << "Error on hostescalation !!! The notifier seen by the escalation "
-             "is wrong "
-          << "The bug is detected on escalation concerning host "
-          << he->get_hostname();
       config_logger->error(
           "Error on hostescalation !!! The notifier seen by the escalation is "
           "wrong The bug is detected on escalation concerning host {}",
@@ -865,10 +819,6 @@ void applier::state::_check_contacts() const {
       contact_map::iterator found{engine::contact::contacts.find(pp.first)};
       if (found == engine::contact::contacts.end() ||
           found->second.get() != pp.second) {
-        engine_logger(log_config_error, basic)
-            << "Error on contact !!! The contact " << pp.first
-            << " used in contactgroup " << p.first
-            << " is not or badly defined";
         config_logger->error(
             "Error on contact !!! The contact {} used in contactgroup {} is "
             "not or badly defined",
@@ -883,10 +833,6 @@ void applier::state::_check_contacts() const {
       contact_map::iterator found{engine::contact::contacts.find(pp.first)};
       if (found == engine::contact::contacts.end() ||
           found->second.get() != pp.second) {
-        engine_logger(log_config_error, basic)
-            << "Error on contact !!! The contact " << pp.first
-            << " used in service " << p.second->get_hostname() << '/'
-            << p.second->get_description() << " is not or badly defined";
         config_logger->error(
             "Error on contact !!! The contact {} used in service {}/{} is not "
             "or badly defined",
@@ -901,10 +847,6 @@ void applier::state::_check_contacts() const {
       contact_map::iterator found{engine::contact::contacts.find(pp.first)};
       if (found == engine::contact::contacts.end() ||
           found->second.get() != pp.second) {
-        engine_logger(log_config_error, basic)
-            << "Error on contact !!! The contact " << pp.first
-            << " used in service " << p.second->get_name()
-            << " is not or badly defined";
         config_logger->error(
             "Error on contact !!! The contact {} used in service {} is not or "
             "badly defined",
@@ -929,10 +871,6 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        engine_logger(log_config_error, basic)
-            << "Error on contactgroup !!! The contactgroup " << pp.first
-            << " used in service " << p.first.first << '/' << p.first.second
-            << " is not or badly defined";
         config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in service "
             "{}/{} is not or badly defined",
@@ -948,9 +886,6 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        engine_logger(log_config_error, basic)
-            << "Error on contactgroup !!! The contactgroup " << pp.first
-            << " used in host " << p.first << " is not or badly defined";
         config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in host {} is "
             "not or badly defined",
@@ -966,10 +901,6 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        engine_logger(log_config_error, basic)
-            << "Error on contactgroup !!! The contactgroup " << pp.first
-            << " used in serviceescalation " << p.second->internal_key()
-            << " is not or badly defined";
         config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in "
             "serviceescalation {} is not or badly defined",
@@ -985,10 +916,6 @@ void applier::state::_check_contactgroups() const {
           engine::contactgroup::contactgroups.find(pp.first)};
       if (found == engine::contactgroup::contactgroups.end() ||
           found->second.get() != pp.second) {
-        engine_logger(log_config_error, basic)
-            << "Error on contactgroup !!! The contactgroup " << pp.first
-            << " used in hostescalation " << p.second->internal_key()
-            << " is not or badly defined";
         config_logger->error(
             "Error on contactgroup !!! The contactgroup {} used in "
             "hostescalation {} is not or badly defined",
@@ -1015,10 +942,6 @@ void applier::state::_check_services() const {
           {svc->get_host_id(), svc->get_service_id()})};
       if (found == engine::service::services_by_id.end() ||
           found->second.get() != svc) {
-        engine_logger(log_config_error, basic)
-            << "Error on service !!! The service " << p.first.first << '/'
-            << p.first.second << " used in service dependency " << p.first.first
-            << '/' << p.first.second << " is not or badly defined";
         config_logger->error(
             "Error on service !!! The service {}/{} used in service dependency "
             "{}/{} is not or badly defined",
@@ -1033,10 +956,6 @@ void applier::state::_check_services() const {
         {p.second->get_hostname(), p.second->get_description()})};
     if (found == engine::service::services.end() ||
         found->second.get() != p.second.get()) {
-      engine_logger(log_config_error, basic)
-          << "Error on service !!! The service " << p.first.first << '/'
-          << p.first.second
-          << " defined in services is not defined in services_by_id";
       config_logger->error(
           "Error on service !!! The service {}/{} defined in services is not "
           "defined in services_by_id",
@@ -1060,10 +979,6 @@ void applier::state::_check_services() const {
           }
         }
         if (!found) {
-          engine_logger(log_config_error, basic)
-              << "Error on service !!! The service " << p.first.first << '/'
-              << p.first.second
-              << " defined in services has a wrong check command";
           config_logger->error(
               "Error on service !!! The service {}/{} defined in services has "
               "a wrong check command",
@@ -1076,11 +991,6 @@ void applier::state::_check_services() const {
 
   if (engine::service::services_by_id.size() !=
       engine::service::services.size()) {
-    engine_logger(log_config_error, basic)
-        << "Error on service !!! services_by_id contains ices that are not in "
-           "services. The first one size is "
-        << engine::service::services.size() << "  the second size is "
-        << engine::service::services.size();
     config_logger->error(
         "Error on service !!! services_by_id contains ices that are not in "
         "services. The first one size is {}  the second size is {}",
@@ -1100,9 +1010,6 @@ void applier::state::_check_hosts() const {
                               std::string const& where) {
     host_map::const_iterator found{engine::host::hosts.find(hst->get_name())};
     if (found == engine::host::hosts.end() || found->second.get() != hst) {
-      engine_logger(log_config_error, basic)
-          << "Error on host !!! The host " << hst->get_name() << " used in "
-          << where << " is not defined or badly defined in hosts";
       config_logger->error(
           "Error on host !!! The host {} used in {} is not defined or badly "
           "defined in hosts",
@@ -1137,9 +1044,6 @@ void applier::state::_check_hosts() const {
           }
         }
         if (!found) {
-          engine_logger(log_config_error, basic)
-              << "Error on host !!! The host " << p.first
-              << " defined in hosts has a wrong check command";
           config_logger->error(
               "Error on host !!! The host {} defined in hosts has a wrong "
               "check command",
@@ -1151,11 +1055,6 @@ void applier::state::_check_hosts() const {
   }
 
   if (engine::host::hosts_by_id.size() != engine::host::hosts.size()) {
-    engine_logger(log_config_error, basic)
-        << "Error on host !!! hosts_by_id contains hosts that are not in "
-           "hosts. The first one size is "
-        << engine::service::services.size() << " whereas the second size is "
-        << engine::service::services.size();
     config_logger->error(
         "Error on host !!! hosts_by_id contains hosts that are not in "
         "hosts. The first one size is {} whereas the second size is {}",

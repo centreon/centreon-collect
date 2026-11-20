@@ -33,7 +33,7 @@ namespace com::centreon::broker::tcp {
 class acceptor : public io::endpoint {
   tcp_config::pointer _conf;
 
-  std::shared_ptr<asio::ip::tcp::acceptor> _acceptor;
+  std::shared_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
 
  public:
   acceptor(const tcp_config::pointer& conf);

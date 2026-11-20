@@ -24,9 +24,9 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/logging/logger.hh"
 #include "com/centreon/process_listener.hh"
 
 using namespace com::centreon;
@@ -202,7 +202,7 @@ void process_manager::_close_stream(int fd) noexcept {
     // Update process informations.
     p->do_close(fd);
   } catch (const std::exception& e) {
-    log_error(logging::high) << e.what();
+    std::cerr << e.what();
   }
 }
 
@@ -240,7 +240,7 @@ void process_manager::_kill_processes_timeout() noexcept {
     try {
       p->kill();
     } catch (const std::exception& e) {
-      log_error(logging::high) << e.what();
+      std::cerr << e.what();
     }
     it = _processes_timeout.erase(it);
   }
@@ -269,7 +269,7 @@ uint32_t process_manager::_read_stream(int fd) noexcept {
 
     size = p->do_read(fd);
   } catch (const std::exception& e) {
-    log_error(logging::high) << e.what();
+    std::cerr << e.what();
   }
   return size;
 }
@@ -334,8 +334,7 @@ void process_manager::_run() {
         //  Error!
         else if (_fds[i].revents & (POLLERR | POLLNVAL)) {
           _update = true;
-          log_error(logging::high)
-              << "invalid fd " << _fds[i].fd << " from process manager";
+          std::cerr << "invalid fd " << _fds[i].fd << " from process manager\n";
         }
       }
       // Release finished process.
@@ -345,7 +344,7 @@ void process_manager::_run() {
       _kill_processes_timeout();
     }
   } catch (const std::exception& e) {
-    log_error(logging::high) << e.what();
+    std::cerr << e.what();
   }
 }
 
@@ -392,7 +391,7 @@ void process_manager::_wait_orphans_pid() noexcept {
       _update_ending_process(p, status);
     }
   } catch (const std::exception& e) {
-    log_error(logging::high) << e.what();
+    std::cerr << e.what();
   }
 }
 
@@ -427,6 +426,6 @@ void process_manager::_wait_processes() noexcept {
       _update_ending_process(p, status);
     }
   } catch (const std::exception& e) {
-    log_error(logging::high) << e.what();
+    std::cerr << e.what();
   }
 }

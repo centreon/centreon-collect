@@ -487,7 +487,6 @@ add_subdirectory(src/downtimes)
 add_subdirectory(src/configuration)
 add_subdirectory(src/commands)
 add_subdirectory(src/compatibility)
-add_subdirectory(src/deleter)
 add_subdirectory(src/events)
 add_subdirectory(src/logging)
 add_subdirectory(src/macros)
@@ -570,6 +569,11 @@ install(
 # Unit tests.
 if(NOT ONLY_ROBOT_CMA)
   add_subdirectory(tests)
+endif()
+
+# Benchmarks.
+if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
+  add_subdirectory(benchmark)
 endif()
 
 #

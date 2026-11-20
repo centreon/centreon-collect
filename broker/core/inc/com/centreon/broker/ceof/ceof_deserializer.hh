@@ -19,6 +19,8 @@
 #ifndef CCB_CEOF_CEOF_DESERIALIZER_HH
 #define CCB_CEOF_CEOF_DESERIALIZER_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/ceof/ceof_iterator.hh"
 #include "com/centreon/broker/ceof/ceof_visitor.hh"
 
@@ -38,7 +40,7 @@ class ceof_deserializer : public ceof_visitor {
   virtual std::string deserialize(std::string const& name);
 
  private:
-  std::map<std::string, std::string> _values;
+  absl::btree_map<std::string, std::string> _values;
 };
 }  // namespace ceof
 

@@ -27,7 +27,6 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
@@ -145,8 +144,7 @@ void applier::command::remove_object(const std::string& key) {
   config_logger->debug("Removing command '{}'.", key);
 
   // Find command.
-  std::unordered_map<std::string, std::shared_ptr<commands::command> >::iterator
-      it = commands::command::commands.find(key);
+  command_map::iterator it = commands::command::commands.find(key);
   if (it != commands::command::commands.end()) {
     // Erase command (will effectively delete the object).
     commands::command::commands.erase(it);

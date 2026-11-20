@@ -17,7 +17,6 @@
  */
 #include "com/centreon/broker/unified_sql/stream.hh"
 
-#include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 
@@ -27,6 +26,8 @@
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "common/log_v2/log_v2.hh"
+
+namespace asio = boost::asio;
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -688,7 +689,7 @@ void stream::statistics(nlohmann::json& tree) const {
   tree["processed_events"] = static_cast<int32_t>(_processed);
 }
 
-int32_t stream::write(const std::shared_ptr<io::data>& data) {
+uint32_t stream::write(const std::shared_ptr<io::data>& data) {
   ++_pending_events;
   assert(data);
 
@@ -746,7 +747,7 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
     _finish_actions();
   }
 
-  int32_t retval = _ack;
+  uint32_t retval = _ack;
   _ack -= retval;
 
   _pending_events -= retval;
@@ -790,10 +791,10 @@ const multiplexing::muxer_filter& stream::get_forbidden_filter() {
  *
  * @return Number of acknowledged events.
  */
-int32_t stream::flush() {
+uint32_t stream::flush() {
   if (!_ack)
     _finish_actions();
-  int32_t retval = _ack;
+  uint32_t retval = _ack;
   _ack -= retval;
   _pending_events -= retval;
   // Event acknowledgement.
@@ -823,9 +824,9 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  * @return the number of events to ack.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _logger_sql->trace("unified_sql: stream stop {}", static_cast<void*>(this));
-  int32_t retval = flush();
+  uint32_t retval = flush();
   /* We give the order to stop the check_queues */
   _stop_check_queues = true;
   /* We wait for the check_queues to be really stopped */

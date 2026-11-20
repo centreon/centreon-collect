@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/strings/match.h>
-
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

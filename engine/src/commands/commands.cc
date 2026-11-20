@@ -32,7 +32,6 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "mmap.h"
@@ -40,7 +39,6 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::downtimes;
-using namespace com::centreon::engine::logging;
 
 /******************************************************************/
 /****************** EXTERNAL COMMAND PROCESSING *******************/
@@ -93,17 +91,10 @@ int check_for_external_commands() {
  *  @return OK on success.
  */
 int process_external_commands_from_file(char const* file, int delete_file) {
-  engine_logger(dbg_functions, basic)
-      << "process_external_commands_from_file()";
-
   functions_logger->trace("process_external_commands_from_file()");
 
   if (!file)
     return ERROR;
-
-  engine_logger(dbg_external_command, more)
-      << "Processing commands from file '" << file << "'.  File will "
-      << (delete_file ? "be" : "NOT be") << " deleted after processing.";
 
   external_command_logger->debug(
       "Processing commands from file '{}'.  File will {} deleted after "
@@ -113,9 +104,6 @@ int process_external_commands_from_file(char const* file, int delete_file) {
   /* open the config file for reading */
   mmapfile* thefile(nullptr);
   if ((thefile = mmap_fopen(file)) == nullptr) {
-    engine_logger(log_info_message, basic)
-        << "Error: Cannot open file '" << file
-        << "' to process external commands!";
     config_logger->info(
         "Error: Cannot open file '{}' to process external commands!", file);
     return ERROR;
@@ -534,10 +522,6 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
 
   /* we couldn't find the host */
   if (real_host_name.empty()) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning:  Passive check result was received for service '"
-        << svc_description << "' on host '" << real_host_name
-        << "', but the host could not be found!";
     runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on host "
         "'{}', but the host could not be found!",
@@ -549,10 +533,6 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
   service_map::const_iterator found(
       service::services.find({real_host_name, svc_description}));
   if (found == service::services.end() || !found->second) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning:  Passive check result was received for service '"
-        << svc_description << "' on host '" << real_host_name
-        << "', but the service could not be found!";
     runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
         "host '{}', but the service could not be found!",
@@ -636,10 +616,6 @@ int process_passive_service_check(time_t check_time,
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning:  Passive check result was received for service '"
-        << svc_description << "' on host '" << host_name
-        << "', but the host could not be found!";
     runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
         "host "
@@ -652,10 +628,6 @@ int process_passive_service_check(time_t check_time,
   service_map::const_iterator found(
       service::services.find({real_host_name, svc_description}));
   if (found == service::services.end() || !found->second) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning:  Passive check result was received for service '"
-        << svc_description << "' on host '" << host_name
-        << "', but the service could not be found!";
     runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
         "host "
@@ -781,9 +753,6 @@ int process_passive_host_check(time_t check_time,
 
   /* we couldn't find the host */
   if (real_host_name == nullptr) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning:  Passive check result was received for host '" << host_name
-        << "', but the host could not be found!";
     runtime_logger->warn(
         "Warning:  Passive check result was received for host '{}', but the "
         "host could not be found!",
@@ -1312,8 +1281,7 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   }
 
   external_command_logger->info(
-			"Deleted {} downtime(s) matching the given criteria",
-			result.size());
+      "Deleted {} downtime(s) matching the given criteria", result.size());
   return OK;
 }
 

@@ -38,8 +38,8 @@ class cbmod_stream : public stream {
   void specific_negotiate(Welcome& obj) override;
   void send_engine_conf(
       std::unique_ptr<com::centreon::engine::configuration::State>& conf);
-  int32_t write(const std::shared_ptr<io::data>& d) override;
-  int32_t stop() override;
+  uint32_t write(const std::shared_ptr<io::data>& d) override;
+  uint32_t stop() override;
 };
 }  // namespace com::centreon::broker::bbdo
 

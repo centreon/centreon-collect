@@ -49,7 +49,7 @@ using namespace com::centreon::broker::victoria_metrics;
 using namespace nlohmann;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
+extern std::shared_ptr<boost::asio::io_context> g_io_context;
 
 class victoria_request_test : public ::testing::Test {
  protected:

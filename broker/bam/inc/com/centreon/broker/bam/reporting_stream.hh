@@ -73,7 +73,7 @@ class reporting_stream : public io::stream {
   timeperiod_map _timeperiods;
 
   std::vector<std::shared_ptr<io::data>> _dimension_data_cache;
-  std::unordered_map<uint32_t, std::map<std::time_t, uint64_t>>
+  std::unordered_map<uint32_t, absl::btree_map<std::time_t, uint64_t>>
       _last_inserted_kpi;  // ba_id => <time, row>
   bool _processing_dimensions;
 
@@ -94,11 +94,11 @@ class reporting_stream : public io::stream {
   ~reporting_stream();
   reporting_stream(const reporting_stream&);
   reporting_stream& operator=(const reporting_stream&);
-  int32_t flush() override;
-  int32_t stop() override;
+  uint32_t flush() override;
+  uint32_t stop() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void statistics(nlohmann::json& tree) const override;
-  int write(std::shared_ptr<io::data> const& d) override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
 
  private:
   void _apply(const DimensionTimeperiod& tp);

@@ -39,7 +39,7 @@ namespace {
  * @return the configuration
  */
 config::endpoint make_cfg(
-    const std::map<std::string, std::string>& params = {}) {
+    const absl::btree_map<std::string, std::string>& params = {}) {
   config::endpoint cfg(config::endpoint::io_type::output);
   cfg.name = "otlp-export";
   cfg.type = "otlp";

@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
+#include <absl/container/btree_map.h>
 #include <gtest/gtest.h>
 #include <com/centreon/broker/stats/parser.hh>
 #include <com/centreon/broker/stats/worker_pool.hh>
@@ -85,13 +86,13 @@ class st : public io::stream {
     throw exceptions::shutdown("cannot read from connector");
   }
 
-  int32_t write(std::shared_ptr<io::data> const& d
+  uint32_t write(std::shared_ptr<io::data> const& d
                 __attribute__((__unused__))) override {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
     return 1;
   }
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 };
 
 class endp : public io::endpoint {
@@ -123,7 +124,8 @@ class fact : public io::factory {
 
   io::endpoint* new_endpoint(
       config::endpoint& cfg [[maybe_unused]],
-      const std::map<std::string, std::string>& global_params [[maybe_unused]],
+      const absl::btree_map<std::string, std::string>& global_params
+      [[maybe_unused]],
       bool& is_acceptor) const override {
     endp* p{new endp()};
     is_acceptor = true;

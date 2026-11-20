@@ -20,9 +20,6 @@
 
 #include <syslog.h>
 
-#include <absl/strings/match.h>
-#include <absl/strings/str_split.h>
-
 #include "com/centreon/broker/exceptions/deprecated.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "common/log_v2/log_v2.hh"

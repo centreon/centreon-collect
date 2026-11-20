@@ -23,7 +23,6 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timerange.hh"
@@ -31,7 +30,6 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::string;
 
 timeperiod_map timeperiod::timeperiods;
@@ -44,8 +42,6 @@ timeperiod_map timeperiod::timeperiods;
 timeperiod::timeperiod(const configuration::Timeperiod& obj)
     : _name{obj.timeperiod_name()}, _alias{obj.alias()}, _config{obj} {
   if (_name.empty() || _alias.empty()) {
-    engine_logger(log_config_error, basic)
-        << "Error: Name or alias for timeperiod is NULL";
     config_logger->error("Error: Name or alias for timeperiod is NULL");
     throw engine_error() << "Could not register time period '" << _name << "'";
   }
@@ -237,9 +233,6 @@ void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
 
   // Check for illegal characters in timeperiod name.
   if (contains_illegal_object_chars(_name.c_str())) {
-    engine_logger(log_verification_error, basic)
-        << "Error: The name of time period '" << _name
-        << "' contains one or more illegal characters.";
     config_logger->error(
         "Error: The name of time period '{}' contains one or more illegal "
         "characters.",
@@ -255,10 +248,6 @@ void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
         timeperiod::timeperiods.find(it->first)};
 
     if (found == timeperiod::timeperiods.end()) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Excluded time period '" << it->first
-          << "' specified in timeperiod '" << _name
-          << "' is not defined anywhere!";
       config_logger->error(
           "Error: Excluded time period '{}' specified in timeperiod '{}' is "
           "not defined anywhere!",

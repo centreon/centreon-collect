@@ -50,7 +50,7 @@ class client : public std::enable_shared_from_this<client> {
   friend client_test;
 
  private:
-  const std::shared_ptr<asio::io_context> _io_context;
+  const std::shared_ptr<boost::asio::io_context> _io_context;
   const std::shared_ptr<spdlog::logger> _logger;
   const http_config::pointer _conf;
 
@@ -103,7 +103,7 @@ class client : public std::enable_shared_from_this<client> {
   void _send(const cb_request::pointer& request, connection_base::pointer conn);
 
  protected:
-  client(const std::shared_ptr<asio::io_context>& io_context,
+  client(const std::shared_ptr<boost::asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_config::pointer& conf,
          connection_creator conn_creator);
@@ -111,7 +111,7 @@ class client : public std::enable_shared_from_this<client> {
  public:
   using pointer = std::shared_ptr<client>;
 
-  static pointer load(const std::shared_ptr<asio::io_context>& io_context,
+  static pointer load(const std::shared_ptr<boost::asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
                       const http_config::pointer& conf,
                       connection_creator conn_creator);

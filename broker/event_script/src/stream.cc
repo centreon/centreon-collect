@@ -112,7 +112,7 @@ bool stream::read(std::shared_ptr<io::data>&, time_t) {
  * @param d event to write
  * @return int number of event written
  */
-int stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream::write(std::shared_ptr<io::data> const& d) {
   std::shared_ptr<io::protobuf_base> pb_event =
       std::dynamic_pointer_cast<io::protobuf_base>(d);
 
@@ -226,7 +226,7 @@ void stream::_write_completion(const common::process<true>& proc,
  *
  * @return int32_t number of event passed to script
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   absl::MutexLock l(_write_queue_m);
   while (!_write_queue.empty()) {
     _write_queue.pop();

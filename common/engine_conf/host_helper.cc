@@ -17,7 +17,6 @@
  *
  */
 #include "common/engine_conf/host_helper.hh"
-#include <absl/strings/numbers.h>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 

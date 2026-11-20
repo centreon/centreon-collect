@@ -26,8 +26,8 @@ using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::broker::bbdo {
 
-int32_t broker_stream::stop() {
-  int32_t retval = stream::stop();
+uint32_t broker_stream::stop() {
+  uint32_t retval = stream::stop();
   if (poller_id() && !broker_name().empty() && !poller_name().empty())
     _state.remove_peer(poller_id(), poller_name(), broker_name());
   return retval;

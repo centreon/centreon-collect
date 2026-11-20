@@ -144,8 +144,8 @@ add_library(
   "${INC_DIR}/service_listener.hh"
   "${INC_DIR}/timeperiod_map.hh")
 target_link_libraries("${BAM}" bbdo_storage bbdo_bam centreon_pb_bbdo
-                      fmt::fmt)
-target_precompile_headers(${BAM} PRIVATE precomp_inc/precomp.hpp)
+                      spdlog::spdlog)
+target_precompile_headers(${BAM} PRIVATE precomp_inc/precomp.hh)
 set_target_properties("${BAM}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${BAM}" pb_open_telemetry_lib pb_bam_lib process_stat

@@ -23,14 +23,11 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/statusdata.hh"
-#include "com/centreon/logging/file.hh"
 
 // using namespace com::centreon::engine;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 static char const* tab_initial_state[] = {"UNKNOWN", "INITIAL", "CURRENT"};
 
@@ -47,10 +44,6 @@ void log_host_state(unsigned int type, com::centreon::engine::host* hst) {
       (unsigned int)hst->get_current_state() < host::tab_host_states.size())
     state = host::tab_host_states[hst->get_current_state()].second.c_str();
   std::string const& state_type{host::tab_state_type[hst->get_state_type()]};
-  engine_logger(log_info_message, basic)
-      << type_str << " HOST STATE: " << hst->name() << ";" << state << ";"
-      << state_type << ";" << hst->get_current_attempt() << ";"
-      << hst->get_plugin_output();
   events_logger->info("{} HOST STATE: {};{};{};{};{}", type_str, hst->name(),
                       state, state_type, hst->get_current_attempt(),
                       hst->get_plugin_output());
@@ -71,10 +64,6 @@ void log_service_state(unsigned int type, com::centreon::engine::service* svc) {
         service::tab_service_states[svc->get_current_state()].second.c_str();
   std::string const& state_type(service::tab_state_type[svc->get_state_type()]);
   std::string const& output{svc->get_plugin_output()};
-  engine_logger(log_info_message, basic)
-      << type_str << " SERVICE STATE: " << svc->get_hostname() << ";"
-      << svc->description() << ";" << state << ";" << state_type << ";"
-      << svc->get_current_attempt() << ";" << output;
   events_logger->info("{} SERVICE STATE: {};{};{};{};{};{}", type_str,
                       svc->get_hostname(), svc->description(), state,
                       state_type, svc->get_current_attempt(), output);

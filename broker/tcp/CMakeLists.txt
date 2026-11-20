@@ -42,8 +42,8 @@ set_target_properties("${TCP}" PROPERTIES PREFIX ""
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib"
 )
 add_dependencies("${TCP}" process_stat pb_common_lib target_broker_message)
-target_link_libraries("${TCP}" fmt::fmt)
-target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hpp)
+target_link_libraries("${TCP}" spdlog::spdlog)
+target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hh)
 
 # Testing.
 if (WITH_TESTING)

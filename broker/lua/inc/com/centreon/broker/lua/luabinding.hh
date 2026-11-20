@@ -20,6 +20,9 @@
 #define CCB_LUA_LUABINDING_HH
 
 #include <variant>
+
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/io/data.hh"
 
 extern "C" {
@@ -102,7 +105,7 @@ class luabinding {
   bool _flush;
 
   // Count on events
-  int32_t _total;
+  uint32_t _total;
 
   // Api version among (1, 2)
   uint32_t _broker_api_version;
@@ -112,20 +115,20 @@ class luabinding {
 
   lua_State* _load_interpreter();
   void _load_script(const std::string& lua_script);
-  void _init_script(std::map<std::string, variant> const& conf_params);
+  void _init_script(absl::btree_map<std::string, variant> const& conf_params);
   void _update_lua_path(std::string const& path);
 
  public:
   luabinding(std::string const& lua_script,
-             std::map<std::string, variant> const& conf_params);
+             absl::btree_map<std::string, variant> const& conf_params);
   luabinding(luabinding const&) = delete;
   luabinding& operator=(luabinding const&) = delete;
   ~luabinding() noexcept;
   bool has_filter() const noexcept;
-  int32_t write(std::shared_ptr<io::data> const& data) noexcept;
+  uint32_t write(std::shared_ptr<io::data> const& data) noexcept;
   bool has_flush() const noexcept;
-  int32_t flush() noexcept;
-  int32_t stop();
+  uint32_t flush() noexcept;
+  uint32_t stop();
 };
 
 // Event conversion to Lua table.

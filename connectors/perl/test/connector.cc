@@ -19,6 +19,7 @@
 #include <absl/time/time.h>
 #include <gtest/gtest.h>
 
+#include <unistd.h>
 #include <boost/system/detail/error_code.hpp>
 #include <chrono>
 #include <ostream>
@@ -27,7 +28,6 @@
 #include "com/centreon/common/process/process.hh"
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon::connector;
 using namespace com::centreon::exceptions;
@@ -212,6 +212,15 @@ int process::get_exit_code() {
   return *_exit_code;
 }
 
+static std::string make_temp_path() {
+  char tmpl[] = "/tmp/centreon_XXXXXX";
+  int fd = mkstemp(tmpl);
+  if (fd < 0)
+    throw msg_fmt("mkstemp failed: {}", strerror(errno));
+  close(fd);
+  return tmpl;
+}
+
 class TestConnector : public testing::Test {
  public:
   void SetUp() override {};
@@ -275,8 +284,8 @@ TEST_F(TestConnector, EofOnStdin) {
 
 TEST_F(TestConnector, ExecuteModuleLoading) {
   // Write Perl script.
-  const char* script_path = com::centreon::io::file_stream::temp_path();
-  _write_file(script_path,
+  std::string script_path = make_temp_path();
+  _write_file(script_path.c_str(),
               "#!/usr/bin/perl\n"
               "\n"
               "use Sys::Hostname;\n"
@@ -304,7 +313,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
-  remove(script_path);
+  remove(script_path.c_str());
 
   ASSERT_EQ(retval, 0);
   std::string expected(result, result + sizeof(result) - 1);
@@ -316,7 +325,7 @@ TEST_F(TestConnector, ExecuteMultipleScripts) {
   // Write Perl scripts.
   std::string script_paths[10];
   for (auto& script_path : script_paths) {
-    script_path = com::centreon::io::file_stream::temp_path();
+    script_path = make_temp_path();
     log::core()->info("write perl code to {}", script_path);
     _write_file(script_path.c_str(), scripts, sizeof(scripts) - 1);
   }
@@ -369,7 +378,7 @@ TEST_F(TestConnector, ExecuteMultipleScripts) {
 
 TEST_F(TestConnector, ExecuteSingleScript) {
   // Write Perl script.
-  std::string script_path(com::centreon::io::file_stream::temp_path());
+  std::string script_path = make_temp_path();
   _write_file(script_path.c_str(),
               "#!/usr/bin/perl\n"
               "\n"
@@ -404,7 +413,7 @@ TEST_F(TestConnector, ExecuteSingleScript) {
 
 TEST_F(TestConnector, ExecuteSingleWarningScript) {
   // Write Perl script.
-  std::string script_path(com::centreon::io::file_stream::temp_path());
+  std::string script_path = make_temp_path();
   _write_file(script_path.c_str(),
               "#!/usr/bin/perl\n"
               "\n"
@@ -441,7 +450,7 @@ TEST_F(TestConnector, ExecuteSingleWarningScript) {
 
 TEST_F(TestConnector, ExecuteSingleCriticalScript) {
   // Write Perl script.
-  std::string script_path(com::centreon::io::file_stream::temp_path());
+  std::string script_path = make_temp_path();
   _write_file(script_path.c_str(),
               "#!/usr/bin/perl\n"
               "\n"
@@ -485,7 +494,7 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
   }
 
   // Write Perl script.
-  std::string script_path(com::centreon::io::file_stream::temp_path());
+  std::string script_path = make_temp_path();
   _write_file(script_path.c_str(),
               "#!/usr/bin/perl\n"
               "\n"
@@ -531,9 +540,9 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
 
 TEST_F(TestConnector, ExecuteWithAdditionalCode) {
   // Write Perl script.
-  const char* script_path(com::centreon::io::file_stream::temp_path());
+  std::string script_path = make_temp_path();
   _write_file(
-      script_path,
+      script_path.c_str(),
       "#!/usr/bin/perl\n"
       "\n"
       "print \"$Centreon::Test::company is $Centreon::Test::attribute\\n\";\n"
@@ -563,7 +572,7 @@ TEST_F(TestConnector, ExecuteWithAdditionalCode) {
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
-  remove(script_path);
+  remove(script_path.c_str());
 
   ASSERT_EQ(retval, 0);
   std::string expected(result, result + sizeof(result) - 1);
@@ -620,7 +629,7 @@ TEST_F(TestConnector, TimeoutKill) {
 
   ASSERT_EQ(retval, 0);
   std::string expected(TimeoutKillRESULT,
-                       TimeoutKillRESULT + sizeof(TimeoutKillRESULT) - 1);
+                       &TimeoutKillRESULT[sizeof(TimeoutKillRESULT) - 1]);
   ASSERT_EQ(output, expected);
 }
 

@@ -77,7 +77,7 @@ inline std::ostream& operator<<(std::ostream& str, const request& req) {
  */
 class stream : public io::stream, public std::enable_shared_from_this<stream> {
  protected:
-  std::shared_ptr<asio::io_context> _io_context;
+  std::shared_ptr<boost::asio::io_context> _io_context;
   const std::shared_ptr<spdlog::logger> _logger;
   // Database and http parameters
   std::shared_ptr<http_tsdb_config> _conf;
@@ -111,7 +111,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
    *
    */
   class stat_average {
-    std::map<time_point, unsigned> _points;
+    absl::btree_map<std::chrono::system_clock::time_point, unsigned> _points;
 
    public:
     void add_point(unsigned value);
@@ -126,7 +126,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   mutable std::mutex _protect;
 
   stream(const std::string& name,
-         const std::shared_ptr<asio::io_context>& io_context,
+         const std::shared_ptr<boost::asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const std::shared_ptr<http_tsdb_config>& conf,
          http::connection_creator conn_creator);
@@ -146,11 +146,11 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   using pointer = std::shared_ptr<stream>;
 
   ~stream();
-  int flush() override;
+  uint32_t flush() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void statistics(nlohmann::json& tree) const override;
-  int write(std::shared_ptr<io::data> const& d) override;
-  int32_t stop() override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t stop() override;
 };
 }  // namespace http_tsdb
 

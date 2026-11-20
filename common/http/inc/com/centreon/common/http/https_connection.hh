@@ -35,13 +35,13 @@ namespace com::centreon::common::http {
  */
 class https_connection : public connection_base {
  protected:
-  asio::ssl::context _sslcontext;
+  boost::asio::ssl::context _sslcontext;
   using ssl_stream = boost::beast::ssl_stream<boost::beast::tcp_stream>;
   // when handshake fails, ssl_stream is in a dirty state so it's better to
   // recreate another object
   std::unique_ptr<ssl_stream> _stream;
 
-  https_connection(const std::shared_ptr<asio::io_context>& io_context,
+  https_connection(const std::shared_ptr<boost::asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
                    const http_config::pointer& conf,
                    const ssl_ctx_initializer& ssl_init);
@@ -71,7 +71,7 @@ class https_connection : public connection_base {
         connection_base::shared_from_this());
   }
 
-  static pointer load(const std::shared_ptr<asio::io_context>& io_context,
+  static pointer load(const std::shared_ptr<boost::asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
                       const http_config::pointer& conf,
                       const ssl_ctx_initializer& ssl_init =
@@ -89,12 +89,12 @@ class https_connection : public connection_base {
               answer_callback_type&& callback) override;
   void receive_request(request_callback_type&& callback) override;
 
-  asio::ip::tcp::socket& get_socket() override;
+  boost::asio::ip::tcp::socket& get_socket() override;
 
-  static void load_client_certificate(asio::ssl::context& ctx,
+  static void load_client_certificate(boost::asio::ssl::context& ctx,
                                       const http_config::pointer& conf);
 
-  static void load_server_certificate(asio::ssl::context& ctx,
+  static void load_server_certificate(boost::asio::ssl::context& ctx,
                                       const http_config::pointer& conf);
 };
 

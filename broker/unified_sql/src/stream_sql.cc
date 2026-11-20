@@ -2381,7 +2381,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     // Processing.
     if (_store_in_hosts_services) {
       if (_bulk_prepared_statement) {
-        std::lock_guard<bulk_bind> lck(*_hscr_bind);
+        bulk_bind::scoped_lock lck(*_hscr_bind);
         if (!_hscr_bind->bind(0))
           _hscr_bind->init_from_stmt(0);
         auto* b = _hscr_bind->bind(0).get();
@@ -2492,7 +2492,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
 
     if (_store_in_resources) {
       if (_bulk_prepared_statement) {
-        std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
+        bulk_bind::scoped_lock lck(*_hscr_resources_bind);
         if (!_hscr_resources_bind->bind(0))
           _hscr_resources_bind->init_from_stmt(0);
         auto* b = _hscr_resources_bind->bind(0).get();
@@ -4190,7 +4190,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     // Processing.
     if (_store_in_hosts_services) {
       if (_bulk_prepared_statement) {
-        std::lock_guard<bulk_bind> lck(*_sscr_bind);
+        bulk_bind::scoped_lock lck(*_sscr_bind);
         if (!_sscr_bind->bind(0))
           _sscr_bind->init_from_stmt(0);
         auto* b = _sscr_bind->bind(0).get();
@@ -4324,7 +4324,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _logger_sql->debug(
             "unified_sql: BULK pb service status ({}, {}) {} in resources",
             sscr.host_id(), sscr.service_id(), sscr.state());
-        std::lock_guard<bulk_bind> lck(*_sscr_resources_bind);
+        bulk_bind::scoped_lock lck(*_sscr_resources_bind);
         if (!_sscr_resources_bind->bind(0))
           _sscr_resources_bind->init_from_stmt(0);
         auto* b = _sscr_resources_bind->bind(0).get();

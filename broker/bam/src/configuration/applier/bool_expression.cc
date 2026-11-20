@@ -152,7 +152,7 @@ std::shared_ptr<bam::bool_expression> applier::bool_expression::find_boolexp(
  *  Resolve the cross
  */
 void applier::bool_expression::_resolve_expression_calls() {
-  std::map<std::string, uint32_t> _name_to_ids;
+  absl::flat_hash_map<std::string, uint32_t> _name_to_ids;
   for (std::map<uint32_t, applied>::const_iterator it = _applied.begin(),
                                                    end = _applied.end();
        it != end; ++it)
@@ -166,7 +166,7 @@ void applier::bool_expression::_resolve_expression_calls() {
              call_it = it->second.call.begin(),
              call_end = it->second.call.end();
          call_it != call_end; ++call_it) {
-      std::map<std::string, uint32_t>::const_iterator found =
+      absl::flat_hash_map<std::string, uint32_t>::const_iterator found =
           _name_to_ids.find((*call_it)->get_name());
       if (found == _name_to_ids.end()) {
         _logger->error(

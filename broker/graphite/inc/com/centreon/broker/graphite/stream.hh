@@ -61,8 +61,8 @@ class stream : public io::stream {
   query _status_query;
   std::string _query;
   std::string _auth_query;
-  asio::io_context _io_context;
-  asio::ip::tcp::socket _socket;
+  boost::asio::io_context _io_context;
+  boost::asio::ip::tcp::socket _socket;
 
   // Logger
   std::shared_ptr<spdlog::logger> _logger;
@@ -85,11 +85,11 @@ class stream : public io::stream {
          unsigned short db_port,
          uint32_t queries_per_transaction);
   ~stream();
-  int32_t flush() override;
-  int32_t stop() override;
+  uint32_t flush() override;
+  uint32_t stop() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void statistics(nlohmann::json& tree) const override;
-  int32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
 };
 }  // namespace graphite
 

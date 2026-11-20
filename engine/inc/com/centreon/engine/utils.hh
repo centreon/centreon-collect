@@ -58,8 +58,6 @@ void sighandler(int sig);
 // tests whether or not an object name (host, service, etc.) contains illegal
 // characters
 bool contains_illegal_object_chars(char const* name);
-// compares two strings for equality
-int compare_strings(char* val1a, char* val2a);
 bool set_cloexec(int fd);
 
 // Cleanup Functions

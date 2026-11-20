@@ -44,8 +44,8 @@ add_library(
 set_target_properties("${STATS}" PROPERTIES PREFIX ""
   POSITION_INDEPENDENT_CODE ON
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-target_link_libraries("${STATS}" PRIVATE fmt::fmt)
-target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hpp)
+target_link_libraries("${STATS}" PRIVATE spdlog::spdlog)
+target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hh)
 add_dependencies(${STATS} process_stat pb_common_lib target_broker_message)
 
 # Testing.

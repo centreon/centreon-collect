@@ -38,7 +38,7 @@ namespace com::centreon::broker::cache {
 struct broker_cache::periodic_save {
   absl::Mutex m;
   broker_cache* cache ABSL_GUARDED_BY(m);
-  asio::steady_timer timer;
+  boost::asio::steady_timer timer;
 
   explicit periodic_save(broker_cache* c)
       : cache{c}, timer{com::centreon::common::pool::io_context()} {}

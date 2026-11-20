@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/strings/match.h>
-
 #include "broker/core/bbdo/acceptor.hh"
 #include "broker/core/bbdo/connector.hh"
 #include "broker/core/bbdo/factory.hh"
@@ -74,7 +72,8 @@ bool factory::has_endpoint(const config::endpoint& cfg,
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor) const {
   // Return value.
   std::unique_ptr<io::endpoint> retval;
@@ -195,7 +194,7 @@ std::list<std::shared_ptr<io::extension>> factory::_extensions(
     config::endpoint& cfg) const {
   std::list<std::shared_ptr<io::extension>> retval;
 
-  for (std::map<std::string, io::protocols::protocol>::const_iterator
+  for (absl::btree_map<std::string, io::protocols::protocol>::const_iterator
            it{io::protocols::instance().begin()},
        end{io::protocols::instance().end()};
        it != end; ++it) {

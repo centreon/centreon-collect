@@ -19,7 +19,6 @@
 #ifndef CCB_NEB_INTERNAL_HH
 #define CCB_NEB_INTERNAL_HH
 
-#include <absl/hash/hash.h>
 #include "bbdo/events.hh"
 #include "bbdo/neb.pb.h"
 #include "bbdo/storage.pb.h"

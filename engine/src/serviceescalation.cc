@@ -20,10 +20,8 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine;
 
 serviceescalation_mmap serviceescalation::serviceescalations;
@@ -67,7 +65,6 @@ std::string const& serviceescalation::get_description() const {
  */
 bool serviceescalation::is_viable(int state,
                                   uint32_t notification_number) const {
-  engine_logger(dbg_functions, basic) << "serviceescalation::is_viable()";
   functions_logger->trace("serviceescalation::is_viable()");
 
   bool retval{escalation::is_viable(state, notification_number)};
@@ -93,10 +90,6 @@ void serviceescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   service_map::const_iterator found{
       service::services.find({get_hostname(), get_description()})};
   if (found == service::services.end() || !found->second) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Service '" << get_description() << "' on host '"
-        << get_hostname()
-        << "' specified in service escalation is not defined anywhere!";
     config_logger->error(
         "Error: Service '{}' on host '{}' specified in service escalation is "
         "not defined anywhere!",
@@ -111,8 +104,6 @@ void serviceescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   try {
     escalation::resolve(w, errors);
   } catch (std::exception const& ee) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Notifier escalation error: " << ee.what();
     config_logger->error("Error: Notifier escalation error: {}", ee.what());
   }
 

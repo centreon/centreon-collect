@@ -24,6 +24,7 @@
 #include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
 
+namespace asio = boost::asio;
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
@@ -184,7 +185,7 @@ class connection_send_bagot : public http::connection_base {
   void receive_request(http::request_callback_type&& callback
                        [[maybe_unused]]) override {}
 
-  asio::ip::tcp::socket& get_socket() { return _not_used; }
+  asio::ip::tcp::socket& get_socket() override { return _not_used; }
 };
 
 std::atomic_uint connection_send_bagot::success(0);

@@ -19,10 +19,9 @@
 
 #include "com/centreon/engine/diagnostic.hh"
 #include <sys/stat.h>
+#include <fstream>
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/version.hh"
-#include "com/centreon/io/file_stream.hh"
 #include "com/centreon/process.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/state_helper.hh"
@@ -293,12 +292,8 @@ void diagnostic::_exec_and_write_to_file(std::string const& cmd,
     p.wait();
     p.read(result);
   }
-  io::file_stream fs;
-  fs.open(out_file, "w");
-  while (!result.empty()) {
-    unsigned long wb(fs.write(result.data(), result.size()));
-    result.erase(0, wb);
-  }
+  std::ofstream fs(out_file);
+  fs.write(result.data(), result.size());
 }
 
 /**

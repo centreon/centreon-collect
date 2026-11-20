@@ -35,7 +35,7 @@
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
+extern std::shared_ptr<boost::asio::io_context> g_io_context;
 
 extern std::shared_ptr<spdlog::logger> checks_logger;
 extern std::shared_ptr<spdlog::logger> commands_logger;
@@ -65,8 +65,6 @@ extern com::centreon::engine::commands::command*
 
 extern com::centreon::engine::commands::command* ocsp_command_ptr;
 extern com::centreon::engine::commands::command* ochp_command_ptr;
-
-extern unsigned long logging_options;
 
 extern time_t last_command_check;
 extern time_t last_command_status_update;

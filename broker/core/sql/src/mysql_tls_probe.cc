@@ -53,9 +53,9 @@ std::optional<bool> parse_greeting(const unsigned char* payload, size_t size) {
  * operation is pending.
  */
 class tls_probe : public std::enable_shared_from_this<tls_probe> {
-  asio::strand<asio::io_context::executor_type> _strand;
-  asio::ip::tcp::resolver _resolver;
-  asio::ip::tcp::socket _socket;
+  boost::asio::strand<boost::asio::io_context::executor_type> _strand;
+  boost::asio::ip::tcp::resolver _resolver;
+  boost::asio::ip::tcp::socket _socket;
   const std::string _host;
   const uint16_t _port;
   std::shared_ptr<spdlog::logger> _logger;
@@ -66,7 +66,7 @@ class tls_probe : public std::enable_shared_from_this<tls_probe> {
 
   void _resolve();
   void _connect(const boost::system::error_code& err,
-                const asio::ip::tcp::resolver::results_type& endpoints);
+                const boost::asio::ip::tcp::resolver::results_type& endpoints);
   void _read_header(const boost::system::error_code& err);
   void _read_payload(const boost::system::error_code& err);
   void _parse(const boost::system::error_code& err, size_t size);
@@ -74,7 +74,7 @@ class tls_probe : public std::enable_shared_from_this<tls_probe> {
   void _finish(std::optional<bool> result);
 
  public:
-  tls_probe(asio::io_context& io_context,
+  tls_probe(boost::asio::io_context& io_context,
             const std::string& host,
             uint16_t port,
             const std::shared_ptr<spdlog::logger>& logger);
@@ -82,11 +82,11 @@ class tls_probe : public std::enable_shared_from_this<tls_probe> {
   void cancel();
 };
 
-tls_probe::tls_probe(asio::io_context& io_context,
+tls_probe::tls_probe(boost::asio::io_context& io_context,
                      const std::string& host,
                      uint16_t port,
                      const std::shared_ptr<spdlog::logger>& logger)
-    : _strand{asio::make_strand(io_context)},
+    : _strand{boost::asio::make_strand(io_context)},
       _resolver{_strand},
       _socket{_strand},
       _host{host},
@@ -100,7 +100,7 @@ tls_probe::tls_probe(asio::io_context& io_context,
  */
 std::future<std::optional<bool>> tls_probe::start() {
   std::future<std::optional<bool>> result = _result.get_future();
-  asio::post(_strand, [me = shared_from_this()] { me->_resolve(); });
+  boost::asio::post(_strand, [me = shared_from_this()] { me->_resolve(); });
   return result;
 }
 
@@ -109,7 +109,7 @@ std::future<std::optional<bool>> tls_probe::start() {
  * does nothing.
  */
 void tls_probe::cancel() {
-  asio::post(_strand, [me = shared_from_this()] {
+  boost::asio::post(_strand, [me = shared_from_this()] {
     me->_resolver.cancel();
     me->_finish(std::nullopt);
   });
@@ -121,7 +121,7 @@ void tls_probe::_resolve() {
         _host, std::to_string(_port),
         [me = shared_from_this()](
             const boost::system::error_code& err,
-            const asio::ip::tcp::resolver::results_type& endpoints) {
+            const boost::asio::ip::tcp::resolver::results_type& endpoints) {
           me->_connect(err, endpoints);
         });
   } catch (const std::exception& e) {
@@ -131,16 +131,16 @@ void tls_probe::_resolve() {
 
 void tls_probe::_connect(
     const boost::system::error_code& err,
-    const asio::ip::tcp::resolver::results_type& endpoints) {
+    const boost::asio::ip::tcp::resolver::results_type& endpoints) {
   if (err) {
     _fail(err.message());
     return;
   }
   try {
-    asio::async_connect(
+    boost::asio::async_connect(
         _socket, endpoints,
         [me = shared_from_this()](const boost::system::error_code& err,
-                                  const asio::ip::tcp::endpoint&) {
+                                  const boost::asio::ip::tcp::endpoint&) {
           me->_read_header(err);
         });
   } catch (const std::exception& e) {
@@ -154,8 +154,8 @@ void tls_probe::_read_header(const boost::system::error_code& err) {
     return;
   }
   try {
-    asio::async_read(
-        _socket, asio::buffer(_header),
+    boost::asio::async_read(
+        _socket, boost::asio::buffer(_header),
         [me = shared_from_this()](const boost::system::error_code& err,
                                   size_t) { me->_read_payload(err); });
   } catch (const std::exception& e) {
@@ -172,8 +172,8 @@ void tls_probe::_read_payload(const boost::system::error_code& err) {
   size_t len = std::min<size_t>(_header[0] | _header[1] << 8 | _header[2] << 16,
                                 _payload.size());
   try {
-    asio::async_read(
-        _socket, asio::buffer(_payload.data(), len),
+    boost::asio::async_read(
+        _socket, boost::asio::buffer(_payload.data(), len),
         [me = shared_from_this()](const boost::system::error_code& err,
                                   size_t size) { me->_parse(err, size); });
   } catch (const std::exception& e) {
@@ -213,7 +213,7 @@ void tls_probe::_finish(std::optional<bool> result) {
     return;
   _done = true;
   boost::system::error_code ignored;
-  _socket.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
+  _socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
   _socket.close(ignored);
   _result.set_value(result);
 }

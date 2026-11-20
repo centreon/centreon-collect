@@ -19,7 +19,8 @@
 #include "com/centreon/broker/lua/broker_socket.hh"
 #include <fmt/format.h>
 
-using namespace asio;
+namespace asio = boost::asio;
+using namespace boost::asio;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 

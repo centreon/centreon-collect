@@ -22,13 +22,11 @@
 
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/engine_conf/state.pb.h"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 /**
  *  Displays service check scheduling information.

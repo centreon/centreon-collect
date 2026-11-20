@@ -91,12 +91,12 @@ class pipe_end : public io::stream {
     return true;
   }
 
-  int write(const std::shared_ptr<io::data>& d) override {
+  uint32_t write(const std::shared_ptr<io::data>& d) override {
     _out->push(std::static_pointer_cast<io::raw>(d)->get_buffer());
     return 1;
   }
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 };
 
 struct negotiation_result {

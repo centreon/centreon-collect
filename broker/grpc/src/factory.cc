@@ -17,8 +17,6 @@
  *
  */
 
-#include <absl/strings/match.h>
-
 #include "grpc_stream.grpc.pb.h"
 
 #include "com/centreon/broker/grpc/factory.hh"
@@ -85,7 +83,8 @@ static std::string read_file(const std::string& path) {
  */
 io::endpoint* factory::new_endpoint(
     com::centreon::broker::config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor) const {
   if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client")
     return _new_endpoint_bbdo_cs(cfg, global_params, is_acceptor);
@@ -195,9 +194,12 @@ io::endpoint* factory::new_endpoint(
     if (common::vault::vault_access::is_vault_prefixed(
             authorization)) {  // if crypted => decrypt
       try {
-        authorization = common::vault::vault_access::load(
-                            global_params, log_v2::instance().get(log_v2::GRPC))
-                            ->decrypt(authorization);
+        authorization =
+            common::vault::vault_access::load(
+                std::map<std::string, std::string>(global_params.begin(),
+                                                   global_params.end()),
+                log_v2::instance().get(log_v2::GRPC))
+                ->decrypt(authorization);
         log_v2::instance()
             .get(log_v2::GRPC)
             ->info("Authorization obtained from Vault configuration");
@@ -286,7 +288,7 @@ io::endpoint* factory::new_endpoint(
  */
 io::endpoint* factory::_new_endpoint_bbdo_cs(
     com::centreon::broker::config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params,
+    const absl::btree_map<std::string, std::string>& global_params,
     bool& is_acceptor) const {
   // Find host (if exists).
   std::string host;
@@ -351,9 +353,12 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     if (common::vault::vault_access::is_vault_prefixed(
             authorization)) {  // if crypted => decrypt
       try {
-        authorization = common::vault::vault_access::load(
-                            global_params, log_v2::instance().get(log_v2::GRPC))
-                            ->decrypt(authorization);
+        authorization =
+            common::vault::vault_access::load(
+                std::map<std::string, std::string>(global_params.begin(),
+                                                   global_params.end()),
+                log_v2::instance().get(log_v2::GRPC))
+                ->decrypt(authorization);
         log_v2::instance()
             .get(log_v2::GRPC)
             ->info("Authorization obtained from Vault configuration");

@@ -19,7 +19,7 @@
 #ifndef CCB_LUA_STREAM_HH
 #define CCB_LUA_STREAM_HH
 
-#include <nlohmann/json.hpp>
+#include <absl/container/btree_map.h>
 
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
@@ -56,14 +56,14 @@ class stream : public io::stream {
 
  public:
   stream(std::string const& lua_script,
-         std::map<std::string, variant> const& conf_params);
+         absl::btree_map<std::string, variant> const& conf_params);
   ~stream() noexcept;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  int write(std::shared_ptr<io::data> const& d) override;
-  int32_t flush() override;
-  int32_t stop() override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t flush() override;
+  uint32_t stop() override;
 };
 
 }  // namespace com::centreon::broker::lua

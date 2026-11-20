@@ -50,8 +50,8 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   long long read_encrypted(void* buffer, long long size);
-  int32_t write(std::shared_ptr<io::data> const& d) override;
-  int32_t stop() override { return 0; }
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t stop() override { return 0; }
   long long write_encrypted(void const* buffer, long long size);
 };
 

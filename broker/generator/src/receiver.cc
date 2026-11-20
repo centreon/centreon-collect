@@ -57,7 +57,7 @@ bool receiver::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  *  @return 1.
  */
-int receiver::write(std::shared_ptr<io::data> const& d) {
+uint32_t receiver::write(std::shared_ptr<io::data> const& d) {
   if (d && (d->type() == dummy::static_type())) {
     dummy const& e(*(static_cast<dummy*>(d.get())));
 

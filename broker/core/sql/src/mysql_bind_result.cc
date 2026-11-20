@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/sql/mysql_bind_result.hh"
 
-#include <absl/strings/numbers.h>
-
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/sql/mysql.hh"

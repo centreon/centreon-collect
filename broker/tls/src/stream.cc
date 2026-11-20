@@ -212,7 +212,7 @@ long long stream::read_encrypted(void* buffer, long long size) {
  *
  *  @return Number of events acknowledged.
  */
-int stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream::write(std::shared_ptr<io::data> const& d) {
   if (!validate(d, get_name()))
     return 1;
 

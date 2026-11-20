@@ -37,7 +37,7 @@ stream::stream(const std::string& name) : _name(name) {}
  *
  *  @return Number of events acknowledged. This is 0 by default.
  */
-int stream::flush() {
+uint32_t stream::flush() {
   return 0;
 }
 

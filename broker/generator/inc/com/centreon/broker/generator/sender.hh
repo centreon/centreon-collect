@@ -35,7 +35,7 @@ class sender : public io::stream {
   sender();
   ~sender();
   bool read(std::shared_ptr<io::data>& d, time_t deadline);
-  int write(std::shared_ptr<io::data> const& d);
+  uint32_t write(std::shared_ptr<io::data> const& d);
 
  private:
   sender(sender const& other);

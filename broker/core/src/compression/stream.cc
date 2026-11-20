@@ -196,7 +196,7 @@ void stream::statistics(nlohmann::json& tree) const {
  *
  *  @return The number of events acknowledged.
  */
-int stream::flush() {
+uint32_t stream::flush() {
   _flush();
   return 0;
 }
@@ -206,7 +206,7 @@ int stream::flush() {
  *
  * @return The number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _flush();
   return 0;
 }
@@ -220,7 +220,7 @@ int32_t stream::stop() {
  *
  *  @return 1.
  */
-int stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream::write(std::shared_ptr<io::data> const& d) {
   if (!validate(d, get_name()))
     return 1;
 

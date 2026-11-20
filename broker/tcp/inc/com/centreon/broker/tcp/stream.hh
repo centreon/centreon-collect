@@ -61,9 +61,9 @@ class stream : public io::stream {
     return _connection ? _connection->peer() : "";
   }
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  int32_t flush() override;
-  int32_t stop() override;
-  int32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t flush() override;
+  uint32_t stop() override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
   bool wait_for_all_events_written(unsigned ms_timeout) override;
 
   template <class visitor>

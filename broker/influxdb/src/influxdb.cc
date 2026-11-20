@@ -22,7 +22,7 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
-using namespace asio;
+namespace asio = boost::asio;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::influxdb;
 using log_v2 = com::centreon::common::log_v2::log_v2;
@@ -130,7 +130,7 @@ void influxdb::commit() {
 
   boost::system::error_code err;
 
-  asio::write(_socket, buffer(final_query), asio::transfer_all(), err);
+  asio::write(_socket, asio::buffer(final_query), asio::transfer_all(), err);
   if (err)
     throw msg_fmt(
         "influxdb: couldn't commit data to InfluxDB with address '{}"
@@ -145,7 +145,7 @@ void influxdb::commit() {
     answer.resize(read_size);
 
     total_read += _socket.read_some(
-        asio::buffer(&answer[total_read], read_size - total_read), err);
+        boost::asio::buffer(&answer[total_read], read_size - total_read), err);
     if (total_read == read_size)
       total_read += 2048;
 
@@ -158,7 +158,7 @@ void influxdb::commit() {
           addr, port, err.message());
 
   } while (!_check_answer_string(answer, addr, port));
-  _socket.shutdown(ip::tcp::socket::shutdown_both);
+  _socket.shutdown(asio::ip::tcp::socket::shutdown_both);
   _socket.close();
   _query.clear();
 }
@@ -168,11 +168,11 @@ void influxdb::commit() {
  */
 void influxdb::_connect_socket() {
   if (_socket.is_open()) {
-    _socket.shutdown(ip::tcp::socket::shutdown_both);
+    _socket.shutdown(asio::ip::tcp::socket::shutdown_both);
     _socket.close();
   }
   boost::system::error_code err;
-  ip::tcp::resolver resolver{_io_context};
+  asio::ip::tcp::resolver resolver{_io_context};
   auto endpoints = resolver.resolve(_host, std::to_string(_port), err);
   if (err) {
     throw msg_fmt(
@@ -181,7 +181,7 @@ void influxdb::_connect_socket() {
         _host, _port, err.message());
   }
   // Try to connect to the server.
-  asio::connect(_socket, endpoints, err);
+  boost::asio::connect(_socket, endpoints, err);
   if (err) {
     throw msg_fmt(
         "influxdb: couldn't connect to InfluxDB with address '{}"

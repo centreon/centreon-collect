@@ -30,6 +30,8 @@
 #include "com/centreon/common/time.hh"
 #include "common/log_v2/log_v2.hh"
 
+namespace asio = boost::asio;
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
 using log_v2 = com::centreon::common::log_v2::log_v2;
@@ -228,7 +230,7 @@ muxer::~muxer() noexcept {
  *
  *  @param[in] count  Number of events to acknowledge.
  */
-void muxer::ack_events(int count) {
+void muxer::ack_events(uint32_t count) {
   // Remove acknowledged events.
   SPDLOG_LOGGER_TRACE(
       _logger,
@@ -240,7 +242,7 @@ void muxer::ack_events(int count) {
         _logger, "multiplexing: acknowledging {} events from {} event queue",
         count, _name);
     absl::MutexLock lck(_events_m);
-    for (int i = 0; i < count && !_events.empty(); ++i) {
+    for (uint32_t i = 0; i < count && !_events.empty(); ++i) {
       if (_events.begin() == _pos) {
         _logger->error(
             "multiplexing: attempt to acknowledge more events than available "
@@ -276,7 +278,7 @@ void muxer::ack_events(int count) {
  *
  * @return The number of acknowledged events.
  */
-int32_t muxer::stop() {
+uint32_t muxer::stop() {
   SPDLOG_LOGGER_INFO(_logger,
                      "Stopping muxer {}: number of events in the queue: {}",
                      _name, _events_size);
@@ -579,7 +581,7 @@ void muxer::wake() {
  *
  *  @param[in] d  Event to multiplex.
  */
-int muxer::write(std::shared_ptr<io::data> const& d) {
+uint32_t muxer::write(std::shared_ptr<io::data> const& d) {
   _logger->debug("write on muxer '{}'", _name);
   if (!d) {
     return 1;

@@ -49,7 +49,7 @@ target_link_libraries(
   opentelemetry_metrics)
 
 add_definitions("-DHAVE_ABSEIL")
-target_precompile_headers(${STATS_EXPORTER} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${STATS_EXPORTER} PRIVATE precomp_inc/precomp.hh)
 
 # Install rule.
 install(TARGETS ${STATS_EXPORTER} LIBRARY DESTINATION "${PREFIX_MODULES}")

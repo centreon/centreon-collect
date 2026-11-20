@@ -31,7 +31,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
+extern std::shared_ptr<boost::asio::io_context> g_io_context;
 
 class InfluxDB12 : public testing::Test {
  public:

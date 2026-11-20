@@ -51,12 +51,12 @@ class stream : public io::stream {
   ~stream() noexcept;
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;
-  int32_t flush() override;
-  int32_t stop() override;
+  uint32_t flush() override;
+  uint32_t stop() override;
   bool read(std::shared_ptr<io::data>& d,
             time_t deadline = (time_t)-1) override;
   void statistics(nlohmann::json& tree) const override;
-  int write(std::shared_ptr<io::data> const& d) override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
 };
 }  // namespace compression
 

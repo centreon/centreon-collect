@@ -25,6 +25,10 @@
 #include <deque>
 #include <list>
 
+#include <absl/container/btree_map.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_split.h>
+
 namespace asio = boost::asio;
 
 #endif /* !CC_CORE_BBDO_PRECOMP_HH */

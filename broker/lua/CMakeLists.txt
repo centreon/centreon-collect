@@ -71,7 +71,7 @@ target_link_libraries(
           bbdo_storage
           fmt::fmt)
 
-target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hh)
 set_target_properties(
   "${LUA}" PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY
                                 "${CMAKE_BINARY_DIR}/broker/lib")

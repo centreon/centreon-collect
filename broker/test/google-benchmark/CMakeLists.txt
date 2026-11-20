@@ -1,14 +1,13 @@
-project("test" CXX)
-cmake_minimum_required(VERSION 3.16)
-add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+add_executable(broker_bench
+    int64_map.cc
+    #    old_muxer_queue.cc
+    muxer_queue.cc)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(TARGETS)
+target_compile_features(broker_bench PRIVATE cxx_std_17)
 
-add_executable(bench int64_map.cc)
-target_link_libraries(bench CONAN_PKG::benchmark
-  absl::any absl::log absl::base absl::bits
-  fmt::fmt)
+target_link_libraries(broker_bench
+    PRIVATE
+    benchmark::benchmark_main
+    absl::flat_hash_map
+    absl::btree
+    Boost::container)

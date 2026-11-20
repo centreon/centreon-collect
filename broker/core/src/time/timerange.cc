@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/time/timerange.hh"
-#include <absl/strings/str_split.h>
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;

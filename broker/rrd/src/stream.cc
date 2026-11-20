@@ -37,6 +37,8 @@
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/common/perfdata.hh"
 
+namespace asio = boost::asio;
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 
@@ -322,7 +324,7 @@ void stream<T>::update() {
  *  @return Number of events acknowledged.
  */
 template <typename T>
-int stream<T>::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream<T>::write(std::shared_ptr<io::data> const& d) {
   SPDLOG_LOGGER_TRACE(_logger, "RRD: stream::write.");
   // Check that data exists.
   if (!validate(d, "RRD"))

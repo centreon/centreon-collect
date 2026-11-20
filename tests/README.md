@@ -1517,21 +1517,15 @@ Here is the list of the currently implemented tests:
       * And each HTTP POST is answered with HTTP/1.0 204 No Content to acknowledge the write
 349. **LCDNU**: the lua cache updates correctly service cache.
 350. **LCDNUH**: the lua cache updates correctly host cache
-351. **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
-352. **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
-353. **LOGV2DF1**: log-v2 disabled old log enabled check logfile sink
-354. **LOGV2DF2**: log-v2 disabled old log disabled check logfile sink
-355. **LOGV2EB1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled.
-356. **LOGV2EB2**: log-v2 enabled old log enabled check broker sink
-357. **LOGV2EBU1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
-358. **LOGV2EBU2**: Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
-359. **LOGV2EF1**: log-v2 enabled    old log disabled check logfile sink
-360. **LOGV2EF2**: log-v2 enabled old log enabled check logfile sink
-361. **LOGV2FE2**: log-v2 enabled old log enabled check logfile sink
-362. **LUA_CACHE_SAVE_BBDO3**: 
+351. **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
+352. **LOGV2DF2**: log-v2 disabled old log disabled check logfile sink
+353. **LOGV2EB1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled.
+354. **LOGV2EBU1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
+355. **LOGV2EF1**: log-v2 enabled    old log disabled check logfile sink
+356. **LUA_CACHE_SAVE_BBDO3**: 
       * Given a engine broker configured in bbdo2, we check that services and hosts are stored in bbdo3 format in cache
       * To do that we compare host and service event with lua cache
-363. **LUA_CACHE_SAVE_HOST_GROUP**: Scenario: the Lua broker_cache follows the host group changes of the pollers
+357. **LUA_CACHE_SAVE_HOST_GROUP**: Scenario: the Lua broker_cache follows the host group changes of the pollers
       * Given two pollers and a Lua output that dumps the host groups of each host
       * And host group 1 holds host_1 and host_2 on poller 0
       * When host group 2 is added with host_2, then removed
@@ -1539,7 +1533,7 @@ Here is the list of the currently implemented tests:
       * And host group 2 spans both pollers (host_2 on poller 0, host_3 and host_4 on poller 1)
       * And host group 1 is removed, then host_4 leaves host group 2
       * Then after each Engine reload the Lua cache gives each host exactly its host groups
-364. **LUA_CACHE_SAVE_SERVICE_GROUP**: Scenario: the Lua broker_cache follows the service group changes of the pollers
+358. **LUA_CACHE_SAVE_SERVICE_GROUP**: Scenario: the Lua broker_cache follows the service group changes of the pollers
       * Given two pollers and a Lua output that dumps the service groups of each service
       * And service group 1 holds service_1 and service_2 of host_1 on poller 0
       * When service group 2 is added with service_2, then removed
@@ -1548,38 +1542,38 @@ Here is the list of the currently implemented tests:
       * And service group 1 is removed, then service_4 leaves service group 2
       * And every service group is removed
       * Then after each Engine reload the Lua cache gives each service exactly its service groups
-365. **LUA_FAILURE**: 
+359. **LUA_FAILURE**: 
       * Given a engine broker configured with a SC, we check write intervals in case of lua write returns nothing
-366. **MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER**: Scenario: Moving hosts between pollers without losing hostgroup tag
+360. **MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER**: Scenario: Moving hosts between pollers without losing hostgroup tag
       * Given two pollers each with two hosts
       * And all hosts belong to the same hostgroup
       * When I move two hosts from one poller to the other
       * Then the hostgroup tag of the moved hosts is not erased
-367. **NON_TLS_CONNECTION_WARNING**: 
+361. **NON_TLS_CONNECTION_WARNING**: 
       * Given an agent starts a non-TLS connection,
       * we expect to get a warning message.
-368. **NON_TLS_CONNECTION_WARNING_ENCRYPTED**: 
+362. **NON_TLS_CONNECTION_WARNING_ENCRYPTED**: 
       * Given agent with encrypted connection, we expect no warning message.
-369. **NON_TLS_CONNECTION_WARNING_FULL**: 
+363. **NON_TLS_CONNECTION_WARNING_FULL**: 
       * Given an agent starts a non-TLS connection,
       * we expect to get a warning message.
       * After 1 hour, we expect to get a warning message about the connection time expired
       * and the connection killed.
-370. **NON_TLS_CONNECTION_WARNING_FULL_REVERSED**: 
+364. **NON_TLS_CONNECTION_WARNING_FULL_REVERSED**: 
       * Given an agent starts a non-TLS connection reverse,
       * we expect to get a warning message.
       * After 1 hour, we expect to get a warning message about the connection time expired
       * and the connection killed.
-371. **NON_TLS_CONNECTION_WARNING_REVERSED**: 
+365. **NON_TLS_CONNECTION_WARNING_REVERSED**: 
       * Given an agent starts a non-TLS connection reversed,
       * we expect to get a warning message.
-372. **NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED**: 
+366. **NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED**: 
       * Given agent with encrypted reversed connection, we expect no warning message.
-373. **NO_ENGINE_ENCRYPTION**: 
+367. **NO_ENGINE_ENCRYPTION**: 
       * Given an engine without configured encryption, we give him several macros and we expect to retrieve them in logs.
       * As engine is not ready to receive encrypted macros, is_encryption_ready must be equal to 0 in db
-374. **NO_FILTER_NO_ERROR**: no filter configured => no filter error.
-375. **OTLP_AGENT_HOST_METADATA**: Scenario: CMA host information becomes host and os resource attributes
+368. **NO_FILTER_NO_ERROR**: no filter configured => no filter error.
+369. **OTLP_AGENT_HOST_METADATA**: Scenario: CMA host information becomes host and os resource attributes
       * Given poller 10 owns the host and link-local filtering is left disabled
       * And exports carry no host.id
       * When an AgentHostInfo event is received for the host
@@ -1587,13 +1581,13 @@ Here is the list of the currently implemented tests:
       * And host.ip keeps the IPv4 and IPv6 link-local addresses
       * When a later AgentHostInfo event is empty
       * Then all these attributes are removed
-376. **OTLP_AGENT_HOST_METADATA_PERSISTENCE**: Scenario: Broker restores CMA host information from the OTLP output cache after a crash
+370. **OTLP_AGENT_HOST_METADATA_PERSISTENCE**: Scenario: Broker restores CMA host information from the OTLP output cache after a crash
       * Given poller 10 owns the host
       * And an AgentHostInfo event gave it host.id robot-machine
       * And Broker saved it in the OTLP output cache
       * When Broker is killed and restarted, and the test peer sends the host again but no AgentHostInfo
       * Then exports still carry host.id robot-machine
-377. **OTLP_BBDO2_MACRO_CONVERSION**: Scenario: Broker converts BBDO2 custom variable payloads
+371. **OTLP_BBDO2_MACRO_CONVERSION**: Scenario: Broker converts BBDO2 custom variable payloads
       * Given poller 10 owns the host
       * When BBDO2 configuration events set name "legacy" and namespace "initial"
       * Then exports carry legacy/initial
@@ -1601,34 +1595,34 @@ Here is the list of the currently implemented tests:
       * Then exports carry legacy/runtime
       * When a disabled BBDO2 configuration event removes the name
       * Then exports carry centreon-broker/runtime
-378. **OTLP_BROKER_RESTART**: Scenario: A runtime identity survives a Broker restart
+372. **OTLP_BROKER_RESTART**: Scenario: A runtime identity survives a Broker restart
       * Given host_1 is configured with name "configured"
       * When the name is changed to "runtime" at runtime
       * Then exports carry runtime/centreon
       * When Broker is restarted while Engine keeps running
       * Then exports still carry runtime/centreon
-379. **OTLP_CACHE_PERSISTENCE**: Scenario: Broker restores both macros from its persisted cache
+373. **OTLP_CACHE_PERSISTENCE**: Scenario: Broker restores both macros from its persisted cache
       * Given poller 10 owns the host
       * And it sends name "persisted" as configuration and namespace "runtime" as status
       * And exports carry persisted/runtime
       * When Broker is restarted and the test peer reconnects without replaying any event
       * Then exports still carry persisted/runtime
-380. **OTLP_DEFAULT_IDENTITY**: Scenario: Without OTel macros, the service identity names Broker
+374. **OTLP_DEFAULT_IDENTITY**: Scenario: Without OTel macros, the service identity names Broker
       * Given host_1 defines neither _OTEL_SERVICE_NAME nor _OTEL_SERVICE_NAMESPACE
       * When a passive check result of service_1 is exported
       * Then its resource carries service.name centreon-broker and service.namespace centreon
       * And its resource carries a non-empty service.version
       * And centreon.service.description stays on the datapoint, not on the resource
-381. **OTLP_ENGINE_RESTART_REMOVAL**: Scenario: Macros removed while Engine is stopped do not survive its restart
+375. **OTLP_ENGINE_RESTART_REMOVAL**: Scenario: Macros removed while Engine is stopped do not survive its restart
       * Given host_1 is configured with name and namespace "removed"
       * And exports carry removed/removed
       * When Engine is stopped, both macros are removed from its configuration and Engine is started
       * Then its startup dump restores centreon-broker/centreon
-382. **OTLP_EXCLUDE_LINK_LOCAL**: Scenario: The opt-in filter removes link-local addresses from host.ip
+376. **OTLP_EXCLUDE_LINK_LOCAL**: Scenario: The opt-in filter removes link-local addresses from host.ip
       * Given host_ip_exclude_link_local is enabled on the OTLP output
       * When an AgentHostInfo event lists link-local and other IPv4 and IPv6 addresses
       * Then host.ip only keeps 192.0.2.10 and 2001:db8::1
-383. **OTLP_HOST_AND_INSTANCE_CLEANUP**: Scenario: Owner poller startup and host deletion clear the host identity
+377. **OTLP_HOST_AND_INSTANCE_CLEANUP**: Scenario: Owner poller startup and host deletion clear the host identity
       * Given poller 10 owns the host and sends name "configured"
       * When poller 20 starts
       * Then exports still carry configured/centreon
@@ -1639,7 +1633,7 @@ Here is the list of the currently implemented tests:
       * When poller 10 deletes the host
       * And a status update arrives before the host is created again
       * Then exports carry centreon-broker/centreon
-384. **OTLP_HOST_MACROS**: Scenario: Host macros override the service identity of each host independently
+378. **OTLP_HOST_MACROS**: Scenario: Host macros override the service identity of each host independently
       * Given host_1 defines _OTEL_SERVICE_NAME, _OTEL_SERVICE_NAMESPACE and a _SECRET macro
       * And host_2 only defines _OTEL_SERVICE_NAMESPACE
       * And service_1 defines its own _OTEL_SERVICE_NAME
@@ -1649,7 +1643,7 @@ Here is the list of the currently implemented tests:
       * And no resource carries the secret macro
       * When the service_1 macro is changed at runtime
       * Then host_1 still carries payments/shop
-385. **OTLP_MAPPING_RELOAD**: Scenario: The JSON metric mapping is applied and reloaded live
+379. **OTLP_MAPPING_RELOAD**: Scenario: The JSON metric mapping is applied and reloaded live
       * Given a mapping file renames robot_cpu to system.cpu.utilization with a 0.01 scale
       * When a check result with robot_cpu=25% is received
       * Then the exported point is system.cpu.utilization=0.25 with unit 1 and cpu.mode user
@@ -1657,7 +1651,7 @@ Here is the list of the currently implemented tests:
       * Then Broker reloads it and the next point is robot.cpu.percent=26 with unit %
       * When the mapping file is replaced by invalid JSON
       * Then Broker keeps the previous mapping and the next point is robot.cpu.percent=27
-386. **OTLP_MIGRATION_WITHOUT_MACROS**: Scenario: Moving a host to a poller without macros clears its old identity
+380. **OTLP_MIGRATION_WITHOUT_MACROS**: Scenario: Moving a host to a poller without macros clears its old identity
       * Given host_1 is monitored by poller 0 with name and namespace "old"
       * When host_1 moves to poller 1 without OTel macros and poller 1 is reloaded
       * Then exports through poller 1 carry centreon-broker/centreon
@@ -1665,12 +1659,12 @@ Here is the list of the currently implemented tests:
       * Then exports through poller 0 still carry centreon-broker/centreon
       * When poller 0 is reloaded
       * Then exports through poller 1 still carry centreon-broker/centreon
-387. **OTLP_OLDER_PROTOBUF_SENDERS**: Scenario: Macro events without instance_id from older senders are still accepted
+381. **OTLP_OLDER_PROTOBUF_SENDERS**: Scenario: Macro events without instance_id from older senders are still accepted
       * Given a BBDO test peer whose transport source_id is not a poller ID
       * And the host moved from poller 10 to poller 20
       * When lowercase macro events without instance_id are received
       * Then exports carry legacy/compatibility
-388. **OTLP_POLLER_MIGRATION**: Scenario: Delayed updates from the old poller cannot overwrite a moved host identity
+382. **OTLP_POLLER_MIGRATION**: Scenario: Delayed updates from the old poller cannot overwrite a moved host identity
       * Given host_1 is monitored by poller 0 with name and namespace "old"
       * When host_1 moves to poller 1 with name and namespace "new" and poller 1 is reloaded
       * Then exports through poller 1 carry new/new
@@ -1678,7 +1672,7 @@ Here is the list of the currently implemented tests:
       * Then exports through poller 0 still carry new/new
       * When poller 0 is reloaded
       * Then exports through poller 1 still carry new/new
-389. **OTLP_RELOAD_AND_REMOVAL**: Scenario: Configuration reloads update and then remove host macros
+383. **OTLP_RELOAD_AND_REMOVAL**: Scenario: Configuration reloads update and then remove host macros
       * Given host_1 is configured with name "initial" and namespace "shop"
       * When the name is changed in the configuration and Engine is reloaded
       * Then the next export carries changed/shop
@@ -1687,7 +1681,7 @@ Here is the list of the currently implemented tests:
       * And service.name falls back to centreon-broker
       * When the namespace is removed too and Engine is reloaded
       * Then the identity falls back to centreon-broker/centreon
-390. **OTLP_RUNTIME_MACROS**: Scenario: Runtime host macro updates apply to the next exports
+384. **OTLP_RUNTIME_MACROS**: Scenario: Runtime host macro updates apply to the next exports
       * Given host_1 is configured with name and namespace "initial"
       * When both macros are changed at runtime with surrounding spaces
       * Then the next export carries the trimmed values payments/shop
@@ -1695,7 +1689,7 @@ Here is the list of the currently implemented tests:
       * Then service.name falls back to centreon-broker and the namespace is kept
       * When the namespace is changed to an empty value
       * Then the identity falls back to centreon-broker/centreon
-391. **OTLP_STALE_CONFIGURATION_EVENTS**: Scenario: Macro events are only accepted from the poller owning the host
+385. **OTLP_STALE_CONFIGURATION_EVENTS**: Scenario: Macro events are only accepted from the poller owning the host
       * Given a BBDO test peer replaces the pollers on the Broker input
       * When macros arrive before their host, or from a poller not owning it
       * Then they are ignored and the identity stays centreon-broker/centreon
@@ -1708,26 +1702,26 @@ Here is the list of the currently implemented tests:
       * Then exports still carry new/new
       * When poller 20 removes both macros
       * Then the identity falls back to centreon-broker/centreon
-392. **OTLP_TLS_EXPORT**: Scenario: The OTLP output reads its CA certificate from the path in its configuration
+386. **OTLP_TLS_EXPORT**: Scenario: The OTLP output reads its CA certificate from the path in its configuration
       * Given the collector only accepts TLS, with a self-signed certificate for 127.0.0.1
       * And the OTLP output has encryption on and ca_certificate set to the path of that certificate
       * When a check result is received
       * Then it is exported to the collector over TLS
-393. **OTLP_TLS_MISSING_FILE**: Scenario: A TLS file that cannot be read is reported with the parameter that names it
+387. **OTLP_TLS_MISSING_FILE**: Scenario: A TLS file that cannot be read is reported with the parameter that names it
       * Given the OTLP output has encryption on and ca_certificate set to a path that does not exist
       * When Broker starts
       * Then Broker stops with an error
       * And it logs that it cannot read ca_certificate for the robot-otlp endpoint
-394. **RENAME_PARENT**: 
+388. **RENAME_PARENT**: 
       * Given an host with a parent host. We rename the parent host and check if the child host is still linked to the parent.
       * Engine mustn't crash and log an error on reload.
-395. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
-396. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
-397. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
-398. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
-399. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
-400. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. Broker should run correctly.
-401. **Service_increased_huge_check_interval**: Scenario: New services with huge check interval at creation time.
+389. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
+390. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
+391. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
+392. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
+393. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
+394. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. Broker should run correctly.
+395. **Service_increased_huge_check_interval**: Scenario: New services with huge check interval at creation time.
       * Given Engine and Broker are configured with 1 poller and 10 hosts
       * When Engine is started
       * Then host_1 should be pending
@@ -1742,41 +1736,41 @@ Here is the list of the currently implemented tests:
       * Then metrics should be created and sent to rrd Broker
       * When new service metrics are analyzed
       * Then metrics should have minimal heartbeat of 54000 and pdp_per_row of 5400
-402. **Services_and_bulks_${id}**: One service is configured with one metric with a name of 150 to 1021 characters.
-403. **Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-404. **Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
-405. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
-406. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
-407. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
-408. **VICT_ONE_CHECK_STATUS**: 
+396. **Services_and_bulks_${id}**: One service is configured with one metric with a name of 150 to 1021 characters.
+397. **Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
+398. **Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+399. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
+400. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
+401. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
+402. **VICT_ONE_CHECK_STATUS**: 
       * Given a Victoria Metrics setup with Centreon Broker
       * When a service check result is processed
       * Then the service status transitions through OK, WARNING, and CRITICAL states
       * And the corresponding status updates are sent to Victoria Metrics
-409. **Whitelist_Directory_NotReadable**: 
+403. **Whitelist_Directory_NotReadable**: 
       * Given a centengine started by centreon-engine user, whitelist directories are not readable and centengine must log an error
-410. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
-411. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
-412. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
-413. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
-414. **Whitelist_NotReadable**: 
+404. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
+405. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
+406. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
+407. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
+408. **Whitelist_NotReadable**: 
       * Given a centengine started by centreon-engine user, whitelist files are not readable and centengine must log an error
-415. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
-416. **Whitelist_Service**: test allowed and forbidden commands for services
-417. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
-418. **metric_mapping**: Check if metric name exists using a stream connector
-419. **not1**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
-420. **not10**: This test case involves scheduling downtime on a down host that already had a critical notification. When The Host return to UP state we should receive a recovery notification.
-421. **not11**: This test case involves configuring one service and checking that three alerts are sent for it.
-422. **not12**: Escalations
-423. **not13**: notification for a dependencies host
-424. **not14**: notification for a Service dependency
-425. **not15**: several notification commands for the same user.
-426. **not16**: notification for dependencies services group
-427. **not17**: notification for a dependensies host group
-428. **not18**: notification delay where first notification delay equal retry check
-429. **not19**: notification delay where first notification delay greater than retry check 
-430. **not1_2**: Scenario: Service notification command expands contact macros
+409. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
+410. **Whitelist_Service**: test allowed and forbidden commands for services
+411. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
+412. **metric_mapping**: Check if metric name exists using a stream connector
+413. **not1**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
+414. **not10**: This test case involves scheduling downtime on a down host that already had a critical notification. When The Host return to UP state we should receive a recovery notification.
+415. **not11**: This test case involves configuring one service and checking that three alerts are sent for it.
+416. **not12**: Escalations
+417. **not13**: notification for a dependencies host
+418. **not14**: notification for a Service dependency
+419. **not15**: several notification commands for the same user.
+420. **not16**: notification for dependencies services group
+421. **not17**: notification for a dependensies host group
+422. **not18**: notification delay where first notification delay equal retry check
+423. **not19**: notification delay where first notification delay greater than retry check 
+424. **not1_2**: Scenario: Service notification command expands contact macros
       * Given a single service 'service_1' is assigned to contact 'John_Doe' with notifications enabled, options (w,c,r), and period 24x7
       * And 'service_1' has check/retry intervals of 1 and max check attempts of 1
       * And contact 'John_Doe' uses notification command 'command_with_macro' with macros
@@ -1784,34 +1778,34 @@ Here is the list of the currently implemented tests:
       * Then the service reaches HARD CRITICAL
       * And a service notification is logged for 'service_1' in CRITICAL state using 'command_with_macro'
       * And the processed notification command in logs is "/bin/echo pager address5 " showing macros are expanded
-431. **not1_WL_KO**: This test case configures a single service. When it is in non-OK HARD state a notification should be sent but it is not allowed by the whitelist
-432. **not1_WL_OK**: This test case configures a single service. When it is in non-OK HARD state a notification is sent because it is allowed by the whitelist
-433. **not1_reload**: This test case configures a single service and set the service in a non-OK HARD state so engine sends a notification. Then the service is removed from the configuration and Engine is reloaded. And Engine doesn't crash.
-434. **not2**: This test case configures a single service and verifies that a recovery notification is sent
-435. **not20**: notification delay where first notification delay smaller than retry check
-436. **not21**: No notifications should be sent for UNKNOWN services when host goes DOWN. When a host transitions to DOWN (soft or hard), services become UNKNOWN due to host unreachability. These services should not trigger notifications.
-437. **not3**: This test case configures a single service and verifies the notification system's behavior during and after downtime
-438. **not4**: This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
-439. **not5**: This test case configures two services with two different users being notified when the services transition to a critical state.
-440. **not6**: This test case validate the behavior when the notification time period is set to null.
-441. **not7**: This test case simulates a host alert scenario.
-442. **not8**: This test validates the critical host notification.
-443. **not9**: This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
-444. **not_in_timeperiod_with_send_recovery_notifications_anyways**: Scenario: Verify notification is sent when service is in non-OK state and recovery is sent outside timeperiod if setting is enabled
+425. **not1_WL_KO**: This test case configures a single service. When it is in non-OK HARD state a notification should be sent but it is not allowed by the whitelist
+426. **not1_WL_OK**: This test case configures a single service. When it is in non-OK HARD state a notification is sent because it is allowed by the whitelist
+427. **not1_reload**: This test case configures a single service and set the service in a non-OK HARD state so engine sends a notification. Then the service is removed from the configuration and Engine is reloaded. And Engine doesn't crash.
+428. **not2**: This test case configures a single service and verifies that a recovery notification is sent
+429. **not20**: notification delay where first notification delay smaller than retry check
+430. **not21**: No notifications should be sent for UNKNOWN services when host goes DOWN. When a host transitions to DOWN (soft or hard), services become UNKNOWN due to host unreachability. These services should not trigger notifications.
+431. **not3**: This test case configures a single service and verifies the notification system's behavior during and after downtime
+432. **not4**: This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
+433. **not5**: This test case configures two services with two different users being notified when the services transition to a critical state.
+434. **not6**: This test case validate the behavior when the notification time period is set to null.
+435. **not7**: This test case simulates a host alert scenario.
+436. **not8**: This test validates the critical host notification.
+437. **not9**: This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
+438. **not_in_timeperiod_with_send_recovery_notifications_anyways**: Scenario: Verify notification is sent when service is in non-OK state and recovery is sent outside timeperiod if setting is enabled
       * Given a configured single service
       * And the service enters a non-OK state
       * When the service remains in a non-OK state
       * Then a notification should be sent
       * And an OK notification should be sent outside the time period
       * When the setting "_send_recovery_notifications_anyways" is set
-445. **not_in_timeperiod_without_send_recovery_notifications_anyways**: Scenario: Verify notification is sent when service is in non-OK state and recovery is not sent outside timeperiod
+439. **not_in_timeperiod_without_send_recovery_notifications_anyways**: Scenario: Verify notification is sent when service is in non-OK state and recovery is not sent outside timeperiod
       * Given a configured single service
       * And the service enters a non-OK state
       * When the service remains in a non-OK state
       * Then a notification should be sent
       * And no OK notification should be sent outside the time period
       * When the setting "send_recovery_notifications_anyways" is not set
-446. **not_remove_host_and_service_in_downtime**: 
+440. **not_remove_host_and_service_in_downtime**: 
       * Given a service in a fixed downtime whose notification options contain 's'
       * When the service and its host are removed from the configuration and engine is reloaded
       * Then the host is removed before the service, so the service downtime is cancelled
@@ -2777,4 +2771,4 @@ Here is the list of the currently implemented tests:
       * Then broker logs an error about the bad base64 encoding
 
 
-912 tests currently implemented.
+906 tests currently implemented.

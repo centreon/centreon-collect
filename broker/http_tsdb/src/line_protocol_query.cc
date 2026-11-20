@@ -17,7 +17,8 @@
  */
 
 #include "bbdo/neb.pb.h"
-
+#include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
+#include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
