@@ -17,6 +17,7 @@
  *
  */
 #include "com/centreon/library.hh"
+#include <dlfcn.h>
 #include <gtest/gtest.h>
 #include <iostream>
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -35,10 +36,14 @@ void load_library_success() {
   if (!lib.is_loaded())
     throw msg_fmt("load failed");
 
-  // unload library.
-  lib.unload();
+  // detach the library and unload it ourselves.
+  void* h = lib.release();
+  if (!h)
+    throw msg_fmt("release failed");
   if (lib.is_loaded())
-    throw msg_fmt("unload failed");
+    throw msg_fmt("library still loaded after release");
+  if (dlclose(h))
+    throw msg_fmt("dlclose failed");
 }
 
 void load_library_failed() {
@@ -78,7 +83,9 @@ TEST(ClibLibrary, Resolve) {
   int lib_version(*(int*)lib.resolve("export_lib_version"));
   ASSERT_EQ(lib_version, 42);
 
-  // unload library.
-  lib.unload();
+  // detach the library and unload it ourselves.
+  void* h = lib.release();
+  ASSERT_NE(h, nullptr);
   ASSERT_FALSE(lib.is_loaded());
+  ASSERT_EQ(dlclose(h), 0);
 }

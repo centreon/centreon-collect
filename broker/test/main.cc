@@ -72,5 +72,6 @@ int main(int argc, char* argv[]) {
   int ret = RUN_ALL_TESTS();
   spdlog::shutdown();
   g_io_context->stop();
+  com::centreon::common::pool::unload();
   return ret;
 }

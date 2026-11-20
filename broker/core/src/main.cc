@@ -43,6 +43,7 @@ namespace asio = boost::asio;
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
+#include "com/centreon/common/deferred_dlclose.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/crypto/aes256.hh"
 
@@ -378,6 +379,17 @@ int main(int argc, char* argv[]) {
   SPDLOG_LOGGER_INFO(core_logger, "main: process {} pid:{} end exit_code:{}",
                      argv[0], getpid(), retval);
   g_io_context->stop();
+  com::centreon::common::pool::unload();
+  /* The io_context is shared with the modules: services they registered in
+   * it are destroyed by ~io_context, so it must be destroyed while their
+   * libraries are still mapped. Only then can the deferred dlclose() run. */
+  if (g_io_context.use_count() > 1)
+    core_logger->warn(
+        "main: io_context still referenced {} times, it won't be destroyed "
+        "before the modules are unloaded",
+        g_io_context.use_count());
+  g_io_context.reset();
+  com::centreon::common::run_deferred_dlclose();
   log_v2::unload();
   return retval;
 }

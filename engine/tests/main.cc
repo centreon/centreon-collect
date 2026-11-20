@@ -61,6 +61,7 @@ int main(int argc, char* argv[]) {
   // Run all tests.
   int ret = RUN_ALL_TESTS();
   g_io_context->stop();
+  com::centreon::common::pool::unload();
   spdlog::shutdown();
   set_time(1617707800 + 1000);
   return ret;

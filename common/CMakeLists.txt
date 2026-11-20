@@ -37,6 +37,7 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/tests")
 # Set sources.
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SOURCES
+      ${SRC_DIR}/deferred_dlclose.cc
       ${SRC_DIR}/perfdata.cc
       ${SRC_DIR}/pool.cc
       ${SRC_DIR}/rapidjson_helper.cc
