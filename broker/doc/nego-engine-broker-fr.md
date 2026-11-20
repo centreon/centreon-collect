@@ -94,12 +94,12 @@ Négociation entre Engine et Broker
   * [Persistance](#persistance)
   * [Migration et downtimes / acquittements](#migration-et-downtimes--acquittements)
 * [Travaux préparatoires avant le Poller HA](#travaux-préparatoires-avant-le-poller-ha)
-  * [File `neb` à double priorité](#file-neb-à-double-priorité)
+  * [File `neb` à triple priorité](#file-neb-à-triple-priorité)
     * [Implémentation](#implémentation)
       * [Conteneur : `std::deque` + index `size_t`](#conteneur--stddeque--index-size_t)
       * [Classification à l'insertion](#classification-à-linsertion)
       * [Acquittement : `pb_ack` à deux compteurs](#acquittement--pb_ack-à-deux-compteurs)
-      * [Spill sur disque](#spill-sur-disque)
+      * [Débordement sur disque (rétention)](#débordement-sur-disque-rétention)
       * [Résultats de benchmark](#résultats-de-benchmark)
       * [Type d'entrée : struct vs pair, emplace_back vs push_back](#type-dentrée--struct-vs-pair-emplace_back-vs-push_back)
   * [BAM : lecture de l'état des downtimes depuis le cache Broker](#bam--lecture-de-létat-des-downtimes-depuis-le-cache-broker)
@@ -181,8 +181,8 @@ L’étape ici est de faire évoluer la négociation entre les deux
 programmes.
 
 `Engine` parle réseau car il est lié à `cbmod`. `Cbmod` n’a pas accès
-directement au code d’Engine, il ne connaît que ce qu’il lui transmet.
-Ceci est problématique car, par exemple, `cbmod` ne connaît pas le
+directement au code d’`Engine`, il ne connaît que ce qu’il lui transmet.
+Ceci est problématique parce que, par exemple, `cbmod` ne connaît pas le
 répertoire de configuration d’`Engine`.
 
 ## `cbmod` devient une librairie
@@ -2785,7 +2785,7 @@ et la valider en profondeur avant d'introduire la complexité du HA multi-poller
 
 | Ticket | Description                                       |
 |--------|---------------------------------------------------|
-| **T1** | File neb à double priorité                        |
+| **T1** | File neb à triple priorité                        |
 | **T2** | Suivi de l'état des downtimes dans `global_cache` |
 | **T3** | Endpoints BrokerRpc : downtimes et acquittements  |
 | **T4** | Endpoints BrokerRpc : règles d'escalade           |
@@ -2801,7 +2801,7 @@ gantt
     dateFormat  YYYY-MM-DD
 
     section Infrastructure
-    T1 · File neb à double priorité       :t1, 2026-05-10, 5d
+    T1 · File neb à triple priorité       :t1, 2026-05-10, 5d
     T3 · BrokerRpc downtimes et acks      :t3, 2026-05-10, 5d
     T4 · BrokerRpc règles d'escalade      :t4, 2026-05-10, 3d
 
@@ -2826,29 +2826,28 @@ T1, T3, T4 et T6 n'ont aucune dépendance et peuvent être développés en paral
 requiert T1 (chemin neb prioritaire) et T3 (chemin BrokerRpc). T8 requiert T6 (côté Engine)
 et T7 (côté Broker). T9 est bloqué par tous les autres.
 
-## File `neb` à double priorité
+## File `neb` à triple priorité
 
 Aujourd'hui le module neb maintient une unique file FIFO pour tous les événements de monitoring.
 Quand Engine accumule un gros backlog de rétention (par exemple après deux semaines de
 déconnexion), chaque événement — y compris les downtimes et demandes de notification urgentes —
 doit attendre derrière des heures de résultats de checks avant d'atteindre Broker.
 
-Pour résoudre ce problème, la file d'événements neb est divisée en deux. La file dans laquelle
+Pour résoudre ce problème, la file d'événements neb est divisée en trois. La file dans laquelle
 un événement est placé est déterminée **à l'insertion**, en fonction du type d'événement et de
 son horodatage :
 
-| Type d'événement                                               | Règle de classification                                                                                                        |
-|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| `pb_downtime`, `pb_acknowledgement`, `pb_notification_request` | **Toujours prioritaire** — l'âge est sans importance ; ce qui compte c'est que le downtime ou l'acquittement soit encore actif |
-| Statut host / service                                          | **Prioritaire** si `now − timestamp_événement < priority_age_threshold` (défaut : 5 min) ; **secondaire** sinon                |
-| Données de performance, logs, autres événements volumineuses   | Toujours secondaire                                                                                                            |
+| Type d'événement                                               | Règle de classification                                                                                                         | File |
+|----------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|------|
+| `pb_downtime`, `pb_acknowledgement`, `pb_notification_request` | **Toujours prioritaire (P)** — l'âge est sans importance ; ce qui compte c'est que le downtime ou l'acquittement soit encore actif | P |
+| Statut host / service                                          | **Courante (C)** si `now − timestamp_événement < priority_age_threshold` (défaut : 5 min) ; **Historique (H)** sinon              | C ou H |
+| Données de performance, logs, autres événements volumineuses   | Toujours **Historique (H)**                                                                                                     | H |
 
 Le paramètre `priority_age_threshold` (défaut 5 minutes, soit un intervalle de check typique)
 est configurable. En fonctionnement normal, tous les résultats de checks sont frais et vont en
-file prioritaire — la file secondaire reste vide et les deux files se comportent de façon
-identique à aujourd'hui. La distinction s'active uniquement en cas de backlog : les vieux
-résultats de checks sont relégués en secondaire pendant que les récents et tous les événements
-de downtime / acquittement passent en premier.
+file C — les files C et H sont alors indiscernables d'une unique file secondaire. La distinction
+s'active uniquement en cas de backlog : les vieux résultats de checks vont directement en H à
+l'insertion, pendant que les récents transitent par C avant H.
 
 Cela préserve la causalité entre un downtime et la ressource à laquelle il est associé (les deux
 restent dans le namespace `neb`), tout en garantissant que les événements urgents ne sont jamais
@@ -2857,47 +2856,49 @@ bloqués par des données volumineuses accumulées.
 **Frontière avec le namespace `bbdo`**
 
 Les messages du namespace `bbdo` (`pb_diff_state`, `pb_diff_state_ack`, `Health`, `pb_welcome`)
-restent complètement hors-bande — ils contournent les deux files entièrement. Ce sont des
+restent complètement hors-bande — ils contournent les trois files entièrement. Ce sont des
 messages de gestion de connexion et de configuration, pas des entrées du flux d'événements de
 monitoring ; leur livraison doit être indépendante de tout état de file.
 
 ```
-namespace bbdo  →  contourne toutes les files  (gestion connexion / configuration)
-neb prioritaire →  vidée en premier            (événements monitoring urgents)
-neb secondaire  →  vidée en dernier            (données monitoring volumineuses)
+namespace bbdo      →  contourne toutes les files  (gestion connexion / configuration)
+neb prioritaire P   →  vidée en premier            (événements monitoring urgents — toujours actifs)
+neb courante C      →  vidée en second             (résultats de checks temps réel)
+neb historique H    →  vidée en dernier            (données volumineuses, vieux résultats)
 ```
 
-**Engine connecté avec une file secondaire chargée**
+**Engine connecté avec une file historique chargée**
 
 Même quand Engine est actif mais saturé de résultats de checks, un nouveau `pb_downtime` ou
-`pb_notification_request` est placé dans la file prioritaire et livré à Broker immédiatement,
-sans attendre que la file secondaire se vide.
+`pb_notification_request` est placé dans la file P et livré à Broker immédiatement,
+sans attendre que les files C ou H se vident.
 
 **Reconnexion après une longue absence**
 
 C'est le cas le plus subtil et le plus important. Considérons Engine qui reconnecte après
-plusieurs jours d'absence. Sa file secondaire est chargée (résultats de checks accumulés).
+plusieurs jours d'absence. Sa file historique est chargée (résultats de checks accumulés).
 Immédiatement après la reconnexion, une ressource surveillée tombe — Engine génère un résultat
-de check en temps réel et le place dans la file secondaire. Pendant ce temps, le `pb_downtime`
-de cette ressource — créé il y a plusieurs jours, toujours dans la file prioritaire — passe en
+de check en temps réel et le place dans la file C. Pendant ce temps, le `pb_downtime`
+de cette ressource — créé il y a plusieurs jours, toujours dans la file P — passe en
 premier :
 
 ```
 Engine reconnecte
-  → file prioritaire se vide : pb_downtime (créé il y a 5 jours, encore actif) → Broker
-  → file secondaire se vide  : résultat DOWN (temps réel) → Broker
+  → file P se vide : pb_downtime (créé il y a 5 jours, encore actif) → Broker
+  → file C se vide : résultat DOWN (temps réel) → Broker
+  → file H se vide : vieux résultats de checks accumulés → Broker
 
 Broker reçoit pb_downtime en premier → downtime actif → DOWN arrive → notification supprimée ✓
 ```
 
 L'âge de l'événement `pb_downtime` est sans importance : ce qui compte, c'est que le downtime
-soit **encore actif**, pas la date à laquelle il a été créé. La file prioritaire garantit que
+soit **encore actif**, pas la date à laquelle il a été créé. La file P garantit que
 Broker dispose de l'état correct des downtimes avant de traiter le premier résultat de check
 en temps réel.
 
 Les downtimes expirés sont également traités correctement. Un downtime qui a démarré et
 s'est terminé pendant la période de déconnexion apparaît sous la forme d'une paire
-`pb_downtime_start` / `pb_downtime_end`, tous les deux dans la file prioritaire, dans l'ordre.
+`pb_downtime_start` / `pb_downtime_end`, tous les deux dans la file P, dans l'ordre.
 Broker les traite en séquence : downtime créé, puis fermé. Quand le premier résultat en temps
 réel arrive, aucun downtime n'est actif — et la notification part correctement.
 
@@ -2924,10 +2925,13 @@ struct queue_entry {
     std::shared_ptr<io::data>  event;
 };
 
-std::deque<queue_entry> _priority_events;
-std::deque<queue_entry> _secondary_events;
+std::deque<queue_entry> _priority_events;    // File P : événements INT64_MAX
+std::deque<queue_entry> _current_events;     // File C : événements de statut frais
+std::deque<queue_entry> _historical_events;  // File H : événements volumineuses/anciens
 size_t _priority_read_pos{0};
-size_t _secondary_read_pos{0};
+size_t _current_read_pos{0};
+size_t _historical_read_pos{0};
+size_t _current_events_size{0};             // entrées vivantes dans _current_events (pierres tombales exclues)
 ```
 
 Stocker le timestamp dans l'entrée élimine tout `dynamic_cast` ou dispatch virtuel au moment de
@@ -2940,24 +2944,27 @@ nouvel événement prioritaire est poussé, `_priority_read_pos` désigne déjà
 
 | Condition | File | Timestamp stocké |
 |-----------|------|-----------------|
-| type ∈ {`pb_downtime`, `pb_acknowledgement`, `pb_notification_request`} | Prioritaire | `INT64_MAX` |
-| statut host/service ET `now − last_check < priority_age_threshold` | Prioritaire | `last_check` |
-| statut host/service ET `now − last_check ≥ priority_age_threshold` | Secondaire | `last_check` |
-| tous les autres types (perf data, logs, …) | Secondaire | `0` |
+| type ∈ {`pb_downtime`, `pb_acknowledgement`, `pb_notification_request`} | P | `INT64_MAX` |
+| statut host/service ET `now − last_check < priority_age_threshold` | C | `now` (heure d'insertion) |
+| statut host/service ET `now − last_check ≥ priority_age_threshold` | H | `now` (heure d'insertion) |
+| tous les autres types (perf data, logs, …) | H | `now` (heure d'insertion) |
 
 `priority_age_threshold` vaut **5 minutes** par défaut (un intervalle de check typique) et est
 configurable dans la configuration JSON de Broker.
 
 #### Acquittement : `pb_ack` à deux compteurs
 
-`ack_events` est étendu à deux compteurs indépendants — un par file :
+`ack_events` est étendu à deux compteurs indépendants — prioritaire (file P) et secondaire
+(files C et H combinées). Broker n'a pas besoin de distinguer C de H : les événements des deux
+files sont livrés dans l'ordre P → C → H, et le compteur secondaire reflète simplement combien
+d'événements non-prioritaires ont été consommés dans ce lot.
 
 ```cpp
 void ack_events(uint32_t priority_count, uint32_t secondary_count);
 ```
 
 `pb_ack` reçoit deux nouveaux champs (le champ 1 est conservé pour la compatibilité ascendante
-avec les anciens émetteurs, dont le compteur est appliqué à la file secondaire) :
+avec les anciens émetteurs, dont le compteur est appliqué aux files secondaires) :
 
 ```protobuf
 message Ack {
@@ -2980,6 +2987,9 @@ uint32_t s_acked = written - p_acked;
 muxer.ack_events(p_acked, s_acked);
 ```
 
+`s_acked` est ensuite appliqué contre les files C puis H dans l'ordre : C d'abord, puis H une
+fois C épuisée.
+
 #### Débordement sur disque (rétention)
 
 Le muxer dispose déjà d'une rétention persistante sur disque via `_file` (`persistent_file`) :
@@ -2988,14 +2998,19 @@ de survivre à un redémarrage de Broker et d'être finalement livrés dès que 
 rétablit. Ce mécanisme s'appelle **spill sur disque** — le trop-plein qui ne tient plus en RAM
 se déverse dans le fichier de rétention.
 
-Avec la file à double priorité, la politique de débordement est la suivante :
+Avec la file à triple priorité, la politique de débordement est la suivante :
 
-- Les événements secondaires débordent en premier dans `_file` (ils sont les moins urgents).
-- Les événements prioritaires disposent d'une limite mémoire séparée et plus haute avant de
+- Les événements de la file H débordent en premier dans `_file` (ils sont les moins urgents).
+- Les événements de la file C débordent ensuite.
+- Les événements de la file P disposent d'une limite mémoire séparée et plus haute avant de
   déborder.
-- Les événements rechargés depuis `_file` au redémarrage vont dans la file secondaire quelle
-  que soit leur classification d'origine : à ce stade ils constituent un arriéré historique,
-  pas des données temps réel.
+- Les événements rechargés depuis `_file` au redémarrage sont reclassifiés selon leur **type
+  d'événement** — le timestamp de `queue_entry` est un artefact in-memory qui n'est pas persisté
+  sur disque. Les événements de type `pb_downtime`, `pb_acknowledgement` ou
+  `pb_notification_request` retournent en file P (ils sont potentiellement encore actifs et
+  doivent atteindre Broker avant tout résultat de check) ; tous les autres vont en file H (ils
+  constituent un arriéré historique à ce stade). Le format du fichier est inchangé et les
+  fichiers produits par les anciennes versions se rechargent correctement.
 
 #### Résultats de benchmark
 
@@ -3023,6 +3038,90 @@ Utiliser une struct nommée plutôt que `std::pair<int64_t, shared_ptr<io::data>
 à l'exécution : le compilateur génère un code identique (même layout mémoire, mêmes offsets de
 champs). La struct est préférée uniquement pour la lisibilité (`.timestamp` / `.event` contre
 `.first` / `.second`).
+
+#### Champ timestamp : heure d'insertion, pas heure de collecte
+
+Le champ `timestamp` stocke `std::chrono::system_clock::now()` capturé **au moment de
+l'appel à `push_back`** — et non le champ `last_check` de l'événement.
+
+Ce choix préserve un invariant clé : les événements étant insérés dans l'ordre FIFO et le
+timestamp stocké reflétant l'instant d'entrée dans la file, **la deque est toujours triée
+par ancienneté** — les entrées en tête sont plus vieilles que celles en queue.
+
+Cet invariant permet un parcours avec arrêt anticipé lors de la recherche d'événements
+périmés à déplacer de la file C vers la file H :
+
+```
+[très vieux] [vieux] [normal] [normal] …
+    move       move     STOP — tout ce qui suit est aussi récent
+```
+
+Comme la file C ne contient jamais d'entrées `INT64_MAX` (celles-ci vont directement en file P
+à l'insertion), le parcours ne nécessite aucun traitement particulier. Dès que le parcours
+atteint une entrée dont le timestamp dépasse le seuil de rétrogradation, toutes les entrées
+suivantes le dépassent aussi, et la boucle se termine immédiatement.
+
+**Événements en vol et rétrogradation par marqueur nul**
+
+À tout instant, les `_current_read_pos` premières entrées de `_current_events` sont *en vol* :
+elles ont été envoyées à Broker mais pas encore acquittées. Le scan de rétrogradation démarre à
+`_current_read_pos`, pas à 0 — les événements en vol ont déjà été livrés et ne peuvent pas être
+déplacés.
+
+En pratique, `_current_read_pos` vaut 0 chaque fois qu'une rétrogradation est nécessaire : pour
+qu'une entrée en attente soit périmée elle doit être restée dans C pendant plus de
+`priority_age_threshold` (5 minutes) ; comme la deque est triée par ancienneté les entrées en
+vol sont encore plus vieilles, donc si aucun acquittement n'est revenu depuis aussi longtemps
+la connexion est cassée et `nack_events()` aura déjà remis `_current_read_pos` à 0.
+
+Quoi qu'il en soit, la rétrogradation est implémentée par **marqueur nul** : il n'y a aucune
+suppression au milieu du deque. Quand l'entrée à la position `_current_read_pos` est périmée :
+1. Son événement est poussé dans la file H.
+2. Le pointeur `event` de l'entrée dans `_current_events` est mis à `nullptr`.
+3. `_current_read_pos` est avancé au-delà du marqueur nul.
+
+```
+avant :      [e0 en-vol] [e1 en-vol] [e2 en-vol] [e3 périmé] [e4 périmé] [e5 frais]
+             _current_read_pos = 3
+rétrograde : [e0 en-vol] [e1 en-vol] [e2 en-vol] [null]      [null]      [e5 frais]
+             _current_read_pos = 5   (e3, e4 déjà dans H)
+```
+
+`read()` reprend au nouveau `_current_read_pos` et ne retourne jamais d'entrée nulle à l'appelant.
+
+Lors du traitement des acks dans C, on dépile les entrées non-nulles pour le compteur acquitté,
+puis on élimine les nulls en tête :
+
+```cpp
+// ack de 3 événements venus de C
+pop e0  // non-null, compteur 1
+pop e1  // non-null, compteur 2
+pop e2  // non-null, compteur 3 — terminé
+pop     // null, nettoyage
+pop     // null, nettoyage
+// _current_read_pos : 5 − 5 dépilages = 0
+```
+
+Chaque rétrogradation est O(1) (une écriture de pointeur + un incrément d'index). Le nettoyage
+des nulls est intégré à la boucle de dépilage normale lors du ack, sans surcoût asymptotique.
+
+`get_event_queue_size()` s'appuie sur un compteur dédié plutôt que sur un parcours des deques.
+Ce compteur est incrémenté à chaque `push_back` et décrémenté à la fois lors d'un marquage nul
+(event mis à `nullptr`) et lors du dépilage d'une entrée non-nulle au moment du ack. La lecture
+de la taille reste ainsi O(1) sans aucun parcours de deque.
+
+Si `last_check` avait été stocké, un événement arrivant en retard (rejeu après reconnexion,
+livraison hors-ordre) pourrait porter un `last_check` très ancien malgré une insertion
+postérieure à des événements plus récents, ce qui briserait l'invariant d'ordre et forcerait
+un parcours complet de la deque.
+
+#### Perte de connexion : `nack_events()`
+
+Quand une connexion est perdue avant qu'un acquittement arrive, `nack_events()` remet les trois
+`_read_pos` à 0. Les événements en vol dans les trois files repassent en attente et seront
+renvoyés à la prochaine connexion. Dans la file C, l'ordre de tri est préservé après le reset :
+les entrées précédemment en vol (les plus vieilles) se retrouvent en tête, devant les entrées
+qui n'avaient pas encore été envoyées.
 
 `emplace_back` n'apporte aucun gain face à `push_back(std::move(e))` sur le chemin d'écriture :
 les événements arrivent déjà construits depuis la couche moteur ou réseau et sont déplacés dans
@@ -3835,7 +3934,7 @@ d'état, intervalle de re-notification écoulé, etc.), il émet un événement 
 `pb_notification_request` au lieu d'appeler directement une commande :
 
 ```protobuf
-// file neb prioritaire — Engine → Broker : livrée avant tous les événements de la file secondaire.
+// file neb P — Engine → Broker : livrée avant tous les événements des files C et H.
 // Les demandes de notification ne doivent pas être retardées par des résultats de checks accumulés.
 message NotificationRequest {
   uint32 poller_id         = 1;
