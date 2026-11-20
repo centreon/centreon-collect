@@ -136,7 +136,7 @@ class ba : public computable, public service_listener {
   void set_valid(bool valid);
   void set_downtime_behaviour(configuration::ba::downtime_behaviour value);
   void set_state_source(configuration::ba::state_source source);
-  void visit(io::stream* visitor);
+  void visit(io::stream* visitor, bool seed_service_status = false);
   void service_update(std::shared_ptr<neb::downtime> const& dt,
                       io::stream* visitor) override;
   void service_update(std::shared_ptr<neb::pb_downtime> const& dt,
