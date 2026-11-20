@@ -531,9 +531,17 @@ void broker_downtime_callbacks::notify_broker(action act,
       obj.set_duration(duration);
       obj.set_type(service_id == 0 ? Downtime_DowntimeType_HOST
                                    : Downtime_DowntimeType_SERVICE);
-      obj.set_started(false);
+      /* A LOAD reloads a downtime that was already in effect when persisted
+       * (broker_state only saves is_in_effect() downtimes, and reload() sets it
+       * in effect again), so it must be published as started: no START follows a
+       * LOAD. Publishing started=false here would make consumers (e.g. BAM KPIs,
+       * via kpi_service::service_update) see the service as not in downtime and,
+       * for a BA, cancel its inherited downtime on broker restart. An ADD is a
+       * brand-new downtime not started yet; a START event will follow. */
+      bool loaded = (act == LOAD);
+      obj.set_started(loaded);
       obj.set_cancelled(false);
-      obj.set_actual_start_time(-1);
+      obj.set_actual_start_time(loaded ? start_time : -1);
       obj.set_actual_end_time(-1);
       obj.set_deletion_time(-1);
       _downtimes[downtime_id] = pb_dt;
