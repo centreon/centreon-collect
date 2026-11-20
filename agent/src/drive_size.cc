@@ -632,6 +632,11 @@ void check_drive_size::_completion_handler(
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
 
+  centreon::common::perfdata& perf_count = perfs.emplace_back();
+  perf_count.name("count");
+  perf_count.min(0);
+  perf_count.value(result.size());
+
   for (const auto& fs : result) {
     e_status fs_status = (this->*_fs_test)(fs);
     if (fs_status > status) {
@@ -656,8 +661,10 @@ void check_drive_size::_completion_handler(
       }
     }
 
+    std::string mount_point = fs.mount_point.empty() ? fs.fs : fs.mount_point;
+
     centreon::common::perfdata& perf = perfs.emplace_back();
-    perf.name((_free_threshold ? "free_" : "used_") + fs.mount_point);
+    perf.name((_free_threshold ? "free_" : "used_") + mount_point);
 
     if (_prct_threshold) {
       perf.unit("%");
@@ -674,10 +681,46 @@ void check_drive_size::_completion_handler(
       _critical.set_pref_details_c(perf);
       perf.value(_free_threshold ? (fs.total - fs.used) : fs.used);
     }
+
+    // remove last \ in order to print C:#storage.space.free.bytes
+    if (mount_point.size() > 1 && mount_point.back() == '\\')
+      mount_point.pop_back();
+    centreon::common::perfdata& perf_free = perfs.emplace_back();
+    perf_free.unit("B");
+    perf_free.name(mount_point + "#storage.space.free.bytes");
+    perf_free.value(fs.total - fs.used);
+    perf_free.min(0);
+    perf_free.max(fs.total);
+    if (_free_threshold && !_prct_threshold) {
+      _warning.set_pref_details_w(perf_free);
+      _critical.set_pref_details_c(perf_free);
+    }
+
+    centreon::common::perfdata& perf_used = perfs.emplace_back();
+    perf_used.unit("B");
+    perf_used.name(mount_point + "#storage.space.usage.bytes");
+    perf_used.value(fs.used);
+    perf_used.min(0);
+    perf_used.max(fs.total);
+    if (!_free_threshold && !_prct_threshold) {
+      _warning.set_pref_details_w(perf_used);
+      _critical.set_pref_details_c(perf_used);
+    }
+
+    centreon::common::perfdata& prct_perf_used = perfs.emplace_back();
+    prct_perf_used.unit("%");
+    prct_perf_used.name(mount_point + "#storage.space.usage.percentage");
+    prct_perf_used.min(0);
+    prct_perf_used.max(100.0);
+    prct_perf_used.value(fs.get_used_prct());
+    if (!_free_threshold && _prct_threshold) {
+      _warning.set_pref_details_w(prct_perf_used, 1 / 100.0);
+      _critical.set_pref_details_c(prct_perf_used, 1 / 100.0);
+    }
   }
   if (output.empty()) {
     using namespace std::literals;
-    if (perfs.empty()) {
+    if (result.empty()) {
       output = "No storage found (filters issue)"sv;
       status = e_status::critical;
     } else {
@@ -768,6 +811,10 @@ void check_drive_size::help(std::ostream& help_stream) {
   Examples of output:
     WARNING: C:\ Total: 322G Used: 39.54% Free: 60.46% CRITICAL: D:\ Total: 5G Used: 50.60% Free: 49.40%
   Metrics:
+    count=2;;;0;
+    C:#storage.space.free.bytes=7394013184B;;;0;105088212992
+    C:#storage.space.usage.bytes=97694199808B;;;0;105088212992
+    C:#storage.space.usage.percentage=12.04%;;;0;100
     if free flag = true
       free_C:\
       free_D:\

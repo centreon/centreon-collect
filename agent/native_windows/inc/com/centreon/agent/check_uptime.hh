@@ -46,6 +46,7 @@ class check_uptime : public check {
   void start_check(const duration& timeout) override;
 
   e_status compute(uint64_t ms_uptime,
+                   const std::chrono::system_clock::time_point& now,
                    std::string* output,
                    common::perfdata* perfs);
 };

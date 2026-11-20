@@ -17,6 +17,8 @@
  */
 
 #include <absl/strings/ascii.h>
+#include <absl/strings/str_cat.h>
+#include <absl/strings/strip.h>
 #include <gtest/gtest.h>
 
 #include "com/centreon/common/rapidjson_helper.hh"
@@ -95,6 +97,11 @@ class drive_size_test : public ::testing::Test {
 
   static void SetUpTestCase() { drive_size_thread::os_fs_stats = compute; }
   static void TearDownTestCase() { check_drive_size::thread_kill(); }
+
+  static void check_storage_perfs(
+      const std::list<com::centreon::common::perfdata>& perfs,
+      std::string_view threshold_metric,
+      std::list<com::centreon::common::perfdata>* legacy_perfs);
 };
 
 std::list<fs_stat> drive_size_test::compute(
@@ -110,6 +117,98 @@ std::list<fs_stat> drive_size_test::compute(
     }
   }
   return result;
+}
+
+/**
+ * @brief check the perfdata that every storage check emits besides the
+ * used_<mount point> or free_<mount point> one: count first, then after each
+ * used_ or free_ perfdata, <mount point>#storage.space.free.bytes,
+ * <mount point>#storage.space.usage.bytes and
+ * <mount point>#storage.space.usage.percentage.
+ * Values are checked against _samples, thresholds against the used_ or free_
+ * perfdata.
+ *
+ * @param perfs perfdata returned by the check
+ * @param threshold_metric the one of the three metrics above that carries the
+ * thresholds, empty if none does
+ * @param legacy_perfs filled with the used_ or free_ perfdata
+ */
+void drive_size_test::check_storage_perfs(
+    const std::list<com::centreon::common::perfdata>& perfs,
+    std::string_view threshold_metric,
+    std::list<com::centreon::common::perfdata>* legacy_perfs) {
+  auto same_threshold = [](float left, float right) {
+    return (std::isnan(left) && std::isnan(right)) || left == right;
+  };
+
+  ASSERT_FALSE(perfs.empty());
+  ASSERT_EQ((perfs.size() - 1) % 4, 0u);
+  size_t nb_storages = (perfs.size() - 1) / 4;
+
+  auto perf_it = perfs.begin();
+  ASSERT_EQ(perf_it->name(), "count");
+  ASSERT_EQ(perf_it->min(), 0);
+  ASSERT_EQ(perf_it->value(), static_cast<float>(nb_storages));
+  ++perf_it;
+
+  // perfdata follow the order of _samples
+  auto sample_it = _samples.begin();
+  while (perf_it != perfs.end()) {
+    const com::centreon::common::perfdata& legacy = *perf_it++;
+    legacy_perfs->push_back(legacy);
+    std::string_view mount_point = legacy.name();
+    ASSERT_TRUE(absl::ConsumePrefix(&mount_point, "used_") ||
+                absl::ConsumePrefix(&mount_point, "free_"))
+        << legacy.name();
+    sample_it =
+        std::find_if(sample_it, _samples.end(), [mount_point](const sample& s) {
+          return s.mount_point == mount_point || s.fs == mount_point;
+        });
+    ASSERT_NE(sample_it, _samples.end()) << legacy.name();
+    const sample& expected = *sample_it++;
+    // C:\ => C:#storage.space.free.bytes
+    std::string_view name_prefix = absl::StripSuffix(mount_point, "\\");
+
+    for (std::string_view metric :
+         {"storage.space.free.bytes", "storage.space.usage.bytes",
+          "storage.space.usage.percentage"}) {
+      const com::centreon::common::perfdata& p = *perf_it++;
+      ASSERT_EQ(p.name(), absl::StrCat(name_prefix, "#", metric));
+      ASSERT_EQ(p.min(), 0);
+      if (metric == "storage.space.free.bytes") {
+        ASSERT_EQ(p.unit(), "B") << p.name();
+        ASSERT_EQ(p.value(), static_cast<float>(expected.total - expected.used))
+            << p.name();
+        ASSERT_EQ(p.max(), static_cast<float>(expected.total)) << p.name();
+      } else if (metric == "storage.space.usage.bytes") {
+        ASSERT_EQ(p.unit(), "B") << p.name();
+        ASSERT_EQ(p.value(), static_cast<float>(expected.used)) << p.name();
+        ASSERT_EQ(p.max(), static_cast<float>(expected.total)) << p.name();
+      } else {
+        ASSERT_EQ(p.unit(), "%") << p.name();
+        ASSERT_NEAR(
+            p.value(),
+            expected.total ? expected.used * 100.0 / expected.total : 0.0, 0.01)
+            << p.name();
+        ASSERT_EQ(p.max(), 100) << p.name();
+      }
+
+      if (metric == threshold_metric) {
+        ASSERT_TRUE(same_threshold(p.warning(), legacy.warning())) << p.name();
+        ASSERT_TRUE(same_threshold(p.warning_low(), legacy.warning_low()))
+            << p.name();
+        ASSERT_TRUE(same_threshold(p.critical(), legacy.critical()))
+            << p.name();
+        ASSERT_TRUE(same_threshold(p.critical_low(), legacy.critical_low()))
+            << p.name();
+      } else {
+        ASSERT_TRUE(std::isnan(p.warning())) << p.name();
+        ASSERT_TRUE(std::isnan(p.warning_low())) << p.name();
+        ASSERT_TRUE(std::isnan(p.critical())) << p.name();
+        ASSERT_TRUE(std::isnan(p.critical_low())) << p.name();
+      }
+    }
+  }
 }
 
 using namespace std::string_literals;
@@ -148,9 +247,12 @@ TEST_F(drive_size_test, test_fs_filter1) {
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 0G Free: 1G");
-  ASSERT_EQ(perfs.size(), 6);
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(
+      check_storage_perfs(perfs, "storage.space.usage.bytes", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 6);
 
-  for (const auto& p : perfs) {
+  for (const auto& p : legacy_perfs) {
     ASSERT_EQ(p.unit(), "B");
     ASSERT_EQ(p.min(), 0);
     ASSERT_EQ(p.warning_low(), 0);
@@ -215,9 +317,12 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 1.38% Free: 98.62%");
-  ASSERT_EQ(perfs.size(), 6);
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(check_storage_perfs(
+      perfs, "storage.space.usage.percentage", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 6);
 
-  for (const auto& p : perfs) {
+  for (const auto& p : legacy_perfs) {
     ASSERT_EQ(p.unit(), "%");
     ASSERT_EQ(p.min(), 0);
     ASSERT_EQ(p.warning_low(), 0);
@@ -282,9 +387,12 @@ TEST_F(drive_size_test, test_fs_filter2) {
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "CRITICAL: /data Total: 5G Used: 2G Free: 2G");
-  ASSERT_EQ(perfs.size(), 2);
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(
+      check_storage_perfs(perfs, "storage.space.usage.bytes", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 2);
 
-  for (const auto& p : perfs) {
+  for (const auto& p : legacy_perfs) {
     ASSERT_EQ(p.unit(), "B");
     ASSERT_EQ(p.min(), 0);
     ASSERT_EQ(p.warning_low(), 0);
@@ -337,9 +445,12 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 1.38% Free: 98.62%");
-  ASSERT_EQ(perfs.size(), 5);
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(check_storage_perfs(
+      perfs, "storage.space.usage.percentage", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 5);
 
-  for (const auto& p : perfs) {
+  for (const auto& p : legacy_perfs) {
     ASSERT_EQ(p.unit(), "%");
     ASSERT_EQ(p.min(), 0);
     ASSERT_EQ(p.warning_low(), 0);
@@ -401,9 +512,12 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "OK: All storages are ok");
-  ASSERT_EQ(perfs.size(), 2);
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(check_storage_perfs(
+      perfs, "storage.space.usage.percentage", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 2);
 
-  for (const auto& p : perfs) {
+  for (const auto& p : legacy_perfs) {
     ASSERT_EQ(p.unit(), "%");
     ASSERT_EQ(p.min(), 0);
     ASSERT_EQ(p.warning_low(), 0);
@@ -459,9 +573,12 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
     wait_m.Await(absl::Condition(&is_complete));
 
     ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 1.38% Free: 98.62%");
-    ASSERT_EQ(perfs.size(), 2);
+    std::list<com::centreon::common::perfdata> legacy_perfs;
+    ASSERT_NO_FATAL_FAILURE(check_storage_perfs(
+        perfs, "storage.space.usage.percentage", &legacy_perfs));
+    ASSERT_EQ(legacy_perfs.size(), 2);
 
-    for (const auto& p : perfs) {
+    for (const auto& p : legacy_perfs) {
       ASSERT_EQ(p.unit(), "%");
       ASSERT_EQ(p.min(), 0);
       ASSERT_EQ(p.warning_low(), 0);
@@ -526,9 +643,12 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
   ASSERT_EQ(output,
             "WARNING: / Total: 322G Used: 39.54% Free: 60.46% CRITICAL: /data "
             "Total: 5G Used: 50.60% Free: 49.40%");
-  ASSERT_EQ(perfs.size(), 3);
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(check_storage_perfs(
+      perfs, "storage.space.usage.percentage", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 3);
 
-  for (const auto& p : perfs) {
+  for (const auto& p : legacy_perfs) {
     ASSERT_EQ(p.unit(), "%");
     ASSERT_EQ(p.min(), 0);
     ASSERT_EQ(p.warning_low(), 0);
@@ -586,9 +706,12 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
   ASSERT_EQ(output,
             "WARNING: / Total: 322G Used: 39.54% Free: 60.46% WARNING: /data "
             "Total: 5G Used: 50.60% Free: 49.40%");
-  ASSERT_EQ(perfs.size(), 3);
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(check_storage_perfs(
+      perfs, "storage.space.usage.percentage", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 3);
 
-  for (const auto& p : perfs) {
+  for (const auto& p : legacy_perfs) {
     ASSERT_EQ(p.unit(), "%");
     ASSERT_EQ(p.min(), 0);
     ASSERT_EQ(p.warning_low(), 0);
@@ -646,9 +769,12 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
   ASSERT_EQ(output,
             "WARNING: / Total: 322G Used: 39.54% Free: 60.46% CRITICAL: /data "
             "Total: 5G Used: 50.60% Free: 49.40%");
-  ASSERT_EQ(perfs.size(), 3);
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  // no threshold on the new perfdata: there is no free percentage one
+  ASSERT_NO_FATAL_FAILURE(check_storage_perfs(perfs, "", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 3);
 
-  for (const auto& p : perfs) {
+  for (const auto& p : legacy_perfs) {
     ASSERT_EQ(p.unit(), "%");
     ASSERT_EQ(p.min(), 0);
     ASSERT_EQ(p.warning_low(), 70);
@@ -668,6 +794,104 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
       FAIL() << "Unexpected perfdata name: " << p.name();
     }
   }
+}
+
+TEST_F(drive_size_test, test_fs_filter_free_bytes) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "warning" : "1000000000:", "critical" : "100000000:", "unit": "b",
+        "free": true, "filter-type": "^(hrfsfat$|hrfsfat32)$"})"_json;
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+  e_status status = e_status::unknown;
+
+  auto is_complete = [&]() { return !perfs.empty(); };
+
+  auto checker = std::make_shared<check_drive_size>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      serv, check_args, nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          int check_status,
+          const std::list<com::centreon::common::perfdata>& perfdata,
+          const std::list<std::string>& outputs) {
+        absl::MutexLock lck(wait_m);
+        status = static_cast<e_status>(check_status);
+        perfs = perfdata;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  checker->start_check(std::chrono::seconds(1));
+
+  absl::MutexLock lck(wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  ASSERT_EQ(status, e_status::warning);
+  ASSERT_EQ(output, "WARNING: /boot/efi Total: 0G Used: 0G Free: 0G");
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(
+      check_storage_perfs(perfs, "storage.space.free.bytes", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 2);
+
+  for (const auto& p : legacy_perfs) {
+    ASSERT_EQ(p.unit(), "B");
+    ASSERT_EQ(p.min(), 0);
+    ASSERT_EQ(p.warning_low(), 1000000000);
+    ASSERT_EQ(p.critical_low(), 100000000);
+    ASSERT_TRUE(std::isnan(p.warning()));
+    ASSERT_TRUE(std::isnan(p.critical()));
+    if (p.name() == "free_/boot/efi") {
+      ASSERT_EQ(p.value(), 524224000);
+      ASSERT_EQ(p.max(), 524248000);
+    } else if (p.name() == "free_/data") {
+      ASSERT_EQ(p.value(), 3000000000);
+      ASSERT_EQ(p.max(), 6072708000);
+    } else {
+      FAIL() << "Unexpected perfdata name: " << p.name();
+    }
+  }
+}
+
+TEST_F(drive_size_test, test_fs_no_storage_found) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "warning" : "1000000", "critical" : 20000000, "unit": "b",
+        "filter-fs": "^no_such_fs$"})"_json;
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+  e_status status = e_status::unknown;
+
+  auto is_complete = [&]() { return !perfs.empty(); };
+
+  auto checker = std::make_shared<check_drive_size>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      serv, check_args, nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          int check_status,
+          const std::list<com::centreon::common::perfdata>& perfdata,
+          const std::list<std::string>& outputs) {
+        absl::MutexLock lck(wait_m);
+        status = static_cast<e_status>(check_status);
+        perfs = perfdata;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  checker->start_check(std::chrono::seconds(1));
+
+  absl::MutexLock lck(wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  ASSERT_EQ(status, e_status::critical);
+  ASSERT_EQ(output, "No storage found (filters issue)");
+  ASSERT_EQ(perfs.size(), 1);
+  ASSERT_EQ(perfs.front().name(), "count");
+  ASSERT_EQ(perfs.front().min(), 0);
+  ASSERT_EQ(perfs.front().value(), 0);
 }
 
 TEST_F(drive_size_test, test_fs_format_filter) {
@@ -707,7 +931,10 @@ TEST_F(drive_size_test, test_fs_format_filter) {
       output,
       "WARNING: c:\\ Total: 5G Used: 2G Free: 2G CRITICAL: Z:\\ Total: 100G "
       "Used: 30G Free: 70G");
-  ASSERT_EQ(perfs.size(), 2);
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(
+      check_storage_perfs(perfs, "storage.space.usage.bytes", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), 2);
 }
 
 TEST_F(drive_size_test, test_fs_empty_filters) {
@@ -748,9 +975,12 @@ TEST_F(drive_size_test, test_fs_empty_filters) {
             "Used: 127G Free: 194G CRITICAL: /data Total: 5G Used: 2G Free: 2G "
             "CRITICAL: c:\\ Total: 5G Used: 2G Free: 2G CRITICAL: Z:\\ Total: "
             "100G Used: 30G Free: 70G");
-  ASSERT_EQ(perfs.size(), _samples.size());
+  std::list<com::centreon::common::perfdata> legacy_perfs;
+  ASSERT_NO_FATAL_FAILURE(
+      check_storage_perfs(perfs, "storage.space.usage.bytes", &legacy_perfs));
+  ASSERT_EQ(legacy_perfs.size(), _samples.size());
 
-  for (const auto& p : perfs) {
+  for (const auto& p : legacy_perfs) {
     ASSERT_EQ(p.unit(), "B");
     ASSERT_EQ(p.min(), 0);
     ASSERT_EQ(p.warning(), 1000000);
