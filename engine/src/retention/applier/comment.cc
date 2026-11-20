@@ -70,6 +70,10 @@ void applier::comment::_add_host_comment(
   if (obj.entry_type() == com::centreon::engine::comment::acknowledgment) {
     if (!it->second->problem_has_been_acknowledged() && !obj.persistent())
       engine::comment::delete_comment(obj.comment_id());
+    // a kept non-persistent ack comment is owned by the host: restore the link
+    // so it can be deleted by id when the acknowledgement is cleared.
+    else if (!obj.persistent())
+      it->second->set_acknowledgement_comment_id(obj.comment_id());
   }
   // non-persistent comments don't last past restarts UNLESS
   // they're acks (see above).
@@ -105,6 +109,10 @@ void applier::comment::_add_service_comment(
   if (obj.entry_type() == com::centreon::engine::comment::acknowledgment) {
     if (!it_svc->second->problem_has_been_acknowledged() && !obj.persistent())
       engine::comment::delete_comment(obj.comment_id());
+    // a kept non-persistent ack comment is owned by the service: restore the
+    // link so it can be deleted by id when the acknowledgement is cleared.
+    else if (!obj.persistent())
+      it_svc->second->set_acknowledgement_comment_id(obj.comment_id());
   }
   // non-persistent comments don't last past restarts UNLESS
   // they're acks (see above).

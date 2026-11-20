@@ -2520,6 +2520,13 @@ void acknowledge_host_problem(host* hst,
       comment::host, comment::acknowledgment, hst->host_id(), 0, current_time,
       ack_author, ack_data, persistent, comment::internal, false, (time_t)0)};
   comment::comments.insert({com->get_comment_id(), com});
+
+  /* a non-persistent acknowledgement comment is owned by the host: keep its id
+   * so it can be deleted directly when the acknowledgement is cleared */
+  if (!persistent) {
+    hst->delete_acknowledgement_comment();
+    hst->set_acknowledgement_comment_id(com->get_comment_id());
+  }
 }
 
 /* acknowledges a service problem */
@@ -2560,6 +2567,13 @@ void acknowledge_service_problem(service* svc,
       svc->service_id(), current_time, ack_author, ack_data, persistent,
       comment::internal, false, (time_t)0)};
   comment::comments.insert({com->get_comment_id(), com});
+
+  /* a non-persistent acknowledgement comment is owned by the service: keep its
+   * id so it can be deleted directly when the acknowledgement is cleared */
+  if (!persistent) {
+    svc->delete_acknowledgement_comment();
+    svc->set_acknowledgement_comment_id(com->get_comment_id());
+  }
 }
 
 /* removes a host acknowledgement */
@@ -2570,8 +2584,8 @@ void remove_host_acknowledgement(host* hst) {
   /* update the status log with the host info */
   hst->update_status(host::STATUS_ACKNOWLEDGEMENT);
 
-  /* remove any non-persistant comments associated with the ack */
-  comment::delete_host_acknowledgement_comments(hst);
+  /* remove any non-persistant comment associated with the ack */
+  hst->delete_acknowledgement_comment();
 }
 
 /* removes a service acknowledgement */
@@ -2582,8 +2596,8 @@ void remove_service_acknowledgement(service* svc) {
   /* update the status log with the service info */
   svc->update_status(host::STATUS_ACKNOWLEDGEMENT);
 
-  /* remove any non-persistant comments associated with the ack */
-  comment::delete_service_acknowledgement_comments(svc);
+  /* remove any non-persistant comment associated with the ack */
+  svc->delete_acknowledgement_comment();
 }
 
 /* starts executing service checks */
