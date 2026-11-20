@@ -46,6 +46,7 @@ sub new {
     $connector->{ping_timer} = -1;
     $connector->{connected} = 0;
     $connector->{stop} = 0;
+    $connector->{reconnect_delay} = $connector->{config}->{retry_delay_min};
 
     $connector->set_signal_handlers();
     return $connector;
@@ -190,6 +191,12 @@ sub wss_connect {
 
                     $connector->{connected} = 0;
                     $connector->{logger}->writeLogError('[pullwss] websocket closed with status ' . $code);
+                    # reset backoff only after a stable connection, so a rejected poller (bad token) keeps escalating
+                    if (defined($connector->{connected_since}) && (time() - $connector->{connected_since}) >= $connector->{config}->{retry_delay_max}) {
+                        $connector->{reconnect_delay} = $connector->{config}->{retry_delay_min};
+                    }
+                    # re-arm now instead of waiting on the stale connected-state timer
+                    $connector->reconnect_schedule();
                 }
             );
             $connector->{tx}->on(
@@ -211,10 +218,44 @@ sub wss_connect {
             $connector->{logger}->writeLogInfo('[pullwss] websocket connected');
             $connector->{connected} = 1;
             $connector->{ping_timer} = -1;
+            $connector->{connected_since} = time();
             $connector->ping();
         }
     );
     $self->{ua}->inactivity_timeout(120);
+}
+
+=head3 $self->reconnect_schedule()
+
+Re-arms as a one-shot timer with capped exponential backoff instead of a flat recurring rate.
+Cancels any pending timer first; called both from the scheduling loop and the finish handler.
+
+=cut
+sub reconnect_schedule {
+    my ($self) = @_;
+
+    return if ($connector->{stop});
+
+    Mojo::IOLoop->remove($connector->{reconnect_timer_id})
+        if (defined($connector->{reconnect_timer_id}));
+
+    my $delay = $connector->{connected} == 1 ? 60 : $connector->{reconnect_delay};
+
+    $connector->{reconnect_timer_id} = Mojo::IOLoop->timer($delay => sub {
+        return if ($connector->{stop});
+
+        if ($connector->{connected} == 0) {
+            my $max = $connector->{config}->{retry_delay_max};
+            my $next_delay = $connector->{reconnect_delay} * 2;
+            $next_delay = $max if ($next_delay > $max);
+            $connector->{logger}->writeLogDebug("[pullwss] not connected, retrying now (waited ${delay}s, next backoff if this attempt fails too: ${next_delay}s)");
+            $connector->wss_connect();
+            $connector->{reconnect_delay} = $next_delay;
+        } else {
+            $connector->ping();
+        }
+        $connector->reconnect_schedule();
+    });
 }
 
 sub run {
@@ -243,13 +284,7 @@ sub run {
     });
     Mojo::IOLoop->singleton->reactor->watch($socket, 1, 0);
 
-    Mojo::IOLoop->singleton->recurring(60 => sub {
-        if (!$connector->{stop}){
-            $connector->{logger}->writeLogDebug('[pullwss] recurring timeout loop');
-            $connector->wss_connect();
-            $connector->ping();
-        }
-    });
+    $self->reconnect_schedule();
     Mojo::IOLoop->start() unless (Mojo::IOLoop->is_running);
 
     disconnect_zmq_socket_and_exit();

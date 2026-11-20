@@ -20,6 +20,8 @@ The proxy module has to bind to a tcp port for the pullwss module to connect to.
 | https_cert_no_verify | if ssl=true, if ssl=true, should certificate host name verification be skipped                                                              | `true`        |
 | max_msg_size         | max message size to send to the central Gorgone                                                                                             | `130000`      |
  | central_uri         | URI to connect on the central. after 26.10, you can connect on apache on port 443 by using the value `/centreon/gorgone/pullwss/websocket`. | `/`           |
+| retry_delay_min      | delay in seconds before the first reconnection attempt after the connection is lost                                                         | `5`           |
+| retry_delay_max      | maximum delay in seconds between two reconnection attempts (the delay doubles after each failed attempt, capped at this value)              | `20`          |
 
 > **Note on `https_cert_no_verify`:** Certificate verification is **disabled by default** (`true`). Set it to `false` and use a valid certificate signed by a trusted CA for production environments.
 
@@ -50,7 +52,12 @@ address: 192.168.56.105
 
 2. **Keepalive**: the Poller sends a `REGISTERNODES` ping every **30 seconds** while connected.
 
-3. **Reconnection**: the Poller attempts to reconnect every **60 seconds** if the connection is lost or was never established.
+3. **Reconnection**: if the connection is lost or was never established, the Poller retries with a
+   capped exponential backoff: `retry_delay_min` seconds before the first attempt, doubled after
+   each failed attempt, capped at `retry_delay_max` seconds. The delay resets to `retry_delay_min`
+   once a connection has stayed up at least `retry_delay_max` seconds (a connection accepted then
+   immediately closed, e.g. an invalid/revoked token, keeps escalating instead of being retried at
+   the minimum delay forever).
 
 4. **Timeouts**:
    - The Poller closes its connection if the Central is inactive for **120 seconds**.

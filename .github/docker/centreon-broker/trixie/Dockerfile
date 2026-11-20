@@ -157,8 +157,8 @@ COPY --chmod=755 \
      ./.github/docker/centreon-broker/trixie/entrypoint /usr/local/lib/centreon-broker
 
 # Fingerprint of the package-default config (no SQL/storage output - cbd
-# would run but persist nothing). container.sh refuses to start if the
-# config it's given still matches this, instead of running uselessly. Stored
+# would run but persist nothing). container.sh waits for a config that no
+# longer matches this instead of starting uselessly. Stored
 # under /var/lib/centreon-broker, NOT /etc/centreon-broker - the latter is
 # the real-world volume mount point for a real config, and an empty mount
 # would mask a fingerprint stored there too, silently disabling this check.

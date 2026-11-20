@@ -62,6 +62,12 @@ sub register {
     $config->{max_msg_size} = 130_000
         if (!defined($config->{max_msg_size}) || $config->{max_msg_size} !~ /\d+/);
     $config->{central_uri} = "/" if ( ! $config->{central_uri});
+    $config->{retry_delay_min} = 5
+        if (!defined($config->{retry_delay_min}) || $config->{retry_delay_min} !~ /^\d+$/ || $config->{retry_delay_min} < 1);
+    $config->{retry_delay_max} = 20
+        if (!defined($config->{retry_delay_max}) || $config->{retry_delay_max} !~ /^\d+$/);
+    $config->{retry_delay_max} = $config->{retry_delay_min}
+        if ($config->{retry_delay_max} < $config->{retry_delay_min});
 
     return ($loaded, NAMESPACE, NAME, EVENTS);
 }
