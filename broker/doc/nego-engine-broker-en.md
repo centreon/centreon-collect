@@ -899,6 +899,7 @@ classDiagram
         +add_peer()
         +remove_peer()
         +has_connection_from_poller(uint64_t poller_id)
+        +set_instance_running(uint64_t poller_id, bool running)
         +connected_peers()
         +connected_pollers()
         +engine_peer_needs_update(uint64_t poller_id)
@@ -2201,6 +2202,10 @@ struct engine_peer {
     bool        available_conf_sent;
     bool        conf_acknowledged;
     bool        conf_unknown;
+    /* Set to true only when a pb_instance(running=true) content event has been
+     * received from this poller.  Guards against stale add_peer() / remove_peer()
+     * calls that replay running=false events on Broker reconnect. */
+    bool        running = false;
 };
 
 struct broker_peer {
@@ -2255,6 +2260,17 @@ switch (peer_type) {
     default:              _unknown_peers[key] = unknown_peer{...}; break;
 }
 ```
+
+### `running` flag and `has_connection_from_poller` semantics
+
+`engine_peer::running` distinguishes a peer that is **actively running** from one that is merely registered.  It is managed by `set_instance_running()`, which is called by every module that processes `pb_instance` events (e.g. BAM's `monitoring_stream`):
+
+- `pb_instance(running=true)` → `set_instance_running(poller_id, true)` — the Engine instance is up.
+- `pb_instance(running=false)` → `set_instance_running(poller_id, false)` then `remove_peer()` — the Engine instance stopped or disconnected.
+
+`has_connection_from_poller(poller_id)` returns `true` **only** when an `engine_peer` exists for that poller *and* its `running` flag is `true`.  This guards against false positives that occur when Broker replays a backlog of `pb_instance(running=false)` events on reconnect: `add_peer()` is called by the BBDO layer as soon as the TCP connection is accepted, but `running` remains `false` until the first `pb_instance(running=true)` content event confirms the instance is actually alive.
+
+The base class `state` provides a virtual no-op default for `set_instance_running()` so that modules that don't need it (e.g. `cbmod_state`) require no change.
 
 ## Required changes
 
