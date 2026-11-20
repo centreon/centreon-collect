@@ -363,11 +363,11 @@ void database_configurator::_disable_resources_for_pollers_with_full_conf(
  */
 void database_configurator::_del_severities_mariadb(
     const ::google::protobuf::RepeatedPtrField<
-        com::centreon::engine::configuration::KeyType>& keys) {
+        com::centreon::engine::configuration::SeverityKeyWithPoller>& keys) {
   if (keys.empty())
     return;
 
-  _logger->debug("Removing {} severities", keys.size());
+  auto& bc = config::applier::state::instance().cache();
   mysql& mysql = _stream->get_mysql();
   if (!_del_severities_stmt) {
     std::string query("DELETE FROM severities WHERE id=? AND type=?");
@@ -379,15 +379,28 @@ void database_configurator::_del_severities_mariadb(
   auto bind = stmt->create_bind();
   bind->reserve(keys.size());
 
-  auto& bc = config::applier::state::instance().cache();
+  uint32_t count = 0;
   for (const auto& msg : keys) {
+    /* apply() already removed this severity from the cache when the last poller
+     * dropped it. If it still exists, other pollers still reference it — skip.
+     */
+    if (bc.has_severity(msg.id(), msg.type())) {
+      _logger->debug(
+          "severity id={} type={} still referenced by other pollers, skipping "
+          "DB deletion",
+          msg.id(), msg.type());
+      continue;
+    }
     _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
     bind->set_value_as_u64(0, msg.id());
     bind->set_value_as_u32(1, msg.type());
     bind->next_row();
-    bc.erase_severity(msg.id(), msg.type());
+    ++count;
   }
 
+  if (count == 0)
+    return;
+  _logger->debug("Removing {} severities", count);
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
 }
@@ -399,11 +412,11 @@ void database_configurator::_del_severities_mariadb(
  */
 void database_configurator::_del_severities_mysql(
     const ::google::protobuf::RepeatedPtrField<
-        com::centreon::engine::configuration::KeyType>& keys) {
+        com::centreon::engine::configuration::SeverityKeyWithPoller>& keys) {
   if (keys.empty())
     return;
 
-  _logger->debug("Removing {} severities", keys.size());
+  auto& bc = config::applier::state::instance().cache();
   mysql& mysql = _stream->get_mysql();
   if (!_del_severities_stmt) {
     std::string query("DELETE FROM severities WHERE id=? AND type=?");
@@ -411,13 +424,21 @@ void database_configurator::_del_severities_mysql(
     mysql.prepare_statement(*_del_severities_stmt);
   }
 
-  auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : keys) {
+    /* apply() already removed this severity from the cache when the last poller
+     * dropped it. If it still exists, other pollers still reference it — skip.
+     */
+    if (bc.has_severity(msg.id(), msg.type())) {
+      _logger->debug(
+          "severity id={} type={} still referenced by other pollers, skipping "
+          "DB deletion",
+          msg.id(), msg.type());
+      continue;
+    }
     _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
     _del_severities_stmt->bind_value_as_u64(0, msg.id());
     _del_severities_stmt->bind_value_as_u32(1, msg.type());
     mysql.run_statement(*_del_severities_stmt);
-    bc.erase_severity(msg.id(), msg.type());
   }
 }
 

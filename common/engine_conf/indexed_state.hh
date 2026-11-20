@@ -37,7 +37,8 @@ class indexed_state {
   absl::flat_hash_map<std::string, std::unique_ptr<Timeperiod>> _timeperiods;
   absl::flat_hash_map<std::string, std::unique_ptr<Command>> _commands;
   absl::flat_hash_map<std::string, std::unique_ptr<Connector>> _connectors;
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Severity>>
       _severities;
   absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
                       std::unique_ptr<Tag>>
@@ -187,12 +188,13 @@ class indexed_state {
   mut_contactgroups() {
     return _contactgroups;
   }
-  const absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+  const absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
                             std::unique_ptr<Severity>>&
   severities() const {
     return _severities;
   }
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>&
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Severity>>&
   mut_severities() {
     return _severities;
   }

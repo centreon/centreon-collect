@@ -67,10 +67,10 @@ class database_configurator {
                              engine::configuration::Severity>& lst);
   void _del_severities_mariadb(
       const ::google::protobuf::RepeatedPtrField<
-          com::centreon::engine::configuration::KeyType>& keys);
+          com::centreon::engine::configuration::SeverityKeyWithPoller>& keys);
   void _del_severities_mysql(
       const ::google::protobuf::RepeatedPtrField<
-          com::centreon::engine::configuration::KeyType>& keys);
+          com::centreon::engine::configuration::SeverityKeyWithPoller>& keys);
   void _add_tags_mariadb(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
           lst);

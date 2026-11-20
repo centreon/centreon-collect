@@ -40,14 +40,14 @@ void applier::severity::add_object(const configuration::Severity& obj) {
                        obj.key().type());
 
   // Add severity to the global configuration set.
-  auto new_sv = std::make_unique<Severity>();
-  new_sv->CopyFrom(obj);
-  pb_indexed_config.mut_severities().emplace(
-      std::make_pair(obj.key().id(), obj.key().type()), std::move(new_sv));
+  auto key = std::make_tuple(obj.key().id(), (uint32_t)obj.key().type(),
+                             (uint32_t)obj.poller_id());
+  pb_indexed_config.mut_severities().emplace(key,
+                                             std::make_unique<Severity>(obj));
 
-  auto sv{std::make_shared<engine::severity>(obj.key().id(), obj.level(),
-                                             obj.icon_id(), obj.severity_name(),
-                                             obj.key().type())};
+  auto sv = std::make_shared<engine::severity>(
+      obj.key().id(), obj.level(), obj.icon_id(), obj.severity_name(),
+      obj.key().type());
   if (!sv)
     throw engine_error() << fmt::format("Could not register severity ({},{})",
                                         obj.key().id(), obj.key().type());
@@ -108,13 +108,14 @@ void applier::severity::modify_object(
  * @param idx The index of the object to remove.
  */
 void applier::severity::remove_object(
-    const std::pair<uint64_t, uint32_t>& key) {
+    const std::tuple<uint64_t, uint32_t, uint32_t>& key) {
   // Logging.
-  config_logger->debug("Removing severity ({}, {}).", key.first, key.second);
+  config_logger->debug("Removing severity ({}, {}).", std::get<0>(key),
+                       std::get<1>(key));
 
   // Find severity.
   severity_map::iterator it =
-      engine::severity::severities.find({key.first, key.second});
+      engine::severity::severities.find({std::get<0>(key), std::get<1>(key)});
 
   if (it != engine::severity::severities.end()) {
     engine::severity* sv = it->second.get();
