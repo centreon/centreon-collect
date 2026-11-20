@@ -134,8 +134,7 @@ static std::string get_service_state(com::centreon::engine::service& svc,
 static std::string get_service_id(com::centreon::engine::service& svc,
                                   nagios_macros* mac) {
   (void)mac;
-  return fmt::to_string(com::centreon::engine::get_service_id(svc.get_hostname(),
-                                                              svc.description()));
+  return fmt::to_string(svc.service_id());
 }
 
 /**

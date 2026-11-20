@@ -43,9 +43,7 @@ void applier::service::apply(const configuration::State& config,
                              bool scheduling_info_is_ok) {
   for (auto& s : lst) {
     try {
-      std::pair<uint64_t, uint64_t> id{
-          get_host_and_service_id(s->host_name(), s->service_description())};
-      engine::service& svc(find_service(id.first, id.second));
+      engine::service& svc(find_service(s->host_id(), s->service_id()));
       update(config, *s, svc, scheduling_info_is_ok);
     } catch (...) {
       // ignore exception for the retention.

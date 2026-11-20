@@ -48,6 +48,11 @@ void applier::service::add_object(const configuration::Service& obj) {
         "No host_id available for the host '{}' - unable to create service "
         "'{}'",
         obj.host_name(), obj.service_description());
+  else if (obj.service_id() == 0)
+    throw engine_error() << fmt::format(
+        "Could not create service '{}' of host '{}': service_id must not be "
+        "zero",
+        obj.service_description(), obj.host_name());
 
   // Logging.
   config_logger->debug("Creating new service '{}' of host '{}'.",
@@ -94,10 +99,6 @@ void applier::service::add_object(const configuration::Service& obj) {
         "Could not register service '{}' of host '{}'",
         obj.service_description(), obj.host_name());
   svc->set_initial_notif_time(0);
-  engine::service::services[{obj.host_name(), obj.service_description()}]
-      ->set_host_id(obj.host_id());
-  engine::service::services[{obj.host_name(), obj.service_description()}]
-      ->set_service_id(obj.service_id());
   svc->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                    pb_indexed_config.state().interval_length());
   svc->set_last_acknowledgement(0);
@@ -163,6 +164,16 @@ void applier::service::modify_object(configuration::Service* old_obj,
                                      const configuration::Service& new_obj) {
   const std::string& host_name(old_obj->host_name());
   const std::string& service_description(old_obj->service_description());
+
+  if (new_obj.host_id() == 0)
+    throw engine_error() << fmt::format(
+        "Could not modify service '{}' of host '{}': host_id must not be zero",
+        service_description, host_name);
+  if (new_obj.service_id() == 0)
+    throw engine_error() << fmt::format(
+        "Could not modify service '{}' of host '{}': service_id must not be "
+        "zero",
+        service_description, host_name);
 
   // Logging.
   config_logger->debug("Modifying service '{}' of host '{}'.",
@@ -270,8 +281,6 @@ void applier::service::modify_object(configuration::Service* old_obj,
   s->set_icon_image_alt(new_obj.icon_image_alt());
   s->set_is_volatile(new_obj.is_volatile());
   s->set_timezone(new_obj.timezone());
-  s->set_host_id(new_obj.host_id());
-  s->set_service_id(new_obj.service_id());
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
                                  pb_indexed_config.state().interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());

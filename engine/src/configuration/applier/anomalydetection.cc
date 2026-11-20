@@ -90,12 +90,6 @@ void applier::anomalydetection::add_object(
                          << obj.service_description() << "' of host '"
                          << obj.host_name() << "'";
   ad->set_initial_notif_time(0);
-  engine::anomalydetection::services[{obj.host_name(),
-                                      obj.service_description()}]
-      ->set_host_id(obj.host_id());
-  engine::anomalydetection::services[{obj.host_name(),
-                                      obj.service_description()}]
-      ->set_service_id(obj.service_id());
   ad->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                   pb_indexed_config.state().interval_length());
   ad->set_last_acknowledgement(0);
@@ -248,8 +242,6 @@ void applier::anomalydetection::modify_object(
   s->set_icon_image_alt(new_obj.icon_image_alt());
   s->set_is_volatile(new_obj.is_volatile());
   s->set_timezone(new_obj.timezone());
-  s->set_host_id(new_obj.host_id());
-  s->set_service_id(new_obj.service_id());
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
                                  pb_indexed_config.state().interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
