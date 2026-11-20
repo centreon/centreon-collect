@@ -35,6 +35,8 @@ This part of the configuration is only used if some poller must connect with the
 | token         | Allow to authenticate node. It is required to enable the HTTP server.                          |               |
 | address       | Address to listen to. It can be 0.0.0.0 to listen on all IPv4 addresses.                       |               |
 | port          | TCP port to listen to.                                                                         |               |
+| check_interval | Time in seconds between two internal health checks of the httpserver child process            | `30`          |
+| check_timeout  | Time in seconds without an answer to a health check before the httpserver child is considered stuck and recreated | `60` |
 
 
 #### Example
@@ -71,6 +73,7 @@ httpserver:  # this is used only if you want to configure pullwss nodes. to make
 | PROXYDELNODE    | Internal event to delete nodes from proxying                                   |
 | PROXYADDSUBNODE | Internal event to add nodes of nodes for proxying                              |
 | PONGRESET       | Internal event to deal with no pong nodes                                      |
+| PROXYHEALTHCHECK | Internal round trip between `hooks.pm` and the httpserver child to detect a wedged event loop |
 
 ## API
 
@@ -196,6 +199,18 @@ For `pull` nodes, `routing()` calls `pull_request()` instead: the message is wri
 
 For `wss`/`pullwss` nodes, the identity is always `gorgone-proxy-httpserver` regardless of the worker pool.
 
+`channel_ready` means something different depending on the node type, because it is set from two
+different events. For `push_zmq`/`push_ssh`, it is set from the pool worker's `PROXYADDNODE` ack
+(`routing()`'s `PROXYREADY` handling): that ack genuinely means the worker is ready to route to
+this node. For `wss`/`pullwss`, the httpserver child's `PROXYADDNODE` ack only means it now
+recognizes this id - the poller connects to it (not the other way around), so the ack says nothing
+about whether that connection actually exists yet. For these types `channel_ready` is instead set
+from `register_nodes()`, i.e. a genuine `REGISTERNODES` received over an actual live websocket.
+This matters most right after the httpserver child is recreated (see "httpserver child health
+check" below): the replacement child's startup `PROXYADDNODE` ack arrives immediately, well before
+the poller has reconnected to it, so routing traffic off that ack alone reaches a child that
+doesn't have the connection mapped yet ("cannot get connection for target node").
+
 #### Route resolution: `pathway()`
 
 `pathway()` determines which parent node to use to reach a target. Priority order:
@@ -236,9 +251,41 @@ The remote node replies with one or more `SETLOGS` messages (multiple parts for 
 
 To avoid overlapping sync requests, `$synctime_nodes->{id}{total_msg}` acts as a lock: it is set to `-1` when a `GETLOG` is sent and cleared when all parts are received or the `synchistory_timeout` is exceeded.
 
+#### httpserver child health check
+
+Unlike `push_zmq`/`push_ssh` nodes, which are spread across the worker pool, every `wss`/`pullwss`
+node is routed through the single `gorgone-proxy-httpserver` child (see "Node types and how they
+differ in routing" above). A worker dying is caught by `check()`'s `dead_childs` handling and
+restarted, but that only detects a process that has actually exited: an httpserver child whose
+event loop gets wedged (for example stuck processing a backlog under load) while the process
+itself stays alive is invisible to it, and every `wss`/`pullwss` node stays stuck in `GETLOG`/ping
+timeouts until gorgoned itself is restarted.
+
+`check()` (via `check_httpserver_health()`) covers that gap: every `httpserver.check_interval`
+seconds it sends the httpserver child a `PROXYHEALTHCHECK` message and expects it to answer with
+the same action. If no answer comes back within `httpserver.check_timeout` seconds, the child is
+considered stuck: it is killed, every wss/pullwss node's in-flight GETLOG/ping/channel-ready state
+is cleared (so `routing()` doesn't keep refusing traffic as "already in progress" against a child
+that no longer exists), and a replacement child is forked. The nodes reconnect to it the same way
+they would after a crash.
+
+A timeout alone does not recreate the child: `check()` runs in the same single process/event loop
+as `routing()`, so a long synchronous handler there (`prepare_remote_copy()` building a big
+REMOTECOPY archive, see below) can itself delay `check()` well past `check_timeout` - in that case
+the child may have answered long ago, with its reply simply sitting unread in the internal socket
+while gorgoned was busy elsewhere. `periodic_exec()` calls `router_internal_event()` right after
+`check_exit_modules()` on every tick, so that reply gets drained (clearing the pending flag) before
+`check_httpserver_health()` runs again - unless the child really is stuck. A first timeout only
+marks the child suspect; recreating it needs a second, consecutive timeout.
+
+Recreating the child clears every wss/pullwss node's in-flight GETLOG/ping/channel-ready state
+(the same reset also runs on the older crash-recovery path, where a dead child is caught via
+`dead_childs`): otherwise `routing()` keeps refusing traffic as "already in progress" against a
+child that no longer exists.
+
 ## check()
 
-Run by the gorgone-core process regularly (5s).
+Run by the gorgone-core process regularly (every ~15s, see `check_exit_modules()` in `class/core.pm`).
 
 - start a history synchronization if needed
 - delete old history synchronization if older than synchistory_timeout

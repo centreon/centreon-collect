@@ -160,6 +160,8 @@ Setup Gorgone Config
     ...    -e 's/@RETRY_DELAY_MIN@/5/g'
     ...    -e 's/@RETRY_DELAY_MAX@/20/g'
     ...    -e 's/@PROXY_PING@/60/g'
+    ...    -e 's/@HTTPSERVER_CHECK_INTERVAL@/30/g'
+    ...    -e 's/@HTTPSERVER_CHECK_TIMEOUT@/60/g'
     ...    -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g'
     ...    /etc/centreon-gorgone/${gorgone_name}/config.d/*.yaml
 
@@ -273,6 +275,7 @@ Setup Remote And Poller And Central Instances
 
 Setup Two Gorgone Instances
     [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2    ${check_connection}=True
+    ...    ${central_replace_from}=@{EMPTY}    ${central_replace_to}=@{EMPTY}
     ${start_time}   Get Time    str=epoch
 
     Ctn Init Tests
@@ -334,6 +337,7 @@ Setup Two Gorgone Instances
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
 
         Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
+        ...    replace_from=${central_replace_from}    replace_to=${central_replace_to}
         Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${central_name}
@@ -356,6 +360,7 @@ Setup Two Gorgone Instances
         ${poller_id}=    Set Variable    299123456
 
         Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
+        ...    replace_from=${central_replace_from}    replace_to=${central_replace_to}
         Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}    replace_from=${{['@POLLERID@']}}    replace_to=${{['${poller_id}']}}
 
         Start Gorgone    debug    ${central_name}
