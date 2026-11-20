@@ -135,12 +135,21 @@ jobs:
         env:
           MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
           GH_REF: ${{ github.head_ref || github.ref_name }}
+          TESTING_TAG: ${{ needs.get-environment.outputs.testing_tag }}
         run: |
           CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${MAJOR_VERSION}\.x$" >/dev/null 2>&1 && echo "dev-${MAJOR_VERSION}.x" || echo develop)
 
           GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${GH_REF}$" >/dev/null 2>&1 && echo yes || echo no)
           if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
             CENTREON_REPO_LINKED_BRANCH="$GH_REF"
+          fi
+
+          # on a testing tag, the schema comes from the release branch of the tag when centreon has it
+          if [[ "$TESTING_TAG" =~ ^testing-(cloud|onprem)-(release|hotfix)-[0-9]{8}-([0-9]{2}\.[0-9]{2})-[1-9][0-9]*$ ]]; then
+            NEXT_BRANCH="${BASH_REMATCH[2]}-${BASH_REMATCH[3]}-next"
+            if git ls-remote -h https://github.com/centreon/centreon.git | grep -E "[[:space:]]refs/heads/${NEXT_BRANCH//./\\.}$" >/dev/null 2>&1; then
+              CENTREON_REPO_LINKED_BRANCH="$NEXT_BRANCH"
+            fi
           fi
 
           echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
@@ -378,12 +387,21 @@ jobs:
         env:
           MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
           GH_REF: ${{ github.head_ref || github.ref_name }}
+          TESTING_TAG: ${{ needs.get-environment.outputs.testing_tag }}
         run: |
           CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${MAJOR_VERSION}\.x$" >/dev/null 2>&1 && echo "dev-${MAJOR_VERSION}.x" || echo develop)
 
           GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${GH_REF}$" >/dev/null 2>&1 && echo yes || echo no)
           if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
             CENTREON_REPO_LINKED_BRANCH="$GH_REF"
+          fi
+
+          # on a testing tag, the schema comes from the release branch of the tag when centreon has it
+          if [[ "$TESTING_TAG" =~ ^testing-(cloud|onprem)-(release|hotfix)-[0-9]{8}-([0-9]{2}\.[0-9]{2})-[1-9][0-9]*$ ]]; then
+            NEXT_BRANCH="${BASH_REMATCH[2]}-${BASH_REMATCH[3]}-next"
+            if git ls-remote -h https://github.com/centreon/centreon.git | grep -E "[[:space:]]refs/heads/${NEXT_BRANCH//./\\.}$" >/dev/null 2>&1; then
+              CENTREON_REPO_LINKED_BRANCH="$NEXT_BRANCH"
+            fi
           fi
 
           echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
