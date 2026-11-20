@@ -20,14 +20,12 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notifier.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 notification::notification(notifier* parent,
                            notifier::reason_type type,
@@ -182,8 +180,6 @@ int notification::execute(
     }
   }
 
-  engine_logger(dbg_notifications, basic)
-      << contacts_notified << " contacts were notified.";
   notifications_logger->trace("{} contacts were notified.", contacts_notified);
   return OK;
 }

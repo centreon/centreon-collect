@@ -21,11 +21,9 @@
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 /******************************************************************/
 /***************** FLAP DETECTION STATUS FUNCTIONS ****************/
@@ -35,7 +33,6 @@ using namespace com::centreon::engine::logging;
 void enable_flap_detection_routines() {
   unsigned long attr = MODATTR_FLAP_DETECTION_ENABLED;
 
-  engine_logger(dbg_functions, basic) << "enable_flap_detection_routines()";
   functions_logger->trace("enable_flap_detection_routines()");
 
   /* bail out if we're already set */
@@ -67,7 +64,6 @@ void enable_flap_detection_routines() {
 void disable_flap_detection_routines() {
   unsigned long attr = MODATTR_FLAP_DETECTION_ENABLED;
 
-  engine_logger(dbg_functions, basic) << "disable_flap_detection_routines()";
   functions_logger->trace("disable_flap_detection_routines()");
 
   /* bail out if we're already set */

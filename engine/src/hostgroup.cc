@@ -21,14 +21,12 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::string;
 
 hostgroup_map com::centreon::engine::hostgroup::hostgroups;
@@ -57,7 +55,6 @@ hostgroup::hostgroup(uint64_t id,
       _action_url{action_url} {
   // Make sure we have the data we need.
   if (name.empty()) {
-    engine_logger(log_config_error, basic) << "Error: Hostgroup name is NULL";
     config_logger->error("Error: Hostgroup name is NULL");
     throw(engine_error() << "Could not register host group '" << name << "'");
   }
@@ -65,8 +62,6 @@ hostgroup::hostgroup(uint64_t id,
   // Check if the host group already exist.
   hostgroup_map::const_iterator found(hostgroup::hostgroups.find(name));
   if (found != hostgroup::hostgroups.end()) {
-    engine_logger(log_config_error, basic)
-        << "Error: Hostgroup '" << name << "' has already been defined";
     config_logger->error("Error: Hostgroup '{}' has already been defined",
                          name);
     throw(engine_error() << "Could not register host group '" << name << "'");
@@ -162,9 +157,6 @@ void hostgroup::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
        it != end; ++it) {
     host_map::const_iterator it_host{host::hosts.find(it->first)};
     if (it_host == host::hosts.end() || !it_host->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Host '" << it->first << "' specified in host group '"
-          << get_group_name() << "' is not defined anywhere!";
       config_logger->error(
           "Error: Host '{}' specified in host group '{}' is not defined "
           "anywhere!",
@@ -189,9 +181,6 @@ void hostgroup::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
 
   // Check for illegal characters in hostgroup name.
   if (contains_illegal_object_chars(get_group_name().c_str())) {
-    engine_logger(log_verification_error, basic)
-        << "Error: The name of hostgroup '" << get_group_name()
-        << "' contains one or more illegal characters.";
     config_logger->error(
         "Error: The name of hostgroup '{}' contains one or more illegal "
         "characters.",

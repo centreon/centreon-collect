@@ -22,13 +22,11 @@
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::logging;
 
 /**************************************
  *                                     *
@@ -949,8 +947,6 @@ int grab_macro_value_r(nagios_macros* mac,
       continue;
 
     if (strcmp(macro_x_names[x].c_str(), buf.get()) == 0) {
-      engine_logger(dbg_macros, most)
-          << "  macros[" << x << "] (" << macro_x_names[x] << ") match.";
       macros_logger->trace("  macros[{}] ({}) match.", x, macro_x_names[x]);
 
       /* get the macro value */
@@ -963,8 +959,6 @@ int grab_macro_value_r(nagios_macros* mac,
       if ((x >= 16 && x <= 19) || (x >= 49 && x <= 52) ||
           (x >= 99 && x <= 100) || (x >= 124 && x <= 127)) {
         *clean_options |= (STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
-        engine_logger(dbg_macros, most)
-            << "  New clean options: " << *clean_options;
         macros_logger->trace("  New clean options: {}", *clean_options);
       }
       break;
@@ -1147,8 +1141,6 @@ int grab_macrox_value_r(nagios_macros* mac,
         redirector.routines.find(macro_type));
     if (redirector.routines.end() == it) {
       retval = ERROR;
-      engine_logger(dbg_macros, basic)
-          << "UNHANDLED MACRO #" << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED MACRO #{}! THIS IS A BUG!", macro_type);
     } else {
       retval = (*it->second)(mac, macro_type, arg1, arg2, output, free_macro);

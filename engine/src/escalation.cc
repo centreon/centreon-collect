@@ -18,11 +18,9 @@
 #include "com/centreon/engine/escalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/timeperiod.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 escalation::escalation(uint32_t first_notification,
                        uint32_t last_notification,
@@ -121,9 +119,6 @@ void escalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
         timeperiod::timeperiods.find(get_escalation_period())};
 
     if (it == timeperiod::timeperiods.end() || !it->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Escalation period '" << get_escalation_period()
-          << "' specified in escalation is not defined anywhere!";
       config_logger->error(
           "Error: Escalation period '{}' specified in escalation is not "
           "defined anywhere!",
@@ -136,17 +131,13 @@ void escalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
 
   // Check all contact groups.
   for (contactgroup_map::iterator it = _contact_groups.begin(),
-       end = _contact_groups.end();
+                                  end = _contact_groups.end();
        it != end; ++it) {
     // Find the contact group.
     contactgroup_map::iterator it_cg{
         contactgroup::contactgroups.find(it->first)};
 
     if (it_cg == contactgroup::contactgroups.end() || !it_cg->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Contact group '" << it->first
-          << "' specified in escalation for this notifier is not defined "
-             "anywhere!";
       config_logger->error(
           "Error: Contact group '{}' specified in escalation for this notifier "
           "is not defined "

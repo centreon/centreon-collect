@@ -20,14 +20,12 @@
 #include "com/centreon/common/process/process.hh"
 #include "com/centreon/engine/commands/environment.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 using namespace com::centreon::common;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::commands;
 
 /**
@@ -306,8 +304,6 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
                      uint32_t timeout,
                      const check_result::pointer& to_push_to_checker,
                      const notifier* caller) {
-  engine_logger(dbg_commands, basic)
-      << "raw_v2::run: cmd='" << processed_cmd << "', timeout=" << timeout;
   SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
@@ -437,8 +433,6 @@ void raw_v2::run(const std::string& processed_cmd,
                  nagios_macros& macros,
                  uint32_t timeout,
                  result& res) {
-  engine_logger(dbg_commands, basic)
-      << "raw_v2::run: cmd='" << processed_cmd << "', timeout=" << timeout;
   SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
