@@ -526,6 +526,64 @@
       "streamingInterval": 0
     },
     {
+      "uuid": "6a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+      "type": "http",
+      "documentation": "list version of administration/tokens/:tokenName, used by the httpserver module's recurring revocation check (one call for every connected client instead of one call per client)",
+      "method": "get",
+      "endpoint": "centreon/api/latest/administration/tokens",
+      "responses": [
+        {
+          "uuid": "7b2c3d4e-5f6a-4b7c-9d8e-0f1a2b3c4d5e",
+          "body": "{\n  \"code\": 401,\n  \"message\": \"Invalid credentials.\"\n}",
+          "latency": 0,
+          "statusCode": 401,
+          "label": "api session expired",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "global_var",
+              "modifier": "api_session_expired",
+              "value": "true",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "8c3d4e5f-6a7b-4c8d-ae9f-1a2b3c4d5e6f",
+          "body": "{\n  \"result\": [\n    {\n      \"name\": \"poller-ok-expdate\",\n      \"creation_date\": \"{{faker 'date.past'}}\",\n      \"expiration_date\": \"{{faker 'date.future'}}\",\n      \"type\": \"poller\",\n      \"is_revoked\": false,\n      \"creator\": {\n        \"id\": 1,\n        \"name\": \"admin\"\n      }\n    },\n    {\n      \"name\": \"poller-ok-noexpdate\",\n      \"creation_date\": \"{{faker 'date.past'}}\",\n      \"expiration_date\": null,\n      \"type\": \"poller\",\n      \"is_revoked\": false,\n      \"creator\": {\n        \"id\": 1,\n        \"name\": \"admin\"\n      }\n    },\n    {\n      \"name\": \"poller-revoked-expdate\",\n      \"creation_date\": \"{{faker 'date.past'}}\",\n      \"expiration_date\": \"{{faker 'date.future'}}\",\n      \"type\": \"poller\",\n      \"is_revoked\": true,\n      \"creator\": {\n        \"id\": 1,\n        \"name\": \"admin\"\n      }\n    },\n    {\n      \"name\": \"poller-revoked-noexpdate\",\n      \"creation_date\": \"{{faker 'date.past'}}\",\n      \"expiration_date\": null,\n      \"type\": \"poller\",\n      \"is_revoked\": true,\n      \"creator\": {\n        \"id\": 1,\n        \"name\": \"admin\"\n      }\n    },\n    {\n      \"name\": \"poller-expired\",\n      \"creation_date\": \"{{faker 'date.past'}}\",\n      \"expiration_date\": \"{{faker 'date.recent'}}\",\n      \"type\": \"poller\",\n      \"is_revoked\": false,\n      \"creator\": {\n        \"id\": 1,\n        \"name\": \"admin\"\n      }\n    },\n    {\n      \"name\": \"poller-config\",\n      \"creation_date\": \"{{faker 'date.past'}}\",\n      \"expiration_date\": \"{{getGlobalVar 'expired'}}\",\n      \"type\": \"poller\",\n      \"is_revoked\": {{getGlobalVar 'revoked'}},\n      \"creator\": {\n        \"id\": 1,\n        \"name\": \"admin\"\n      }\n    },\n    {\n      \"name\": \"Central-1\",\n      \"creation_date\": \"{{faker 'date.past'}}\",\n      \"expiration_date\": \"{{faker 'date.future'}}\",\n      \"type\": \"cma\",\n      \"is_revoked\": false,\n      \"creator\": {\n        \"id\": 1,\n        \"name\": \"admin\"\n      }\n    }\n  ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "all tokens",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
       "uuid": "d22f9a5c-5390-4870-9f3d-7bf7004aafc4",
       "type": "http",
       "documentation": "",
@@ -647,6 +705,10 @@
     {
       "type": "route",
       "uuid": "1f01381d-3bec-4b5e-b88a-b04cff57e023"
+    },
+    {
+      "type": "route",
+      "uuid": "6a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"
     },
     {
       "type": "route",

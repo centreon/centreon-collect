@@ -149,7 +149,17 @@ check poller token revocation
     ${response}    PUT    ${revoked_url}/false
     ${response}    PUT    ${expired_url}/false
     Setup Two Gorgone Instances    communication_mode=pullwss    central_name=pullwss_gorgone_central_simple    poller_name=pullwss_gorgone_poller_2_simple
+    ...    central_replace_from=${{['@HTTPSERVER_TOKEN_CHECK_INTERVAL@']}}    central_replace_to=${{['5']}}
     Ctn Check No Error In Logs    pullwss_gorgone_poller_2_simple
+
+    # the recurring revocation check fetches every token in one call and matches locally,
+    # instead of one call per connected node (is_logged_websocket()'s own one-time per-node
+    # login check still uses the single-token endpoint, unaffected by this).
+    ${log_list_query}    Create List    GET /centreon/api/latest/administration/tokens?
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_list_query}    date=${start_date}    timeout=${timeout}
+    Should Be True    ${logs_central}
+    ...    the recurring token check must list every token in one call, not one call per node : ${logs_central}
+
     ${log_central_query}    Create List    [proxy-httpserver] invalid token
     # The poller is connected
     Check Poller Is Connected    port=${port}    expected_nb=2

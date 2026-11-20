@@ -200,29 +200,58 @@ sub run {
     #});
     #Mojo::IOLoop->singleton->reactor->watch($socket, 1, 0);
 
-    Mojo::IOLoop->singleton->recurring(5 => sub {
+    # One API call per cycle for every connected, logged-in client's token, instead of one call
+    # per client: at N connected pollers, N sequential blocking HTTP calls here (the Centreon API
+    # client is synchronous, see gorgone::class::http::backend::curl) block this process's whole
+    # single-threaded reactor for their combined duration, so no PING/PONG/GETLOG/SETLOGS can be
+    # read or written on ANY pullwss websocket while this runs. Measured cost scales with both the
+    # node count and the API's own latency under load.
+    # The list is fetched once and matched locally; the revocation/expiration outcome per token
+    # is unchanged. A failed list call is logged and leaves every node connected (unlike the old
+    # per-node call, where a failure for one node's own GET closed only that node's websocket):
+    # one transient API error should not drop every connected node at once.
+    my $token_check_interval = $self->{config}->{httpserver}->{token_check_interval};
+    Mojo::IOLoop->singleton->recurring($token_check_interval => sub {
         $connector->{logger}->writeLogDebug('[proxy-httpserver] recurring token revocation check');
-        foreach my $ws_id (keys %{$connector->{ws_clients}}) {
-            if (defined($connector->{ws_clients}->{$ws_id}->{token_name})
-                && $connector->{ws_clients}->{$ws_id}->{logged} == 1) {
-                my $token_name = $connector->{ws_clients}->{$ws_id}->{token_name};
-                my ($status, $results) = $self->{tpapi_centreonv2}->get_api_token(
-                    token_name => $token_name
-                );
-                if ($status != 0
-                    || !defined($results->{token})
-                    || $results->{is_revoked}
-                    || (defined($results->{expiration_date})
-                    && $results->{expiration_date} ne ''
-                    && str2time($results->{expiration_date}) < time())) {
-                        $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token: ' . $token_name);
-                        $connector->{ws_clients}->{$ws_id}->{logged} = 0;
-                        $self->close_websocket(
-                            code    => 500,
-                            message => 'invalid token',
-                            ws_id   => $ws_id
-                        );
-                }
+
+        my @checked_ws_ids = grep {
+            defined($connector->{ws_clients}->{$_}->{token_name}) && $connector->{ws_clients}->{$_}->{logged} == 1
+        } keys %{$connector->{ws_clients}};
+        return if (!@checked_ws_ids);
+
+        my ($status, $response) = $self->{tpapi_centreonv2}->get_api_tokens();
+        if ($status != 0 || ref($response) ne 'HASH' || !defined($response->{result})) {
+            $connector->{logger}->writeLogError(
+                '[proxy-httpserver] cannot list API tokens for the revocation check: ' . $self->{tpapi_centreonv2}->error()
+            );
+            return;
+        }
+
+        my %tokens_by_name;
+        foreach my $token (@{$response->{result}}) {
+            next if (ref($token) ne 'HASH' || !defined($token->{name}));
+            $tokens_by_name{ $token->{name} } = $token;
+        }
+
+        foreach my $ws_id (@checked_ws_ids) {
+            my $token_name = $connector->{ws_clients}->{$ws_id}->{token_name};
+            my $results = $tokens_by_name{$token_name};
+            # unlike the single-token GET (get_api_token(), still used by the one-time login
+            # check in is_logged_websocket()), the list GET never carries the secret token value
+            # itself - only metadata (name, is_revoked, expiration_date, ...) - so a missing
+            # $results->{token} here says nothing about validity and must not be checked.
+            if (!defined($results)
+                || $results->{is_revoked}
+                || (defined($results->{expiration_date})
+                && $results->{expiration_date} ne ''
+                && str2time($results->{expiration_date}) < time())) {
+                    $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token: ' . $token_name);
+                    $connector->{ws_clients}->{$ws_id}->{logged} = 0;
+                    $self->close_websocket(
+                        code    => 500,
+                        message => 'invalid token',
+                        ws_id   => $ws_id
+                    );
             }
         }
     });

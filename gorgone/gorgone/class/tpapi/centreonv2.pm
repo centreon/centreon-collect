@@ -351,6 +351,17 @@ sub get_api_token {
     );
 }
 
+# Same endpoint collection as get_api_token(), without a name: one call returning every token
+# (up to the request()/limit=10000 default) instead of one call per name.
+sub get_api_tokens {
+    my ($self, %options) = @_;
+
+    return $self->request(
+        method => 'GET',
+        endpoint => '/administration/tokens'
+    );
+}
+
 sub DESTROY {
     my ($self) = @_;
 
