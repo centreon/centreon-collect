@@ -49,7 +49,6 @@
 #include "common.h"
 #include "common/crypto/cert_tree.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/downtimes/service_downtime.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::engine;
@@ -3928,12 +3927,7 @@ static void send_downtimes_list() {
     // Callback.
     forward_downtime(
         NEBTYPE_DOWNTIME_ADD, 0, p.second->get_type(), p.second->host_id(),
-        p.second->get_type() ==
-                com::centreon::common::downtimes::downtime::service_downtime
-            ? std::static_pointer_cast<
-                  com::centreon::common::downtimes::service_downtime>(p.second)
-                  ->service_id()
-            : 0,
+        p.second->service_id(),
         p.second->get_entry_time(), p.second->get_author().c_str(),
         p.second->get_comment().c_str(), p.second->get_start_time(),
         p.second->get_end_time(), p.second->is_fixed(),

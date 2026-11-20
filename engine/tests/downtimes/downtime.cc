@@ -95,16 +95,14 @@ TEST_F(DowntimeExternalCommand, AddHostDowntime) {
                 .begin()
                 ->second->get_end_time(),
             20001);
-  ASSERT_EQ(downtime_manager::instance()
-                .get_scheduled_downtimes()
-                .begin()
-                ->second->handle(),
-            OK);
+  ASSERT_TRUE(downtime_manager::instance()
+                  .get_scheduled_downtimes()
+                  .begin()
+                  ->second->handle());
   set_time(20001);
-  ASSERT_EQ(downtime_manager::instance()
-                .get_scheduled_downtimes()
-                .begin()
-                ->second->handle(),
-            OK);
+  ASSERT_TRUE(downtime_manager::instance()
+                  .get_scheduled_downtimes()
+                  .begin()
+                  ->second->handle());
   ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Centreon
+ * Copyright 2016, 2026 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -19,10 +19,7 @@
 
 #include "common/downtimes/downtime_finder.hh"
 
-#include "common/downtimes/host_downtime.hh"
-#include "common/downtimes/service_downtime.hh"
-
-using namespace com::centreon::engine;
+#include "common/downtimes/downtime_manager.hh"
 
 namespace com::centreon::common::downtimes {
 // Helper macro.
@@ -54,22 +51,8 @@ downtime_finder::result_set downtime_finder::find_matching_all(
     for (criteria_set::const_iterator it = criterias.begin(),
                                       end = criterias.end();
          it != end; ++it) {
-      switch (dt->second->get_type()) {
-        case downtime::host_downtime:
-          if (!_match_criteria(
-                  *std::static_pointer_cast<host_downtime>(dt->second), *it))
-            matched_all = false;
-          break;
-        case downtime::service_downtime:
-          if (!_match_criteria(
-                  *std::static_pointer_cast<service_downtime>(dt->second), *it))
-            matched_all = false;
-          break;
-        case downtime::any_downtime:
-          /* This case does not need to be handled here. A downtime concerns a
-           * host or a service. */
-          break;
-      }
+      if (!_match_criteria(*dt->second, *it))
+        matched_all = false;
     }
 
     // If downtime matched all criterias, add it to the result set.
@@ -87,58 +70,27 @@ downtime_finder::result_set downtime_finder::find_matching_all(
  *
  *  @return True if downtime matches the criteria.
  */
-bool downtime_finder::_match_criteria(const host_downtime& dt,
+bool downtime_finder::_match_criteria(const downtime& dt,
                                       downtime_finder::criteria const& crit) {
   bool retval = false;
-  std::string hostname = engine::get_host_name(dt.host_id());
 
   if (crit.first == "host") {
-    retval = (crit.second == hostname);
-  } else if (crit.first == "start") {
-    int64_t expected;
-    if (absl::SimpleAtoi(crit.second, &expected))
-      retval = (static_cast<time_t>(expected) == dt.get_start_time());
-  } else if (crit.first == "end") {
-    int64_t expected;
-    if (absl::SimpleAtoi(crit.second, &expected))
-      retval = (static_cast<time_t>(expected) == dt.get_end_time());
-  } else if (crit.first == "fixed") {
-    bool expected;
-    if (absl::SimpleAtob(crit.second, &expected))
-      retval = (expected == dt.is_fixed());
-  } else if (crit.first == "triggered_by") {
-    uint64_t expected;
-    if (absl::SimpleAtoi(crit.second, &expected))
-      retval = (expected == dt.get_triggered_by());
-  } else if (crit.first == "duration") {
-    uint32_t expected;
-    if (absl::SimpleAtoi(crit.second, &expected))
-      retval = (expected == dt.get_duration());
-  } else if (crit.first == "author") {
-    retval = (crit.second == dt.get_author());
-  } else if (crit.first == "comment") {
-    retval = (crit.second == dt.get_comment());
-  }
-  return retval;
-}
-
-/**
- *  Check that a downtime match a specific criteria.
- *
- *  @param[in] dt    Downtime.
- *  @param[in] crit  Search criteria.
- *
- *  @return True if downtime matches the criteria.
- */
-bool downtime_finder::_match_criteria(service_downtime const& dt,
-                                      downtime_finder::criteria const& crit) {
-  bool retval{false};
-  auto p = get_host_and_service_names(dt.host_id(), dt.service_id());
-
-  if (crit.first == "host") {
-    retval = (crit.second == p.first);
+    if (dt.get_type() == downtime::service_downtime) {
+      auto p = downtime_manager::instance().callbacks().get_host_and_service_names(
+          dt.host_id(), dt.service_id());
+      retval = (crit.second == p.first);
+    } else {
+      std::string hostname =
+          downtime_manager::instance().callbacks().get_host_name(dt.host_id());
+      retval = (crit.second == hostname);
+    }
   } else if (crit.first == "service") {
-    retval = (crit.second == p.second);
+    if (dt.get_type() == downtime::service_downtime) {
+      auto p = downtime_manager::instance().callbacks().get_host_and_service_names(
+          dt.host_id(), dt.service_id());
+      retval = (crit.second == p.second);
+    }
+    /* host downtimes never match a "service" criteria */
   } else if (crit.first == "start") {
     int64_t expected;
     if (absl::SimpleAtoi(crit.second, &expected))

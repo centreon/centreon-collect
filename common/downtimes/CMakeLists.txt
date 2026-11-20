@@ -34,8 +34,6 @@ add_library(downtimes_lib STATIC
   # Sources.
   downtime.cc
   downtime_manager.cc
-  host_downtime.cc
-  service_downtime.cc
   downtime_finder.cc
 )
 

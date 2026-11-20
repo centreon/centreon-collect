@@ -27,8 +27,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "common/downtimes/downtime.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/downtimes/host_downtime.hh"
-#include "common/downtimes/service_downtime.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
