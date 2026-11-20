@@ -23,7 +23,6 @@
 
 using namespace com::centreon::engine;
 
-comment_map comment::comments;
 uint64_t comment::_next_comment_id = 1LLU;
 
 uint64_t comment::get_next_comment_id() {
@@ -58,33 +57,26 @@ comment::comment(comment::type comment_type,
       _service_id{service_id},
       _author{author},
       _comment_data{comment_data} {
-  bool is_added = true;
-
+  /* When no id is supplied the comment is newly created: mint a monotonic id
+   * (the counter is persisted in retention as next_comment_id) and notify
+   * Broker. When an id is supplied the comment is being reloaded, so nothing is
+   * emitted. Comments are no longer kept in memory: the object is transient and
+   * only exists to carry the creation event. */
   if (!comment_id) {
-    _comment_id = _next_comment_id;
-    _next_comment_id = 1llu;
-    while (comments.find(_next_comment_id) != comments.end() ||
-           _next_comment_id == _comment_id)
-      _next_comment_id++;
-  } else {
-    is_added = false;
+    _comment_id = _next_comment_id++;
+    broker_comment_data(NEBTYPE_COMMENT_ADD, _comment_type, _entry_type,
+                        _host_id, _service_id, _entry_time, _author.c_str(),
+                        _comment_data.c_str(), _persistent, _source, _expires,
+                        _expire_time, _comment_id);
   }
-
-  /* send data to event broker */
-  if (is_added)
-    broker_comment_data(is_added ? NEBTYPE_COMMENT_ADD : NEBTYPE_COMMENT_LOAD,
-                        _comment_type, _entry_type, _host_id, _service_id,
-                        _entry_time, _author.c_str(), _comment_data.c_str(),
-                        _persistent, _source, _expires, _expire_time,
-                        _comment_id);
 }
 
 /**
  * @brief deletes a host or service comment from its id.
  *
  * Broker matches the deletion on (internal_id, instance_id), so we only need
- * the comment id: the full tuple no longer has to be rebuilt from the in-memory
- * map. The map is still kept in sync transitionally.
+ * the comment id: the full tuple no longer has to be rebuilt and Engine keeps
+ * no comment in memory anymore.
  *
  * @param comment_id The comment id.
  *
@@ -97,7 +89,6 @@ bool comment::delete_comment(uint64_t comment_id) {
   broker_comment_data(NEBTYPE_COMMENT_DELETE, comment::host, comment::user, 0,
                       0, 0, nullptr, nullptr, false, comment::internal, false,
                       0, comment_id);
-  comment::comments.erase(comment_id);
   return true;
 }
 

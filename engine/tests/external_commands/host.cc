@@ -121,25 +121,17 @@ TEST_F(HostExternalCommand, AddHostComment) {
 
   cmd_add_comment(CMD_ADD_HOST_COMMENT, now,
                   const_cast<char*>(cmd_com1.c_str()));
-  ASSERT_EQ(comment::comments.size(), 1u);
   cmd_add_comment(CMD_ADD_HOST_COMMENT, now,
                   const_cast<char*>(cmd_com2.c_str()));
-  ASSERT_EQ(comment::comments.size(), 2u);
   cmd_add_comment(CMD_ADD_HOST_COMMENT, now,
                   const_cast<char*>(cmd_com3.c_str()));
-  ASSERT_EQ(comment::comments.size(), 3u);
   cmd_add_comment(CMD_ADD_HOST_COMMENT, now,
                   const_cast<char*>(cmd_com4.c_str()));
-  ASSERT_EQ(comment::comments.size(), 4u);
   cmd_add_comment(CMD_ADD_HOST_COMMENT, now,
                   const_cast<char*>(cmd_com5.c_str()));
-  ASSERT_EQ(comment::comments.size(), 5u);
   cmd_delete_comment(CMD_DEL_HOST_COMMENT, const_cast<char*>(cmd_del.c_str()));
-  ASSERT_EQ(comment::comments.size(), 4u);
   cmd_delete_all_comments(CMD_DEL_ALL_HOST_COMMENTS,
                           const_cast<char*>(cmd_del_all.c_str()));
-  ASSERT_EQ(comment::comments.size(), 1u);
   cmd_delete_comment(CMD_DEL_HOST_COMMENT,
                      const_cast<char*>(cmd_del_last.c_str()));
-  ASSERT_EQ(comment::comments.size(), 0u);
 }

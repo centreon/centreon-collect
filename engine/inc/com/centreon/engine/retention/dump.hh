@@ -36,8 +36,6 @@ class host;
 
 namespace retention {
 namespace dump {
-std::ostream& comment(std::ostream& os, comment const& obj);
-std::ostream& comments(std::ostream& os);
 std::ostream& contact(std::ostream& os, contact const& obj);
 std::ostream& contacts(std::ostream& os);
 std::ostream& customvariables(std::ostream& os,

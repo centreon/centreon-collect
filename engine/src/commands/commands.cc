@@ -204,14 +204,11 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
     return ERROR;
 
   /* add the comment */
-  auto com = std::make_shared<comment>(
-      (cmd == CMD_ADD_HOST_COMMENT) ? comment::host : comment::service,
-      comment::user, temp_host->host_id(), service_id, entry_time, user,
-      comment_data, persistent, comment::external, false, (time_t)0);
-  uint64_t comment_id = com->get_comment_id();
-  comment::comments.insert({comment_id, com});
+  comment com((cmd == CMD_ADD_HOST_COMMENT) ? comment::host : comment::service,
+              comment::user, temp_host->host_id(), service_id, entry_time, user,
+              comment_data, persistent, comment::external, false, (time_t)0);
   external_command_logger->trace("{}, comment_id: {}, data: {}", command_name,
-                                 comment_id, com->get_comment_data());
+                                 com.get_comment_id(), com.get_comment_data());
   return OK;
 }
 
@@ -2516,16 +2513,15 @@ void acknowledge_host_problem(host* hst,
   hst->update_status(host::STATUS_ACKNOWLEDGEMENT);
 
   /* add a comment for the acknowledgement */
-  auto com{std::make_shared<comment>(
-      comment::host, comment::acknowledgment, hst->host_id(), 0, current_time,
-      ack_author, ack_data, persistent, comment::internal, false, (time_t)0)};
-  comment::comments.insert({com->get_comment_id(), com});
+  comment com(comment::host, comment::acknowledgment, hst->host_id(), 0,
+              current_time, ack_author, ack_data, persistent, comment::internal,
+              false, (time_t)0);
 
   /* a non-persistent acknowledgement comment is owned by the host: keep its id
    * so it can be deleted directly when the acknowledgement is cleared */
   if (!persistent) {
     hst->delete_acknowledgement_comment();
-    hst->set_acknowledgement_comment_id(com->get_comment_id());
+    hst->set_acknowledgement_comment_id(com.get_comment_id());
   }
 }
 
@@ -2562,17 +2558,15 @@ void acknowledge_service_problem(service* svc,
   svc->update_status(service::STATUS_ACKNOWLEDGEMENT);
 
   /* add a comment for the acknowledgement */
-  auto com{std::make_shared<comment>(
-      comment::service, comment::acknowledgment, svc->host_id(),
-      svc->service_id(), current_time, ack_author, ack_data, persistent,
-      comment::internal, false, (time_t)0)};
-  comment::comments.insert({com->get_comment_id(), com});
+  comment com(comment::service, comment::acknowledgment, svc->host_id(),
+              svc->service_id(), current_time, ack_author, ack_data, persistent,
+              comment::internal, false, (time_t)0);
 
   /* a non-persistent acknowledgement comment is owned by the service: keep its
    * id so it can be deleted directly when the acknowledgement is cleared */
   if (!persistent) {
     svc->delete_acknowledgement_comment();
-    svc->set_acknowledgement_comment_id(com->get_comment_id());
+    svc->set_acknowledgement_comment_id(com.get_comment_id());
   }
 }
 
