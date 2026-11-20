@@ -35,8 +35,6 @@ set(
   "${SRC_DIR}/globals.cc"
   "${SRC_DIR}/logging.cc"
   "${SRC_DIR}/mmap.cc"
-  "${SRC_DIR}/sighandlers.cc"
-
   # Headers.
   "${INC_DIR}/broker.h"
   "${INC_DIR}/comments.h"
@@ -60,7 +58,6 @@ set(
   "${INC_DIR}/perfdata.h"
   "${INC_DIR}/protoapi.h"
   "${INC_DIR}/shared.h"
-  "${INC_DIR}/sighandlers.h"
   "${INC_DIR}/sretention.h"
   "${INC_DIR}/statusdata.h"
   "${INC_DIR}/xcddefault.h"
