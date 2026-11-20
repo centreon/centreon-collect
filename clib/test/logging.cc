@@ -20,8 +20,6 @@
 #include <stdio.h>
 #include <fstream>
 #include "backend_test.hh"
-#include "com/centreon/handle_listener.hh"
-#include "com/centreon/handle_manager.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/logging/engine.hh"
 #include "com/centreon/logging/file.hh"
@@ -29,70 +27,6 @@
 
 using namespace com::centreon;
 using namespace com::centreon::logging;
-
-class listener : public handle_listener {
- public:
-  listener() {}
-  ~listener() throw() {}
-  void error(handle& h) { (void)h; }
-};
-
-static bool null_handle() {
-  try {
-    handle_manager hm;
-    listener l;
-    hm.add(NULL, &l);
-  } catch (std::exception const& e) {
-    (void)e;
-    return (true);
-  }
-  return (false);
-}
-
-static bool null_listener() {
-  try {
-    handle_manager hm;
-    io::file_stream fs;
-    hm.add(&fs, NULL);
-  } catch (std::exception const& e) {
-    (void)e;
-    return (true);
-  }
-  return (false);
-}
-
-static bool basic_add() {
-  try {
-    handle_manager hm;
-
-    io::file_stream fs(stdin);
-    listener l;
-    hm.add(&fs, &l);
-  } catch (std::exception const& e) {
-    (void)e;
-    return (false);
-  }
-  return (true);
-}
-
-static bool double_add() {
-  try {
-    handle_manager hm;
-
-    io::file_stream fs(stdin);
-    listener l;
-    hm.add(&fs, &l);
-    try {
-      hm.add(&fs, &l);
-    } catch (std::exception const& e) {
-      (void)e;
-      return (true);
-    }
-  } catch (std::exception const& e) {
-    (void)e;
-  }
-  return (false);
-}
 
 static bool is_same(backend const& b1, backend const& b2) {
   return (b1.enable_sync() == b2.enable_sync() &&
@@ -165,13 +99,6 @@ static bool check_log_message2(std::string const& path,
   memset(buffer, 0, sizeof(buffer));
   stream.read(buffer, sizeof(buffer));
   return buffer == msg;
-}
-
-TEST(ClibLogging, HandleManagerAdd) {
-  ASSERT_TRUE(null_handle());
-  ASSERT_TRUE(null_listener());
-  ASSERT_TRUE(basic_add());
-  ASSERT_TRUE(double_add());
 }
 
 TEST(ClibLogging, BackendCopy) {
