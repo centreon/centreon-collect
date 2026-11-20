@@ -26,6 +26,7 @@
 #include "check_event_log.hh"
 #include "check_files.hh"
 #include "check_memory.hh"
+#include "check_network.hh"
 #include "check_process.hh"
 #include "check_sched.hh"
 #include "check_service.hh"
@@ -1022,6 +1023,10 @@ std::shared_ptr<check> scheduler::default_check_builder(
             std::move(handler), stat);
       } else if (check_type == "service"sv) {
         result = std::make_shared<check_service>(
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
+      } else if (check_type == "network"sv) {
+        result = std::make_shared<check_network>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "counter"sv) {

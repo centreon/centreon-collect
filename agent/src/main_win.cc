@@ -26,6 +26,7 @@
 #include "check_files.hh"
 #include "check_health.hh"
 #include "check_memory.hh"
+#include "check_network.hh"
 #include "check_process.hh"
 #include "check_sched.hh"
 #include "check_service.hh"
@@ -121,6 +122,7 @@ void show_help() {
   check_process::help(std::cout);
   check_sched::help(std::cout);
   check_files::help(std::cout);
+  check_network::help(std::cout);
 }
 
 /**
