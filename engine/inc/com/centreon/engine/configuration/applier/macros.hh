@@ -43,7 +43,7 @@ class macros {
  private:
   macros();
   macros(macros const&);
-  ~macros() throw();
+  ~macros() noexcept;
   macros& operator=(macros const&);
   void _set_macro(unsigned int type, std::string const& value);
   void _set_macros_user(unsigned int idx, std::string const& value);
