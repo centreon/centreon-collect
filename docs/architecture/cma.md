@@ -140,7 +140,7 @@ Every check derives from `com::centreon::agent::check` (`enable_shared_from_this
 `scheduler::default_check_builder` turns `Service.command_line` into a check:
 
 1. `encrypt::` prefix with a key present: decrypted; failure → `check_dummy`.
-2. Valid JSON: native check chosen by `"check"`: `cpu_percentage`, `health`, `custom`; on Windows also `uptime`, `storage`, `memory`, `service`, `counter`, `tasksched`, `files`, `eventlog_nscp`, `process_nscp`. `args.timeout` sets the timeout. Unknown type or constructor exception → `check_dummy`.
+2. Valid JSON: native check chosen by `"check"`: `cpu_percentage`, `health`, `custom`; on Windows also `uptime`, `storage`, `memory`, `service`, `network`, `counter`, `tasksched`, `files`, `eventlog_nscp`, `process_nscp`. `args.timeout` sets the timeout. Unknown type or constructor exception → `check_dummy`.
 3. Anything else: `check_exec`, a plugin process run by `common::process`, with a process timeout of check timeout + 100 ms so that the check's timer fires first.
 
 `check_dummy` reports a configuration error as a CRITICAL result, so that a broken service shows in Centreon instead of only in agent logs. `check_custom` resolves `{"name": ..., "ARGn": ...}` against the local custom checks file. The running index protects against late results: a job captures it at start, and `on_completion` drops a result whose index is no longer current (after a timeout, for instance).
