@@ -588,6 +588,7 @@ stream::stream(bool is_input,
  *
  */
 stream::~stream() {
+  _unregister_remote();
   SPDLOG_LOGGER_DEBUG(_logger, "destroy bbdo stream {}",
                       static_cast<void*>(this));
 }
@@ -599,6 +600,7 @@ stream::~stream() {
  * @return The number of events to acknowledge.
  */
 int32_t stream::stop() {
+  _unregister_remote();
   _logger->debug("bbdo::stream stop {}", static_cast<void*>(this));
   /* A concrete explanation:
    * I'm engine and my work is to send data to broker.
@@ -779,6 +781,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       /* I don't know what I am. */
       else
         obj.set_extended_negotiation(false);
+      obj.set_remote_actions(_announce_remote_actions());
       _write(welcome);
     }
   }
@@ -921,6 +924,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       else
         obj.set_extended_negotiation(false);
 
+      obj.set_remote_actions(_announce_remote_actions());
       _write(welcome);
       _substream->flush();
     }
@@ -930,6 +934,7 @@ void stream::negotiate(stream::negotiation_type neg) {
     _broker_name = w->obj().broker_name();
 
     _peer_type = w->obj().peer_type();
+    _peer_remote_actions = w->obj().remote_actions();
     if (_peer_type != common::UNKNOWN) {
       /* We are in the bbdo stream, _poller_id, _broker_name,
        * _extended_negotiation are informations about the peer, not us. */
@@ -1017,6 +1022,7 @@ void stream::negotiate(stream::negotiation_type neg) {
                                                 _broker_name, _peer_type,
                                                 _extended_negotiation);
   }
+  _register_remote();
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
 
@@ -1159,6 +1165,12 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         _write(engine_conf);
       }
     } break;
+    case pb_remote_command::static_type():
+    case pb_config_chunk::static_type():
+    case pb_config_commit::static_type():
+    case pb_remote_result::static_type():
+      _handle_remote_event(d);
+      break;
     default:
       break;
   }
@@ -1215,6 +1227,10 @@ bool stream::_wait_for_bbdo_event(uint32_t expected_type,
 bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   // Read event.
   d.reset();
+
+  /* Downstream events queued by other threads are written here, by the
+   * thread that owns the stream. */
+  _drain_remote();
 
   bool timed_out = !_read_any(d, deadline);
   uint32_t event_id = !d ? 0 : d->type();
@@ -1722,4 +1738,174 @@ bool stream::check_poller_configuration(uint64_t poller_id,
   config::applier::state::instance().set_engine_configuration(poller_id,
                                                               current);
   return current == expected_version;
+}
+
+/**
+ * @brief Tell if this side announces in its Welcome that it accepts downstream
+ * events. Only a poller cbmod (peer type Engine) with remote_actions enabled
+ * does it, and only when the stream is configured to verify the central
+ * certificate (gRPC: already known; TCP: mandatory TLS extension with a CA),
+ * unless the insecure PoC flag is set.
+ *
+ * @return true to announce remote actions.
+ */
+bool stream::_announce_remote_actions() const {
+  const auto& reg = remote_registry::instance();
+  if (config::applier::state::instance().peer_type() != common::ENGINE ||
+      !reg.remote_actions())
+    return false;
+  if (reg.insecure() || peer_verified())
+    return true;
+  for (const auto& ext : _extensions) {
+    if (ext->name() == "TLS" && ext->is_mandatory()) {
+      auto it = ext->options().find("ca_cert");
+      if (it != ext->options().end() && !it->second.empty())
+        return true;
+    }
+  }
+  SPDLOG_LOGGER_WARN(_logger,
+                     "BBDO: remote actions are enabled but the stream is not "
+                     "configured to verify the central certificate, they are "
+                     "not announced");
+  return false;
+}
+
+/**
+ * @brief Tell if downstream events received on this stream may be executed:
+ * remote actions enabled on this poller, sender is a Broker and the running
+ * stream has verified it (or the insecure PoC flag is set).
+ *
+ * @return true if they may be executed.
+ */
+bool stream::_accept_remote_actions() const {
+  const auto& reg = remote_registry::instance();
+  if (config::applier::state::instance().peer_type() != common::ENGINE ||
+      !reg.remote_actions() || _peer_type != common::BROKER)
+    return false;
+  return reg.insecure() || peer_verified();
+}
+
+/**
+ * @brief Create the downstream channel of this negotiated stream and register
+ * it, so that the remote API (central) or the poller handler can use it.
+ */
+void stream::_register_remote() {
+  if (_poller_id == 0)
+    return;
+  _unregister_remote();
+  remote_channel::peer_info info;
+  info.poller_id = _poller_id;
+  info.poller_name = _poller_name;
+  info.broker_name = _broker_name;
+  info.peer_type = _peer_type;
+  info.remote_actions = _peer_remote_actions;
+  info.tls = peer_verified();
+  info.connected_since = time(nullptr);
+  _remote = std::make_shared<remote_channel>(info);
+  remote_registry::instance().add(_remote);
+  if (config::applier::state::instance().peer_type() == common::ENGINE &&
+      remote_registry::instance().remote_actions()) {
+    if (_accept_remote_actions()) {
+      if (remote_registry::instance().insecure() && !info.tls)
+        SPDLOG_LOGGER_WARN(
+            _logger,
+            "BBDO: remote actions accepted from '{}' WITHOUT a verified TLS "
+            "peer (remote_actions_insecure is set, PoC only)",
+            _broker_name);
+      else
+        SPDLOG_LOGGER_INFO(_logger, "BBDO: remote actions accepted from '{}'",
+                           _broker_name);
+    } else {
+      SPDLOG_LOGGER_WARN(_logger,
+                         "BBDO: remote actions refused on the stream to '{}': "
+                         "peer is not a verified Broker",
+                         _broker_name);
+    }
+  }
+  SPDLOG_LOGGER_DEBUG(
+      _logger,
+      "BBDO: downstream channel registered for poller {} ('{}', type {}), "
+      "remote actions: {}, tls: {}",
+      _poller_id, _broker_name, static_cast<int>(_peer_type),
+      _peer_remote_actions, info.tls);
+}
+
+/**
+ * @brief Close and unregister the downstream channel of this stream.
+ */
+void stream::_unregister_remote() {
+  if (_remote) {
+    _remote->close();
+    remote_registry::instance().remove(_remote);
+    _remote.reset();
+  }
+}
+
+/**
+ * @brief Write the downstream events queued by other threads. Called by the
+ * thread that owns the stream (feeder or failover), from read().
+ */
+void stream::_drain_remote() {
+  if (!_remote)
+    return;
+  auto events = _remote->pop_all();
+  for (auto& e : events) {
+    SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending downstream event {:x} to '{}'",
+                        e->type(), _broker_name);
+    _write(e);
+  }
+}
+
+/**
+ * @brief Handle a downstream event received from the peer. Results go to the
+ * central result handler, actions to the poller action handler, which must
+ * not block. A refused action is answered at once with REMOTE_REJECTED.
+ *
+ * @param d The event.
+ */
+void stream::_handle_remote_event(const std::shared_ptr<io::data>& d) {
+  if (d->type() == pb_remote_result::static_type()) {
+    if (config::applier::state::instance().peer_type() == common::BROKER)
+      remote_registry::instance().on_result(
+          _poller_id, std::static_pointer_cast<pb_remote_result>(d)->obj());
+    return;
+  }
+
+  std::string request_id;
+  switch (d->type()) {
+    case pb_remote_command::static_type():
+      request_id =
+          std::static_pointer_cast<pb_remote_command>(d)->obj().request_id();
+      break;
+    case pb_config_chunk::static_type():
+      request_id =
+          std::static_pointer_cast<pb_config_chunk>(d)->obj().request_id();
+      break;
+    case pb_config_commit::static_type():
+      request_id =
+          std::static_pointer_cast<pb_config_commit>(d)->obj().request_id();
+      break;
+    default:
+      return;
+  }
+
+  std::string refusal;
+  if (!_remote)
+    refusal = "stream not negotiated";
+  else if (!_accept_remote_actions())
+    refusal = "remote actions are not accepted by this poller";
+  else if (!remote_registry::instance().on_action(d, _remote))
+    refusal = "no remote action handler on this poller";
+
+  if (!refusal.empty()) {
+    SPDLOG_LOGGER_WARN(_logger, "BBDO: downstream request '{}' refused: {}",
+                       request_id, refusal);
+    auto r = std::make_shared<pb_remote_result>();
+    auto& obj = r->mut_obj();
+    obj.set_request_id(request_id);
+    obj.set_index(-1);
+    obj.set_status(REMOTE_REJECTED);
+    obj.set_message(refusal);
+    _write(r);
+  }
 }

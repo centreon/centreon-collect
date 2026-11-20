@@ -395,6 +395,15 @@ add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker PRIVATE rokerbase crypto ssl pthread dl)
 
 # Standalone binary.
+# Remote API of the central cbd (HTTP/JSON, downstream commands and
+# configuration), linked into cbd only.
+add_library(remote_api STATIC ${SRC_DIR}/remote_api.cc)
+target_include_directories(remote_api PRIVATE ${CMAKE_SOURCE_DIR}/common/http/inc)
+target_precompile_headers(remote_api PRIVATE
+                          ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
+add_dependencies(remote_api pb_bbdo_lib pb_common_lib centreon_http)
+set_target_properties(remote_api PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 add_executable(cbd ${SRC_DIR}/main.cc)
 
 add_dependencies(cbd multiplexing centreon_common pb_neb_lib)
@@ -404,6 +413,8 @@ set_target_properties(cbd PROPERTIES ENABLE_EXPORTS ON)
 # Flags needed to include all symbols in binary.
 target_link_libraries(
   cbd PRIVATE
+  remote_api
+  centreon_http
   -Wl,--whole-archive
   log_v2
   sql

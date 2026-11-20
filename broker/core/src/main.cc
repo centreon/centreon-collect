@@ -52,6 +52,7 @@ using namespace com::centreon;
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
+#include "com/centreon/broker/remote_api.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 #include "com/centreon/common/pool.hh"
@@ -368,6 +369,8 @@ int main(int argc, char* argv[]) {
       // Launch event loop.
       retval = EXIT_SUCCESS;
       if (!check) {
+        // Downstream remote API (central cbd only, when configured).
+        remote_api::load(gl_state.params());
         while (!gl_term) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         }
@@ -375,6 +378,7 @@ int main(int argc, char* argv[]) {
                            "main: termination request received by process {}",
                            getpid());
       }
+      remote_api::unload();
       //  Unload endpoints.
       config::applier::deinit();
     }

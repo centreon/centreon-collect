@@ -80,6 +80,7 @@ class cbmod {
   void stop_downtime(uint64_t downtime_id, bool cancelled);
   void remove_downtime(uint64_t downtime_id);
   void reload();
+  void reload_done(bool success, const std::string& message);
 };
 }  // namespace neb
 }  // namespace com::centreon::broker

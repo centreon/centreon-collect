@@ -530,11 +530,15 @@ void https_connection::receive_request(request_callback_type&& callback) {
   if (_conf->get_receive_timeout() >= std::chrono::seconds(1))
     beast::get_lowest_layer(*_stream).expires_after(
         _conf->get_receive_timeout());
-  auto req = std::make_shared<request_type>();
+  auto parser = std::make_shared<
+      boost::beast::http::request_parser<boost::beast::http::string_body>>();
+  if (_conf->get_max_request_body_size() > 0)
+    parser->body_limit(_conf->get_max_request_body_size());
   beast::http::async_read(
-      *_stream, _recv_buffer, *req,
-      [me = shared_from_this(), req, cb = std::move(callback)](
+      *_stream, _recv_buffer, *parser,
+      [me = shared_from_this(), parser, cb = std::move(callback)](
           const boost::beast::error_code& ec, std::size_t) mutable {
+        auto req = std::make_shared<request_type>(parser->release());
         if (ec) {
           if (ec == boost::beast::http::error::end_of_stream) {
             SPDLOG_LOGGER_DEBUG(
