@@ -25,6 +25,7 @@ class broker_stream : public stream {
   config::applier::broker_state& _state;
 
  protected:
+  void _send_diff_state_for_poller(uint64_t poller_id);
   void _handle_bbdo_event(const std::shared_ptr<io::data>& d) override;
 
  public:
@@ -35,11 +36,8 @@ class broker_stream : public stream {
       : stream(is_input, grpc_serialized, extensions),
         _state{static_cast<config::applier::broker_state&>(
             config::applier::state::instance())} {}
-  void specific_negotiate(Welcome& obj) override {
-    if (!_state.cache_config_dir().empty()) {
-      obj.set_extended_negotiation(true);
-    }
-  }
+  bool supports_centralized_conf() const override;
+  void specific_negotiate(Welcome& obj) override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   int32_t stop() override;
 };

@@ -27,7 +27,7 @@ extern "C" {
 #include "lualib.h"
 }
 
-#include "com/centreon/broker/cache/protobuf.hh"
+#include <map>
 namespace com::centreon::broker::lua {
 
 /**

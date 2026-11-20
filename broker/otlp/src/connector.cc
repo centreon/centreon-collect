@@ -101,6 +101,6 @@ connector::~connector() noexcept {
 std::shared_ptr<io::stream> connector::open() {
   auto logger = log_v2::instance().get(log_v2::OTL);
   return std::make_shared<stream>(
-      _conf, std::make_shared<global_cache_enricher>(), _mapping,
+      _conf, std::make_shared<broker_cache_enricher>(), _mapping,
       std::make_shared<otlp_exporter>(_conf, logger), logger, _host_metadata);
 }

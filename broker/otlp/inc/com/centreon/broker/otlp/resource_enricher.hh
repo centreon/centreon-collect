@@ -58,14 +58,13 @@ class resource_enricher {
 };
 
 /**
- * @brief resource_enricher backed by the persistent broker cache.
+ * @brief resource_enricher backed by broker_cache (sections CACHE_HOSTS,
+ * CACHE_SERVICES and CACHE_OTEL, enabled by the otlp factory).
  *
- * The cache is memory-mapped and survives a broker restart: its conf half is
- * updated only by configuration events, and getters fall back to it when the
- * real-time half was discarded after a crash. So host names are available
- * without waiting for a fresh configuration dump.
+ * broker_cache is restored from its .cache file at startup, so host names are
+ * available without waiting for a fresh configuration dump.
  */
-class global_cache_enricher : public resource_enricher {
+class broker_cache_enricher : public resource_enricher {
  public:
   std::optional<std::string> host_name(uint64_t host_id) override;
   std::optional<std::string> service_description(uint64_t host_id,

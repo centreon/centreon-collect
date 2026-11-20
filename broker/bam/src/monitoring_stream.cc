@@ -32,6 +32,7 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
@@ -629,6 +630,19 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
             dwn.obj().ba_id());
       _write_external_command(cmd);
     } break;
+    case neb::pb_instance::static_type(): {
+      auto inst = std::static_pointer_cast<neb::pb_instance>(data);
+      if (!inst->obj().running()) {
+        uint64_t instance_id = inst->obj().instance_id();
+        _logger->debug(
+            "BAM: poller instance {} stopped, resetting downtime state",
+            instance_id);
+        multiplexing::publisher pblshr;
+        event_cache_visitor ev_cache;
+        _applier.book_service().reset_downtime_state(instance_id, &ev_cache);
+        ev_cache.commit_to(pblshr);
+      }
+    } break;
     case extcmd::pb_ba_info::static_type(): {
       _logger->info("BAM: dump BA");
       extcmd::pb_ba_info const& e =
@@ -832,7 +846,7 @@ void monitoring_stream::_write_external_command(const std::string& cmd) {
   SPDLOG_LOGGER_TRACE(
       _logger, "BAM: monitoring stream _write_external_command <<{}>>", cmd);
   {
-    std::lock_guard<std::mutex> lck(_queue_external_commands_m);
+    absl::MutexLock lck(_queue_external_commands_m);
     _queue_external_commands.push_back(cmd);
   }
   _queue_external_commands_timer.expires_after(std::chrono::seconds(0));
@@ -849,7 +863,7 @@ void monitoring_stream::_async_write_external_commands() {
   std::deque<std::string> local_queue;
   bool need_to_restart = false;
   {
-    std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
+    absl::MutexLock lck(_queue_external_commands_m);
     std::swap(local_queue, _queue_external_commands);
   }
   _logger->debug("BAM: sending {} external commands", local_queue.size());
@@ -864,7 +878,7 @@ void monitoring_stream::_async_write_external_commands() {
           "BAM: could not write external command '{}' to command file '{}'",
           cmd, _ext_cmd_file);
       {
-        std::lock_guard<std::mutex> lck(_queue_external_commands_m);
+        absl::MutexLock lck(_queue_external_commands_m);
         _queue_external_commands.push_back(std::move(cmd));
         need_to_restart = true;
       }
@@ -886,7 +900,7 @@ void monitoring_stream::_async_write_external_commands() {
  */
 void monitoring_stream::_read_cache() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _read_cache");
-  std::lock_guard<std::mutex> lck(_queue_external_commands_m);
+  absl::MutexLock lck(_queue_external_commands_m);
   SPDLOG_LOGGER_DEBUG(_logger, "BAM: loading cache");
   _applier.load_from_cache(_name, _queue_external_commands);
 
@@ -907,6 +921,7 @@ void monitoring_stream::_read_cache() {
  */
 void monitoring_stream::_write_cache() {
   SPDLOG_LOGGER_DEBUG(_logger, "BAM: saving cache");
+  absl::MutexLock lck(_queue_external_commands_m);
   _applier.save_to_cache(_name, _queue_external_commands);
 }
 

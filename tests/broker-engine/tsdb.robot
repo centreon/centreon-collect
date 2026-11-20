@@ -321,11 +321,11 @@ GRAPHITE_FORMAT_TEST
         Log To Console    received:${received}
 
         IF    'status' in $received
-            Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+    incorrect status received
+            Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag15,tag19\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+    incorrect status received
             ${status_received}    Set Variable    ${True}
         END
         IF    'metric' in $received
-            Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+    incorrect metric received
+            Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag15,tag19\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+    incorrect metric received
             ${metric_received}    Set Variable    ${True}
         END
         IF    ${metric_received} and ${status_received}
@@ -412,8 +412,8 @@ GRAPHITE_BROKER_RESTART_TEST
             Log To Console    iteration ${i} received:${chunk}
             ${received}    Catenate    SEPARATOR=    ${received}    ${chunk}
 
-            ${status_received}    Run Keyword And Return Status    Should Match Regexp    ${received}    centreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+
-            ${metric_received}    Run Keyword And Return Status    Should Match Regexp    ${received}    centreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+
+            ${status_received}    Run Keyword And Return Status    Should Match Regexp    ${received}    centreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag15,tag19\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+
+            ${metric_received}    Run Keyword And Return Status    Should Match Regexp    ${received}    centreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag15,tag19\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+
             IF    ${metric_received} and ${status_received}
                 BREAK
             END
@@ -490,13 +490,13 @@ INFLUXDB_FORMAT_TEST
 
         IF    'centreon_status' in $body_str
             Should Match Regexp    ${body_str}
-            ...    centreon_status,host=host_16,service=service_314,instance=Poller0 value=0,host_id="16",service_id="314",instance_id="1",index_id="\\d+",host_groups="1,2",serv_groups="4,5",host_tag_cat="tag8",host_tag_cat_id="2",host_tag_group="tag6",host_tag_group_id="2",serv_tag_cat="tag19,tag15",serv_tag_cat_id="4,5",serv_tag_group="tag13",serv_tag_group_id="4" \\d+
+            ...    centreon_status,host=host_16,service=service_314,instance=Poller0 value=0,host_id="16",service_id="314",instance_id="1",index_id="\\d+",host_groups="1,2",serv_groups="4,5",host_tag_cat="tag8",host_tag_cat_id="2",host_tag_group="tag6",host_tag_group_id="2",serv_tag_cat="tag15,tag19",serv_tag_cat_id="4,5",serv_tag_group="tag13",serv_tag_group_id="4" \\d+
             ...    incorrect influxdb status received
             ${status_received}    Set Variable    ${True}
         END
         IF    'centreon_metric' in $body_str
             Should Match Regexp    ${body_str}
-            ...    centreon_metric,host=host_16,service=service_314,instance=Poller0,metric=metric_taratata value=80,min=5,max=99,host_id="16",service_id="314",instance_id="1",index_id="\\d+",host_groups="1,2",serv_groups="4,5",host_tag_cat="tag8",host_tag_cat_id="2",host_tag_group="tag6",host_tag_group_id="2",serv_tag_cat="tag19,tag15",serv_tag_cat_id="4,5",serv_tag_group="tag13",serv_tag_group_id="4" \\d+
+            ...    centreon_metric,host=host_16,service=service_314,instance=Poller0,metric=metric_taratata value=80,min=5,max=99,host_id="16",service_id="314",instance_id="1",index_id="\\d+",host_groups="1,2",serv_groups="4,5",host_tag_cat="tag8",host_tag_cat_id="2",host_tag_group="tag6",host_tag_group_id="2",serv_tag_cat="tag15,tag19",serv_tag_cat_id="4,5",serv_tag_group="tag13",serv_tag_group_id="4" \\d+
             ...    incorrect influxdb metric received
             ${metric_received}    Set Variable    ${True}
         END

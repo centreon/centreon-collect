@@ -21,7 +21,8 @@
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -39,13 +40,16 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 class InfluxDBLineProtoQuery : public testing::Test {
  public:
   static void SetUpTestSuite() {
-    cache::global_cache::load(g_io_context, "/tmp/test_influxdb");
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
+    config::applier::state::instance().set_cache_dir("/tmp/test_influxdb");
+    config::applier::state::instance().clear_cache();
+    config::applier::state::instance().cache().enable_section(
+        cache::broker_cache::CACHE_ALL);
   }
 
   static void TearDownTestSuite() {
-    cache::global_cache::unload();
-    ::remove("/tmp/test_influxdb.cnf");
-    ::remove("/tmp/test_influxdb.rt");
+    ::remove("/tmp/test_influxdb.cache");
   }
 };
 
@@ -192,11 +196,11 @@ TEST_F(InfluxDBLineProtoQuery, ComplexMetric) {
   index_map->mut_obj().set_host_id(1);
   index_map->mut_obj().set_service_id(1);
 
-  cache::global_cache::instance_ptr()->write(host);
-  cache::global_cache::instance_ptr()->write(svc);
-  cache::global_cache::instance_ptr()->write(instance);
-  cache::global_cache::instance_ptr()->write(metric_map);
-  cache::global_cache::instance_ptr()->write(index_map);
+  config::applier::state::instance().cache().publish(host);
+  config::applier::state::instance().cache().publish(svc);
+  config::applier::state::instance().cache().publish(instance);
+  config::applier::state::instance().cache().publish(metric_map);
+  config::applier::state::instance().cache().publish(index_map);
 
   influxdb::line_protocol_query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
@@ -263,10 +267,10 @@ TEST_F(InfluxDBLineProtoQuery, ComplexStatus) {
   s.destination_id = 4;
   s.broker_id = 1;
 
-  cache::global_cache::instance_ptr()->write(host);
-  cache::global_cache::instance_ptr()->write(svc);
-  cache::global_cache::instance_ptr()->write(instance);
-  cache::global_cache::instance_ptr()->write(index_map);
+  config::applier::state::instance().cache().publish(host);
+  config::applier::state::instance().cache().publish(svc);
+  config::applier::state::instance().cache().publish(instance);
+  config::applier::state::instance().cache().publish(index_map);
 
   ASSERT_EQ(
       q.append_status(s),
@@ -318,11 +322,11 @@ TEST_F(InfluxDBLineProtoQuery, ComplexPbMetric) {
 
   index_map->index_id = 41;
 
-  cache::global_cache::instance_ptr()->write(host);
-  cache::global_cache::instance_ptr()->write(svc);
-  cache::global_cache::instance_ptr()->write(instance);
-  cache::global_cache::instance_ptr()->write(metric_map);
-  cache::global_cache::instance_ptr()->write(index_map);
+  config::applier::state::instance().cache().publish(host);
+  config::applier::state::instance().cache().publish(svc);
+  config::applier::state::instance().cache().publish(instance);
+  config::applier::state::instance().cache().publish(metric_map);
+  config::applier::state::instance().cache().publish(index_map);
 
   influxdb::line_protocol_query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
@@ -385,10 +389,10 @@ TEST_F(InfluxDBLineProtoQuery, ComplexPBStatus) {
   s.destination_id = 4;
   s.broker_id = 1;
 
-  cache::global_cache::instance_ptr()->write(host);
-  cache::global_cache::instance_ptr()->write(svc);
-  cache::global_cache::instance_ptr()->write(instance);
-  cache::global_cache::instance_ptr()->write(index_map);
+  config::applier::state::instance().cache().publish(host);
+  config::applier::state::instance().cache().publish(svc);
+  config::applier::state::instance().cache().publish(instance);
+  config::applier::state::instance().cache().publish(index_map);
 
   ASSERT_EQ(
       q.append_status(s),

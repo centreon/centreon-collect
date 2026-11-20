@@ -39,7 +39,7 @@ void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
 
   // Add host group to the global configuration state.
   pb_indexed_config.mut_hostgroups().emplace(
-      std::make_pair(obj.hostgroup_name(), 0),
+      std::make_pair(obj.hostgroup_name(), obj.poller_id()),
       std::make_unique<Hostgroup>(obj));
 
   // Create host group.

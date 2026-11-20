@@ -26,7 +26,6 @@
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/modules/handle.hh"
 #include "com/centreon/broker/unified_sql/factory.hh"
 #include "common/log_v2/log_v2.hh"

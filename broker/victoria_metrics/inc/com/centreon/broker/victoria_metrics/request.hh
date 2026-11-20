@@ -35,6 +35,8 @@ class request : public http_tsdb::request {
 
   void append_status_info(const Status& status);
 
+  void _append_severity(uint64_t host_id, uint64_t service_id);
+
  public:
   request(boost::beast::http::verb method,
           const std::string& server_name,

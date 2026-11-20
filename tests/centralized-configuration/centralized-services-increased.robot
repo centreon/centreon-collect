@@ -27,6 +27,7 @@ BECNSVC1
     ...    And the load balancing should remain stable during scaling
     [Tags]    broker    engine    services    protobuf    unstable
     Ctn Clear Engine Configurations
+    Ctn Clear Prot Files
 
     Ctn Config Centralized Engine    ${3}    ${50}    ${20}
     Ctn Config Broker    rrd
@@ -36,7 +37,6 @@ BECNSVC1
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
 
     ${start}    Ctn Get Round Current Date

@@ -307,6 +307,9 @@ void stream::_unified_sql_process_pb_service_status(
           auto& mm_obj = mm->mut_obj();
           mm_obj.set_index_id(index_id);
           mm_obj.set_metric_id(metric_id);
+          mm_obj.set_min(pd.min());
+          mm_obj.set_max(pd.max());
+          mm_obj.set_uom(pd.unit());
           to_publish.emplace_back(std::move(mm));
         }
 
@@ -458,10 +461,10 @@ void stream::_unified_sql_process_service_status(
     if (!_index_data_insert.prepared())
       _index_data_insert = _mysql.prepare_query(_index_data_insert_request);
 
-    fmt::string_view hv(common::truncate_utf8(
+    std::string_view hv(common::truncate_utf8(
         ss.host_name, get_centreon_storage_index_data_col_size(
                           centreon_storage_index_data_host_name)));
-    fmt::string_view sv(common::truncate_utf8(
+    std::string_view sv(common::truncate_utf8(
         ss.service_description,
         get_centreon_storage_index_data_col_size(
             centreon_storage_index_data_service_description)));
@@ -931,8 +934,8 @@ void stream::_check_queues(boost::system::error_code ec) {
       _logger_sql->trace("Checking downtimes queue...");
       bool downtimes_done = false;
       {
-	SPDLOG_LOGGER_DEBUG(_logger_sql, "BEFORE: {} new downtimes inserted",
-                              _downtimes->row_count());
+        SPDLOG_LOGGER_DEBUG(_logger_sql, "BEFORE: {} new downtimes inserted",
+                            _downtimes->row_count());
         absl::flat_hash_map<std::tuple<time_t, uint64_t, uint64_t>,
                             std::shared_ptr<neb::pb_downtime>>
             local_downtimes;

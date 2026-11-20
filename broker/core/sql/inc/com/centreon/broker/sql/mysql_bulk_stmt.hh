@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2024 Centreon
+ * Copyright 2018-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -198,7 +198,7 @@ class mysql_bulk_stmt : public mysql_stmt_base {
    * @param range Index of the column(from 0).
    * @param value The value to set.
    */
-  void bind_value_as_str(size_t range, const fmt::string_view& value);
+  void bind_value_as_str(size_t range, const std::string_view& value);
   /**
    * @brief Set the NULL value at the column in the prepared statement at index
    * range in the current row of the column. The type of the column must be

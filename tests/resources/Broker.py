@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# Copyright 2023-2024 Centreon
+# Copyright 2023-2026 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import os.path
 import grpc
 import broker_pb2
 import broker_pb2_grpc
+import rrd_retention_pb2
 from google.protobuf import empty_pb2
 from google.protobuf.json_format import MessageToJson, MessageToDict
 from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS, DB_SSL_ENABLED, DB_SSL_CA, DB_SSL_CERT, DB_SSL_KEY, DB_TLS_VERSION
@@ -140,7 +141,81 @@ config = {
         }}
     }}
 }}""",
-
+    "relay": """{{
+    "centreonBroker": {{
+        "broker_id": {0},
+        "broker_name": "{1}",
+        "poller_id": {2},
+        "poller_name": "Central",
+        "module_directory": "/usr/share/centreon/lib/centreon-broker",
+        "log_timestamp": "yes",
+        "log_thread_id": "no",
+        "event_queue_max_size": 100000,
+        "command_file": "{3}/lib/centreon-broker/command.sock",
+        "cache_directory": "{3}/lib/centreon-broker",
+        "log": {{
+            "log_pid": "yes",
+            "log_source": "no",
+            "flush_period": 0,
+            "directory": "{3}/log/centreon-broker/",
+            "filename": "",
+            "max_size": 0,
+            "loggers": {{
+                "core": "info",
+                "config": "error",
+                "sql": "error",
+                "processing": "error",
+                "perfdata": "error",
+                "bbdo": "error",
+                "tcp": "debug",
+                "tls": "error",
+                "lua": "error",
+                "bam": "error",
+                "grpc": "debug"
+            }}
+        }},
+        "input": [
+            {{
+                "name": "central-broker-master-input",
+                "port": "5669",
+                "buffering_timeout": "0",
+                "retry_interval": "5",
+                "protocol": "bbdo",
+                "tls": "no",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "compression": "no",
+                "type": "ipv4"
+            }}
+        ],
+        "output": [
+            {{
+                "name": "centreon-broker-output",
+                "port": "5672",
+                "buffering_timeout": "0",
+                "host": "127.0.0.1",
+                "retry_interval": "5",
+                "protocol": "bbdo",
+                "tls": "no",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "compression": "no",
+                "type": "ipv4"
+            }}
+        ],
+        "stats": [
+            {{
+                "type": "stats",
+                "name": "{1}-stats",
+                "json_fifo": "{3}/lib/centreon-broker/{1}-stats.json"
+            }}
+        ],
+        "grpc": {{
+            "port": 51001
+        }},
+        "bbdo_version": "3.1.0"
+    }}
+}}""",
     "module": """{{
     "centreonBroker": {{
         "broker_id": {0},
@@ -386,6 +461,54 @@ def _apply_conf(name, callback):
     callback(conf)
 
 
+def ctn_config_relay(broker_id: int, poller_id: int, stream: str):
+    """
+    Configure a relay broker instance for test. Write the configuration files.
+    Its name is "relay_{broker_id}".
+
+    Args:
+        broker_id (int): the broker ID.
+        poller_id (int): the poller ID.
+        stream (str): The list from the poller to the central of dictionaries
+        {name = "str", input = int, output = int}.
+    """
+    Common.ctn_set_bbdo2(True)
+    makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
+    makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
+    makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
+    makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
+    makedirs(f"{VAR_ROOT}/lib/centreon-broker/", mode=0o777, exist_ok=True)
+
+    broker_name = f"relay-broker-{broker_id}"
+    key = "relay"
+    name = f"relay{broker_id}"
+
+    buf = config[key].format(broker_id, broker_name, poller_id, VAR_ROOT)
+    conf = json.loads(buf)
+
+    current_configs[name] = conf
+
+    logger.console(f"stream: {stream}")
+    lst = json.loads(stream)
+    for d in lst:
+        logger.console(f"d content: {d}")
+        if d['name'] in current_configs:
+            logger.console(f"Found broker {d['name']} in current_configs")
+            conf = current_configs[d['name']]
+            if 'input' in d:
+                logger.console('input')
+                inp = conf['centreonBroker']['input']
+                if len(inp) == 1:
+                    inp[0]['port'] = f"{d['input']}"
+            if 'output' in d:
+                logger.console('output')
+                out = conf['centreonBroker']['output']
+                if len(out) == 1:
+                    out[0]['port'] = f"{d['output']}"
+        else:
+            logger.console(f"Broker {d['name']} not found in current_configs")
+
+
 def ctn_config_broker(name: str, poller_inst: int = 1):
     """
     Configure a broker instance for test. Write the configuration files.
@@ -534,6 +657,8 @@ def ctn_broker_config_flush(is_broker: bool=True):
                 filename = "central-broker.json"
             elif name == 'rrd':
                 filename = "central-rrd.json"
+            elif name.startswith("relay"):
+                filename = f"relay-broker-{name[5:]}.json"
             else:
                 continue
             logger.console(f"Writing broker (broker) configuration for {name}")
@@ -886,8 +1011,10 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
     """
     conf = current_configs[name]
     output_dict = conf["centreonBroker"]["output"]
+    preserved = {}
     for i, v in enumerate(output_dict):
         if v["type"] == "sql" or v["type"] == "storage" or v["type"] == "unified_sql":
+            preserved = v.copy()
             output_dict.pop(i)
     str_queries_per_transaction = str(queries_per_transaction)
 
@@ -926,6 +1053,10 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
             "store_in_data_bin": "yes",
             "insert_in_index_data": "1"
         }
+        # Preserve any custom settings from the previous unified_sql output
+        for key, value in preserved.items():
+            if key not in ("name", "type") and key in unified_sql_output:
+                unified_sql_output[key] = value
         unified_sql_output.update(tls_config)
         output_dict.append(unified_sql_output)
     elif output == 'sql/perfdata':
@@ -1480,7 +1611,7 @@ def ctn_check_broker_stats_exist(name: str, key1: str, key2: str, timeout: int =
 
             try:
                 conf = json.loads(buf)
-            except:
+            except json.JSONDecodeError:
                 retry = True
         if key1 in conf:
             if key2 in conf[key1]:
@@ -1519,7 +1650,7 @@ def ctn_get_broker_stats_size(name: str, key: str, min_expected_value: int, time
                 buf = f.read()
             try:
                 conf = json.loads(buf)
-            except:
+            except json.JSONDecodeError:
                 retry = True
 
         if key in conf:
@@ -1552,7 +1683,7 @@ def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
                 return json_dict[key]
             else:
                 return json_get(json_dict[key], keys, index + 1)
-        except:
+        except (KeyError, TypeError, IndexError):
             return None
 
     limit = time.time() + timeout
@@ -1571,7 +1702,7 @@ def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
                 buf = f.read()
                 try:
                     conf = json.loads(buf)
-                except:
+                except json.JSONDecodeError:
                     retry = True
                     time.sleep(1)
         if conf is None:
@@ -1673,6 +1804,59 @@ def ctn_get_indexes_to_delete(count: int):
     retval = list(ids_db)
     retval.sort()
     return retval
+
+
+def ctn_create_metric_retention_file(metric_id, *points: str):
+    """
+    Create a MetricRetentionBatch .prot file for the given metric.
+
+    Each point must be a string in "timestamp:value" format, e.g. "1700000000:1.5".
+    The file is written to {VAR_ROOT}/lib/centreon/metrics/{metric_id}.prot.
+
+    Requires rrd_retention_pb2 to be generated by init-proto.sh beforehand.
+
+    *Example:*
+
+    | Ctn Create Metric Retention File | 42 | 1700000000:1.0 | 1700003600:2.0 |
+    """
+    import rrd_retention_pb2
+    batch = rrd_retention_pb2.MetricRetentionBatch()
+    for p in points:
+        t_str, v_str = str(p).split(':', 1)
+        pt = batch.points.add()
+        pt.time = int(t_str)
+        pt.value = float(v_str)
+    path = f"{VAR_ROOT}/lib/centreon/metrics/{metric_id}.prot"
+    with open(path, 'wb') as f:
+        f.write(batch.SerializeToString())
+    logger.console(f"Created metric retention file {path} with {len(points)} point(s)")
+
+
+def ctn_create_status_retention_file(index_id, *points: str):
+    """
+    Create a StatusRetentionBatch .prot file for the given status index.
+
+    Each point must be a string in "timestamp:status" format where status is
+    0 (OK), 1 (WARNING) or 2 (CRITICAL), e.g. "1700000000:0".
+    The file is written to {VAR_ROOT}/lib/centreon/status/{index_id}.prot.
+
+    Requires rrd_retention_pb2 to be generated by init-proto.sh beforehand.
+
+    *Example:*
+
+    | Ctn Create Status Retention File | 7 | 1700000000:0 | 1700003600:2 |
+    """
+    import rrd_retention_pb2
+    batch = rrd_retention_pb2.StatusRetentionBatch()
+    for p in points:
+        t_str, s_str = str(p).split(':', 1)
+        pt = batch.points.add()
+        pt.time = int(t_str)
+        pt.status = int(s_str)
+    path = f"{VAR_ROOT}/lib/centreon/status/{index_id}.prot"
+    with open(path, 'wb') as f:
+        f.write(batch.SerializeToString())
+    logger.console(f"Created status retention file {path} with {len(points)} point(s)")
 
 
 def ctn_delete_all_rrd_metrics():
@@ -2079,7 +2263,7 @@ def ctn_stop_map():
             try:
                 logger.console("Waiting for 30s map_client_type to stop")
                 proc.wait(30)
-            except:
+            except Exception:
                 logger.console("map_client_type don't want to stop => kill")
                 proc.kill()
 
@@ -2331,60 +2515,6 @@ def ctn_check_service_status_in_services(host_id: int, service_id: int, expected
     return retval
 
 
-def ctn_check_host_status_in_resources(host_id: int, expected: int, timeout: int = 30):
-    limit = time.time() + timeout
-    retval = False
-    while time.time() < limit:
-        connection = pymysql.connect(host=DB_HOST,
-                                     user=DB_USER,
-                                     password=DB_PASS,
-                                     database=DB_NAME_STORAGE,
-                                     charset='utf8mb4',
-                                     cursorclass=pymysql.cursors.DictCursor)
-        with connection:
-            with connection.cursor() as cursor:
-                query = f"SELECT status FROM resources WHERE parent_id=0 AND id={host_id}"
-                logger.console(query)
-                cursor.execute(query)
-                result = cursor.fetchall()
-                if len(result) > 0:
-                    row = result[0]
-                    # insert a duplicate value at the mid of the day
-                    state = row['status']
-                    if int(state) == int(expected):
-                        retval = True
-                        break
-        time.sleep(1)
-    return retval
-
-
-def ctn_check_host_status_in_hosts(host_id: int, expected: int, timeout: int = 30):
-    limit = time.time() + timeout
-    retval = False
-    while time.time() < limit:
-        connection = pymysql.connect(host=DB_HOST,
-                                     user=DB_USER,
-                                     password=DB_PASS,
-                                     database=DB_NAME_STORAGE,
-                                     charset='utf8mb4',
-                                     cursorclass=pymysql.cursors.DictCursor)
-        with connection:
-            with connection.cursor() as cursor:
-                query = f"SELECT state FROM hosts WHERE host_id={host_id}"
-                logger.console(query)
-                cursor.execute(query)
-                result = cursor.fetchall()
-                if len(result) > 0:
-                    row = result[0]
-                    # insert a duplicate value at the mid of the day
-                    state = row['state']
-                    if int(state) == int(expected):
-                        retval = True
-                        break
-        time.sleep(1)
-    return retval
-
-
 def ctn_add_duplicate_metrics(metric_ids):
     """
     Add a value at the middle of the last day of each metric in the provided list.
@@ -2497,7 +2627,7 @@ def ctn_remove_graphs(port, indexes, metrics, timeout=10):
             try:
                 stub.RemoveGraphs(trm)
                 break
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
 
 
@@ -2523,7 +2653,7 @@ def ctn_broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout
             try:
                 stub.SetSqlManagerStats(opts)
                 break
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
 
 
@@ -2561,7 +2691,7 @@ def ctn_broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
                         for q in c["slowestStatements"]:
                             if query in q["statementQuery"]:
                                 return q["duration"]
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
     return -1
 
@@ -2620,7 +2750,7 @@ def ctn_rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
             try:
                 stub.RebuildRRDGraphs(idx)
                 break
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
 
 
@@ -2727,7 +2857,7 @@ def ctn_check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
                         count += 1
                 if count == 3:
                     return True
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
     return False
 
@@ -2754,7 +2884,7 @@ def ctn_check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
                     if c.up_since:
                         continue
                 return True
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
     return False
 
@@ -2823,7 +2953,7 @@ def ctn_remove_poller(port, name, timeout=TIMEOUT):
             try:
                 stub.RemovePoller(ref)
                 break
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
 
 
@@ -2848,8 +2978,70 @@ def ctn_remove_poller_by_id(port, idx, timeout=TIMEOUT):
             try:
                 stub.RemovePoller(ref)
                 break
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
+
+
+def ctn_get_broker_topology(port: int = 51001, timeout: int = TIMEOUT):
+    """
+    Call the GetTopology gRPC endpoint on the central broker and return the
+    TopologyResponse.
+
+    Args:
+        port (int): the gRPC port (default 51001).
+        timeout (int): max seconds to retry if the server is not ready.
+
+    Returns:
+        A TopologyResponse proto object, or None on failure.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        try:
+            with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+                stub = broker_pb2_grpc.BrokerStub(channel)
+                return stub.GetTopology(empty_pb2.Empty())
+        except Exception as e:
+            logger.console(f"GetTopology not ready: {e}")
+            time.sleep(1)
+    return None
+
+
+def ctn_check_broker_topology(relay_poller_id, engine_poller_ids,
+                               port: int = 51001, timeout: int = TIMEOUT):
+    """
+    Verify the topology returned by GetTopology: a relay with the given
+    poller_id must appear in direct_brokers, with engine_poller_ids as its
+    direct pollers.
+
+    Args:
+        relay_poller_id: expected relay broker poller_id (int or str).
+        engine_poller_ids: expected engine poller_ids behind that relay (list).
+        port (int): the gRPC port.
+        timeout (int): seconds to retry.
+
+    Returns:
+        True if the topology matches, False otherwise.
+    """
+    relay_id = int(relay_poller_id)
+    expected = set(int(x) for x in engine_poller_ids)
+    limit = time.time() + timeout
+    while time.time() < limit:
+        topo = ctn_get_broker_topology(port, timeout=5)
+        if topo is None:
+            time.sleep(1)
+            continue
+        for broker_entry in topo.direct_brokers:
+            if broker_entry.poller_id == relay_id:
+                found_ids = {p.poller_id for p in broker_entry.pollers}
+                if expected.issubset(found_ids):
+                    return True
+        logger.console(
+            f"Topology not yet matching: relay={relay_id}, "
+            f"expected={expected}, "
+            f"got brokers={[(b.poller_id, [p.poller_id for p in b.pollers]) for b in topo.direct_brokers]}"
+        )
+        time.sleep(1)
+    return False
 
 
 def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int, in_resources: bool = False):
@@ -2993,7 +3185,7 @@ def ctn_get_broker_log_level(port, log, timeout=TIMEOUT):
                 res = res.level[log]
                 return res
                 break
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
 
 
@@ -3030,7 +3222,7 @@ def ctn_set_broker_log_level(port, log, level, timeout=TIMEOUT):
                 if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
                     res = rpc_error.details()
                 break
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
     return res
 
@@ -3060,7 +3252,7 @@ def ctn_get_broker_process_stat(port, timeout=10):
             try:
                 res = stub.GetProcessStats(empty_pb2.Empty())
                 return res
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
     logger.console("unable to get process stats")
     return None
@@ -3182,7 +3374,7 @@ def ctn_broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
                 if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
                     res = rpc_error.details()
                 break
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
     return res
 
@@ -3263,7 +3455,7 @@ def ctn_get_broker_log_info(port, log, timeout=TIMEOUT):
                 if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
                     res = rpc_error.details()
                 break
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
     return str(res)
 
@@ -3296,7 +3488,7 @@ def ctn_aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
                 break
             except grpc.RpcError as rpc_error:
                 return rpc_error.details()
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
 
     return encoded.str_arg
@@ -3330,7 +3522,7 @@ def ctn_aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
                 break
             except grpc.RpcError as rpc_error:
                 return rpc_error.details()
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
 
     return encoded.str_arg
@@ -3446,7 +3638,7 @@ def ctn_get_peers(port, timeout=TIMEOUT):
             try:
                 res = stub.GetPeers(empty_pb2.Empty())
                 return MessageToDict(res)
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
 
 
@@ -3525,3 +3717,733 @@ def ctn_broker_get_bbdo_version():
         else:
             return "2.0.0"
 
+
+def ctn_get_host_ids(port: int, timeout=TIMEOUT):
+    """
+    Get the list of host ids from the Broker.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetHostIds(empty_pb2.Empty())
+                retval = list(res.ids)
+                return retval
+            except Exception:
+                logger.console("gRPC server not ready")
+
+
+def ctn_get_service_ids(port: int, timeout=TIMEOUT):
+    """
+    Get the list of (host_id, service_id) pairs from the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetServiceIds(empty_pb2.Empty())
+                return [(pair.host_id, pair.service_id) for pair in res.pairs]
+            except Exception:
+                logger.console("gRPC server not ready")
+
+
+def ctn_get_service_descriptions(port: int, timeout=TIMEOUT):
+    """
+    Get a dict of {(host_id, service_id): description} for all services in the Broker cache.
+    Fetches the list of service ids first, then retrieves the description of each service.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetServiceIds(empty_pb2.Empty())
+                pairs = [(pair.host_id, pair.service_id) for pair in res.pairs]
+                result = {}
+                for host_id, service_id in pairs:
+                    ref = broker_pb2.ServiceIdentifier()
+                    ref.host_id = host_id
+                    ref.service_id = service_id
+                    svc = stub.GetService(ref)
+                    result[(host_id, service_id)] = svc.description
+                return result
+            except Exception:
+                logger.console("gRPC server not ready")
+
+
+def ctn_get_host_poller_id(port: int, host_id: int, timeout=TIMEOUT):
+    """
+    Get the poller ID of a host from the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        host_id: The host id to get the poller id for.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.idx = host_id
+            try:
+                res = stub.GetHost(ref)
+                return res.instance_id
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+
+def ctn_get_host_name(port: int, host_id: int, timeout=TIMEOUT):
+    """
+    Get the name of a host from the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        host_id: The host id to get the name for.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.idx = host_id
+            try:
+                res = stub.GetHost(ref)
+                return res.name
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+
+
+def ctn_get_hostgroup_ids(port: int, timeout=TIMEOUT):
+    """
+    Get the list of hostgroup IDs from the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        A list of hostgroup IDs (integers).
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetHostGroupIds(empty_pb2.Empty())
+                return list(res.ids)
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return []
+
+
+def ctn_get_hostgroup(port: int, hostgroup_id: int, timeout=TIMEOUT):
+    """
+    Get a hostgroup by ID from the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        hostgroup_id: The hostgroup ID to look up.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        The HostGroup protobuf object (with name, hostgroup_id, and
+        member_host_ids populated), or None if not found.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.idx = hostgroup_id
+            try:
+                return stub.GetHostGroup(ref)
+            except grpc.RpcError as e:
+                if e.code() == grpc.StatusCode.NOT_FOUND:
+                    return None
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_get_servicegroup(port: int, servicegroup_id: int, timeout=TIMEOUT):
+    """
+    Get a servicegroup by ID from the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        servicegroup_id: The servicegroup ID to look up.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        The ServiceGroup protobuf object (with name, servicegroup_id, and
+        member_service_ids populated), or None if not found.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.idx = servicegroup_id
+            try:
+                return stub.GetServiceGroup(ref)
+            except grpc.RpcError as e:
+                if e.code() == grpc.StatusCode.NOT_FOUND:
+                    return None
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+def ctn_get_hosts_by_tag(port: int, tag_name: str, tag_type: int,
+                         timeout=TIMEOUT):
+    """
+    Return all hosts in the Broker cache that carry a given tag.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        A list of Host protobuf objects, or None if the gRPC server is not
+        reachable.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.TagIdentifier()
+            ref.name = tag_name
+            ref.type = tag_type
+            try:
+                res = stub.GetHostsByTag(ref)
+                return list(res.hosts)
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_get_services_by_tag(port: int, tag_name: str, tag_type: int,
+                            timeout=TIMEOUT):
+    """
+    Return all services in the Broker cache that carry a given tag.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        A list of Service protobuf objects, or None if the gRPC server is not
+        reachable.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.TagIdentifier()
+            ref.name = tag_name
+            ref.type = tag_type
+            try:
+                res = stub.GetServicesByTag(ref)
+                return list(res.services)
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_check_hosts_by_tag_count_with_timeout(
+        port: int, tag_name: str, tag_type: int, expected_count: int,
+        timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the number of hosts carrying a given tag
+    equals expected_count, or until timeout.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        expected_count: The expected number of hosts with the tag.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        hosts = ctn_get_hosts_by_tag(port, tag_name, tag_type, timeout=5)
+        if hosts is not None and len(hosts) == expected_count:
+            return True
+        time.sleep(1)
+    logger.console(f"Expected {expected_count} hosts with tag {tag_name} (type {tag_type}), but got {len(hosts) if hosts is not None else 'None'}")
+    return False
+
+
+def ctn_check_services_by_tag_count_with_timeout(
+        port: int, tag_name: str, tag_type: int, expected_count: int,
+        timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the number of services carrying a given tag
+    equals expected_count, or until timeout.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        expected_count: The expected number of services with the tag.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        services = ctn_get_services_by_tag(
+            port, tag_name, tag_type, timeout=5)
+        if services is not None and len(services) == expected_count:
+            return True
+        time.sleep(1)
+    return False
+
+
+def ctn_check_hosts_by_tag_with_timeout(
+        port: int, tag_name: str, tag_type: int, expected_host_ids,
+        timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the set of host IDs carrying a given tag
+    matches expected_host_ids exactly, or until timeout.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        expected_host_ids: Iterable of expected host_id integers.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    expected = set(int(h) for h in expected_host_ids)
+    limit = time.time() + timeout
+    hosts = None
+    while time.time() < limit:
+        hosts = ctn_get_hosts_by_tag(port, tag_name, tag_type, timeout=5)
+        if hosts is not None:
+            got = set(h.host_id for h in hosts)
+            if got == expected:
+                return True
+        time.sleep(1)
+    got = set(h.host_id for h in hosts) if hosts is not None else None
+    logger.console(
+        f"Expected host IDs {sorted(expected)} for tag '{tag_name}' "
+        f"(type {tag_type}), but got {sorted(got) if got is not None else 'None'}")
+    return False
+
+
+def ctn_check_services_by_tag_with_timeout(
+        port: int, tag_name: str, tag_type: int, expected_host_ids,
+        expected_count: int, timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the services carrying a given tag satisfy:
+      - total count == expected_count
+      - every returned service has host_id in expected_host_ids
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value.
+        expected_host_ids: Iterable of host_id integers that should own the
+                           services (pass an empty list when expected_count==0).
+        expected_count: The expected total number of tagged services.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    expected_hosts = set(int(h) for h in expected_host_ids)
+    expected_count = int(expected_count)
+    limit = time.time() + timeout
+    services = None
+    while time.time() < limit:
+        services = ctn_get_services_by_tag(port, tag_name, tag_type, timeout=5)
+        if services is not None and len(services) == expected_count:
+            if expected_count == 0 or all(s.host_id in expected_hosts for s in services):
+                return True
+        time.sleep(1)
+    got_count = len(services) if services is not None else 'None'
+    spurious = (
+        sorted({s.host_id for s in services} - expected_hosts)
+        if services is not None else None
+    )
+    logger.console(
+        f"Expected {expected_count} services with tag '{tag_name}' "
+        f"(type {tag_type}) on hosts {sorted(expected_hosts)}, "
+        f"but got {got_count} services; unexpected host IDs: {spurious}")
+    return False
+
+
+def ctn_check_service_severity_in_cache_with_timeout(
+        port: int, host_id: int, service_id: int, expected_severity_id,
+        timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the service (host_id, service_id) has the
+    expected severity_id (config ID), or until timeout.
+
+    This mirrors Ctn Check Service Severity With Timeout but queries the
+    broker cache via gRPC instead of the database.
+
+    Args:
+        port: The gRPC port to use.
+        host_id: The host ID of the service.
+        service_id: The service ID to check.
+        expected_severity_id: The expected severity config ID, or None to
+            assert that the service has no severity (severity_id == 0).
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.ServiceIdentifier()
+            ref.host_id = host_id
+            ref.service_id = service_id
+            try:
+                svc = stub.GetService(ref)
+                if expected_severity_id is None:
+                    if svc.severity_id == 0:
+                        return True
+                else:
+                    if svc.severity_id == int(expected_severity_id):
+                        return True
+            except grpc.RpcError as e:
+                if e.code() == grpc.StatusCode.NOT_FOUND:
+                    if expected_severity_id is None:
+                        return True
+                else:
+                    logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return False
+
+
+def ctn_get_severities(port: int, timeout=TIMEOUT):
+    """
+    Get all severities currently held in the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        A list of SeverityEntry objects (with config_id, type, level and
+        db_id fields), or None if the gRPC server is not reachable.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetSeverities(empty_pb2.Empty())
+                return list(res.entries)
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_check_severity_in_cache_with_timeout(
+        port: int, config_id: int, sev_type: int, expected_level,
+        timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the severity (config_id, type) reaches the
+    expected level, or until timeout.
+
+    Args:
+        port: The gRPC port to use.
+        config_id: The severity config ID to look up.
+        sev_type: The severity type (0=service, 1=host).
+        expected_level: The expected numeric level, or None to assert absence.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_severities(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        found = next(
+            (e for e in entries
+             if e.config_id == config_id and e.type == sev_type),
+            None)
+        if expected_level is None:
+            if found is None:
+                return True
+        else:
+            if found is not None and found.level == int(expected_level):
+                return True
+        time.sleep(1)
+    return False
+
+
+def ctn_check_severity_db_id_in_cache_with_timeout(
+        port: int, config_id: int, sev_type: int, timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the severity (config_id, type) has a non-zero
+    db_id (i.e., it has been persisted to the database), or until timeout.
+
+    This directly validates the fix for the bug where apply() and merge()
+    reset db_id to 0, causing NULL severity_id in the resources table.
+
+    Args:
+        port: The gRPC port to use.
+        config_id: The severity config ID to look up.
+        sev_type: The severity type (0=service, 1=host).
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the severity has db_id != 0 before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_severities(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        found = next(
+            (e for e in entries
+             if e.config_id == config_id and e.type == sev_type),
+            None)
+        if found is not None and found.db_id != 0:
+            return True
+        time.sleep(1)
+    return False
+
+
+def ctn_get_tags(port: int, timeout=TIMEOUT):
+    """
+    Return all tags currently held in the Broker cache via gRPC GetTags.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds.
+
+    Returns:
+        A list of TagEntry objects (with id, type, name and poller_ids fields),
+        or None if the gRPC server is not reachable.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetTags(empty_pb2.Empty())
+                return list(res.entries)
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_check_tags_empty_with_timeout(port: int, timeout=TIMEOUT):
+    """
+    Poll the Broker cache until GetTags returns an empty list, or timeout.
+
+    This verifies that all tags have been removed from the cache (no orphan
+    tags remain after all pollers have removed their tag definitions).
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the tag list is empty before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_tags(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        if len(entries) == 0:
+            return True
+        logger.console(
+            f"Tags still in cache: "
+            f"{[(e.id, e.type, e.name, list(e.poller_ids)) for e in entries]}"
+        )
+        time.sleep(1)
+    return False
+
+
+def ctn_check_severities_empty_with_timeout(port: int, timeout=TIMEOUT):
+    """
+    Poll the Broker cache until no severity entry remains, or timeout.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the cache is empty before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_severities(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        if len(entries) == 0:
+            return True
+        logger.console(
+            f"Severities still in cache: "
+            f"{[(e.config_id, e.type, e.level) for e in entries]}"
+        )
+        time.sleep(1)
+    return False
+
+
+def ctn_check_severities_count_with_timeout(port: int, expected_count: int,
+                                             timeout=TIMEOUT):
+    """
+    Poll the Broker cache until exactly expected_count severity entries are
+    present, or timeout.
+
+    Args:
+        port: The gRPC port to use.
+        expected_count: The expected number of severity entries.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the count matches before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_severities(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        if len(entries) == int(expected_count):
+            return True
+        logger.console(
+            f"Expected {expected_count} severities, "
+            f"got {len(entries)}: "
+            f"{[(e.config_id, e.type, e.level) for e in entries]}"
+        )
+        time.sleep(1)
+    return False
+
+
+def ctn_check_tags_count_with_timeout(port: int, expected_count: int,
+                                      timeout=TIMEOUT):
+    """
+    Poll the Broker cache until GetTags returns exactly expected_count entries,
+    or timeout.
+
+    Args:
+        port: The gRPC port to use.
+        expected_count: The expected number of tag entries.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the tag count matches before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_tags(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        if len(entries) == int(expected_count):
+            return True
+        logger.console(
+            f"Expected {expected_count} tags, got {len(entries)}: "
+            f"{[(e.id, e.type, e.name) for e in entries]}"
+        )
+        time.sleep(1)
+    return False
+
+
+def ctn_check_tags_names_with_timeout(port: int, expected_names,
+                                      timeout=TIMEOUT):
+    """
+    Poll the Broker cache until GetTags returns entries whose name set exactly
+    matches expected_names, or timeout.
+
+    Args:
+        port: The gRPC port to use.
+        expected_names: A list (or set) of expected tag name strings.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the name set matches before timeout, False otherwise.
+    """
+    expected = set(expected_names)
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_tags(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        actual = {e.name for e in entries}
+        if actual == expected:
+            return True
+        logger.console(
+            f"Expected tag names {sorted(expected)}, got {sorted(actual)}"
+        )
+        time.sleep(1)
+    return False
+
+
+def ctn_clear_broker_cache():
+    """
+    Clear the Broker cache.
+    """
+    for f in glob.glob(f"{VAR_ROOT}/lib/centreon-broker/central-*.cache"):
+        os.remove(f)

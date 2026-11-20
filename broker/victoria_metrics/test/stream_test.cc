@@ -30,7 +30,8 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
@@ -50,12 +51,15 @@ class victoria_stream_test : public ::testing::Test {
     config::applier::state::load<
         com::centreon::broker::config::applier::broker_state>("");
     file::disk_accessor::load(1000);
-    cache::global_cache::load(g_io_context, "/tmp/test_victoria");
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
+    config::applier::state::instance().set_cache_dir("/tmp/test_victoria");
+    config::applier::state::instance().clear_cache();
+    config::applier::state::instance().cache().enable_section(
+        cache::broker_cache::CACHE_ALL);
   }
   static void TearDownTestSuite() {
-    cache::global_cache::unload();
-    ::remove("/tmp/test_victoria.cnf");
-    ::remove("/tmp/test_victoria.rt");
+    ::remove("/tmp/test_victoria.cache");
   }
 };
 

@@ -70,7 +70,7 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
 
   // Add service group to the global configuration set.
   pb_indexed_config.mut_servicegroups().emplace(
-      std::make_pair(obj.servicegroup_name(), 0),
+      std::make_pair(obj.servicegroup_name(), obj.poller_id()),
       std::make_unique<Servicegroup>(obj));
 
   // Create servicegroup.

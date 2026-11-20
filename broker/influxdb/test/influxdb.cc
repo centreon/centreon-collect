@@ -22,7 +22,8 @@
 #include <boost/asio/io_context.hpp>
 #include <memory>
 #include "broker/test/test_server.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -47,13 +48,16 @@ class InfluxDB12 : public testing::Test {
   }
 
   static void SetUpTestSuite() {
-    cache::global_cache::load(g_io_context, "/tmp/test_influxdb");
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
+    config::applier::state::instance().set_cache_dir("/tmp/test_influxdb");
+    config::applier::state::instance().clear_cache();
+    config::applier::state::instance().cache().enable_section(
+        cache::broker_cache::CACHE_ALL);
   }
 
   static void TearDownTestSuite() {
-    cache::global_cache::unload();
-    ::remove("/tmp/test_influxdb.cnf");
-    ::remove("/tmp/test_influxdb.rt");
+    ::remove("/tmp/test_influxdb.cache");
   }
 
   test_server _server;

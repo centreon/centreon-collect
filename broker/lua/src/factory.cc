@@ -21,7 +21,6 @@
 #include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
 #include <string>
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/lua/connector.hh"
 #include "com/centreon/common/pool.hh"
@@ -100,7 +99,7 @@ io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor) const {
-  std::map<std::string, misc::variant> conf_map;
+  std::map<std::string, lua::variant> conf_map;
 
   std::string filename(find_param(cfg, "path"));
 
@@ -140,10 +139,10 @@ io::endpoint* factory::new_endpoint(
                         : type.get<std::string>());
       if (t == "string") {
         conf_map.insert({std::string(value_name),
-                         misc::variant(value.get<std::string_view>())});
+                         lua::variant(std::string(value.get<std::string_view>()))});
       } else if (t == "password")
         conf_map.insert({std::string(value_name),
-                         misc::variant(decrypt_param(
+                         lua::variant(decrypt_param(
                              value_name, value.get<std::string_view>()))});
       else if (t == "number") {
         bool ko = false;
@@ -152,13 +151,13 @@ io::endpoint* factory::new_endpoint(
         if (!absl::SimpleAtoi(v, &val))
           ko = true;
         else
-          conf_map.insert({std::string(value_name), misc::variant(val)});
+          conf_map.insert({std::string(value_name), lua::variant(val)});
 
         // Second attempt using floating point numbers
         if (ko) {
           double val;
           if (absl::SimpleAtod(v, &val)) {
-            conf_map.insert({std::string(value_name), misc::variant(val)});
+            conf_map.insert({std::string(value_name), lua::variant(val)});
             ko = false;
           } else
             ko = true;
@@ -183,27 +182,21 @@ io::endpoint* factory::new_endpoint(
                           : type.get<std::string>());
         if (t == "string") {
           conf_map.insert({std::string(value_name),
-                           misc::variant(value.get<std::string_view>())});
+                           lua::variant(std::string(value.get<std::string_view>()))});
         } else if (t == "password") {
           conf_map.insert({std::string(value_name),
-                           misc::variant(decrypt_param(
+                           lua::variant(decrypt_param(
                                value_name, value.get<std::string_view>()))});
         } else if (t == "number") {
           int32_t val;
           if (absl::SimpleAtoi(value.get<std::string>(), &val))
-            conf_map.insert({std::string(value_name), misc::variant(val)});
+            conf_map.insert({std::string(value_name), lua::variant(val)});
           else
             throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
                           std::string(value_name), value.get<std::string>());
         }
       }
     }
-  }
-
-  if (config::applier::state::loaded()) {  // false only happens in UTs
-    cache::global_cache::load(
-        com::centreon::common::pool::io_context_ptr(),
-        config::applier::state::instance().cache_dir() + ".cache.global");
   }
 
   // Connector.

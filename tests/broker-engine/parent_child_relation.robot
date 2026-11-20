@@ -1,20 +1,19 @@
 *** Settings ***
 Documentation       Centreon Engine/Broker verify relation parent child host.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-
 EBPN0
     [Documentation]    Verify if child is in queue when parent is down.
     [Tags]    broker    engine    MON-151686
-    
+
     Ctn Config Engine    ${1}    ${5}    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -54,7 +53,7 @@ EBPN0
         IF    "${output}" == "((2, 1),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((2, 1),)    host parent not inserted
-    
+
     # check if host_1 is pending
     ${result}    Ctn Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
@@ -67,7 +66,7 @@ EBPN0
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    
+
     Ctn Process Host Check Result    host_1    0    host_1 UP
 
     FOR    ${i}    IN RANGE    ${4}
@@ -86,7 +85,7 @@ EBPN0
     Should Be True    ${result}    host_1 should be down/hard
 
     ${content}    Create List
-     ...    Check of child host 'host_2' queued.
+    ...    Check of child host 'host_2' queued.
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Check of child host 'host_2' should be queued.
 
@@ -97,7 +96,7 @@ EBPN0
 EBPN1
     [Documentation]    verify relation parent child when delete parent.
     [Tags]    broker    engine    MON-151686
-    
+
     Ctn Config Engine    ${1}    ${5}    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -142,7 +141,7 @@ EBPN1
         IF    "${output}" == "((2, 1),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((2, 1),)    the parent link not inserted
-    
+
     Ctn Engine Config Del Block In Cfg    ${0}    host    host_1    hosts.cfg
     Ctn Engine Config Del Block In Cfg    ${0}    service    host_1    services.cfg
     Ctn Engine Config Delete Value In Hosts    ${0}    host_2    parents
@@ -158,7 +157,6 @@ EBPN1
     ...    60
     ...    verbose=False
     Should Be True    ${result}    Engine is Not Ready after 60s!!
-
 
     ${output}    Ctn Get Host Info Grpc    ${2}
     Log To Console    parents:${output}[parentHosts]
@@ -180,7 +178,7 @@ EBPN1
 EBPN2
     [Documentation]    verify relation parent child when delete child.
     [Tags]    broker    engine    MON-151686
-    
+
     Ctn Config Engine    ${1}    ${5}    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -264,7 +262,7 @@ RENAME_PARENT
     [Documentation]    Given an host with a parent host. We rename the parent host and check if the child host is still linked to the parent.
     ...    Engine mustn't crash and log an error on reload.
     [Tags]    engine    MON-167683
-    
+
     Ctn Config Engine    ${1}    ${5}    ${1}
     Ctn Config Broker    module
 
@@ -278,7 +276,7 @@ RENAME_PARENT
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     #let's some time to engine to process the parent/child relation
-    Sleep   5s
+    Sleep    5s
 
     ${output}    Ctn Get Host Info Grpc    ${2}
     Log To Console    parents:${output}[parentHosts]
@@ -297,7 +295,7 @@ RENAME_PARENT
     Ctn Reload Engine
 
     ${content}    Create List    Reload configuration finished
-        ${result}    Ctn Find In Log With Timeout
+    ${result}    Ctn Find In Log With Timeout
     ...    ${ENGINE_LOG}/config0/centengine.log
     ...    ${start}
     ...    ${content}

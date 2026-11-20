@@ -69,6 +69,7 @@ class service_listener {
                               io::stream* visitor = nullptr);
   virtual void service_update(const std::shared_ptr<neb::pb_downtime>& dt,
                               io::stream* visitor = nullptr);
+  virtual void reset_downtime_state(io::stream* visitor = nullptr);
 };
 }  // namespace bam
 

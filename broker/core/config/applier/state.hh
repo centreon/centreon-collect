@@ -76,6 +76,7 @@ class state {
 
   state(const state&) = delete;
   state& operator=(const state&) = delete;
+  void set_cache_dir(const std::filesystem::path& cache_dir);
   virtual void apply(const config::state& s, bool run_mux = true);
   virtual void add_peer(uint64_t poller_id,
                         const std::string& poller_name,
@@ -83,6 +84,9 @@ class state {
                         common::PeerType peer_type,
                         bool extended_negotiation,
                         const std::string& engine_conf) = 0;
+  virtual bool is_peer_conf_known(uint64_t poller_id [[maybe_unused]]) const {
+    return true;
+  }
   virtual void remove_peer(uint64_t poller_id,
                            const std::string& poller_name,
                            const std::string& broker_name) = 0;
@@ -107,7 +111,8 @@ class state {
   }
   virtual bool has_connection_from_poller(uint64_t poller_id) const = 0;
   virtual bool supports_centralized_conf() const { return false; }
-  void initialize_cache(const std::shared_ptr<spdlog::logger>& logger);
+  void initialize_cache();
+  void clear_cache();
 };
 
 }  // namespace com::centreon::broker::config::applier

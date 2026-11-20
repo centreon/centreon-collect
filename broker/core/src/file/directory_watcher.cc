@@ -44,6 +44,10 @@ directory_watcher::directory_watcher(const std::string& to_watch_dir,
       _sd{asio::posix::stream_descriptor(*_io_context, inotify_init())},
       _logger{log_v2::instance().get(log_v2::CORE)} {
   int fd = _sd.native_handle();
+  _logger->info(
+      "directory_watcher: watching directory '{}' with mask {:#x} and "
+      "non_blocking={}",
+      to_watch_dir, mask, non_blocking);
   if (fd < 0) {
     throw msg_fmt("directory_watcher: couldn't create inotify instance: '{}'",
                   ::strerror(errno));

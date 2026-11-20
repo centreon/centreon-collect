@@ -68,3 +68,10 @@ add_dependencies(
   process_stat pb_bbdo_lib pb_bam_lib pb_extcmd_lib pb_header_lib pb_neb_lib
   pb_storage_lib pb_open_telemetry_lib pb_broker_lib target_broker_message
   centreon_engine_conf)
+
+if(WITH_TESTING)
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES}
+      ${CMAKE_CURRENT_SOURCE_DIR}/test/broker_state_relay.cc
+      PARENT_SCOPE)
+endif(WITH_TESTING)

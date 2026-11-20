@@ -1,16 +1,16 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine Creation of hosts with long action_url, notes and notes_url.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-EBSNU1
+BESNU1
     [Documentation]    New hosts with notes_url with more than 2000 characters
     [Tags]    broker    engine    hosts    protobuf
     Ctn Config Engine    ${1}    ${50}    ${20}
@@ -42,7 +42,7 @@ EBSNU1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSAU2
+BESAU2
     [Documentation]    New hosts with action_url with more than 2000 characters
     [Tags]    broker    engine    hosts    protobuf
     Ctn Config Engine    ${1}    ${50}    ${20}
@@ -74,7 +74,7 @@ EBSAU2
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN3
+BESN3
     [Documentation]    New hosts with notes with more than 500 characters
     [Tags]    broker    engine    hosts    protobuf
     Ctn Config Engine    ${1}    ${50}    ${20}
@@ -173,4 +173,3 @@ EBSN4
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-

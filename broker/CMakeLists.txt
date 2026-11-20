@@ -83,7 +83,6 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/bam/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
-  "${PROJECT_SOURCE_DIR}/core/cache/inc"
   "${PROJECT_SOURCE_DIR}/core/sql/inc"
   ${CMAKE_BINARY_DIR}/common/engine_conf
   "${MARIADB_INCLUDE_DIRS}")
@@ -320,7 +319,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/string.cc
     ${SRC_DIR}/misc/time.cc
     ${SRC_DIR}/misc/uuid.cc
-    ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
@@ -350,7 +348,6 @@ target_include_directories(rokerbase
 target_link_libraries(
   rokerbase PRIVATE
   sql
-  global_cache
   broker_cache
   bbdo_bbdo
   pb_broker_lib

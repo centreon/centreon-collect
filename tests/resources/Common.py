@@ -60,8 +60,7 @@ def import_robot_resources():
         VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
         ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
     except RobotNotRunningError:
-        # Handle this case if Robot Framework is not running
-        print("Robot Framework is not running. Skipping resource import.")
+        pass  # Robot Framework is not running, skip resource import.
 
 
 DB_NAME_STORAGE = ""
@@ -366,7 +365,7 @@ def ctn_find_in_log(log: str, date, content, **kwargs):
         return False, content[0]
 
 
-def ctn_get_hostname():
+def ctn_get_fqdn_hostname():
     """Return the fqdn host name of the computer.
 
     Returns:
@@ -404,8 +403,17 @@ def ctn_run_env():
 
     Get RUN_ENV env variable content
     """
-    return os.environ.get('RUN_ENV', '')
-
+    with open('/proc/1/environ', 'r') as f:
+        d = f.read()
+        logger.console(d)
+        arr = d.split("\x00")
+        logger.console(arr)
+        arr = [l for l in arr if 'container' in l]
+        if len(arr) == 0:
+            return os.environ.get('RUN_ENV', '')
+        else:
+            ctn = arr[0].split('=')[1]
+            return ctn
 
 def ctn_get_workspace_win():
     """
@@ -423,12 +431,17 @@ def ctn_start_mysql():
             getoutput("systemctl start mysql")
             logger.console("Mariadb started with systemd")
         elif os.path.exists("/usr/sbin/service"):
-            logger.console("Starting Mariadb with service")
-            err = getoutput("service mysql start")
-            if err == "mysql: unrecognized service":
-                logger.console("Trying mariadb service name")
+            if os.path.exists("/usr/sbin/mysqldtoto"):
+                logger.console("Starting Mysql with service")
+                getoutput("service mysql start")
+                logger.console("Mysql started with service")
+            elif os.path.exists("/usr/sbin/mariadbd"):
+                logger.console("Starting Mariadb with service")
                 getoutput("service mariadb start")
-            logger.console("Mariadb started with service")
+                logger.console("Mariadb started with service")
+            else:
+                logger.console("Cannot detect which database is used, trying to start mariadb with service")
+                getoutput("service mariadb start")
         else:
             logger.console("Unable to start the database")
     else:
@@ -449,22 +462,39 @@ def ctn_start_mysql():
             logger.console("Mariadb directly started")
 
 
+def is_mariadb_running():
+    for proc in psutil.process_iter():
+        if ('mariadbd' in proc.name()):
+            return True
+    return False
+
+def is_mysqld_running():
+    for proc in psutil.process_iter():
+        if ('mysqldtoto' in proc.name()):
+            return True
+    return False
+
 def ctn_stop_mysql():
+    logger.console("Stopping Mariadb/Mysql")
     if not ctn_run_env():
+        logger.console("Stopping Mariadb/Mysql with service or systemd")
         if os.path.exists("/usr/bin/systemctl"):
             logger.console("Stopping Mariadb with systemd")
             getoutput("systemctl stop mysql")
             logger.console("Mariadb stopped with systemd")
         elif os.path.exists("/usr/sbin/service"):
             logger.console("Stopping Mariadb with service")
-            err = getoutput("service mysql stop")
-            if err == "mysql: unrecognized service":
-                logger.console("Trying mariadb service name")
+            # Is it mariadb or mysql ?
+            if is_mysqld_running():
+                getoutput("service mysql stop")
+                logger.console("Mysql stopped with service")
+            elif is_mariadb_running():
                 getoutput("service mariadb stop")
-            logger.console("Mariadb stopped with service")
+                logger.console("Mariadb stopped with service")
         else:
             logger.console("Unable to stop the database")
     else:
+        logger.console("Stopping Mariadb/Mysql directly")
         if os.path.exists("/usr/sbin/mysqldtoto"):
             logger.console("Stopping directly mysqld")
             for proc in psutil.process_iter():
@@ -475,7 +505,7 @@ def ctn_stop_mysql():
                     try:
                         logger.console("Waiting for 30s mysqld to stop")
                         proc.wait(30)
-                    except:
+                    except psutil.TimeoutExpired:
                         logger.console("mysqld don't want to stop => kill")
                         proc.kill()
 
@@ -496,7 +526,7 @@ def ctn_stop_mysql():
                     try:
                         logger.console("Waiting for 30s mariadbd to stop")
                         proc.wait(30)
-                    except:
+                    except psutil.TimeoutExpired:
                         logger.console("mariadb don't want to stop => kill")
                         proc.kill()
 
@@ -599,7 +629,7 @@ def ctn_check_engine_logs_are_duplicated(log: str, date):
 def ctn_find_line_from(lines, date, agent_format: bool = False):
     try:
         my_date = parser.parse(date)
-    except:
+    except (parser.ParserError, TypeError):
         my_date = datetime.fromtimestamp(date)
 
     # Let's find my_date
@@ -1400,7 +1430,7 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
                     cursor.execute("SELECT s.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM services s INNER JOIN hosts h on s.host_id = h.host_id LEFT JOIN downtimes d ON s.host_id = d.host_id AND s.service_id = d.service_id WHERE s.description='{}' AND h.name='{}'".format(
                         service_desc, hostname))
                     result = cursor.fetchall()
-                    if len(result) > 0 and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is not None or result[0]['deletion_time'] is not None):
+                    if len(result) > 0 and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or result[0]['deletion_time'] is not None):
                         return True
         time.sleep(2)
     return False
@@ -2025,7 +2055,7 @@ def ctn_check_number_of_downtimes(expected: int, start, timeout: int):
     limit = time.time() + timeout
     try:
         d = parser.parse(start)
-    except:
+    except (parser.ParserError, TypeError):
         d = datetime.fromtimestamp(start)
     d = d.timestamp()
     while time.time() < limit:
@@ -2312,7 +2342,7 @@ def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     """
     try:
         my_date = parser.parse(date).timestamp()
-    except:
+    except (parser.ParserError, TypeError):
         my_date = datetime.fromtimestamp(date).timestamp()
     limit = time.time() + timeout
     while time.time() < limit:
@@ -2321,7 +2351,7 @@ def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
             if stat_result.st_mtime > my_date:
                 return True
             time.sleep(5)
-        except:
+        except OSError:
             time.sleep(5)
 
     logger.console(f"{path} not modified since {date}")
@@ -2748,7 +2778,7 @@ def ctn_get_process_limit(pid: int, limit: str):
                 if limit in line:
                     fields = line.split()
                     return int(fields[len(fields) - 3]), int(fields[len(fields) - 2])
-    except:
+    except (OSError, ValueError):
         return -1, -1
     return -1, -1
 
@@ -3163,11 +3193,15 @@ def ctn_check_tag_ids(logfile: str, start):
     return retval
 
 
-def ctn_clear_prot_files():
+def ctn_clear_prot_files(broker_only: bool = False):
     """
-    Remove all .prot files in /tmp directory.
+    Remove .prot files in /tmp directory.
+    If broker_only is True, only remove broker prot files (i.e. files named
+    <ID>.prot), leaving Engine's state.prot files untouched.
     """
     for file in Path('/tmp').rglob('*.prot'):
+        if broker_only and file.name == 'state.prot':
+            continue
         file.unlink()
 
 def ctn_check_resource_ids(typ: str, logfile: str):

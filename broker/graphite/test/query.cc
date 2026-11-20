@@ -21,7 +21,8 @@
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/graphite/query.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/service.hh"
@@ -37,13 +38,16 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 class graphiteQuery : public testing::Test {
  public:
   static void SetUpTestSuite() {
-    cache::global_cache::load(g_io_context, "/tmp/test_graphite");
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
+    config::applier::state::instance().set_cache_dir("/tmp/test_graphite");
+    config::applier::state::instance().clear_cache();
+    config::applier::state::instance().cache().enable_section(
+        cache::broker_cache::CACHE_ALL);
   }
 
   static void TearDownTestSuite() {
-    cache::global_cache::unload();
-    ::remove("/tmp/test_graphite.cnf");
-    ::remove("/tmp/test_graphite.rt");
+    ::remove("/tmp/test_graphite.cache");
   }
 };
 
@@ -87,11 +91,11 @@ TEST_F(graphiteQuery, ComplexMetric) {
 
   index_map->index_id = 41;
 
-  cache::global_cache::instance_ptr()->write(host);
-  cache::global_cache::instance_ptr()->write(svc);
-  cache::global_cache::instance_ptr()->write(instance);
-  cache::global_cache::instance_ptr()->write(metric_map);
-  cache::global_cache::instance_ptr()->write(index_map);
+  config::applier::state::instance().cache().publish(host);
+  config::applier::state::instance().cache().publish(svc);
+  config::applier::state::instance().cache().publish(instance);
+  config::applier::state::instance().cache().publish(metric_map);
+  config::applier::state::instance().cache().publish(index_map);
 
   graphite::query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
@@ -148,10 +152,10 @@ TEST_F(graphiteQuery, ComplexStatus) {
   s_event.destination_id = 4;
   s_event.broker_id = 1;
 
-  cache::global_cache::instance_ptr()->write(host);
-  cache::global_cache::instance_ptr()->write(svc);
-  cache::global_cache::instance_ptr()->write(instance);
-  cache::global_cache::instance_ptr()->write(index_map);
+  config::applier::state::instance().cache().publish(host);
+  config::applier::state::instance().cache().publish(svc);
+  config::applier::state::instance().cache().publish(instance);
+  config::applier::state::instance().cache().publish(index_map);
 
   ASSERT_EQ(q.append_status(s_event),
             "test_._host1_1_svc1_1_poller_test_3_3__TEST_$ 2 2000\n");
@@ -196,11 +200,11 @@ TEST_F(graphiteQuery, ComplexPbMetric) {
 
   index_map->index_id = 41;
 
-  cache::global_cache::instance_ptr()->write(host);
-  cache::global_cache::instance_ptr()->write(svc);
-  cache::global_cache::instance_ptr()->write(instance);
-  cache::global_cache::instance_ptr()->write(metric_map);
-  cache::global_cache::instance_ptr()->write(index_map);
+  config::applier::state::instance().cache().publish(host);
+  config::applier::state::instance().cache().publish(svc);
+  config::applier::state::instance().cache().publish(instance);
+  config::applier::state::instance().cache().publish(metric_map);
+  config::applier::state::instance().cache().publish(index_map);
 
   graphite::query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
@@ -256,10 +260,10 @@ TEST_F(graphiteQuery, ComplexPbStatus) {
   s_event.destination_id = 4;
   s_event.broker_id = 1;
 
-  cache::global_cache::instance_ptr()->write(host);
-  cache::global_cache::instance_ptr()->write(svc);
-  cache::global_cache::instance_ptr()->write(instance);
-  cache::global_cache::instance_ptr()->write(index_map);
+  config::applier::state::instance().cache().publish(host);
+  config::applier::state::instance().cache().publish(svc);
+  config::applier::state::instance().cache().publish(instance);
+  config::applier::state::instance().cache().publish(index_map);
 
   ASSERT_EQ(q.append_status(s_event),
             "test_._host1_1_svc1_1_poller_test_3_3__TEST_$ 2 2000\n");

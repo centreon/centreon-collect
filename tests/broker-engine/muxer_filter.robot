@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine anomaly detection
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs  True
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs    True
 
 
 *** Test Cases ***
@@ -27,10 +27,9 @@ NO_FILTER_NO_ERROR
     Ctn Start Engine
 
     ${content}    Create List
-    ...    are too restrictive  contain forbidden filters
+    ...    are too restrictive    contain forbidden filters
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    15
     Should Not Be True    ${result}    An message of filter error has been found
-
 
 STUPID_FILTER
     [Documentation]    Unified SQL is configured with only the bbdo category as filter. Broker should run correctly.
@@ -195,7 +194,7 @@ BAM_STREAM_FILTER
         IF    len("""${grep_res1}""") > 0 and len("""${grep_res2}""") > 0 and len("""${grep_res3}""") > 0 and len("""${grep_res4}""") > 0 and len("""${grep_res5}""") > 0 and len("""${grep_res6}""") > 0
             BREAK
         END
-	Sleep    1s
+        Sleep    1s
     END
 
     Should Not Be Empty    ${grep_res1}    We should receive pb_service events. Nothing received.
@@ -298,7 +297,7 @@ CBD_RELOAD_AND_FILTERS
     Ctn Restart Engine
     Ctn Reload Broker
     #wait broker reload
-    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${content}    Create List    creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    Endpoint 'centreon-broker-master-rrd' not created.
     ${start2}    Get Current Date
@@ -329,7 +328,7 @@ CBD_RELOAD_AND_FILTERS
     Ctn Restart Engine
     Ctn Reload Broker
     # wait broker reload
-    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${content}    Create List    creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date
@@ -398,7 +397,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Restart Engine
     Ctn Reload Broker
     #wait broker reload
-    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${content}    Create List    creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date
@@ -429,7 +428,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Restart Engine
     Ctn Reload Broker
     #wait broker reload
-    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${content}    Create List    creating endpoint centreon-broker-master-rrd
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date

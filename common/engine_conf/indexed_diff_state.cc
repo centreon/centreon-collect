@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Centreon (https://www.centreon.com/)
+ * Copyright 2025-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,128 +26,41 @@
 namespace com::centreon::engine::configuration {
 
 /**
- * @brief merge the content of the given diff state with this global diff
+ * @brief Merge the content of the given diff state with this global diff
  * state.
  *
+ * The global diff state aggregates per-poller diff states before being
+ * published as a `pb_global_diff_state` event. Two code paths exist:
+ *
+ * - **Full state path** (`diff_state.has_state()` is true): the poller sent
+ *   its complete configuration as a `pb_engine_state`. Individual `Host`
+ *   objects inside the embedded `State` message do not carry their own
+ *   `poller_id`, so the key-builder lambda explicitly calls
+ *   `obj->set_poller_id(poller_id)` (captured from `diff_state.poller_id()`,
+ *   which is set from `diff_state.state().poller_id()`). This ensures that
+ *   when `broker_cache::apply()` later processes the global diff, the host
+ *   objects already have a valid `poller_id`, which is required for the
+ *   group-link removal logic.
+ *
+ * - **Differential path** (`diff_state.has_state()` is false): `DiffHost`
+ *   objects in the diff do not carry `poller_id` either, so the same
+ *   lambda pattern is applied: `obj->set_poller_id(poller_id)` is called
+ *   before the key is returned. `diff_state.poller_id()` is set upstream
+ *   in `indexed_state.cc` (`result->set_poller_id(new_state.poller_id())`).
+ *
  * @param diff_state DiffState to merge with this global diff state. Once
- * merged, this diff state is almost empty.
+ *                   merged, this diff state is almost empty.
+ * @param logger     Logger for debug/trace output.
  */
 void indexed_diff_state::add_diff_state(
     configuration::DiffState& diff_state,
     const std::shared_ptr<spdlog::logger>& logger) {
   if (diff_state.has_state()) {
-    assert(diff_state.state().poller_id() != 0);
-    diff_state.set_poller_id(diff_state.state().poller_id());
-    logger->debug("Adding full configuration for poller {}",
-                  diff_state.poller_id());
-    _add_message<Timeperiod, std::string>(
-        diff_state.mutable_state()->mutable_timeperiods(), _added_timeperiods,
-        _modified_timeperiods, _removed_timeperiods,
-        [](Timeperiod* obj) { return obj->timeperiod_name(); });
-
-    _add_message<Command, std::string>(
-        diff_state.mutable_state()->mutable_commands(), _added_commands,
-        _modified_commands, _removed_commands,
-        [](Command* obj) { return obj->command_name(); });
-
-    _add_message<Connector, std::string>(
-        diff_state.mutable_state()->mutable_connectors(), _added_connectors,
-        _modified_connectors, _removed_connectors,
-        [](Connector* obj) { return obj->connector_name(); });
-
-    _add_message<Severity, std::pair<uint64_t, uint32_t>>(
-        diff_state.mutable_state()->mutable_severities(), _added_severities,
-        _modified_severities, _removed_severities, [](Severity* obj) {
-          return std::make_pair(obj->key().id(), obj->key().type());
-        });
-
-    logger->debug(
-        "{} severities added and {} severities modified in the global diff "
-        "state",
-        _added_severities.size(), _modified_severities.size());
-
-    _add_message<Tag, std::pair<uint64_t, uint32_t>>(
-        diff_state.mutable_state()->mutable_tags(), _added_tags, _modified_tags,
-        _removed_tags, [](Tag* obj) {
-          return std::make_pair(obj->key().id(), obj->key().type());
-        });
-
-    _add_message<Contact, std::string>(
-        diff_state.mutable_state()->mutable_contacts(), _added_contacts,
-        _modified_contacts, _removed_contacts,
-        [](Contact* obj) { return obj->contact_name(); });
-
-    _add_message<Contactgroup, std::string>(
-        diff_state.mutable_state()->mutable_contactgroups(),
-        _added_contactgroups, _modified_contactgroups, _removed_contactgroups,
-        [](Contactgroup* obj) { return obj->contactgroup_name(); });
-
-    _add_message<Host, uint64_t>(diff_state.mutable_state()->mutable_hosts(),
-                                 _added_hosts, _modified_hosts, _removed_hosts,
-                                 [](Host* obj) { return obj->host_id(); });
-
-    logger->debug("There are {} added hosts", _added_hosts.size());
-
-    _add_message<Hostgroup, std::pair<std::string, uint32_t>>(
-        diff_state.mutable_state()->mutable_hostgroups(), _added_hostgroups,
-        _modified_hostgroups, _removed_hostgroups,
-        [poller_id = diff_state.poller_id()](Hostgroup* obj) {
-          return std::make_pair(obj->hostgroup_name(), poller_id);
-        });
-
-    logger->debug(
-        "There are {} added hostgroups, {} modified hostgroups and {} removed",
-        _added_hostgroups.size(), _modified_hostgroups.size(),
-        _removed_hostgroups.size());
-
-    _add_message<Service, std::pair<uint64_t, uint64_t>>(
-        diff_state.mutable_state()->mutable_services(), _added_services,
-        _modified_services, _removed_services, [](Service* obj) {
-          return std::make_pair(obj->host_id(), obj->service_id());
-        });
-
-    _add_message<Anomalydetection, std::pair<uint64_t, uint64_t>>(
-        diff_state.mutable_state()->mutable_anomalydetections(),
-        _added_anomalydetections, _modified_anomalydetections,
-        _removed_anomalydetections, [](Anomalydetection* obj) {
-          return std::make_pair(obj->host_id(), obj->service_id());
-        });
-
-    _add_message<Servicegroup, std::pair<std::string, uint32_t>>(
-        diff_state.mutable_state()->mutable_servicegroups(),
-        _added_servicegroups, _modified_servicegroups, _removed_servicegroups,
-        [poller_id = diff_state.poller_id()](Servicegroup* obj) {
-          return std::make_pair(obj->servicegroup_name(), poller_id);
-        });
-
-    _add_message<Hostdependency, uint64_t>(
-        diff_state.mutable_state()->mutable_hostdependencies(),
-        _added_hostdependencies, _modified_hostdependencies,
-        _removed_hostdependencies,
-        [](Hostdependency* obj) { return hostdependency_key(*obj); });
-
-    _add_message<Hostescalation, uint64_t>(
-        diff_state.mutable_state()->mutable_hostescalations(),
-        _added_hostescalations, _modified_hostescalations,
-        _removed_hostescalations,
-        [](Hostescalation* obj) { return hostescalation_key(*obj); });
-
-    _add_message<Servicedependency, uint64_t>(
-        diff_state.mutable_state()->mutable_servicedependencies(),
-        _added_servicedependencies, _modified_servicedependencies,
-        _removed_servicedependencies,
-        [](Servicedependency* obj) { return servicedependency_key(*obj); });
-
-    _add_message<Serviceescalation, uint64_t>(
-        diff_state.mutable_state()->mutable_serviceescalations(),
-        _added_serviceescalations, _modified_serviceescalations,
-        _removed_serviceescalations,
-        [](Serviceescalation* obj) { return serviceescalation_key(*obj); });
-
-    _full_conf_poller_id.push_back(diff_state.state().poller_id());
+    add_state(*diff_state.mutable_state(), logger);
   } else {
     logger->debug("Adding differential configuration for poller {}",
                   diff_state.poller_id());
+    logger->trace("diff: {}", diff_state.DebugString());
     _add_diff_message<DiffTimeperiod, Timeperiod, std::string>(
         diff_state.mutable_timeperiods(), _added_timeperiods,
         _modified_timeperiods, _removed_timeperiods,
@@ -162,24 +75,32 @@ void indexed_diff_state::add_diff_state(
         _modified_connectors, _removed_connectors,
         [](Connector* obj) { return obj->connector_name(); });
 
-    _add_diff_message<DiffSeverity, Severity, std::pair<uint64_t, uint32_t>,
-                      KeyType>(
+    _add_diff_message<DiffSeverity, Severity,
+                      std::tuple<uint64_t, uint32_t, uint32_t>,
+                      SeverityKeyWithPoller>(
         diff_state.mutable_severities(), _added_severities,
         _modified_severities, _removed_severities,
-        [](Severity* obj) {
-          return std::make_pair(obj->key().id(), obj->key().type());
+        [poller_id = diff_state.poller_id()](Severity* obj) {
+          obj->set_poller_id(poller_id);
+          return std::make_tuple(obj->key().id(), (uint32_t)obj->key().type(),
+                                 poller_id);
         },
-        [](const KeyType& proto_key) {
-          return std::make_pair(proto_key.id(), proto_key.type());
+        [](const SeverityKeyWithPoller& proto_key) {
+          return std::make_tuple(proto_key.id(), (uint32_t)proto_key.type(),
+                                 proto_key.poller_id());
         });
 
-    _add_diff_message<DiffTag, Tag, std::pair<uint64_t, uint32_t>, KeyType>(
+    _add_diff_message<DiffTag, Tag, std::tuple<uint64_t, uint32_t, uint32_t>,
+                      TagKeyWithPoller>(
         diff_state.mutable_tags(), _added_tags, _modified_tags, _removed_tags,
-        [](Tag* obj) {
-          return std::make_pair(obj->key().id(), obj->key().type());
+        [poller_id = diff_state.poller_id()](Tag* obj) {
+          obj->set_poller_id(poller_id);
+          return std::make_tuple(obj->key().id(), (uint32_t)obj->key().type(),
+                                 poller_id);
         },
-        [](const KeyType& proto_key) {
-          return std::make_pair(proto_key.id(), proto_key.type());
+        [](const TagKeyWithPoller& proto_key) {
+          return std::make_tuple(proto_key.id(), (uint32_t)proto_key.type(),
+                                 proto_key.poller_id());
         });
 
     _add_diff_message<DiffContact, Contact, std::string>(
@@ -193,13 +114,22 @@ void indexed_diff_state::add_diff_state(
 
     _add_diff_message<DiffHost, Host, uint64_t>(
         diff_state.mutable_hosts(), _added_hosts, _modified_hosts,
-        _removed_hosts, [](Host* obj) { return obj->host_id(); });
+        _removed_hosts, [poller_id = diff_state.poller_id()](Host* obj) {
+          obj->set_poller_id(poller_id);
+          return obj->host_id();
+        });
+
+    logger->debug(
+        "{} hosts added, {} hosts modified and {} hosts removed in the "
+        "global diff state",
+        _added_hosts.size(), _modified_hosts.size(), _removed_hosts.size());
 
     _add_diff_message<DiffHostgroup, Hostgroup,
                       std::pair<std::string, uint32_t>, PairGroupPoller>(
         diff_state.mutable_hostgroups(), _added_hostgroups,
         _modified_hostgroups, _removed_hostgroups,
         [poller_id = diff_state.poller_id()](Hostgroup* obj) {
+          obj->set_poller_id(poller_id);
           return std::make_pair(obj->hostgroup_name(), poller_id);
         },
         [](const PairGroupPoller& proto_key) {
@@ -216,6 +146,11 @@ void indexed_diff_state::add_diff_state(
         [](const HostServiceId& proto_key) {
           return std::make_pair(proto_key.host_id(), proto_key.service_id());
         });
+    logger->debug(
+        "{} services added, {} services modified and {} services removed in "
+        "the global diff state",
+        _added_services.size(), _modified_services.size(),
+        _removed_services.size());
 
     _add_diff_message<DiffAnomalydetection, Anomalydetection,
                       std::pair<uint64_t, uint64_t>, HostServiceId>(
@@ -233,6 +168,7 @@ void indexed_diff_state::add_diff_state(
         diff_state.mutable_servicegroups(), _added_servicegroups,
         _modified_servicegroups, _removed_servicegroups,
         [poller_id = diff_state.poller_id()](Servicegroup* obj) {
+          obj->set_poller_id(poller_id);
           return std::make_pair(obj->servicegroup_name(), poller_id);
         },
         [](const PairGroupPoller& proto_key) {
@@ -261,6 +197,355 @@ void indexed_diff_state::add_diff_state(
   }
 }
 
+/**
+ * @brief Merge a complete poller configuration into this global diff state.
+ *
+ * This is the move-optimized overload: each repeated field of @p state is
+ * drained via `ReleaseLast()`, transferring ownership of every proto object
+ * directly into the internal added/modified maps without any copy. After the
+ * call, all repeated fields of @p state are empty.
+ *
+ * Use this overload only when the caller owns @p state exclusively (e.g. when
+ * it was just deserialized from a local `.prot` file) and does not need it
+ * afterwards.
+ *
+ * For each object type, the key-builder lambda also calls
+ * `obj->set_poller_id(poller_id)` on `Host`, `Hostgroup` and `Servicegroup`
+ * objects, because Engine does not populate per-object `poller_id` fields in
+ * the `State` message.
+ *
+ * @param state  Complete poller configuration. Drained (emptied) on return.
+ * @param logger Logger for debug output.
+ */
+void indexed_diff_state::add_state(
+    configuration::State& state,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  assert(state.poller_id() != 0);
+  logger->debug("Adding full configuration for poller {}", state.poller_id());
+  _add_message<Timeperiod, std::string>(
+      state.mutable_timeperiods(), _added_timeperiods, _modified_timeperiods,
+      _removed_timeperiods,
+      [](Timeperiod* obj) { return obj->timeperiod_name(); });
+
+  _add_message<Command, std::string>(
+      state.mutable_commands(), _added_commands, _modified_commands,
+      _removed_commands, [](Command* obj) { return obj->command_name(); });
+
+  _add_message<Connector, std::string>(
+      state.mutable_connectors(), _added_connectors, _modified_connectors,
+      _removed_connectors,
+      [](Connector* obj) { return obj->connector_name(); });
+
+  _add_message<Severity, std::tuple<uint64_t, uint32_t, uint32_t>>(
+      state.mutable_severities(), _added_severities, _modified_severities,
+      _removed_severities, [poller_id = state.poller_id()](Severity* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_tuple(obj->key().id(), obj->key().type(), poller_id);
+      });
+
+  logger->debug(
+      "{} severities added and {} severities modified in the global diff "
+      "state",
+      _added_severities.size(), _modified_severities.size());
+
+  _add_message<Tag, std::tuple<uint64_t, uint32_t, uint32_t>>(
+      state.mutable_tags(), _added_tags, _modified_tags, _removed_tags,
+      [poller_id = state.poller_id()](Tag* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_tuple(obj->key().id(), (uint32_t)obj->key().type(),
+                               poller_id);
+      });
+
+  _add_message<Contact, std::string>(
+      state.mutable_contacts(), _added_contacts, _modified_contacts,
+      _removed_contacts, [](Contact* obj) { return obj->contact_name(); });
+
+  _add_message<Contactgroup, std::string>(
+      state.mutable_contactgroups(), _added_contactgroups,
+      _modified_contactgroups, _removed_contactgroups,
+      [](Contactgroup* obj) { return obj->contactgroup_name(); });
+
+  _add_message<Host, uint64_t>(state.mutable_hosts(), _added_hosts,
+                               _modified_hosts, _removed_hosts,
+                               [poller_id = state.poller_id()](Host* obj) {
+                                 obj->set_poller_id(poller_id);
+                                 return obj->host_id();
+                               });
+
+  logger->debug("There are {} added hosts", _added_hosts.size());
+
+  _add_message<Hostgroup, std::pair<std::string, uint32_t>>(
+      state.mutable_hostgroups(), _added_hostgroups, _modified_hostgroups,
+      _removed_hostgroups, [poller_id = state.poller_id()](Hostgroup* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_pair(obj->hostgroup_name(), poller_id);
+      });
+
+  logger->debug(
+      "There are {} added hostgroups, {} modified hostgroups and {} removed",
+      _added_hostgroups.size(), _modified_hostgroups.size(),
+      _removed_hostgroups.size());
+
+  _add_message<Service, std::pair<uint64_t, uint64_t>>(
+      state.mutable_services(), _added_services, _modified_services,
+      _removed_services, [](Service* obj) {
+        return std::make_pair(obj->host_id(), obj->service_id());
+      });
+
+  _add_message<Anomalydetection, std::pair<uint64_t, uint64_t>>(
+      state.mutable_anomalydetections(), _added_anomalydetections,
+      _modified_anomalydetections, _removed_anomalydetections,
+      [](Anomalydetection* obj) {
+        return std::make_pair(obj->host_id(), obj->service_id());
+      });
+
+  _add_message<Servicegroup, std::pair<std::string, uint32_t>>(
+      state.mutable_servicegroups(), _added_servicegroups,
+      _modified_servicegroups, _removed_servicegroups,
+      [poller_id = state.poller_id()](Servicegroup* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_pair(obj->servicegroup_name(), poller_id);
+      });
+
+  _add_message<Hostdependency, uint64_t>(
+      state.mutable_hostdependencies(), _added_hostdependencies,
+      _modified_hostdependencies, _removed_hostdependencies,
+      [](Hostdependency* obj) { return hostdependency_key(*obj); });
+
+  _add_message<Hostescalation, uint64_t>(
+      state.mutable_hostescalations(), _added_hostescalations,
+      _modified_hostescalations, _removed_hostescalations,
+      [](Hostescalation* obj) { return hostescalation_key(*obj); });
+
+  _add_message<Servicedependency, uint64_t>(
+      state.mutable_servicedependencies(), _added_servicedependencies,
+      _modified_servicedependencies, _removed_servicedependencies,
+      [](Servicedependency* obj) { return servicedependency_key(*obj); });
+
+  _add_message<Serviceescalation, uint64_t>(
+      state.mutable_serviceescalations(), _added_serviceescalations,
+      _modified_serviceescalations, _removed_serviceescalations,
+      [](Serviceescalation* obj) { return serviceescalation_key(*obj); });
+
+  _full_conf_poller_id.push_back(state.poller_id());
+}
+
+/**
+ * @brief Merge a complete poller configuration into this global diff state.
+ *
+ * This is the copy-safe overload: each object in the repeated fields of
+ * @p state is copied into a `std::unique_ptr` before being inserted into the
+ * internal added/modified maps. @p state is left unmodified, making this
+ * overload safe to use when the caller cannot transfer ownership — for
+ * example when the `State` lives inside a `shared_ptr` event that may be
+ * accessed concurrently by other streams.
+ *
+ * Prefer `add_state(State&)` when the caller owns the state exclusively, to
+ * avoid the per-object copy overhead.
+ *
+ * As with the mutable overload, `obj->set_poller_id(poller_id)` is called on
+ * copied `Host`, `Hostgroup` and `Servicegroup` objects.
+ *
+ * This overload also captures non-default scalar (non-repeated) fields from
+ * @p state into `_scalar_diff` using proto3 reflection. This supports the
+ * engine-local `extended_conf` use case, where the State contains only scalar
+ * overrides (no repeated objects) and no `poller_id`. The captured scalars
+ * can be retrieved via `scalar_diff()` and merged into a broker `DiffState`
+ * before `apply_diff()`, achieving a single-pass application.
+ *
+ * @param state  Complete poller configuration (or scalar-only ext_conf State).
+ *               Not modified.
+ * @param logger Logger for debug output.
+ */
+void indexed_diff_state::add_state(
+    const configuration::State& state,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  logger->debug("Adding full configuration for poller {} (copy)",
+                state.poller_id());
+  _add_message_copy<Timeperiod, std::string>(
+      state.timeperiods(), _added_timeperiods, _modified_timeperiods,
+      _removed_timeperiods,
+      [](Timeperiod* obj) { return obj->timeperiod_name(); });
+
+  _add_message_copy<Command, std::string>(
+      state.commands(), _added_commands, _modified_commands, _removed_commands,
+      [](Command* obj) { return obj->command_name(); });
+
+  _add_message_copy<Connector, std::string>(
+      state.connectors(), _added_connectors, _modified_connectors,
+      _removed_connectors,
+      [](Connector* obj) { return obj->connector_name(); });
+
+  _add_message_copy<Severity, std::tuple<uint64_t, uint32_t, uint32_t>>(
+      state.severities(), _added_severities, _modified_severities,
+      _removed_severities, [poller_id = state.poller_id()](Severity* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_tuple(obj->key().id(), obj->key().type(), poller_id);
+      });
+
+  logger->debug(
+      "{} severities added and {} severities modified in the global diff "
+      "state",
+      _added_severities.size(), _modified_severities.size());
+
+  _add_message_copy<Tag, std::tuple<uint64_t, uint32_t, uint32_t>>(
+      state.tags(), _added_tags, _modified_tags, _removed_tags,
+      [poller_id = state.poller_id()](Tag* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_tuple(obj->key().id(), (uint32_t)obj->key().type(),
+                               poller_id);
+      });
+
+  _add_message_copy<Contact, std::string>(
+      state.contacts(), _added_contacts, _modified_contacts, _removed_contacts,
+      [](Contact* obj) { return obj->contact_name(); });
+
+  _add_message_copy<Contactgroup, std::string>(
+      state.contactgroups(), _added_contactgroups, _modified_contactgroups,
+      _removed_contactgroups,
+      [](Contactgroup* obj) { return obj->contactgroup_name(); });
+
+  _add_message_copy<Host, uint64_t>(state.hosts(), _added_hosts,
+                                    _modified_hosts, _removed_hosts,
+                                    [poller_id = state.poller_id()](Host* obj) {
+                                      obj->set_poller_id(poller_id);
+                                      return obj->host_id();
+                                    });
+
+  logger->debug("There are {} added hosts", _added_hosts.size());
+
+  _add_message_copy<Hostgroup, std::pair<std::string, uint32_t>>(
+      state.hostgroups(), _added_hostgroups, _modified_hostgroups,
+      _removed_hostgroups, [poller_id = state.poller_id()](Hostgroup* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_pair(obj->hostgroup_name(), poller_id);
+      });
+
+  logger->debug(
+      "There are {} added hostgroups, {} modified hostgroups and {} removed",
+      _added_hostgroups.size(), _modified_hostgroups.size(),
+      _removed_hostgroups.size());
+
+  _add_message_copy<Service, std::pair<uint64_t, uint64_t>>(
+      state.services(), _added_services, _modified_services, _removed_services,
+      [](Service* obj) {
+        return std::make_pair(obj->host_id(), obj->service_id());
+      });
+
+  _add_message_copy<Anomalydetection, std::pair<uint64_t, uint64_t>>(
+      state.anomalydetections(), _added_anomalydetections,
+      _modified_anomalydetections, _removed_anomalydetections,
+      [](Anomalydetection* obj) {
+        return std::make_pair(obj->host_id(), obj->service_id());
+      });
+
+  _add_message_copy<Servicegroup, std::pair<std::string, uint32_t>>(
+      state.servicegroups(), _added_servicegroups, _modified_servicegroups,
+      _removed_servicegroups,
+      [poller_id = state.poller_id()](Servicegroup* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_pair(obj->servicegroup_name(), poller_id);
+      });
+
+  _add_message_copy<Hostdependency, uint64_t>(
+      state.hostdependencies(), _added_hostdependencies,
+      _modified_hostdependencies, _removed_hostdependencies,
+      [](Hostdependency* obj) { return hostdependency_key(*obj); });
+
+  _add_message_copy<Hostescalation, uint64_t>(
+      state.hostescalations(), _added_hostescalations,
+      _modified_hostescalations, _removed_hostescalations,
+      [](Hostescalation* obj) { return hostescalation_key(*obj); });
+
+  _add_message_copy<Servicedependency, uint64_t>(
+      state.servicedependencies(), _added_servicedependencies,
+      _modified_servicedependencies, _removed_servicedependencies,
+      [](Servicedependency* obj) { return servicedependency_key(*obj); });
+
+  _add_message_copy<Serviceescalation, uint64_t>(
+      state.serviceescalations(), _added_serviceescalations,
+      _modified_serviceescalations, _removed_serviceescalations,
+      [](Serviceescalation* obj) { return serviceescalation_key(*obj); });
+
+  if (state.poller_id() != 0)
+    _full_conf_poller_id.push_back(state.poller_id());
+
+  merge_scalars(state, _scalar_diff);
+}
+
+/**
+ * @brief Copy non-default scalar fields from a State into a DiffState.
+ *
+ * Uses proto3 reflection: `ListFields` returns only fields with non-default
+ * values, so fields absent from the source (defaulted to 0/false/"") are
+ * naturally skipped. Field names are identical in `State` and `DiffState`;
+ * each is looked up by name in the DiffState descriptor and set via the
+ * reflection API.
+ *
+ * This is the building block used by `add_state(const State&)` to populate
+ * `_scalar_diff`, and can also be called directly (e.g. from `loop.cc`) to
+ * inject engine-local `extended_conf` overrides into a broker `DiffState`
+ * before a single `apply_diff()` call.
+ *
+ * @param from  Source State (not modified).
+ * @param into  Target DiffState (scalar fields are set/overwritten).
+ */
+void indexed_diff_state::merge_scalars(const configuration::State& from,
+                                       configuration::DiffState& into) {
+  using namespace google::protobuf;
+  const Reflection* sr = from.GetReflection();
+  const Descriptor* dd = into.GetDescriptor();
+  const Reflection* dr = into.GetReflection();
+  std::vector<const FieldDescriptor*> set_fields;
+  sr->ListFields(from, &set_fields);
+  for (const FieldDescriptor* sf : set_fields) {
+    if (sf->is_repeated())
+      continue;
+    const FieldDescriptor* df = dd->FindFieldByName(sf->name());
+    if (!df || df->is_repeated())
+      continue;
+    switch (sf->cpp_type()) {
+      case FieldDescriptor::CPPTYPE_BOOL:
+        dr->SetBool(&into, df, sr->GetBool(from, sf));
+        break;
+      case FieldDescriptor::CPPTYPE_INT32:
+        dr->SetInt32(&into, df, sr->GetInt32(from, sf));
+        break;
+      case FieldDescriptor::CPPTYPE_UINT32:
+        dr->SetUInt32(&into, df, sr->GetUInt32(from, sf));
+        break;
+      case FieldDescriptor::CPPTYPE_INT64:
+        dr->SetInt64(&into, df, sr->GetInt64(from, sf));
+        break;
+      case FieldDescriptor::CPPTYPE_UINT64:
+        dr->SetUInt64(&into, df, sr->GetUInt64(from, sf));
+        break;
+      case FieldDescriptor::CPPTYPE_FLOAT:
+        dr->SetFloat(&into, df, sr->GetFloat(from, sf));
+        break;
+      case FieldDescriptor::CPPTYPE_DOUBLE:
+        dr->SetDouble(&into, df, sr->GetDouble(from, sf));
+        break;
+      case FieldDescriptor::CPPTYPE_STRING:
+        dr->SetString(&into, df, sr->GetString(from, sf));
+        break;
+      case FieldDescriptor::CPPTYPE_ENUM:
+        dr->SetEnumValue(&into, df, sr->GetEnumValue(from, sf));
+        break;
+      case FieldDescriptor::CPPTYPE_MESSAGE:
+        dr->MutableMessage(&into, df)->MergeFrom(sr->GetMessage(from, sf));
+        break;
+    }
+  }
+}
+
+/**
+ * @brief Reset all internal maps and sets to their empty state.
+ *
+ * Called after `release_diff_state()` has transferred the accumulated diff
+ * into a `DiffState` proto ready for publication, so that this object can be
+ * reused for the next round of diff aggregation.
+ */
 void indexed_diff_state::reset() {
 #define CLEAR(name)         \
   _added_##name.clear();    \
@@ -284,8 +569,22 @@ void indexed_diff_state::reset() {
   CLEAR(servicedependencies);
   CLEAR(serviceescalations);
 #undef CLEAR
+  _scalar_diff.Clear();
 }
 
+/**
+ * @brief Transfer the accumulated diff into a `DiffState` proto for
+ * publication.
+ *
+ * Moves every object from the internal added/modified maps into the
+ * corresponding `added` / `modified` repeated fields of @p state via
+ * `AddAllocated()` (zero-copy ownership transfer). Removed keys are copied
+ * into the `removed` repeated fields. After the call the internal maps are
+ * left in a moved-from state; call `reset()` before reusing this object.
+ *
+ * @param state Output `DiffState` to populate. Existing content is cleared
+ *              field by field before the new data is written.
+ */
 void indexed_diff_state::release_diff_state(DiffState& state) {
   state.mutable_timeperiods()->clear_added();
   for (auto& [k, v] : _added_timeperiods)
@@ -325,9 +624,10 @@ void indexed_diff_state::release_diff_state(DiffState& state) {
     state.mutable_severities()->mutable_modified()->AddAllocated(v.release());
   state.mutable_severities()->clear_removed();
   for (const auto& k : _removed_severities) {
-    auto key = state.mutable_severities()->add_removed();
-    key->set_id(k.first);
-    key->set_type(k.second);
+    auto* key = state.mutable_severities()->add_removed();
+    key->set_id(std::get<0>(k));
+    key->set_type(std::get<1>(k));
+    key->set_poller_id(std::get<2>(k));
   }
 
   state.mutable_tags()->clear_added();
@@ -338,9 +638,10 @@ void indexed_diff_state::release_diff_state(DiffState& state) {
     state.mutable_tags()->mutable_modified()->AddAllocated(v.release());
   state.mutable_tags()->clear_removed();
   for (const auto& k : _removed_tags) {
-    auto key = state.mutable_tags()->add_removed();
-    key->set_id(k.first);
-    key->set_type(k.second);
+    auto* key = state.mutable_tags()->add_removed();
+    key->set_id(std::get<0>(k));
+    key->set_type(std::get<1>(k));
+    key->set_poller_id(std::get<2>(k));
   }
 
   state.mutable_contacts()->clear_added();
@@ -477,6 +778,7 @@ void indexed_diff_state::release_diff_state(DiffState& state) {
     state.mutable_serviceescalations()->add_removed(k);
   for (uint64_t poller_id : _full_conf_poller_id)
     state.add_full_conf_poller_id(poller_id);
+  state.MergeFrom(_scalar_diff);
   reset();
 }
 }  // namespace com::centreon::engine::configuration

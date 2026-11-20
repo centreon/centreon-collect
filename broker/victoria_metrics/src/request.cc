@@ -20,8 +20,7 @@
 #include "bbdo/neb.pb.h"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/config/applier/state.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
@@ -125,19 +124,42 @@ void request::add_status(const storage::pb_status& status) {
 }
 
 /**
+ * @brief Append the database id of the severity of a service, or of a host
+ * when service_id is 0 (as develop did for hosts), if it has one.
+ *
+ * @param host_id
+ * @param service_id
+ */
+void request::_append_severity(uint64_t host_id, uint64_t service_id) {
+  auto& bc = config::applier::state::instance().cache();
+  uint64_t sev_id = 0;
+  uint32_t type;
+  if (service_id) {
+    auto svc = bc.service(host_id, service_id);
+    if (svc)
+      sev_id = svc->obj().severity_id();
+    type = Severity_Type_SERVICE;
+  } else {
+    auto hst = bc.host(host_id);
+    if (hst)
+      sev_id = hst->obj().severity_id();
+    type = Severity_Type_HOST;
+  }
+  if (sev_id) {
+    uint64_t db_id = bc.get_db_id_for_severity(sev_id, type);
+    if (db_id)
+      absl::StrAppend(&body(), _sz_severity_id, db_id);
+  }
+}
+
+/**
  * @brief append metric unit and severity
  *
  * @param metric
  */
 void request::append_metric_info(const Metric& metric) {
   absl::StrAppend(&body(), _sz_unit, string_filter(metric.unit()));
-  cache::global_cache::lock l;
-  std::optional<int32_t> sev =
-      cache::global_cache::instance_ptr()->get_severity(metric.host_id(),
-                                                        metric.service_id());
-  if (sev) {
-    absl::StrAppend(&body(), _sz_severity_id, *sev);
-  }
+  _append_severity(metric.host_id(), metric.service_id());
 }
 
 /**
@@ -148,11 +170,5 @@ void request::append_metric_info(const Metric& metric) {
 void request::append_status_info(const Status& status) {
   absl::StrAppend(&body(), _sz_host_id, status.host_id(), _sz_serv_id,
                   status.service_id());
-  cache::global_cache::lock l;
-  std::optional<int32_t> sev =
-      cache::global_cache::instance_ptr()->get_severity(status.host_id(),
-                                                        status.service_id());
-  if (sev) {
-    absl::StrAppend(&body(), _sz_severity_id, *sev);
-  }
+  _append_severity(status.host_id(), status.service_id());
 }

@@ -12,7 +12,7 @@ if command -v python3.8 >/dev/null 2>&1; then
 fi
 
 $my_python -m grpc_tools.protoc -I../../engine/enginerpc -I../../common/src --python_out=. --grpc_python_out=. engine.proto
-$my_python -m grpc_tools.protoc -I../../bbdo -I../../broker/core/src -I../../common/src --python_out=. --grpc_python_out=. broker.proto
+$my_python -m grpc_tools.protoc -I../../bbdo -I../../broker/core/brokerrpc -I../../common/src --python_out=. --grpc_python_out=. broker.proto
 $my_python -m grpc_tools.protoc -I../../common/src --python_out=. --grpc_python_out=. process_stat.proto
 for file in `ls ../../bbdo/*.proto`
 do
@@ -26,4 +26,5 @@ $my_python -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grp
 $my_python -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grpc_python_out=. opentelemetry/proto/common/v1/common.proto
 $my_python -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grpc_python_out=. opentelemetry/proto/resource/v1/resource.proto
 $my_python -m grpc_tools.protoc -I../../common/engine_conf --python_out=. timeperiod.proto state.proto
+$my_python -m grpc_tools.protoc -I../../broker/rrd/proto --python_out=. rrd_retention.proto
 cd ..

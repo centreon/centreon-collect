@@ -2,13 +2,13 @@
 
 Component file of [`ARCHITECTURE.md`](../../ARCHITECTURE.md). Conventions: [`../conventions/global.md`](../conventions/global.md), then [`../conventions/broker.md`](../conventions/broker.md). Tests: [`../testing.md`](../testing.md).
 
-Centreon Broker moves monitoring events. On each poller, `cbmod` runs inside Engine and publishes Engine events; on the central, `cbd` receives them over BBDO and writes them to MariaDB, RRD files, BAM, Lua scripts and time-series databases. Both run the same core: endpoints, a multiplexing engine and muxers, loaded modules. Design notes (muxer, feeder, BAM, global cache, gRPC module): `broker/doc/broker-doc.md`.
+Centreon Broker moves monitoring events. On each poller, `cbmod` runs inside Engine and publishes Engine events; on the central, `cbd` receives them over BBDO and writes them to MariaDB, RRD files, BAM, Lua scripts and time-series databases. Both run the same core: endpoints, a multiplexing engine and muxers, loaded modules. Design notes (muxer, feeder, BAM, broker cache, gRPC module): `broker/doc/broker-doc.md`.
 
 ## Scope
 
 | Zone | Path | Notes |
 |---|---|---|
-| Core | `broker/core/src/`, `broker/core/inc/com/centreon/broker/`, `broker/core/multiplexing/`, `broker/core/bbdo/`, `broker/core/sql/`, `broker/core/cache/` | Configuration, endpoints, processing, BBDO stream, compression, retention files, MySQL layer, global cache. Linked into `cbd` and into `cbmod` |
+| Core | `broker/core/src/`, `broker/core/inc/com/centreon/broker/`, `broker/core/multiplexing/`, `broker/core/bbdo/`, `broker/core/sql/`, `broker/core/cache/` | Configuration, endpoints, processing, BBDO stream, compression, retention files, MySQL layer, broker cache. Linked into `cbd` and into `cbmod` |
 | Engine module | `broker/neb/` (`cbmod.cc`, NEB events, module `10-neb.so`); Engine side in `engine/src/broker.cc`, `engine/src/main.cc` | Runs inside `centengine`. Producers and `cbmod` change together |
 | Transports | `broker/tcp/` (`50-tcp`), `broker/grpc/` (`50-grpc`), `broker/tls/` (`60-tls`, GnuTLS); compression in `broker/core/src/compression/` | Stacked under the BBDO layer |
 | Database outputs | `broker/unified_sql/` (`20-unified_sql`); `broker/sql/` (`80-sql`) and `broker/storage/` (`20-storage`) for BBDO 2 only | Write `centreon_storage` |
@@ -54,7 +54,7 @@ broker/
 | Multiplexing | `core/multiplexing/` (`engine`, `muxer`, `muxer_filter`, `publisher`) | Fan-out of every event to every muxer whose filter accepts it |
 | Processing | `core/src/processing/` (`failover`, `acceptor`, `feeder`) | Run endpoints: outputs with retry and failover, inputs per connection |
 | Retention | `persistent_file`, `persistent_cache`, `file/splitter` | Disk queues; BBDO + compression on split files |
-| Global cache | `core/cache/` | Memory-mapped cache of hosts, services, groups, BA (conf and real-time files), loaded by the Lua, OTLP and TSDB outputs |
+| Broker cache | `core/cache/broker_cache.{hh,cc}` | In-memory cache of instances, hosts, services, groups, severities, tags, index and metric mappings, BAM dimensions and OTel identities, owned by `config::applier::state` (`cache()`); read by unified_sql, Lua, OTLP and the TSDB outputs, each enabling the sections it needs |
 | gRPC API | `core/src/brokerrpc.cc`, `broker_impl.cc`, `broker.proto` | Statistics, log levels, rebuild/remove graphs, remove poller |
 
 ```
@@ -67,13 +67,13 @@ centengine                                         cbd (central)
 ```
 
 1. Engine calls `broker_*` functions (`engine/src/broker.cc`), which build an event and call `cbm->write()`. With BBDO ≥ 3 the event is protobuf (`cbmod::use_protobuf()`), otherwise legacy.
-2. `multiplexing::engine::publish` queues the event; `_send_to_subscribers` writes it to the global cache first, then hands the batch to every muxer, one on the current thread and the others through `asio::post`.
+2. `multiplexing::engine::publish` queues the event; `_send_to_subscribers` feeds the batch to `broker_cache::publish()` first, outside `_kiew_m`, so that an output reading the cache finds a host before the status that follows it, then hands the batch to every muxer through `asio::post`.
 3. A muxer keeps events in memory up to `event_queue_max_size`, then in its retention file `<cache_dir>.queue.<endpoint>`. Its read and write filters (`muxer_filter`, one 64-bit mask per category) decide what it accepts.
 4. An output is a `failover`: one thread opens the endpoint stack, reads its muxer and writes to the stream; on error it waits `retry_interval`, can start a configured `failover` endpoint, and keeps events in retention. `write()`, `flush()` and `stop()` return the number of events the stream acknowledges, and the failover passes it to `muxer::ack_events`, which removes them from the queue.
 5. An input is an `acceptor` (one thread) that creates a `feeder` per connection. A feeder polls the stream with `read(d, 0)` on a pool timer and publishes what it reads; events from the engine reach it through `muxer::data_handler::on_events`.
 6. On the central, `unified_sql::stream::write` dispatches by category and element (`neb_processing_table` indexed by element id).
 
-At stop, the engine first flushes its queue to the muxers; events published after that go to `<cache_dir>.unprocessed`, and each muxer's memory to `<cache_dir>.memory.<endpoint>`; both are read back at start. `cache_dir` is `<cache_directory>/<broker_name>`.
+At stop, the engine first flushes its queue to the muxers; events published after that go to `<cache_dir>.unprocessed`, and each muxer's memory to `<cache_dir>.memory.<endpoint>`; both are read back at start. Outside the centralized configuration, `broker_cache` is read from `<cache_dir>.cache` at start, written there every 10 s when its configuration data changed, and at stop; with the centralized configuration it is rebuilt from the `<poller_id>.prot` files. `cache_dir` is `<cache_directory>/<broker_name>`.
 
 ### Event types
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2012,2015,2017-2022 Centreon
+ * Copyright 2011-2012,2015,2017-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #include "broker/core/config/applier/endpoint.hh"
 
 #include <cassert>
+
+#include "absl/container/flat_hash_set.h"
 
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -124,6 +126,51 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints,
     std::lock_guard<std::timed_mutex> lock(_endpointsm);
     std::list<config::endpoint> endp_to_delete;
     _diff_endpoints(_endpoints, tmp_endpoints, endp_to_create, endp_to_delete);
+
+    // Endpoints cannot be added or removed at runtime (only reconfigured).
+    // Pure removals and pure additions are logged as errors and skipped;
+    // the reload proceeds normally for everything else.
+    {
+      absl::flat_hash_set<std::string> names_to_delete;
+      for (const auto& ep : endp_to_delete)
+        names_to_delete.insert(ep.name);
+      absl::flat_hash_set<std::string> names_to_create;
+      for (const auto& ep : endp_to_create)
+        names_to_create.insert(ep.name);
+
+      // Pure removals: log and keep the endpoint running.
+      endp_to_delete.remove_if([&](const config::endpoint& ep) {
+        if (names_to_create.count(ep.name))
+          return false;
+        const char* kind =
+            (ep.get_io_type() == config::endpoint::input) ? "input" : "output";
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "endpoint applier: {} '{}' has been removed from the "
+            "configuration but cannot be removed at runtime; keeping it "
+            "running. A full broker restart is required to apply this change.",
+            kind, ep.name);
+        return true;
+      });
+
+      // Pure additions during reload: log and do not create the endpoint.
+      if (!_endpoints.empty()) {
+        endp_to_create.remove_if([&](const config::endpoint& ep) {
+          if (names_to_delete.count(ep.name))
+            return false;
+          const char* kind = (ep.get_io_type() == config::endpoint::input)
+                                 ? "input"
+                                 : "output";
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "endpoint applier: {} '{}' has been added to the configuration "
+              "but cannot be added at runtime; ignoring it. A full broker "
+              "restart is required to apply this change.",
+              kind, ep.name);
+          return true;
+        });
+      }
+    }
 
     // Remove old endpoints.
     for (auto& ep : endp_to_delete) {
@@ -483,7 +530,6 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(
        it != end; ++it) {
     if (it->second.osi_from == 1 &&
         it->second.endpntfactry->has_endpoint(cfg, nullptr)) {
-
       endp =
           std::shared_ptr<io::endpoint>(it->second.endpntfactry->new_endpoint(
               cfg, global_params, is_acceptor));
@@ -607,7 +653,7 @@ multiplexing::muxer_filter endpoint::parse_filters(
     const multiplexing::muxer_filter& forbidden_filter) {
   auto logger = log_v2::instance().get(log_v2::CONFIG);
   multiplexing::muxer_filter elements({});
-  std::forward_list<fmt::string_view> applied_filters;
+  std::forward_list<std::string_view> applied_filters;
   auto fill_elements = [&elements, logger](const std::string& str) -> bool {
     bool retval = false;
     io::events::events_container const& tmp_elements(

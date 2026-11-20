@@ -186,6 +186,8 @@ stream::stream(const database_config& dbcfg,
            "VALUES(value)",
            _logger_sql),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
+  config::applier::state::instance().cache().enable_section(
+      cache::broker_cache::CACHE_ALL);
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream class instanciation");
 
   // dedicated connections for data_bin and logs?
@@ -377,7 +379,7 @@ void stream::_load_caches() {
       "SELECT resource_id, id, parent_id FROM resources",
       std::move(promise_resource));
 
-  /* severities => _severities_cache */
+  /* severities => broker_cache */
   _mysql.run_query_and_get_result(
       "SELECT severity_id, id, type FROM severities",
       std::move(promise_severity));
@@ -584,14 +586,15 @@ void stream::_load_caches() {
     try {
       mysql_result res{future_severity.get()};
       _logger_sql->debug("loading severities cache");
+      auto& cache = config::applier::state::instance().cache();
       while (_mysql.fetch_row(res)) {
-        _severities_cache[{res.value_as_u64(1),
-                           static_cast<uint16_t>(res.value_as_u32(2))}] =
-            res.value_as_u64(0);
+        uint64_t db_id = res.value_as_u64(0);
+        uint64_t config_id = res.value_as_u64(1);
+        uint32_t type = res.value_as_u32(2);
+        cache.set_db_id_for_severity(config_id, type, db_id);
         _logger_sql->trace(
-            "loading severities cache: id={} type={} severity_id={}",
-            res.value_as_u64(1), static_cast<uint16_t>(res.value_as_u32(2)),
-            res.value_as_u64(0));
+            "loading severities cache: id={} type={} severity_id={}", config_id,
+            type, db_id);
       }
     } catch (const std::exception& e) {
       throw msg_fmt("unified sql: could not get the list of severities: {}",

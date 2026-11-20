@@ -18,7 +18,7 @@
 
 #include "bbdo/neb.pb.h"
 
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -28,15 +28,34 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::http_tsdb;
 using namespace com::centreon::exceptions;
 
+namespace {
+/* Same output as the former global_cache: ids sorted to avoid cardinality
+ * changes, comma separated. */
+void _sorted_ids_to_str(const std::set<uint64_t>& ids, std::ostream& is) {
+  bool first = true;
+  for (uint64_t id : ids) {
+    if (!first)
+      is << ',';
+    is << id;
+    first = false;
+  }
+}
+
+void _names_to_str(const std::vector<std::string>& names, std::ostream& is) {
+  bool first = true;
+  for (const auto& name : names) {
+    if (!first)
+      is << ',';
+    is << name;
+    first = false;
+  }
+}
+}  // namespace
+
 /**
  *  Create an empty query.
  */
-line_protocol_query::line_protocol_query()
-    : _cache(cache::global_cache::instance_ptr()), _type(data_type::unknown) {
-  if (!_cache) {
-    throw std::invalid_argument("global cache not loaded");
-  }
-}
+line_protocol_query::line_protocol_query() : _type(data_type::unknown) {}
 
 /**
  *  Constructor.
@@ -48,14 +67,9 @@ line_protocol_query::line_protocol_query()
 line_protocol_query::line_protocol_query(
     data_type type,
     const std::shared_ptr<spdlog::logger>& logger)
-    : _cache(cache::global_cache::instance_ptr()),
-      _type{type},
-      _logger(logger) {
+    : _type{type}, _logger(logger) {
   _compiled_getters.clear();
   _compiled_strings.clear();
-  if (!_cache) {
-    throw std::invalid_argument("global cache not loaded");
-  }
 }
 
 /**
@@ -375,7 +389,6 @@ bool line_protocol_query::_get_dollar_sign(io::data const& d,
  *  Get the status index id of a data, be it either metric or status.
  *
  *  @param[in] d  The data.
- *  caution   cache::global_cache must be locked before usage
  *  @return       The index id.
  */
 uint64_t line_protocol_query::_get_index_id(io::data const& d) const {
@@ -383,8 +396,9 @@ uint64_t line_protocol_query::_get_index_id(io::data const& d) const {
     case storage::pb_status::static_type():
       return static_cast<storage::pb_status const&>(d).obj().index_id();
     case storage::pb_metric::static_type(): {
-      uint64_t index_id = _cache->get_index_id_from_metric_id(
+      auto mm = config::applier::state::instance().cache().get_metric_mapping(
           static_cast<storage::pb_metric const&>(d).obj().metric_id());
+      uint64_t index_id = mm ? mm->obj().index_id() : 0;
       if (!index_id) {
         SPDLOG_LOGGER_ERROR(
             _logger, "unknown metric {}",
@@ -409,7 +423,6 @@ uint64_t line_protocol_query::_get_index_id(io::data const& d) const {
 bool line_protocol_query::_get_index_id(io::data const& d,
                                         unsigned& string_index [[maybe_unused]],
                                         std::ostream& is) const {
-  cache::global_cache::lock l;
   uint64_t index_id = _get_index_id(d);
   if (index_id) {
     is << index_id;
@@ -432,10 +445,9 @@ bool line_protocol_query::_get_host(io::data const& d,
       d.type() == storage::pb_metric::static_type()
           ? static_cast<storage::pb_metric const&>(d).obj().host_id()
           : static_cast<storage::pb_status const&>(d).obj().host_id();
-  cache::global_cache::lock l;
-  const cache::host* host_info = _cache->get_host(host_id, l);
+  auto host_info = config::applier::state::instance().cache().host(host_id);
   if (host_info) {
-    is << host_info->name();
+    is << host_info->obj().name();
     return true;
   } else {
     return false;
@@ -478,12 +490,11 @@ bool line_protocol_query::_get_host_id(io::data const& d,
 bool line_protocol_query::_get_service(io::data const& d,
                                        unsigned& string_index [[maybe_unused]],
                                        std::ostream& is) const {
-  cache::host_serv_pair host_serv = _get_service_id(d);
-  cache::global_cache::lock l;
-  const cache::service* serv_info =
-      _cache->get_service(host_serv.first, host_serv.second, l);
+  std::pair<uint64_t, uint64_t> host_serv = _get_service_id(d);
+  auto serv_info = config::applier::state::instance().cache().service(
+      host_serv.first, host_serv.second);
   if (serv_info) {
-    is << serv_info->description();
+    is << serv_info->obj().description();
     return true;
   } else {
     return false;
@@ -529,10 +540,10 @@ bool line_protocol_query::_get_service_id(io::data const& d,
 bool line_protocol_query::_get_instance(io::data const& d,
                                         unsigned& string_index [[maybe_unused]],
                                         std::ostream& is) const {
-  cache::global_cache::lock l;
-  const cache::instance* inst = _cache->get_instance(d.source_id, l);
-  if (inst) {
-    is << inst->name();
+  std::string inst =
+      config::applier::state::instance().cache().instance(d.source_id);
+  if (!inst.empty()) {
+    is << inst;
     return true;
   } else {
     return false;
@@ -550,8 +561,11 @@ bool line_protocol_query::_get_host_group(io::data const& d,
                                           unsigned& string_index
                                           [[maybe_unused]],
                                           std::ostream& is) const {
-  cache::global_cache::lock l;
-  _cache->append_host_group(_get_host_id(d), is);
+  std::set<uint64_t> sorted;
+  for (const auto& g :
+       config::applier::state::instance().cache().hostgroups(_get_host_id(d)))
+    sorted.insert(g->obj().hostgroup_id());
+  _sorted_ids_to_str(sorted, is);
   return true;
 }
 
@@ -566,9 +580,12 @@ bool line_protocol_query::_get_service_group(io::data const& d,
                                              unsigned& string_index
                                              [[maybe_unused]],
                                              std::ostream& is) const {
-  cache::host_serv_pair host_serv = _get_service_id(d);
-  cache::global_cache::lock l;
-  _cache->append_service_group(host_serv.first, host_serv.second, is);
+  std::pair<uint64_t, uint64_t> host_serv = _get_service_id(d);
+  std::set<uint64_t> sorted;
+  for (const auto& g : config::applier::state::instance().cache().servicegroups(
+           host_serv.first, host_serv.second))
+    sorted.insert(g->obj().servicegroup_id());
+  _sorted_ids_to_str(sorted, is);
   return true;
 }
 
@@ -614,8 +631,9 @@ bool line_protocol_query::_get_max(io::data const& d,
 bool line_protocol_query::_get_tag_host_id(io::data const& d,
                                            TagType tag_type,
                                            std::ostream& is) const {
-  cache::global_cache::lock l;
-  _cache->append_host_tag_id(_get_host_id(d), tag_type, is);
+  auto ids = config::applier::state::instance().cache().host_tag_ids(
+      _get_host_id(d), tag_type);
+  _sorted_ids_to_str(std::set<uint64_t>(ids.begin(), ids.end()), is);
   return true;
 }
 
@@ -629,8 +647,9 @@ bool line_protocol_query::_get_tag_host_id(io::data const& d,
 bool line_protocol_query::_get_tag_host_name(io::data const& d,
                                              TagType tag_type,
                                              std::ostream& is) const {
-  cache::global_cache::lock l;
-  _cache->append_host_tag_name(_get_host_id(d), tag_type, is);
+  _names_to_str(config::applier::state::instance().cache().host_tag_names(
+                    _get_host_id(d), tag_type),
+                is);
   return true;
 }
 
@@ -644,9 +663,10 @@ bool line_protocol_query::_get_tag_host_name(io::data const& d,
 bool line_protocol_query::_get_tag_serv_id(io::data const& d,
                                            TagType tag_type,
                                            std::ostream& is) const {
-  cache::host_serv_pair host_serv = _get_service_id(d);
-  cache::global_cache::lock l;
-  _cache->append_serv_tag_id(host_serv.first, host_serv.second, tag_type, is);
+  std::pair<uint64_t, uint64_t> host_serv = _get_service_id(d);
+  auto ids = config::applier::state::instance().cache().service_tag_ids(
+      host_serv.first, host_serv.second, tag_type);
+  _sorted_ids_to_str(std::set<uint64_t>(ids.begin(), ids.end()), is);
   return true;
 }
 
@@ -660,9 +680,10 @@ bool line_protocol_query::_get_tag_serv_id(io::data const& d,
 bool line_protocol_query::_get_tag_serv_name(io::data const& d,
                                              TagType tag_type,
                                              std::ostream& is) const {
-  cache::host_serv_pair host_serv = _get_service_id(d);
-  cache::global_cache::lock l;
-  _cache->append_serv_tag_name(host_serv.first, host_serv.second, tag_type, is);
+  std::pair<uint64_t, uint64_t> host_serv = _get_service_id(d);
+  _names_to_str(config::applier::state::instance().cache().service_tag_names(
+                    host_serv.first, host_serv.second, tag_type),
+                is);
   return true;
 }
 

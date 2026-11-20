@@ -57,6 +57,18 @@ state::state(common::PeerType peer_type,
       _logger{logger} {}
 
 /**
+ * @brief Useful in unit tests to set a custom cache directory. The cache
+ * directory is used to store the cache on disk, and to load it at startup. It
+ * is also used to store the configuration cache when centralized configuration
+ * is enabled.
+ *
+ * @param cache_dir The cache directory to set.
+ */
+void state::set_cache_dir(const std::filesystem::path& cache_dir) {
+  _cache_dir = cache_dir;
+}
+
+/**
  *  Apply a configuration state.
  *
  *  @param[in] s       State to apply.
@@ -154,7 +166,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
           "'module_directory' directory");
   }
 
-  initialize_cache(log_v2::instance().get(log_v2::CORE));
+  initialize_cache();
   // Event queue max size (used to limit memory consumption).
   com::centreon::broker::multiplexing::muxer::event_queue_max_size(
       s.event_queue_max_size());
@@ -169,9 +181,19 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     com::centreon::broker::multiplexing::engine::instance_ptr()->start();
 }
 
-void state::initialize_cache(const std::shared_ptr<spdlog::logger>& logger) {
+void state::initialize_cache() {
   if (!_global_cache)
-    _global_cache = std::make_unique<cache::broker_cache>(logger);
+    _global_cache = std::make_unique<cache::broker_cache>(
+        log_v2::instance().get(log_v2::CACHE));
+}
+
+/**
+ * @brief Clear the cache. The cache is totally cleared and reinitialized.
+ * This method is used in unit tests.
+ */
+void state::clear_cache() {
+  _global_cache = std::make_unique<cache::broker_cache>(
+      log_v2::instance().get(log_v2::CACHE));
 }
 
 /**

@@ -17,7 +17,7 @@
  */
 
 #include "com/centreon/broker/victoria_metrics/factory.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/victoria_metrics/connector.hh"
@@ -92,11 +92,14 @@ io::endpoint* factory::new_endpoint(
     account_id = it->second;
   }
 
-  if (config::applier::state::loaded()) {  // false only happens in UTs
-    cache::global_cache::load(
-        com::centreon::common::pool::io_context_ptr(),
-        config::applier::state::instance().cache_dir() + ".cache.global");
-  }
+  /* Sections of the broker cache read by this output. */
+  if (config::applier::state::loaded())  // false only happens in UTs
+    config::applier::state::instance().cache().enable_section(
+      cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
+      cache::broker_cache::CACHE_INSTANCES |
+      cache::broker_cache::CACHE_METRIC_MAPPINGS |
+      cache::broker_cache::CACHE_GROUPS | cache::broker_cache::CACHE_TAGS |
+      cache::broker_cache::CACHE_SEVERITIES);
 
   return new connector(conf, account_id);
 }

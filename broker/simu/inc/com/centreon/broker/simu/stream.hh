@@ -20,7 +20,7 @@
 #define CCB_SIMU_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/misc/variant.hh"
+#include "com/centreon/broker/simu/luabinding.hh"
 
 namespace com::centreon::broker::simu {
 
@@ -41,7 +41,7 @@ class stream : public io::stream {
 
  public:
   stream(std::string const& lua_script,
-         std::map<std::string, misc::variant> const& conf_params,
+         std::map<std::string, variant> const& conf_params,
          const std::shared_ptr<spdlog::logger>& logger);
   ~stream();
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;

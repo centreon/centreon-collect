@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Centreon (https://www.centreon.com/)
+ * Copyright 2025-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,17 +48,23 @@ class indexed_diff_state {
       _modified_connectors;
   absl::flat_hash_set<std::string> _removed_connectors;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Severity>>
       _added_severities;
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Severity>>
       _modified_severities;
-  absl::flat_hash_set<std::pair<uint64_t, uint32_t>> _removed_severities;
+  absl::flat_hash_set<std::tuple<uint64_t, uint32_t, uint32_t>>
+      _removed_severities;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Tag>>
+  /* Key is (id, type, poller_id) so each poller's contribution is distinct. */
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Tag>>
       _added_tags;
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Tag>>
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Tag>>
       _modified_tags;
-  absl::flat_hash_set<std::pair<uint64_t, uint32_t>> _removed_tags;
+  absl::flat_hash_set<std::tuple<uint64_t, uint32_t, uint32_t>> _removed_tags;
 
   absl::flat_hash_map<std::string, std::unique_ptr<Contact>> _added_contacts;
   absl::flat_hash_map<std::string, std::unique_ptr<Contact>> _modified_contacts;
@@ -131,6 +137,12 @@ class indexed_diff_state {
   /* List of the poller IDs whose configuration has been given as full and not
    * as a differential. */
   std::list<uint64_t> _full_conf_poller_id;
+
+  /* Scalar (non-repeated) field overrides captured from add_state(const
+   * State&) calls. These are engine-local overrides (e.g. extended_conf) that
+   * have no poller_id and no repeated objects. They are injected into the
+   * output DiffState via scalar_diff(). */
+  DiffState _scalar_diff;
 
   /**
    * @brief This function is used to add a diff message to the indexed
@@ -270,9 +282,38 @@ class indexed_diff_state {
     }
   }
 
+  /**
+   * @brief Copy-based variant of _add_message. Iterates over a const repeated
+   * field, copies each element, and classifies it as added or modified. Use
+   * this when the caller cannot transfer ownership of the container (e.g. when
+   * the State lives inside a shared_ptr event that may be used concurrently).
+   */
+  template <typename Type, typename Key>
+  void _add_message_copy(
+      const google::protobuf::RepeatedPtrField<Type>& container,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& added_map,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& modified_map,
+      absl::flat_hash_set<Key>& removed_set,
+      std::function<Key(Type*)>&& key_builder) {
+    for (const auto& item : container) {
+      auto obj = std::make_unique<Type>(item);
+      auto found = removed_set.find(key_builder(obj.get()));
+      if (found != removed_set.end()) {
+        /* We have an added message that is also removed, so it is moved. */
+        removed_set.erase(found);
+        modified_map.emplace(key_builder(obj.get()), std::move(obj));
+      } else {
+        added_map.emplace(key_builder(obj.get()), std::move(obj));
+      }
+    }
+  }
+
  public:
   void add_diff_state(DiffState& state,
                       const std::shared_ptr<spdlog::logger>& logger);
+  void add_state(State& state, const std::shared_ptr<spdlog::logger>& logger);
+  void add_state(const State& state,
+                 const std::shared_ptr<spdlog::logger>& logger);
   auto& added_timeperiods() const { return _added_timeperiods; }
   auto& modified_timeperiods() const { return _modified_timeperiods; }
   auto& removed_timeperiods() const { return _removed_timeperiods; }
@@ -347,6 +388,8 @@ class indexed_diff_state {
   auto& removed_serviceescalations() const {
     return _removed_serviceescalations;
   }
+  static void merge_scalars(const State& from, DiffState& into);
+  const DiffState& scalar_diff() const { return _scalar_diff; }
   void release_diff_state(DiffState& state);
   void reset();
 };

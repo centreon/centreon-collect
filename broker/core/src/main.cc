@@ -37,15 +37,12 @@ namespace asio = boost::asio;
 
 #include <boost/container/string.hpp>
 #include <boost/container/vector.hpp>
-#include <boost/interprocess/allocators/private_node_allocator.hpp>
-#include <boost/interprocess/managed_mapped_file.hpp>
 
 #include "broker/core/brokerrpc/brokerrpc.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "common/log_v2/log_v2.hh"
 
 #include "broker/core/config/applier/init.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 #include "com/centreon/common/pool.hh"
@@ -380,7 +377,6 @@ int main(int argc, char* argv[]) {
     retval = EXIT_FAILURE;
   }
 
-  cache::global_cache::unload();
   SPDLOG_LOGGER_INFO(core_logger, "main: process {} pid:{} end exit_code:{}",
                      argv[0], getpid(), retval);
   g_io_context->stop();

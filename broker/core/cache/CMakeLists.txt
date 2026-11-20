@@ -14,78 +14,9 @@
 #
 # For more information : contact@centreon.com
 #
-include_directories(${CMAKE_BINARY_DIR})
-
-# Global options.
-set(INC_DIR "${PROJECT_SOURCE_DIR}/core/cache/inc/com/centreon/broker/cache")
-set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/cache/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/cache/test")
-include_directories(
-  "${PROJECT_SOURCE_DIR}/core/cache/inc" 
-  "${PROJECT_SOURCE_DIR}/neb/inc"
-  "${PROJECT_SOURCE_DIR}/bam/inc")
-
-# Cache module.
-add_library(
-  global_cache STATIC
-  # Sources.
-  ${SRC_DIR}/global_cache.cc
-  ${SRC_DIR}/global_cache_data.cc
-  ${SRC_DIR}/protobuf.cc
-)
-
-add_custom_command(
-  OUTPUT ${SRC_DIR}/protobuf.cc ${INC_DIR}/protobuf.hh
-  COMMENT "Generating protobuf.hh and protobuf.cc from protobuf files"
-  DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/bam.proto
-          ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMAND
-    python3 ARGS ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py neb,header,bam ${INC_DIR}/protobuf.hh ${SRC_DIR}/protobuf.cc
-      Comment,AdaptiveService,Host,Service,Tag,Instance,HostGroup,ServiceGroup,DimensionBaEvent,DimensionBvEvent 
-  VERBATIM)
-
-# protobuf.hh is included by targets all over the tree (lua, http_tsdb, ...),
-# so expose its generation as a target they can depend on.
-add_custom_target(target_cache_protobuf
-                  DEPENDS ${SRC_DIR}/protobuf.cc ${INC_DIR}/protobuf.hh)
-
-add_custom_command(
-  OUTPUT ${TEST_DIR}/protobuf_test_classes.cc ${TEST_DIR}/protobuf_test_classes.hh
-  COMMENT "Generating protobuf_test_classes.hh and protobuf_test_classes.cc from protobuf files"
-  DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/bam.proto
-          ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMAND
-    python3 ARGS ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py neb,header,bam ${TEST_DIR}/protobuf_test_classes.hh ${TEST_DIR}/protobuf_test_classes.cc
-  VERBATIM)
-
-
-target_precompile_headers(global_cache PRIVATE precomp_inc/precomp.hpp)
-add_dependencies(global_cache pb_common_lib pb_header_lib pb_neb_lib pb_bam_lib
-                 process_stat pb_storage_lib pb_open_telemetry_lib
-                 target_broker_message)
-set_target_properties(global_cache PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-# Testing.
-if(WITH_TESTING)
-  add_library(ut_cache STATIC
-    ${TEST_DIR}/protobuf_test_classes.cc
-  )
-
-  target_precompile_headers(ut_cache REUSE_FROM  global_cache )
-  add_dependencies(ut_cache pb_common_lib pb_header_lib pb_neb_lib pb_bam_lib)
-  set_target_properties(ut_cache PROPERTIES POSITION_INDEPENDENT_CODE ON)
-  set(TESTS_SOURCES
-      ${TESTS_SOURCES} 
-      ${TEST_DIR}/global_cache_test.cc
-      ${TEST_DIR}/protobuf_test.cc
-      ${TEST_DIR}/broker_cache.cc
-      PARENT_SCOPE)
-  set(TESTS_LIBRARIES
-      ${TESTS_LIBRARIES} ut_cache global_cache
-      PARENT_SCOPE)
-endif(WITH_TESTING)
+include_directories(${CMAKE_BINARY_DIR} "${PROJECT_SOURCE_DIR}/neb/inc"
+                    "${PROJECT_SOURCE_DIR}/bam/inc")
 
 add_library(broker_cache STATIC
   broker_cache.cc
@@ -97,3 +28,10 @@ set_target_properties(broker_cache PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 
 add_dependencies(broker_cache process_stat)
+
+if(WITH_TESTING)
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES}
+      ${TEST_DIR}/broker_cache.cc
+      PARENT_SCOPE)
+endif(WITH_TESTING)

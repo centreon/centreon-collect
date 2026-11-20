@@ -20,7 +20,6 @@
 #define CCB_SIMU_SIMUBINDING_HH
 
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/misc/variant.hh"
 
 extern "C" {
 #include "lauxlib.h"
@@ -29,6 +28,15 @@ extern "C" {
 }
 
 namespace com::centreon::broker::simu {
+
+using variant = std::variant<std::monostate,
+                             bool,
+                             int32_t,
+                             uint32_t,
+                             int64_t,
+                             uint64_t,
+                             double,
+                             std::string>;
 
 /**
  *  @class luabinding luabinding.hh "com/centreon/broker/simu/luabinding.hh"
@@ -41,7 +49,7 @@ class luabinding {
 
  public:
   luabinding(std::string const& lua_script,
-             std::map<std::string, misc::variant> const& conf_params,
+             std::map<std::string, variant> const& conf_params,
              const std::shared_ptr<spdlog::logger>& logger);
   ~luabinding();
   bool read(std::shared_ptr<io::data>& d);
@@ -51,7 +59,7 @@ class luabinding {
   luabinding& operator=(luabinding const& other);
   lua_State* _load_interpreter();
   void _load_script();
-  void _init_script(std::map<std::string, misc::variant> const& conf_params);
+  void _init_script(std::map<std::string, variant> const& conf_params);
   void _update_lua_path(std::string const& path);
   bool _parse_event(std::shared_ptr<io::data>& d);
 

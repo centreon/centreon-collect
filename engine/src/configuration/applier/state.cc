@@ -106,6 +106,24 @@ static void increase_fd_limit(uint32_t soft_fd_limit) {
 }
 
 /**
+ * @brief Get the current configuration state from the state.prot and fill the
+ * given state object with it.
+ *
+ * @param state The state object to fill with the current configuration state.
+ */
+void applier::state::get_current_state(configuration::State& state) {
+  if (!proto_conf.empty()) {
+    std::ifstream f(proto_conf / "state.prot", std::ios::binary);
+    if (f) {
+      state.ParseFromIstream(&f);
+    } else {
+      process_logger->error("Unable to open '{}/state.prot'",
+                            proto_conf.string());
+    }
+  }
+}
+
+/**
  *  Apply new protobuf configuration.
  *
  *  @param[in] new_cfg        The new protobuf configuration.
@@ -1529,21 +1547,29 @@ void applier::state::_apply_diff_conf(
 
   // Apply severities.
   _apply_ng<configuration::applier::severity, DiffSeverity,
-            std::pair<uint64_t, uint32_t>, Severity, KeyType>(
+            std::tuple<uint64_t, uint32_t, uint32_t>, Severity,
+            SeverityKeyWithPoller>(
       *diff.mutable_severities(), pb_indexed_config.mut_severities(),
       [](const Severity& obj) {
-        return std::make_pair(obj.key().id(), obj.key().type());
+        return std::make_tuple(obj.key().id(), obj.key().type(),
+                               (uint32_t)obj.poller_id());
       },
-      [](const KeyType& key) { return std::make_pair(key.id(), key.type()); });
+      [](const SeverityKeyWithPoller& key) {
+        return std::make_tuple(key.id(), key.type(), (uint32_t)key.poller_id());
+      });
 
   // Apply tags.
-  _apply_ng<configuration::applier::tag, DiffTag, std::pair<uint64_t, uint32_t>,
-            Tag, KeyType>(
+  _apply_ng<configuration::applier::tag, DiffTag,
+            std::tuple<uint64_t, uint32_t, uint32_t>, Tag, TagKeyWithPoller>(
       *diff.mutable_tags(), pb_indexed_config.mut_tags(),
       [](const Tag& obj) {
-        return std::make_pair(obj.key().id(), obj.key().type());
+        return std::make_tuple(obj.key().id(), (uint32_t)obj.key().type(),
+                               (uint32_t)obj.poller_id());
       },
-      [](const KeyType& key) { return std::make_pair(key.id(), key.type()); });
+      [](const TagKeyWithPoller& key) {
+        return std::make_tuple(key.id(), (uint32_t)key.type(),
+                               (uint32_t)key.poller_id());
+      });
 
   // Apply hosts and hostgroups.
   _apply_ng<configuration::applier::host, DiffHost, uint64_t, Host>(

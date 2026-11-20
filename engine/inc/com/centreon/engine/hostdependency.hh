@@ -59,8 +59,10 @@ class hostdependency : public dependency {
   void resolve(uint32_t& w, uint32_t& e);
   bool get_fail_on(int state) const override;
 
+  using dependency::operator==;
+  using dependency::operator<;
   bool operator==(hostdependency const& obj) = delete;
-  bool operator<(hostdependency const& obj) throw();
+  bool operator<(hostdependency const& obj) noexcept;
 
   static hostdependency_mmap hostdependencies;
   static hostdependency_mmap::iterator hostdependencies_find(

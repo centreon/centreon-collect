@@ -30,7 +30,8 @@ using duration = system_clock::duration;
 
 #include "bbdo/neb.pb.h"
 
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -60,9 +61,9 @@ class victoria_request_test : public ::testing::Test {
     io::protocols::load();
     io::events::load();
     io::events& e(io::events::instance());
-    ::remove("/tmp/cache_test.request_test.rt");
-    ::remove("/tmp/cache_test.request_test.cnf");
-    cache::global_cache::load(g_io_context, "/tmp/cache_test.request_test");
+    config::applier::state::load<config::applier::broker_state>("");
+    config::applier::state::instance().set_cache_dir(
+        "/tmp/cache_test.request_test");
 
     // Register events.
 
@@ -72,6 +73,9 @@ class victoria_request_test : public ::testing::Test {
                      &storage::pb_status::operations);
   }
   void SetUp() override {
+    config::applier::state::instance().clear_cache();
+    config::applier::state::instance().cache().enable_section(
+        cache::broker_cache::CACHE_ALL);
     _logger = log_v2::instance().get(log_v2::VICTORIA_METRICS);
     _logger->set_level(spdlog::level::debug);
     log_v2::instance().get(log_v2::CORE)->set_level(spdlog::level::trace);
@@ -79,69 +83,75 @@ class victoria_request_test : public ::testing::Test {
 };
 
 TEST_F(victoria_request_test, request_body_test) {
-  auto obj = cache::global_cache::instance_ptr();
+  auto& bc = config::applier::state::instance().cache();
+  /* Severity: the service references severity 42, stored with id 3 in the
+   * database (broker_cache semantic, see the port plan K0 point 3). */
+  bc.set_db_id_for_severity(42, 0, 3);
   auto tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(89);
   tg->mut_obj().set_name("tag89");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::HOSTCATEGORY);
-  obj->write(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(12);
   tg->mut_obj().set_name("tag12");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICECATEGORY);
-  obj->write(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(23);
   tg->mut_obj().set_name("tag23");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICECATEGORY);
-  obj->write(tg);
+  bc.publish(tg);
 
   auto hst = std::make_shared<neb::pb_host>();
   hst->mut_obj().set_host_id(14);
   hst->mut_obj().set_name("my host");
+  hst->mut_obj().set_enabled(true);
   auto hst_tag_info = hst->mut_obj().add_tags();
   hst_tag_info->set_id(89);
   hst_tag_info->set_type(TagType::HOSTCATEGORY);
-  obj->write(hst);
+  bc.publish(hst);
   auto host_custom_var = std::make_shared<neb::pb_custom_variable>();
   host_custom_var->mut_obj().set_host_id(14);
   host_custom_var->mut_obj().set_name("CRITICALITY_LEVEL");
   host_custom_var->mut_obj().set_value("1");
-  obj->write(host_custom_var);
+  bc.publish(host_custom_var);
 
   auto srv = std::make_shared<neb::pb_service>();
   srv->mut_obj().set_host_id(14);
   srv->mut_obj().set_service_id(78);
   srv->mut_obj().set_description("my service ");
+  srv->mut_obj().set_enabled(true);
+  srv->mut_obj().set_severity_id(42);
   auto srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(12);
   srv_tag_info->set_type(TagType::SERVICECATEGORY);
-  obj->write(srv);
+  bc.publish(srv);
   srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(23);
   srv_tag_info->set_type(TagType::SERVICECATEGORY);
-  obj->write(srv);
+  bc.publish(srv);
 
   auto serv_custom_var = std::make_shared<neb::pb_custom_variable>();
   serv_custom_var->mut_obj().set_host_id(14);
   serv_custom_var->mut_obj().set_service_id(78);
   serv_custom_var->mut_obj().set_name("CRITICALITY_LEVEL");
   serv_custom_var->mut_obj().set_value("3");
-  obj->write(serv_custom_var);
+  bc.publish(serv_custom_var);
 
   auto index_mapp = std::make_shared<storage::pb_index_mapping>();
   index_mapp->mut_obj().set_index_id(45);
   index_mapp->mut_obj().set_host_id(14);
   index_mapp->mut_obj().set_service_id(78);
-  obj->write(index_mapp);
+  bc.publish(index_mapp);
 
   auto metric_index = std::make_shared<storage::pb_metric_mapping>();
   metric_index->mut_obj().set_index_id(45);
   metric_index->mut_obj().set_metric_id(145);
-  obj->write(metric_index);
+  bc.publish(metric_index);
 
   http_tsdb::line_protocol_query dummy_metric(
       http_tsdb::line_protocol_query::data_type::metric, _logger);
@@ -179,45 +189,48 @@ TEST_F(victoria_request_test, request_body_test) {
 }
 
 TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
-  auto obj = cache::global_cache::instance_ptr();
+  auto& bc = config::applier::state::instance().cache();
+  /* Severity: the service references severity 42, stored with id 3 in the
+   * database (broker_cache semantic, see the port plan K0 point 3). */
+  bc.set_db_id_for_severity(42, 0, 3);
   auto tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(89);
   tg->mut_obj().set_name("tag89");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::HOSTCATEGORY);
-  obj->write(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(189);
   tg->mut_obj().set_name("tag189");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::HOSTGROUP);
-  obj->write(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(12);
   tg->mut_obj().set_name("tag12");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICECATEGORY);
-  obj->write(tg);
-  obj->write(tg);
+  bc.publish(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(23);
   tg->mut_obj().set_name("tag23");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICECATEGORY);
-  obj->write(tg);
-  obj->write(tg);
+  bc.publish(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(112);
   tg->mut_obj().set_name("tag112");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICEGROUP);
-  obj->write(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(123);
   tg->mut_obj().set_name("tag123");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICEGROUP);
-  obj->write(tg);
+  bc.publish(tg);
 
   auto hst = std::make_shared<neb::pb_host>();
   hst->mut_obj().set_host_id(14);
@@ -229,87 +242,98 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
   hst_tag_info = hst->mut_obj().add_tags();
   hst_tag_info->set_id(189);
   hst_tag_info->set_type(TagType::HOSTGROUP);
-  obj->write(hst);
+  bc.publish(hst);
   auto host_custom_var = std::make_shared<neb::pb_custom_variable>();
   host_custom_var->mut_obj().set_host_id(14);
   host_custom_var->mut_obj().set_name("CRITICALITY_LEVEL");
   host_custom_var->mut_obj().set_value("2");
-  obj->write(host_custom_var);
+  bc.publish(host_custom_var);
 
   auto srv = std::make_shared<neb::pb_service>();
   srv->mut_obj().set_host_id(14);
   srv->mut_obj().set_service_id(78);
   srv->mut_obj().set_description("my service/tutu ");
   srv->mut_obj().set_enabled(true);
+  srv->mut_obj().set_severity_id(42);
   auto srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(12);
   srv_tag_info->set_type(TagType::SERVICECATEGORY);
-  obj->write(srv);
+  bc.publish(srv);
   srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(23);
   srv_tag_info->set_type(TagType::SERVICECATEGORY);
-  obj->write(srv);
+  bc.publish(srv);
   srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(112);
   srv_tag_info->set_type(TagType::SERVICEGROUP);
-  obj->write(srv);
+  bc.publish(srv);
   srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(123);
   srv_tag_info->set_type(TagType::SERVICEGROUP);
-  obj->write(srv);
+  bc.publish(srv);
   auto serv_custom_var = std::make_shared<neb::pb_custom_variable>();
   serv_custom_var->mut_obj().set_host_id(14);
   serv_custom_var->mut_obj().set_service_id(78);
   serv_custom_var->mut_obj().set_name("CRITICALITY_LEVEL");
   serv_custom_var->mut_obj().set_value("3");
-  obj->write(serv_custom_var);
+  bc.publish(serv_custom_var);
 
   auto index_mapp = std::make_shared<storage::pb_index_mapping>();
   index_mapp->mut_obj().set_index_id(45);
   index_mapp->mut_obj().set_host_id(14);
   index_mapp->mut_obj().set_service_id(78);
-  obj->write(index_mapp);
+  bc.publish(index_mapp);
 
   auto metric_index = std::make_shared<storage::pb_metric_mapping>();
   metric_index->mut_obj().set_index_id(45);
   metric_index->mut_obj().set_metric_id(145);
-  obj->write(metric_index);
+  bc.publish(metric_index);
 
   auto hg = std::make_shared<neb::pb_host_group>();
   hg->mut_obj().set_hostgroup_id(88);
+  hg->mut_obj().set_poller_id(1);
   hg->mut_obj().set_name("host_ group 88");
   hg->mut_obj().set_enabled(true);
-  obj->write(hg);
+  bc.publish(hg);
   hg = std::make_shared<neb::pb_host_group>();
   hg->mut_obj().set_hostgroup_id(89);
+  hg->mut_obj().set_poller_id(1);
   hg->mut_obj().set_name("host_ group 89");
   hg->mut_obj().set_enabled(true);
-  obj->write(hg);
+  bc.publish(hg);
 
   auto hgm = std::make_shared<neb::pb_host_group_member>();
   hgm->mut_obj().set_hostgroup_id(88);
+  hgm->mut_obj().set_name("host_ group 88");
+  hgm->mut_obj().set_poller_id(1);
   hgm->mut_obj().set_host_id(14);
   hgm->mut_obj().set_enabled(true);
-  obj->write(hgm);
+  bc.publish(hgm);
   hgm = std::make_shared<neb::pb_host_group_member>();
   hgm->mut_obj().set_hostgroup_id(89);
+  hgm->mut_obj().set_name("host_ group 89");
+  hgm->mut_obj().set_poller_id(1);
   hgm->mut_obj().set_host_id(14);
   hgm->mut_obj().set_enabled(true);
-  obj->write(hgm);
+  bc.publish(hgm);
 
   auto sgm = std::make_shared<neb::pb_service_group_member>();
   sgm->mut_obj().set_servicegroup_id(1278);
+  sgm->mut_obj().set_name("sg 1278");
+  sgm->mut_obj().set_poller_id(1);
   sgm->mut_obj().set_host_id(14);
   sgm->mut_obj().set_service_id(78);
   sgm->mut_obj().set_enabled(true);
-  obj->write(sgm);
+  bc.publish(sgm);
 
   sgm = std::make_shared<neb::pb_service_group_member>();
   sgm->mut_obj().set_servicegroup_id(1279);
+  sgm->mut_obj().set_name("sg 1279");
+  sgm->mut_obj().set_poller_id(1);
   sgm->mut_obj().set_host_id(14);
   sgm->mut_obj().set_service_id(78);
   sgm->mut_obj().set_enabled(true);
-  obj->write(sgm);
+  bc.publish(sgm);
 
   line_protocol_query metric_columns(
       victoria_metrics::stream::allowed_macros,
@@ -362,45 +386,48 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
 }
 
 TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
-  auto obj = cache::global_cache::instance_ptr();
+  auto& bc = config::applier::state::instance().cache();
+  /* Severity: the service references severity 42, stored with id 3 in the
+   * database (broker_cache semantic, see the port plan K0 point 3). */
+  bc.set_db_id_for_severity(42, 0, 3);
   auto tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(89);
   tg->mut_obj().set_name("tag89");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::HOSTCATEGORY);
-  obj->write(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(189);
   tg->mut_obj().set_name("tag189");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::HOSTGROUP);
-  obj->write(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(12);
   tg->mut_obj().set_name("tag12");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICECATEGORY);
-  obj->write(tg);
-  obj->write(tg);
+  bc.publish(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(23);
   tg->mut_obj().set_name("tag23");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICECATEGORY);
-  obj->write(tg);
-  obj->write(tg);
+  bc.publish(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(112);
   tg->mut_obj().set_name("tag112");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICEGROUP);
-  obj->write(tg);
+  bc.publish(tg);
   tg = std::make_shared<neb::pb_tag>();
   tg->mut_obj().set_id(123);
   tg->mut_obj().set_name("tag123");
   tg->mut_obj().set_action(Tag_Action::Tag_Action_ADD);
   tg->mut_obj().set_type(TagType::SERVICEGROUP);
-  obj->write(tg);
+  bc.publish(tg);
 
   auto hst = std::make_shared<neb::pb_host>();
   hst->mut_obj().set_host_id(14);
@@ -412,87 +439,98 @@ TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
   hst_tag_info = hst->mut_obj().add_tags();
   hst_tag_info->set_id(189);
   hst_tag_info->set_type(TagType::HOSTGROUP);
-  obj->write(hst);
+  bc.publish(hst);
   auto host_custom_var = std::make_shared<neb::pb_custom_variable>();
   host_custom_var->mut_obj().set_host_id(14);
   host_custom_var->mut_obj().set_name("CRITICALITY_LEVEL");
   host_custom_var->mut_obj().set_value("2");
-  obj->write(host_custom_var);
+  bc.publish(host_custom_var);
 
   auto srv = std::make_shared<neb::pb_service>();
   srv->mut_obj().set_host_id(14);
   srv->mut_obj().set_service_id(78);
   srv->mut_obj().set_description("my service/tutu ");
   srv->mut_obj().set_enabled(true);
+  srv->mut_obj().set_severity_id(42);
   auto srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(12);
   srv_tag_info->set_type(TagType::SERVICECATEGORY);
-  obj->write(srv);
+  bc.publish(srv);
   srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(23);
   srv_tag_info->set_type(TagType::SERVICECATEGORY);
-  obj->write(srv);
+  bc.publish(srv);
   srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(112);
   srv_tag_info->set_type(TagType::SERVICEGROUP);
-  obj->write(srv);
+  bc.publish(srv);
   srv_tag_info = srv->mut_obj().add_tags();
   srv_tag_info->set_id(123);
   srv_tag_info->set_type(TagType::SERVICEGROUP);
-  obj->write(srv);
+  bc.publish(srv);
   auto serv_custom_var = std::make_shared<neb::pb_custom_variable>();
   serv_custom_var->mut_obj().set_host_id(14);
   serv_custom_var->mut_obj().set_service_id(78);
   serv_custom_var->mut_obj().set_name("CRITICALITY_LEVEL");
   serv_custom_var->mut_obj().set_value("3");
-  obj->write(serv_custom_var);
+  bc.publish(serv_custom_var);
 
   auto index_mapp = std::make_shared<storage::pb_index_mapping>();
   index_mapp->mut_obj().set_index_id(45);
   index_mapp->mut_obj().set_host_id(14);
   index_mapp->mut_obj().set_service_id(78);
-  obj->write(index_mapp);
+  bc.publish(index_mapp);
 
   auto metric_index = std::make_shared<storage::pb_metric_mapping>();
   metric_index->mut_obj().set_index_id(45);
   metric_index->mut_obj().set_metric_id(145);
-  obj->write(metric_index);
+  bc.publish(metric_index);
 
   auto hg = std::make_shared<neb::pb_host_group>();
   hg->mut_obj().set_hostgroup_id(88);
+  hg->mut_obj().set_poller_id(1);
   hg->mut_obj().set_name("host_ group 88");
   hg->mut_obj().set_enabled(true);
-  obj->write(hg);
+  bc.publish(hg);
   hg = std::make_shared<neb::pb_host_group>();
   hg->mut_obj().set_hostgroup_id(89);
+  hg->mut_obj().set_poller_id(1);
   hg->mut_obj().set_name("host_ group 89");
   hg->mut_obj().set_enabled(true);
-  obj->write(hg);
+  bc.publish(hg);
 
   auto hgm = std::make_shared<neb::pb_host_group_member>();
   hgm->mut_obj().set_hostgroup_id(88);
+  hgm->mut_obj().set_name("host_ group 88");
+  hgm->mut_obj().set_poller_id(1);
   hgm->mut_obj().set_host_id(14);
   hgm->mut_obj().set_enabled(true);
-  obj->write(hgm);
+  bc.publish(hgm);
   hgm = std::make_shared<neb::pb_host_group_member>();
   hgm->mut_obj().set_hostgroup_id(89);
+  hgm->mut_obj().set_name("host_ group 89");
+  hgm->mut_obj().set_poller_id(1);
   hgm->mut_obj().set_host_id(14);
   hgm->mut_obj().set_enabled(true);
-  obj->write(hgm);
+  bc.publish(hgm);
 
   auto sgm = std::make_shared<neb::pb_service_group_member>();
   sgm->mut_obj().set_servicegroup_id(1278);
+  sgm->mut_obj().set_name("sg 1278");
+  sgm->mut_obj().set_poller_id(1);
   sgm->mut_obj().set_host_id(14);
   sgm->mut_obj().set_service_id(78);
   sgm->mut_obj().set_enabled(true);
-  obj->write(sgm);
+  bc.publish(sgm);
 
   sgm = std::make_shared<neb::pb_service_group_member>();
   sgm->mut_obj().set_servicegroup_id(1279);
+  sgm->mut_obj().set_name("sg 1279");
+  sgm->mut_obj().set_poller_id(1);
   sgm->mut_obj().set_host_id(14);
   sgm->mut_obj().set_service_id(78);
   sgm->mut_obj().set_enabled(true);
-  obj->write(sgm);
+  bc.publish(sgm);
 
   json column = R"([
     {"name" : "host", "is_tag" : "true", "value" : "$HOST$", "type":"string"},
@@ -558,4 +596,34 @@ TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
       "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=tag112\\,tag123 val=75 "
       "1674715598\n",
       req.body());
+}
+
+/* The severity of a host status is the database id of the host severity. */
+TEST_F(victoria_request_test, host_status_severity) {
+  auto& bc = config::applier::state::instance().cache();
+  auto hst = std::make_shared<neb::pb_host>();
+  hst->mut_obj().set_host_id(31);
+  hst->mut_obj().set_name("host 31");
+  hst->mut_obj().set_enabled(true);
+  hst->mut_obj().set_severity_id(7);
+  bc.publish(hst);
+  bc.set_db_id_for_severity(7, Severity_Type_HOST, 12);
+
+  http_tsdb::line_protocol_query dummy_metric(
+      http_tsdb::line_protocol_query::data_type::metric, _logger);
+  http_tsdb::line_protocol_query dummy_status(
+      http_tsdb::line_protocol_query::data_type::status, _logger);
+  victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
+                                "/", _logger, 0, dummy_metric, dummy_status,
+                                "toto");
+  Status status;
+  status.set_host_id(31);
+  status.set_service_id(0);
+  status.set_index_id(5);
+  status.set_time(1674715598);
+  status.set_state(1);
+  req.add_status(status);
+  ASSERT_NE(req.body().find("host_id=31,serv_id=0,severity_id=12"),
+            std::string::npos)
+      << req.body();
 }

@@ -127,6 +127,10 @@ class broker_impl final : public Broker::Service {
                              const AesMessage* request,
                              GenericString* response) override;
 
+  grpc::Status GetPollers(grpc::ServerContext* context,
+                          const ::google::protobuf::Empty* request,
+                          PeerList* response) override;
+
   grpc::Status GetPeers(grpc::ServerContext* context,
                         const ::google::protobuf::Empty* request,
                         PeerList* response) override;
@@ -144,6 +148,40 @@ class broker_impl final : public Broker::Service {
   grpc::Status GetService(grpc::ServerContext* context,
                           const ServiceIdentifier* request,
                           com::centreon::broker::Service* response) override;
+
+  grpc::Status GetHostGroupIds(grpc::ServerContext* context,
+                               const ::google::protobuf::Empty* request,
+                               IdsList* response) override;
+  grpc::Status GetHostGroup(grpc::ServerContext* context,
+                            const GenericNameOrIndex* request,
+                            HostGroup* response) override;
+
+  grpc::Status GetServiceGroupIds(grpc::ServerContext* context,
+                                  const ::google::protobuf::Empty* request,
+                                  IdsList* response) override;
+  grpc::Status GetServiceGroup(grpc::ServerContext* context,
+                               const GenericNameOrIndex* request,
+                               ServiceGroup* response) override;
+
+  grpc::Status GetSeverities(grpc::ServerContext* context,
+                             const ::google::protobuf::Empty* request,
+                             SeverityList* response) override;
+
+  grpc::Status GetTopology(grpc::ServerContext* context,
+                           const ::google::protobuf::Empty* request,
+                           TopologyResponse* response) override;
+
+  grpc::Status GetHostsByTag(grpc::ServerContext* context,
+                             const TagIdentifier* request,
+                             HostList* response) override;
+
+  grpc::Status GetServicesByTag(grpc::ServerContext* context,
+                                const TagIdentifier* request,
+                                ServiceList* response) override;
+
+  grpc::Status GetTags(grpc::ServerContext* context,
+                       const ::google::protobuf::Empty* request,
+                       TagList* response) override;
 
  public:
   broker_impl();

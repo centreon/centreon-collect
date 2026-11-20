@@ -31,16 +31,21 @@ namespace rrd {
  *  Generate an RRD stream that will write files.
  */
 class connector : public io::endpoint {
-  std::string _real_path_of(std::string const& path);
+  std::filesystem::path _real_path_of(std::string const& path);
 
   uint32_t _cache_size;
   std::string _cached_local;
   uint16_t _cached_port;
   bool _ignore_update_errors;
-  std::string _metrics_path;
-  std::string _status_path;
+  std::filesystem::path _metrics_path;
+  std::filesystem::path _status_path;
   bool _write_metrics;
   bool _write_status;
+
+  // Retention buffer configuration
+  uint32_t _retention_max_pending_points;  // point-count threshold per batch
+  uint32_t _retention_max_files;           // max rotated files before forced merge
+  uint32_t _retention_orphan_interval;     // seconds before orphan cleanup
 
  public:
   connector();
@@ -56,6 +61,9 @@ class connector : public io::endpoint {
   void set_status_path(std::string const& status_path);
   void set_write_metrics(bool write_metrics) noexcept;
   void set_write_status(bool write_status) noexcept;
+  void set_retention_max_pending_points(uint32_t n) noexcept;
+  void set_retention_max_files(uint32_t n) noexcept;
+  void set_retention_orphan_interval(uint32_t seconds) noexcept;
 };
 }  // namespace rrd
 

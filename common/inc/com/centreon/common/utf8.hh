@@ -33,13 +33,13 @@ namespace com::centreon::common {
  * @return a reference to the string str.
  */
 template <typename T>
-fmt::string_view truncate_utf8(const T& str, size_t s) {
+std::string_view truncate_utf8(const T& str, size_t s) {
   if (s >= str.size())
-    return fmt::string_view(str);
+    return std::string_view(str.data(), str.size());
   if (s > 0)
     while ((str[s] & 0xc0) == 0x80)
       s--;
-  return fmt::string_view(str.data(), s);
+  return std::string_view(str.data(), s);
 }
 
 std::string check_string_utf8(const std::string_view& str) noexcept;

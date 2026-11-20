@@ -31,7 +31,7 @@ Adding a protobuf event, in one pull request:
 2. `de_pb_<name>` at the end of its enum in `bbdo/events.hh`, below 64.
 3. The `pb_<name>` alias and its `register_event(type, "<Name>", &pb_<name>::operations, "<table>")` in the module's `broker_module_init` (`broker/neb/src/broker.cc` for NEB events). Names must be unique: the first registration wins.
 4. Producer: `engine/src/broker.cc` (through `cbm->write()`), only when `cbm->use_protobuf()`, or the Broker module that creates it.
-5. Consumers: an entry in `unified_sql::stream::neb_processing_table` at the element's index (`nullptr` if ignored), the global cache when outputs need it (`broker/doc/broker-doc.md` § Adding a new proto class to the cache), BAM if it is a BAM input.
+5. Consumers: an entry in `unified_sql::stream::neb_processing_table` at the element's index (`nullptr` if ignored), `broker_cache` when outputs need it (`broker/doc/broker-doc.md` § Adding an object to the cache), BAM if it is a BAM input.
 6. Unit test of the serialisation and a Robot test of the producer–consumer path.
 
 Rules:
@@ -62,7 +62,7 @@ Rules:
 
 - Use the shared pool (`common::pool::io_context()`) for asynchronous work. A new `std::thread` needs the owner's agreement; existing ones are listed in the architecture file.
 - New shared state: `absl::Mutex` with `ABSL_GUARDED_BY` / `ABSL_LOCKS_EXCLUDED`, as in `multiplexing::engine` and `failover`.
-- Global cache: hold a `global_cache::lock` while using a pointer it returned, never while calling `write()`, and handle `interprocess::bad_alloc` outside any lock (`global_cache.hh`).
+- Broker cache: reach it through `config::applier::state::instance().cache()`. It exposes no lock: each getter locks it internally, so never call it while holding a lock it may wait on. Only `multiplexing::engine` calls `publish()`; an output enables the sections it reads with `enable_section()` (`broker_cache.hh`).
 - `processing::failover` and `acceptor` own their thread; stream code never creates the thread that drives it.
 
 ## Logging

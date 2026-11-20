@@ -36,7 +36,7 @@ BECSS1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -72,7 +72,7 @@ BECSS2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -110,7 +110,7 @@ BECSS3
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -148,7 +148,7 @@ BECSS4
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -189,7 +189,7 @@ BECSS_GRPC1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -230,7 +230,7 @@ BECSS_GRPC2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -273,7 +273,7 @@ BECSS_GRPC3
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -316,7 +316,7 @@ BECSS_GRPC4
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -353,7 +353,7 @@ BECSS_GRPC_COMPRESS1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection not established between Engine and Broker
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -365,20 +365,19 @@ BECSS_GRPC_COMPRESS1
     Ctn Kindly Stop Broker
 
 BECSS_CRYPTED_GRPC1
-    [Documentation]    Start-Stop grpc version Broker/Engine - well configured
-    ...    FIXME DBO: We don't have the global cache for now. So this test can't
-    ...    pass. The first step, broker ends the full configuration to engine.
-    ...    At the second step, both restart and know the engine configuration.
-    ...    Broker doesn't send it to engine and engine doesn't ask for it.
-    ...    The global diff is not aware of the engine configuration.
-    ...    Disabled resources are not re-enabled. And we can't just enable resources
-    ...    match this poller id because disabling a resource means two things:
-    ...    1) This resource is really disabled for now.
-    ...    2) This resource doesn't exist anymore.
+    [Documentation]    Scenario: Repeated start/stop cycles with gRPC and mutual TLS in centralized configuration mode
     ...
-    ...    In the first case, the resource must be enabled whereas in the second case,
-    ...    the resource must not be enabled.
-    [Tags]    broker    engine    start-stop    unstable
+    ...    Given a centralized Engine configuration with gRPC and server-side TLS encryption
+    ...    When Broker and Engine are started for the first time
+    ...    Then Broker detects the lock file, sends the configuration to Engine and receives the ack
+    ...    And the database shows 50 enabled hosts and 1000 enabled services for poller 1
+    ...    When Engine is stopped
+    ...    Then all hosts for poller 1 are disabled in the database
+    ...    When Broker and Engine are restarted (4 additional times)
+    ...    Then both reload from their cached configuration files (.prot for Broker, state.prot for Engine)
+    ...    And no new configuration is exchanged
+    ...    And the database consistently shows 50 enabled hosts and 1000 enabled services
+    [Tags]    broker    engine    start-stop
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -401,29 +400,38 @@ BECSS_CRYPTED_GRPC1
     Ctn Clear Prot Files
 
     FOR    ${i}    IN RANGE    0    5
+        ${start}    Ctn Get Round Current Date
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
-	${start}    Ctn Get Round Current Date
-	${result}    Ctn In Bbdo2
-	Should Not Be True    ${result}    We should be in BBDO3 in this test.
+        ${result}    Ctn In Bbdo2
+        Should Not Be True    ${result}    We should be in BBDO3 in this test.
         ${result}    Ctn Check Connections
         Should Be True    ${result}    Connection between Engine and Broker not established
 
-	${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1
-        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-        Should Be True    ${result}    No new Engine configuration found in central cbd log
+        # On the first iteration the .lck file is present so Broker processes
+        # the new configuration and sends it to Engine.  On subsequent iterations
+        # the .lck file has been deleted by Broker; both sides already know the
+        # configuration (Broker from its .prot file, Engine from state.prot).
+        IF    ${i} == 0
+            ${content}    Create List
+            ...    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1
+            ...    sending DiffState to poller 1
+            ...    BBDO: received diff state ack
+            ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+            Should Be True    ${result}    No new Engine configuration found in central cbd log
+        END
 
-	Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-	Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled=1    ==    ${50}    retry_timeout=30s    retry_pause=1s
-	Check Query Result    SELECT COUNT(*) FROM resources WHERE parent_id=0 AND poller_id=1 AND enabled=1    ==    ${50}    retry_timeout=30s    retry_pause=1s
-	Check Query Result    SELECT COUNT(*) FROM services s LEFT JOIN hosts h ON h.host_id=s.host_id AND s.enabled=1 WHERE h.instance_id=1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
-	Check Query Result    SELECT COUNT(*) FROM resources WHERE parent_id<>0 AND poller_id=1 AND enabled=1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
-	Disconnect From Database
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled=1    ==    ${50}    retry_timeout=30s    retry_pause=1s
+        Check Query Result    SELECT COUNT(*) FROM resources WHERE parent_id=0 AND poller_id=1 AND enabled=1    ==    ${50}    retry_timeout=30s    retry_pause=1s
+        Check Query Result    SELECT COUNT(*) FROM services s LEFT JOIN hosts h ON h.host_id=s.host_id AND s.enabled=1 WHERE h.instance_id=1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+        Check Query Result    SELECT COUNT(*) FROM resources WHERE parent_id<>0 AND poller_id=1 AND enabled=1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+        Disconnect From Database
 
         Ctn Stop Engine
-	Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-	Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled>0    ==    ${0}    retry_timeout=30s    retry_pause=1s
-	Disconnect From Database
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled>0    ==    ${0}    retry_timeout=30s    retry_pause=1s
+        Disconnect From Database
 
         Ctn Kindly Stop Broker
     END
@@ -578,7 +586,7 @@ BECSS_ENGINE_DELETE_HOST
     Ctn Engine Config Remove Host    ${0}    host_16
     Ctn Notify Broker Of Engine Config Change    ${0}
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 

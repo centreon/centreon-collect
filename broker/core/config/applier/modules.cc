@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013, 2021-2024 Centreon
+ * Copyright 2011-2013, 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -174,11 +174,11 @@ bool modules::load_file(const std::string& filename, const void* arg) {
       void* parents = dlsym(h, handle::parents_list);
       if (parents) {
         size_t pos = filename.find_last_of('/');
-        fmt::string_view path;
+        std::string_view path;
         if (pos != std::string::npos)
-          path = fmt::string_view(filename.data(), pos);
+          path = std::string_view(filename.data(), pos);
         else
-          path = fmt::string_view(".", 1);
+          path = std::string_view(".", 1);
         union {
           const char* const* (*code)();
           void* data;

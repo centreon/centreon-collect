@@ -84,6 +84,7 @@ class log_v2 {
     RUNTIME = 28,
     OTL = 29,
     EVENT_SCRIPT = 30,
+    CACHE = 31,
     LOGGER_SIZE
   };
 

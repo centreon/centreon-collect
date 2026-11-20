@@ -23,11 +23,10 @@ CBEUDHOSTS
     ...    And poller 1 should monitor exactly (17 hosts × services) + 17 hosts
     ...    And poller 2 should monitor exactly (17 hosts × services) + 17 hosts
     ...    And poller 3 should monitor exactly (16 hosts × services) + 16 hosts
-    ...    And each verification should complete within 30 seconds
     ...    And the load balancing should remain stable during scaling
     [Tags]    MON-187019
     Ctn Clear Engine Configurations
-
+    Ctn Clear Prot Files
     Ctn Config Centralized Engine    ${2}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -48,10 +47,10 @@ CBEUDHOSTS
     Should Be True    ${result}    The two pollers did not acknowledge their configuration as they should have
 
     ${content}    Create List
-    ...    Merging diff file '/tmp/var/lib/centreon-broker/pollers-configuration/diff-1.prot' into the global one
-    ...    Merging diff file '/tmp/var/lib/centreon-broker/pollers-configuration/diff-2.prot' into the global one
+    ...    Merging diff file '/tmp/var/lib/centreon-broker/central-broker-master/pollers-configuration/diff-1.prot' into the global one
+    ...    Merging diff file '/tmp/var/lib/centreon-broker/central-broker-master/pollers-configuration/diff-2.prot' into the global one
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    The two pollers did not acknowledge their configuration as they should have
+    Should Be True    ${result}    Diff files should have been merged into the global diff file
 
     ${content}    Create List    Publishing global diff state
     ...    processing global diff state event

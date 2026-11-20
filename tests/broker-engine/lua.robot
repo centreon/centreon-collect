@@ -273,11 +273,14 @@ LUA_CACHE_SAVE_BBDO3
     Should Not Be Empty    ${result}    Service cache OK not found in lua output
 
 LUA_CACHE_SAVE_HOST_GROUP
-    [Documentation]    Given two engines configured, 
-    ...    we create a first host group of two hosts of poller1, then we create a second host group that only contains one host of poller1
-    ...    then we delete all hosts from second host group, we delete a host from first host
-    ...    we create a group that contains one host of each poller, we remove first host group, we remove one host from the last created group
-    ...    we expect that lua cache will be synchronized with all that modifications
+    [Documentation]    Scenario: the Lua broker_cache follows the host group changes of the pollers
+    ...    Given two pollers and a Lua output that dumps the host groups of each host
+    ...    And host group 1 holds host_1 and host_2 on poller 0
+    ...    When host group 2 is added with host_2, then removed
+    ...    And host_1 leaves host group 1
+    ...    And host group 2 spans both pollers (host_2 on poller 0, host_3 and host_4 on poller 1)
+    ...    And host group 1 is removed, then host_4 leaves host group 2
+    ...    Then after each Engine reload the Lua cache gives each host exactly its host groups
 
     [Tags]    broker    engine    services    lua    MON-191980
     Ctn Clear Commands Status
@@ -292,6 +295,8 @@ LUA_CACHE_SAVE_HOST_GROUP
 
     Ctn Broker Config Log    central    neb    trace
     Ctn Broker Config Log    central    lua    debug
+    Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    cache    debug
     Ctn Broker Config Add Lua Output    central    test-LUA    ${SCRIPTS}/dump_host.lua
 
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
@@ -308,8 +313,10 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    ${content}    Create List    processing pb host group
+    # broker_cache logs every host group event it applies (core logger, debug)
+    ${content}    Create List    Updating host group
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
@@ -328,6 +335,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
@@ -352,6 +360,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
@@ -379,6 +388,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
@@ -408,6 +418,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
@@ -442,6 +453,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
@@ -473,6 +485,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
@@ -505,6 +518,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
@@ -536,6 +550,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${5}
 
     ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
@@ -556,11 +571,15 @@ LUA_CACHE_SAVE_HOST_GROUP
 
 
 LUA_CACHE_SAVE_SERVICE_GROUP
-    [Documentation]    Given two engines configured, 
-    ...    we create a first service group of two services of poller1, then we create a second service group that only contains one service of poller1
-    ...    then we delete all services from second service group, we delete a service from first service
-    ...    we create a group that contains one service of each poller, we remove first service group, we remove one service from the last created group
-    ...    we expect that lua cache will be synchronized with all that modifications
+    [Documentation]    Scenario: the Lua broker_cache follows the service group changes of the pollers
+    ...    Given two pollers and a Lua output that dumps the service groups of each service
+    ...    And service group 1 holds service_1 and service_2 of host_1 on poller 0
+    ...    When service group 2 is added with service_2, then removed
+    ...    And service_1 leaves service group 1
+    ...    And service group 2 spans both pollers (service_2 on poller 0, service_3 and service_4 on poller 1)
+    ...    And service group 1 is removed, then service_4 leaves service group 2
+    ...    And every service group is removed
+    ...    Then after each Engine reload the Lua cache gives each service exactly its service groups
 
     [Tags]    broker    engine    services    lua    MON-191980
     Ctn Clear Commands Status
@@ -576,6 +595,8 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     #Ctn Broker Config Log    central    processing    trace
     Ctn Broker Config Log    central    neb    trace
     Ctn Broker Config Log    central    lua    debug
+    Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    cache    debug
     Ctn Broker Config Add Lua Output    central    test-LUA    ${SCRIPTS}/dump_service.lua
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
 
@@ -594,8 +615,10 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    ${content}    Create List    processing pb service group
+    # broker_cache logs every service group event it applies (core logger, debug)
+    ${content}    Create List    Updating service group
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    1
@@ -614,6 +637,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    1
@@ -638,6 +662,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    1
@@ -665,6 +690,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    2
@@ -695,6 +721,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    1
@@ -729,6 +756,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    1
@@ -760,6 +788,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    1
@@ -792,6 +821,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${1}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    1
@@ -823,6 +853,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No group event applied by the Broker cache.
     Sleep    ${2}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    1

@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon notification
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -15,6 +15,7 @@ not1_reload
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${2}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -69,6 +70,7 @@ not1
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -165,6 +167,7 @@ not1_WL_OK
     ...    a notification is sent because it is allowed by the whitelist
     [Tags]    broker    engine    services    hosts    notification    whitelist    MON-75741
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -210,6 +213,7 @@ not1_WL_KO
     ...    a notification should be sent but it is not allowed by the whitelist
     [Tags]    broker    engine    services    hosts    notification    whitelist    MON-75741
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -255,6 +259,7 @@ not2
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -307,6 +312,7 @@ not3
     [Documentation]    This test case configures a single service and verifies the notification system's behavior during and after downtime
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
+    Ctn Clear Engine White List
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -370,6 +376,7 @@ not4
     [Tags]    broker    engine    services    acknowledgement    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -428,6 +435,7 @@ not5
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -494,6 +502,7 @@ not6
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -554,6 +563,7 @@ not7
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -587,6 +597,7 @@ not8
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -620,6 +631,7 @@ not9
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -635,7 +647,7 @@ not9
 
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-     ## Time to set the host to CRITICAL HARD.
+    ## Time to set the host to CRITICAL HARD.
     FOR    ${i}    IN RANGE    ${4}
         Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
@@ -701,22 +713,22 @@ Ctn Config Escalations
     Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
     Ctn Engine Config Set Value In Services    0    service_1    contact_groups    contactgroup_1
     Ctn Engine Config Replace Value In Services    0    service_1    active_checks_enabled    0
-    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts     1
-    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Services    0    service_1    notification_interval    1
-    Ctn Engine Config Replace Value In Services    0    service_1    check_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
     Ctn Engine Config Replace Value In Services    0    service_1    check_command    command_4
     Ctn Engine Config Set Value In Services    0    service_2    contact_groups    contactgroup_1
-    Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts     1
+    Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts    1
     Ctn Engine Config Set Value In Services    0    service_2    notification_options    c
     Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_2    first_notification_delay    0
     Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
     Ctn Engine Config Set Value In Services    0    service_2    notification_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    first_notification_delay    0
-    Ctn Engine Config Replace Value In Services    0    service_2    check_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_2    check_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    active_checks_enabled    0
-    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    check_command    command_4
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif

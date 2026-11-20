@@ -112,6 +112,7 @@ void stream::negotiate(stream::negotiation_type neg) {
     deadline = time(nullptr) + timeout();
 
   _read_any(d, deadline);
+  /* Unexpected or missing response. */
   if (!d || (d->type() != version_response::static_type() &&
              d->type() != pb_welcome::static_type())) {
     std::string msg;
@@ -183,10 +184,10 @@ void stream::negotiate(stream::negotiation_type neg) {
     }
     peer_extensions = v->extensions;
   } else {
-    std::shared_ptr<pb_welcome> w(std::static_pointer_cast<pb_welcome>(d));
+    const auto& w = std::static_pointer_cast<pb_welcome>(d)->obj();
     _logger->trace("BBDO: received pb_welcome packet: {}",
-                   w->obj().DebugString());
-    const auto& pb_version = w->obj().version();
+                   w.ShortDebugString());
+    const auto& pb_version = w.version();
     bbdo_version other_version(pb_version.major(), pb_version.minor(),
                                pb_version.patch());
     if (pb_version.major() != my_bbdo_version.major_v) {
@@ -224,19 +225,14 @@ void stream::negotiate(stream::negotiation_type neg) {
                            my_bbdo_version.patch);
       }
 
-      /* if _negotiate, we send all the extensions we would like to have,
-       * otherwise we only send the mandatory extensions */
-      auto welcome(std::make_shared<pb_welcome>());
+      auto welcome = std::make_shared<pb_welcome>();
       auto& obj = welcome->mut_obj();
-      obj.mutable_version()->set_major(
-          std::min(my_bbdo_version.major_v,
-                   static_cast<uint16_t>(w->obj().version().major())));
-      obj.mutable_version()->set_minor(
-          std::min(my_bbdo_version.minor_v,
-                   static_cast<uint16_t>(w->obj().version().minor())));
-      obj.mutable_version()->set_patch(
-          std::min(my_bbdo_version.patch,
-                   static_cast<uint16_t>(w->obj().version().patch())));
+      obj.mutable_version()->set_major(std::min(
+          my_bbdo_version.major_v, static_cast<uint16_t>(w.version().major())));
+      obj.mutable_version()->set_minor(std::min(
+          my_bbdo_version.minor_v, static_cast<uint16_t>(w.version().minor())));
+      obj.mutable_version()->set_patch(std::min(
+          my_bbdo_version.patch, static_cast<uint16_t>(w.version().patch())));
       obj.set_extensions(extensions);
       obj.set_poller_id(config::applier::state::instance().poller_id());
       obj.set_poller_name(config::applier::state::instance().poller_name());
@@ -248,13 +244,13 @@ void stream::negotiate(stream::negotiation_type neg) {
       _write(welcome);
       _substream->flush();
     }
-    peer_engine_conf = w->obj().engine_conf();
-    peer_extensions = w->obj().extensions();
-    set_poller_id(w->obj().poller_id());
-    set_poller_name(w->obj().poller_name());
-    set_broker_name(w->obj().broker_name());
+    peer_engine_conf = w.engine_conf();
+    peer_extensions = w.extensions();
+    set_poller_id(w.poller_id());
+    set_poller_name(w.poller_name());
+    set_broker_name(w.broker_name());
 
-    set_peer_type(w->obj().peer_type());
+    set_peer_type(w.peer_type());
     if (peer_type() != common::UNKNOWN) {
       /* We are in the bbdo stream, _poller_id, _broker_name,
        * _extended_negotiation are informations about the peer, not us. */
@@ -268,7 +264,7 @@ void stream::negotiate(stream::negotiation_type neg) {
   // Apply negotiated extensions.
   SPDLOG_LOGGER_INFO(
       _logger, "BBDO: we have extensions '{}' and peer has '{}'", extensions,
-      fmt::string_view(peer_extensions.data(), peer_extensions.size()));
+      peer_extensions);
   std::list<std::string_view> peer_ext{absl::StrSplit(peer_extensions, ' ')};
   for (auto& ext : _extensions) {
     // Find matching extension in peer extension list.
@@ -344,6 +340,22 @@ void stream::negotiate(stream::negotiation_type neg) {
     config::applier::state::instance().add_peer(
         poller_id(), poller_name(), broker_name(), peer_type(),
         _extended_negotiation, peer_engine_conf);
+    if (!config::applier::state::instance().is_peer_conf_known(poller_id())) {
+      _logger->error("No known configuration for the poller {}:{}:{}",
+                     poller_id(), poller_name(), broker_name());
+      /* We send an unknown diff state to let the peer know that its
+       * configuration is not known by Broker. */
+      if (_extended_negotiation && peer_type() == common::ENGINE &&
+          supports_centralized_conf()) {
+        _logger->debug(
+            "Sending unknown diff state to peer {}:{}:{} to let it know that "
+            "its configuration is not known by Broker.",
+            poller_id(), poller_name(), broker_name());
+        auto diff_state = std::make_shared<bbdo::pb_diff_state>();
+        diff_state->mut_obj().set_unknown(true);
+        _write(diff_state);
+      }
+    }
   }
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }

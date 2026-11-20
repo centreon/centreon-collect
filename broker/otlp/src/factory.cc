@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/otlp/factory.hh"
 
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/otlp/connector.hh"
 #include "com/centreon/common/file_system.hh"
@@ -196,8 +196,8 @@ void factory::set_default_values(config::endpoint& cfg) const {
 /**
  * @brief Create the connector of an OTLP output.
  *
- * The global cache is loaded first when the applier state is loaded, because
- * host names are resolved from it.
+ * When the applier state is loaded, the broker_cache sections it reads are
+ * enabled, because host names are resolved from it.
  *
  * @param cfg endpoint configuration
  * @param global_params unused
@@ -226,12 +226,12 @@ io::endpoint* factory::new_endpoint(
                     config::applier::state::instance().cache_dir(), cfg.name),
         log_v2::instance().get(log_v2::OTL));
 
-  /* host.name resolution needs the persistent cache. Guarded because the
-   * applier state is not loaded under unit tests. */
+  /* host.name, service description and OTel identity come from broker_cache.
+   * Guarded because the applier state is not loaded under unit tests. */
   if (config::applier::state::loaded())
-    cache::global_cache::load(
-        com::centreon::common::pool::io_context_ptr(),
-        config::applier::state::instance().cache_dir() + ".cache.global");
+    config::applier::state::instance().cache().enable_section(
+        cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
+        cache::broker_cache::CACHE_OTEL);
 
   SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::OTL),
                      "otlp: endpoint '{}' exporting to {}", cfg.name,
