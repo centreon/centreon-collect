@@ -60,11 +60,36 @@ class state {
 
   static stats _stats_conf;
 
+  /* --- Startup readiness barrier ---
+   * On (re)start the multiplexing engine is not started until every output
+   * stream created at startup has registered as ready (notify_output_ready),
+   * so state restored on restart (BAM inherited downtimes, Lua state, ...) is
+   * published only after each output has emitted its own startup definitions
+   * and they have been flushed. A timeout releases the barrier anyway so the
+   * process is never left mute. Shared by all state subclasses (cbd and cbmod);
+   * only the post-release action differs (see _on_barrier_released()). */
+  mutable absl::Mutex _barrier_m;
+  bool _barrier_armed ABSL_GUARDED_BY(_barrier_m) = false;
+  bool _barrier_released ABSL_GUARDED_BY(_barrier_m) = false;
+  absl::flat_hash_set<std::string> _barrier_expected ABSL_GUARDED_BY(_barrier_m);
+  absl::flat_hash_set<std::string> _barrier_ready ABSL_GUARDED_BY(_barrier_m);
+  std::unique_ptr<boost::asio::steady_timer> _barrier_timer
+      ABSL_GUARDED_BY(_barrier_m);
+  void _maybe_release_barrier(bool forced) ABSL_LOCKS_EXCLUDED(_barrier_m);
+
  protected:
   std::shared_ptr<spdlog::logger> _logger;
   state(common::PeerType peer_type,
         const std::shared_ptr<spdlog::logger>& logger);
   virtual ~state() = default;
+
+  /* Arm the startup readiness barrier at the end of apply() (or start the engine
+   * immediately when there is nothing to wait for / in --check mode). */
+  void _enable_multiplexing(bool run_mux);
+  /* Hook invoked once, right after the engine is started when the barrier
+   * releases. The base does nothing; broker_state re-injects persisted active
+   * downtimes here so they are ordered after the flushed startup definitions. */
+  virtual void _on_barrier_released() {}
 
  public:
   static state& instance();
@@ -111,6 +136,10 @@ class state {
   virtual bool has_connection_from_poller(uint64_t poller_id) const = 0;
   virtual void set_instance_running(uint64_t /*poller_id*/,
                                     bool /*running*/) noexcept {}
+  /* Called by an output stream's failover once it has completed its first
+   * open()/load, to release the startup readiness barrier when all output
+   * streams created at startup are ready. */
+  void notify_output_ready(const std::string& endpoint_name);
   virtual bool supports_centralized_conf() const { return false; }
   void initialize_cache();
   void clear_cache();

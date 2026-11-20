@@ -146,6 +146,11 @@ class broker_state : public state {
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
 
+  /* Startup readiness barrier hook (mechanism lives in the base state): once the
+   * engine is started, re-inject the persisted active downtimes so they are
+   * ordered after the flushed startup definitions. No-op in non-broker mode. */
+  void _on_barrier_released() override;
+
   bool _prepare_diff_for_poller(
       uint64_t poller_id,
       std::unique_ptr<engine::configuration::State>&& state)
