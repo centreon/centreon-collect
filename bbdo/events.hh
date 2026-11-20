@@ -96,6 +96,8 @@ enum data_element {
   de_pb_stop = 9,
   de_pb_diff_state = 10,
   de_pb_diff_state_ack = 11,
+  de_pb_config_request = 12,
+  de_pb_config_revoke = 13,
 };
 }
 namespace neb {

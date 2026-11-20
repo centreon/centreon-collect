@@ -58,3 +58,10 @@ target_precompile_headers(cbmod_applier_state PRIVATE ../../precomp_inc/precomp.
 set_target_properties(cbmod_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_dependencies(cbmod_applier_state process_stat)
+
+if(WITH_TESTING)
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES}
+      ${CMAKE_CURRENT_SOURCE_DIR}/test/broker_state_relay.cc
+      PARENT_SCOPE)
+endif(WITH_TESTING)
