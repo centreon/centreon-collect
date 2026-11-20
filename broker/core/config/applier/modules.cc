@@ -19,7 +19,6 @@
 #include "broker/core/config/applier/modules.hh"
 
 #include "com/centreon/broker/misc/filesystem.hh"
-#include "com/centreon/broker/modules/handle.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"

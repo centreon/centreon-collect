@@ -81,7 +81,12 @@ class broker_state : public state {
     bool extended_negotiation;
   };
 
+ public:
+  enum notification_mode { notification_mode_engine, notification_mode_broker };
+
  private:
+  notification_mode _notification_mode = notification_mode_engine;
+
   /* In a Broker configuration, this object contains the configuration cache
    * directory used by php. We can find there all the pollers configurations. */
   std::filesystem::path _cache_config_dir;

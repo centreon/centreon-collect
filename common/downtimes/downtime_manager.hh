@@ -62,6 +62,10 @@ class downtime_manager {
     return *_instance;
   }
 
+  static bool is_loaded() noexcept { return _instance != nullptr; }
+
+  static void unload() noexcept { _instance.reset(); }
+
   std::multimap<time_t, std::shared_ptr<downtime>> const&
   get_scheduled_downtimes() const;
 
@@ -84,17 +88,17 @@ class downtime_manager {
   void validate_downtime_data();
   uint64_t get_next_downtime_id();
   bool schedule_downtime(downtime::type type,
-                        const uint64_t host_id,
-                        const uint64_t service_id,
-                        time_t entry_time,
-                        const std::string& author,
-                        const std::string& comment_data,
-                        time_t start_time,
-                        time_t end_time,
-                        bool fixed,
-                        uint64_t triggered_by,
-                        uint32_t duration,
-                        uint64_t* new_downtime_id);
+                         const uint64_t host_id,
+                         const uint64_t service_id,
+                         time_t entry_time,
+                         const std::string& author,
+                         const std::string& comment_data,
+                         time_t start_time,
+                         time_t end_time,
+                         bool fixed,
+                         uint64_t triggered_by,
+                         uint32_t duration,
+                         uint64_t* new_downtime_id);
   downtime_callbacks& callbacks() const;
 };
 }  // namespace com::centreon::common::downtimes

@@ -202,6 +202,22 @@ service Broker {
    * @return A TagList message containing one TagEntry per cached tag.
    */
   rpc GetTags(google.protobuf.Empty) returns (TagList) {}
+
+  /**
+   * @brief Schedule a host or service downtime (notification_mode = broker).
+   *
+   * Only available when the downtime manager has been loaded, i.e. when
+   * notification_mode = broker is set in the Broker configuration.
+   *
+   * @return A ScheduleDowntimeResponse containing the new downtime ID.
+   */
+  rpc ScheduleDowntime(ScheduleDowntimeRequest)
+      returns (ScheduleDowntimeResponse) {}
+
+  /**
+   * @brief Delete (cancel) a previously scheduled downtime.
+   */
+  rpc DeleteDowntime(GenericNameOrIndex) returns (google.protobuf.Empty) {}
 }
 
 message PollerEntry {
@@ -502,4 +518,32 @@ message TagEntry {
 
 message TagList {
   repeated TagEntry entries = 1;
+}
+
+message ScheduleDowntimeRequest {
+  enum DowntimeType {
+    HOST = 0;
+    SERVICE = 1;
+  }
+  DowntimeType type = 1;
+  oneof host {
+    string host_name = 2;
+    uint64 host_id = 3;
+  }
+  oneof service {
+    string service_description = 4;
+    uint64 service_id = 5;
+  }
+  int64 entry_time = 6;
+  string author = 7;
+  string comment_data = 8;
+  int64 start_time = 9;
+  int64 end_time = 10;
+  bool fixed = 11;
+  uint64 triggered_by = 12;
+  uint32 duration = 13;
+}
+
+message ScheduleDowntimeResponse {
+  uint64 downtime_id = 1;
 }

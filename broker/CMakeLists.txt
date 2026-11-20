@@ -320,6 +320,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/time.cc
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/modules/handle.cc
+    ${SRC_DIR}/broker_downtime_callbacks.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
     ${SRC_DIR}/processing/acceptor.cc
@@ -350,6 +351,7 @@ target_link_libraries(
   sql
   broker_cache
   bbdo_bbdo
+  downtimes_lib
   pb_broker_lib
   ctncrypto
   process_stat)

@@ -31,12 +31,10 @@
 namespace asio = boost::asio;
 
 #include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
 
 #include "broker/core/config/applier/init.hh"
 
 #include "broker/core/config/applier/endpoint.hh"
-#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -44,7 +42,6 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
 #include "com/centreon/common/pool.hh"
-#include "common/log_v2/log_v2.hh"
 
 using com::centreon::common::log_v2::log_v2;
 
@@ -114,14 +111,12 @@ void deinit() {
 
 // Explicit instanciations of templates
 #if defined BROKER_COMPILATION
-#include "broker/core/config/applier/broker_state.hh"
 
 template void init<broker_state>(const std::string&,
                                  size_t,
                                  const std::string&,
                                  size_t);
 #elif defined CBMOD_COMPILATION
-#include "broker/core/config/applier/cbmod_state.hh"
 
 template void init<cbmod_state>(const std::string&,
                                 size_t,
