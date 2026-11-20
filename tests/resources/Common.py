@@ -560,20 +560,16 @@ def ctn_stop_mysql():
 
 
 def ctn_stop_rrdcached():
-    getoutput(
-        "killall  /usr/bin/rrdcached")
+    getoutput("pkill -9 -f '/usr/bin/rrdcached'")
 
 
 def ctn_kill_broker():
-    getoutput(
-        "killall -SIGKILL /usr/sbin/cbwd")
-    getoutput(
-        "killall -SIGKILL /usr/sbin/cbd")
+    getoutput("pkill -SIGKILL -f '/usr/sbin/cbwd'")
+    getoutput("pkill -SIGKILL -f '/usr/sbin/cbd'")
 
 
 def ctn_kill_engine():
-    getoutput(
-        "killall -SIGKILL /usr/sbin/centengine")
+    getoutput("pkill -SIGKILL -f '/usr/sbin/centengine'")
     Engine.ctn_clear_instances()
 
 

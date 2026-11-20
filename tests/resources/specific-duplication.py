@@ -9,9 +9,18 @@ def ctn_files_contain_same_json(file_e: str, file_b: str):
     """
     ctn_files_contain_same_json
 
-    Given two files with md5 as rows, this function checks the first list
-    contains the same md5 as the second list. There are exceptions in these files
-    that's why we need a function to make this test.
+    Given the two files produced by the Engine-side and Broker-side stream
+    connectors, this function checks that both contain the SAME set of events.
+
+    The comparison is order-insensitive: the Engine-side muxer and the
+    Broker-side muxer can legitimately observe the same events in a different
+    order (e.g. during a Broker restart, the BBDO3 centralized-configuration
+    resync re-orders the replayed events relative to the Engine's local log
+    messages). Only the multiset of events must match, not their ordering.
+
+    Matching is done first by md5 (identical serialized events) and then, for
+    the remainder, by a field-by-field comparison that tolerates small float
+    differences (e.g. execution_time, latency).
 
     Args:
         file_e (str): The log file produced by Engine
@@ -20,74 +29,77 @@ def ctn_files_contain_same_json(file_e: str, file_b: str):
     Returns:
         A boolean that is True on success, False otherwise.
     """
+    from collections import defaultdict, deque
+
     new_inst = '{"_type": 4294901762, "category": 65535, "element": 2, "broker_id": 1, "broker_name": "",' \
                '"enabled": True, "poller_id": 1, "poller_name": "Central"}'.upper()
 
-    f1 = open(file_e)
-    content1 = f1.readlines()
+    # "<date>: INFO: <type> <md5> <json>"
+    r = re.compile(r"INFO:\s+\d+\s+([0-9a-f]+)\s+(\{.*\})\s*$")
 
-    f2 = open(file_b)
-    content2 = f2.readlines()
-
-    idx1 = 0
-    idx2 = 0
-
-    r = re.compile(r"^[^{]* (\{.*\})$")
-    while idx1 < len(content1) and idx2 < len(content2):
-        m1 = r.match(content1[idx1])
-        if m1 is not None:
-            c1 = m1.group(1)
-            if c1.upper() == new_inst:
+    def parse(fname):
+        """List of (md5, parsed_json) for the relevant events, skipping the
+        new instance event and the pb_stop (131081) messages that cannot cross
+        the network."""
+        events = []
+        for line in open(fname):
+            m = r.search(line)
+            if m is None:
                 continue
+            md5, js = m.group(1), m.group(2)
+            if js.upper() == new_inst:
+                continue
+            parsed = json.loads(js)
+            if parsed.get('_type') == 131081:  # local::pb_stop
+                continue
+            events.append((md5, parsed))
+        return events
+
+    ev1 = parse(file_e)
+    ev2 = parse(file_b)
+
+    # Pass 1: cancel out events with an identical md5 (order-insensitive).
+    pool2 = defaultdict(deque)
+    for md5, parsed in ev2:
+        pool2[md5].append(parsed)
+    leftover1 = []
+    for md5, parsed in ev1:
+        if pool2[md5]:
+            pool2[md5].popleft()
         else:
-            logger.console("content at line {} of '{}' is not JSON: {}".format(
-                idx1, file_e, content1[idx1]))
-            idx1 += 1
-            continue
-        m2 = r.match(content2[idx2])
-        if m2 is not None:
-            c2 = m2.group(1)
-            if c2.upper() == new_inst:
-                continue
-        else:
-            logger.console("content at line {} of '{}' is not JSON: {}".format(
-                idx2, file_b, content2[idx2]))
-            idx2 += 1
-            continue
+            leftover1.append(parsed)
+    leftover2 = [parsed for dq in pool2.values() for parsed in dq]
 
-        if c1 == c2:
-            idx1 += 1
-            idx2 += 1
-        else:
-            js1 = json.loads(c1)
-            js2 = json.loads(c2)
-            #we bypass stop messages
-            if js2['_type'] in [131081]:
-                idx2 += 1
-                continue
-            if js1['_type'] in [131081]:
-                idx1 += 1
-                continue
-
-            if len(js1) != len(js2):
-                logger.console(f"Line {idx1} in '{file_e}' and line {idx2} in '{file_b}' do not match, json contents are respectively\n{js1}\n{js2}")
+    # Pass 2: match the remainder field-by-field, tolerating small float diffs.
+    def same_event(a, b):
+        if a.keys() != b.keys():
+            return False
+        for k in a:
+            va, vb = a[k], b[k]
+            if isinstance(va, float) or isinstance(vb, float):
+                try:
+                    if abs(va - vb) > 0.1:
+                        return False
+                except TypeError:
+                    return False
+            elif va != vb:
                 return False
-            for k in js1:
-                if isinstance(js1[k], float):
-                    if abs(js1[k] - js2[k]) > 0.1:
-                        logger.console(
-                            f"Line {idx1} in '{file_e}' and line {idx2} in '{file_b}' do not match, json contents are respectively\n{js1}\n{js2}")
-                        return False
-                else:
-                    if js1[k] != js2[k]:
-                        logger.console(
-                            f"Line {idx1} in '{file_e}' and line {idx2} in '{file_b}' do not match, json contents are respectively\n{js1}\n{js2}")
-                        return False
-            idx1 += 1
-            idx2 += 1
-    retval = idx1 == len(content1) or idx2 == len(content2)
-    if not retval:
-        logger.console(f"not at the end of files idx1 = {idx1}/{len(content1)} or idx2 = {idx2}/{len(content2)}")
+        return True
+
+    unmatched1 = []
+    for a in leftover1:
+        for i, b in enumerate(leftover2):
+            if same_event(a, b):
+                leftover2.pop(i)
+                break
+        else:
+            unmatched1.append(a)
+
+    if unmatched1 or leftover2:
+        for a in unmatched1[:5]:
+            logger.console(f"Event in '{file_e}' has no counterpart in '{file_b}':\n{a}")
+        for b in leftover2[:5]:
+            logger.console(f"Event in '{file_b}' has no counterpart in '{file_e}':\n{b}")
         return False
     return True
 

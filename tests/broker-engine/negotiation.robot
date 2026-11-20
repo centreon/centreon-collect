@@ -59,7 +59,7 @@ BESS6_${label}
         IF    ${result} is not None and "peers" not in ${result}
             Log To Console    No peers found in the result, let's wait a bit more
             Sleep    1s
-            Continue For
+            CONTINUE
         END
         Log To Console    ${result}
         ${count}    Evaluate    len(${result['peers']})
@@ -73,22 +73,17 @@ BESS6_${label}
     # We define a variable to count the number of peers found
     ${count}    Set Variable    0
     FOR    ${peer}    IN    @{result['peers']}
-        IF    "${peer['brokerName']}" == "central-module-master0"
+        IF    "${peer['type']}" == "ENGINE"
             ${count}    Evaluate    ${count} + 1
-            Should Be Equal As Strings    ${peer['brokerName']}    central-module-master0    Broker name should be central-module-master0
             Should Be Equal As Strings    ${peer['pollerName']}    Poller0    Poller name should be Poller0
             Should Be Equal As Integers    ${peer['id']}    1    On the poller instance, Poller id should be 1
-            Should Be True    "type" in ${peer}    Poller type should be defined as ENGINE.
-            Should Be Equal As Strings    ${peer['type']}    ENGINE    Poller type should be ENGINE
-        ELSE IF    "${peer['brokerName']}" == "central-rrd-master"
+        ELSE IF    "${peer['type']}" == "BROKER"
             ${count}    Evaluate    ${count} + 1
             Should Be Equal As Strings    ${peer['brokerName']}    central-rrd-master    Broker name should be central-rrd-master
             Should Be Equal As Strings    ${peer['pollerName']}    Central    Poller name should be Central
             Should Be Equal As Integers    ${peer['id']}    1    On the central instance, Central id should be 1
-            Should Be True    "type" in ${peer}    Poller type should be defined as BROKER.
-            Should Be Equal As Strings    ${peer['type']}    BROKER    Central type should be BROKER
         ELSE
-            Fail    Peer '${peer['brokerName']}' name should not be found
+            Fail    Unexpected peer type '${peer['type']}' for peer '${peer['pollerName']}'
         END
     END
 

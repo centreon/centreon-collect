@@ -73,7 +73,7 @@ CBABOO
         Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
     END
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 CBABOOOR
     [Documentation]    Scenario: An OR boolean rule evaluates to CRITICAL as soon as one operand is true, even when the other service is UNKNOWN
@@ -110,7 +110,7 @@ CBABOOOR
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 CBABOOAND
     [Documentation]    Scenario: An AND boolean rule evaluates to CRITICAL as soon as one operand is false, even when the other service is UNKNOWN
@@ -147,7 +147,7 @@ CBABOOAND
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 CBABOOORREL
     [Documentation]    Scenario: Updating a boolean rule and reloading broker and engine takes effect correctly
@@ -233,7 +233,7 @@ CBABOOORREL
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 CBABOOCOMPL
     [Documentation]    Scenario: A BA with a complex AND/OR boolean rule over 20 services becomes OK only when at least one service in each AND group is OK
@@ -281,7 +281,7 @@ CBABOOCOMPL
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
 CBABOOCOMPL_RESTART
@@ -366,7 +366,7 @@ CBABOOCOMPL_RESTART
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
 CBABOOCOMPL_RELOAD
@@ -433,9 +433,15 @@ CBABOOCOMPL_RELOAD
 
         # A reload of cbd should not alter the boolean rules content.
         Ctn Reload Broker
-        ${content}    Create List    BA states restored
+        # On reload the BAM endpoint is updated in place (not destroyed), but the
+        # applier may recreate individual KPI objects whose config changed (e.g. an
+        # opened_event got attached). A recreated boolean-expression KPI re-syncs its
+        # state from the preserved (already-known) boolean expression via
+        # kpi_boolexp::link_boolexp, so it must not expose a transient UNKNOWN state.
+        # Wait for BAM to finish reprocessing the reload before querying the BA again.
+        ${content}    Create List    BAM: loading cache
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-        Should Be True    ${result}    It seems that no cache has been restored into BAM.
+        Should Be True    ${result}    Broker did not reprocess BAM after the reload.
 
         Ctn Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
 
@@ -451,7 +457,7 @@ CBABOOCOMPL_RELOAD
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
 *** Keywords ***

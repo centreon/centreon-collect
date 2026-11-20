@@ -135,9 +135,10 @@ CBDBM1
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
         Ctn Start Mysql
-        ${result}    Ctn Get Broker Stats Size    central    mysql manager
+        ${expected}    Evaluate    ${c} + 1
+        ${result}    Ctn Get Broker Stats Size    central    mysql manager    ${expected}    ${60}
         Should Be True
-        ...    ${result} >= ${c} + 1
+        ...    ${result} >= ${expected}
         ...    The stats file should contain at least ${c} + 1 connections to the database and not ${result}.
         Ctn Kindly Stop Broker
         Ctn Stop Engine
