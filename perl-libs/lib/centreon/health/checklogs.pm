@@ -29,7 +29,6 @@ use centreon::health::ssh;
 sub new {
     my $class = shift;
     my $self = {};
-    $self->{logs_path_broker} = {};
     $self->{logs_path_engine} = {};
     $self->{output} = {};
 
@@ -61,26 +60,6 @@ sub run {
  	 	                                                                                                             port => $server_list->{$server}->{ssh_port},
            	   	                                                                                                     userdata => $log_file,
                              		                                                                                     command => "tail -n20 " . $log_file);
-            }
-        }
-
-        $sth = $centreon_db->query("SELECT DISTINCT(config_value) FROM cfg_centreonbroker, cfg_centreonbroker_info
-                                            WHERE config_group='logger' AND config_key='name'
-                                            AND cfg_centreonbroker.config_id=cfg_centreonbroker_info.config_id
-                                            AND cfg_centreonbroker.ns_nagios_server=" . $centreon_db->quote($server));
-
-        while (my $row = $sth->fetchrow_hashref) {
-            push @{$self->{logs_path_broker}->{broker}->{$server_list->{$server}->{name}}}, $row->{config_value};
-        }
-
-        foreach my $log_file (@{$self->{logs_path_broker}->{broker}->{$server_list->{$server}->{name}}}) {
-            if ($server_list->{$server}->{localhost} eq "YES") {
-                ($lerror, $self->{output}->{$server_list->{$server}->{name}}->{broker}->{$log_file}) = centreon::common::misc::backtick(command => "tail -n20 " . $log_file);
-            } else {
-                $self->{output}->{$server_list->{$server}->{name}}->{broker}->{$log_file} = centreon::health::ssh->new->main(host => $server_list->{$server}->{address},
-                                                                              			                             port => $server_list->{$server}->{ssh_port},
-                                                                                                		             userdata => $log_file,
-                                                                                                         		     command => "tail -n20 " . $log_file);
             }
         }
 
