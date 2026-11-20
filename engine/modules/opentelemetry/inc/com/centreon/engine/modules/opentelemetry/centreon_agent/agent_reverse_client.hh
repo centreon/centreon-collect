@@ -59,6 +59,8 @@ class agent_reverse_client {
   virtual ~agent_reverse_client();
 
   void update(const agent_config::pointer& new_conf);
+
+  static bool wait_all_closed(std::chrono::milliseconds timeout);
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry::centreon_agent
