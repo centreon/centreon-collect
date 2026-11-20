@@ -122,9 +122,10 @@ TEST_F(IndexedDiffState, ModifyRemoveTag) {
   global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(diff_state.commands().modified_size(), 0);
-  auto key = std::make_unique<configuration::KeyType>();
+  auto key = std::make_unique<configuration::TagKeyWithPoller>();
   key->set_id(12);
   key->set_type(2);
+  key->set_poller_id(0);
   diff_state.mutable_tags()->mutable_removed()->AddAllocated(key.release());
   global_diff.add_diff_state(diff_state, _logger);
 
@@ -137,9 +138,10 @@ TEST_F(IndexedDiffState, RemoveModifyTag) {
   configuration::indexed_diff_state global_diff;
   configuration::DiffState diff_state;
 
-  auto key = std::make_unique<configuration::KeyType>();
+  auto key = std::make_unique<configuration::TagKeyWithPoller>();
   key->set_id(12);
   key->set_type(2);
+  key->set_poller_id(0);
   diff_state.mutable_tags()->mutable_removed()->AddAllocated(key.release());
   global_diff.add_diff_state(diff_state, _logger);
 

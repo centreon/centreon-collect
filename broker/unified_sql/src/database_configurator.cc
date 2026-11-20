@@ -428,7 +428,7 @@ void database_configurator::_del_severities_mysql(
  */
 void database_configurator::_del_tags_mariadb(
     const ::google::protobuf::RepeatedPtrField<
-        com::centreon::engine::configuration::KeyType>& keys) {
+        com::centreon::engine::configuration::TagKeyWithPoller>& keys) {
   auto& cache = _stream->tags_cache();
 
   if (keys.empty())
@@ -465,7 +465,7 @@ void database_configurator::_del_tags_mariadb(
  */
 void database_configurator::_del_tags_mysql(
     const ::google::protobuf::RepeatedPtrField<
-        com::centreon::engine::configuration::KeyType>& keys) {
+        com::centreon::engine::configuration::TagKeyWithPoller>& keys) {
   auto& cache = _stream->tags_cache();
 
   if (keys.empty())

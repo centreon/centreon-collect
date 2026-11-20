@@ -40,21 +40,24 @@ void applier::tag::add_object(const configuration::Tag& obj) {
                        obj.key().type());
 
   // Add tag to the global configuration set.
-  auto key = std::make_pair(obj.key().id(), obj.key().type());
+  auto key = std::make_tuple(obj.key().id(), (uint32_t)obj.key().type(),
+                             (uint32_t)obj.poller_id());
   pb_indexed_config.mut_tags().emplace(key, std::make_unique<Tag>(obj));
 
   auto tg = std::make_shared<engine::tag>(
-      key.first, static_cast<engine::tag::tagtype>(key.second), obj.tag_name());
+      std::get<0>(key), static_cast<engine::tag::tagtype>(std::get<1>(key)),
+      obj.tag_name());
   if (!tg)
     throw engine_error() << fmt::format("Could not register tag ({},{})",
-                                        key.first, key.second);
+                                        std::get<0>(key), std::get<1>(key));
 
   // Add new items to the configuration state.
-  auto res = engine::tag::tags.insert({{key.first, key.second}, tg});
+  auto res =
+      engine::tag::tags.try_emplace({std::get<0>(key), std::get<1>(key)}, tg);
   if (!res.second)
     config_logger->error(
         "Could not insert tag ({},{}) into cache because it already exists",
-        key.first, key.second);
+        std::get<0>(key), std::get<1>(key));
 
   broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
 }
@@ -98,12 +101,16 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
  *
  * @param idx The idx in the tags configuration objects to remove.
  */
-void applier::tag::remove_object(const std::pair<uint64_t, uint32_t>& key) {
+void applier::tag::remove_object(
+    const std::tuple<uint64_t, uint32_t, uint32_t>& key) {
+  auto id = std::get<0>(key);
+  auto type = std::get<1>(key);
   // Logging.
-  config_logger->debug("Removing tag ({},{}).", key.first, key.second);
+  config_logger->debug("Removing tag ({},{}).", id, type);
 
-  // Find tag.
-  tag_map::iterator it = engine::tag::tags.find(key);
+  // Find tag in the engine runtime map (keyed by pair, not tuple).
+  auto pair_key = std::make_pair(id, type);
+  tag_map::iterator it = engine::tag::tags.find(pair_key);
   if (it != engine::tag::tags.end()) {
     engine::tag* tg = it->second.get();
 

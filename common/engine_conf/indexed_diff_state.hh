@@ -54,11 +54,14 @@ class indexed_diff_state {
       _modified_severities;
   absl::flat_hash_set<std::pair<uint64_t, uint32_t>> _removed_severities;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Tag>>
+  /* Key is (id, type, poller_id) so each poller's contribution is distinct. */
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Tag>>
       _added_tags;
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Tag>>
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Tag>>
       _modified_tags;
-  absl::flat_hash_set<std::pair<uint64_t, uint32_t>> _removed_tags;
+  absl::flat_hash_set<std::tuple<uint64_t, uint32_t, uint32_t>> _removed_tags;
 
   absl::flat_hash_map<std::string, std::unique_ptr<Contact>> _added_contacts;
   absl::flat_hash_map<std::string, std::unique_ptr<Contact>> _modified_contacts;
