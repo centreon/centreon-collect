@@ -152,6 +152,7 @@ class check_network_test : public testing::Test {
   Service serv;
   const std::chrono::steady_clock::time_point t0 =
       std::chrono::steady_clock::now();
+  const std::shared_ptr<spdlog::logger> logger = spdlog::default_logger();
 
   check_network_test() {
     serv.set_service_description("serv");
@@ -192,7 +193,7 @@ TEST_F(check_network_test, default_filter_keeps_physical_interfaces) {
                  false)};
 
   auto checker = create_check("{}");
-  network_snapshot snap(t0, rows, checker->get_filter());
+  network_snapshot snap(t0, rows, checker->get_filter(), logger);
 
   EXPECT_EQ(names(snap), std::vector<std::string>({"Ethernet"}));
 }
@@ -209,13 +210,13 @@ TEST_F(check_network_test, physical_only_false_keeps_virtual_interfaces) {
                  10 * one_gigabit, false)};
 
   auto checker = create_check(R"({"physical-only": false})");
-  network_snapshot snap(t0, rows, checker->get_filter());
+  network_snapshot snap(t0, rows, checker->get_filter(), logger);
   EXPECT_EQ(names(snap), std::vector<std::string>(
                              {"Ethernet", "vEthernet (Default Switch)"}));
 
   // string values are accepted
   checker = create_check(R"({"physical-only": "false"})");
-  network_snapshot snap2(t0, rows, checker->get_filter());
+  network_snapshot snap2(t0, rows, checker->get_filter(), logger);
   EXPECT_EQ(snap2.get_interfaces().size(), 2);
 }
 
@@ -234,13 +235,23 @@ TEST_F(check_network_test, name_and_description_filters) {
     "filter-description": "intel.*",
     "exclude-description": ".*virtual.*"
   })");
-  network_snapshot snap(t0, rows, checker->get_filter());
+  network_snapshot snap(t0, rows, checker->get_filter(), logger);
   EXPECT_EQ(names(snap), std::vector<std::string>({"Ethernet"}));
 
   // a partial match is not enough
   checker = create_check(R"({"filter-name": "ether"})");
-  network_snapshot snap2(t0, rows, checker->get_filter());
+  network_snapshot snap2(t0, rows, checker->get_filter(), logger);
   EXPECT_TRUE(snap2.get_interfaces().empty());
+}
+
+TEST_F(check_network_test, snapshot_counts_excluded_rows) {
+  MIB_IF_ROW2 rows[] = {create_row(1, "Ethernet", "Intel(R) Ethernet"),
+                        create_row(2, "Wi-Fi", "Intel(R) Wi-Fi")};
+
+  auto checker = create_check(R"({"filter-name": "wi-fi"})");
+  network_snapshot snap(t0, rows, checker->get_filter(), logger);
+  EXPECT_EQ(snap.get_nb_rows(), 2u);
+  EXPECT_EQ(names(snap), std::vector<std::string>({"Wi-Fi"}));
 }
 
 TEST_F(check_network_test, non_ascii_names_are_utf8) {
@@ -250,9 +261,9 @@ TEST_F(check_network_test, non_ascii_names_are_utf8) {
 
   // RE2 is UTF-8 aware: É matches é
   auto checker = create_check(R"({"filter-name": "CONNEXION RÉSEAU"})");
-  network_snapshot first(t0, rows, checker->get_filter());
+  network_snapshot first(t0, rows, checker->get_filter(), logger);
   set_counters(rows[0], 1'250'000, 0);
-  network_snapshot second(t0 + 1s, rows, checker->get_filter());
+  network_snapshot second(t0 + 1s, rows, checker->get_filter(), logger);
 
   ASSERT_EQ(names(second), std::vector<std::string>({"Connexion réseau"}));
   EXPECT_EQ(second.get_interfaces().begin()->second.description,
@@ -281,9 +292,9 @@ TEST_F(check_network_test, empty_arguments_are_ignored) {
                  IfOperStatusDown),
       create_row(2, "vEthernet", "Hyper-V Virtual Ethernet Adapter",
                  IfOperStatusUp, one_gigabit, false)};
-  network_snapshot first(t0, rows, checker->get_filter());
+  network_snapshot first(t0, rows, checker->get_filter(), logger);
   set_counters(rows[0], 125'000'000, 125'000'000, 100, 100);
-  network_snapshot second(t0 + 1s, rows, checker->get_filter());
+  network_snapshot second(t0 + 1s, rows, checker->get_filter(), logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -318,10 +329,11 @@ TEST_F(check_network_test, rates_and_perfdata) {
   auto checker = create_check("{}");
 
   set_counters(row, 1000, 2000, 10, 0, 3, 7);
-  network_snapshot first(t0, std::span(&row, 1), checker->get_filter());
+  network_snapshot first(t0, std::span(&row, 1), checker->get_filter(), logger);
   // in 10 s: 12.5 MB in, 1.25 MB out, 20 errors in, 10 out, 5 discards in
   set_counters(row, 1000 + 12'500'000, 2000 + 1'250'000, 30, 10, 8, 7);
-  network_snapshot second(t0 + 10s, std::span(&row, 1), checker->get_filter());
+  network_snapshot second(t0 + 10s, std::span(&row, 1), checker->get_filter(),
+                          logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -374,10 +386,10 @@ TEST_F(check_network_test, unknown_speed_has_no_percentage) {
                  NET_IF_LINK_SPEED_UNKNOWN)};
   auto checker = create_check(R"({"warning-traffic-in-prct": "0"})");
 
-  network_snapshot first(t0, rows, checker->get_filter());
+  network_snapshot first(t0, rows, checker->get_filter(), logger);
   set_counters(rows[0], 1'250'000, 0);
   set_counters(rows[1], 1'250'000, 0);
-  network_snapshot second(t0 + 1s, rows, checker->get_filter());
+  network_snapshot second(t0 + 1s, rows, checker->get_filter(), logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -409,9 +421,10 @@ TEST_F(check_network_test, metric_thresholds) {
     "critical-traffic-out": "@0:100"
   })");
 
-  network_snapshot first(t0, std::span(&row, 1), checker->get_filter());
+  network_snapshot first(t0, std::span(&row, 1), checker->get_filter(), logger);
   set_counters(row, 12'500'000, 1'250'000, 20, 0, 5, 0);
-  network_snapshot second(t0 + 10s, std::span(&row, 1), checker->get_filter());
+  network_snapshot second(t0 + 10s, std::span(&row, 1), checker->get_filter(),
+                          logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -447,10 +460,10 @@ TEST_F(check_network_test, warning_only_output) {
                         create_row(2, "Ethernet 2", "Intel(R) Ethernet #2")};
   auto checker = create_check(R"({"warning-traffic-out": "1000"})");
 
-  network_snapshot first(t0, rows, checker->get_filter());
+  network_snapshot first(t0, rows, checker->get_filter(), logger);
   set_counters(rows[0], 0, 1250);
   set_counters(rows[1], 0, 2500);
-  network_snapshot second(t0 + 1s, rows, checker->get_filter());
+  network_snapshot second(t0 + 1s, rows, checker->get_filter(), logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -469,8 +482,8 @@ TEST_F(check_network_test, state_thresholds) {
 
   auto checker = create_check(
       R"({"critical-state": "down", "warning-state": "NotPresent|dormant"})");
-  network_snapshot first(t0, rows, checker->get_filter());
-  network_snapshot second(t0 + 1s, rows, checker->get_filter());
+  network_snapshot first(t0, rows, checker->get_filter(), logger);
+  network_snapshot second(t0 + 1s, rows, checker->get_filter(), logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -490,8 +503,8 @@ TEST_F(check_network_test, state_thresholds) {
 
 TEST_F(check_network_test, no_interface_is_unknown) {
   auto checker = create_check("{}");
-  network_snapshot first(t0, {}, checker->get_filter());
-  network_snapshot second(t0 + 1s, {}, checker->get_filter());
+  network_snapshot first(t0, {}, checker->get_filter(), logger);
+  network_snapshot second(t0 + 1s, {}, checker->get_filter(), logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -504,7 +517,7 @@ TEST_F(check_network_test, no_interface_is_unknown) {
 TEST_F(check_network_test, no_elapsed_time_is_unknown) {
   MIB_IF_ROW2 row = create_row(1, "Ethernet", "Intel(R) Ethernet");
   auto checker = create_check("{}");
-  network_snapshot first(t0, std::span(&row, 1), checker->get_filter());
+  network_snapshot first(t0, std::span(&row, 1), checker->get_filter(), logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -516,8 +529,8 @@ TEST_F(check_network_test, interface_appearing_during_measure_is_ignored) {
   MIB_IF_ROW2 rows[] = {create_row(1, "Ethernet", "Intel(R) Ethernet"),
                         create_row(2, "Ethernet 2", "Intel(R) Ethernet #2")};
   auto checker = create_check("{}");
-  network_snapshot first(t0, std::span(rows, 1), checker->get_filter());
-  network_snapshot second(t0 + 1s, rows, checker->get_filter());
+  network_snapshot first(t0, std::span(rows, 1), checker->get_filter(), logger);
+  network_snapshot second(t0 + 1s, rows, checker->get_filter(), logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -532,9 +545,10 @@ TEST_F(check_network_test, counter_reset_uses_counts_since_reset) {
   MIB_IF_ROW2 row = create_row(1, "Ethernet", "Intel(R) Ethernet");
   auto checker = create_check("{}");
   set_counters(row, 1'000'000'000, 0);
-  network_snapshot first(t0, std::span(&row, 1), checker->get_filter());
+  network_snapshot first(t0, std::span(&row, 1), checker->get_filter(), logger);
   set_counters(row, 1'250'000, 0);
-  network_snapshot second(t0 + 10s, std::span(&row, 1), checker->get_filter());
+  network_snapshot second(t0 + 10s, std::span(&row, 1), checker->get_filter(),
+                          logger);
 
   std::string output;
   std::list<perfdata> perfs;
@@ -558,8 +572,8 @@ TEST_F(check_network_test, start_check_completes_after_second_measure) {
                                  unsigned call_index) {
     MIB_IF_ROW2 row = create_row(1, "Ethernet", "Intel(R) Ethernet");
     set_counters(row, call_index * 1250, 0);
-    return std::make_unique<network_snapshot>(t0 + call_index * 1s,
-                                              std::span(&row, 1), filter);
+    return std::make_unique<network_snapshot>(
+        t0 + call_index * 1s, std::span(&row, 1), filter, logger);
   };
 
   asio::post(*g_io_context, [checker] { checker->start_check(2s); });
@@ -584,7 +598,8 @@ TEST_F(check_network_test, measure_failure_is_unknown) {
   checker->measure_impl = [](const interface_filter&,
                              unsigned) -> std::unique_ptr<network_snapshot> {
     throw com::centreon::exceptions::msg_fmt(
-        "fail to read the interface table: access denied");
+        "failed to read the network interface table (GetIfTable2Ex): "
+        "access denied");
   };
 
   asio::post(*g_io_context, [checker] { checker->start_check(2s); });
@@ -593,7 +608,8 @@ TEST_F(check_network_test, measure_failure_is_unknown) {
   EXPECT_EQ(result.status, e_status::unknown);
   ASSERT_EQ(result.outputs.size(), 1);
   EXPECT_EQ(result.outputs.front(),
-            "UNKNOWN: fail to read the interface table: access denied");
+            "UNKNOWN: failed to read the network interface table "
+            "(GetIfTable2Ex): access denied");
   EXPECT_TRUE(result.perfs.empty());
 }
 
@@ -619,7 +635,7 @@ TEST_F(check_network_test, get_if_table2_ex_duration) {
 TEST_F(check_network_test, host_interfaces_are_well_formed) {
   completion_result result;
   // the loopback interface exists on every host
-  auto checker = create_check(R"({"physical-only": flase})", result.handler());
+  auto checker = create_check(R"({"physical-only": false})", result.handler());
 
   asio::post(*g_io_context, [checker] { checker->start_check(2s); });
 

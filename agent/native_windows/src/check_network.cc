@@ -198,18 +198,21 @@ bool interface_filter::is_allowed(const MIB_IF_ROW2& row,
  * @param time time of the measure
  * @param rows interface table
  * @param filter interfaces to keep
+ * @param logger traces the excluded interfaces
  */
 network_snapshot::network_snapshot(
     std::chrono::steady_clock::time_point time,
     std::span<const MIB_IF_ROW2> rows,
     const interface_filter& filter,
     const std::shared_ptr<spdlog::logger>& logger)
-    : _time(time), _logger(logger) {
+    : _time(time), _nb_rows(rows.size()) {
   for (const MIB_IF_ROW2& row : rows) {
     std::string name = _to_utf8(row.Alias);
     std::string description = _to_utf8(row.Description);
     if (!filter.is_allowed(row, name, description)) {
-      SPDLOG_LOGGER_DEBUG(logger, "the value {} is filtered", name);
+      SPDLOG_LOGGER_TRACE(logger,
+                          "network interface '{}' ({}) excluded by the filters",
+                          name, description);
       continue;
     }
     interface_counters& counters = _interfaces[row.InterfaceLuid.Value];
@@ -292,8 +295,9 @@ check_network::check_network(
     } else if (key == "critical-state") {
       _status_to_critical = _parse_states(key, val);
     } else if (key != "timeout" && !_parse_threshold(key, val)) {
-      SPDLOG_LOGGER_WARN(_logger, "command: {}, unknown parameter: {}",
-                         get_command_name(), member_iter->name.GetString());
+      SPDLOG_LOGGER_WARN(
+          _logger, "service {}, command {}: unknown parameter: {}",
+          get_service(), get_command_name(), member_iter->name.GetString());
     }
   }
 }
@@ -401,8 +405,9 @@ std::unique_ptr<network_snapshot> check_network::measure() {
   PMIB_IF_TABLE2 table = nullptr;
   DWORD res = GetIfTable2Ex(MibIfTableNormal, &table);
   if (res != NO_ERROR) {
-    throw exceptions::msg_fmt("fail to read the interface table: {}",
-                              error_as_string(res));
+    throw exceptions::msg_fmt(
+        "failed to read the network interface table (GetIfTable2Ex): {}",
+        error_as_string(res));
   }
   std::unique_ptr<MIB_IF_TABLE2, table_deleter> table_owner(table);
   return std::make_unique<network_snapshot>(
@@ -446,8 +451,9 @@ void check_network::start_check(const duration& timeout) {
       me->_measure_timer_handler(err, start_check_index, *first);
     });
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_DEBUG(_logger, "service {}, command {}: {}", get_service(),
-                        get_command_name(), e.what());
+    SPDLOG_LOGGER_DEBUG(
+        _logger, "service {}, command {}: first network measure failed: {}",
+        get_service(), get_command_name(), e.what());
     asio::post(*_io_context, [me = shared_from_this(), start_check_index,
                               err = std::string(e.what())]() {
       me->on_completion(
@@ -469,6 +475,13 @@ void check_network::_measure_timer_handler(
     unsigned start_check_index,
     const network_snapshot& first_measure) {
   if (err) {
+    // operation_aborted comes from _on_timeout; after any other error, the
+    // check timeout completes the check
+    if (err != asio::error::operation_aborted) {
+      SPDLOG_LOGGER_WARN(
+          _logger, "service {}, command {}: network measure timer failed: {}",
+          get_service(), get_command_name(), err.message());
+    }
     return;
   }
 
@@ -479,8 +492,9 @@ void check_network::_measure_timer_handler(
     std::unique_ptr<network_snapshot> second_measure = measure();
     status = compute(first_measure, *second_measure, &output, &perfs);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_DEBUG(_logger, "service {}, command {}: {}", get_service(),
-                        get_command_name(), e.what());
+    SPDLOG_LOGGER_DEBUG(
+        _logger, "service {}, command {}: second network measure failed: {}",
+        get_service(), get_command_name(), e.what());
     status = e_status::unknown;
     output = fmt::format("{}: {}", status_label[status], e.what());
     perfs.clear();
@@ -535,8 +549,11 @@ e_status check_network::compute(const network_snapshot& first_measure,
   results.reserve(second_measure.get_interfaces().size());
   for (const auto& [luid, current] : second_measure.get_interfaces()) {
     auto previous = first_measure.get_interfaces().find(luid);
-    // an interface that appeared during the measure has no rate yet
     if (previous == first_measure.get_interfaces().end()) {
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "service {}, command {}: network interface '{}' "
+                          "appeared during the measure, no rate this time",
+                          get_service(), get_command_name(), current.name);
       continue;
     }
     const interface_counters& before = previous->second;
@@ -595,6 +612,14 @@ e_status check_network::compute(const network_snapshot& first_measure,
       }
     }
   }
+
+  // tells filters that match nothing from interfaces the OS did not return
+  SPDLOG_LOGGER_DEBUG(_logger,
+                      "service {}, command {}: {} of {} network interfaces "
+                      "kept by the filters, {} present in both measures",
+                      get_service(), get_command_name(),
+                      second_measure.get_interfaces().size(),
+                      second_measure.get_nb_rows(), results.size());
 
   if (results.empty()) {
     *output = fmt::format("{}: no network interface matches the filters",
