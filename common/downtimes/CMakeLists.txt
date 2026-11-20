@@ -37,5 +37,6 @@ add_library(downtimes_lib STATIC
   downtime_finder.cc
 )
 
+set_target_properties(downtimes_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(downtimes_lib PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
 add_dependencies(downtimes_lib pb_neb_lib centreon_engine_conf process_stat)
