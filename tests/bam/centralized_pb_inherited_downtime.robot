@@ -354,15 +354,13 @@ BECBAMIGNDTU2
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     Log To Console    The BA is critical.
 
-    # Two downtimes are applied on service_314
-    Ctn Schedule Service Downtime    host_16    service_314    90
+    # Two downtimes are applied on service_314 back-to-back: one 120s, one 60s.
+    # Scheduling them together ensures both ADD events land in the same 10s flush
+    # batch, so the DB shows depth=2 well before either downtime expires.
+    Ctn Schedule Service Downtime    host_16    service_314    120
+    Ctn Schedule Service Downtime    host_16    service_314    60
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
 
-    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
-    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
-    Log To Console    One downtime applied to service_314.
-
-    Ctn Schedule Service Downtime    host_16    service_314    30
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log To Console    Two downtimes applied to service_314.
@@ -375,19 +373,18 @@ BECBAMIGNDTU2
     Should Be True    ${result}    The service in downtime should be ignored while computing the state of this BA.
     Log To Console    The BA is OK, since the critical service is in downtime.
 
-    # The first downtime should reach its end
-
-    Log To Console    After 30s, the first downtime should be finished.
-    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
+    # The shorter downtime (60s) expires first
+    Log To Console    After 60s, the shorter downtime should be finished.
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    90
     Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
     Log To Console    Still one downtime applied to service_314.
 
-    Log To Console    After 30s, the second downtime should be finished.
+    Log To Console    The longer downtime (120s) is still active.
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
     Log To Console    The BA is still OK
 
-    # The second downtime finishes
+    # The longer downtime (120s) finishes
     ${result}    Ctn Check Ba Status With Timeout    test    2    90
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
