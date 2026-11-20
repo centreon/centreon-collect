@@ -20,10 +20,8 @@
 #ifndef CCE_RETENTION_PROGRAM_HH
 #define CCE_RETENTION_PROGRAM_HH
 
-#include "com/centreon/common/opt.hh"
+#include <optional>
 #include "com/centreon/engine/retention/object.hh"
-
-using com::centreon::common::opt;
 
 namespace com::centreon::engine {
 
@@ -38,27 +36,29 @@ class program : public object {
   bool operator!=(program const& right) const noexcept;
   bool set(char const* key, char const* value) override;
 
-  opt<bool> const& active_host_checks_enabled() const noexcept;
-  opt<bool> const& active_service_checks_enabled() const noexcept;
-  opt<bool> const& check_host_freshness() const noexcept;
-  opt<bool> const& check_service_freshness() const noexcept;
-  opt<bool> const& enable_event_handlers() const noexcept;
-  opt<bool> const& enable_flap_detection() const noexcept;
-  opt<bool> const& enable_notifications() const noexcept;
-  opt<std::string> const& global_host_event_handler() const noexcept;
-  opt<std::string> const& global_service_event_handler() const noexcept;
-  opt<unsigned long> const& modified_host_attributes() const noexcept;
-  opt<unsigned long> const& modified_service_attributes() const noexcept;
-  opt<unsigned long> const& next_comment_id() const noexcept;
-  opt<unsigned long> const& next_downtime_id() const noexcept;
-  opt<unsigned long> const& next_event_id() const noexcept;
-  opt<unsigned long> const& next_notification_id() const noexcept;
-  opt<unsigned long> const& next_problem_id() const noexcept;
-  opt<bool> const& obsess_over_hosts() const noexcept;
-  opt<bool> const& obsess_over_services() const noexcept;
-  opt<bool> const& passive_host_checks_enabled() const noexcept;
-  opt<bool> const& passive_service_checks_enabled() const noexcept;
-  opt<bool> const& process_performance_data() const noexcept;
+  std::optional<bool> const& active_host_checks_enabled() const noexcept;
+  std::optional<bool> const& active_service_checks_enabled() const noexcept;
+  std::optional<bool> const& check_host_freshness() const noexcept;
+  std::optional<bool> const& check_service_freshness() const noexcept;
+  std::optional<bool> const& enable_event_handlers() const noexcept;
+  std::optional<bool> const& enable_flap_detection() const noexcept;
+  std::optional<bool> const& enable_notifications() const noexcept;
+  std::optional<std::string> const& global_host_event_handler() const noexcept;
+  std::optional<std::string> const& global_service_event_handler()
+      const noexcept;
+  std::optional<unsigned long> const& modified_host_attributes() const noexcept;
+  std::optional<unsigned long> const& modified_service_attributes()
+      const noexcept;
+  std::optional<unsigned long> const& next_comment_id() const noexcept;
+  std::optional<unsigned long> const& next_downtime_id() const noexcept;
+  std::optional<unsigned long> const& next_event_id() const noexcept;
+  std::optional<unsigned long> const& next_notification_id() const noexcept;
+  std::optional<unsigned long> const& next_problem_id() const noexcept;
+  std::optional<bool> const& obsess_over_hosts() const noexcept;
+  std::optional<bool> const& obsess_over_services() const noexcept;
+  std::optional<bool> const& passive_host_checks_enabled() const noexcept;
+  std::optional<bool> const& passive_service_checks_enabled() const noexcept;
+  std::optional<bool> const& process_performance_data() const noexcept;
 
  private:
   struct setters {
@@ -88,27 +88,27 @@ class program : public object {
   bool _set_passive_service_checks_enabled(bool value);
   bool _set_process_performance_data(bool value);
 
-  opt<bool> _active_host_checks_enabled;
-  opt<bool> _active_service_checks_enabled;
-  opt<bool> _check_host_freshness;
-  opt<bool> _check_service_freshness;
-  opt<bool> _enable_event_handlers;
-  opt<bool> _enable_flap_detection;
-  opt<bool> _enable_notifications;
-  opt<std::string> _global_host_event_handler;
-  opt<std::string> _global_service_event_handler;
-  opt<unsigned long> _modified_host_attributes;
-  opt<unsigned long> _modified_service_attributes;
-  opt<unsigned long> _next_comment_id;
-  opt<unsigned long> _next_downtime_id;
-  opt<unsigned long> _next_event_id;
-  opt<unsigned long> _next_notification_id;
-  opt<unsigned long> _next_problem_id;
-  opt<bool> _obsess_over_hosts;
-  opt<bool> _obsess_over_services;
-  opt<bool> _passive_host_checks_enabled;
-  opt<bool> _passive_service_checks_enabled;
-  opt<bool> _process_performance_data;
+  std::optional<bool> _active_host_checks_enabled;
+  std::optional<bool> _active_service_checks_enabled;
+  std::optional<bool> _check_host_freshness;
+  std::optional<bool> _check_service_freshness;
+  std::optional<bool> _enable_event_handlers;
+  std::optional<bool> _enable_flap_detection;
+  std::optional<bool> _enable_notifications;
+  std::optional<std::string> _global_host_event_handler;
+  std::optional<std::string> _global_service_event_handler;
+  std::optional<unsigned long> _modified_host_attributes;
+  std::optional<unsigned long> _modified_service_attributes;
+  std::optional<unsigned long> _next_comment_id;
+  std::optional<unsigned long> _next_downtime_id;
+  std::optional<unsigned long> _next_event_id;
+  std::optional<unsigned long> _next_notification_id;
+  std::optional<unsigned long> _next_problem_id;
+  std::optional<bool> _obsess_over_hosts;
+  std::optional<bool> _obsess_over_services;
+  std::optional<bool> _passive_host_checks_enabled;
+  std::optional<bool> _passive_service_checks_enabled;
+  std::optional<bool> _process_performance_data;
   static setters const _setters[];
 };
 

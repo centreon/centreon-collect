@@ -72,7 +72,7 @@ void applier::anomalydetection::_update(
     bool scheduling_info_is_ok) {
   applier::service::update(config, state, static_cast<engine::service&>(obj),
                            scheduling_info_is_ok);
-  if (state.sensitivity().is_set()) {
-    obj.set_sensitivity(state.sensitivity());
+  if (state.sensitivity().has_value()) {
+    obj.set_sensitivity(*state.sensitivity());
   }
 }

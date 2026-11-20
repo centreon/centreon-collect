@@ -64,7 +64,7 @@ void applier::service::update(const configuration::State& config,
                               const retention::service& state,
                               engine::service& obj,
                               bool scheduling_info_is_ok) {
-  if (state.modified_attributes().is_set()) {
+  if (state.modified_attributes().has_value()) {
     obj.set_modified_attributes(*state.modified_attributes());
     // mask out attributes we don't want to retain.
     obj.set_modified_attributes(obj.get_modified_attributes() &
@@ -72,137 +72,138 @@ void applier::service::update(const configuration::State& config,
   }
 
   if (obj.get_retain_status_information()) {
-    if (state.has_been_checked().is_set())
+    if (state.has_been_checked().has_value())
       obj.set_has_been_checked(*state.has_been_checked());
-    if (state.check_execution_time().is_set())
+    if (state.check_execution_time().has_value())
       obj.set_execution_time(*state.check_execution_time());
-    if (state.check_latency().is_set())
+    if (state.check_latency().has_value())
       obj.set_latency(*state.check_latency());
-    if (state.check_type().is_set())
+    if (state.check_type().has_value())
       obj.set_check_type(
           static_cast<checkable::check_type>(*state.check_type()));
-    if (state.current_state().is_set())
+    if (state.current_state().has_value())
       obj.set_current_state(
           static_cast<engine::service::service_state>(*state.current_state()));
-    if (state.last_state().is_set())
+    if (state.last_state().has_value())
       obj.set_last_state(
           static_cast<engine::service::service_state>(*state.last_state()));
-    if (state.last_hard_state().is_set())
+    if (state.last_hard_state().has_value())
       obj.set_last_hard_state(static_cast<engine::service::service_state>(
           *state.last_hard_state()));
-    if (state.current_attempt().is_set())
+    if (state.current_attempt().has_value())
       obj.set_current_attempt(*state.current_attempt());
-    if (state.current_event_id().is_set())
+    if (state.current_event_id().has_value())
       obj.set_current_event_id(*state.current_event_id());
-    if (state.last_event_id().is_set())
+    if (state.last_event_id().has_value())
       obj.set_last_event_id(*state.last_event_id());
-    if (state.current_problem_id().is_set())
+    if (state.current_problem_id().has_value())
       obj.set_current_problem_id(*state.current_problem_id());
-    if (state.last_problem_id().is_set())
+    if (state.last_problem_id().has_value())
       obj.set_last_problem_id(*state.last_problem_id());
-    if (state.state_type().is_set())
+    if (state.state_type().has_value())
       obj.set_state_type(
           static_cast<enum notifier::state_type>(*state.state_type()));
-    if (state.last_state_change().is_set())
+    if (state.last_state_change().has_value())
       obj.set_last_state_change(*state.last_state_change());
-    if (state.last_hard_state_change().is_set())
+    if (state.last_hard_state_change().has_value())
       obj.set_last_hard_state_change(*state.last_hard_state_change());
-    if (state.last_time_ok().is_set())
+    if (state.last_time_ok().has_value())
       obj.set_last_time_ok(*state.last_time_ok());
-    if (state.last_time_warning().is_set())
+    if (state.last_time_warning().has_value())
       obj.set_last_time_warning(*state.last_time_warning());
-    if (state.last_time_unknown().is_set())
+    if (state.last_time_unknown().has_value())
       obj.set_last_time_unknown(*state.last_time_unknown());
-    if (state.last_time_critical().is_set())
+    if (state.last_time_critical().has_value())
       obj.set_last_time_critical(*state.last_time_critical());
-    if (state.plugin_output().is_set())
+    if (state.plugin_output().has_value())
       obj.set_plugin_output(*state.plugin_output());
-    if (state.long_plugin_output().is_set())
+    if (state.long_plugin_output().has_value())
       obj.set_long_plugin_output(*state.long_plugin_output());
-    if (state.performance_data().is_set())
+    if (state.performance_data().has_value())
       obj.set_perf_data(*state.performance_data());
-    if (state.last_acknowledgement().is_set())
+    if (state.last_acknowledgement().has_value())
       obj.set_last_acknowledgement(*state.last_acknowledgement());
-    if (state.flapping_comment_id().is_set())
+    if (state.flapping_comment_id().has_value())
       obj.set_flapping_comment_id(*state.flapping_comment_id());
-    if (state.acknowledgement_comment_id().is_set())
+    if (state.acknowledgement_comment_id().has_value())
       obj.set_acknowledgement_comment_id(*state.acknowledgement_comment_id());
-    if (state.last_check().is_set())
+    if (state.last_check().has_value())
       obj.set_last_check(*state.last_check());
-    if (state.next_check().is_set() && config.use_retained_scheduling_info() &&
-        scheduling_info_is_ok)
+    if (state.next_check().has_value() &&
+        config.use_retained_scheduling_info() && scheduling_info_is_ok)
       obj.set_next_check(*state.next_check());
-    if (state.check_options().is_set() &&
+    if (state.check_options().has_value() &&
         config.use_retained_scheduling_info() && scheduling_info_is_ok)
       obj.set_check_options(*state.check_options());
     obj.set_notified_on(
-        (state.notified_on_unknown().is_set() && *state.notified_on_unknown()
+        (state.notified_on_unknown().has_value() && *state.notified_on_unknown()
              ? notifier::unknown
              : notifier::none) |
-        (state.notified_on_warning().is_set() && *state.notified_on_warning()
+        (state.notified_on_warning().has_value() && *state.notified_on_warning()
              ? notifier::warning
              : notifier::none) |
-        (state.notified_on_critical().is_set() && *state.notified_on_critical()
+        (state.notified_on_critical().has_value() &&
+                 *state.notified_on_critical()
              ? notifier::critical
              : notifier::none));
 
-    if (state.current_notification_number().is_set())
+    if (state.current_notification_number().has_value())
       obj.set_notification_number(*state.current_notification_number());
-    if (state.current_notification_id().is_set())
+    if (state.current_notification_id().has_value())
       obj.set_current_notification_id(*state.current_notification_id());
-    if (state.last_notification().is_set())
+    if (state.last_notification().has_value())
       obj.set_last_notification(*state.last_notification());
-    if (state.percent_state_change().is_set())
+    if (state.percent_state_change().has_value())
       obj.set_percent_state_change(*state.percent_state_change());
-    if (state.check_flapping_recovery_notification().is_set())
+    if (state.check_flapping_recovery_notification().has_value())
       obj.set_check_flapping_recovery_notification(
           *state.check_flapping_recovery_notification());
     if (state.has_notifications()) {
       for (int i = 0; i < 6; i++)
         obj.set_notification(i, state.notifications()[i]);
     }
-    if (state.state_history().is_set()) {
+    if (state.state_history().has_value()) {
       utils::set_state_history(*state.state_history(), obj.get_state_history());
       obj.set_state_history_index(0);
     }
   }
 
   if (obj.get_retain_nonstatus_information()) {
-    if (state.acknowledgement_type().is_set())
+    if (state.acknowledgement_type().has_value())
       obj.set_acknowledgement(
           static_cast<AckType>(*state.acknowledgement_type()));
     else
       obj.set_acknowledgement(engine::AckType::NONE);
 
-    if (state.notifications_enabled().is_set() &&
+    if (state.notifications_enabled().has_value() &&
         (obj.get_modified_attributes() & MODATTR_NOTIFICATIONS_ENABLED))
       obj.set_notifications_enabled(*state.notifications_enabled());
 
-    if (state.active_checks_enabled().is_set() &&
+    if (state.active_checks_enabled().has_value() &&
         (obj.get_modified_attributes() & MODATTR_ACTIVE_CHECKS_ENABLED))
       obj.set_checks_enabled(*state.active_checks_enabled());
 
-    if (state.passive_checks_enabled().is_set() &&
+    if (state.passive_checks_enabled().has_value() &&
         (obj.get_modified_attributes() & MODATTR_PASSIVE_CHECKS_ENABLED))
       obj.set_accept_passive_checks(*state.passive_checks_enabled());
 
-    if (state.event_handler_enabled().is_set() &&
+    if (state.event_handler_enabled().has_value() &&
         (obj.get_modified_attributes() & MODATTR_EVENT_HANDLER_ENABLED))
       obj.set_event_handler_enabled(*state.event_handler_enabled());
 
-    if (state.flap_detection_enabled().is_set() &&
+    if (state.flap_detection_enabled().has_value() &&
         (obj.get_modified_attributes() & MODATTR_FLAP_DETECTION_ENABLED))
       obj.set_flap_detection_enabled(*state.flap_detection_enabled());
 
-    if (state.process_performance_data().is_set() &&
+    if (state.process_performance_data().has_value() &&
         (obj.get_modified_attributes() & MODATTR_PERFORMANCE_DATA_ENABLED))
       obj.set_process_performance_data(*state.process_performance_data());
 
-    if (state.obsess_over_service().is_set() &&
+    if (state.obsess_over_service().has_value() &&
         (obj.get_modified_attributes() & MODATTR_OBSESSIVE_HANDLER_ENABLED))
       obj.set_obsess_over(*state.obsess_over_service());
 
-    if (state.check_command().is_set() &&
+    if (state.check_command().has_value() &&
         (obj.get_modified_attributes() & MODATTR_CHECK_COMMAND)) {
       if (utils::is_command_exist(*state.check_command()))
         obj.set_check_command(*state.check_command());
@@ -211,7 +212,7 @@ void applier::service::update(const configuration::State& config,
                                     MODATTR_CHECK_COMMAND);
     }
 
-    if (state.check_period().is_set() &&
+    if (state.check_period().has_value() &&
         (obj.get_modified_attributes() & MODATTR_CHECK_TIMEPERIOD)) {
       timeperiod_map::const_iterator it(
           timeperiod::timeperiods.find(*state.check_period()));
@@ -222,7 +223,7 @@ void applier::service::update(const configuration::State& config,
                                     MODATTR_CHECK_TIMEPERIOD);
     }
 
-    if (state.notification_period().is_set() &&
+    if (state.notification_period().has_value() &&
         (obj.get_modified_attributes() & MODATTR_NOTIFICATION_TIMEPERIOD)) {
       timeperiod_map::const_iterator it(
           timeperiod::timeperiods.find(*state.notification_period()));
@@ -233,7 +234,7 @@ void applier::service::update(const configuration::State& config,
                                     MODATTR_NOTIFICATION_TIMEPERIOD);
     }
 
-    if (state.event_handler().is_set() &&
+    if (state.event_handler().has_value() &&
         (obj.get_modified_attributes() & MODATTR_EVENT_HANDLER_COMMAND)) {
       if (utils::is_command_exist(*state.event_handler()))
         obj.set_event_handler(*state.event_handler());
@@ -242,15 +243,15 @@ void applier::service::update(const configuration::State& config,
                                     MODATTR_EVENT_HANDLER_COMMAND);
     }
 
-    if (state.normal_check_interval().is_set() &&
+    if (state.normal_check_interval().has_value() &&
         (obj.get_modified_attributes() & MODATTR_NORMAL_CHECK_INTERVAL))
       obj.set_check_interval(*state.normal_check_interval());
 
-    if (state.retry_check_interval().is_set() &&
+    if (state.retry_check_interval().has_value() &&
         (obj.get_modified_attributes() & MODATTR_RETRY_CHECK_INTERVAL))
       obj.set_retry_interval(*state.retry_check_interval());
 
-    if (state.max_attempts().is_set() &&
+    if (state.max_attempts().has_value() &&
         (obj.get_modified_attributes() & MODATTR_MAX_CHECK_ATTEMPTS)) {
       obj.set_max_attempts(*state.max_attempts());
 
@@ -308,7 +309,7 @@ void applier::service::update(const configuration::State& config,
   // ADDED 02/20/08 assume same flapping state if large
   // install tweaks enabled.
   if (config.use_large_installation_tweaks())
-    obj.set_is_flapping(state.is_flapping());
+    obj.set_is_flapping(state.is_flapping().value_or(false));
   // else use normal startup flap detection logic.
   else {
     // service was flapping before program started.
