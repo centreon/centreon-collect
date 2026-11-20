@@ -106,8 +106,16 @@ sub http_check_error {
 sub get_localhost_poller {
     my ($self, %options) = @_;
 
+    # This writes directly to the poller's centreonbroker_cfg_path on THIS
+    # process' own filesystem (no REMOTECOPY) - localhost=1 must mean actual
+    # filesystem collocation. In a docker/k8s split, the Central row can have
+    # localhost=1 with poller_type='docker' (reachable like any other pullwss
+    # node, broker in a separate container, no shared volume): that row is not
+    # a match here. See the matching fix in
+    # gorgone::modules::centreon::nodes::class.pm action_centreonnodessync.
     my $instance;
     foreach (keys %{$self->{pollers}}) {
+        next if (defined($self->{pollers}->{$_}->{poller_type}) && $self->{pollers}->{$_}->{poller_type} eq 'docker');
         if ($self->{pollers}->{$_}->{localhost} == 1) {
             $instance = $_;
             last;
@@ -217,7 +225,7 @@ sub get_centreon_anomaly_metrics {
 
     my ($status, $datas) = $self->{class_object_centreon}->custom_execute(
         request =>
-            'SELECT nagios_server_id, cfg_dir, centreonbroker_cfg_path, localhost, ' .
+            'SELECT nagios_server_id, cfg_dir, centreonbroker_cfg_path, localhost, poller_type, ' .
             'engine_start_command, engine_stop_command, engine_restart_command, engine_reload_command, ' .
             'broker_reload_command ' .
             'FROM cfg_nagios ' .
@@ -455,7 +463,7 @@ sub generate_lua_filter_file {
     }
 
     my $instance = $self->get_localhost_poller();
-    if ($status == 1) {
+    if (!defined($instance)) {
         $self->{logger}->writeLogError('[anomalydetection] -class- cannot find localhost poller');
         return 1;
     }
