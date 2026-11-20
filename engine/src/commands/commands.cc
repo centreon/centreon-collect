@@ -27,13 +27,13 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/downtimes/downtime_finder.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
+#include "engine/downtimes/downtime_finder.hh"
+#include "engine/downtimes/downtime_manager.hh"
 #include "mmap.h"
 
 using namespace com::centreon::engine;

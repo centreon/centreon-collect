@@ -24,7 +24,7 @@
 #define CCE_EVENTS_TIMED_EVENT_HH
 
 #include <stdint.h>
-#include "com/centreon/engine/downtimes/downtime.hh"
+#include "engine/downtimes/downtime.hh"
 
 namespace com::centreon::engine {
 class timed_event;

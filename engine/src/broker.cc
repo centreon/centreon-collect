@@ -40,8 +40,6 @@
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/commands/otel_interface.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
-#include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/nebstructs.hh"
@@ -50,6 +48,8 @@
 #include "com/centreon/engine/string.hh"
 #include "common.h"
 #include "common/crypto/cert_tree.hh"
+#include "engine/downtimes/downtime_manager.hh"
+#include "engine/downtimes/service_downtime.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::engine;

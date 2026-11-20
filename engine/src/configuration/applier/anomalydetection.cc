@@ -20,8 +20,8 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
+#include "engine/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

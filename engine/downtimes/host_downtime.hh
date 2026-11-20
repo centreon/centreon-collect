@@ -17,33 +17,28 @@
  *
  */
 
-#ifndef CCE_DOWNTIMES_SERVICE_DOWTIME_HH
-#define CCE_DOWNTIMES_SERVICE_DOWTIME_HH
+#ifndef CCE_DOWNTIMES_HOST_DOWTIME_HH
+#define CCE_DOWNTIMES_HOST_DOWTIME_HH
 
-#include "com/centreon/engine/downtimes/downtime.hh"
+#include "engine/downtimes/downtime.hh"
 
 namespace com::centreon::engine {
 
 namespace downtimes {
-class service_downtime : public downtime {
-  const uint64_t _service_id;
-
+class host_downtime : public downtime {
  public:
-  service_downtime(const uint64_t host_id,
-                   const uint64_t service_id,
-                   time_t entry_time,
-                   std::string const& author,
-                   std::string const& comment,
-                   time_t start_time,
-                   time_t end_time,
-                   bool fixed,
-                   uint64_t triggered_by,
-                   int32_t duration,
-                   uint64_t downtime_id);
-  service_downtime(downtime const& other);
-  service_downtime(downtime&& other);
-  virtual ~service_downtime();
-  uint64_t service_id() const;
+  host_downtime(const uint64_t host_id,
+                time_t entry_time,
+                std::string const& author,
+                std::string const& comment,
+                time_t start_time,
+                time_t end_time,
+                bool fixed,
+                uint64_t triggered_by,
+                int32_t duration,
+                uint64_t downtime_id);
+  virtual ~host_downtime();
+
   virtual bool is_stale() const override;
   virtual void schedule() override;
   virtual int unschedule() override;
@@ -56,4 +51,4 @@ class service_downtime : public downtime {
 
 }
 
-#endif  // !CCE_DOWNTIMES_SERVICE_DOWTIME_HH
+#endif  // !CCE_DOWNTIMES_HOST_DOWTIME_HH

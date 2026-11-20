@@ -23,13 +23,13 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/downtimes/downtime.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/utils.hh"
+#include "engine/downtimes/downtime.hh"
+#include "engine/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
