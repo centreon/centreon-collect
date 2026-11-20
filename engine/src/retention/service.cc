@@ -56,6 +56,9 @@ service::setters const service::_setters[] = {
     {"host_id", SETTER(uint64_t, _set_host_id)},
     {"host_name", SETTER(std::string const&, _set_host_name)},
     {"is_flapping", SETTER(bool, _set_is_flapping)},
+    {"flapping_comment_id", SETTER(uint64_t, _set_flapping_comment_id)},
+    {"acknowledgement_comment_id",
+     SETTER(uint64_t, _set_acknowledgement_comment_id)},
     {"last_acknowledgement", SETTER(time_t, _set_last_acknowledgement)},
     {"last_check", SETTER(time_t, _set_last_check)},
     {"last_event_id", SETTER(uint64_t, _set_last_event_id)},
@@ -124,7 +127,7 @@ service::service(service const& right) : object(right) {
 /**
  *  Destructor.
  */
-service::~service() throw() {}
+service::~service() noexcept {}
 
 /**
  *  Copy operator.
@@ -160,6 +163,8 @@ service& service::operator=(const service& right) {
     _host_id = right._host_id;
     _host_name = right._host_name;
     _is_flapping = right._is_flapping;
+    _flapping_comment_id = right._flapping_comment_id;
+    _acknowledgement_comment_id = right._acknowledgement_comment_id;
     _last_acknowledgement = right._last_acknowledgement;
     _last_check = right._last_check;
     _last_event_id = right._last_event_id;
@@ -207,7 +212,7 @@ service& service::operator=(const service& right) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool service::operator==(service const& right) const throw() {
+bool service::operator==(service const& right) const noexcept {
   return (object::operator==(right) &&
           _acknowledgement_type == right._acknowledgement_type &&
           _active_checks_enabled == right._active_checks_enabled &&
@@ -277,7 +282,7 @@ bool service::operator==(service const& right) const throw() {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool service::operator!=(service const& right) const throw() {
+bool service::operator!=(service const& right) const noexcept {
   return !operator==(right);
 }
 
@@ -329,7 +334,7 @@ bool service::set(char const* key, char const* value) {
  *
  *  @return The acknowledgement_type.
  */
-opt<int> const& service::acknowledgement_type() const throw() {
+std::optional<int> const& service::acknowledgement_type() const noexcept {
   return _acknowledgement_type;
 }
 
@@ -338,7 +343,7 @@ opt<int> const& service::acknowledgement_type() const throw() {
  *
  *  @return The active_checks_enabled.
  */
-opt<bool> const& service::active_checks_enabled() const throw() {
+std::optional<bool> const& service::active_checks_enabled() const noexcept {
   return _active_checks_enabled;
 }
 
@@ -347,7 +352,7 @@ opt<bool> const& service::active_checks_enabled() const throw() {
  *
  *  @return The check_command.
  */
-opt<std::string> const& service::check_command() const throw() {
+std::optional<std::string> const& service::check_command() const noexcept {
   return _check_command;
 }
 
@@ -356,7 +361,7 @@ opt<std::string> const& service::check_command() const throw() {
  *
  *  @return The check_execution_time.
  */
-opt<double> const& service::check_execution_time() const throw() {
+std::optional<double> const& service::check_execution_time() const noexcept {
   return _check_execution_time;
 }
 
@@ -365,7 +370,8 @@ opt<double> const& service::check_execution_time() const throw() {
  *
  *  @return The check_flapping_recovery_notification.
  */
-opt<int> const& service::check_flapping_recovery_notification() const throw() {
+std::optional<int> const& service::check_flapping_recovery_notification()
+    const noexcept {
   return _check_flapping_recovery_notification;
 }
 
@@ -374,7 +380,7 @@ opt<int> const& service::check_flapping_recovery_notification() const throw() {
  *
  *  @return The check_latency.
  */
-opt<double> const& service::check_latency() const throw() {
+std::optional<double> const& service::check_latency() const noexcept {
   return _check_latency;
 }
 
@@ -383,7 +389,7 @@ opt<double> const& service::check_latency() const throw() {
  *
  *  @return The check_options.
  */
-opt<int> const& service::check_options() const throw() {
+std::optional<int> const& service::check_options() const noexcept {
   return _check_options;
 }
 
@@ -392,7 +398,7 @@ opt<int> const& service::check_options() const throw() {
  *
  *  @return The check_period.
  */
-opt<std::string> const& service::check_period() const throw() {
+std::optional<std::string> const& service::check_period() const noexcept {
   return _check_period;
 }
 
@@ -401,7 +407,7 @@ opt<std::string> const& service::check_period() const throw() {
  *
  *  @return The check_type.
  */
-opt<int> const& service::check_type() const throw() {
+std::optional<int> const& service::check_type() const noexcept {
   return _check_type;
 }
 
@@ -410,7 +416,7 @@ opt<int> const& service::check_type() const throw() {
  *
  *  @return The current_attempt.
  */
-opt<int> const& service::current_attempt() const throw() {
+std::optional<int> const& service::current_attempt() const noexcept {
   return _current_attempt;
 }
 
@@ -419,7 +425,7 @@ opt<int> const& service::current_attempt() const throw() {
  *
  *  @return The current_event_id.
  */
-opt<uint64_t> const& service::current_event_id() const throw() {
+std::optional<uint64_t> const& service::current_event_id() const noexcept {
   return _current_event_id;
 }
 
@@ -428,7 +434,8 @@ opt<uint64_t> const& service::current_event_id() const throw() {
  *
  *  @return The current_notification_id.
  */
-opt<uint64_t> const& service::current_notification_id() const throw() {
+std::optional<uint64_t> const& service::current_notification_id()
+    const noexcept {
   return _current_notification_id;
 }
 
@@ -437,7 +444,8 @@ opt<uint64_t> const& service::current_notification_id() const throw() {
  *
  *  @return The current_notification_number.
  */
-opt<int> const& service::current_notification_number() const throw() {
+std::optional<int> const& service::current_notification_number()
+    const noexcept {
   return _current_notification_number;
 }
 
@@ -446,7 +454,7 @@ opt<int> const& service::current_notification_number() const throw() {
  *
  *  @return The current_problem_id.
  */
-opt<uint64_t> const& service::current_problem_id() const throw() {
+std::optional<uint64_t> const& service::current_problem_id() const noexcept {
   return _current_problem_id;
 }
 
@@ -455,7 +463,7 @@ opt<uint64_t> const& service::current_problem_id() const throw() {
  *
  *  @return The current_state.
  */
-opt<int> const& service::current_state() const throw() {
+std::optional<int> const& service::current_state() const noexcept {
   return _current_state;
 }
 
@@ -464,7 +472,7 @@ opt<int> const& service::current_state() const throw() {
  *
  *  @return The event_handler.
  */
-opt<std::string> const& service::event_handler() const throw() {
+std::optional<std::string> const& service::event_handler() const noexcept {
   return _event_handler;
 }
 
@@ -473,7 +481,7 @@ opt<std::string> const& service::event_handler() const throw() {
  *
  *  @return The customvariables.
  */
-map_customvar const& service::customvariables() const throw() {
+map_customvar const& service::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -482,7 +490,7 @@ map_customvar const& service::customvariables() const throw() {
  *
  *  @return The event_handler_enabled.
  */
-opt<bool> const& service::event_handler_enabled() const throw() {
+std::optional<bool> const& service::event_handler_enabled() const noexcept {
   return _event_handler_enabled;
 }
 
@@ -491,7 +499,7 @@ opt<bool> const& service::event_handler_enabled() const throw() {
  *
  *  @return The flap_detection_enabled.
  */
-opt<bool> const& service::flap_detection_enabled() const throw() {
+std::optional<bool> const& service::flap_detection_enabled() const noexcept {
   return _flap_detection_enabled;
 }
 
@@ -500,7 +508,7 @@ opt<bool> const& service::flap_detection_enabled() const throw() {
  *
  *  @return The has_been_checked.
  */
-opt<bool> const& service::has_been_checked() const noexcept {
+std::optional<bool> const& service::has_been_checked() const noexcept {
   return _has_been_checked;
 }
 
@@ -518,7 +526,7 @@ uint64_t service::host_id() const noexcept {
  *
  *  @return The host_name.
  */
-std::string const& service::host_name() const throw() {
+std::string const& service::host_name() const noexcept {
   return _host_name;
 }
 
@@ -527,7 +535,7 @@ std::string const& service::host_name() const throw() {
  *
  *  @return The is_flapping.
  */
-opt<bool> const& service::is_flapping() const throw() {
+std::optional<bool> const& service::is_flapping() const noexcept {
   return _is_flapping;
 }
 
@@ -536,8 +544,27 @@ opt<bool> const& service::is_flapping() const throw() {
  *
  *  @return The last acknowledgement.
  */
-opt<time_t> const& service::last_acknowledgement() const throw() {
+std::optional<time_t> const& service::last_acknowledgement() const noexcept {
   return _last_acknowledgement;
+}
+
+/**
+ *  Get flapping_comment_id.
+ *
+ *  @return The flapping comment id.
+ */
+std::optional<uint64_t> const& service::flapping_comment_id() const noexcept {
+  return _flapping_comment_id;
+}
+
+/**
+ *  Get acknowledgement_comment_id.
+ *
+ *  @return The acknowledgement comment id.
+ */
+std::optional<uint64_t> const& service::acknowledgement_comment_id()
+    const noexcept {
+  return _acknowledgement_comment_id;
 }
 
 /**
@@ -545,7 +572,7 @@ opt<time_t> const& service::last_acknowledgement() const throw() {
  *
  *  @return The last_check.
  */
-opt<time_t> const& service::last_check() const throw() {
+std::optional<time_t> const& service::last_check() const noexcept {
   return _last_check;
 }
 
@@ -554,7 +581,7 @@ opt<time_t> const& service::last_check() const throw() {
  *
  *  @return The last_event_id.
  */
-opt<uint64_t> const& service::last_event_id() const throw() {
+std::optional<uint64_t> const& service::last_event_id() const noexcept {
   return _last_event_id;
 }
 
@@ -563,7 +590,7 @@ opt<uint64_t> const& service::last_event_id() const throw() {
  *
  *  @return The last_hard_state.
  */
-opt<time_t> const& service::last_hard_state() const throw() {
+std::optional<time_t> const& service::last_hard_state() const noexcept {
   return _last_hard_state;
 }
 
@@ -572,7 +599,7 @@ opt<time_t> const& service::last_hard_state() const throw() {
  *
  *  @return The last_hard_state_change.
  */
-opt<time_t> const& service::last_hard_state_change() const throw() {
+std::optional<time_t> const& service::last_hard_state_change() const noexcept {
   return _last_hard_state_change;
 }
 
@@ -581,7 +608,7 @@ opt<time_t> const& service::last_hard_state_change() const throw() {
  *
  *  @return The last_notification.
  */
-opt<time_t> const& service::last_notification() const throw() {
+std::optional<time_t> const& service::last_notification() const noexcept {
   return _last_notification;
 }
 
@@ -590,7 +617,7 @@ opt<time_t> const& service::last_notification() const throw() {
  *
  *  @return The last_problem_id.
  */
-opt<uint64_t> const& service::last_problem_id() const throw() {
+std::optional<uint64_t> const& service::last_problem_id() const noexcept {
   return _last_problem_id;
 }
 
@@ -599,7 +626,7 @@ opt<uint64_t> const& service::last_problem_id() const throw() {
  *
  *  @return The last_state.
  */
-opt<time_t> const& service::last_state() const throw() {
+std::optional<time_t> const& service::last_state() const noexcept {
   return _last_state;
 }
 
@@ -608,7 +635,7 @@ opt<time_t> const& service::last_state() const throw() {
  *
  *  @return The last_state_change.
  */
-opt<time_t> const& service::last_state_change() const throw() {
+std::optional<time_t> const& service::last_state_change() const noexcept {
   return _last_state_change;
 }
 
@@ -617,7 +644,7 @@ opt<time_t> const& service::last_state_change() const throw() {
  *
  *  @return The last_time_critical.
  */
-opt<time_t> const& service::last_time_critical() const throw() {
+std::optional<time_t> const& service::last_time_critical() const noexcept {
   return _last_time_critical;
 }
 
@@ -626,7 +653,7 @@ opt<time_t> const& service::last_time_critical() const throw() {
  *
  *  @return The last_time_ok.
  */
-opt<time_t> const& service::last_time_ok() const throw() {
+std::optional<time_t> const& service::last_time_ok() const noexcept {
   return _last_time_ok;
 }
 
@@ -635,7 +662,7 @@ opt<time_t> const& service::last_time_ok() const throw() {
  *
  *  @return The last_time_unknown.
  */
-opt<time_t> const& service::last_time_unknown() const throw() {
+std::optional<time_t> const& service::last_time_unknown() const noexcept {
   return _last_time_unknown;
 }
 
@@ -644,7 +671,7 @@ opt<time_t> const& service::last_time_unknown() const throw() {
  *
  *  @return The last_time_warning.
  */
-opt<time_t> const& service::last_time_warning() const throw() {
+std::optional<time_t> const& service::last_time_warning() const noexcept {
   return _last_time_warning;
 }
 
@@ -653,7 +680,7 @@ opt<time_t> const& service::last_time_warning() const throw() {
  *
  *  @return The long_plugin_output.
  */
-opt<std::string> const& service::long_plugin_output() const throw() {
+std::optional<std::string> const& service::long_plugin_output() const noexcept {
   return _long_plugin_output;
 }
 
@@ -662,7 +689,7 @@ opt<std::string> const& service::long_plugin_output() const throw() {
  *
  *  @return The max_attempts.
  */
-opt<unsigned int> const& service::max_attempts() const throw() {
+std::optional<unsigned int> const& service::max_attempts() const noexcept {
   return _max_attempts;
 }
 
@@ -671,7 +698,8 @@ opt<unsigned int> const& service::max_attempts() const throw() {
  *
  *  @return The modified_attributes.
  */
-opt<unsigned long> const& service::modified_attributes() const throw() {
+std::optional<unsigned long> const& service::modified_attributes()
+    const noexcept {
   return _modified_attributes;
 }
 
@@ -680,7 +708,7 @@ opt<unsigned long> const& service::modified_attributes() const throw() {
  *
  *  @return The next_check.
  */
-opt<time_t> const& service::next_check() const throw() {
+std::optional<time_t> const& service::next_check() const noexcept {
   return _next_check;
 }
 
@@ -689,7 +717,8 @@ opt<time_t> const& service::next_check() const throw() {
  *
  *  @return The normal_check_interval.
  */
-opt<unsigned int> const& service::normal_check_interval() const throw() {
+std::optional<unsigned int> const& service::normal_check_interval()
+    const noexcept {
   return _normal_check_interval;
 }
 
@@ -698,7 +727,8 @@ opt<unsigned int> const& service::normal_check_interval() const throw() {
  *
  *  @return The notification_period.
  */
-opt<std::string> const& service::notification_period() const throw() {
+std::optional<std::string> const& service::notification_period()
+    const noexcept {
   return _notification_period;
 }
 
@@ -707,7 +737,7 @@ opt<std::string> const& service::notification_period() const throw() {
  *
  *  @return The notifications_enabled.
  */
-opt<bool> const& service::notifications_enabled() const throw() {
+std::optional<bool> const& service::notifications_enabled() const noexcept {
   return _notifications_enabled;
 }
 
@@ -716,7 +746,7 @@ opt<bool> const& service::notifications_enabled() const throw() {
  *
  *  @return The notified_on_critical.
  */
-opt<bool> const& service::notified_on_critical() const throw() {
+std::optional<bool> const& service::notified_on_critical() const noexcept {
   return _notified_on_critical;
 }
 
@@ -725,7 +755,7 @@ opt<bool> const& service::notified_on_critical() const throw() {
  *
  *  @return The notified_on_unknown.
  */
-opt<bool> const& service::notified_on_unknown() const throw() {
+std::optional<bool> const& service::notified_on_unknown() const noexcept {
   return _notified_on_unknown;
 }
 
@@ -734,7 +764,7 @@ opt<bool> const& service::notified_on_unknown() const throw() {
  *
  *  @return The notified_on_warning.
  */
-opt<bool> const& service::notified_on_warning() const throw() {
+std::optional<bool> const& service::notified_on_warning() const noexcept {
   return _notified_on_warning;
 }
 
@@ -743,7 +773,7 @@ opt<bool> const& service::notified_on_warning() const throw() {
  *
  *  @return The obsess_over_service.
  */
-opt<int> const& service::obsess_over_service() const throw() {
+std::optional<int> const& service::obsess_over_service() const noexcept {
   return _obsess_over_service;
 }
 
@@ -752,7 +782,7 @@ opt<int> const& service::obsess_over_service() const throw() {
  *
  *  @return The passive_checks_enabled.
  */
-opt<bool> const& service::passive_checks_enabled() const throw() {
+std::optional<bool> const& service::passive_checks_enabled() const noexcept {
   return _passive_checks_enabled;
 }
 
@@ -761,7 +791,7 @@ opt<bool> const& service::passive_checks_enabled() const throw() {
  *
  *  @return The percent_state_change.
  */
-opt<double> const& service::percent_state_change() const throw() {
+std::optional<double> const& service::percent_state_change() const noexcept {
   return _percent_state_change;
 }
 
@@ -770,7 +800,7 @@ opt<double> const& service::percent_state_change() const throw() {
  *
  *  @return The performance_data.
  */
-opt<std::string> const& service::performance_data() const throw() {
+std::optional<std::string> const& service::performance_data() const noexcept {
   return _performance_data;
 }
 
@@ -779,7 +809,7 @@ opt<std::string> const& service::performance_data() const throw() {
  *
  *  @return The plugin_output.
  */
-opt<std::string> const& service::plugin_output() const throw() {
+std::optional<std::string> const& service::plugin_output() const noexcept {
   return _plugin_output;
 }
 
@@ -788,7 +818,8 @@ opt<std::string> const& service::plugin_output() const throw() {
  *
  *  @return The problem_has_been_acknowledged.
  */
-opt<bool> const& service::problem_has_been_acknowledged() const throw() {
+std::optional<bool> const& service::problem_has_been_acknowledged()
+    const noexcept {
   return _problem_has_been_acknowledged;
 }
 
@@ -797,7 +828,7 @@ opt<bool> const& service::problem_has_been_acknowledged() const throw() {
  *
  *  @return The process_performance_data.
  */
-opt<int> const& service::process_performance_data() const throw() {
+std::optional<int> const& service::process_performance_data() const noexcept {
   return _process_performance_data;
 }
 
@@ -806,7 +837,8 @@ opt<int> const& service::process_performance_data() const throw() {
  *
  *  @return The retry_check_interval.
  */
-opt<unsigned int> const& service::retry_check_interval() const throw() {
+std::optional<unsigned int> const& service::retry_check_interval()
+    const noexcept {
   return _retry_check_interval;
 }
 
@@ -815,7 +847,7 @@ opt<unsigned int> const& service::retry_check_interval() const throw() {
  *
  *  @return The service_id.
  */
-uint64_t service::service_id() const throw() {
+uint64_t service::service_id() const noexcept {
   return _service_id;
 }
 
@@ -824,7 +856,7 @@ uint64_t service::service_id() const throw() {
  *
  *  @return The service_description.
  */
-std::string const& service::service_description() const throw() {
+std::string const& service::service_description() const noexcept {
   return _service_description;
 }
 
@@ -833,7 +865,8 @@ std::string const& service::service_description() const throw() {
  *
  *  @return The state_history.
  */
-opt<std::vector<int> > const& service::state_history() const throw() {
+std::optional<std::vector<int> > const& service::state_history()
+    const noexcept {
   return _state_history;
 }
 
@@ -842,7 +875,7 @@ opt<std::vector<int> > const& service::state_history() const throw() {
  *
  *  @return The state_type.
  */
-opt<int> const& service::state_type() const throw() {
+std::optional<int> const& service::state_type() const noexcept {
   return _state_type;
 }
 
@@ -1073,6 +1106,26 @@ bool service::_set_host_name(std::string const& value) {
  */
 bool service::_set_is_flapping(bool value) {
   _is_flapping = value;
+  return true;
+}
+
+/**
+ *  Set flapping_comment_id.
+ *
+ *  @param[in] value The new flapping_comment_id.
+ */
+bool service::_set_flapping_comment_id(uint64_t value) {
+  _flapping_comment_id = value;
+  return true;
+}
+
+/**
+ *  Set acknowledgement_comment_id.
+ *
+ *  @param[in] value The new acknowledgement_comment_id.
+ */
+bool service::_set_acknowledgement_comment_id(uint64_t value) {
+  _acknowledgement_comment_id = value;
   return true;
 }
 
@@ -1460,7 +1513,7 @@ bool service::_set_service_description(std::string const& value) {
  *  @param[in] value The new state_history.
  */
 bool service::_set_state_history(std::string const& value) {
-  std::vector<int>& state_history(*_state_history);
+  std::vector<int> state_history;
   char const* ptr(value.c_str());
   while (*ptr) {
     char* endptr;
@@ -1475,7 +1528,7 @@ bool service::_set_state_history(std::string const& value) {
     if (*ptr)
       ++ptr;
   }
-  _state_history.set(state_history);
+  _state_history = std::move(state_history);
   return true;
 }
 

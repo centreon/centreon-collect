@@ -154,6 +154,10 @@ message Service {
   uint64 internal_id = 86;
   uint64 icon_id = 87;
   uint64 instance_id = 88;
+
+  /* Only set for anomaly detection services: ID of the service whose metrics
+   * are monitored by this anomaly detection. */
+  uint64 dependent_service_id = 89;
 }
 
 /**
@@ -532,6 +536,10 @@ message Downtime {
   bool started = 16;
   bool cancelled = 17;
   bool fixed = 18;
+  /* internal_id of the associated comment row. Only persisted in the broker
+   * cache (notification_mode=broker) so a reloaded downtime can delete its
+   * comment at the end; unused in the BBDO pb_downtime event flow. */
+  uint64 comment_id = 19;
 }
 
 /* io::neb, neb::de_pb_custom_variable, 13 */
@@ -890,6 +898,21 @@ message BrokerCache {
 
   /* OTel service identity of hosts (section CACHE_OTEL) */
   repeated OtelService otel_services = 8;
+
+  /* Active (started, not yet ended) downtimes, persisted so that Broker can
+   * re-establish them in the downtime_manager after a restart (only meaningful
+   * when notification_mode=broker). */
+  repeated Downtime active_downtimes = 9;
+
+  /* Next internal_id to mint for a Broker-originated downtime comment. Persisted
+   * so the partitioned counter (>= INT32_MAX/2) stays monotonic across restarts
+   * (only meaningful when notification_mode=broker). */
+  uint64 next_downtime_comment_id = 10;
+
+  /* Open acknowledgements held in the cache, persisted so Broker can still
+   * close them on recovery after a restart (host acks carry service_id 0). The
+   * DB rows already exist; this only restores the in-memory tracking. */
+  repeated Acknowledgement acknowledgements = 11;
 }
 
 /* Ignore */

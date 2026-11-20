@@ -22,6 +22,7 @@
 
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/notification.hh"
+#include "common/downtimes/downtime.hh"
 
 // Forward declaration.
 
@@ -31,15 +32,10 @@ class contact;
 class customvariable;
 class service;
 class anomalydetection;
-namespace downtimes {
-class downtime;
-}
 class host;
 
 namespace retention {
 namespace dump {
-std::ostream& comment(std::ostream& os, comment const& obj);
-std::ostream& comments(std::ostream& os);
 std::ostream& contact(std::ostream& os, contact const& obj);
 std::ostream& contacts(std::ostream& os);
 std::ostream& customvariables(std::ostream& os,
@@ -48,8 +44,9 @@ std::ostream& notifications(
     std::ostream& os,
     std::array<std::unique_ptr<com::centreon::engine::notification>, 6> const&
         obj);
-std::ostream& scheduled_downtime(std::ostream& os,
-                                 downtimes::downtime const& obj);
+std::ostream& scheduled_downtime(
+    std::ostream& os,
+    const com::centreon::common::downtimes::downtime& obj);
 std::ostream& downtimes(std::ostream& os);
 std::ostream& header(std::ostream& os);
 std::ostream& host(std::ostream& os, com::centreon::engine::host const& obj);
@@ -70,6 +67,6 @@ std::ostream& anomalydetection(
 std::ostream& services(std::ostream& os);
 }  // namespace dump
 }  // namespace retention
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_DUMP_HH

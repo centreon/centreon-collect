@@ -49,27 +49,21 @@ void applier::comment::apply(list_comment const& lst) {
  *  @param[in] obj The comment to add into the host.
  */
 void applier::comment::_add_host_comment(
-    retention::comment const& obj) throw() {
+    retention::comment const& obj) noexcept {
   host_map::const_iterator it(host::hosts.find(obj.host_name()));
   if (it == host::hosts.end() || !it->second)
     return;
 
-  // add the comment.
-  auto com{std::make_shared<engine::comment>(
-      engine::comment::host,
-      static_cast<engine::comment::e_type>(obj.entry_type()),
-      it->second->host_id(), 0, obj.entry_time(), obj.author(),
-      obj.comment_data(), obj.persistent(),
-      static_cast<engine::comment::src>(obj.source()), obj.expires(),
-      obj.expire_time(), obj.comment_id())};
-
-  engine::comment::comments.insert({com->get_comment_id(), com});
-
-  // acknowledgement comments get deleted if they're not persistent
-  // and the original problem is no longer acknowledged.
+  // Engine no longer keeps comments in memory: Broker owns them. Reading an old
+  // retention file (with comment blocks) only drives the acknowledgement-comment
+  // bookkeeping and the boot-time purge of non-persistent comments.
   if (obj.entry_type() == com::centreon::engine::comment::acknowledgment) {
     if (!it->second->problem_has_been_acknowledged() && !obj.persistent())
       engine::comment::delete_comment(obj.comment_id());
+    // a kept non-persistent ack comment is owned by the host: restore the link
+    // so it can be deleted by id when the acknowledgement is cleared.
+    else if (!obj.persistent())
+      it->second->set_acknowledgement_comment_id(obj.comment_id());
   }
   // non-persistent comments don't last past restarts UNLESS
   // they're acks (see above).
@@ -89,22 +83,16 @@ void applier::comment::_add_service_comment(
   if (it_svc == service::services.end() || !it_svc->second)
     return;
 
-  // add the comment.
-  auto com{std::make_shared<engine::comment>(
-      engine::comment::service,
-      static_cast<engine::comment::e_type>(obj.entry_type()),
-      it_svc->second->host_id(), it_svc->second->service_id(), obj.entry_time(),
-      obj.author(), obj.comment_data(), obj.persistent(),
-      static_cast<engine::comment::src>(obj.source()), obj.expires(),
-      obj.expire_time(), obj.comment_id())};
-
-  engine::comment::comments.insert({com->get_comment_id(), com});
-
-  // acknowledgement comments get deleted if they're not persistent
-  // and the original problem is no longer acknowledged.
+  // Engine no longer keeps comments in memory: Broker owns them. Reading an old
+  // retention file (with comment blocks) only drives the acknowledgement-comment
+  // bookkeeping and the boot-time purge of non-persistent comments.
   if (obj.entry_type() == com::centreon::engine::comment::acknowledgment) {
     if (!it_svc->second->problem_has_been_acknowledged() && !obj.persistent())
       engine::comment::delete_comment(obj.comment_id());
+    // a kept non-persistent ack comment is owned by the service: restore the
+    // link so it can be deleted by id when the acknowledgement is cleared.
+    else if (!obj.persistent())
+      it_svc->second->set_acknowledgement_comment_id(obj.comment_id());
   }
   // non-persistent comments don't last past restarts UNLESS
   // they're acks (see above).

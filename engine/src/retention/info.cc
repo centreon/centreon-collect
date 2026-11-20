@@ -49,7 +49,7 @@ info::info(info const& right) : object(right) {
 /**
  *  Destructor.
  */
-info::~info() throw() {}
+info::~info() noexcept {}
 
 /**
  *  Copy operator.
@@ -73,7 +73,7 @@ info& info::operator=(info const& right) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool info::operator==(info const& right) const throw() {
+bool info::operator==(info const& right) const noexcept {
   return (object::operator==(right) && _created == right._created);
 }
 
@@ -84,7 +84,7 @@ bool info::operator==(info const& right) const throw() {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool info::operator!=(info const& right) const throw() {
+bool info::operator!=(info const& right) const noexcept {
   return (!operator==(right));
 }
 
@@ -108,7 +108,7 @@ bool info::set(char const* key, char const* value) {
  *
  *  @return The created time.
  */
-time_t info::created() const throw() {
+time_t info::created() const noexcept {
   return (_created);
 }
 

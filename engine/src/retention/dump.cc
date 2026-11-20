@@ -23,95 +23,15 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/downtimes/downtime.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
-#include "com/centreon/engine/downtimes/host_downtime.hh"
-#include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "common/downtimes/downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::retention;
-
-/**
- *  Dump retention of comment.
- *
- *  @param[out] os  The output stream.
- *  @param[in]  obj The comment to dump.
- *
- *  @return The output stream.
- */
-std::ostream& dump::comment(std::ostream& os,
-                            com::centreon::engine::comment const& obj) {
-  functions_logger->trace("dump::comment()");
-  char const* host_name;
-  char const* service_description;
-  if (obj.get_comment_type() == com::centreon::engine::comment::host) {
-    auto it = host::hosts_by_id.find(obj.get_host_id());
-    if (it == host::hosts_by_id.end())
-      return os;
-    host_name = it->second->name().c_str();
-    service_description = "";
-    os << "hostcomment {\n";
-  } else {
-    auto it =
-        service::services_by_id.find({obj.get_host_id(), obj.get_service_id()});
-    if (it == service::services_by_id.end())
-      return os;
-    host_name = it->second->get_hostname().c_str();
-    service_description = it->second->description().c_str();
-    os << "servicecomment {\n";
-  }
-  os << "host_name=" << host_name << "\n";
-  if (obj.get_comment_type() == com::centreon::engine::comment::service)
-    os << "service_description=" << service_description << "\n";
-  os << "author=" << obj.get_author()
-     << "\n"
-        "comment_data="
-     << obj.get_comment_data()
-     << "\n"
-        "comment_id="
-     << obj.get_comment_id()
-     << "\n"
-        "entry_time="
-     << static_cast<unsigned long>(obj.get_entry_time())
-     << "\n"
-        "expire_time="
-     << static_cast<unsigned long>(obj.get_expire_time())
-     << "\n"
-        "expires="
-     << obj.get_expires()
-     << "\n"
-        "persistent="
-     << obj.get_persistent()
-     << "\n"
-        "source="
-     << obj.get_source()
-     << "\n"
-        "entry_type="
-     << obj.get_entry_type()
-     << "\n"
-        "}\n";
-  return os;
-}
-
-/**
- *  Dump retention of comments.
- *
- *  @param[out] os The output stream.
- *
- *  @return The output stream.
- */
-std::ostream& dump::comments(std::ostream& os) {
-  functions_logger->trace("dump::comments()");
-  for (comment_map::iterator it(comment::comments.begin()),
-       end(comment::comments.end());
-       it != end; ++it)
-    dump::comment(os, *it->second);
-  return os;
-}
+namespace downtimes = com::centreon::common::downtimes;
 
 /**
  *  Dump retention of contact.
@@ -214,7 +134,8 @@ std::ostream& dump::notifications(
  *
  *  @return The output stream.
  */
-std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
+std::ostream& dump::scheduled_downtime(std::ostream& os,
+                                       const downtimes::downtime& obj) {
   functions_logger->trace("dump::scheduled_downtime()");
   obj.retention(os);
   return os;
@@ -331,6 +252,12 @@ std::ostream& dump::host(std::ostream& os,
      << "\n"
         "is_flapping="
      << obj.get_is_flapping()
+     << "\n"
+        "flapping_comment_id="
+     << obj.get_flapping_comment_id()
+     << "\n"
+        "acknowledgement_comment_id="
+     << obj.get_acknowledgement_comment_id()
      << "\n"
         "last_acknowledgement="
      << obj.last_acknowledgement()
@@ -565,7 +492,10 @@ bool dump::save(std::string const& path) {
     dump::hosts(stream);
     dump::services(stream);
     dump::contacts(stream);
-    dump::comments(stream);
+    /* Comments are no longer persisted in the Engine retention file: Broker
+     * owns them (comments table). The flapping/acknowledgement comment ids that
+     * Engine still needs to drive deletions are kept on the host/service
+     * objects above (flapping_comment_id / acknowledgement_comment_id). */
     dump::downtimes(stream);
 
     ret = true;
@@ -666,6 +596,12 @@ std::ostream& dump::service(std::ostream& os,
      << "\n"
         "is_flapping="
      << obj.get_is_flapping()
+     << "\n"
+        "flapping_comment_id="
+     << obj.get_flapping_comment_id()
+     << "\n"
+        "acknowledgement_comment_id="
+     << obj.get_acknowledgement_comment_id()
      << "\n"
         "last_acknowledgement="
      << obj.last_acknowledgement()

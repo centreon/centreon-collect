@@ -24,7 +24,6 @@
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
@@ -36,10 +35,11 @@
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::string;
 
 std::array<std::pair<uint32_t, std::string>, 4> const
@@ -734,16 +734,15 @@ com::centreon::engine::service* add_service(
 
   // Allocate memory.
   auto obj{std::make_shared<service>(
-      host_id, service_id, host_name,
-      description, display_name.empty() ? description : display_name,
-      check_command, checks_enabled, accept_passive_checks, check_interval,
-      retry_interval, notification_interval, max_attempts,
-      first_notification_delay, recovery_notification_delay,
-      notification_period, notifications_enabled, is_volatile, check_period,
-      event_handler, event_handler_enabled, notes, notes_url, action_url,
-      icon_image, icon_image_alt, flap_detection_enabled, low_flap_threshold,
-      high_flap_threshold, check_freshness, freshness_threshold,
-      obsess_over_service, timezone, icon_id)};
+      host_id, service_id, host_name, description,
+      display_name.empty() ? description : display_name, check_command,
+      checks_enabled, accept_passive_checks, check_interval, retry_interval,
+      notification_interval, max_attempts, first_notification_delay,
+      recovery_notification_delay, notification_period, notifications_enabled,
+      is_volatile, check_period, event_handler, event_handler_enabled, notes,
+      notes_url, action_url, icon_image, icon_image_alt, flap_detection_enabled,
+      low_flap_threshold, high_flap_threshold, check_freshness,
+      freshness_threshold, obsess_over_service, timezone, icon_id)};
   try {
     obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
@@ -1410,14 +1409,14 @@ int service::handle_async_check_result(
         (state_change || !hard_state_change)) {
       set_acknowledgement(AckType::NONE);
 
-      /* remove any non-persistant comments associated with the ack */
-      comment::delete_service_acknowledgement_comments(this);
+      /* remove any non-persistant comment associated with the ack */
+      delete_acknowledgement_comment();
     } else if (get_acknowledgement() == AckType::STICKY &&
                _current_state == service::state_ok) {
       set_acknowledgement(AckType::NONE);
 
-      /* remove any non-persistant comments associated with the ack */
-      comment::delete_service_acknowledgement_comments(this);
+      /* remove any non-persistant comment associated with the ack */
+      delete_acknowledgement_comment();
     }
 
     /*
@@ -1839,8 +1838,10 @@ int service::handle_async_check_result(
       /* we need to check for both, state_change (SOFT) and hard_state_change
        * (HARD) values */
       if ((hard_state_change || state_change) &&
-          get_pending_flex_downtime() > 0)
-        downtime_manager::instance().check_pending_flex_service_downtime(this);
+          get_pending_flex_downtime() > 0 &&
+          get_current_state() != service::state_ok)
+        downtime_manager::instance().activate_pending_flex_service_downtimes(
+            host_id(), service_id());
 
       /* 10/04/07 check to see if the service and/or associate host is flapping
        */
@@ -2756,14 +2757,11 @@ void service::set_flap(double percent_change,
          "flapping "
       << "stops, notifications will be re-enabled.";
 
-  auto com{std::make_shared<comment>(
-      comment::service, comment::flapping, host_id(), _service_id,
-      time(nullptr), "(Centreon Engine Process)", oss.str(), false,
-      comment::internal, false, (time_t)0)};
+  comment com(comment::service, comment::flapping, host_id(), _service_id,
+              time(nullptr), "(Centreon Engine Process)", oss.str(), false,
+              comment::internal, false, (time_t)0);
 
-  comment::comments.insert({com->get_comment_id(), com});
-
-  this->set_flapping_comment_id(com->get_comment_id());
+  this->set_flapping_comment_id(com.get_comment_id());
 
   /* set the flapping indicator */
   set_is_flapping(true);

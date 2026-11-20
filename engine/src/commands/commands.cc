@@ -27,18 +27,18 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/downtimes/downtime_finder.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
+#include "common/downtimes/downtime_finder.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "mmap.h"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 
 /******************************************************************/
 /****************** EXTERNAL COMMAND PROCESSING *******************/
@@ -69,7 +69,7 @@ int check_for_external_commands() {
 
   /* process all commands found in the buffer */
   for (;;) {
-    boost::optional<std::string> cmd = external_command_buffer.pop();
+    std::optional<std::string> cmd = external_command_buffer.pop();
     if (!cmd) {
       break;
     }
@@ -204,14 +204,11 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
     return ERROR;
 
   /* add the comment */
-  auto com = std::make_shared<comment>(
-      (cmd == CMD_ADD_HOST_COMMENT) ? comment::host : comment::service,
-      comment::user, temp_host->host_id(), service_id, entry_time, user,
-      comment_data, persistent, comment::external, false, (time_t)0);
-  uint64_t comment_id = com->get_comment_id();
-  comment::comments.insert({comment_id, com});
+  comment com((cmd == CMD_ADD_HOST_COMMENT) ? comment::host : comment::service,
+              comment::user, temp_host->host_id(), service_id, entry_time, user,
+              comment_data, persistent, comment::external, false, (time_t)0);
   external_command_logger->trace("{}, comment_id: {}, data: {}", command_name,
-                                 comment_id, com->get_comment_data());
+                                 com.get_comment_id(), com.get_comment_data());
   return OK;
 }
 
@@ -1270,8 +1267,7 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   ++it;
 
   // Find downtimes.
-  downtime_finder dtf(
-      downtimes::downtime_manager::instance().get_scheduled_downtimes());
+  downtime_finder dtf(downtime_manager::instance().get_scheduled_downtimes());
   downtime_finder::result_set result(dtf.find_matching_all(criterias));
   for (downtime_finder::result_set::const_iterator it = result.begin(),
                                                    end = result.end();
@@ -1296,7 +1292,7 @@ int cmd_delete_downtime_by_host_name(int cmd, char* args) {
   char* hostname(nullptr);
   char* service_description(nullptr);
   char* downtime_comment(nullptr);
-  std::pair<bool, time_t> start_time = {false, 0};
+  std::optional<time_t> start_time;
   int deleted(0);
 
   (void)cmd;
@@ -1316,9 +1312,9 @@ int cmd_delete_downtime_by_host_name(int cmd, char* args) {
     /* Get the optional start time. */
     temp_ptr = my_strtok(nullptr, ";");
     if (temp_ptr != nullptr) {
-      start_time.second = strtoul(temp_ptr, &end_ptr, 10);
+      time_t val = strtoul(temp_ptr, &end_ptr, 10);
       if (temp_ptr != end_ptr)
-        start_time.first = true;
+        start_time = val;
       /* Get the optional comment. */
       temp_ptr = my_strtok(nullptr, ";");
       if (temp_ptr != nullptr) {
@@ -1346,7 +1342,7 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
   char* downtime_comment(nullptr);
   char* host_name(nullptr);
   int deleted(0);
-  std::pair<bool, time_t> start_time = {false, 0};
+  std::optional<time_t> start_time;
 
   (void)cmd;
 
@@ -1374,9 +1370,9 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
       /* Get the optional start time. */
       temp_ptr = my_strtok(nullptr, ";");
       if (temp_ptr != nullptr) {
-        start_time.second = strtoul(temp_ptr, &end_ptr, 10);
+        time_t val = strtoul(temp_ptr, &end_ptr, 10);
         if (temp_ptr != end_ptr)
-          start_time.first = true;
+          start_time = val;
         /* Get the optional comment. */
         temp_ptr = my_strtok(nullptr, ";");
         if (temp_ptr != nullptr) {
@@ -1395,9 +1391,9 @@ int cmd_delete_downtime_by_hostgroup_name(int cmd, char* args) {
       /* Get the optional start time. */
       temp_ptr = my_strtok(nullptr, ";");
       if (temp_ptr != nullptr) {
-        start_time.second = strtoul(temp_ptr, &end_ptr, 10);
+        time_t val = strtoul(temp_ptr, &end_ptr, 10);
         if (temp_ptr != end_ptr)
-          start_time.first = true;
+          start_time = val;
         /* Get the optional comment. */
         temp_ptr = my_strtok(nullptr, ";");
         if (temp_ptr != nullptr) {
@@ -1433,17 +1429,17 @@ int cmd_delete_downtime_by_start_time_comment(int cmd, char* args) {
   char* temp_ptr(nullptr);
   char* end_ptr(nullptr);
   int deleted(0);
-  std::pair<bool, time_t> start_time = {false, 0};
+  std::optional<time_t> start_time;
 
   (void)cmd;
 
   /* Get start time if set. */
   temp_ptr = my_strtok(args, ";");
-  if (temp_ptr != nullptr)
-    /* This will be set to 0 if no start_time is entered or data is bad. */
-    start_time.second = strtoul(temp_ptr, &end_ptr, 10);
-  if (temp_ptr != end_ptr)
-    start_time.first = true;
+  if (temp_ptr != nullptr) {
+    time_t val = strtoul(temp_ptr, &end_ptr, 10);
+    if (temp_ptr != end_ptr)
+      start_time = val;
+  }
 
   /* Get comment - not sure if this should be also tokenised by ; */
   temp_ptr = my_strtok(nullptr, "\n");
@@ -2517,10 +2513,16 @@ void acknowledge_host_problem(host* hst,
   hst->update_status(host::STATUS_ACKNOWLEDGEMENT);
 
   /* add a comment for the acknowledgement */
-  auto com{std::make_shared<comment>(
-      comment::host, comment::acknowledgment, hst->host_id(), 0, current_time,
-      ack_author, ack_data, persistent, comment::internal, false, (time_t)0)};
-  comment::comments.insert({com->get_comment_id(), com});
+  comment com(comment::host, comment::acknowledgment, hst->host_id(), 0,
+              current_time, ack_author, ack_data, persistent, comment::internal,
+              false, (time_t)0);
+
+  /* a non-persistent acknowledgement comment is owned by the host: keep its id
+   * so it can be deleted directly when the acknowledgement is cleared */
+  if (!persistent) {
+    hst->delete_acknowledgement_comment();
+    hst->set_acknowledgement_comment_id(com.get_comment_id());
+  }
 }
 
 /* acknowledges a service problem */
@@ -2556,11 +2558,16 @@ void acknowledge_service_problem(service* svc,
   svc->update_status(service::STATUS_ACKNOWLEDGEMENT);
 
   /* add a comment for the acknowledgement */
-  auto com{std::make_shared<comment>(
-      comment::service, comment::acknowledgment, svc->host_id(),
-      svc->service_id(), current_time, ack_author, ack_data, persistent,
-      comment::internal, false, (time_t)0)};
-  comment::comments.insert({com->get_comment_id(), com});
+  comment com(comment::service, comment::acknowledgment, svc->host_id(),
+              svc->service_id(), current_time, ack_author, ack_data, persistent,
+              comment::internal, false, (time_t)0);
+
+  /* a non-persistent acknowledgement comment is owned by the service: keep its
+   * id so it can be deleted directly when the acknowledgement is cleared */
+  if (!persistent) {
+    svc->delete_acknowledgement_comment();
+    svc->set_acknowledgement_comment_id(com.get_comment_id());
+  }
 }
 
 /* removes a host acknowledgement */
@@ -2571,8 +2578,8 @@ void remove_host_acknowledgement(host* hst) {
   /* update the status log with the host info */
   hst->update_status(host::STATUS_ACKNOWLEDGEMENT);
 
-  /* remove any non-persistant comments associated with the ack */
-  comment::delete_host_acknowledgement_comments(hst);
+  /* remove any non-persistant comment associated with the ack */
+  hst->delete_acknowledgement_comment();
 }
 
 /* removes a service acknowledgement */
@@ -2583,8 +2590,8 @@ void remove_service_acknowledgement(service* svc) {
   /* update the status log with the service info */
   svc->update_status(host::STATUS_ACKNOWLEDGEMENT);
 
-  /* remove any non-persistant comments associated with the ack */
-  comment::delete_service_acknowledgement_comments(svc);
+  /* remove any non-persistant comment associated with the ack */
+  svc->delete_acknowledgement_comment();
 }
 
 /* starts executing service checks */

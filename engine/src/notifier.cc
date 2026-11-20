@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -140,6 +141,7 @@ notifier::notifier(notifier::notifier_type notifier_type,
       _notifications_enabled{notifications_enabled},
       _no_more_notifications{false},
       _flapping_comment_id{0},
+      _acknowledgement_comment_id{0},
       _check_options{CHECK_OPTION_NONE},
       _acknowledgement_type{AckType::NONE},
       _retain_status_information{retain_status_information},
@@ -1074,6 +1076,26 @@ uint64_t notifier::get_flapping_comment_id(void) const noexcept {
 
 void notifier::set_flapping_comment_id(uint64_t comment_id) noexcept {
   _flapping_comment_id = comment_id;
+}
+
+uint64_t notifier::get_acknowledgement_comment_id(void) const noexcept {
+  return _acknowledgement_comment_id;
+}
+
+void notifier::set_acknowledgement_comment_id(uint64_t comment_id) noexcept {
+  _acknowledgement_comment_id = comment_id;
+}
+
+/**
+ * @brief Delete the non-persistent acknowledgement comment owned by this
+ * notifier, if any. Persistent acknowledgement comments are never tracked here
+ * (their id stays 0), so they survive an acknowledgement removal.
+ */
+void notifier::delete_acknowledgement_comment() noexcept {
+  if (_acknowledgement_comment_id != 0) {
+    comment::delete_comment(_acknowledgement_comment_id);
+    _acknowledgement_comment_id = 0;
+  }
 }
 
 int notifier::get_check_options(void) const noexcept {

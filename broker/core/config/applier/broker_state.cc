@@ -17,10 +17,19 @@
  */
 
 #include "broker/core/config/applier/broker_state.hh"
+
+#include <future>
+
+#include <boost/asio/bind_executor.hpp>
+#include <boost/asio/post.hpp>
+
 #include "bbdo/bbdo.pb.h"
+#include "bbdo/neb.pb.h"
+#include "com/centreon/broker/broker_downtime_callbacks.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file_system.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 
@@ -33,8 +42,53 @@ broker_state::~broker_state() {
   if (_watch_engine_conf_timer) {
     _watch_engine_conf_stopped.store(true);
     _watch_engine_conf_timer->cancel();
+    /* Drain the watcher: post a barrier on the strand and wait for it. Because
+     * the strand serializes every watcher handler, when the barrier runs no
+     * handler is in flight or queued, so the resources used by the handler
+     * (e.g. _cache_config_dir_watcher) can be destroyed below without a race.
+     * This is deadlock-free here: the pool is still running at shutdown (it is
+     * stopped only after deinit()), this destructor runs on the main thread
+     * (not a pool thread), and it holds no lock the handler could wait on. */
+    if (_watch_strand) {
+      std::promise<void> drained;
+      auto fut = drained.get_future();
+      boost::asio::post(*_watch_strand, [&drained] { drained.set_value(); });
+      fut.wait();
+    }
   }
   save_topology_cache();
+  /* Hand the started downtimes over to the global cache so they are persisted
+   * with it and can be re-injected on the next start. This must happen BEFORE
+   * unload() (which destroys the manager) and while the cache is still alive
+   * (the base state destructor, which owns it, runs after this one). */
+  if (com::centreon::common::downtimes::downtime_manager::is_loaded()) {
+    std::vector<Downtime> active;
+    for (const auto& [_, dt] : com::centreon::common::downtimes::
+             downtime_manager::instance().get_scheduled_downtimes()) {
+      if (!dt->is_in_effect())
+        continue;
+      Downtime d;
+      d.set_id(dt->get_downtime_id());
+      d.set_host_id(dt->host_id());
+      d.set_service_id(dt->service_id());
+      d.set_author(dt->get_author());
+      d.set_comment_data(dt->get_comment());
+      d.set_entry_time(dt->get_entry_time());
+      d.set_start_time(dt->get_start_time());
+      d.set_end_time(dt->get_end_time());
+      d.set_fixed(dt->is_fixed());
+      d.set_triggered_by(dt->get_triggered_by());
+      d.set_duration(dt->get_duration());
+      d.set_started(true);
+      d.set_comment_id(dt->get_comment_id());
+      d.set_type(dt->service_id() == 0 ? Downtime_DowntimeType_HOST
+                                       : Downtime_DowntimeType_SERVICE);
+      active.push_back(std::move(d));
+    }
+    config::applier::state::instance().cache().set_active_downtimes(
+        std::move(active));
+  }
+  com::centreon::common::downtimes::downtime_manager::unload();
 }
 
 /**
@@ -45,9 +99,41 @@ broker_state::~broker_state() {
  */
 void broker_state::apply(const com::centreon::broker::config::state& s,
                          bool run_mux) {
+  /* Load the downtime_manager BEFORE state::apply(): the latter initializes
+   * (and, in legacy mode, loads from disk) the global cache, and the cache
+   * load re-injects the persisted active downtimes into the manager — so the
+   * manager must already exist at that point. */
+  {
+    auto it = s.params().find("notification_mode");
+    _notification_mode = (it != s.params().end() && it->second == "broker")
+                             ? notification_mode_broker
+                             : notification_mode_engine;
+  }
+  if (_notification_mode == notification_mode_broker) {
+    com::centreon::common::downtimes::downtime_manager::load(
+        std::make_unique<broker_downtime_callbacks>(
+            com::centreon::common::pool::instance().io_context()));
+    /* This message is the signal that Broker now owns downtime management and
+     * that the gRPC ScheduleDowntime/DeleteDowntime endpoints are usable. It
+     * goes to the CORE logger (enabled at info by default) rather than the
+     * CONFIG logger (error by default) so it is reliably observable. */
+    com::centreon::common::log_v2::log_v2::instance()
+        .get(com::centreon::common::log_v2::log_v2::CORE)
+        ->info(
+            "notification_mode=broker: downtime management enabled, downtime "
+            "manager loaded");
+  }
+
   state::apply(s, run_mux);
 
-  // FIXME DBO: before modules application, or this can be later?
+  /* The persisted active downtimes are re-injected from _maybe_release_barrier()
+   * once the startup readiness barrier releases (i.e. after every output stream
+   * has emitted its startup definitions and the engine has flushed them). Doing
+   * it here, before the barrier, would let a stale BA service definition clobber
+   * the re-injected inherited-downtime depth. In centralized mode the resources
+   * are not known yet and the re-injection is a no-op anyway (done later from
+   * _process_engine_state after merge). */
+
   if (s.get_bbdo_version().major_v >= 3) {
     // Configuration cache directory (for broker, from php).
     set_cache_config_dir(s.cache_config_dir());
@@ -67,6 +153,18 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
    * periodically. */
   if (!supports_centralized_conf())
     cache().start_periodic_save();
+}
+
+/**
+ * @brief Invoked by the base startup readiness barrier right after the
+ * multiplexing engine is started. Re-inject the persisted active downtimes so
+ * they are ordered after the startup definitions the engine just flushed (e.g.
+ * the BA virtual service definitions). No-op in centralized mode (resources not
+ * known yet; re-injected later from _process_engine_state after merge).
+ */
+void broker_state::_on_barrier_released() {
+  if (_notification_mode == notification_mode_broker)
+    cache().reinject_pending_downtimes();
 }
 
 /**
@@ -102,6 +200,9 @@ void broker_state::set_cache_config_dir(
         _cache_config_dir, IN_CREATE | IN_MODIFY | IN_ATTRIB, true);
     if (!_watch_engine_conf_timer) {
       _logger->debug("Starting engine configuration watcher");
+      _watch_strand = std::make_unique<
+          boost::asio::strand<boost::asio::io_context::executor_type>>(
+          com::centreon::common::pool::instance().io_context().get_executor());
       _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
           com::centreon::common::pool::instance().io_context());
       _start_watch_engine_conf_timer();
@@ -325,6 +426,9 @@ void broker_state::add_peer(uint64_t poller_id,
   if (extended_negotiation) {
     if (!_watch_engine_conf_timer) {
       _logger->debug("Starting engine configuration watcher");
+      _watch_strand = std::make_unique<
+          boost::asio::strand<boost::asio::io_context::executor_type>>(
+          com::centreon::common::pool::instance().io_context().get_executor());
       _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
           com::centreon::common::pool::instance().io_context());
       _start_watch_engine_conf_timer();
@@ -801,16 +905,23 @@ void broker_state::_start_watch_engine_conf_timer() {
   _logger->trace(
       "Starting watch engine configuration timer with a 5 seconds delay");
   _watch_engine_conf_timer->expires_after(std::chrono::seconds(5));
-  _watch_engine_conf_timer->async_wait(
+  /* The handler is bound to _watch_strand so it is serialized with the drain
+   * barrier posted by the destructor: once that barrier runs, no watcher
+   * handler is in flight or queued and the watched resources can be destroyed
+   * safely. */
+  _watch_engine_conf_timer->async_wait(boost::asio::bind_executor(
+      *_watch_strand,
       [this, logger = _logger](const boost::system::error_code& ec) {
-        if (!ec) {
-          _check_last_engine_conf();
-          _start_watch_engine_conf_timer();
-        } else {
+        if (ec) {
           logger->error("Error in engine configuration watcher: {}",
                         ec.message());
+          return;
         }
-      });
+        if (_watch_engine_conf_stopped.load())
+          return;
+        _check_last_engine_conf();
+        _start_watch_engine_conf_timer();
+      }));
 }
 
 /**

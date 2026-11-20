@@ -23,14 +23,15 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/severity.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/severity_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+namespace downtimes = com::centreon::common::downtimes;
 
 /**
  *  Add new host.
@@ -412,7 +413,7 @@ void applier::host::remove_object(uint64_t host_id) {
     // Remove host downtimes.
     downtimes::downtime_manager::instance()
         .delete_downtime_by_hostname_service_description_start_time_comment(
-            obj.host_name(), "", {false, (time_t)0}, "");
+            obj.host_name(), "", std::nullopt, "");
 
     // Remove events related to this host.
     applier::scheduler::instance().remove_host(obj.host_id());

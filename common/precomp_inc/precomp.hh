@@ -29,6 +29,7 @@
 #include <functional>
 #include <list>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <regex>
@@ -53,6 +54,8 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #endif
+#include <boost/circular_buffer.hpp>
+#include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
 
 #include "com/centreon/exceptions/msg_fmt.hh"

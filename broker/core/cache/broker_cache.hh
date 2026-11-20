@@ -29,6 +29,7 @@
 #include <optional>
 
 #include "com/centreon/broker/bam/internal.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
@@ -391,6 +392,13 @@ class broker_cache {
       std::pair<std::shared_ptr<neb::pb_tag>, absl::flat_hash_set<uint64_t>>>
       _tags ABSL_GUARDED_BY(_mutex);
 
+  /* Anomaly detection index: maps {host_id, dependent_service_id} to the set
+   * of anomaly detection service IDs that monitor that dependent service.
+   * Only anomaly detection services appear here. */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      absl::flat_hash_set<uint64_t>>
+      _anomaly_detection_index ABSL_GUARDED_BY(_mutex);
+
   /* BAM relations from BA to BV */
   absl::btree_set<std::pair<uint64_t, uint64_t>> _dimension_ba_bv_relations
       ABSL_GUARDED_BY(_mutex);
@@ -400,6 +408,28 @@ class broker_cache {
 
   absl::flat_hash_map<uint64_t, std::shared_ptr<bam::pb_dimension_ba_event>>
       _dimension_bas ABSL_GUARDED_BY(_mutex);
+
+  /* Acknowledgements list. */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      std::shared_ptr<neb::pb_acknowledgement>>
+      _acknowledgements ABSL_GUARDED_BY(_mutex);
+
+  /* Active (started) downtimes to persist with the cache (set by broker_state
+   * just before the downtime_manager is unloaded). */
+  std::vector<Downtime> _active_downtimes_to_save ABSL_GUARDED_BY(_mutex);
+  /* Active downtimes read back from the cache file, awaiting re-injection into
+   * the downtime_manager once their host/service is known to the cache. */
+  std::vector<Downtime> _pending_active_downtimes ABSL_GUARDED_BY(_mutex);
+
+  /* INT32_MAX/2: base of the partition reserved for Broker-originated downtime
+   * comment internal_ids, disjoint from Engine's per-poller ids (which start at
+   * 1). The comments.internal_id column is a signed int(11), so this stays
+   * positive and leaves ~1.07e9 ids of headroom. */
+  static constexpr uint64_t _downtime_comment_id_base = 0x3FFFFFFF;
+  /* Monotonic counter for those internal_ids. Atomic (minted on io_context
+   * threads) and persisted with the cache so it stays monotonic across a cbd
+   * restart. */
+  std::atomic<uint64_t> _next_downtime_comment_id{_downtime_comment_id_base};
 
   void _fill_host(Host* host,
                   const com::centreon::engine::configuration::Host& cfg,
@@ -422,6 +452,11 @@ class broker_cache {
       ServicegroupContainer::index<by_id>::type::iterator found,
       const std::shared_ptr<neb::pb_service_group>& replacement)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  std::shared_ptr<neb::pb_acknowledgement> _take_expired_acknowledgement(
+      uint64_t host_id,
+      uint64_t service_id,
+      AckType ack_type,
+      uint16_t state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _publish(const std::shared_ptr<io::data>& to_publish)
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool _set_host_otel_service(uint64_t host_id,
@@ -466,6 +501,21 @@ class broker_cache {
   void start_periodic_save();
   void merge(const com::centreon::engine::configuration::State& state)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  /* Store the started downtimes to persist on the next cache save. Called by
+   * broker_state at shutdown, before the downtime_manager is unloaded. */
+  void set_active_downtimes(std::vector<Downtime> downtimes)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  /* Return the next internal_id for a Broker-originated downtime comment and
+   * advance the partitioned counter. Thread-safe. */
+  uint64_t next_downtime_comment_id() noexcept {
+    return _next_downtime_comment_id.fetch_add(1, std::memory_order_relaxed);
+  }
+  /* Re-inject into the downtime_manager every pending active downtime whose
+   * host/service is now known to the cache, restoring its scheduled depth.
+   * Idempotent; drains _pending_active_downtimes as resources become known
+   * (called after _load_cache in legacy mode and after merge() — via
+   * _process_engine_state — in centralized mode). */
+  void reinject_pending_downtimes() ABSL_LOCKS_EXCLUDED(_mutex);
   void apply(const com::centreon::engine::configuration::DiffState& diff)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_instance(const std::shared_ptr<neb::pb_instance>& instance)
@@ -522,6 +572,16 @@ class broker_cache {
       uint64_t metric_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<std::pair<uint64_t, uint64_t>> service_ids() const
       ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> find_anomaly_detection_ids_by_dependent_service(
+      uint64_t host_id,
+      uint64_t dependent_service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
+  uint32_t first_active_instance_id() const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> service_ids_for_host(uint64_t host_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  int32_t add_downtime(uint64_t host_id, uint64_t service_id)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  int32_t remove_downtime(uint64_t host_id, uint64_t service_id)
+      ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host_group> hostgroup(uint64_t hostgroup_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host_group> hostgroup(const std::string& name) const
@@ -577,6 +637,8 @@ class broker_cache {
       std::pair<uint64_t, TagType>,
       std::pair<std::shared_ptr<neb::pb_tag>, absl::flat_hash_set<uint64_t>>>
   tags() const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<std::shared_ptr<neb::pb_acknowledgement>> acknowledgements() const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   void update_dimension_ba_bv_relation(
       const std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>& rel)
       ABSL_LOCKS_EXCLUDED(_mutex);
@@ -608,6 +670,9 @@ class broker_cache {
       const std::shared_ptr<neb::pb_custom_variable_status>& cvs)
       ABSL_LOCKS_EXCLUDED(_mutex);
   otel_service host_otel_service(uint64_t host_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void update_acknowledgement(
+      const std::shared_ptr<neb::pb_acknowledgement>& ack)
       ABSL_LOCKS_EXCLUDED(_mutex);
 };
 }  // namespace cache

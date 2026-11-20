@@ -50,6 +50,7 @@ set(PRECOMP_HEADER "${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh")
 set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
 include_directories(
+  ${CMAKE_SOURCE_DIR}
   ${INC_DIR}
   ${INC_DIR}/compatibility
   ${CMAKE_BINARY_DIR}/bbdo
@@ -394,6 +395,7 @@ set(FILES
     "${SRC_DIR}/dependency.cc"
     "${SRC_DIR}/diagnostic.cc"
     "${SRC_DIR}/exceptions/error.cc"
+    "${SRC_DIR}/engine_downtime_callbacks.cc"
     "${SRC_DIR}/flapping.cc"
     "${SRC_DIR}/escalation.cc"
     "${SRC_DIR}/globals.cc"
@@ -483,7 +485,6 @@ if(WITH_CONF)
   add_subdirectory(conf)
 endif()
 
-add_subdirectory(src/downtimes)
 add_subdirectory(src/configuration)
 add_subdirectory(src/commands)
 add_subdirectory(src/compatibility)
@@ -520,7 +521,11 @@ target_link_libraries(
   centreon_engine_conf
   fmt::fmt
   spdlog::spdlog
-  cbmod)
+  # cbmod.so does not embed downtimes_lib: it uses the downtime_manager of the
+  # executable that loads it. downtimes_lib comes after it so that the linker
+  # pulls from it what cbmod.so needs.
+  cbmod
+  downtimes_lib)
 
 # centengine target.
 

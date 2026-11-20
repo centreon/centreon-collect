@@ -3752,15 +3752,29 @@ def ctn_wait_for_broker_to_be_ready(port: int = 51001, timeout=TIMEOUT):
     return False
 
 
-def ctn_get_host_ids(port: int, timeout=TIMEOUT):
+def ctn_get_host_ids(port: int, expected_count=None, timeout=TIMEOUT):
     """
-    Get the list of host ids from the Broker.
+    Get the list of host ids from the Broker cache.
+
+    The Broker cache is filled asynchronously after a configuration is applied,
+    so it may still be partially populated right after the database is already
+    up to date. When expected_count is provided, retry until the cache returns
+    that many ids (or the timeout expires), to avoid comparing a fully-applied
+    database against a still-filling cache.
 
     Args:
         port: The gRPC port to use.
+        expected_count: If set, wait until the cache holds this many host ids.
         timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        The list of host ids (the last value read if expected_count is never
+        reached within the timeout).
     """
+    if expected_count is not None:
+        expected_count = int(expected_count)
     limit = time.time() + timeout
+    retval = []
     while time.time() < limit:
         time.sleep(1)
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
@@ -3768,9 +3782,11 @@ def ctn_get_host_ids(port: int, timeout=TIMEOUT):
             try:
                 res = stub.GetHostIds(empty_pb2.Empty())
                 retval = list(res.ids)
-                return retval
+                if expected_count is None or len(retval) == expected_count:
+                    return retval
             except Exception:
                 logger.console("gRPC server not ready")
+    return retval
 
 
 def ctn_get_service_ids(port: int, expected_count=None, timeout=TIMEOUT):
@@ -4343,6 +4359,96 @@ def ctn_get_tags(port: int, timeout=TIMEOUT):
     return None
 
 
+def ctn_get_acknowledgements(port: int, timeout=TIMEOUT):
+    """
+    Return all acknowledgements currently held in the Broker cache via the gRPC
+    GetAcknowledgements endpoint.
+
+    Args:
+        port: The gRPC port to use (central broker, usually 51001).
+        timeout: A timeout in seconds.
+
+    Returns:
+        A list of Acknowledgement objects (host acks carry service_id 0), or
+        None if the gRPC server is not reachable. Note: the endpoint returns
+        UNAVAILABLE (treated here as not-ready) when neither the host nor the
+        service cache section is enabled, i.e. without a unified_sql output.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetAcknowledgements(empty_pb2.Empty())
+                return list(res.entries)
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_check_acknowledgements_count_with_timeout(expected: int, port: int, timeout=TIMEOUT):
+    """
+    Poll the Broker GetAcknowledgements endpoint until the number of cached
+    acknowledgements equals expected, or the timeout expires.
+
+    Args:
+        expected: The expected number of acknowledgements in the cache.
+        port: The gRPC port to use (central broker, usually 51001).
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the count matched expected within the timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetAcknowledgements(empty_pb2.Empty())
+                if len(res.entries) == expected:
+                    return True
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return False
+
+
+def ctn_check_acknowledgement_in_cache_with_timeout(host_id: int, service_id: int, port: int, timeout=TIMEOUT):
+    """
+    Poll GetAcknowledgements until an acknowledgement for (host_id, service_id)
+    appears in the Broker cache (service_id 0 for a host acknowledgement).
+
+    Args:
+        host_id: The host id.
+        service_id: The service id, or 0 for a host acknowledgement.
+        port: The gRPC port to use (central broker, usually 51001).
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the acknowledgement is found within the timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetAcknowledgements(empty_pb2.Empty())
+                for a in res.entries:
+                    if a.host_id == host_id and a.service_id == service_id:
+                        return True
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return False
+
+
 def ctn_check_tags_empty_with_timeout(port: int, timeout=TIMEOUT):
     """
     Poll the Broker cache until GetTags returns an empty list, or timeout.
@@ -4498,3 +4604,97 @@ def ctn_clear_broker_cache():
     """
     for f in glob.glob(f"{VAR_ROOT}/lib/centreon-broker/central-*.cache"):
         os.remove(f)
+
+
+def ctn_broker_schedule_host_downtime(hostname: str, duration: int,
+                                       port: int = 51001) -> int:
+    """
+    Schedule a host downtime via the Broker gRPC ScheduleDowntime endpoint.
+    Requires notification_mode = broker in the Broker configuration.
+
+    Args:
+        hostname: The host name.
+        duration: Duration in seconds.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The new downtime ID.
+
+    *Example:*
+
+    | ${dt_id} =    Ctn Broker Schedule Host Downtime    host_1    ${3600} |
+    """
+    now = int(time.time())
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ScheduleDowntimeRequest()
+        req.type = broker_pb2.ScheduleDowntimeRequest.HOST
+        req.host_name = hostname
+        req.entry_time = now
+        req.author = "robot"
+        req.comment_data = f"Robot test downtime on {hostname}"
+        req.start_time = now
+        req.end_time = now + int(duration)
+        req.fixed = True
+        req.triggered_by = 0
+        req.duration = int(duration)
+        response = stub.ScheduleDowntime(req)
+        return response.downtime_id
+
+
+def ctn_broker_schedule_service_downtime(hostname: str, service_desc: str,
+                                          duration: int,
+                                          port: int = 51001) -> int:
+    """
+    Schedule a service downtime via the Broker gRPC ScheduleDowntime endpoint.
+    Requires notification_mode = broker in the Broker configuration.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        duration: Duration in seconds.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The new downtime ID.
+
+    *Example:*
+
+    | ${dt_id} =    Ctn Broker Schedule Service Downtime    host_1    service_1    ${3600} |
+    """
+    now = int(time.time())
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ScheduleDowntimeRequest()
+        req.type = broker_pb2.ScheduleDowntimeRequest.SERVICE
+        req.host_name = hostname
+        req.service_description = service_desc
+        req.entry_time = now
+        req.author = "robot"
+        req.comment_data = f"Robot test downtime on {hostname}/{service_desc}"
+        req.start_time = now
+        req.end_time = now + int(duration)
+        req.fixed = True
+        req.triggered_by = 0
+        req.duration = int(duration)
+        response = stub.ScheduleDowntime(req)
+        return response.downtime_id
+
+
+def ctn_broker_delete_downtime(downtime_id: int, port: int = 51001):
+    """
+    Delete a downtime by ID via the Broker gRPC DeleteDowntime endpoint.
+
+    Args:
+        downtime_id: The downtime ID to delete.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Delete Downtime    ${dt_id} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.GenericNameOrIndex()
+        req.idx = int(downtime_id)
+        stub.DeleteDowntime(req)

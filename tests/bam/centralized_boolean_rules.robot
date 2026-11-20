@@ -348,7 +348,7 @@ CBABOOCOMPL_RESTART
 
         # A restart of cbd should not alter the boolean rules content.
         Ctn Restart Broker
-        ${content}    Create List    BA states restored
+        ${content}    Create List    virtual service states restored from cache file
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    It seems that no cache has been restored into BAM.
 

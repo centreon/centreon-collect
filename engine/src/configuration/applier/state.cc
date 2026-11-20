@@ -220,7 +220,6 @@ void applier::state::clear() {
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
   engine::timeperiod::timeperiods.clear();
-  engine::comment::comments.clear();
   engine::comment::set_next_comment_id(1llu);
 
   applier::scheduler::instance().clear();
@@ -256,7 +255,6 @@ applier::state::~state() noexcept {
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
   engine::timeperiod::timeperiods.clear();
-  engine::comment::comments.clear();
   engine::comment::set_next_comment_id(1llu);
 }
 

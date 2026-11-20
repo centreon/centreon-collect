@@ -77,17 +77,15 @@ directory_watcher::directory_watcher(const std::string& to_watch_dir,
  *  Destructor.
  */
 directory_watcher::~directory_watcher() {
-  std::cout << "directory_watcher destructor" << std::endl;
+  /* Closing the asio descriptor closes the underlying inotify fd, which in turn
+   * automatically removes every watch associated with it. Doing
+   * inotify_rm_watch()/close() afterwards would operate on the already-closed
+   * handle (now -1), so closing the descriptor is the only thing to do. */
   boost::system::error_code ec;
   auto ec1 = _sd.close(ec);
-  if (ec1) {
+  if (ec1)
     _logger->error("Error while closing the directory watcher: {}",
                    ec1.message());
-  }
-
-  int fd = _sd.native_handle();
-  inotify_rm_watch(fd, _wd);
-  close(fd);
 }
 
 /**

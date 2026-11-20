@@ -37,7 +37,6 @@
 #include "com/centreon/engine/commands/raw_v2.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
@@ -45,8 +44,10 @@
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::events;
 
@@ -305,11 +306,8 @@ void cleanup() {
  *  @param[in,out] mac Macros.
  */
 void free_memory(nagios_macros* mac) {
-  // Free memory allocated to comments.
-  comment::comments.clear();
-
   // Free memory allocated to downtimes.
-  downtimes::downtime_manager::instance().clear_scheduled_downtimes();
+  downtime_manager::instance().clear_scheduled_downtimes();
 
   /*
   ** Free memory associated with macros. It's ok to only free the

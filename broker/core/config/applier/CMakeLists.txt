@@ -17,7 +17,12 @@
 #
 include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/core)
 
+# broker_downtime_callbacks.cc is used only by broker_state: it is built here and
+# not in rokerbase, so that cbmod.so, which embeds the whole of rokerbase, does
+# not carry its own copy of downtimes_lib (and of the downtime_manager
+# singleton) beside Engine's one.
 add_library(broker_applier_state STATIC
+  ${PROJECT_SOURCE_DIR}/core/src/broker_downtime_callbacks.cc
   broker_state.cc
   broker_state.hh
   endpoint.cc
@@ -35,6 +40,8 @@ target_compile_definitions(broker_applier_state PRIVATE BROKER_COMPILATION)
 target_precompile_headers(broker_applier_state PRIVATE ../../precomp_inc/precomp.hh)
 
 set_target_properties(broker_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+target_link_libraries(broker_applier_state PRIVATE downtimes_lib)
 
 # The precompiled header of Broker includes the headers generated from the bbdo,
 # broker and engine_conf protos: they must exist before any source is compiled.

@@ -29,15 +29,15 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/downtimes/downtime.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/statusdata.hh"
+#include "common/downtimes/downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
 
 static int xsddefault_status_log_fd(-1);
@@ -698,46 +698,8 @@ int xsddefault_save_status_data() {
     stream << "\t}\n\n";
   }
 
-  // save all comments
-  for (comment_map::iterator it(comment::comments.begin()),
-       end(comment::comments.end());
-       it != end; ++it) {
-    if (it->second->get_comment_type() == com::centreon::engine::comment::host)
-      stream << "hostcomment {\n";
-    else
-      stream << "servicecomment {\n";
-    stream << "\thost_id=" << it->second->get_host_id() << "\n";
-    if (it->second->get_comment_type() ==
-        com::centreon::engine::comment::service)
-      stream << "\tservice_id=" << it->second->get_service_id() << "\n";
-    stream << "\tentry_type=" << it->second->get_entry_type()
-           << "\n"
-              "\tcomment_id="
-           << it->first
-           << "\n"
-              "\tsource="
-           << it->second->get_source()
-           << "\n"
-              "\tpersistent="
-           << it->second->get_persistent()
-           << "\n"
-              "\tentry_time="
-           << static_cast<unsigned long>(it->second->get_entry_time())
-           << "\n"
-              "\texpires="
-           << it->second->get_expires()
-           << "\n"
-              "\texpire_time="
-           << static_cast<unsigned long>(it->second->get_expire_time())
-           << "\n"
-              "\tauthor="
-           << it->second->get_author()
-           << "\n"
-              "\tcomment_data="
-           << it->second->get_comment_data()
-           << "\n"
-              "\t}\n\n";
-  }
+  // Comments are no longer kept in memory by Engine (Broker owns them), so
+  // they are not written to the status file anymore.
 
   // save all downtime
   for (auto it = downtime_manager::instance().get_scheduled_downtimes().begin();

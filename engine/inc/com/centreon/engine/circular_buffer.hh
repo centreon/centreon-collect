@@ -33,7 +33,7 @@ class circular_buffer : protected boost::circular_buffer<T> {
  public:
   circular_buffer();
   void push(const T& to_push);
-  boost::optional<T> pop();
+  std::optional<T> pop();
 
   void set_capacity(size_t capacity);
   void clear();
@@ -56,10 +56,10 @@ void circular_buffer<T>::push(const T& to_push) {
 }
 
 template <class T>
-boost::optional<T> circular_buffer<T>::pop() {
+std::optional<T> circular_buffer<T>::pop() {
   std::lock_guard<std::mutex> l(_protect);
   if (base_class::empty()) {
-    return boost::none;
+    return std::nullopt;
   }
   T ret(*base_class::begin());
   base_class::pop_front();

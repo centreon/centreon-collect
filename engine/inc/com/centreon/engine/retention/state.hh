@@ -35,25 +35,25 @@ namespace retention {
 class state {
  public:
   state();
-  ~state() throw();
+  ~state() noexcept;
   state(state const& right);
   state& operator=(state const& right);
-  bool operator==(state const& right) const throw();
-  bool operator!=(state const& right) const throw();
-  list_comment& comments() throw();
-  list_comment const& comments() const throw();
-  list_contact& contacts() throw();
-  list_contact const& contacts() const throw();
-  list_downtime& downtimes() throw();
-  list_downtime const& downtimes() const throw();
-  program& globals() throw();
-  program const& globals() const throw();
-  list_host& hosts() throw();
-  list_host const& hosts() const throw();
-  info& informations() throw();
-  info const& informations() const throw();
-  list_service& services() throw();
-  list_service const& services() const throw();
+  bool operator==(state const& right) const noexcept;
+  bool operator!=(state const& right) const noexcept;
+  list_comment& comments() noexcept;
+  list_comment const& comments() const noexcept;
+  list_contact& contacts() noexcept;
+  list_contact const& contacts() const noexcept;
+  list_downtime& downtimes() noexcept;
+  list_downtime const& downtimes() const noexcept;
+  program& globals() noexcept;
+  program const& globals() const noexcept;
+  list_host& hosts() noexcept;
+  list_host const& hosts() const noexcept;
+  info& informations() noexcept;
+  info const& informations() const noexcept;
+  list_service& services() noexcept;
+  list_service const& services() const noexcept;
   list_anomalydetection& anomalydetection() noexcept {
     return _anomalydetection;
   }

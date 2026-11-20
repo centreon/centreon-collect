@@ -26,7 +26,6 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
@@ -39,10 +38,11 @@
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
 
@@ -2007,15 +2007,11 @@ void host::set_flap(double percent_change,
       << "% threshold).  When the host state stabilizes and the "
       << "flapping stops, notifications will be re-enabled.";
 
-  auto com = std::make_shared<comment>(
-      comment::host, comment::flapping, host_id(), 0, time(nullptr),
-      "(Centreon Engine Process)", oss.str(), false, comment::internal, false,
-      (time_t)0);
+  comment com(comment::host, comment::flapping, host_id(), 0, time(nullptr),
+              "(Centreon Engine Process)", oss.str(), false, comment::internal,
+              false, (time_t)0);
 
-  comment::comments.insert({com->get_comment_id(), com});
-
-  uint64_t comment_id{com->get_comment_id()};
-  set_flapping_comment_id(comment_id);
+  set_flapping_comment_id(com.get_comment_id());
 
   /* set the flapping indicator */
   set_is_flapping(true);
@@ -2168,14 +2164,14 @@ int host::handle_state() {
     if (get_acknowledgement() == AckType::NORMAL) {
       set_acknowledgement(AckType::NONE);
 
-      /* remove any non-persistant comments associated with the ack */
-      comment::delete_host_acknowledgement_comments(this);
+      /* remove any non-persistant comment associated with the ack */
+      delete_acknowledgement_comment();
     } else if (get_acknowledgement() == AckType::STICKY &&
                get_current_state() == host::state_up) {
       set_acknowledgement(AckType::NONE);
 
-      /* remove any non-persistant comments associated with the ack */
-      comment::delete_host_acknowledgement_comments(this);
+      /* remove any non-persistant comment associated with the ack */
+      delete_acknowledgement_comment();
     }
 
     /* reset the next and last notification times */
@@ -2193,7 +2189,9 @@ int host::handle_state() {
     /* check for start of flexible (non-fixed) scheduled downtime */
     /* CHANGED 08-05-2010 EG flex downtime can now start on soft states */
     /*if(this->state_type==hard) */
-    downtime_manager::instance().check_pending_flex_host_downtime(this);
+    if (get_current_state() != host::state_up)
+      downtime_manager::instance().activate_pending_flex_host_downtimes(
+          host_id());
 
     /* notify contacts about the recovery or problem if its a "hard" state */
     if (get_current_state_int() == 0)

@@ -26,8 +26,10 @@
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bbdo2_to_bbdo3.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::broker::cache {
@@ -50,13 +52,9 @@ struct broker_cache::periodic_save {
  * @param logger Logger instance
  */
 broker_cache::broker_cache(std::shared_ptr<spdlog::logger> logger)
-    : _logger{std::move(logger)} {  // logger: log_v2::CORE
+    : _logger{std::move(logger)} {  // logger: log_v2::CACHE
   const auto& cache_dir = config::applier::state::instance().cache_dir();
   if (cache_dir.empty()) {
-    // No cache directory configured — typically a unit-test context.
-    // Build a path that is unique per process AND per broker_cache instance
-    // so that parallel CI runs and successive deinit/init cycles within the
-    // same process never share a file.
     _cache_file = std::filesystem::temp_directory_path() /
                   fmt::format("broker_cache_{}.prot", ::getpid());
     SPDLOG_LOGGER_DEBUG(_logger,
@@ -66,12 +64,11 @@ broker_cache::broker_cache(std::shared_ptr<spdlog::logger> logger)
     _cache_file = std::filesystem::path{cache_dir + ".cache"};
   }
 
-  auto& state = config::applier::state::instance();
-  if (!state.supports_centralized_conf()) {
-    /* Here, we are in legacy mode. We have to load the cache. If Broker is
-     * restarted, it must keep the same cache. */
-    _load_cache();
-  }
+  /* In legacy mode the whole cache is reloaded; in centralized mode only the
+   * persisted active downtimes are read back (the rest of the cache is rebuilt
+   * from the Engine configuration). _load_cache() handles both: it applies the
+   * heavy sections only in legacy mode but always reads active_downtimes. */
+  _load_cache();
 }
 
 /**
@@ -83,11 +80,10 @@ broker_cache::~broker_cache() noexcept {
     _periodic_save->cache = nullptr;
     _periodic_save->timer.cancel();
   }
-  if (!config::applier::state::instance().supports_centralized_conf()) {
-    /* Here, we are in legacy mode. We have to save the cache. If Broker is
-     * restarted, it must keep the same cache. */
-    _save_cache();
-  }
+  /* Save the cache. In legacy mode the whole cache is persisted; in centralized
+   * mode _save_cache() persists only the active downtimes (the rest is rebuilt
+   * from the Engine configuration on restart). */
+  _save_cache();
 }
 
 /**
@@ -309,9 +305,8 @@ void broker_cache::merge(
         }
         /* The poller set belongs to the container node and never escapes, so
          * the mutex alone protects it. */
-        absl::flat_hash_set<uint64_t>& set =
-            const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
-        set.insert(hg_poller_id);
+        const_cast<absl::flat_hash_set<uint64_t>&>(found->second)
+            .insert(hg_poller_id);
       }
       for (const auto& member : hg.members().data()) {
         auto& index = _hosts.get<by_name>();
@@ -337,6 +332,7 @@ void broker_cache::merge(
     }
 
     /* Work on anomaly detections */
+    _anomaly_detection_index.clear();
     for (const engine::configuration::Anomalydetection& ad :
          state.anomalydetections()) {
       auto s = std::make_shared<neb::pb_service>();
@@ -344,6 +340,9 @@ void broker_cache::merge(
       auto [it, inserted] = index_svc.insert(s);
       if (!inserted)
         index_svc.replace(it, s);
+      _anomaly_detection_index[std::make_pair(ad.host_id(),
+                                              ad.dependent_service_id())]
+          .insert(ad.service_id());
     }
   }
 
@@ -391,9 +390,8 @@ void broker_cache::merge(
         }
         /* The poller set belongs to the container node and never escapes, so
          * the mutex alone protects it. */
-        absl::flat_hash_set<uint64_t>& set =
-            const_cast<absl::flat_hash_set<uint64_t>&>(found->second);
-        set.insert(sg_poller_id);
+        const_cast<absl::flat_hash_set<uint64_t>&>(found->second)
+            .insert(sg_poller_id);
       }
       for (const auto& member : sg.members().data()) {
         auto& index = _services.get<by_name>();
@@ -457,15 +455,6 @@ void broker_cache::apply(
 
   _logger->debug("Applying configuration diff for poller id {} and name '{}'",
                  diff.poller_id(), diff.poller_name());
-  // /* The easy case: when the diff is not really a diff */
-  // if (diff.has_state()) {
-  //   merge(diff.state());
-  //   return;
-  // }
-
-  /* Work on instances */
-  //   if (diff.has_poller_name())
-  //     _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -639,6 +628,8 @@ void broker_cache::apply(
               "already uses this name",
               hg.hostgroup_id(), hg.hostgroup_name());
       }
+      /* The poller set belongs to the container node and never escapes, so the
+       * mutex alone protects it. */
       const_cast<absl::flat_hash_set<uint64_t>&>(found->second)
           .insert(hg.poller_id());
     }
@@ -788,16 +779,32 @@ void broker_cache::apply(
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
+      _anomaly_detection_index[std::make_pair(ad.host_id(),
+                                              ad.dependent_service_id())]
+          .insert(ad.service_id());
     }
 
     /* Modifying anomaly detections */
     for (const engine::configuration::Anomalydetection& ad :
          diff.anomalydetections().modified()) {
+      auto old_it = s_index.find(std::make_pair(ad.host_id(), ad.service_id()));
+      if (old_it != s_index.end()) {
+        const auto& old_obj = (*old_it)->obj();
+        auto& old_set = _anomaly_detection_index[std::make_pair(
+            old_obj.host_id(), old_obj.dependent_service_id())];
+        old_set.erase(old_obj.service_id());
+        if (old_set.empty())
+          _anomaly_detection_index.erase(std::make_pair(
+              old_obj.host_id(), old_obj.dependent_service_id()));
+      }
       auto s = std::make_shared<neb::pb_service>();
       _fill_anomaly_detection(&s->mut_obj(), ad);
       auto [it, inserted] = s_index.insert(s);
       if (!inserted)
         s_index.replace(it, s);
+      _anomaly_detection_index[std::make_pair(ad.host_id(),
+                                              ad.dependent_service_id())]
+          .insert(ad.service_id());
     }
 
     /* Removing anomaly detections */
@@ -805,7 +812,14 @@ void broker_cache::apply(
       auto svc_it =
           s_index.find(std::make_pair(key.host_id(), key.service_id()));
       if (svc_it != s_index.end()) {
-        uint64_t severity_id = (*svc_it)->obj().severity_id();
+        const auto& obj = (*svc_it)->obj();
+        auto& ad_set = _anomaly_detection_index[std::make_pair(
+            obj.host_id(), obj.dependent_service_id())];
+        ad_set.erase(obj.service_id());
+        if (ad_set.empty())
+          _anomaly_detection_index.erase(
+              std::make_pair(obj.host_id(), obj.dependent_service_id()));
+        uint64_t severity_id = obj.severity_id();
         if (severity_id)
           removed_service_severity_ids.insert(severity_id);
         s_index.erase(svc_it);
@@ -867,6 +881,8 @@ void broker_cache::apply(
               "group already uses this name",
               sg.servicegroup_id(), sg.servicegroup_name());
       }
+      /* The poller set belongs to the container node and never escapes, so the
+       * mutex alone protects it. */
       const_cast<absl::flat_hash_set<uint64_t>&>(found->second)
           .insert(sg.poller_id());
     }
@@ -1203,6 +1219,7 @@ void broker_cache::_fill_anomaly_detection(
   _fill_service_common(obj, cfg);
 
   obj->set_type(ServiceType::ANOMALY_DETECTION);
+  obj->set_dependent_service_id(cfg.dependent_service_id());
 }
 
 #undef translate
@@ -1257,6 +1274,17 @@ void broker_cache::remove_instance(uint64_t instance_id) {
         index_svc.lower_bound(std::make_pair((*it)->obj().host_id(), 0));
     auto upper =
         index_svc.upper_bound(std::make_pair((*it)->obj().host_id() + 1, 0));
+    for (auto svc_it = lower; svc_it != upper; ++svc_it) {
+      const auto& obj = (*svc_it)->obj();
+      if (obj.type() == ServiceType::ANOMALY_DETECTION) {
+        auto& ad_set = _anomaly_detection_index[std::make_pair(
+            obj.host_id(), obj.dependent_service_id())];
+        ad_set.erase(obj.service_id());
+        if (ad_set.empty())
+          _anomaly_detection_index.erase(
+              std::make_pair(obj.host_id(), obj.dependent_service_id()));
+      }
+    }
     index_svc.erase(lower, upper);
     _otel_services.erase((*it)->obj().host_id());
     it = host_by_instance.erase(it);
@@ -1306,8 +1334,10 @@ void broker_cache::update_servicegroup(
               "group already uses this name",
               sg_id, servicegroup->obj().name());
       }
+      /* The poller set belongs to the container node and never escapes, so the
+       * mutex alone protects it. */
       const_cast<absl::flat_hash_set<uint64_t>&>(found->second)
-          .insert(servicegroup->obj().poller_id());
+          .insert(poller_id);
     } else {
       // The element is missing, we create it and insert it
       auto filled_servicegroup = std::make_shared<neb::pb_service_group>();
@@ -1526,8 +1556,10 @@ void broker_cache::update_hostgroup_member(
 
     if (found->first->obj().name() != hgm_obj.name()) {
       /* The stored group is shared with readers that no longer hold the mutex:
-       * clone it, change the clone, then swap. If another group already uses
-       * the new name, the cache keeps the previous one. */
+       * clone it, change the clone, then swap. Going through
+       * _replace_hostgroup() also re-keys the by_name index, which an in-place
+       * rename would silently corrupt, and restores the previous name when
+       * another group already uses the new one. */
       auto hg = std::make_shared<neb::pb_host_group>(*found->first);
       hg->mut_obj().set_name(hgm_obj.name());
       if (!_replace_hostgroup(found, hg))
@@ -1583,8 +1615,10 @@ void broker_cache::update_servicegroup_member(
         {sgm_obj.host_id(), sgm_obj.service_id(), found->first});
     if (found->first->obj().name() != sgm_obj.name()) {
       /* The stored group is shared with readers that no longer hold the mutex:
-       * clone it, change the clone, then swap. If another group already uses
-       * the new name, the cache keeps the previous one. */
+       * clone it, change the clone, then swap. Going through
+       * _replace_servicegroup() also re-keys the by_name index, which an
+       * in-place rename would silently corrupt, and restores the previous name
+       * when another group already uses the new one. */
       auto sg = std::make_shared<neb::pb_service_group>(*found->first);
       sg->mut_obj().set_name(sgm_obj.name());
       if (!_replace_servicegroup(found, sg))
@@ -1670,14 +1704,18 @@ void broker_cache::update_host(
     const std::shared_ptr<neb::pb_host_status>& status) {
   if (!section_enabled(CACHE_HOSTS))
     return;
+
   auto& hs = status->obj();
   uint64_t host_id = hs.host_id();
   bool updated = false;
+  std::shared_ptr<neb::pb_acknowledgement> ack_to_close;
   {
     absl::WriterMutexLock l{_mutex};
     auto& index = _hosts.get<by_id>();
     auto found = index.find(host_id);
     if (found != index.end()) {
+      /* The cached host is shared with readers that no longer hold the mutex:
+       * clone it, change the clone, then swap. */
       auto h = std::make_shared<neb::pb_host>(*found->get());
       auto& hst = h->mut_obj();
       hst.set_checked(hs.checked());
@@ -1705,7 +1743,16 @@ void broker_cache::update_host(
       hst.set_last_notification(hs.last_notification());
       hst.set_next_host_notification(hs.next_host_notification());
       hst.set_acknowledgement_type(hs.acknowledgement_type());
-      hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
+      /* When Broker owns downtime management, the cached depth is authoritative
+       * (maintained by broker_downtime_callbacks); don't let an Engine status
+       * overwrite it. */
+      if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
+        hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
+
+      /* Acknowledgement event: decide under the lock, publish after release. */
+      ack_to_close =
+          _take_expired_acknowledgement(host_id, 0u, hst.acknowledgement_type(),
+                                        static_cast<uint16_t>(hst.state()));
       index.replace(found, h);
       updated = true;
     } else {
@@ -1714,6 +1761,11 @@ void broker_cache::update_host(
                          "it does not exist.",
                          host_id);
     }
+  }
+
+  if (ack_to_close) {
+    multiplexing::publisher pblshr;
+    pblshr.write(std::move(ack_to_close));
   }
 
   if (updated)
@@ -1742,6 +1794,8 @@ void broker_cache::update_host(
   auto& index = _hosts.get<by_id>();
   auto found = index.find(ah.host_id());
   if (found != index.end()) {
+    /* The cached host is shared with readers that no longer hold the mutex:
+     * clone it, change the clone, then swap. */
     auto hp = std::make_shared<neb::pb_host>(*found->get());
     auto& h = hp->mut_obj();
     SPDLOG_LOGGER_DEBUG(_logger,
@@ -1794,28 +1848,42 @@ void broker_cache::update_host(
     const std::shared_ptr<neb::pb_adaptive_host_status>& status) {
   if (!section_enabled(CACHE_HOSTS))
     return;
-  absl::WriterMutexLock l{_mutex};
-  auto& hs = status->obj();
-  auto& index = _hosts.get<by_id>();
-  auto found = index.find(hs.host_id());
-  if (found != index.end()) {
-    auto h = std::make_shared<neb::pb_host>(*found->get());
-    auto& hst = h->mut_obj();
-    SPDLOG_LOGGER_DEBUG(
-        _logger, "Updating adaptive host status for host '{}' in Broker cache.",
-        hs.host_id());
-    if (hs.has_scheduled_downtime_depth())
-      hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
-    if (hs.has_acknowledgement_type())
-      hst.set_acknowledgement_type(hs.acknowledgement_type());
-    if (hs.has_notification_number())
-      hst.set_notification_number(hs.notification_number());
-    index.replace(found, h);
-  } else {
-    SPDLOG_LOGGER_WARN(
-        _logger,
-        "Attempt to update host ({}) in Broker cache, but it does not exist.",
-        hs.host_id());
+
+  std::shared_ptr<neb::pb_acknowledgement> ack_to_close;
+  {
+    absl::WriterMutexLock l{_mutex};
+    auto& hs = status->obj();
+    auto& index = _hosts.get<by_id>();
+    auto found = index.find(hs.host_id());
+    if (found != index.end()) {
+      auto h = std::make_shared<neb::pb_host>(*found->get());
+      auto& hst = h->mut_obj();
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
+          "Updating adaptive host status for host '{}' in Broker cache.",
+          hs.host_id());
+      if (hs.has_scheduled_downtime_depth())
+        hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
+      if (hs.has_acknowledgement_type())
+        hst.set_acknowledgement_type(hs.acknowledgement_type());
+      if (hs.has_notification_number())
+        hst.set_notification_number(hs.notification_number());
+
+      /* Acknowledgement event: decide under the lock, publish after release. */
+      ack_to_close = _take_expired_acknowledgement(
+          hs.host_id(), 0u, hst.acknowledgement_type(),
+          static_cast<uint16_t>(hst.state()));
+      index.replace(found, h);
+    } else {
+      SPDLOG_LOGGER_WARN(
+          _logger,
+          "Attempt to update host ({}) in Broker cache, but it does not exist.",
+          hs.host_id());
+    }
+  }
+  if (ack_to_close) {
+    multiplexing::publisher pblshr;
+    pblshr.write(std::move(ack_to_close));
   }
 }
 
@@ -1869,52 +1937,169 @@ void broker_cache::update_service(
     const std::shared_ptr<neb::pb_service_status>& status) {
   if (!section_enabled(CACHE_SERVICES))
     return;
-  absl::WriterMutexLock l{_mutex};
 
-  const auto& obj = status->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "Processing service status ({}, {})",
-                      obj.host_id(), obj.service_id());
+  std::shared_ptr<neb::pb_acknowledgement> ack_to_close;
+  {
+    absl::WriterMutexLock l{_mutex};
 
-  auto& index = _services.get<by_id>();
-  auto it = index.find(std::make_pair(obj.host_id(), obj.service_id()));
-  if (it == index.end()) {
-    SPDLOG_LOGGER_WARN(
-        _logger,
-        "Attempt to update service ({}, {}) in cache, but it does not exist.",
-        obj.host_id(), obj.service_id());
-    return;
+    const auto& obj = status->obj();
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing service status ({}, {})",
+                        obj.host_id(), obj.service_id());
+
+    auto& index = _services.get<by_id>();
+    auto it = index.find(std::make_pair(obj.host_id(), obj.service_id()));
+    if (it == index.end()) {
+      SPDLOG_LOGGER_WARN(
+          _logger,
+          "Attempt to update service ({}, {}) in cache, but it does not exist.",
+          obj.host_id(), obj.service_id());
+      return;
+    }
+
+    /* The cached service is shared with readers that no longer hold the mutex:
+     * clone it, change the clone, then swap. */
+    auto s = std::make_shared<neb::pb_service>(*it->get());
+    auto& svc = s->mut_obj();
+
+    svc.set_checked(obj.checked());
+    svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
+    svc.set_state(static_cast<Service_State>(obj.state()));
+    svc.set_state_type(static_cast<Service_StateType>(obj.state_type()));
+    svc.set_last_state_change(obj.last_state_change());
+    svc.set_last_hard_state(static_cast<Service_State>(obj.last_hard_state()));
+    svc.set_last_hard_state_change(obj.last_hard_state_change());
+    svc.set_last_time_ok(obj.last_time_ok());
+    svc.set_last_time_warning(obj.last_time_warning());
+    svc.set_last_time_critical(obj.last_time_critical());
+    svc.set_last_time_unknown(obj.last_time_unknown());
+    svc.set_output(obj.output());
+    svc.set_perfdata(obj.perfdata());
+    svc.set_flapping(obj.flapping());
+    svc.set_percent_state_change(obj.percent_state_change());
+    svc.set_latency(obj.latency());
+    svc.set_execution_time(obj.execution_time());
+    svc.set_last_check(obj.last_check());
+    svc.set_next_check(obj.next_check());
+    svc.set_should_be_scheduled(obj.should_be_scheduled());
+    svc.set_check_attempt(obj.check_attempt());
+    svc.set_notification_number(obj.notification_number());
+    svc.set_no_more_notifications(obj.no_more_notifications());
+    svc.set_last_notification(obj.last_notification());
+    svc.set_next_notification(obj.next_notification());
+    svc.set_acknowledgement_type(obj.acknowledgement_type());
+    /* When Broker owns downtime management, the cached scheduled_downtime_depth
+     * is authoritative (maintained by broker_downtime_callbacks). A status from
+     * Engine must not overwrite it. */
+    if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
+      svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+    index.replace(it, s);
+
+    /* Acknowledgement event: decide under the lock, publish after release. */
+    ack_to_close = _take_expired_acknowledgement(
+        obj.host_id(), obj.service_id(), svc.acknowledgement_type(),
+        static_cast<uint16_t>(svc.state()));
   }
+  if (ack_to_close) {
+    multiplexing::publisher pblshr;
+    pblshr.write(std::move(ack_to_close));
+  }
+}
 
-  auto s = std::make_shared<neb::pb_service>(*it->get());
-  auto& svc = s->mut_obj();
-  svc.set_checked(obj.checked());
-  svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
-  svc.set_state(static_cast<Service_State>(obj.state()));
-  svc.set_state_type(static_cast<Service_StateType>(obj.state_type()));
-  svc.set_last_state_change(obj.last_state_change());
-  svc.set_last_hard_state(static_cast<Service_State>(obj.last_hard_state()));
-  svc.set_last_hard_state_change(obj.last_hard_state_change());
-  svc.set_last_time_ok(obj.last_time_ok());
-  svc.set_last_time_warning(obj.last_time_warning());
-  svc.set_last_time_critical(obj.last_time_critical());
-  svc.set_last_time_unknown(obj.last_time_unknown());
-  svc.set_output(obj.output());
-  svc.set_perfdata(obj.perfdata());
-  svc.set_flapping(obj.flapping());
-  svc.set_percent_state_change(obj.percent_state_change());
-  svc.set_latency(obj.latency());
-  svc.set_execution_time(obj.execution_time());
-  svc.set_last_check(obj.last_check());
-  svc.set_next_check(obj.next_check());
-  svc.set_should_be_scheduled(obj.should_be_scheduled());
-  svc.set_check_attempt(obj.check_attempt());
-  svc.set_notification_number(obj.notification_number());
-  svc.set_no_more_notifications(obj.no_more_notifications());
-  svc.set_last_notification(obj.last_notification());
-  svc.set_next_notification(obj.next_notification());
-  svc.set_acknowledgement_type(obj.acknowledgement_type());
-  svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
-  index.replace(it, s);
+/**
+ * @brief Insert or remove an acknowledgement in the cache from an
+ * acknowledgement event flowing through the multiplexer.
+ *
+ * Gated on the section matching the acked resource (CACHE_HOSTS for a host ack,
+ * CACHE_SERVICES for a service ack). An open acknowledgement (deletion_time
+ * == 0) is stored; a closing one (deletion_time > 0) removes the entry, so the
+ * closure event republished by an expiration is not re-ingested as a new ack.
+ *
+ * @param ack The acknowledgement event (host acks carry service_id 0).
+ */
+void broker_cache::update_acknowledgement(
+    const std::shared_ptr<neb::pb_acknowledgement>& ack) {
+  const auto& obj = ack->obj();
+  /* Gate on the section matching the acked resource: a host ack (service_id 0)
+   * is only relevant when CACHE_HOSTS is enabled, a service ack when
+   * CACHE_SERVICES is. This MUST match the gating of the update_host() /
+   * update_service() expiration paths, otherwise an ack could be stored but
+   * never expired (or looked up but never stored). */
+  if (!section_enabled(obj.service_id() == 0 ? CACHE_HOSTS : CACHE_SERVICES))
+    return;
+  absl::WriterMutexLock l{_mutex};
+  /* A closing acknowledgement (deletion_time set) must not repopulate the map:
+   * the closure published by _take_expired_acknowledgement()'s caller is fed
+   * back here through the multiplexer, so treat it as a removal, not an
+   * insertion. Open acks have deletion_time == 0 on both the native and the
+   * bbdo2-converted paths. */
+  if (obj.deletion_time() > 0)
+    _acknowledgements.erase({obj.host_id(), obj.service_id()});
+  else
+    _acknowledgements.insert_or_assign({obj.host_id(), obj.service_id()}, ack);
+}
+
+/**
+ * @brief Return a snapshot of the acknowledgements currently held in the cache.
+ *
+ * @return A vector with one shared_ptr per cached acknowledgement.
+ */
+std::vector<std::shared_ptr<neb::pb_acknowledgement>>
+broker_cache::acknowledgements() const {
+  absl::ReaderMutexLock lck{_mutex};
+  std::vector<std::shared_ptr<neb::pb_acknowledgement>> result;
+  result.reserve(_acknowledgements.size());
+  for (const auto& it : _acknowledgements)
+    result.push_back(it.second);
+  return result;
+}
+
+/**
+ * @brief Detect and remove an expired acknowledgement for a resource.
+ *
+ * Must be called with _mutex held. When the resource is no longer acknowledged
+ * (@p ack_type == NONE) and a matching ack is cached, the entry is removed from
+ * _acknowledgements; if the ack must be closed (it did not merely expire on
+ * recovery), its deletion_time is stamped and the ack is returned so the CALLER
+ * publishes it AFTER releasing _mutex. Publishing under the cache lock would
+ * feed the event back into _publish()/update_acknowledgement() and risk a
+ * re-entrant / lock-order deadlock with the multiplexer.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id, or 0 for a host acknowledgement.
+ * @param ack_type The resource's current acknowledgement type.
+ * @param state The resource's current state.
+ * @return The acknowledgement to publish (deletion_time set), or nullptr when
+ * there is nothing to publish.
+ */
+std::shared_ptr<neb::pb_acknowledgement>
+broker_cache::_take_expired_acknowledgement(uint64_t host_id,
+                                            uint64_t service_id,
+                                            AckType ack_type,
+                                            uint16_t state) {
+  if (ack_type != AckType::NONE)
+    return nullptr;
+  SPDLOG_LOGGER_DEBUG(_logger, "Looking for acknowledgement on ({}:{})",
+                      host_id, service_id);
+  auto it = _acknowledgements.find({host_id, service_id});
+  if (it == _acknowledgements.end())
+    return nullptr;
+
+  auto ack = it->second;
+  _acknowledgements.erase(it);
+  SPDLOG_LOGGER_DEBUG(_logger, "acknowledgement found on ({}:{})", host_id,
+                      service_id);
+  auto& ack_obj = ack->mut_obj();
+  /* Close the ack (and ask the caller to publish it) unless the resource just
+   * recovered (state OK) or a non-sticky ack moved to a different state. */
+  if (!(!state  // !(OK or (normal ack and NOK))
+        || (!ack_obj.sticky() && state != ack_obj.state()))) {
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "Set deletion time for acknowledgement on ({}:{})",
+                        host_id, service_id);
+    ack_obj.set_deletion_time(time(nullptr));
+    return ack;
+  }
+  return nullptr;
 }
 
 /**
@@ -1933,6 +2118,8 @@ void broker_cache::update_service(
   auto& index = _services.get<by_id>();
   auto it = index.find(std::make_pair(as.host_id(), as.service_id()));
   if (it != _services.end()) {
+    /* The cached service is shared with readers that no longer hold the mutex:
+     * clone it, change the clone, then swap. */
     auto sp = std::make_shared<neb::pb_service>(*it->get());
     auto& s = sp->mut_obj();
     if (as.has_notify())
@@ -1984,33 +2171,48 @@ void broker_cache::update_service(
     const std::shared_ptr<neb::pb_adaptive_service_status>& ass) {
   if (!section_enabled(CACHE_SERVICES))
     return;
-  absl::WriterMutexLock l{_mutex};
 
-  const auto& obj = ass->obj();
+  std::shared_ptr<neb::pb_acknowledgement> ack_to_close;
+  {
+    absl::WriterMutexLock l{_mutex};
 
-  SPDLOG_LOGGER_DEBUG(_logger, "Processing adaptive service status ({}, {})",
-                      obj.host_id(), obj.service_id());
-  auto& index = _services.get<by_id>();
+    const auto& obj = ass->obj();
 
-  auto it = index.find(std::make_pair(obj.host_id(), obj.service_id()));
-  if (it == _services.end()) {
-    SPDLOG_LOGGER_WARN(
-        _logger,
-        "Attempt to update service ({}, {}) in global cache, but it does not "
-        "exist.",
-        obj.host_id(), obj.service_id());
-    return;
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing adaptive service status ({}, {})",
+                        obj.host_id(), obj.service_id());
+    auto& index = _services.get<by_id>();
+
+    auto it = index.find(std::make_pair(obj.host_id(), obj.service_id()));
+    if (it == _services.end()) {
+      SPDLOG_LOGGER_WARN(
+          _logger,
+          "Attempt to update service ({}, {}) in global cache, but it does not "
+          "exist.",
+          obj.host_id(), obj.service_id());
+      return;
+    }
+
+    /* The cached service is shared with readers that no longer hold the mutex:
+     * clone it, change the clone, then swap. */
+    auto s = std::make_shared<neb::pb_service>(*it->get());
+    auto& svc = s->mut_obj();
+    if (obj.has_acknowledgement_type())
+      svc.set_acknowledgement_type(obj.acknowledgement_type());
+    if (obj.has_scheduled_downtime_depth())
+      svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+    if (obj.has_notification_number())
+      svc.set_notification_number(obj.notification_number());
+    index.replace(it, s);
+
+    /* Acknowledgement event: decide under the lock, publish after release. */
+    ack_to_close = _take_expired_acknowledgement(
+        obj.host_id(), obj.service_id(), svc.acknowledgement_type(),
+        static_cast<uint16_t>(svc.state()));
   }
-
-  auto s = std::make_shared<neb::pb_service>(*it->get());
-  auto& svc = s->mut_obj();
-  if (obj.has_acknowledgement_type())
-    svc.set_acknowledgement_type(obj.acknowledgement_type());
-  if (obj.has_scheduled_downtime_depth())
-    svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
-  if (obj.has_notification_number())
-    svc.set_notification_number(obj.notification_number());
-  index.replace(it, s);
+  if (ack_to_close) {
+    multiplexing::publisher pblshr;
+    pblshr.write(std::move(ack_to_close));
+  }
 }
 
 /**
@@ -2214,6 +2416,18 @@ std::vector<std::string> broker_cache::service_tag_names(uint64_t host_id,
   return result;
 }
 
+/**
+ * @brief Record the database auto-increment ID assigned to a severity.
+ *
+ * Called once a severity has been inserted in the database, so later events
+ * referencing it can be linked to the right row. If no cache entry exists yet
+ * (e.g. the db_id is learned at startup before the config events arrive), a
+ * stub entry is created so the db_id is not lost.
+ *
+ * @param config_id The severity configuration ID.
+ * @param type The severity type (0=service, 1=host).
+ * @param db_id The database auto-increment ID to store.
+ */
 void broker_cache::set_db_id_for_severity(uint64_t config_id,
                                           uint32_t type,
                                           uint64_t db_id) {
@@ -2248,6 +2462,14 @@ void broker_cache::erase_severity(uint64_t config_id, uint32_t type) {
   _severities.erase({config_id, type});
 }
 
+/**
+ * @brief Tell whether a severity is present in the cache.
+ *
+ * @param config_id The severity configuration ID.
+ * @param type The severity type (0=service, 1=host).
+ * @return True if the severity is cached (always false when the severities
+ * section is disabled).
+ */
 bool broker_cache::has_severity(uint64_t config_id, uint32_t type) const {
   if (!section_enabled(CACHE_SEVERITIES))
     return false;
@@ -2564,6 +2786,149 @@ std::vector<std::pair<uint64_t, uint64_t>> broker_cache::service_ids() const {
 }
 
 /**
+ * @brief Return the ID of the first non-zero active Engine instance known to
+ * the cache.
+ *
+ * Used as a fallback when a cached host object has instance_id == 0 (which
+ * happens when the State message sent by Engine does not carry poller_id on
+ * individual host objects). In single-poller setups this reliably returns the
+ * only running poller ID.
+ *
+ * @return The first non-zero instance ID, or 0 if no instance is known yet.
+ */
+uint32_t broker_cache::first_active_instance_id() const {
+  absl::ReaderMutexLock l{_mutex};
+  for (const auto& [id, name] : _instances) {
+    if (id != 0)
+      return id;
+  }
+  return 0;
+}
+
+/**
+ * @brief Return the service IDs of all services belonging to a given host.
+ *
+ * Uses the ordered by_id index on _services, which is sorted by
+ * {host_id, service_id}, so services of the same host are contiguous and can
+ * be retrieved with a single lower_bound scan.
+ *
+ * @param host_id The host whose services are requested.
+ * @return A vector of service IDs. Empty if the host has no services or is
+ *         unknown.
+ */
+std::vector<uint64_t> broker_cache::service_ids_for_host(
+    uint64_t host_id) const {
+  absl::ReaderMutexLock l{_mutex};
+  std::vector<uint64_t> result;
+  auto& index = _services.get<by_id>();
+  for (auto it = index.lower_bound(std::make_pair(host_id, uint64_t(0)));
+       it != index.end() && (*it)->obj().host_id() == host_id; ++it)
+    result.push_back((*it)->obj().service_id());
+  return result;
+}
+
+/**
+ * @brief Increment the scheduled_downtime_depth counter of a host or service
+ * in the cache and return the new depth.
+ *
+ * Called by broker_downtime_callbacks::start_downtime_effect() when a
+ * downtime becomes active. The updated depth is then published as a
+ * pb_adaptive_host_status or pb_adaptive_service_status event so that
+ * unified_sql can persist it.
+ *
+ * @param host_id    The host ID.
+ * @param service_id The service ID, or 0 for a host downtime.
+ * @return The new depth after increment, or 0 if the object is not in cache.
+ */
+int32_t broker_cache::add_downtime(uint64_t host_id, uint64_t service_id) {
+  absl::WriterMutexLock l{_mutex};
+  if (service_id == 0) {
+    auto& index = _hosts.get<by_id>();
+    auto it = index.find(host_id);
+    if (it == index.end())
+      return 0;
+    int32_t depth = (*it)->obj().scheduled_downtime_depth() + 1;
+    auto h = std::make_shared<neb::pb_host>(**it);
+    h->mut_obj().set_scheduled_downtime_depth(depth);
+    index.replace(it, h);
+    return depth;
+  }
+  auto& index = _services.get<by_id>();
+  auto it = index.find(std::make_pair(host_id, service_id));
+  if (it == index.end())
+    return 0;
+  int32_t depth = (*it)->obj().scheduled_downtime_depth() + 1;
+  auto s = std::make_shared<neb::pb_service>(**it);
+  s->mut_obj().set_scheduled_downtime_depth(depth);
+  index.replace(it, s);
+  return depth;
+}
+
+/**
+ * @brief Decrement the scheduled_downtime_depth counter of a host or service
+ * in the cache and return the new depth (clamped to 0).
+ *
+ * Called by broker_downtime_callbacks::end_downtime_effect() and
+ * cancel_downtime() when a downtime ends or is cancelled. The updated depth
+ * is then published as a pb_adaptive_host_status or
+ * pb_adaptive_service_status event.
+ *
+ * @param host_id    The host ID.
+ * @param service_id The service ID, or 0 for a host downtime.
+ * @return The new depth after decrement (>= 0), or 0 if the object is not in
+ *         cache.
+ */
+int32_t broker_cache::remove_downtime(uint64_t host_id, uint64_t service_id) {
+  absl::WriterMutexLock l{_mutex};
+  if (service_id == 0) {
+    auto& index = _hosts.get<by_id>();
+    auto it = index.find(host_id);
+    if (it == index.end())
+      return 0;
+    int32_t depth = std::max(0, (*it)->obj().scheduled_downtime_depth() - 1);
+    auto h = std::make_shared<neb::pb_host>(**it);
+    h->mut_obj().set_scheduled_downtime_depth(depth);
+    index.replace(it, h);
+    return depth;
+  }
+  auto& index = _services.get<by_id>();
+  auto it = index.find(std::make_pair(host_id, service_id));
+  if (it == index.end())
+    return 0;
+  int32_t depth = std::max(0, (*it)->obj().scheduled_downtime_depth() - 1);
+  auto s = std::make_shared<neb::pb_service>(**it);
+  s->mut_obj().set_scheduled_downtime_depth(depth);
+  index.replace(it, s);
+  return depth;
+}
+
+/**
+ * @brief Return the service IDs of anomaly detection services that monitor
+ * a given dependent service.
+ *
+ * Uses the _anomaly_detection_index which maps
+ * {host_id, dependent_service_id} → set<anomaly_detection_service_id>.
+ * The index is maintained in sync with _services by merge() / apply() /
+ * remove_instance().
+ *
+ * @param host_id              The host ID of the dependent service.
+ * @param dependent_service_id The service ID of the service being monitored.
+ * @return A vector of anomaly detection service IDs. Empty if none exist for
+ *         this dependent service.
+ */
+std::vector<uint64_t>
+broker_cache::find_anomaly_detection_ids_by_dependent_service(
+    uint64_t host_id,
+    uint64_t dependent_service_id) const {
+  absl::ReaderMutexLock l{_mutex};
+  auto it = _anomaly_detection_index.find(
+      std::make_pair(host_id, dependent_service_id));
+  if (it == _anomaly_detection_index.end())
+    return {};
+  return {it->second.begin(), it->second.end()};
+}
+
+/**
  * @brief Get the hostgroup of the given ID from the cache.
  *
  * @param hostgroup_id The hostgroup ID of the desired hostgroup.
@@ -2664,6 +3029,13 @@ std::vector<std::shared_ptr<neb::pb_host_group>> broker_cache::hostgroups(
   return retval;
 }
 
+/**
+ * @brief Get the ids of the hosts belonging to a hostgroup.
+ *
+ * @param hostgroup_id The hostgroup ID.
+ *
+ * @return The host ids currently linked to this hostgroup in the cache.
+ */
 std::vector<uint64_t> broker_cache::hostgroup_members(
     uint64_t hostgroup_id) const {
   absl::ReaderMutexLock l{_mutex};
@@ -2676,6 +3048,14 @@ std::vector<uint64_t> broker_cache::hostgroup_members(
   return retval;
 }
 
+/**
+ * @brief Get the {host_id, service_id} pairs of the services belonging to a
+ * servicegroup.
+ *
+ * @param servicegroup_id The servicegroup ID.
+ *
+ * @return The service pairs currently linked to this servicegroup in the cache.
+ */
 std::vector<std::pair<uint64_t, uint64_t>> broker_cache::servicegroup_members(
     uint64_t servicegroup_id) const {
   absl::ReaderMutexLock l{_mutex};
@@ -2714,6 +3094,17 @@ std::vector<std::shared_ptr<neb::pb_service_group>> broker_cache::servicegroups(
   return retval;
 }
 
+/**
+ * @brief Route an incoming event to the matching cache update method.
+ *
+ * Central dispatch of the cache: switches on the event type and calls the
+ * relevant update_* /merge/apply handler, converting BBDO2 events to BBDO3
+ * beforehand when needed. Events with no cache relevance fall through the
+ * switch and are ignored. This is the single entry point used by both public
+ * publish() overloads.
+ *
+ * @param evt The event to process.
+ */
 void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
   uint32_t type = evt->type();
   switch (type) {
@@ -2752,6 +3143,14 @@ void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
       break;
     case neb::pb_instance::static_type():
       update_instance(std::static_pointer_cast<neb::pb_instance>(evt));
+      break;
+    case make_type(io::neb, neb::de_service_status):
+      update_service(std::static_pointer_cast<neb::pb_service_status>(
+          bbdo2_to_bbdo3(evt)));
+      break;
+    case make_type(io::neb, neb::de_host_status):
+      update_host(std::static_pointer_cast<neb::pb_host_status>(
+          bbdo2_to_bbdo3(evt)));
       break;
     case make_type(io::neb, neb::de_instance):
       update_instance(
@@ -2870,6 +3269,14 @@ void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
           std::static_pointer_cast<neb::pb_custom_variable_status>(
               bbdo2_to_bbdo3(evt)));
       break;
+    case make_type(io::neb, neb::de_acknowledgement):
+      update_acknowledgement(std::static_pointer_cast<neb::pb_acknowledgement>(
+          bbdo2_to_bbdo3(evt)));
+      break;
+    case make_type(io::neb, neb::de_pb_acknowledgement):
+      update_acknowledgement(
+          std::static_pointer_cast<neb::pb_acknowledgement>(evt));
+      break;
     default:
       break;
   }
@@ -2969,75 +3376,100 @@ void broker_cache::_load_cache() {
                           _cache_file.string());
     } else {
       absl::WriterMutexLock lck{_mutex};
-      for (const auto& inst_pair : to_load.instances())
-        _instances.insert({inst_pair.id(), inst_pair.name()});
+      /* The heavy cache sections are reloaded only in legacy mode; in
+       * centralized mode they are rebuilt from the Engine configuration. The
+       * active downtimes (below) are read back in both modes. */
+      if (!config::applier::state::instance().supports_centralized_conf()) {
+        for (const auto& inst_pair : to_load.instances())
+          _instances.insert({inst_pair.id(), inst_pair.name()});
 
-      /* Severities and tags: one entry per poller referencing them, or a
-       * single one with poller_id 0 when no poller is known. */
-      for (const auto& sev : to_load.severities()) {
-        auto& entry =
-            _severities[{sev.id(), static_cast<uint32_t>(sev.type())}];
-        entry.first.level = sev.level();
-        if (sev.poller_id())
-          entry.second.insert(sev.poller_id());
-      }
-      for (const auto& tag : to_load.tags()) {
-        auto t = std::make_shared<neb::pb_tag>();
-        t->mut_obj().CopyFrom(tag);
-        auto& entry = _tags[{tag.id(), tag.type()}];
-        entry.first = std::move(t);
-        if (tag.poller_id())
-          entry.second.insert(tag.poller_id());
-      }
-      for (const auto& otel : to_load.otel_services())
-        _otel_services.insert_or_assign(
-            otel.host_id(), otel_service{otel.name(), otel.name_space()});
-
-      for (const auto& host : to_load.hosts()) {
-        auto h = std::make_shared<neb::pb_host>();
-        h->mut_obj().CopyFrom(host);
-        _hosts.get<by_id>().insert(h);
-      }
-      for (const auto& svc : to_load.services()) {
-        auto s = std::make_shared<neb::pb_service>();
-        s->mut_obj().CopyFrom(svc);
-        _services.get<by_id>().insert(s);
-      }
-      for (const auto& hgp : to_load.hostgroups()) {
-        auto hst_grp = std::make_shared<neb::pb_host_group>();
-        auto poller_ids = absl::flat_hash_set<uint64_t>();
-        hst_grp->mut_obj().CopyFrom(hgp.hostgroup());
-        /* The poller_id field is not saved in the cache, so we set it to 0
-         * here. The actual poller IDs are stored in the poller_ids set, which
-         * is populated from the pollers() field of the host group in the
-         * cache file. */
-        hst_grp->mut_obj().set_poller_id(0);
-        for (const auto& poller_id : hgp.pollers())
-          poller_ids.insert(poller_id);
-        _hostgroups.get<by_id>().insert(
-            std::make_pair(hst_grp, std::move(poller_ids)));
-        for (uint64_t host_id : hgp.hosts()) {
-          _host_hostgroups.insert({host_id, hst_grp});
+        /* Severities and tags: one entry per poller referencing them, or a
+         * single one with poller_id 0 when no poller is known. */
+        for (const auto& sev : to_load.severities()) {
+          auto& entry =
+              _severities[{sev.id(), static_cast<uint32_t>(sev.type())}];
+          entry.first.level = sev.level();
+          if (sev.poller_id())
+            entry.second.insert(sev.poller_id());
         }
-      }
-
-      for (const auto& sgp : to_load.servicegroups()) {
-        auto svc_grp = std::make_shared<neb::pb_service_group>();
-        auto poller_ids = absl::flat_hash_set<uint64_t>();
-        svc_grp->mut_obj().CopyFrom(sgp.servicegroup());
-        /* The poller_id field is not saved in the cache, so we set it to 0
-         * here. The actual poller IDs are stored in the poller_ids set, which
-         * is populated from the pollers() field of the service group in the
-         * cache file. */
-        svc_grp->mut_obj().set_poller_id(0);
-        for (const auto& poller_id : sgp.pollers())
-          poller_ids.insert(poller_id);
-        _servicegroups.get<by_id>().insert(
-            std::make_pair(svc_grp, std::move(poller_ids)));
-        for (const auto& id : sgp.services()) {
-          _service_servicegroups.insert(
-              {id.host_id(), id.service_id(), svc_grp});
+        for (const auto& tag : to_load.tags()) {
+          auto t = std::make_shared<neb::pb_tag>();
+          t->mut_obj().CopyFrom(tag);
+          auto& entry = _tags[{tag.id(), tag.type()}];
+          entry.first = std::move(t);
+          if (tag.poller_id())
+            entry.second.insert(tag.poller_id());
         }
+        for (const auto& otel : to_load.otel_services())
+          _otel_services.insert_or_assign(
+              otel.host_id(), otel_service{otel.name(), otel.name_space()});
+
+        for (const auto& host : to_load.hosts()) {
+          auto h = std::make_shared<neb::pb_host>();
+          h->mut_obj().CopyFrom(host);
+          _hosts.get<by_id>().insert(h);
+        }
+        for (const auto& svc : to_load.services()) {
+          auto s = std::make_shared<neb::pb_service>();
+          s->mut_obj().CopyFrom(svc);
+          _services.get<by_id>().insert(s);
+        }
+        for (const auto& hgp : to_load.hostgroups()) {
+          auto hst_grp = std::make_shared<neb::pb_host_group>();
+          auto poller_ids = absl::flat_hash_set<uint64_t>();
+          hst_grp->mut_obj().CopyFrom(hgp.hostgroup());
+          /* The poller_id field is not saved in the cache, so we set it to 0
+           * here. The actual poller IDs are stored in the poller_ids set, which
+           * is populated from the pollers() field of the host group in the
+           * cache file. */
+          hst_grp->mut_obj().set_poller_id(0);
+          for (const auto& poller_id : hgp.pollers())
+            poller_ids.insert(poller_id);
+          _hostgroups.get<by_id>().insert(
+              std::make_pair(hst_grp, std::move(poller_ids)));
+          for (uint64_t host_id : hgp.hosts()) {
+            _host_hostgroups.insert({host_id, hst_grp});
+          }
+        }
+
+        for (const auto& sgp : to_load.servicegroups()) {
+          auto svc_grp = std::make_shared<neb::pb_service_group>();
+          auto poller_ids = absl::flat_hash_set<uint64_t>();
+          svc_grp->mut_obj().CopyFrom(sgp.servicegroup());
+          /* The poller_id field is not saved in the cache, so we set it to 0
+           * here. The actual poller IDs are stored in the poller_ids set, which
+           * is populated from the pollers() field of the service group in the
+           * cache file. */
+          svc_grp->mut_obj().set_poller_id(0);
+          for (const auto& poller_id : sgp.pollers())
+            poller_ids.insert(poller_id);
+          _servicegroups.get<by_id>().insert(
+              std::make_pair(svc_grp, std::move(poller_ids)));
+          for (const auto& id : sgp.services()) {
+            _service_servicegroups.insert(
+                {id.host_id(), id.service_id(), svc_grp});
+          }
+        }
+      }  // end of legacy-only heavy sections
+      /* Active downtimes are read back in both modes; they are re-injected into
+       * the downtime_manager once their host/service is known (now in legacy
+       * mode, later via merge() in centralized mode). */
+      _pending_active_downtimes.assign(to_load.active_downtimes().begin(),
+                                       to_load.active_downtimes().end());
+      /* Restore the downtime-comment id counter; ignore 0 / a value below the
+       * partition base (old cache file) so we never regress into Engine's
+       * range. */
+      if (to_load.next_downtime_comment_id() > _downtime_comment_id_base)
+        _next_downtime_comment_id.store(to_load.next_downtime_comment_id(),
+                                        std::memory_order_relaxed);
+      /* Restore open acknowledgements into the tracking map (both modes) so the
+       * cache can still close them on recovery after a restart. Not
+       * republished: the DB rows already exist; this only rebuilds the
+       * in-memory state. */
+      for (const auto& a : to_load.acknowledgements()) {
+        auto ack = std::make_shared<neb::pb_acknowledgement>();
+        ack->mut_obj().CopyFrom(a);
+        _acknowledgements.insert_or_assign({a.host_id(), a.service_id()}, ack);
       }
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
                          _cache_file.string());
@@ -3048,6 +3480,15 @@ void broker_cache::_load_cache() {
     SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache file '{}' does not exist",
                        _cache_file.string());
   }
+  /* NOTE: do NOT re-inject here. _load_cache() runs from the broker_cache
+   * constructor, and the re-injection path reaches back into
+   * config::applier::state::instance().cache() (via the downtime callbacks'
+   * resource_exists()), which would assert: _global_cache is not assigned until
+   * make_unique<broker_cache> returns. The persisted active downtimes are kept
+   * in _pending_active_downtimes and re-injected once _global_cache is set:
+   * right after construction (state::initialize_cache, covering legacy mode)
+   * and again after each merge() (centralized mode, from
+   * _process_engine_state). */
 }
 
 /**
@@ -3061,83 +3502,101 @@ void broker_cache::_save_cache() {
   BrokerCache to_save;
   {
     absl::ReaderMutexLock lck{_mutex};
-    for (const auto& [id, name] : _instances) {
-      auto* inst_pair = to_save.add_instances();
-      inst_pair->set_id(id);
-      inst_pair->set_name(name);
-    }
-    for (const auto& host : _hosts) {
-      auto* h = to_save.add_hosts();
-      h->CopyFrom(host->obj());
-    }
-    /* Severities and tags: one entry per poller referencing them, to keep
-     * the poller set, or a single one with poller_id 0 when it is empty. */
-    for (const auto& [key, sev_pollers] : _severities) {
-      const auto& [sev, pollers] = sev_pollers;
-      auto add = [&](uint64_t poller_id) {
-        auto* s = to_save.add_severities();
-        s->set_id(key.first);
-        s->set_type(static_cast<Severity::Type>(key.second));
-        s->set_level(sev.level);
-        s->set_poller_id(poller_id);
-      };
-      if (pollers.empty())
-        add(0);
-      for (uint64_t poller_id : pollers)
-        add(poller_id);
-    }
-    for (const auto& [key, tag_pollers] : _tags) {
-      const auto& [tag, pollers] = tag_pollers;
-      auto add = [&](uint64_t poller_id) {
-        Tag* t = to_save.add_tags();
-        t->CopyFrom(tag->obj());
-        t->set_poller_id(poller_id);
-      };
-      if (pollers.empty())
-        add(0);
-      for (uint64_t poller_id : pollers)
-        add(poller_id);
-    }
-    for (const auto& [host_id, otel] : _otel_services) {
-      auto* o = to_save.add_otel_services();
-      o->set_host_id(host_id);
-      o->set_name(otel.name);
-      o->set_name_space(otel.name_space);
-    }
-    for (const auto& svc : _services) {
-      auto* s = to_save.add_services();
-      s->CopyFrom(svc->obj());
-    }
-    absl::flat_hash_map<uint64_t, std::list<uint64_t>> hostgroup_hosts;
-    for (const auto& p : _host_hostgroups)
-      hostgroup_hosts[p.hostgroup->obj().hostgroup_id()].push_back(p.host_id);
-    for (const auto& hg : _hostgroups) {
-      auto* hst_grp = to_save.add_hostgroups();
-      hst_grp->mutable_hostgroup()->CopyFrom(hg.first->obj());
-      for (uint64_t poller_id : hg.second)
-        hst_grp->add_pollers(poller_id);
-      for (const uint64_t host_id :
-           hostgroup_hosts[hg.first->obj().hostgroup_id()])
-        hst_grp->add_hosts(host_id);
-    }
-
-    absl::flat_hash_map<uint64_t, std::list<std::pair<uint64_t, uint64_t>>>
-        servicegroup_services;
-    for (const auto& t : _service_servicegroups)
-      servicegroup_services[t.servicegroup->obj().servicegroup_id()]
-          .emplace_back(std::make_pair(t.host_id, t.service_id));
-    for (const auto& hg : _servicegroups) {
-      auto* svc_grp = to_save.add_servicegroups();
-      svc_grp->mutable_servicegroup()->CopyFrom(hg.first->obj());
-      for (uint64_t poller_id : hg.second)
-        svc_grp->add_pollers(poller_id);
-      for (const auto& [host_id, service_id] :
-           servicegroup_services[hg.first->obj().servicegroup_id()]) {
-        auto* s = svc_grp->add_services();
-        s->set_host_id(host_id);
-        s->set_service_id(service_id);
+    /* The heavy cache sections are persisted only in legacy mode; in
+     * centralized mode they are rebuilt from the Engine configuration, so only
+     * the active downtimes (below) are persisted. */
+    if (!config::applier::state::instance().supports_centralized_conf()) {
+      for (const auto& [id, name] : _instances) {
+        auto* inst_pair = to_save.add_instances();
+        inst_pair->set_id(id);
+        inst_pair->set_name(name);
       }
-    }
+      /* Severities and tags: one entry per poller referencing them, to keep
+       * the poller set, or a single one with poller_id 0 when it is empty. */
+      for (const auto& [key, sev_pollers] : _severities) {
+        const auto& [sev, pollers] = sev_pollers;
+        auto add = [&](uint64_t poller_id) {
+          auto* s = to_save.add_severities();
+          s->set_id(key.first);
+          s->set_type(static_cast<Severity::Type>(key.second));
+          s->set_level(sev.level);
+          s->set_poller_id(poller_id);
+        };
+        if (pollers.empty())
+          add(0);
+        for (uint64_t poller_id : pollers)
+          add(poller_id);
+      }
+      for (const auto& [key, tag_pollers] : _tags) {
+        const auto& [tag, pollers] = tag_pollers;
+        auto add = [&](uint64_t poller_id) {
+          Tag* t = to_save.add_tags();
+          t->CopyFrom(tag->obj());
+          t->set_poller_id(poller_id);
+        };
+        if (pollers.empty())
+          add(0);
+        for (uint64_t poller_id : pollers)
+          add(poller_id);
+      }
+      for (const auto& [host_id, otel] : _otel_services) {
+        auto* o = to_save.add_otel_services();
+        o->set_host_id(host_id);
+        o->set_name(otel.name);
+        o->set_name_space(otel.name_space);
+      }
+      for (const auto& host : _hosts) {
+        auto* h = to_save.add_hosts();
+        h->CopyFrom(host->obj());
+      }
+      for (const auto& svc : _services) {
+        auto* s = to_save.add_services();
+        s->CopyFrom(svc->obj());
+      }
+      absl::flat_hash_map<uint64_t, std::list<uint64_t>> hostgroup_hosts;
+      for (const auto& p : _host_hostgroups)
+        hostgroup_hosts[p.hostgroup->obj().hostgroup_id()].push_back(p.host_id);
+      for (const auto& hg : _hostgroups) {
+        auto* hst_grp = to_save.add_hostgroups();
+        hst_grp->mutable_hostgroup()->CopyFrom(hg.first->obj());
+        for (uint64_t poller_id : hg.second)
+          hst_grp->add_pollers(poller_id);
+        for (const uint64_t host_id :
+             hostgroup_hosts[hg.first->obj().hostgroup_id()])
+          hst_grp->add_hosts(host_id);
+      }
+
+      absl::flat_hash_map<uint64_t, std::list<std::pair<uint64_t, uint64_t>>>
+          servicegroup_services;
+      for (const auto& t : _service_servicegroups)
+        servicegroup_services[t.servicegroup->obj().servicegroup_id()]
+            .emplace_back(std::make_pair(t.host_id, t.service_id));
+      for (const auto& hg : _servicegroups) {
+        auto* svc_grp = to_save.add_servicegroups();
+        svc_grp->mutable_servicegroup()->CopyFrom(hg.first->obj());
+        for (uint64_t poller_id : hg.second)
+          svc_grp->add_pollers(poller_id);
+        for (const auto& [host_id, service_id] :
+             servicegroup_services[hg.first->obj().servicegroup_id()]) {
+          auto* s = svc_grp->add_services();
+          s->set_host_id(host_id);
+          s->set_service_id(service_id);
+        }
+      }
+    }  // end of legacy-only heavy sections
+    /* Active downtimes are persisted in both legacy and centralized mode so
+     * they can be re-injected into the downtime_manager on the next start. */
+    for (const auto& d : _active_downtimes_to_save)
+      to_save.add_active_downtimes()->CopyFrom(d);
+    /* Keep the downtime-comment internal_id counter monotonic across restarts.
+     */
+    to_save.set_next_downtime_comment_id(
+        _next_downtime_comment_id.load(std::memory_order_relaxed));
+    /* Open acknowledgements are persisted (both modes) so the cache can still
+     * close them on recovery after a restart; the DB rows already exist, this
+     * only persists the in-memory tracking. */
+    for (const auto& it : _acknowledgements)
+      to_save.add_acknowledgements()->CopyFrom(it.second->obj());
   }
   const auto copied = std::chrono::steady_clock::now();
   /* Saving the BrokerCache in a temporary file, then renamed: a crash during
@@ -3179,6 +3638,127 @@ void broker_cache::_save_cache() {
       to_save.ByteSizeLong());
 }
 
+/**
+ * @brief Store the started downtimes to persist on the next cache save. Called
+ * by broker_state at shutdown, before the downtime_manager is unloaded.
+ */
+void broker_cache::set_active_downtimes(std::vector<Downtime> downtimes) {
+  absl::WriterMutexLock lck{_mutex};
+  _active_downtimes_to_save = std::move(downtimes);
+}
+
+/**
+ * @brief Re-inject into the downtime_manager every pending active downtime
+ * whose host/service is now known to the cache, then restore its
+ * scheduled_downtime_depth.
+ *
+ * Idempotent and drains _pending_active_downtimes as resources become known
+ * (immediately in legacy mode, later via merge() in centralized mode).
+ */
+void broker_cache::reinject_pending_downtimes() {
+  if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
+    return;
+
+  /* Snapshot under lock, then process WITHOUT the lock: reload_started_downtime
+   * and host()/service() take the cache lock through the downtime callbacks, so
+   * holding it here would deadlock. */
+  std::vector<Downtime> pending;
+  {
+    absl::WriterMutexLock lck{_mutex};
+    if (_pending_active_downtimes.empty())
+      return;
+    pending = _pending_active_downtimes;
+  }
+
+  std::vector<Downtime> reinjected;
+  std::vector<Downtime> still_pending;
+  for (const auto& d : pending) {
+    bool exists = d.service_id() == 0
+                      ? host(d.host_id()) != nullptr
+                      : service(d.host_id(), d.service_id()) != nullptr;
+    if (!exists) {
+      still_pending.push_back(d);
+      continue;
+    }
+    com::centreon::common::downtimes::downtime_manager::instance()
+        .reload_started_downtime(d.host_id(), d.service_id(), d.entry_time(),
+                                 d.author(), d.comment_data(), d.start_time(),
+                                 d.end_time(), d.fixed(), d.triggered_by(),
+                                 d.duration(), d.id(), d.comment_id());
+    reinjected.push_back(d);
+  }
+
+  {
+    absl::WriterMutexLock lck{_mutex};
+    _pending_active_downtimes = std::move(still_pending);
+  }
+
+  if (reinjected.empty())
+    return;
+
+  /* Restore scheduled_downtime_depth: re-derive it from the count of reloaded
+   * active downtimes per resource (idempotent), set it in the cache and publish
+   * it so the DB matches (the DB value may have been reset by the Engine
+   * configuration that repopulated the cache in centralized mode). */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, int32_t> depth;
+  for (const auto& d : reinjected)
+    ++depth[{d.host_id(), d.service_id()}];
+
+  {
+    absl::WriterMutexLock lck{_mutex};
+    for (const auto& [key, cnt] : depth) {
+      /* The cached objects are shared with readers that no longer hold the
+       * mutex: clone, change the clone, then swap. */
+      if (key.second == 0) {
+        auto& index = _hosts.get<by_id>();
+        auto it = index.find(key.first);
+        if (it != index.end()) {
+          auto h = std::make_shared<neb::pb_host>(**it);
+          h->mut_obj().set_scheduled_downtime_depth(cnt);
+          index.replace(it, h);
+        }
+      } else {
+        auto& index = _services.get<by_id>();
+        auto it = index.find(key);
+        if (it != index.end()) {
+          auto s = std::make_shared<neb::pb_service>(**it);
+          s->mut_obj().set_scheduled_downtime_depth(cnt);
+          index.replace(it, s);
+        }
+      }
+    }
+  }
+
+  multiplexing::publisher pblshr;
+  for (const auto& [key, cnt] : depth) {
+    if (key.second == 0) {
+      auto ev = std::make_shared<neb::pb_adaptive_host_status>();
+      ev->mut_obj().set_host_id(key.first);
+      ev->mut_obj().set_scheduled_downtime_depth(cnt);
+      pblshr.write(ev);
+    } else {
+      auto ev = std::make_shared<neb::pb_adaptive_service_status>();
+      ev->mut_obj().set_host_id(key.first);
+      ev->mut_obj().set_service_id(key.second);
+      ev->mut_obj().set_scheduled_downtime_depth(cnt);
+      pblshr.write(ev);
+    }
+  }
+
+  SPDLOG_LOGGER_INFO(_logger,
+                     "broker_cache: re-injected {} active downtime(s) into the "
+                     "downtime manager",
+                     reinjected.size());
+}
+
+/**
+ * @brief Insert or update an index mapping in the cache.
+ *
+ * The mapping is keyed by its index_id: an existing entry is replaced, an
+ * unknown one is inserted. No-op when the metric mappings section is disabled.
+ *
+ * @param index_mapping The index mapping event to store.
+ */
 void broker_cache::update_index_mapping(
     const std::shared_ptr<storage::pb_index_mapping>& index_mapping) {
   if (!section_enabled(CACHE_METRIC_MAPPINGS))
@@ -3193,6 +3773,14 @@ void broker_cache::update_index_mapping(
     index.insert(index_mapping);
 }
 
+/**
+ * @brief Remove the index mapping of a service from the cache.
+ *
+ * No-op when the metric mappings section is disabled.
+ *
+ * @param host_id The host ID of the service.
+ * @param service_id The service ID of the service.
+ */
 void broker_cache::remove_index_mapping(uint64_t host_id, uint64_t service_id) {
   if (!section_enabled(CACHE_METRIC_MAPPINGS))
     return;

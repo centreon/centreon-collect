@@ -20,7 +20,7 @@
 #include "test_engine.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 
 /* Just a hash map helper to store host id by their name. It is useful
  * to know if the host is already declared when creating a new service. */

@@ -164,15 +164,15 @@ bool string::c_strtok::extract(char sep, std::string_view& extracted) {
  * @brief extract a part of the string_view passed in the construtor
  * it allows empty field as my_strtok
  * if sep is not found it returns part from the current position to the end
- * if current pos is yet beyond string end, it returns boost::none
+ * if current pos is yet beyond string end, it returns std::nullopt
  *
  * @param sep separator
  * @return std::string_view field extracted
  */
-boost::optional<std::string_view> string::c_strtok::extract(char sep) {
+std::optional<std::string_view> string::c_strtok::extract(char sep) {
   std::string_view ret;
   if (!extract(sep, ret)) {
-    return boost::none;
+    return std::nullopt;
   }
   return ret;
 }
@@ -220,10 +220,18 @@ void string::unescape(std::string& str) {
       continue;
     }
     switch (str[read + 1]) {
-      case 'n':  str[write++] = '\n'; break;
-      case 'r':  str[write++] = '\r'; break;
-      case 't':  str[write++] = '\t'; break;
-      case '\\': str[write++] = '\\'; break;
+      case 'n':
+        str[write++] = '\n';
+        break;
+      case 'r':
+        str[write++] = '\r';
+        break;
+      case 't':
+        str[write++] = '\t';
+        break;
+      case '\\':
+        str[write++] = '\\';
+        break;
       default:
         str[write++] = '\\';
         str[write++] = str[read + 1];

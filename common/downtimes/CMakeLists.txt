@@ -1,0 +1,42 @@
+#
+# Copyright 2011-2019 Centreon
+#
+# This file is part of Centreon Scheduler.
+#
+# Centreon Scheduler is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License version 2
+# as published by the Free Software Foundation.
+#
+# Centreon Scheduler is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Centreon Scheduler. If not, see
+# <http://www.gnu.org/licenses/>.
+#
+include_directories(
+  ${PROJECT_BINARY_DIR}
+  ${CMAKE_BINARY_DIR}/engine/enginerpc
+  ${CMAKE_BINARY_DIR}/common/process_stat
+  ${CMAKE_BINARY_DIR}/bbdo
+  ${CMAKE_BINARY_DIR}/common/engine_conf
+  ${CMAKE_SOURCE_DIR}/common/process/inc
+  ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/engine/inc
+  ${CMAKE_SOURCE_DIR}/bbdo
+  ${CMAKE_SOURCE_DIR}/broker/neb/inc
+  ${CMAKE_SOURCE_DIR}/broker/core/inc
+)
+
+add_library(downtimes_lib STATIC
+  # Sources.
+  downtime.cc
+  downtime_manager.cc
+  downtime_finder.cc
+)
+
+set_target_properties(downtimes_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_precompile_headers(downtimes_lib PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
+add_dependencies(downtimes_lib pb_neb_lib centreon_engine_conf process_stat)

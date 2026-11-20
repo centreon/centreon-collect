@@ -68,7 +68,7 @@ retention::comment::comment(comment const& right) : object(right) {
 /**
  *  Destructor.
  */
-retention::comment::~comment() throw() {}
+retention::comment::~comment() noexcept {}
 
 /**
  *  Copy operator.
@@ -103,7 +103,7 @@ retention::comment& retention::comment::operator=(comment const& right) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool retention::comment::operator==(comment const& right) const throw() {
+bool retention::comment::operator==(comment const& right) const noexcept {
   return (object::operator==(right) && _author == right._author &&
           _comment_data == right._comment_data &&
           _comment_id == right._comment_id &&
@@ -123,7 +123,7 @@ bool retention::comment::operator==(comment const& right) const throw() {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool retention::comment::operator!=(comment const& right) const throw() {
+bool retention::comment::operator!=(comment const& right) const noexcept {
   return (!operator==(right));
 }
 
@@ -147,7 +147,7 @@ bool retention::comment::set(char const* key, char const* value) {
  *
  *  @return The author.
  */
-std::string const& retention::comment::author() const throw() {
+std::string const& retention::comment::author() const noexcept {
   return (_author);
 }
 
@@ -156,7 +156,7 @@ std::string const& retention::comment::author() const throw() {
  *
  *  @return The comment_data.
  */
-std::string const& retention::comment::comment_data() const throw() {
+std::string const& retention::comment::comment_data() const noexcept {
   return (_comment_data);
 }
 
@@ -165,7 +165,7 @@ std::string const& retention::comment::comment_data() const throw() {
  *
  *  @return The comment_id.
  */
-unsigned long retention::comment::comment_id() const throw() {
+unsigned long retention::comment::comment_id() const noexcept {
   return (_comment_id);
 }
 
@@ -174,7 +174,7 @@ unsigned long retention::comment::comment_id() const throw() {
  *
  *  @return The comment_type.
  */
-retention::comment::type_id retention::comment::comment_type() const throw() {
+retention::comment::type_id retention::comment::comment_type() const noexcept {
   return (_comment_type);
 }
 
@@ -183,7 +183,7 @@ retention::comment::type_id retention::comment::comment_type() const throw() {
  *
  *  @return The entry_time.
  */
-time_t retention::comment::entry_time() const throw() {
+time_t retention::comment::entry_time() const noexcept {
   return (_entry_time);
 }
 
@@ -192,7 +192,7 @@ time_t retention::comment::entry_time() const throw() {
  *
  *  @return The entry_type.
  */
-unsigned int retention::comment::entry_type() const throw() {
+unsigned int retention::comment::entry_type() const noexcept {
   return (_entry_type);
 }
 
@@ -201,7 +201,7 @@ unsigned int retention::comment::entry_type() const throw() {
  *
  *  @return The expire_time.
  */
-time_t retention::comment::expire_time() const throw() {
+time_t retention::comment::expire_time() const noexcept {
   return (_expire_time);
 }
 
@@ -210,7 +210,7 @@ time_t retention::comment::expire_time() const throw() {
  *
  *  @return The expires.
  */
-bool retention::comment::expires() const throw() {
+bool retention::comment::expires() const noexcept {
   return (_expires);
 }
 
@@ -219,7 +219,7 @@ bool retention::comment::expires() const throw() {
  *
  *  @return The host_name.
  */
-std::string const& retention::comment::host_name() const throw() {
+std::string const& retention::comment::host_name() const noexcept {
   return (_host_name);
 }
 
@@ -228,7 +228,7 @@ std::string const& retention::comment::host_name() const throw() {
  *
  *  @return The persistent.
  */
-bool retention::comment::persistent() const throw() {
+bool retention::comment::persistent() const noexcept {
   return (_persistent);
 }
 
@@ -237,7 +237,7 @@ bool retention::comment::persistent() const throw() {
  *
  *  @return The service_description.
  */
-std::string const& retention::comment::service_description() const throw() {
+std::string const& retention::comment::service_description() const noexcept {
   return (_service_description);
 }
 
@@ -246,7 +246,7 @@ std::string const& retention::comment::service_description() const throw() {
  *
  *  @return The source.
  */
-int retention::comment::source() const throw() {
+int retention::comment::source() const noexcept {
   return (_source);
 }
 

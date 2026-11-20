@@ -22,12 +22,12 @@
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 
 class DowntimeExternalCommand : public ::testing::Test {
  public:
@@ -97,16 +97,14 @@ TEST_F(DowntimeExternalCommand, AddHostDowntime) {
                 .begin()
                 ->second->get_end_time(),
             20001);
-  ASSERT_EQ(downtime_manager::instance()
-                .get_scheduled_downtimes()
-                .begin()
-                ->second->handle(),
-            OK);
+  ASSERT_TRUE(downtime_manager::instance()
+                  .get_scheduled_downtimes()
+                  .begin()
+                  ->second->handle());
   set_time(20001);
-  ASSERT_EQ(downtime_manager::instance()
-                .get_scheduled_downtimes()
-                .begin()
-                ->second->handle(),
-            OK);
+  ASSERT_TRUE(downtime_manager::instance()
+                  .get_scheduled_downtimes()
+                  .begin()
+                  ->second->handle());
   ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
 }

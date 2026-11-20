@@ -1,7 +1,7 @@
 /**
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
- * Copyright 2011-2025 Centreon
+ * Copyright 2011-2026 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -26,7 +26,6 @@
 #include <random>
 
 #include <boost/asio.hpp>
-#include <boost/optional.hpp>
 #include <boost/program_options.hpp>
 
 namespace asio = boost::asio;
@@ -56,7 +55,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/diagnostic.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "com/centreon/engine/engine_downtime_callbacks.hh"
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
@@ -69,6 +68,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
 #include "common/crypto/cert_tree.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -76,6 +76,7 @@ using namespace com::centreon::engine;
 namespace crypto = com::centreon::common::crypto;
 using com::centreon::broker::neb::cbmod;
 using com::centreon::common::log_v2::log_v2;
+namespace downtimes = com::centreon::common::downtimes;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
@@ -146,6 +147,9 @@ int main(int argc, char* argv[]) {
 
   // Load singletons and global variable.
   log_v2::load("centengine");
+
+  downtimes::downtime_manager::load(
+      std::make_unique<engine_downtime_callbacks>());
 
   // Initialize the initial configuration state.
   {

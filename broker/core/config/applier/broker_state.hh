@@ -18,6 +18,8 @@
 
 #ifndef CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #define CCB_CONFIG_APPLIER_BROKER_STATE_HH
+#include <boost/asio/strand.hpp>
+
 #include "broker/core/config/applier/state.hh"
 
 namespace com::centreon::broker::config::applier {
@@ -81,7 +83,12 @@ class broker_state : public state {
     bool extended_negotiation;
   };
 
+ public:
+  enum notification_mode { notification_mode_engine, notification_mode_broker };
+
  private:
+  notification_mode _notification_mode = notification_mode_engine;
+
   /* In a Broker configuration, this object contains the configuration cache
    * directory used by php. We can find there all the pollers configurations. */
   std::filesystem::path _cache_config_dir;
@@ -138,8 +145,18 @@ class broker_state : public state {
       ABSL_GUARDED_BY(_connected_peers_m);
   std::atomic<bool> _watch_engine_conf_stopped{false};
   std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
+  /* Strand serializing every engine-configuration watcher handler so the
+   * destructor can drain any in-flight handler before the watched resources are
+   * destroyed (closes the shutdown race). Created together with the timer. */
+  std::unique_ptr<boost::asio::strand<boost::asio::io_context::executor_type>>
+      _watch_strand;
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
+
+  /* Startup readiness barrier hook (mechanism lives in the base state): once the
+   * engine is started, re-inject the persisted active downtimes so they are
+   * ordered after the flushed startup definitions. No-op in non-broker mode. */
+  void _on_barrier_released() override;
 
   bool _prepare_diff_for_poller(
       uint64_t poller_id,
