@@ -25,15 +25,15 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "engine/downtimes/downtime.hh"
-#include "engine/downtimes/downtime_manager.hh"
-#include "engine/downtimes/host_downtime.hh"
-#include "engine/downtimes/service_downtime.hh"
+#include "common/downtimes/downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
+#include "common/downtimes/host_downtime.hh"
+#include "common/downtimes/service_downtime.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::retention;
+namespace downtimes = com::centreon::common::downtimes;
 
 /**
  *  Dump retention of comment.
@@ -214,7 +214,8 @@ std::ostream& dump::notifications(
  *
  *  @return The output stream.
  */
-std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
+std::ostream& dump::scheduled_downtime(std::ostream& os,
+                                       const downtimes::downtime& obj) {
   functions_logger->trace("dump::scheduled_downtime()");
   obj.retention(os);
   return os;

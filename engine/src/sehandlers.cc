@@ -28,11 +28,11 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/utils.hh"
-#include "engine/downtimes/downtime.hh"
-#include "engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 
 /******************************************************************/
 /************* OBSESSIVE COMPULSIVE HANDLER FUNCTIONS *************/

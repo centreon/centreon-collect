@@ -32,12 +32,12 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/statusdata.hh"
-#include "engine/downtimes/downtime.hh"
-#include "engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
 
 static int xsddefault_status_log_fd(-1);

@@ -26,10 +26,10 @@
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/globals.hh"
-#include "engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 
 /**
  *  The default constructor

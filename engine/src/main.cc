@@ -26,7 +26,6 @@
 #include <random>
 
 #include <boost/asio.hpp>
-#include <boost/optional.hpp>
 #include <boost/program_options.hpp>
 
 namespace asio = boost::asio;
@@ -68,14 +67,15 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
 #include "common/crypto/cert_tree.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/log_v2/log_v2.hh"
-#include "engine/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
 namespace crypto = com::centreon::common::crypto;
 using com::centreon::broker::neb::cbmod;
 using com::centreon::common::log_v2::log_v2;
+namespace downtimes = com::centreon::common::downtimes;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());

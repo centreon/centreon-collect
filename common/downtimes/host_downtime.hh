@@ -17,27 +17,27 @@
  *
  */
 
-#ifndef CCE_DOWNTIMES_HOST_DOWTIME_HH
-#define CCE_DOWNTIMES_HOST_DOWTIME_HH
+#ifndef CCC_DOWNTIMES_HOST_DOWNTIME_HH
+#define CCC_DOWNTIMES_HOST_DOWNTIME_HH
 
-#include "engine/downtimes/downtime.hh"
+#include "common/downtimes/downtime.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::common::downtimes {
 
-namespace downtimes {
 class host_downtime : public downtime {
  public:
   host_downtime(const uint64_t host_id,
                 time_t entry_time,
-                std::string const& author,
-                std::string const& comment,
+                const std::string& author,
+                const std::string& comment,
                 time_t start_time,
                 time_t end_time,
                 bool fixed,
                 uint64_t triggered_by,
-                int32_t duration,
-                uint64_t downtime_id);
-  virtual ~host_downtime();
+                uint32_t duration,
+                uint64_t downtime_id,
+                const std::shared_ptr<spdlog::logger>& logger);
+  virtual ~host_downtime() override;
 
   virtual bool is_stale() const override;
   virtual void schedule() override;
@@ -47,8 +47,6 @@ class host_downtime : public downtime {
   virtual void print(std::ostream& os) const override;
   virtual void retention(std::ostream& os) const override;
 };
-}  // namespace downtimes
+}  // namespace com::centreon::common::downtimes
 
-}
-
-#endif  // !CCE_DOWNTIMES_HOST_DOWTIME_HH
+#endif  // !CCC_DOWNTIMES_HOST_DOWNTIME_HH

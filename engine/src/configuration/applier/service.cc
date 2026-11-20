@@ -23,12 +23,12 @@
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/severity.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/severity_helper.hh"
-#include "engine/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration;
 
 /**

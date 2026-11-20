@@ -18,21 +18,21 @@
  */
 
 #include <gtest/gtest.h>
-#include "engine/downtimes/downtime_finder.hh"
+#include "common/downtimes/downtime_finder.hh"
 
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "engine/downtimes/downtime.hh"
-#include "engine/downtimes/downtime_manager.hh"
-#include "engine/downtimes/service_downtime.hh"
+#include "common/downtimes/downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
+#include "common/downtimes/service_downtime.hh"
 #include "helper.hh"
 #include "test_engine.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 
 class DowntimeFinderFindMatchingAllTest : public TestEngine {
  protected:

@@ -22,12 +22,12 @@
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 
 class DowntimeExternalCommand : public ::testing::Test {
  public:
