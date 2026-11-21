@@ -20,6 +20,8 @@
 #ifndef CCC_DOWNTIMES_DOWNTIME_HH
 #define CCC_DOWNTIMES_DOWNTIME_HH
 
+#include <spdlog/logger.h>
+
 namespace com::centreon::common::downtimes {
 
 class downtime {

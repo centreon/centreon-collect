@@ -36,6 +36,7 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
+namespace notifications = com::centreon::common::notifications;
 
 class ServiceFlappingNotification : public TestEngine {
  protected:
@@ -138,23 +139,26 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlapping) {
                                     "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
-  uint64_t id{_service->get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   _service->set_notification_period_ptr(tperiod.get());
   _service->set_is_flapping(true);
   testing::internal::CaptureStdout();
-  ASSERT_EQ(_service->notify(notifier::reason_flappingstart, "", "",
-                             notifier::notification_option_none),
+  ASSERT_EQ(_service->notify(notifications::reason_flappingstart, "", "",
+                             notifications::notification_option_none),
             OK);
-  ASSERT_EQ(id + 1, _service->get_next_notification_id());
+  ASSERT_EQ(id + 1, notifications::notification_manager::instance()
+                        .get_next_notification_id());
   set_time(43500);
   _service->set_is_flapping(false);
-  ASSERT_EQ(_service->notify(notifier::reason_flappingstop, "", "",
-                             notifier::notification_option_none),
+  ASSERT_EQ(_service->notify(notifications::reason_flappingstop, "", "",
+                             notifications::notification_option_none),
             OK);
-  ASSERT_EQ(id + 2, _service->get_next_notification_id());
+  ASSERT_EQ(id + 2, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 
-  ASSERT_EQ(_service->notify(notifier::reason_recovery, "", "",
-                             notifier::notification_option_none),
+  ASSERT_EQ(_service->notify(notifications::reason_recovery, "", "",
+                             notifications::notification_option_none),
             OK);
 
   std::string out{testing::internal::GetCapturedStdout()};
@@ -189,20 +193,23 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStartTwoTimes) {
                                     "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
-  uint64_t id{_service->get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   _service->set_notification_period_ptr(tperiod.get());
   _service->set_is_flapping(true);
-  ASSERT_EQ(_service->notify(notifier::reason_flappingstart, "", "",
-                             notifier::notification_option_none),
+  ASSERT_EQ(_service->notify(notifications::reason_flappingstart, "", "",
+                             notifications::notification_option_none),
             OK);
-  ASSERT_EQ(id + 1, _service->get_next_notification_id());
+  ASSERT_EQ(id + 1, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 
   set_time(43050);
   /* Notification already sent, no notification should be sent. */
-  ASSERT_EQ(_service->notify(notifier::reason_flappingstart, "", "",
-                             notifier::notification_option_none),
+  ASSERT_EQ(_service->notify(notifications::reason_flappingstart, "", "",
+                             notifications::notification_option_none),
             OK);
-  ASSERT_EQ(id + 1, _service->get_next_notification_id());
+  ASSERT_EQ(id + 1, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 }
 
 // Given a service OK
@@ -227,34 +234,38 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
                                     "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
-  uint64_t id{_service->get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   _service->set_notification_period_ptr(tperiod.get());
   _service->set_is_flapping(true);
-  ASSERT_EQ(_service->notify(notifier::reason_flappingstart, "", "",
-                             notifier::notification_option_none),
+  ASSERT_EQ(_service->notify(notifications::reason_flappingstart, "", "",
+                             notifications::notification_option_none),
             OK);
-  ASSERT_EQ(id + 1, _service->get_next_notification_id());
+  ASSERT_EQ(id + 1, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 
   set_time(43050);
   /* Flappingstop notification: sent. */
-  ASSERT_EQ(_service->notify(notifier::reason_flappingstop, "", "",
-                             notifier::notification_option_none),
+  ASSERT_EQ(_service->notify(notifications::reason_flappingstop, "", "",
+                             notifications::notification_option_none),
             OK);
-  ASSERT_EQ(id + 2, _service->get_next_notification_id());
+  ASSERT_EQ(id + 2, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 
   set_time(43100);
   /* Second flappingstop notification: not sent. */
-  ASSERT_EQ(_service->notify(notifier::reason_flappingstop, "", "",
-                             notifier::notification_option_none),
+  ASSERT_EQ(_service->notify(notifications::reason_flappingstop, "", "",
+                             notifications::notification_option_none),
             OK);
-  ASSERT_EQ(id + 2, _service->get_next_notification_id());
+  ASSERT_EQ(id + 2, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlapping) {
   pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
-  _service->add_flap_detection_on(engine::service::ok);
-  _service->add_flap_detection_on(engine::service::down);
+  _service->add_flap_detection_on(common::notifications::ok);
+  _service->add_flap_detection_on(common::notifications::down);
   _service->set_notification_interval(1);
   time_t now = 45000;
   set_time(now);
@@ -346,8 +357,8 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
   pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->set_is_volatile(true);
-  _service->add_flap_detection_on(engine::service::ok);
-  _service->add_flap_detection_on(engine::service::down);
+  _service->add_flap_detection_on(common::notifications::ok);
+  _service->add_flap_detection_on(common::notifications::down);
   _service->set_notification_interval(1);
   time_t now = 45000;
   set_time(now);
@@ -453,8 +464,8 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   _host->set_check_type(checkable::check_type::check_passive);
   pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
-  _service->add_flap_detection_on(engine::service::ok);
-  _service->add_flap_detection_on(engine::service::down);
+  _service->add_flap_detection_on(common::notifications::ok);
+  _service->add_flap_detection_on(common::notifications::down);
   _service->set_notification_interval(1);
   time_t now = 45000;
   set_time(now);
@@ -544,8 +555,8 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
 TEST_F(ServiceFlappingNotification, CheckFlappingWithSoftState) {
   pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
-  _service->add_flap_detection_on(engine::service::ok);
-  _service->add_flap_detection_on(engine::service::down);
+  _service->add_flap_detection_on(common::notifications::ok);
+  _service->add_flap_detection_on(common::notifications::down);
   _service->set_notification_interval(1);
   time_t now = 45000;
   set_time(now);
@@ -633,8 +644,8 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithSoftState) {
 TEST_F(ServiceFlappingNotification, RetentionFlappingNotification) {
   pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
-  _service->add_flap_detection_on(engine::service::ok);
-  _service->add_flap_detection_on(engine::service::down);
+  _service->add_flap_detection_on(common::notifications::ok);
+  _service->add_flap_detection_on(common::notifications::down);
   _service->set_notification_interval(1);
   time_t now = 45000;
   set_time(now);
@@ -723,9 +734,7 @@ TEST_F(ServiceFlappingNotification, RetentionFlappingNotification) {
 
   ASSERT_EQ(notification0, notification1);
 
-  notification0 =
-      "type: 4, author: admin, options: 3, escalated: 1, id: 9, number: 2, "
-      "interval: 3, contacts: ";
+  notification0 = "type: 4, interval: 3, contacts: ";
   _service->set_notification(3, notification0);
   oss.str("");
 

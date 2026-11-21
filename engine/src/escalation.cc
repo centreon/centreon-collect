@@ -21,6 +21,7 @@
 #include "com/centreon/engine/timeperiod.hh"
 
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 
 escalation::escalation(uint32_t first_notification,
                        uint32_t last_notification,
@@ -58,11 +59,11 @@ void escalation::set_notification_interval(double notification_interval) {
   _notification_interval = notification_interval;
 }
 
-void escalation::add_escalate_on(notifier::notification_flag type) {
+void escalation::add_escalate_on(notifications::notification_flag type) {
   _escalate_on |= type;
 }
 
-void escalation::remove_escalate_on(notifier::notification_flag type) {
+void escalation::remove_escalate_on(notifications::notification_flag type) {
   _escalate_on &= ~type;
 }
 
@@ -74,7 +75,7 @@ void escalation::set_escalate_on(uint32_t escalate_on) {
   _escalate_on = escalate_on;
 }
 
-bool escalation::get_escalate_on(notifier::notification_flag type) const {
+bool escalation::get_escalate_on(notifications::notification_flag type) const {
   return _escalate_on & type;
 }
 

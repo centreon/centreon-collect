@@ -113,8 +113,11 @@ class service : public notifier {
                             service* svc) noexcept;
 
  public:
-  static std::array<std::pair<uint32_t, std::string>, 4> const
-      tab_service_states;
+  static constexpr std::array<std::pair<uint32_t, std::string_view>, 4>
+      tab_service_states{{{NSLOG_SERVICE_OK, "OK"},
+                          {NSLOG_SERVICE_WARNING, "WARNING"},
+                          {NSLOG_SERVICE_CRITICAL, "CRITICAL"},
+                          {NSLOG_SERVICE_CRITICAL, "UNKNOWN"}}};
 
   enum service_state { state_ok, state_warning, state_critical, state_unknown };
 
@@ -153,8 +156,6 @@ class service : public notifier {
           uint64_t icon_id,
           service_type st = NONE);
   ~service() noexcept;
-  uint64_t host_id() const;
-  uint64_t service_id() const;
   service_type get_service_type() const;
   void set_hostname(std::string const& name);
   std::string const& get_hostname() const;
@@ -187,7 +188,7 @@ class service : public notifier {
   void set_check_flapping_recovery_notification(bool check);
   bool recovered() const override;
   int get_current_state_int() const override;
-  std::string const& get_current_state_as_string() const override;
+  std::string_view get_current_state_as_string() const override;
 
   virtual int handle_async_check_result(
       const check_result& queued_check_result);
@@ -216,7 +217,8 @@ class service : public notifier {
                   double low_threshold);
   void enable_flap_detection();
   void disable_flap_detection();
-  void update_status(uint32_t status_attributes = STATUS_ALL) override;
+  void update_status(
+      uint32_t status_attributes = common::notifications::STATUS_ALL) override;
   void update_adaptive_data();
   bool verify_check_viability(int check_options,
                               bool* time_is_valid,
@@ -224,7 +226,7 @@ class service : public notifier {
   void grab_macros_r(nagios_macros* mac) override;
   int notify_contact(nagios_macros* mac,
                      contact* cntct,
-                     reason_type type,
+                     common::notifications::reason_type type,
                      std::string const& not_author,
                      std::string const& not_data,
                      int options,
@@ -274,8 +276,6 @@ class service : public notifier {
   }
 
  private:
-  const uint64_t _host_id;
-  const uint64_t _service_id;
   std::string _hostname;
   std::string _event_handler_args;
   std::string _check_command_args;

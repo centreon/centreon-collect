@@ -28,6 +28,7 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
+namespace notifications = com::centreon::common::notifications;
 
 /**
  *  Update host list.
@@ -135,12 +136,12 @@ void applier::host::_update(const configuration::State& config,
       obj.set_last_time_unreachable(*state.last_time_unreachable());
     obj.set_notified_on(
         (state.notified_on_down().has_value() && *state.notified_on_down()
-             ? notifier::down
-             : notifier::none) |
+             ? notifications::down
+             : notifications::none) |
         (state.notified_on_unreachable().has_value() &&
                  *state.notified_on_unreachable()
-             ? notifier::unreachable
-             : notifier::none));
+             ? notifications::unreachable
+             : notifications::none));
     if (state.last_notification().has_value())
       obj.set_last_notification(*state.last_notification());
     if (state.current_notification_number().has_value())

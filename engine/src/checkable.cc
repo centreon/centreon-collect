@@ -47,6 +47,7 @@ checkable::checkable(const std::string& name,
                      int freshness_threshold,
                      bool obsess_over,
                      const std::string& timezone,
+                     bool is_volatile,
                      uint64_t icon_id)
     : _name{name},
       _display_name{display_name.empty() ? name : display_name},
@@ -82,6 +83,7 @@ checkable::checkable(const std::string& name,
       _next_check{0L},
       _should_be_scheduled{true},
       _state_history_index{0},
+      _state_history{{}},
       _last_state_change{0},
       _last_hard_state_change{0},
       _state_type{soft},
@@ -89,6 +91,11 @@ checkable::checkable(const std::string& name,
       _event_handler_ptr{nullptr},
       _check_command_ptr{nullptr},
       _is_executing{false},
+      _is_volatile{is_volatile},
+      _current_event_id{0},
+      _last_event_id{0},
+      _current_problem_id{0},
+      _last_problem_id{0},
       _icon_id{icon_id},
       check_period_ptr{nullptr} {
   if (max_attempts <= 0 || retry_interval <= 0 || freshness_threshold < 0) {
@@ -468,6 +475,55 @@ bool checkable::get_is_executing() const {
 
 void checkable::set_is_executing(bool is_executing) {
   _is_executing = is_executing;
+}
+
+bool checkable::get_is_volatile() const noexcept {
+  return _is_volatile;
+}
+
+void checkable::set_is_volatile(bool vol) {
+  _is_volatile = vol;
+}
+
+uint64_t checkable::get_current_event_id() const {
+  return _current_event_id;
+}
+
+void checkable::set_current_event_id(uint64_t current_event_id) noexcept {
+  _current_event_id = current_event_id;
+}
+
+uint64_t checkable::get_last_event_id() const noexcept {
+  return _last_event_id;
+}
+
+void checkable::set_last_event_id(uint64_t last_event_id) noexcept {
+  _last_event_id = last_event_id;
+}
+
+uint64_t checkable::get_current_problem_id() const noexcept {
+  return _current_problem_id;
+}
+
+void checkable::set_current_problem_id(uint64_t current_problem_id) noexcept {
+  _current_problem_id = current_problem_id;
+}
+
+uint64_t checkable::get_last_problem_id() const noexcept {
+  return _last_problem_id;
+}
+
+void checkable::set_last_problem_id(uint64_t last_problem_id) noexcept {
+  _last_problem_id = last_problem_id;
+}
+
+std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES> const&
+checkable::get_state_history() const {
+  return _state_history;
+}
+
+std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES>& checkable::get_state_history() {
+  return _state_history;
 }
 
 /**

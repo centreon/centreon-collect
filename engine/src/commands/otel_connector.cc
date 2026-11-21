@@ -184,7 +184,7 @@ uint64_t otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
         otel::open_telemetry_base::instance();
     if (otel) {
       if (caller) {
-        if (caller->get_notifier_type() == notifier::service_notification) {
+        if (caller->get_notifier_type() == common::notifications::service_notification) {
           const service* serv = static_cast<const service*>(caller);
           otel->force_check(serv->host_id(), serv->service_id());
         } else {

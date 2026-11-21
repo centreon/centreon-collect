@@ -35,6 +35,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
+namespace notifications = com::centreon::common::notifications;
 
 class ApplierPbContact : public ::testing::Test {
  protected:
@@ -187,8 +188,8 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   ASSERT_EQ(ct_it->second->get_custom_variables()["superVar1"].value(),
             std::string_view("Super1"));
   ASSERT_EQ(ct_it->second->get_alias(), std::string_view("newAlias"));
-  ASSERT_FALSE(ct_it->second->notify_on(notifier::service_notification,
-                                        notifier::unknown));
+  ASSERT_FALSE(ct_it->second->notify_on(notifications::service_notification,
+                                        notifications::unknown));
 
   auto found = pb_indexed_config.mut_commands().contains("cmd");
   pb_indexed_config.mut_commands().erase("cmd");

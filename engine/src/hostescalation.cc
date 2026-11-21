@@ -28,6 +28,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
+namespace notifications = com::centreon::common::notifications;
 
 hostescalation_mmap hostescalation::hostescalations;
 
@@ -76,10 +77,10 @@ bool hostescalation::is_viable(int state, uint32_t notification_number) const {
 
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
-    std::array<notifier::notification_flag, 3> nt = {
-        notifier::up,
-        notifier::down,
-        notifier::unreachable,
+    std::array<notifications::notification_flag, 3> nt = {
+        notifications::up,
+        notifications::down,
+        notifications::unreachable,
     };
 
     if (!get_escalate_on(nt[state]))
@@ -131,14 +132,14 @@ void hostescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
 bool hostescalation::matches(const configuration::Hostescalation& obj) const {
   uint32_t escalate_on =
       ((obj.escalation_options() & configuration::action_he_down)
-           ? notifier::down
-           : notifier::none) |
+           ? notifications::down
+           : notifications::none) |
       ((obj.escalation_options() & configuration::action_he_unreachable)
-           ? notifier::unreachable
-           : notifier::none) |
+           ? notifications::unreachable
+           : notifications::none) |
       ((obj.escalation_options() & configuration::action_he_recovery)
-           ? notifier::up
-           : notifier::none);
+           ? notifications::up
+           : notifications::none);
   if (_hostname != *obj.hosts().data().begin() ||
       get_first_notification() != obj.first_notification() ||
       get_last_notification() != obj.last_notification() ||

@@ -48,7 +48,7 @@ bool utils::is_command_exist(std::string const& command_line) {
  */
 void utils::set_state_history(
     std::vector<int> const& values,
-    std::array<int, MAX_STATE_HISTORY_ENTRIES>& state_history) {
+    std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES>& state_history) {
   size_t end{MAX_STATE_HISTORY_ENTRIES};
   if (end > values.size())
     end = values.size();

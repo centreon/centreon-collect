@@ -723,7 +723,7 @@ void indexed_state::diff_with_new_config(
   }
   SET_IF_CHANGED(enable_predictive_host_dependency_checks);
   SET_IF_CHANGED(enable_predictive_service_dependency_checks);
-  SET_IF_CHANGED(send_recovery_notifications_anyways);
+  SET_IF_CHANGED(send_recovery_notifications_anyway);
   SET_IF_CHANGED(host_down_disable_service_checks);
   SET_IF_CHANGED(max_file_descriptors);
   SET_IF_CHANGED(config_version);

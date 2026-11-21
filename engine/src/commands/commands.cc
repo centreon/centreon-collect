@@ -39,6 +39,7 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::common::downtimes;
+namespace notifications = com::centreon::common::notifications;
 
 /******************************************************************/
 /****************** EXTERNAL COMMAND PROCESSING *******************/
@@ -2506,11 +2507,11 @@ void acknowledge_host_problem(host* hst,
 
   /* send out an acknowledgement notification */
   if (notify)
-    hst->notify(notifier::reason_acknowledgement, ack_author, ack_data,
-                notifier::notification_option_none);
+    hst->notify(notifications::reason_acknowledgement, ack_author, ack_data,
+                notifications::notification_option_none);
 
   /* update the status log with the host info */
-  hst->update_status(host::STATUS_ACKNOWLEDGEMENT);
+  hst->update_status(notifications::STATUS_ACKNOWLEDGEMENT);
 
   /* add a comment for the acknowledgement */
   comment com(comment::host, comment::acknowledgment, hst->host_id(), 0,
@@ -2551,11 +2552,11 @@ void acknowledge_service_problem(service* svc,
 
   /* send out an acknowledgement notification */
   if (notify)
-    svc->notify(notifier::reason_acknowledgement, ack_author, ack_data,
-                notifier::notification_option_none);
+    svc->notify(notifications::reason_acknowledgement, ack_author, ack_data,
+                notifications::notification_option_none);
 
   /* update the status log with the service info */
-  svc->update_status(service::STATUS_ACKNOWLEDGEMENT);
+  svc->update_status(notifications::STATUS_ACKNOWLEDGEMENT);
 
   /* add a comment for the acknowledgement */
   comment com(comment::service, comment::acknowledgment, svc->host_id(),
@@ -2576,7 +2577,7 @@ void remove_host_acknowledgement(host* hst) {
   hst->set_acknowledgement(AckType::NONE);
 
   /* update the status log with the host info */
-  hst->update_status(host::STATUS_ACKNOWLEDGEMENT);
+  hst->update_status(notifications::STATUS_ACKNOWLEDGEMENT);
 
   /* remove any non-persistant comment associated with the ack */
   hst->delete_acknowledgement_comment();
@@ -2588,7 +2589,7 @@ void remove_service_acknowledgement(service* svc) {
   svc->set_acknowledgement(AckType::NONE);
 
   /* update the status log with the service info */
-  svc->update_status(host::STATUS_ACKNOWLEDGEMENT);
+  svc->update_status(notifications::STATUS_ACKNOWLEDGEMENT);
 
   /* remove any non-persistant comment associated with the ack */
   svc->delete_acknowledgement_comment();

@@ -155,7 +155,8 @@ template <typename T, host::host_state (T::*member)() const>
 std::string get_host_state(T& t, nagios_macros* mac) {
   (void)mac;
   uint32_t current = static_cast<host::host_state>((t.*member)());
-  return com::centreon::engine::host::tab_host_states[current].second;
+  return std::string(
+      com::centreon::engine::host::tab_host_states[current].second);
 }
 
 /**
@@ -363,27 +364,27 @@ struct grab_host_redirection {
         true}},
       {MACRO_HOSTEVENTID,
        {&get_member_as_string<host,
-                              unsigned long,
-                              notifier,
-                              &notifier::get_current_event_id>,
+                              uint64_t,
+                              checkable,
+                              &checkable::get_current_event_id>,
         true}},
       {MACRO_LASTHOSTEVENTID,
        {&get_member_as_string<host,
-                              unsigned long,
-                              notifier,
-                              &notifier::get_last_event_id>,
+                              uint64_t,
+                              checkable,
+                              &checkable::get_last_event_id>,
         true}},
       {MACRO_HOSTPROBLEMID,
        {&get_member_as_string<host,
-                              unsigned long,
-                              notifier,
-                              &notifier::get_current_problem_id>,
+                              uint64_t,
+                              checkable,
+                              &checkable::get_current_problem_id>,
         true}},
       {MACRO_LASTHOSTPROBLEMID,
        {&get_member_as_string<host,
-                              unsigned long,
-                              notifier,
-                              &notifier::get_last_problem_id>,
+                              uint64_t,
+                              checkable,
+                              &checkable::get_last_problem_id>,
         true}},
       {MACRO_HOSTACTIONURL,
        {&get_recursive<host, checkable, &checkable::get_action_url, 0>, true}},

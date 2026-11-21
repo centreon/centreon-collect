@@ -23,6 +23,7 @@
 
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 
 serviceescalation_mmap serviceescalation::serviceescalations;
 
@@ -69,11 +70,11 @@ bool serviceescalation::is_viable(int state,
 
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
-    std::array<notifier::notification_flag, 4> nt = {
-        notifier::ok,
-        notifier::warning,
-        notifier::critical,
-        notifier::unknown,
+    std::array<notifications::notification_flag, 4> nt = {
+        notifications::ok,
+        notifications::warning,
+        notifications::critical,
+        notifications::unknown,
     };
 
     if (!get_escalate_on(nt[state]))
@@ -127,17 +128,17 @@ bool serviceescalation::matches(
     const configuration::Serviceescalation& obj) const {
   uint32_t escalate_on =
       ((obj.escalation_options() & configuration::action_se_warning)
-           ? notifier::warning
-           : notifier::none) |
+           ? notifications::warning
+           : notifications::none) |
       ((obj.escalation_options() & configuration::action_se_unknown)
-           ? notifier::unknown
-           : notifier::none) |
+           ? notifications::unknown
+           : notifications::none) |
       ((obj.escalation_options() & configuration::action_se_critical)
-           ? notifier::critical
-           : notifier::none) |
+           ? notifications::critical
+           : notifications::none) |
       ((obj.escalation_options() & configuration::action_se_recovery)
-           ? notifier::ok
-           : notifier::none);
+           ? notifications::ok
+           : notifications::none);
   if (_hostname != obj.hosts().data(0) ||
       _description != obj.service_description().data(0) ||
       get_first_notification() != obj.first_notification() ||

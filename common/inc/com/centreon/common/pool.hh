@@ -19,6 +19,9 @@
 #define CENTREON_COMMON_POOL_HH
 
 #include <forward_list>
+#include <spdlog/logger.h>
+#include <absl/synchronization/mutex.h>
+
 namespace com::centreon::common {
 
 /**

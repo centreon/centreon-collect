@@ -21,7 +21,6 @@
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
-#include "common/engine_conf/indexed_state.hh"
 
 namespace com::centreon::engine::configuration {
 
