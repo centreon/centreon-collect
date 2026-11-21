@@ -465,6 +465,27 @@ The `X.lck` file does not merely mean "a configuration has just arrived", but
   re-parsing the configuration on every 5 s tick, a guard at the top of the
   loop skips processing when the poller is not connected and `new-X.prot` has
   already been prepared.
+- If the pushed configuration is **rejected as invalid** (it fails the
+  validation described in
+  [Validating a poller configuration](#validating-a-poller-configuration-the-checkpollerconfig-grpc-endpoint):
+  `parse`+`expand`+`resolve` report at least one error), Broker **refuses to
+  push it**: no `new-X.prot` is written and no `diff-X.prot` is prepared. In
+  that case the `.lck` is consumed **unconditionally** — even though nothing was
+  delivered to the poller — because a structurally-invalid configuration will
+  never become valid on its own, and Broker must not re-parse it on every 5 s
+  tick forever. PHP creates a fresh `.lck` when it pushes a corrected
+  configuration.
+
+So the `.lck` is deleted in two situations that must not be confused: a *valid*
+configuration that has been prepared **and delivered** to a connected poller,
+and an *invalid* configuration that is **refused**. It is **kept** only when a
+valid configuration is prepared but its poller is not connected yet.
+
+> **Known limitation.** The rejection branch currently consumes the `.lck` on
+> *any* exception thrown while handling the configuration, not only on
+> validation errors — a transient I/O or serialization error on an otherwise
+> valid configuration would therefore drop it without retry. Narrowing this to
+> validation errors only is a known follow-up.
 
 Why this precaution? When a poller connects **after** its configuration has
 been prepared (for instance, its `.lck` was detected while it was still
@@ -483,6 +504,27 @@ section).
 > and dropped the prepared configuration of the late poller. With the `.lck`
 > retention, that poller's configuration is delivered as soon as it connects,
 > and a new global diff is published to integrate it into the database.
+
+The complete lifecycle of the `X.lck` file, including the validation gate, is:
+
+```mermaid
+stateDiagram-v2
+    Pending: Pending - X.lck present, config awaiting delivery
+    Validating: Validating - parse + expand + resolve
+    Rejected: Rejected - config refused, X.lck consumed, no retry
+    Prepared: Prepared - new-X.prot and diff-X.prot written
+    Kept: Kept - valid config, X.lck kept until poller connects
+    Delivered: Delivered - DiffState sent, X.lck removed
+    [*] --> Pending: PHP writes config dir
+    Pending --> Validating: 5s tick or add_peer
+    Validating --> Rejected: config_errors found
+    Validating --> Prepared: config valid
+    Rejected --> [*]
+    Prepared --> Delivered: poller connected
+    Prepared --> Kept: poller not connected
+    Kept --> Delivered: poller connects later
+    Delivered --> [*]
+```
 
 The BBDO stream in connection with poller *X* is configured on reading to also check if the connected `Engine` has a new version:
 
@@ -555,22 +597,42 @@ unresolvable templates, host/service-group membership problems and timeperiod
 cross-references (for example a timeperiod whose `exclude` names an undefined
 one).
 
-It is **not yet** a full equivalent of `centengine --verify-config`. Most of
-verify-config's warnings/errors are produced later, by `applier::state::apply`
-(the *resolve* phase), through the `check()` methods of Engine's runtime objects
-(`host`, `service`, `contact`, `notifier`, …). That code is Engine-only, is not
-linked into `cbd`, and the central Broker host may not even have `centengine`
-installed — so Broker cannot run it.
+Historically most of verify-config's warnings/errors were produced later, by
+`applier::state::apply` (the *resolve* phase), through the `check()`/`resolve()`
+methods of Engine's runtime objects (`host`, `service`, `contact`, `notifier`,
+…). That code is Engine-only, is not linked into `cbd`, and the central Broker
+host may not even have `centengine` installed — so Broker cannot run it.
 
-The plan is to progressively **move those checks into `engine_conf`**: port each
-check from an Engine runtime object's `check()` into the matching protobuf-level
-helper (`*_helper::check_validity` for per-object checks, `*_helper::expand` for
-cross-object ones) so it runs on the `State`, and remove it from the Engine
-applier. Each ported check then has a single home, is picked up by
-`CheckPollerConfig` (Broker) via `parse`+`expand`, and stays available to Engine
-(whose `verify_config` also runs `parse`+`expand` before the applier) — without
-being run twice. As `engine_conf` gains these checks, `CheckPollerConfig`
-becomes a true, central verify-config.
+**Status: a `resolve` phase now exists in `engine_conf`.** A new
+`state_helper::resolve(error_cnt&, logger)` runs **after `expand`** and validates
+the `State` protobuf directly (no runtime object). It is **accumulate-only** (it
+never throws; it only increments `config_warnings`/`config_errors` and logs),
+which is exactly what a "report everything, then decide" validator needs. It is
+wired into **all three consumers**, so a ported check has a single home and runs
+identically everywhere:
+
+- **`CheckPollerConfig`** (Broker) — `parse` + `expand` + `resolve` on the
+  injected capturing logger;
+- **ingestion** (`broker_state::_check_last_engine_conf`) — `parse` + `expand` +
+  `resolve`; if `config_errors > 0` Broker refuses to push the configuration
+  (see the `.lck` lifecycle above);
+- **Engine** — `main.cc` (`--verify-config`, and the non-trusted `centengine.cfg`
+  start path) and `events/loop.cc` (reload) all call `expand` + `resolve` before
+  the applier and reject an invalid configuration.
+
+  > Note: the **trusted-proto** start path (`state.prot` pushed by Broker) and
+  > the runtime `apply_diff` path deliberately do **not** re-run `resolve` —
+  > those configurations were already validated by Broker before being pushed
+  > (a hand-written `.prot` is not a supported input). See the design decision
+  > in the review notes.
+
+The plan is to progressively **port each Engine runtime `resolve()` check onto
+the `State`**: move the validation part into the matching `*_helper::resolve`
+(driven by `state_helper::resolve`) and leave only the runtime wiring in the
+Engine applier. **Contact is the pilot — already ported** (`contact_helper::resolve`,
+called by `state_helper::resolve`, with the applier reduced to pure wiring). As
+`engine_conf` gains the remaining checks, `CheckPollerConfig` becomes a true,
+central verify-config.
 
 ### Analysis: porting `resolve()` checks onto the `State`
 
@@ -614,6 +676,15 @@ On the State side, the ported validator first builds name→object indexes
 host→services index (which `resolve()` builds today as a side effect), then walks
 each type accumulating `(w, e)` into `error_cnt`.
 
+> **Implemented so far.** `state_helper::resolve` builds the command and
+> timeperiod name indexes (non-owning `flat_hash_set<string_view>`, mirroring
+> `expand`) and walks the **contacts**, delegating each to
+> `contact_helper::resolve`. The latter checks: host/service notification
+> commands non-empty **and** defined; host/service notification timeperiods
+> defined; sane host/service recovery options; illegal characters in the
+> contact name. The remaining 12 object types are still validated by the Engine
+> applier and stay on the roadmap above.
+
 ### What `expand()` already covers (and what remains to port)
 
 `expand()` and `resolve()` are **complementary**, with very little overlap.
@@ -639,6 +710,13 @@ Goal: have `CheckPollerConfig` **report all errors at once** and only fail at th
 end, instead of stopping at the first `throw`. Today `parse`+`expand` mix two
 behaviours: `error_cnt err` **accumulates** (`config_warnings`/`config_errors`),
 but ~54 sites also `throw`, aborting the rest.
+
+> **Applied to the resolve phase.** The new `resolve` validators follow the
+> accumulate-only model from the start: `contact_helper::resolve` never throws,
+> it only logs and increments `error_cnt`. The consumers decide what to do with
+> the totals afterwards (Engine/ingestion reject when `config_errors > 0`;
+> `CheckPollerConfig` reports every diagnostic). The throw→accumulate conversion
+> discussed below still applies to the older `parse`/`expand` sites.
 
 The throws fall into two families:
 
@@ -722,6 +800,8 @@ sequenceDiagram
   participant B as Broker
   participant php
   php ->> B: Sending configurations<br/>for E1 and E2
+  B ->> B: Validating E1 & E2 configs<br/>(parse + expand + resolve)
+  Note right of B: An invalid configuration is refused:<br/>no new-X.prot, no diff, its X.lck is consumed.<br/>Only valid configurations proceed below.
   B ->> B: Calculating E1 config difference
   B ->> B: Calculating E2 config difference
   par Sending diff conf to E1
@@ -1417,6 +1497,8 @@ sequenceDiagram
     participant C as Broker Cache
     participant php
     php ->> B: Sending configurations for E1 and E2
+    B ->> B: Validating E1 & E2 configs<br/>(parse + expand + resolve)
+    Note right of B: An invalid configuration is refused:<br/>no new-X.prot, no diff, its X.lck is consumed.
     B ->> B: Calculating E1 config difference
     B ->> B: Calculating E2 config difference
     B ->> B: Calculating global difference.
