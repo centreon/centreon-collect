@@ -81,61 +81,60 @@ DR=
 SC=0
 MOLD=
 
-for i in "$@"
+TRIPLET=x64-linux
+# Options not handled here are given to cmake.
+CMAKE_ARGS=()
+
+while [ $# -gt 0 ]
 do
-  case "$i" in
+  case "$1" in
     -f|--force)
       echo "Forced rebuild"
       force=1
-      shift
       ;;
     -b|--build-dir)
       echo "Build directory specified: $2"
       # Absolute, as every path given to cmake.
       BUILD_DIR="$(realpath -m "$2")"
-      shift 2
+      shift
       ;;
     -og)
       echo "C++14 applied on this compilation"
       STD="gnu14"
-      shift
       ;;
     -dr|--debug-robot)
       echo "DEBUG_ROBOT enabled"
       DR="-DDEBUG_ROBOT=ON"
-      shift
       ;;
     -r|--release)
       echo "Release build"
       BUILD_TYPE="RelWithDebInfo"
-      shift
       ;;
     -clang)
       COMPILER=clang
       CC=clang
       CXX=clang++
-      shift
+      # The vcpkg dependencies must be built with clang too.
+      TRIPLET=x64-linux-clang
       ;;
     -mold)
       MOLD=-fuse-ld=mold
-      shift
       ;;
     -legacy-mold)
       MOLD="-B /usr/bin/mold"
-      shift
       ;;
     -sccache)
       SC="1"
-      shift
       ;;
     -h|--help)
       show_help
       exit 2
       ;;
     *)
-            # unknown option
-    ;;
+      CMAKE_ARGS+=("$1")
+      ;;
   esac
+  shift
 done
 
 # Am I root?
@@ -339,7 +338,7 @@ if [ "$force" = "1" ] ; then
     echo "Shared vcpkg '$VCPKG_ROOT' kept"
   fi
   mkdir "$BUILD_DIR"
-  ln -s ../overlays build/overlays
+  ln -s "$SRC_DIR/overlays" "$BUILD_DIR/overlays"
 fi
 
 if [ ! -d "$VCPKG_ROOT" ] ; then
@@ -364,10 +363,10 @@ else
 fi
 
 if [[ "$maj" == "Raspbian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S "$SRC_DIR"
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=$TRIPLET -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG "${CMAKE_ARGS[@]}" -S "$SRC_DIR"
 
 elif [[ "$maj" == "Debian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S "$SRC_DIR"
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=$TRIPLET -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG "${CMAKE_ARGS[@]}" -S "$SRC_DIR"
 else
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -S "$SRC_DIR" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=$TRIPLET -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -S "$SRC_DIR" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF "${CMAKE_ARGS[@]}"
 fi
