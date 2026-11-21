@@ -924,3 +924,79 @@ TEST_F(Pb_Resolve, AnomalydetectionNonExistingContactgroup) {
   ASSERT_EQ(err.config_warnings, 0u);
   ASSERT_EQ(err.config_errors, 1u);
 }
+
+// ---------------------------------------------------------------------------
+// Circular-path detection, ported from the former Engine runtime
+// pre_flight_circular_check into state_helper::resolve. The positive cases
+// assert config_errors >= 1 (the exact number of loop members / dependency
+// roots reported is an implementation detail); the negative case asserts 0 to
+// prove there is no false positive.
+// ---------------------------------------------------------------------------
+
+// Three hosts whose parent relations form a cycle
+// (host_1 -> host_2 -> host_3 -> host_1) are rejected.
+TEST_F(Pb_Resolve, HostParentCircularPath) {
+  State s = base_state();
+  Host* h1 = add_notifier_host(s, "host_1");
+  Host* h2 = add_notifier_host(s, "host_2");
+  Host* h3 = add_notifier_host(s, "host_3");
+  h1->mutable_parents()->add_data("host_2");
+  h2->mutable_parents()->add_data("host_3");
+  h3->mutable_parents()->add_data("host_1");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_GE(err.config_errors, 1u);
+}
+
+// Two hosts with mutual notification dependencies that inherit their parent
+// form a circular notification dependency.
+TEST_F(Pb_Resolve, HostNotificationDependencyCircular) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  add_notifier_host(s, "host_2");
+  add_hostdependency(s, "host_1", "host_2")->set_inherits_parent(true);
+  add_hostdependency(s, "host_2", "host_1")->set_inherits_parent(true);
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_GE(err.config_errors, 1u);
+}
+
+// The same mutual notification dependencies without inherits_parent do NOT
+// form a cycle: notification dependencies only chain when they inherit.
+TEST_F(Pb_Resolve, HostNotificationDependencyNotCircularWithoutInherit) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  add_notifier_host(s, "host_2");
+  add_hostdependency(s, "host_1", "host_2");
+  add_hostdependency(s, "host_2", "host_1");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// Two services with mutual dependencies form a circular execution dependency:
+// the default (unknown) type is decomposed by expand into notification and
+// execution variants, and the execution variants chain unconditionally.
+TEST_F(Pb_Resolve, ServiceExecutionDependencyCircular) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  add_notifier_service(s, "host_1", "svc_1");
+  add_notifier_service(s, "host_1", "svc_2");
+  add_servicedependency(s, "host_1", "svc_1", "host_1", "svc_2");
+  add_servicedependency(s, "host_1", "svc_2", "host_1", "svc_1");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_GE(err.config_errors, 1u);
+}
