@@ -115,6 +115,51 @@ ECGEMPTYNAME
     ${out}    Get File    /tmp/output.txt
     Should Contain    ${out}    Contactgroup has no name    the report must mention the nameless contact group
 
+EHGNCM
+    [Documentation]    Scenario: a host group with a non-existing member is rejected
+    ...    Given an engine configuration with a host group referencing an undefined host
+    ...    When centengine verifies the configuration (-v)
+    ...    Then the configuration is reported invalid (non-zero return code and the missing host is named)
+    [Tags]    engine    config    hostgroup    MON-187019
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    module
+    # hostgroups.cfg is already referenced by the default configuration. Append
+    # a host group whose member does not exist. Single spaces only: Robot splits
+    # arguments on runs of 2+ spaces.
+    Append To File
+    ...    ${EtcRoot}/centreon-engine/config0/hostgroups.cfg
+    ...    \ndefine hostgroup {\nhostgroup_name badhg\nalias badhg\nmembers ghost_host\n}\n
+    ${result}    Run Process
+    ...    /usr/sbin/centengine    -v    ${EtcRoot}/centreon-engine/config0/centengine.cfg
+    ...    stdout=/tmp/output.txt    stderr=/tmp/error.txt
+    Should Not Be Equal As Integers
+    ...    ${result.rc}    ${0}
+    ...    verify-config must reject a host group with a non-existing member
+    ${out}    Get File    /tmp/output.txt
+    Should Contain    ${out}    ghost_host    the report must name the missing host
+
+ESGNCM
+    [Documentation]    Scenario: a service group with a non-existing member is rejected
+    ...    Given an engine configuration with a service group referencing an undefined service
+    ...    When centengine verifies the configuration (-v)
+    ...    Then the configuration is reported invalid (non-zero return code and the missing service is named)
+    [Tags]    engine    config    servicegroup    MON-187019
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    module
+    # servicegroups.cfg is already referenced by the default configuration.
+    # host_1 exists, ghost_service does not. Single spaces only.
+    Append To File
+    ...    ${EtcRoot}/centreon-engine/config0/servicegroups.cfg
+    ...    \ndefine servicegroup {\nservicegroup_name badsg\nalias badsg\nmembers host_1,ghost_service\n}\n
+    ${result}    Run Process
+    ...    /usr/sbin/centengine    -v    ${EtcRoot}/centreon-engine/config0/centengine.cfg
+    ...    stdout=/tmp/output.txt    stderr=/tmp/error.txt
+    Should Not Be Equal As Integers
+    ...    ${result.rc}    ${0}
+    ...    verify-config must reject a service group with a non-existing member
+    ${out}    Get File    /tmp/output.txt
+    Should Contain    ${out}    ghost_service    the report must name the missing service
+
 *** Keywords ***
 Ctn Start Engine With Args
     [Arguments]    @{options}

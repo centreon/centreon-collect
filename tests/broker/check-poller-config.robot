@@ -138,3 +138,49 @@ BCPC6
     Should Not Be Empty    ${errors}    the duplicated command must be reported as an error
     ${joined}    Evaluate    " ".join($errors)
     Should Contain    ${joined}    dup_command    the error must name the duplicated command
+
+BCPC7
+    [Documentation]    Scenario: a host group with a non-existing member makes the check fail
+    ...    Given a centralized engine configuration with a host group referencing an undefined host
+    ...    When CheckPollerConfig is called on the poller configuration directory
+    ...    Then ok is false and an ERROR diagnostic names the missing host
+    [Tags]    broker    grpc    config    MON-187019
+    Ctn Config Centralized Engine    ${1}
+    # hostgroups.cfg is already part of the centralized configuration. Append a
+    # host group whose member does not exist. Single spaces only: Robot splits
+    # arguments on runs of 2+ spaces.
+    Append To File
+    ...    ${PollerConfigDir}/hostgroups.cfg
+    ...    \ndefine hostgroup {\nhostgroup_name badhg\nalias badhg\nmembers ghost_host\n}\n
+    Ctn Config Broker    central
+    Ctn Start Broker
+    ${res}    Ctn Broker Check Poller Config    ${PollerConfigDir}
+    Should Not Be Equal    ${res}    ${None}    CheckPollerConfig did not answer
+    Should Not Be True    ${res}[ok]    a host group with a non-existing member must not be ok
+    ${errors}    Evaluate    [d['message'] for d in $res['diagnostics'] if d['severity'] == 'ERROR']
+    Should Not Be Empty    ${errors}    the missing host must be reported as an error
+    ${joined}    Evaluate    " ".join($errors)
+    Should Contain    ${joined}    ghost_host    the error must name the missing host
+
+BCPC8
+    [Documentation]    Scenario: a service group with a non-existing member makes the check fail
+    ...    Given a centralized engine configuration with a service group referencing an undefined service
+    ...    When CheckPollerConfig is called on the poller configuration directory
+    ...    Then ok is false and an ERROR diagnostic names the missing service
+    [Tags]    broker    grpc    config    MON-187019
+    Ctn Config Centralized Engine    ${1}
+    # servicegroups.cfg is already part of the centralized configuration. Append
+    # a service group whose (host, service) member does not exist (host_1 is
+    # defined, ghost_service is not). Single spaces only.
+    Append To File
+    ...    ${PollerConfigDir}/servicegroups.cfg
+    ...    \ndefine servicegroup {\nservicegroup_name badsg\nalias badsg\nmembers host_1,ghost_service\n}\n
+    Ctn Config Broker    central
+    Ctn Start Broker
+    ${res}    Ctn Broker Check Poller Config    ${PollerConfigDir}
+    Should Not Be Equal    ${res}    ${None}    CheckPollerConfig did not answer
+    Should Not Be True    ${res}[ok]    a service group with a non-existing member must not be ok
+    ${errors}    Evaluate    [d['message'] for d in $res['diagnostics'] if d['severity'] == 'ERROR']
+    Should Not Be Empty    ${errors}    the missing service must be reported as an error
+    ${joined}    Evaluate    " ".join($errors)
+    Should Contain    ${joined}    ghost_service    the error must name the missing service
