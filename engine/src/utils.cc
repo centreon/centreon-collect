@@ -19,8 +19,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "com/centreon/engine/utils.hh"
-
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -41,7 +39,6 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/downtimes/downtime_manager.hh"

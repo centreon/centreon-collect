@@ -27,6 +27,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration;
+namespace notifications = com::centreon::common::notifications;
 
 /**
  * @brief Add new anomalydetection.
@@ -170,57 +171,62 @@ void applier::anomalydetection::modify_object(
   s->set_max_attempts(new_obj.max_check_attempts());
 
   s->set_notify_on(
-      (new_obj.notification_options() & action_svc_unknown ? notifier::unknown
-                                                           : notifier::none) |
-      (new_obj.notification_options() & action_svc_warning ? notifier::warning
-                                                           : notifier::none) |
-      (new_obj.notification_options() & action_svc_critical ? notifier::critical
-                                                            : notifier::none) |
-      (new_obj.notification_options() & action_svc_ok ? notifier::ok
-                                                      : notifier::none) |
+      (new_obj.notification_options() & action_svc_unknown
+           ? notifications::unknown
+           : notifications::none) |
+      (new_obj.notification_options() & action_svc_warning
+           ? notifications::warning
+           : notifications::none) |
+      (new_obj.notification_options() & action_svc_critical
+           ? notifications::critical
+           : notifications::none) |
+      (new_obj.notification_options() & action_svc_ok ? notifications::ok
+                                                      : notifications::none) |
       (new_obj.notification_options() & action_svc_flapping
-           ? (notifier::flappingstart | notifier::flappingstop |
-              notifier::flappingdisabled)
-           : notifier::none) |
-      (new_obj.notification_options() & action_svc_downtime ? notifier::downtime
-                                                            : notifier::none));
+           ? (notifications::flappingstart | notifications::flappingstop |
+              notifications::flappingdisabled)
+           : notifications::none) |
+      (new_obj.notification_options() & action_svc_downtime
+           ? notifications::downtime
+           : notifications::none));
 
   s->set_notification_interval(
       static_cast<double>(new_obj.notification_interval()));
   s->set_first_notification_delay(
       static_cast<double>(new_obj.first_notification_delay()));
 
-  s->add_stalk_on(new_obj.stalking_options() & action_svc_ok ? notifier::ok
-                                                             : notifier::none);
+  s->add_stalk_on(new_obj.stalking_options() & action_svc_ok
+                      ? notifications::ok
+                      : notifications::none);
   s->add_stalk_on(new_obj.stalking_options() & action_svc_warning
-                      ? notifier::warning
-                      : notifier::none);
+                      ? notifications::warning
+                      : notifications::none);
   s->add_stalk_on(new_obj.stalking_options() & action_svc_unknown
-                      ? notifier::unknown
-                      : notifier::none);
+                      ? notifications::unknown
+                      : notifications::none);
   s->add_stalk_on(new_obj.stalking_options() & action_svc_critical
-                      ? notifier::critical
-                      : notifier::none);
+                      ? notifications::critical
+                      : notifications::none);
 
   s->set_notification_period(new_obj.notification_period());
   s->set_flap_detection_enabled(new_obj.flap_detection_enabled());
   s->set_low_flap_threshold(new_obj.low_flap_threshold());
   s->set_high_flap_threshold(new_obj.high_flap_threshold());
 
-  s->set_flap_detection_on(notifier::none);
+  s->set_flap_detection_on(notifications::none);
   s->add_flap_detection_on(new_obj.flap_detection_options() & action_svc_ok
-                               ? notifier::ok
-                               : notifier::none);
+                               ? notifications::ok
+                               : notifications::none);
   s->add_flap_detection_on(new_obj.flap_detection_options() & action_svc_warning
-                               ? notifier::warning
-                               : notifier::none);
+                               ? notifications::warning
+                               : notifications::none);
   s->add_flap_detection_on(new_obj.flap_detection_options() & action_svc_unknown
-                               ? notifier::unknown
-                               : notifier::none);
+                               ? notifications::unknown
+                               : notifications::none);
   s->add_flap_detection_on(new_obj.flap_detection_options() &
                                    action_svc_critical
-                               ? notifier::critical
-                               : notifier::none);
+                               ? notifications::critical
+                               : notifications::none);
 
   s->set_process_performance_data(
       static_cast<int>(new_obj.process_perf_data()));

@@ -31,6 +31,7 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
+namespace notifications = com::centreon::common::notifications;
 namespace downtimes = com::centreon::common::downtimes;
 
 /**
@@ -119,7 +120,8 @@ std::ostream& dump::customvariables(std::ostream& os,
 
 std::ostream& dump::notifications(
     std::ostream& os,
-    std::array<std::unique_ptr<notification>, 6> const& obj) {
+    std::array<com::centreon::common::notifications::notification*, 6> const&
+        obj) {
   for (int i = 0; i < 6; i++)
     if (obj[i])
       os << "notification_" << i << "=" << *obj[i];
@@ -317,10 +319,10 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_notifications_enabled()
      << "\n"
         "notified_on_down="
-     << obj.get_notified_on(notifier::down)
+     << obj.get_notified_on(notifications::down)
      << "\n"
         "notified_on_unreachable="
-     << obj.get_notified_on(notifier::unreachable)
+     << obj.get_notified_on(notifications::unreachable)
      << "\n"
         "obsess_over_host="
      << obj.obsess_over()
@@ -665,13 +667,13 @@ std::ostream& dump::service(std::ostream& os,
      << obj.get_notifications_enabled()
      << "\n"
         "notified_on_critical="
-     << obj.get_notified_on(notifier::critical)
+     << obj.get_notified_on(notifications::critical)
      << "\n"
         "notified_on_unknown="
-     << obj.get_notified_on(notifier::unknown)
+     << obj.get_notified_on(notifications::unknown)
      << "\n"
         "notified_on_warning="
-     << obj.get_notified_on(notifier::warning)
+     << obj.get_notified_on(notifications::warning)
      << "\n"
         "obsess_over_service="
      << obj.obsess_over()

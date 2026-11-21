@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/engine/anomalydetection.hh"
-
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -25,12 +23,12 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::notifications;
+namespace notifications = com::centreon::common::notifications;
 
 using com::centreon::common::rapidjson_helper;
 
@@ -288,9 +286,9 @@ void cancellable_command::unregister_host_serv(
  * a service, this is the goal of this container
  *
  */
-static absl::btree_map<std::pair<uint64_t, uint64_t>, anomalydetection::pointer_set>
+static absl::btree_map<std::pair<uint64_t, uint64_t>,
+                       anomalydetection::pointer_set>
     _dependentservice_to_anomaly_detection;
-
 
 static const anomalydetection::pointer_set _empty_set;
 
@@ -300,8 +298,9 @@ static const anomalydetection::pointer_set _empty_set;
  * @param dependent_service_id
  * @return const anomalydetection::pointer_set&
  */
-const anomalydetection::pointer_set& anomalydetection::find_by_dependent_service(
-    uint64_t host_id, uint64_t service_id) {
+const anomalydetection::pointer_set&
+anomalydetection::find_by_dependent_service(uint64_t host_id,
+                                            uint64_t service_id) {
   auto search =
       _dependentservice_to_anomaly_detection.find({host_id, service_id});
   if (search != _dependentservice_to_anomaly_detection.end())
@@ -734,36 +733,36 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
-    flap_detection_on = notifier::none;
+    flap_detection_on = notifications::none;
     flap_detection_on |=
-        (flap_detection_on_critical > 0 ? notifier::critical : 0);
-    flap_detection_on |= (flap_detection_on_ok > 0 ? notifier::ok : 0);
+        (flap_detection_on_critical > 0 ? notifications::critical : 0);
+    flap_detection_on |= (flap_detection_on_ok > 0 ? notifications::ok : 0);
     flap_detection_on |=
-        (flap_detection_on_unknown > 0 ? notifier::unknown : 0);
+        (flap_detection_on_unknown > 0 ? notifications::unknown : 0);
     flap_detection_on |=
-        (flap_detection_on_warning > 0 ? notifier::warning : 0);
+        (flap_detection_on_warning > 0 ? notifications::warning : 0);
     obj->set_flap_detection_on(flap_detection_on);
     obj->set_modified_attributes(MODATTR_NONE);
     uint32_t notify_on;
-    notify_on = notifier::none;
-    notify_on |= (notify_critical > 0 ? notifier::critical : 0);
-    notify_on |= (notify_downtime > 0 ? notifier::downtime : 0);
-    notify_on |= (notify_flapping > 0
-                      ? (notifier::flappingstart | notifier::flappingstop |
-                         notifier::flappingdisabled)
-                      : 0);
-    notify_on |= (notify_recovery > 0 ? notifier::ok : 0);
-    notify_on |= (notify_unknown > 0 ? notifier::unknown : 0);
-    notify_on |= (notify_warning > 0 ? notifier::warning : 0);
+    notify_on = notifications::none;
+    notify_on |= (notify_critical > 0 ? notifications::critical : 0);
+    notify_on |= (notify_downtime > 0 ? notifications::downtime : 0);
+    notify_on |= (notify_flapping > 0 ? (notifications::flappingstart |
+                                         notifications::flappingstop |
+                                         notifications::flappingdisabled)
+                                      : 0);
+    notify_on |= (notify_recovery > 0 ? notifications::ok : 0);
+    notify_on |= (notify_unknown > 0 ? notifications::unknown : 0);
+    notify_on |= (notify_warning > 0 ? notifications::warning : 0);
     obj->set_notify_on(notify_on);
     obj->set_process_performance_data(process_perfdata > 0);
     obj->set_retain_nonstatus_information(retain_nonstatus_information > 0);
     obj->set_retain_status_information(retain_status_information > 0);
     obj->set_should_be_scheduled(true);
-    uint32_t stalk_on = (stalk_on_critical ? notifier::critical : 0) |
-                        (stalk_on_ok ? notifier::ok : 0) |
-                        (stalk_on_unknown ? notifier::unknown : 0) |
-                        (stalk_on_warning ? notifier::warning : 0);
+    uint32_t stalk_on = (stalk_on_critical ? notifications::critical : 0) |
+                        (stalk_on_ok ? notifications::ok : 0) |
+                        (stalk_on_unknown ? notifications::unknown : 0) |
+                        (stalk_on_warning ? notifications::warning : 0);
     obj->set_stalk_on(stalk_on);
     obj->set_state_type(notifier::hard);
 

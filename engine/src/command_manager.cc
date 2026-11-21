@@ -20,8 +20,6 @@
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 
-#include "com/centreon/engine/host.hh"
-
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
@@ -30,6 +28,7 @@
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::downtimes;
+namespace notifications = com::centreon::common::notifications;
 
 /**
  *  The default constructor
@@ -294,7 +293,8 @@ int command_manager::get_stats(std::string const& request, Stats* response) {
     response->mutable_program_status()->set_next_event_id(next_event_id);
     response->mutable_program_status()->set_next_problem_id(next_problem_id);
     response->mutable_program_status()->set_next_notification_id(
-        notifier::get_next_notification_id());
+        notifications::notification_manager::instance()
+            .get_next_notification_id());
 
     uint32_t used_external_command_buffer_slots = 0;
     uint32_t high_external_command_buffer_slots = 0;

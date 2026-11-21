@@ -63,8 +63,9 @@ broker_state::~broker_state() {
    * (the base state destructor, which owns it, runs after this one). */
   if (com::centreon::common::downtimes::downtime_manager::is_loaded()) {
     std::vector<Downtime> active;
-    for (const auto& [_, dt] : com::centreon::common::downtimes::
-             downtime_manager::instance().get_scheduled_downtimes()) {
+    for (const auto& [_, dt] :
+         com::centreon::common::downtimes::downtime_manager::instance()
+             .get_scheduled_downtimes()) {
       if (!dt->is_in_effect())
         continue;
       Downtime d;
@@ -126,13 +127,14 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
 
   state::apply(s, run_mux);
 
-  /* The persisted active downtimes are re-injected from _maybe_release_barrier()
-   * once the startup readiness barrier releases (i.e. after every output stream
-   * has emitted its startup definitions and the engine has flushed them). Doing
-   * it here, before the barrier, would let a stale BA service definition clobber
-   * the re-injected inherited-downtime depth. In centralized mode the resources
-   * are not known yet and the re-injection is a no-op anyway (done later from
-   * _process_engine_state after merge). */
+  /* The persisted active downtimes are re-injected from
+   * _maybe_release_barrier() once the startup readiness barrier releases (i.e.
+   * after every output stream has emitted its startup definitions and the
+   * engine has flushed them). Doing it here, before the barrier, would let a
+   * stale BA service definition clobber the re-injected inherited-downtime
+   * depth. In centralized mode the resources are not known yet and the
+   * re-injection is a no-op anyway (done later from _process_engine_state after
+   * merge). */
 
   if (s.get_bbdo_version().major_v >= 3) {
     // Configuration cache directory (for broker, from php).

@@ -20,10 +20,13 @@
 #ifndef CCE_CHECKABLE_HH
 #define CCE_CHECKABLE_HH
 
+#include <array>
 #include <ctime>
 #include <forward_list>
 #include <memory>
 #include <string>
+
+#include "com/centreon/engine/common.hh"
 
 namespace com::centreon::engine {
 namespace commands {
@@ -97,6 +100,7 @@ class checkable {
   std::time_t _next_check;
   bool _should_be_scheduled;
   uint32_t _state_history_index;
+  std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES> _state_history;
   std::time_t _last_state_change;
   std::time_t _last_hard_state_change;
   enum state_type _state_type;
@@ -104,6 +108,11 @@ class checkable {
   commands::command* _event_handler_ptr;
   std::shared_ptr<commands::command> _check_command_ptr;
   bool _is_executing;
+  bool _is_volatile;
+  uint64_t _current_event_id;
+  uint64_t _last_event_id;
+  uint64_t _current_problem_id;
+  uint64_t _last_problem_id;
   std::shared_ptr<severity> _severity;
   uint64_t _icon_id;
   std::forward_list<std::shared_ptr<tag>> _tags;
@@ -155,6 +164,7 @@ class checkable {
             int freshness_threshold,
             bool obsess_over,
             std::string const& timezone,
+            bool is_volatile,
             uint64_t icon_id);
   virtual ~checkable() noexcept = default;
 
@@ -243,7 +253,7 @@ class checkable {
   void set_next_check(std::time_t next_check);
   bool get_should_be_scheduled() const;
   void set_should_be_scheduled(bool should_be_scheduled);
-  virtual std::string const& get_current_state_as_string() const = 0;
+  virtual std::string_view get_current_state_as_string() const = 0;
   virtual bool is_in_downtime() const = 0;
   void set_event_handler_ptr(commands::command* cmd);
   commands::command* get_event_handler_ptr() const;
@@ -255,6 +265,19 @@ class checkable {
   }
   bool get_is_executing() const;
   void set_is_executing(bool is_executing);
+  bool get_is_volatile() const noexcept;
+  void set_is_volatile(bool vol);
+  uint64_t get_current_event_id() const;
+  void set_current_event_id(uint64_t current_event_id) noexcept;
+  uint64_t get_last_event_id() const noexcept;
+  void set_last_event_id(uint64_t last_event_id) noexcept;
+  uint64_t get_current_problem_id() const noexcept;
+  void set_current_problem_id(uint64_t current_problem_id) noexcept;
+  uint64_t get_last_problem_id() const noexcept;
+  void set_last_problem_id(uint64_t last_problem_id) noexcept;
+  std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES> const& get_state_history()
+      const;
+  std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES>& get_state_history();
   void set_severity(std::shared_ptr<severity> sv);
   const std::shared_ptr<severity>& get_severity() const;
   void set_icon_id(uint64_t icon_id);

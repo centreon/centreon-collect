@@ -749,7 +749,7 @@ HUGE_CONF
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${test_start}    ${content}    2
     Should Not Be True    ${result[0]}    Some cache error in logs
 
-    [teardown]    Ctn Stop Engine Broker And Save Logs
+    [teardown]    Ctn Stop Engine Broker And Save Logs    only_central=${True}
 
 BESS_RELOAD_OUTPUT_ADD
     [Documentation]    Scenario: Adding an output to broker config during a reload is ignored

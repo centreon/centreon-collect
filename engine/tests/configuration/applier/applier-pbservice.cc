@@ -435,15 +435,15 @@ TEST_F(ApplierService, PbStalkingOptionsWhenServiceIsModified) {
   service_id_map const& sm(engine::service::services_by_id);
   std::shared_ptr<engine::service> serv = sm.begin()->second;
 
-  ASSERT_FALSE(serv->get_stalk_on(engine::service::ok));
-  ASSERT_FALSE(serv->get_stalk_on(engine::service::warning));
-  ASSERT_FALSE(serv->get_stalk_on(engine::service::critical));
-  ASSERT_FALSE(serv->get_stalk_on(engine::service::unknown));
+  ASSERT_FALSE(serv->get_stalk_on(common::notifications::ok));
+  ASSERT_FALSE(serv->get_stalk_on(common::notifications::warning));
+  ASSERT_FALSE(serv->get_stalk_on(common::notifications::critical));
+  ASSERT_FALSE(serv->get_stalk_on(common::notifications::unknown));
 
-  ASSERT_TRUE(serv->get_notify_on(engine::service::ok));
-  ASSERT_TRUE(serv->get_notify_on(engine::service::warning));
-  ASSERT_TRUE(serv->get_notify_on(engine::service::critical));
-  ASSERT_TRUE(serv->get_notify_on(engine::service::unknown));
+  ASSERT_TRUE(serv->get_notify_on(common::notifications::ok));
+  ASSERT_TRUE(serv->get_notify_on(common::notifications::warning));
+  ASSERT_TRUE(serv->get_notify_on(common::notifications::critical));
+  ASSERT_TRUE(serv->get_notify_on(common::notifications::unknown));
 
   svc.set_service_description("test_description2");
   svc_aply.modify_object(pb_indexed_config.mut_services().at({1, 3}).get(),
@@ -465,15 +465,15 @@ TEST_F(ApplierService, PbStalkingOptionsWhenServiceIsModified) {
                     ->description()};
   ASSERT_TRUE(s == "test_description2");
 
-  ASSERT_FALSE(serv->get_stalk_on(engine::service::ok));
-  ASSERT_FALSE(serv->get_stalk_on(engine::service::warning));
-  ASSERT_FALSE(serv->get_stalk_on(engine::service::critical));
-  ASSERT_FALSE(serv->get_stalk_on(engine::service::unknown));
+  ASSERT_FALSE(serv->get_stalk_on(common::notifications::ok));
+  ASSERT_FALSE(serv->get_stalk_on(common::notifications::warning));
+  ASSERT_FALSE(serv->get_stalk_on(common::notifications::critical));
+  ASSERT_FALSE(serv->get_stalk_on(common::notifications::unknown));
 
-  ASSERT_TRUE(serv->get_notify_on(engine::service::ok));
-  ASSERT_TRUE(serv->get_notify_on(engine::service::warning));
-  ASSERT_TRUE(serv->get_notify_on(engine::service::critical));
-  ASSERT_TRUE(serv->get_notify_on(engine::service::unknown));
+  ASSERT_TRUE(serv->get_notify_on(common::notifications::ok));
+  ASSERT_TRUE(serv->get_notify_on(common::notifications::warning));
+  ASSERT_TRUE(serv->get_notify_on(common::notifications::critical));
+  ASSERT_TRUE(serv->get_notify_on(common::notifications::unknown));
 }
 
 // Given service configuration with a host defined

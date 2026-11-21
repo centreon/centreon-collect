@@ -544,6 +544,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/misc/misc.cc
     ${TEST_DIR}/misc/string.cc
     ${TEST_DIR}/modules/module.cc
+    ${TEST_DIR}/mysql/mysql_column.cc
     ${TEST_DIR}/mysql/mysql_tls_probe.cc
     ${TEST_DIR}/processing/acceptor.cc
     ${TEST_DIR}/processing/feeder.cc

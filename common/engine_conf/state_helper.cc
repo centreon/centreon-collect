@@ -62,6 +62,8 @@ state_helper::state_helper(State* obj)
               {"illegal_object_name_chars", "illegal_object_chars"},
               {"max_concurrent_checks", "max_parallel_service_checks"},
               {"rpc_port", "grpc_port"},
+              {"send_recovery_notifications_anyways",
+               "send_recovery_notifications_anyway"},
               {"service_interleave_factor", "service_interleave_factor_method"},
               {"service_reaper_frequency", "check_reaper_interval"},
               {"use_agressive_host_checking", "use_aggressive_host_checking"},

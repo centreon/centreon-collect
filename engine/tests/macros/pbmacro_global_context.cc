@@ -126,8 +126,8 @@ class GlobalMacrosContext : public TestEngine {
   void notify_service() {
     _svc->set_current_state(engine::service::state_critical);
     _svc->set_last_state(engine::service::state_critical);
-    ASSERT_EQ(_svc->notify(notifier::reason_normal, "admin", "comment",
-                           notifier::notification_option_forced),
+    ASSERT_EQ(_svc->notify(common::notifications::reason_normal, "admin", "comment",
+                           common::notifications::notification_option_forced),
               OK);
   }
 

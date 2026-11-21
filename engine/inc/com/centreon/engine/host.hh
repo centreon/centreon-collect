@@ -40,7 +40,10 @@ using host_id_map =
 namespace com::centreon::engine {
 class host : public notifier {
  public:
-  static std::array<std::pair<uint32_t, std::string>, 3> const tab_host_states;
+  static constexpr std::array<std::pair<uint32_t, std::string_view>, 3>
+      tab_host_states{{{NSLOG_HOST_UP, "UP"},
+                       {NSLOG_HOST_DOWN, "DOWN"},
+                       {NSLOG_HOST_UNREACHABLE, "UNREACHABLE"}}};
 
   enum host_state { state_up, state_down, state_unreachable };
 
@@ -101,7 +104,6 @@ class host : public notifier {
        std::string const& timezone,
        uint64_t icon_id);
   ~host();
-  uint64_t host_id() const;
   void set_name(const std::string& name) override;
   void add_child_host(host* child);
   void add_parent_host(std::string const& host_name);
@@ -127,7 +129,8 @@ class host : public notifier {
   void clear_flap(double percent_change,
                   double high_threshold,
                   double low_threshold);
-  void update_status(uint32_t attributes = STATUS_ALL) override;
+  void update_status(
+      uint32_t attributes = common::notifications::STATUS_ALL) override;
   void update_adaptive_data();
   void check_for_expired_acknowledgement();
   //  bool               check_notification_viability(reason_type type,
@@ -170,7 +173,7 @@ class host : public notifier {
   enum host_state determine_host_reachability(enum host_state new_state);
   bool recovered() const override;
   int get_current_state_int() const override;
-  std::string const& get_current_state_as_string() const override;
+  std::string_view get_current_state_as_string() const override;
 
   // setters / getters
   std::string const& get_alias() const;
@@ -230,7 +233,7 @@ class host : public notifier {
   void set_initial_state(enum host_state current_state);
   int notify_contact(nagios_macros* mac,
                      contact* cntct,
-                     reason_type type,
+                     common::notifications::reason_type type,
                      std::string const& not_author,
                      std::string const& not_data,
                      int options,
@@ -270,7 +273,6 @@ class host : public notifier {
  private:
   void _switch_all_services_to_unknown();
 
-  const uint64_t _id;
   std::string _alias;
   std::string _address;
   bool _process_performance_data;

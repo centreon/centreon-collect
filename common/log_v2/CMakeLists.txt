@@ -27,5 +27,9 @@ add_library(
 
 set_target_properties(log_v2
                       PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# Linking spdlog::spdlog gives log_v2.cc SPDLOG_COMPILED_LIB: without it,
+# log_v2.cc is built in header-only mode with its own spdlog registry, and the
+# loggers it registers are not the ones the rest of the process sees.
+target_link_libraries(log_v2 PRIVATE spdlog::spdlog)
 
 

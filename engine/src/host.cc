@@ -32,24 +32,21 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
-
-std::array<std::pair<uint32_t, std::string>, 3> const host::tab_host_states{
-    {{NSLOG_HOST_UP, "UP"},
-     {NSLOG_HOST_DOWN, "DOWN"},
-     {NSLOG_HOST_UNREACHABLE, "UNREACHABLE"}}};
+namespace notifications = com::centreon::common::notifications;
 
 host_map host::hosts;
 host_id_map host::hosts_by_id;
@@ -191,6 +188,8 @@ host::host(uint64_t host_id,
            const std::string& timezone,
            uint64_t icon_id)
     : notifier{host_notification,
+               host_id,
+               0,
                name,
                display_name,
                check_command,
@@ -201,7 +200,7 @@ host::host(uint64_t host_id,
                notification_interval,
                max_attempts,
                (notify_up > 0 ? up : 0) | (notify_down > 0 ? down : 0) |
-                   (notify_downtime > 0 ? downtime : 0) |
+                   (notify_downtime > 0 ? notifications::downtime : 0) |
                    (notify_flapping > 0
                         ? (flappingstart | flappingstop | flappingdisabled)
                         : 0) |
@@ -232,7 +231,6 @@ host::host(uint64_t host_id,
                retain_nonstatus_information > 0,
                false,
                icon_id},
-      _id{host_id},
       _address{address},
       _process_performance_data{process_perfdata},
       _vrml_image{vrml_image},
@@ -294,10 +292,6 @@ host::~host() {
   if (cmd) {
     cmd->unregister_host_serv(name(), "");
   }
-}
-
-uint64_t host::host_id() const {
-  return _id;
 }
 
 /**
@@ -655,8 +649,9 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
   std::string notifications;
   {
     std::ostringstream oss;
+    auto current{obj.get_current_notifications()};
     for (int i = 0; i < 6; i++) {
-      notification* s{obj.get_current_notifications()[i].get()};
+      notifications::notification* s{current[i]};
       if (s)
         oss << "  notification_" << i << ": " << *s;
     }
@@ -719,25 +714,25 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_recovery_notification_delay()
      << "\n"
         "  notify_on_down:                       "
-     << obj.get_notify_on(notifier::down)
+     << obj.get_notify_on(notifications::down)
      << "\n"
         "  notify_on_unreachable:                "
-     << obj.get_notify_on(notifier::unreachable)
+     << obj.get_notify_on(notifications::unreachable)
      << "\n"
         "  notify_on_recovery:                   "
-     << obj.get_notify_on(notifier::up)
+     << obj.get_notify_on(notifications::up)
      << "\n"
         "  notify_on_flappingstart:              "
-     << obj.get_notify_on(notifier::flappingstart)
+     << obj.get_notify_on(notifications::flappingstart)
      << "\n"
         "  notify_on_flappingstop:               "
-     << obj.get_notify_on(notifier::flappingstop)
+     << obj.get_notify_on(notifications::flappingstop)
      << "\n"
         "  notify_on_flappingdisabled:           "
-     << obj.get_notify_on(notifier::flappingdisabled)
+     << obj.get_notify_on(notifications::flappingdisabled)
      << "\n"
         "  notify_on_downtime:                   "
-     << obj.get_notify_on(notifier::downtime)
+     << obj.get_notify_on(notifications::downtime)
      << "\n"
         "  notification_period:                  "
      << obj.notification_period() << "\n"
@@ -754,22 +749,22 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_high_flap_threshold()
      << "\n"
         "  flap_detection_on_up:                 "
-     << obj.get_flap_detection_on(notifier::up)
+     << obj.get_flap_detection_on(notifications::up)
      << "\n"
         "  flap_detection_on_down:               "
-     << obj.get_flap_detection_on(notifier::down)
+     << obj.get_flap_detection_on(notifications::down)
      << "\n"
         "  flap_detection_on_unreachable:        "
-     << obj.get_flap_detection_on(notifier::unreachable)
+     << obj.get_flap_detection_on(notifications::unreachable)
      << "\n"
         "  stalk_on_up:                          "
-     << obj.get_stalk_on(notifier::up)
+     << obj.get_stalk_on(notifications::up)
      << "\n"
         "  stalk_on_down:                        "
-     << obj.get_stalk_on(notifier::down)
+     << obj.get_stalk_on(notifications::down)
      << "\n"
         "  stalk_on_unreachable:                 "
-     << obj.get_stalk_on(notifier::unreachable)
+     << obj.get_stalk_on(notifications::unreachable)
      << "\n"
         "  check_freshness:                      "
      << obj.check_freshness_enabled()
@@ -940,10 +935,10 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_is_being_freshened()
      << "\n"
         "  notified_on_down:                     "
-     << obj.get_notified_on(notifier::down)
+     << obj.get_notified_on(notifications::down)
      << "\n"
         "  notified_on_unreachable:              "
-     << obj.get_notified_on(notifier::unreachable)
+     << obj.get_notified_on(notifications::unreachable)
      << "\n"
         "  no_more_notifications:                "
      << obj.get_no_more_notifications()
@@ -1092,12 +1087,13 @@ void host::schedule_acknowledgement_expiration() {
  *  @return Return true on success.
  */
 int host::log_event() {
-  char const* state("UP");
+  std::string_view state("UP");
   if (get_current_state() > 0 &&
       (unsigned int)get_current_state() < tab_host_states.size()) {
-    state = tab_host_states[get_current_state()].second.c_str();
+    state = tab_host_states[get_current_state()].second;
   }
-  const std::string& state_type(tab_state_type[get_state_type()]);
+  const std::string_view state_type(
+      notifications::notification_manager::tab_state_type[get_state_type()]);
 
   SPDLOG_LOGGER_INFO(events_logger, "HOST ALERT: {};{};{};{};{}", name(), state,
                      state_type, get_current_attempt(), get_plugin_output());
@@ -2018,7 +2014,8 @@ void host::set_flap(double percent_change,
 
   /* send a notification */
   if (allow_flapstart_notification)
-    notify(reason_flappingstart, "", "", notifier::notification_option_none);
+    notify(reason_flappingstart, "", "",
+           notifications::notification_option_none);
 }
 
 /* handles a host that has stopped flapping */
@@ -2045,10 +2042,10 @@ void host::clear_flap(double percent_change,
   set_is_flapping(false);
 
   /* send a notification */
-  notify(reason_flappingstop, "", "", notifier::notification_option_none);
+  notify(reason_flappingstop, "", "", notifications::notification_option_none);
 
   /* Send a recovery notification if needed */
-  notify(reason_recovery, "", "", notifier::notification_option_none);
+  notify(reason_recovery, "", "", notifications::notification_option_none);
 }
 
 /**
@@ -2195,9 +2192,9 @@ int host::handle_state() {
 
     /* notify contacts about the recovery or problem if its a "hard" state */
     if (get_current_state_int() == 0)
-      notify(reason_recovery, "", "", notifier::notification_option_none);
+      notify(reason_recovery, "", "", notifications::notification_option_none);
     else
-      notify(reason_normal, "", "", notifier::notification_option_none);
+      notify(reason_normal, "", "", notifications::notification_option_none);
 
     /* handle the host state change */
     handle_host_event(this);
@@ -2215,9 +2212,9 @@ int host::handle_state() {
   else {
     /* notify contacts if needed */
     if (get_current_state() != host::state_up)
-      notify(reason_normal, "", "", notifier::notification_option_none);
+      notify(reason_normal, "", "", notifications::notification_option_none);
     else
-      notify(reason_recovery, "", "", notifier::notification_option_none);
+      notify(reason_recovery, "", "", notifications::notification_option_none);
 
     /* if we're in a soft state and we should log host retries, do so now... */
     if (get_state_type() == soft && log_host_retries)
@@ -2328,7 +2325,7 @@ void host::grab_macros_r(nagios_macros* mac) {
 /* notify a specific contact that an entire host is down or up */
 int host::notify_contact(nagios_macros* mac,
                          contact* cntct,
-                         notifier::reason_type type,
+                         notifications::reason_type type,
                          const std::string& not_author,
                          const std::string& not_data,
                          int options [[maybe_unused]],
@@ -2374,14 +2371,16 @@ int host::notify_contact(nagios_macros* mac,
 
     /* log the notification to program log file */
     if (log_notifications) {
-      char const* host_state_str("UP");
+      std::string_view host_state_str("UP");
       if ((unsigned int)_current_state < tab_host_states.size())
         // sizeof(tab_host_state_str) / sizeof(*tab_host_state_str))
-        host_state_str = tab_host_states[_current_state].second.c_str();
+        host_state_str = tab_host_states[_current_state].second;
 
-      char const* notification_str("");
-      if ((unsigned int)type < tab_notification_str.size())
-        notification_str = tab_notification_str[type].c_str();
+      std::string_view notification_str("");
+      if ((unsigned int)type <
+          notifications::notification_manager::tab_notification_str.size())
+        notification_str =
+            notifications::notification_manager::tab_notification_str[type];
 
       std::string info;
       if (type == reason_custom)
@@ -2390,7 +2389,7 @@ int host::notify_contact(nagios_macros* mac,
         info.append(";").append(not_author).append(";").append(not_data);
 
       std::string host_notification_state;
-      if (strcmp(notification_str, "NORMAL") == 0)
+      if (notification_str == "NORMAL")
         host_notification_state.append(host_state_str);
       else
         host_notification_state.append(notification_str)
@@ -2535,7 +2534,7 @@ bool host::is_valid_escalation_for_notification(escalation const* e,
 
   /*** EXCEPTION ***/
   /* broadcast options go to everyone, so this escalation is valid */
-  if (options & notifier::notification_option_broadcast)
+  if (options & notifications::notification_option_broadcast)
     return true;
 
   /* skip this escalation if it happens later */
@@ -2687,7 +2686,8 @@ void host::handle_flap_detection_disabled() {
         this->name());
 
     /* send a notification */
-    notify(reason_flappingdisabled, "", "", notifier::notification_option_none);
+    notify(reason_flappingdisabled, "", "",
+           notifications::notification_option_none);
 
     /* Send a recovery notification if needed */
     notify(reason_recovery, "", "", notification_option_none);
@@ -3490,7 +3490,7 @@ void host::check_for_orphaned() {
   }
 }
 
-const std::string& host::get_current_state_as_string() const {
+std::string_view host::get_current_state_as_string() const {
   return tab_host_states[get_current_state()].second;
 }
 
@@ -3578,8 +3578,9 @@ void host::resolve(uint32_t& w, uint32_t& e) {
   }
 
   // Check for sane recovery options.
-  if (get_notifications_enabled() && get_notify_on(notifier::up) &&
-      !get_notify_on(notifier::down) && !get_notify_on(notifier::unreachable)) {
+  if (get_notifications_enabled() && get_notify_on(notifications::up) &&
+      !get_notify_on(notifications::down) &&
+      !get_notify_on(notifications::unreachable)) {
     config_logger->warn(
         "Warning: Recovery notification option in host '{}' definition doesn't "
         "make any sense - specify down and/or "
@@ -3671,9 +3672,9 @@ void host::_switch_all_services_to_unknown() {
 
   std::string output = fmt::format("host {} is down", name());
 
-  for (auto serv_iter = service::services_by_id.lower_bound({_id, 0});
+  for (auto serv_iter = service::services_by_id.lower_bound({host_id(), 0});
        serv_iter != service::services_by_id.end() &&
-       serv_iter->first.first == _id;
+       serv_iter->first.first == host_id();
        ++serv_iter) {
     check_result::pointer result = std::make_shared<check_result>(
         service_check, serv_iter->second.get(), checkable::check_active,

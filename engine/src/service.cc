@@ -30,23 +30,19 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::string;
-
-std::array<std::pair<uint32_t, std::string>, 4> const
-    service::tab_service_states{{{NSLOG_SERVICE_OK, "OK"},
-                                 {NSLOG_SERVICE_WARNING, "WARNING"},
-                                 {NSLOG_SERVICE_CRITICAL, "CRITICAL"},
-                                 {NSLOG_SERVICE_CRITICAL, "UNKNOWN"}}};
+namespace notifications = com::centreon::common::notifications;
 
 service_map service::services;
 service_id_map service::services_by_id;
@@ -86,6 +82,8 @@ service::service(uint64_t host_id,
                  uint64_t icon_id,
                  service_type st)
     : notifier{service_notification,
+               host_id,
+               service_id,
                description,
                display_name,
                check_command,
@@ -121,8 +119,6 @@ service::service(uint64_t host_id,
                is_volatile,
                icon_id},
       _service_type{st},
-      _host_id{host_id},
-      _service_id{service_id},
       _hostname{hostname},
       _process_performance_data{0},
       _check_flapping_recovery_notification{0},
@@ -307,8 +303,9 @@ std::ostream& operator<<(std::ostream& os,
   std::string notifications;
   {
     std::ostringstream oss;
+    auto current{obj.get_current_notifications()};
     for (int i = 0; i < 6; i++) {
-      notification* s{obj.get_current_notifications()[i].get()};
+      notifications::notification* s{current[i]};
       if (s)
         oss << "  notification_" << i << ": " << *s;
     }
@@ -359,40 +356,40 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_recovery_notification_delay()
      << "\n"
         "  notify_on_unknown:                    "
-     << obj.get_notify_on(notifier::unknown)
+     << obj.get_notify_on(notifications::unknown)
      << "\n"
         "  notify_on_warning:                    "
-     << obj.get_notify_on(notifier::warning)
+     << obj.get_notify_on(notifications::warning)
      << "\n"
         "  notify_on_critical:                   "
-     << obj.get_notify_on(notifier::critical)
+     << obj.get_notify_on(notifications::critical)
      << "\n"
         "  notify_on_recovery:                   "
-     << obj.get_notify_on(notifier::ok)
+     << obj.get_notify_on(notifications::ok)
      << "\n"
         "  notify_on_flappingstart:              "
-     << obj.get_notify_on(notifier::flappingstart)
+     << obj.get_notify_on(notifications::flappingstart)
      << "\n"
         "  notify_on_flappingstop:               "
-     << obj.get_notify_on(notifier::flappingstop)
+     << obj.get_notify_on(notifications::flappingstop)
      << "\n"
         "  notify_on_flappingdisabled:           "
-     << obj.get_notify_on(notifier::flappingdisabled)
+     << obj.get_notify_on(notifications::flappingdisabled)
      << "\n"
         "  notify_on_downtime:                   "
-     << obj.get_notify_on(notifier::downtime)
+     << obj.get_notify_on(notifications::downtime)
      << "\n"
         "  stalk_on_ok:                          "
-     << obj.get_stalk_on(notifier::ok)
+     << obj.get_stalk_on(notifications::ok)
      << "\n"
         "  stalk_on_warning:                     "
-     << obj.get_stalk_on(notifier::warning)
+     << obj.get_stalk_on(notifications::warning)
      << "\n"
         "  stalk_on_unknown:                     "
-     << obj.get_stalk_on(notifier::unknown)
+     << obj.get_stalk_on(notifications::unknown)
      << "\n"
         "  stalk_on_critical:                    "
-     << obj.get_stalk_on(notifier::critical)
+     << obj.get_stalk_on(notifications::critical)
      << "\n"
         "  is_volatile:                          "
      << obj.get_is_volatile()
@@ -412,16 +409,16 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_high_flap_threshold()
      << "\n"
         "  flap_detection_on_ok:                 "
-     << obj.get_flap_detection_on(notifier::ok)
+     << obj.get_flap_detection_on(notifications::ok)
      << "\n"
         "  flap_detection_on_warning:            "
-     << obj.get_flap_detection_on(notifier::warning)
+     << obj.get_flap_detection_on(notifications::warning)
      << "\n"
         "  flap_detection_on_unknown:            "
-     << obj.get_flap_detection_on(notifier::unknown)
+     << obj.get_flap_detection_on(notifications::unknown)
      << "\n"
         "  flap_detection_on_critical:           "
-     << obj.get_flap_detection_on(notifier::critical)
+     << obj.get_flap_detection_on(notifications::critical)
      << "\n"
         "  process_performance_data:             "
      << obj.get_process_performance_data()
@@ -503,11 +500,11 @@ std::ostream& operator<<(std::ostream& os,
      << "\n  is_being_freshened:                   "
      << obj.get_is_being_freshened()
      << "\n  notified_on_unknown:                  "
-     << obj.get_notified_on(notifier::unknown)
+     << obj.get_notified_on(notifications::unknown)
      << "\n  notified_on_warning:                  "
-     << obj.get_notified_on(notifier::warning)
+     << obj.get_notified_on(notifications::warning)
      << "\n  notified_on_critical:                 "
-     << obj.get_notified_on(notifier::critical)
+     << obj.get_notified_on(notifications::critical)
      << "\n  current_notification_number:          "
      << obj.get_notification_number()
      << "\n  current_notification_id:              "
@@ -747,36 +744,36 @@ com::centreon::engine::service* add_service(
     obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
-    flap_detection_on = notifier::none;
+    flap_detection_on = notifications::none;
     flap_detection_on |=
-        (flap_detection_on_critical > 0 ? notifier::critical : 0);
-    flap_detection_on |= (flap_detection_on_ok > 0 ? notifier::ok : 0);
+        (flap_detection_on_critical > 0 ? notifications::critical : 0);
+    flap_detection_on |= (flap_detection_on_ok > 0 ? notifications::ok : 0);
     flap_detection_on |=
-        (flap_detection_on_unknown > 0 ? notifier::unknown : 0);
+        (flap_detection_on_unknown > 0 ? notifications::unknown : 0);
     flap_detection_on |=
-        (flap_detection_on_warning > 0 ? notifier::warning : 0);
+        (flap_detection_on_warning > 0 ? notifications::warning : 0);
     obj->set_flap_detection_on(flap_detection_on);
     obj->set_modified_attributes(MODATTR_NONE);
     uint32_t notify_on;
-    notify_on = notifier::none;
-    notify_on |= (notify_critical > 0 ? notifier::critical : 0);
-    notify_on |= (notify_downtime > 0 ? notifier::downtime : 0);
-    notify_on |= (notify_flapping > 0
-                      ? (notifier::flappingstart | notifier::flappingstop |
-                         notifier::flappingdisabled)
-                      : 0);
-    notify_on |= (notify_recovery > 0 ? notifier::ok : 0);
-    notify_on |= (notify_unknown > 0 ? notifier::unknown : 0);
-    notify_on |= (notify_warning > 0 ? notifier::warning : 0);
+    notify_on = notifications::none;
+    notify_on |= (notify_critical > 0 ? notifications::critical : 0);
+    notify_on |= (notify_downtime > 0 ? notifications::downtime : 0);
+    notify_on |= (notify_flapping > 0 ? (notifications::flappingstart |
+                                         notifications::flappingstop |
+                                         notifications::flappingdisabled)
+                                      : 0);
+    notify_on |= (notify_recovery > 0 ? notifications::ok : 0);
+    notify_on |= (notify_unknown > 0 ? notifications::unknown : 0);
+    notify_on |= (notify_warning > 0 ? notifications::warning : 0);
     obj->set_notify_on(notify_on);
     obj->set_process_performance_data(process_perfdata > 0);
     obj->set_retain_nonstatus_information(retain_nonstatus_information > 0);
     obj->set_retain_status_information(retain_status_information > 0);
     obj->set_should_be_scheduled(true);
-    uint32_t stalk_on = (stalk_on_critical ? notifier::critical : 0) |
-                        (stalk_on_ok ? notifier::ok : 0) |
-                        (stalk_on_unknown ? notifier::unknown : 0) |
-                        (stalk_on_warning ? notifier::warning : 0);
+    uint32_t stalk_on = (stalk_on_critical ? notifications::critical : 0) |
+                        (stalk_on_ok ? notifications::ok : 0) |
+                        (stalk_on_unknown ? notifications::unknown : 0) |
+                        (stalk_on_warning ? notifications::warning : 0);
     obj->set_stalk_on(stalk_on);
     obj->set_state_type(notifier::hard);
 
@@ -912,14 +909,6 @@ void service::schedule_acknowledgement_expiration() {
             nullptr, true, this, nullptr, 0),
         false);
   }
-}
-
-uint64_t service::host_id() const {
-  return _host_id;
-}
-
-uint64_t service::service_id() const {
-  return _service_id;
 }
 
 /**
@@ -1879,7 +1868,7 @@ int service::handle_async_check_result(
   if (reschedule_check) {
     SPDLOG_LOGGER_DEBUG(checks_logger,
                         "Rescheduling next check of service ({},{}) at {}",
-                        _host_id, _service_id, my_ctime(&next_service_check));
+                        host_id(), service_id(), my_ctime(&next_service_check));
 
     /* default is to reschedule service check unless a test below fails... */
     set_should_be_scheduled(true);
@@ -1995,12 +1984,13 @@ int service::log_event() {
   if (get_state_type() == soft && !log_service_retries)
     return OK;
 
-  char const* state{"UNKNOWN"};
+  std::string_view state{"UNKNOWN"};
   if (_current_state >= 0 &&
       (unsigned int)_current_state < tab_service_states.size()) {
-    state = tab_service_states[_current_state].second.c_str();
+    state = tab_service_states[_current_state].second;
   }
-  const std::string& state_type{tab_state_type[get_state_type()]};
+  const std::string_view state_type{
+      notifications::notification_manager::tab_state_type[get_state_type()]};
 
   SPDLOG_LOGGER_INFO(events_logger, "SERVICE ALERT: {};{};{};{};{};{}",
                      _hostname, name(), state, state_type,
@@ -2525,7 +2515,7 @@ int service::run_async_check_local(int check_options,
       pb_indexed_config.state().host_down_disable_service_checks();
   bool has_to_execute_check = true;
   if (use_host_down_disable_service_checks) {
-    auto hst = host::hosts_by_id.find(_host_id);
+    auto hst = host::hosts_by_id.find(host_id());
     if (hst != host::hosts_by_id.end() &&
         hst->second->get_current_state() != host::state_up) {
       run_failure(fmt::format("host {} is down", hst->second->name()));
@@ -2563,7 +2553,7 @@ int service::run_async_check_local(int check_options,
                                                    check_result_info, this);
         SPDLOG_LOGGER_DEBUG(checks_logger,
                             "run id={} {} for service {} host {}", id,
-                            processed_cmd, _service_id, _hostname);
+                            processed_cmd, service_id(), _hostname);
 
       } catch (std::exception const& e) {
         run_failure("(Execute command failed)");
@@ -2757,7 +2747,7 @@ void service::set_flap(double percent_change,
          "flapping "
       << "stops, notifications will be re-enabled.";
 
-  comment com(comment::service, comment::flapping, host_id(), _service_id,
+  comment com(comment::service, comment::flapping, host_id(), service_id(),
               time(nullptr), "(Centreon Engine Process)", oss.str(), false,
               comment::internal, false, (time_t)0);
 
@@ -3011,13 +3001,14 @@ int service::notify_contact(nagios_macros* mac,
     /* log the notification to program log file */
     bool log_notifications = pb_indexed_config.state().log_notifications();
     if (log_notifications) {
-      char const* service_state_str("UNKNOWN");
+      std::string_view service_state_str("UNKNOWN");
       if ((unsigned int)_current_state < tab_service_states.size())
-        service_state_str = tab_service_states[_current_state].second.c_str();
+        service_state_str = tab_service_states[_current_state].second;
 
-      char const* notification_str("");
-      if ((unsigned int)type < tab_notification_str.size())
-        notification_str = tab_notification_str[type].c_str();
+      std::string_view notification_str("");
+      if ((unsigned int)type <
+          notification_manager::tab_notification_str.size())
+        notification_str = notification_manager::tab_notification_str[type];
 
       std::string info;
       if (type == reason_custom)
@@ -3026,7 +3017,7 @@ int service::notify_contact(nagios_macros* mac,
         info.append(";").append(not_author).append(";").append(not_data);
 
       std::string service_notification_state;
-      if (strcmp(notification_str, "NORMAL") == 0)
+      if (notification_str == "NORMAL")
         service_notification_state.append(service_state_str);
       else
         service_notification_state.append(notification_str)
@@ -3506,7 +3497,7 @@ void service::check_result_freshness() {
   }
 }
 
-const std::string& service::get_current_state_as_string() const {
+std::string_view service::get_current_state_as_string() const {
   return tab_service_states[get_current_state()].second;
 }
 
@@ -3572,8 +3563,9 @@ void service::resolve(uint32_t& w, uint32_t& e) {
   }
 
   // Check for sane recovery options.
-  if (get_notifications_enabled() && get_notify_on(notifier::ok) &&
-      !get_notify_on(notifier::warning) && !get_notify_on(notifier::critical)) {
+  if (get_notifications_enabled() && get_notify_on(notifications::ok) &&
+      !get_notify_on(notifications::warning) &&
+      !get_notify_on(notifications::critical)) {
     config_logger->warn(
         "Warning: Recovery notification option in service '{}' for host '{}' "
         "doesn't make any sense - specify warning and /or critical "

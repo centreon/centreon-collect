@@ -377,7 +377,7 @@ void loop::_dispatching() {
           }
           temp_event->run_time = temp_service->get_next_check();
           reschedule_event(std::move(temp_event), events::loop::low);
-          temp_service->update_status(notifier::status_attribute::NEXT_CHECK);
+          temp_service->update_status(common::notifications::NEXT_CHECK);
           run_event = false;
         }
       }
@@ -422,7 +422,7 @@ void loop::_dispatching() {
                          temp_host->check_interval() * interval_length));
           temp_event->run_time = temp_host->get_next_check();
           reschedule_event(std::move(temp_event), events::loop::low);
-          temp_host->update_status(notifier::status_attribute::NEXT_CHECK);
+          temp_host->update_status(common::notifications::NEXT_CHECK);
           run_event = false;
         }
       }

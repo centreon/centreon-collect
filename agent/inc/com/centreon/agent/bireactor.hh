@@ -84,10 +84,14 @@ class bireactor
   void OnDone();
 // client version — intentionally no 'override': template is instantiated for
 // both server (no matching virtual) and client (virtual exists) reactors
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Winconsistent-missing-override"
+#endif
   void OnDone(const ::grpc::Status& /*s*/);
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#endif
 
   virtual void shutdown();
 

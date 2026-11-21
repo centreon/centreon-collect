@@ -304,7 +304,10 @@ void mysql_column::set_value_str(size_t row, const std::string_view& str) {
     assert(vector->size() == row);
     _push_value_str(str);
     return;
-  } else if ((*vector)[row]) {
+  }
+  /* The row may have been set to NULL before: it is not anymore. */
+  _indicator[row] = STMT_INDICATOR_NONE;
+  if ((*vector)[row]) {
     if (_length[row] >= str.size()) {
       strncpy((*vector)[row], str.data(), size + 1);
       (*vector)[row][size] = 0;
@@ -538,8 +541,10 @@ std::optional<char> mysql_column::get_value_bool(size_t row) const {
     if (vector->size() <= row) {                                             \
       assert(vector->size() == row);                                         \
       _push_value_##ftype(value);                                            \
-    } else                                                                   \
+    } else {                                                                 \
       (*vector)[row] = value;                                                \
+      _indicator[row] = STMT_INDICATOR_NONE;                                 \
+    }                                                                        \
   }                                                                          \
   void mysql_column::_push_value_##ftype(vtype val) {                        \
     std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \

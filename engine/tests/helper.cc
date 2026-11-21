@@ -23,12 +23,15 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/engine_downtime_callbacks.hh"
+#include "com/centreon/engine/engine_notification_callbacks.hh"
+#include "common/downtimes/downtime_manager.hh"
+#include "common/notifications/notification_manager.hh"
 
 #include "common/log_v2/config.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 using com::centreon::common::log_v2::log_v2;
 using log_v2_config = com::centreon::common::log_v2::config;
 
@@ -64,6 +67,14 @@ std::unique_ptr<configuration::state_helper> init_config_state() {
       pb_indexed_config.mut_state());
 
   checks::checker::init(true);
+
+  /* Inject the engine backends into the common libraries (mirrors what main.cc
+   * does for the real engine). Both loads are idempotent. */
+  com::centreon::common::downtimes::downtime_manager::load(
+      std::make_unique<engine_downtime_callbacks>());
+  notifications::notification_manager::load(
+      std::make_unique<engine_notification_callbacks>());
+
   return retval;
 }
 
@@ -72,4 +83,7 @@ void deinit_config_state(void) {
 
   configuration::applier::state::instance().clear();
   checks::checker::deinit();
+
+  notifications::notification_manager::unload();
+  com::centreon::common::downtimes::downtime_manager::unload();
 }

@@ -19,7 +19,6 @@
 #include "com/centreon/engine/hostdependency.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"

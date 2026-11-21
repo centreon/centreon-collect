@@ -396,6 +396,7 @@ set(FILES
     "${SRC_DIR}/diagnostic.cc"
     "${SRC_DIR}/exceptions/error.cc"
     "${SRC_DIR}/engine_downtime_callbacks.cc"
+    "${SRC_DIR}/engine_notification_callbacks.cc"
     "${SRC_DIR}/flapping.cc"
     "${SRC_DIR}/escalation.cc"
     "${SRC_DIR}/globals.cc"
@@ -405,7 +406,6 @@ set(FILES
     "${SRC_DIR}/hostgroup.cc"
     "${SRC_DIR}/macros.cc"
     "${SRC_DIR}/nebmods.cc"
-    "${SRC_DIR}/notification.cc"
     "${SRC_DIR}/notifier.cc"
     "${SRC_DIR}/sehandlers.cc"
     "${SRC_DIR}/service.cc"
@@ -455,7 +455,6 @@ set(FILES
     "${INC_DIR}/com/centreon/engine/nebmods.hh"
     "${INC_DIR}/com/centreon/engine/nebmodules.hh"
     "${INC_DIR}/com/centreon/engine/nebstructs.hh"
-    "${INC_DIR}/com/centreon/engine/notification.hh"
     "${INC_DIR}/com/centreon/engine/notifier.hh"
     "${INC_DIR}/com/centreon/engine/objects.hh"
     "${INC_DIR}/com/centreon/engine/sehandlers.hh"
@@ -519,6 +518,7 @@ target_link_libraries(
   ${SOCKET_LIBRARIES}
   centreon_clib
   centreon_engine_conf
+  notifications
   fmt::fmt
   spdlog::spdlog
   # cbmod.so does not embed downtimes_lib: it uses the downtime_manager of the
