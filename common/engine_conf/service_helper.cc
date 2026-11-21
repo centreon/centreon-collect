@@ -240,6 +240,7 @@ void service_helper::set_default_values() {
        action_svc_unknown | action_svc_flapping | action_svc_downtime));
   DEFAULT_PB_FIELD_SET(obsess_over_service, true);
   DEFAULT_PB_FIELD_SET(process_perf_data, true);
+  DEFAULT_PB_FIELD_SET(recovery_notification_delay, 0);
   DEFAULT_PB_FIELD_SET(retain_nonstatus_information, true);
   DEFAULT_PB_FIELD_SET(retain_status_information, true);
   DEFAULT_PB_FIELD_SET(retry_interval, 1);

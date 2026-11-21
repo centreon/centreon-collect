@@ -228,7 +228,10 @@ void broker_cache::merge(
     _instances.insert_or_assign(
         state.poller_id(),
         instance_info{state.poller_name(), state.enable_notifications(),
-                      state.send_recovery_notifications_anyway()});
+                      state.send_recovery_notifications_anyway(),
+                      state.interval_length() > 0
+                          ? std::chrono::seconds(state.interval_length())
+                          : instance_info::default_interval_length});
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -459,11 +462,12 @@ void broker_cache::apply(
   _logger->debug("Applying configuration diff for poller id {} and name '{}'",
                  diff.poller_id(), diff.poller_name());
 
-  /* A diff may toggle the program-wide notification flags without resending the
-   * whole state, so keep the cached values in sync. */
+  /* A diff may toggle the program-wide notification flags or interval_length
+   * without resending the whole state, so keep the cached values in sync. */
   if (section_enabled(CACHE_INSTANCES) &&
       (diff.has_enable_notifications() ||
-       diff.has_send_recovery_notifications_anyway())) {
+       diff.has_send_recovery_notifications_anyway() ||
+       diff.interval_length() > 0)) {
     auto it = _instances.find(diff.poller_id());
     if (it != _instances.end()) {
       if (diff.has_enable_notifications())
@@ -471,6 +475,11 @@ void broker_cache::apply(
       if (diff.has_send_recovery_notifications_anyway())
         it->second.send_recovery_notifications_anyway =
             diff.send_recovery_notifications_anyway();
+      /* interval_length is not optional in DiffState: 0 (not a valid value)
+       * means "not part of the diff". */
+      if (diff.interval_length() > 0)
+        it->second.interval_length =
+            std::chrono::seconds(diff.interval_length());
     }
   }
 
@@ -1083,7 +1092,7 @@ void broker_cache::_fill_host(Host* obj,
     return;
   }
   BOOST_PP_SEQ_FOR_EACH(translate, ,
-                        (host_id)(action_url)(address)(alias)(check_command)(check_freshness)(check_interval)(check_period)(display_name)(event_handler)(event_handler_enabled)(first_notification_delay)(freshness_threshold)(high_flap_threshold)(icon_image)(icon_image_alt)(low_flap_threshold)(max_check_attempts)(notes)(notes_url)(notification_interval)(notification_period)(obsess_over_host)(retain_nonstatus_information)(retain_status_information)(retry_interval)(statusmap_image)(timezone)(severity_id)(icon_id));
+                        (host_id)(action_url)(address)(alias)(check_command)(check_freshness)(check_interval)(check_period)(display_name)(event_handler)(event_handler_enabled)(first_notification_delay)(recovery_notification_delay)(freshness_threshold)(high_flap_threshold)(icon_image)(icon_image_alt)(low_flap_threshold)(max_check_attempts)(notes)(notes_url)(notification_interval)(notification_period)(obsess_over_host)(retain_nonstatus_information)(retain_status_information)(retry_interval)(statusmap_image)(timezone)(severity_id)(icon_id));
   obj->set_name(cfg.host_name());
   obj->set_active_checks(cfg.checks_active());
   obj->set_passive_checks(cfg.checks_passive());
@@ -1138,7 +1147,7 @@ template <typename ConfigType>
 void broker_cache::_fill_service_common(Service* obj, const ConfigType& cfg) {
   BOOST_PP_SEQ_FOR_EACH(
       translate, ,
-      (host_id)(service_id)(action_url)(check_freshness)(check_interval)(display_name)(event_handler)(first_notification_delay)(freshness_threshold)(high_flap_threshold)(host_name)(icon_image)(icon_image_alt)(is_volatile)(low_flap_threshold)(max_check_attempts)(notes)(notes_url)(notification_interval)(notification_period)(obsess_over_service)(retain_nonstatus_information)(retain_status_information)(retry_interval)(severity_id)(icon_id));
+      (host_id)(service_id)(action_url)(check_freshness)(check_interval)(display_name)(event_handler)(first_notification_delay)(recovery_notification_delay)(freshness_threshold)(high_flap_threshold)(host_name)(icon_image)(icon_image_alt)(is_volatile)(low_flap_threshold)(max_check_attempts)(notes)(notes_url)(notification_interval)(notification_period)(obsess_over_service)(retain_nonstatus_information)(retain_status_information)(retry_interval)(severity_id)(icon_id));
   obj->set_default_active_checks(cfg.checks_active());
   obj->set_default_passive_checks(cfg.checks_passive());
   obj->set_default_event_handler_enabled(cfg.event_handler_enabled());
@@ -1257,9 +1266,9 @@ void broker_cache::update_instance(
   auto& obj = instance->obj();
   if (section_enabled(CACHE_INSTANCES)) {
     if (obj.running()) {
-      /* The neb Instance event does not carry enable_notifications, so only
-       * refresh the name and keep any notifications_enabled value already set
-       * by merge()/apply(). */
+      /* The neb Instance event carries none of the poller settings
+       * (notifications_enabled, interval_length...), so only refresh the name
+       * and keep the values already set by merge()/apply(). */
       _instances[obj.instance_id()].name = obj.name();
     } else
       _instances.erase(obj.instance_id());
@@ -2680,6 +2689,22 @@ bool broker_cache::send_recovery_notifications_anyway(
   if (found == _instances.end())
     return false;
   return found->second.send_recovery_notifications_anyway;
+}
+
+/**
+ * @brief Get the duration of one "interval unit" for the given poller.
+ *
+ * @param instance_id The poller ID.
+ *
+ * @return The poller's interval_length (the Engine default of 60s when the
+ * poller is unknown).
+ */
+std::chrono::seconds broker_cache::interval_length(uint64_t instance_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto found = _instances.find(instance_id);
+  if (found == _instances.end())
+    return instance_info::default_interval_length;
+  return found->second.interval_length;
 }
 
 /**
