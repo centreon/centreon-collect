@@ -18,14 +18,14 @@
  *
  */
 
-#include <ctime>
+#include <spdlog/logger.h>
+#include <spdlog/sinks/null_sink.h>
+
 
 #include "absl/time/civil_time.h"
-#include "absl/time/time.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/timeperiods/timeperiod.hh"
 #include "common/timeperiods/timeperiod_detail.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon;
 using com::centreon::exceptions::msg_fmt;
@@ -33,6 +33,20 @@ using com::centreon::exceptions::msg_fmt;
 namespace com::centreon::common::timeperiods {
 
 namespace {
+
+/**
+ * @brief A never-null silent logger, used when a timeperiod is built without an
+ * explicit logger (e.g. unit tests). Keeps _logger dereferenceable without
+ * reaching back to the timeperiod_manager.
+ *
+ * @return A process-wide null-sink logger.
+ */
+const std::shared_ptr<spdlog::logger>& fallback_logger() {
+  static const std::shared_ptr<spdlog::logger> logger =
+      std::make_shared<spdlog::logger>(
+          "timeperiod", std::make_shared<spdlog::sinks::null_sink_mt>());
+  return logger;
+}
 
 /**
  *  Stateless replacement for localtime_r: break a time_t down into local civil
@@ -89,13 +103,17 @@ constexpr absl::Weekday kWeekday[7] = {
  * @brief Constructor of a timeperiod from its configuration protobuf object.
  *
  * @param obj The configuration protobuf object.
+ * @param logger The logger the timeperiod logs through; a silent fallback is
+ * used when null.
  */
 timeperiod::timeperiod(
-    const com::centreon::engine::configuration::Timeperiod& obj)
-    : _name{obj.timeperiod_name()}, _alias{obj.alias()} {
+    const com::centreon::engine::configuration::Timeperiod& obj,
+    std::shared_ptr<spdlog::logger> logger)
+    : _name{obj.timeperiod_name()},
+      _alias{obj.alias()},
+      _logger{logger ? std::move(logger) : fallback_logger()} {
   if (_name.empty() || _alias.empty()) {
-    timeperiod_manager::logger()->error(
-        "Error: Name or alias for timeperiod is NULL");
+    _logger->error("Error: Name or alias for timeperiod is NULL");
     throw msg_fmt("Could not register time period '{}'", _name);
   }
 
@@ -743,11 +761,11 @@ static bool _timerange_to_time_t(const timerange& trange,
  */
 bool timeperiod::check_time_against_period(time_t test_time,
                                            const absl::TimeZone& tz) const {
-  timeperiod_manager::logger()->trace("check_time_against_period()");
+  _logger->trace("check_time_against_period()");
 
   // Faked next valid time must be tested time.
   time_t next_valid_time = get_next_valid_time(test_time, false, tz);
-  timeperiod_manager::logger()->trace("check_time_against_period {} ret={}",
+  _logger->trace("check_time_against_period {} ret={}",
                                       get_name(), next_valid_time == test_time);
 
   return next_valid_time == test_time;
@@ -766,7 +784,7 @@ bool timeperiod::check_time_against_period(time_t test_time,
 bool timeperiod::check_time_against_period_for_notif(
     time_t test_time,
     const absl::TimeZone& tz) const {
-  timeperiod_manager::logger()->trace("check_time_against_period_for_notif()");
+  _logger->trace("check_time_against_period_for_notif()");
 
   // Faked next valid time must be tested time.
   time_t next_valid_time = get_next_valid_time(test_time, true, tz);
@@ -797,7 +815,7 @@ time_t timeperiod::get_next_invalid_time(
     bool notif_timeperiod,
     const absl::TimeZone& tz,
     absl::flat_hash_set<const timeperiod*>* chain) const {
-  timeperiod_manager::logger()->trace("get_next_invalid_time()");
+  _logger->trace("get_next_invalid_time()");
 
   // Compute time information for preferred_time.
   time_info ti;
@@ -942,7 +960,7 @@ time_t timeperiod::get_next_valid_time(
     bool notif_timeperiod,
     const absl::TimeZone& tz,
     absl::flat_hash_set<const timeperiod*>* chain) const {
-  timeperiod_manager::logger()->trace("get_next_valid_time()");
+  _logger->trace("get_next_valid_time()");
 
   absl::flat_hash_set<const timeperiod*> local_chain;
   if (!chain)
@@ -1084,7 +1102,7 @@ time_t timeperiod::get_next_valid_time(
   time_t valid_time =
       (earliest_time == (time_t)-1 && !notif_timeperiod) ? original_preferred_time
                                                          : earliest_time;
-  timeperiod_manager::logger()->trace("get_next_valid_time {} valid_time={}",
+  _logger->trace("get_next_valid_time {} valid_time={}",
                                       _name, valid_time);
   return valid_time;
 }
@@ -1099,7 +1117,7 @@ time_t timeperiod::get_next_valid_time(
  */
 time_t timeperiod::get_next_valid_time(time_t pref_time,
                                        const absl::TimeZone& tz) const {
-  timeperiod_manager::logger()->trace("get_next_valid_time()");
+  _logger->trace("get_next_valid_time()");
 
   // Preferred time must be now or in the future.
   time_t preferred_time = std::max(pref_time, time(NULL));
@@ -1155,21 +1173,12 @@ void timeperiod::resolve(const timeperiod_map& all,
                          uint32_t& e) {
   uint32_t errors = 0;
 
-  // Check for illegal characters in timeperiod name.
-  if (timeperiod_manager::contains_illegal_chars(_name)) {
-    timeperiod_manager::logger()->error(
-        "Error: The name of time period '{}' contains one or more illegal "
-        "characters.",
-        _name);
-    errors++;
-  }
-
   // Check for valid timeperiod names in exclusion list.
   for (auto& [name, excluded] : _exclusions) {
     auto found = all.find(name);
 
     if (found == all.end()) {
-      timeperiod_manager::logger()->error(
+      _logger->error(
           "Error: Excluded time period '{}' specified in timeperiod '{}' is "
           "not defined anywhere!",
           name, _name);

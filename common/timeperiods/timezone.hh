@@ -16,17 +16,17 @@
  * For more information : contact@centreon.com
  *
  */
-#ifndef CCE_TIMEZONE_HH
-#define CCE_TIMEZONE_HH
+#ifndef CCC_TIMEPERIODS_TIMEZONE_HH
+#define CCC_TIMEPERIODS_TIMEZONE_HH
 
 #include <string>
 
 #include "absl/time/time.h"
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 
 absl::TimeZone string_to_timezone(const std::string& name);
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods
 
-#endif  // !CCE_TIMEZONE_HH
+#endif  // !CCC_TIMEPERIODS_TIMEZONE_HH

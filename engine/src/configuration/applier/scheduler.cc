@@ -22,11 +22,12 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
-#include "com/centreon/engine/timezone.hh"
+#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::timeperiods::string_to_timezone;
 
 /**
  *  Apply new configuration.
@@ -460,7 +461,8 @@ void applier::scheduler::_calculate_host_scheduling_params() {
       const absl::TimeZone tz = string_to_timezone(hst.get_timezone());
       if (hst.check_period_ptr &&
           !hst.check_period_ptr->check_time_against_period(now, tz)) {
-        time_t next_valid_time = hst.check_period_ptr->get_next_valid_time(now, tz);
+        time_t next_valid_time =
+            hst.check_period_ptr->get_next_valid_time(now, tz);
         if (now == next_valid_time)
           schedule_check = false;
       }
@@ -597,7 +599,8 @@ void applier::scheduler::_calculate_service_scheduling_params() {
       const absl::TimeZone tz = string_to_timezone(svc.get_timezone());
       if (svc.check_period_ptr &&
           !svc.check_period_ptr->check_time_against_period(now, tz)) {
-        time_t next_valid_time = svc.check_period_ptr->get_next_valid_time(now, tz);
+        time_t next_valid_time =
+            svc.check_period_ptr->get_next_valid_time(now, tz);
         if (now == next_valid_time)
           schedule_check = false;
       }

@@ -20,8 +20,8 @@
 add_library(timeperiods STATIC
   daterange.cc
   timeperiod.cc
-  timeperiod_manager.cc
   timerange.cc
+  timezone.cc
 )
 
 target_include_directories(timeperiods PUBLIC

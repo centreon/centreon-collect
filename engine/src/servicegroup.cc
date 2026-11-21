@@ -187,7 +187,7 @@ void servicegroup::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   }
 
   // Check for illegal characters in servicegroup name.
-  if (contains_illegal_object_chars(_group_name.c_str())) {
+  if (contains_illegal_object_chars(_group_name)) {
     config_logger->error(
         "Error: The name of servicegroup '{}' contains one or more illegal "
         "characters.",

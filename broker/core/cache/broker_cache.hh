@@ -32,6 +32,7 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 namespace com::centreon::engine::configuration {
 class State;
@@ -407,6 +408,16 @@ class broker_cache {
       std::pair<std::shared_ptr<neb::pb_tag>, absl::flat_hash_set<uint64_t>>>
       _tags ABSL_GUARDED_BY(_mutex);
 
+  /* Notification timeperiods, owned by the cache and keyed by name */
+  absl::flat_hash_map<std::string,
+                      std::shared_ptr<common::timeperiods::timeperiod>>
+      _timeperiods ABSL_GUARDED_BY(_mutex);
+  /* Which pollers reference each timeperiod name. A timeperiod is dropped from
+   * _timeperiods only when no poller references it anymore (same "central,
+   * reference-counted" model as _tags / _severities / groups). */
+  absl::flat_hash_map<std::string, absl::flat_hash_set<uint64_t>>
+      _timeperiod_pollers ABSL_GUARDED_BY(_mutex);
+
   /* Anomaly detection index: maps {host_id, dependent_service_id} to the set
    * of anomaly detection service IDs that monitor that dependent service.
    * Only anomaly detection services appear here. */
@@ -490,6 +501,7 @@ class broker_cache {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _load_cache() ABSL_LOCKS_EXCLUDED(_mutex);
   void _save_cache() ABSL_LOCKS_EXCLUDED(_mutex);
+  void _resolve_timeperiods() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
 
   /* Periodic save of the cache (cbd outside the centralized configuration):
    * every _save_interval, the cache is written if its configuration data
@@ -571,6 +583,10 @@ class broker_cache {
   bool send_recovery_notifications_anyway(uint64_t instance_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::chrono::seconds interval_length(uint64_t instance_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool in_notification_period(const std::string& period_name,
+                              const std::string& timezone,
+                              std::time_t now) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   void remove_instance(uint64_t instance_id) ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host> host(const std::string& host_name) const

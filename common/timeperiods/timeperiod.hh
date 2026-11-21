@@ -26,6 +26,10 @@
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "common/timeperiods/daterange.hh"
 
+namespace spdlog {
+class logger;
+}
+
 /* Forward declaration. */
 namespace com::centreon::common::timeperiods {
 class timeperiod;
@@ -45,9 +49,14 @@ class timeperiod {
   std::string _name;
   std::string _alias;
   timeperiodexclusion _exclusions;
+  /* Logger the timeperiod logs through, injected at construction. Never null:
+   * when the host application passes nullptr, a silent fallback is used so the
+   * library no longer depends on the timeperiod_manager for logging. */
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  timeperiod(const com::centreon::engine::configuration::Timeperiod& obj);
+  timeperiod(const com::centreon::engine::configuration::Timeperiod& obj,
+             std::shared_ptr<spdlog::logger> logger = nullptr);
   void set_exclusions(
       const com::centreon::engine::configuration::StringSet& exclusions);
   void set_exceptions(

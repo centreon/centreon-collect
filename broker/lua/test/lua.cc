@@ -16,11 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/container/btree_map.h>
 #include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
 
-#include <absl/container/btree_map.h>
 #include <absl/strings/str_split.h>
 #include <boost/optional.hpp>
 
@@ -40,8 +38,6 @@
 #include "com/centreon/broker/lua/factory.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
-#include "broker/core/config/applier/modules.hh"
-#include "broker/core/config/applier/state.hh"
 #include "broker/test/test_server.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/neb/events.hh"
@@ -50,7 +46,6 @@
 #include "common/crypto/aes256.hh"
 #include "common/engine_conf/message_helper.hh"
 #include "common/log_v2/log_v2.hh"
-#include "state.pb.h"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -5345,8 +5340,8 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
         *it1 == "icon_id" || *it1 == "instance_id" ||
         *it1 == "internal_id" || *it1 == "is_volatile" ||
         *it1 == "long_output" || *it1 == "recovery_notification_delay" ||
-        *it1 == "severity_id" || *it1 == "tags" || *it1 == "type" ||
-        *it1 == "command_line") {
+        *it1 == "severity_id" || *it1 == "tags" || *it1 == "timezone" ||
+        *it1 == "type" || *it1 == "command_line") {
       ++it1;
       continue;
     }

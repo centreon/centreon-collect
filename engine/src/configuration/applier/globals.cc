@@ -20,7 +20,6 @@
 
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/string.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -37,8 +36,6 @@ void applier::globals::apply(State& config) {
   _set_global(::global_service_event_handler,
               config.global_service_event_handler());
   _set_global(::illegal_object_chars, config.illegal_object_chars());
-  // Keep the timeperiods library's forbidden-characters set in sync.
-  timeperiod_manager::set_illegal_object_chars(config.illegal_object_chars());
   _set_global(::illegal_output_chars, config.illegal_output_chars());
   _set_global(::log_file, config.log_file());
   _set_global(::ochp_command, config.ochp_command());

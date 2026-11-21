@@ -23,7 +23,7 @@
 #include "com/centreon/engine/string.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "common/timeperiods/timeperiod.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
+#include "com/centreon/engine/globals.hh"
 #include "gtest/gtest.h"
 
 #include "helper.hh"
@@ -53,16 +53,12 @@ class timeperiod_exception : public ::testing::TestWithParam<test_param> {
     setenv("TZ", ":Europe/Paris", 1);
     tzset();
     init_config_state();
-    com::centreon::common::timeperiods::timeperiod_manager::instance()
-        .timeperiods()
-        .clear();
+    ::timeperiods.clear();
     parse_timeperiods_cfg_file("tests/timeperiods.cfg");
   }
 
   static void TearDownTestSuite() {
-    com::centreon::common::timeperiods::timeperiod_manager::instance()
-        .timeperiods()
-        .clear();
+    ::timeperiods.clear();
   }
 
   static void parse_timeperiods_cfg_file(const std::string& file_path);
@@ -225,8 +221,8 @@ TEST_P(timeperiod_exception, TestExceptions) {
   time_t calculated;
 
   auto tp_search =
-      timeperiod_manager::instance().timeperiods().find(param.name);
-  ASSERT_NE(tp_search, timeperiod_manager::instance().timeperiods().end());
+      ::timeperiods.find(param.name);
+  ASSERT_NE(tp_search, ::timeperiods.end());
 
   calculated = tp_search->second.get()->get_next_valid_time(
       gmt_strtotimet(param.prefered));

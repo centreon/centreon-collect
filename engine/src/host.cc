@@ -36,9 +36,9 @@
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
+#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -47,6 +47,7 @@ using namespace com::centreon::common::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
+using com::centreon::common::timeperiods::string_to_timezone;
 namespace notifications = com::centreon::common::notifications;
 
 host_map host::hosts;
@@ -3580,7 +3581,7 @@ void host::resolve(uint32_t& w, uint32_t& e) {
   }
 
   /* check for illegal characters in host name */
-  if (contains_illegal_object_chars(name().c_str())) {
+  if (contains_illegal_object_chars(name())) {
     config_logger->error(
         "Error: The name of host '{}' contains one or more illegal characters.",
         name());
