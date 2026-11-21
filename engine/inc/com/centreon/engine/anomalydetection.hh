@@ -148,7 +148,6 @@ class anomalydetection : public service {
   void set_status_change(bool status_change);
   const std::string& get_metric_name() const;
   const std::string& get_thresholds_file() const;
-  void resolve(uint32_t& w, uint32_t& e);
 
   static const pointer_set& find_by_dependent_service(uint64_t host_id, uint64_t service_id);
 };

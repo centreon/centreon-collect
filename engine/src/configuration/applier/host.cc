@@ -20,6 +20,7 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
@@ -488,6 +489,52 @@ void applier::host::resolve_object(const configuration::Host& obj,
   it->second->set_total_services(0);
   it->second->set_total_service_check_interval(0);
 
-  // Resolve host.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  // This is pure wiring: the notifier part, the parent hosts and the name of
+  // the host are validated by state_helper::resolve (single home). Here we only
+  // build the runtime backlinks.
+  auto* h = it->second.get();
+
+  // Wire the notifier-common runtime pointers (contacts, contact groups,
+  // commands, periods) and clear the escalations (refilled by the escalation
+  // appliers, which run afterwards).
+  h->resolve_pointers();
+
+  /* check if the host has a CMA cmd */
+  bool is_cma = false;
+  if (h->get_check_command_ptr()) {
+    if (h->get_check_command_ptr()->get_type() ==
+        commands::command::e_type::otel)
+      is_cma = true;
+    if (h->get_check_command_ptr()->get_type() ==
+        commands::command::e_type::forward) {
+      is_cma = std::static_pointer_cast<commands::forward>(
+                   h->get_check_command_ptr())
+                   ->get_sub_command()
+                   ->get_type() == commands::command::e_type::otel;
+    }
+  }
+  h->set_is_cma_host(is_cma);
+  if (is_cma)
+    config_logger->info("Host '{}' is detected as a CMA host.", h->name());
+
+  // Associate the services carried by this host (reverse backlink).
+  for (auto& [key, svc] : engine::service::services) {
+    if (h->name() == key.first)
+      h->services.insert({key, svc.get()});
+  }
+  if (h->services.empty()) {
+    config_logger->warn(
+        "Warning: Host '{}' has no services associated with it!", h->name());
+    err.config_warnings++;
+  }
+
+  // Wire the parent hosts and the reverse (child) links; a parent that does not
+  // exist has already been reported and is left unwired.
+  for (auto& [key, sptr_host] : h->parent_hosts) {
+    host_map::const_iterator it_host{engine::host::hosts.find(key)};
+    if (it_host != engine::host::hosts.end() && it_host->second) {
+      sptr_host = it_host->second;
+      it_host->second->add_child_host(h);
+    }
+  }
 }

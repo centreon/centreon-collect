@@ -60,7 +60,6 @@ class escalation {
 
   const contactgroup_map& get_contactgroups() const;
   contactgroup_map& get_contactgroups();
-  virtual void resolve(uint32_t& w, uint32_t& e);
 
   notifier* notifier_ptr;
   com::centreon::common::timeperiods::timeperiod* escalation_period_ptr;

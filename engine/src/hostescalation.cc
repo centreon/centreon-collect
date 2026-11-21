@@ -91,36 +91,6 @@ bool hostescalation::is_viable(int state, uint32_t notification_number) const {
     return retval;
 }
 
-void hostescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
-  uint32_t errors = 0;
-
-  // Find the host.
-  host_map::const_iterator found(host::hosts.find(this->get_hostname()));
-  if (found == host::hosts.end() || !found->second) {
-    config_logger->error(
-        "Error: Host '{}' specified in host escalation is not defined "
-        "anywhere!",
-        this->get_hostname());
-    errors++;
-    notifier_ptr = nullptr;
-  } else {
-    notifier_ptr = found->second.get();
-    notifier_ptr->get_escalations().push_back(this);
-  }
-
-  try {
-    escalation::resolve(w, errors);
-  } catch (std::exception const& ee) {
-    config_logger->error("Error: Notifier escalation error: {}", ee.what());
-  }
-
-  // Add errors.
-  if (errors) {
-    e += errors;
-    throw engine_error() << "Cannot resolve host escalation";
-  }
-}
-
 /**
  * @brief Checks that this hostescalation corresponds to the Configuration
  * object obj. This function doesn't check contactgroups as it is usually used

@@ -20,6 +20,7 @@
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
+#include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 
@@ -163,7 +164,7 @@ void applier::hostescalation::remove_object(uint64_t hash_key) {
  */
 void applier::hostescalation::resolve_object(
     const configuration::Hostescalation& obj,
-    error_cnt& err) {
+    [[maybe_unused]] error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving a host escalation.");
 
@@ -182,8 +183,35 @@ void applier::hostescalation::resolve_object(
      * the hostescalation is the good one. */
     if (it->second->internal_key() == key) {
       found = true;
-      // Resolve host escalation.
-      it->second->resolve(err.config_warnings, err.config_errors);
+      // This is pure wiring: the existence of the host, the escalation period
+      // and the contact groups is validated by state_helper::resolve (single
+      // home). Here we only wire the objects that exist and leave the rest
+      // unwired.
+      engine::hostescalation* esc = it->second.get();
+      host_map::const_iterator hit = engine::host::hosts.find(hostname);
+      if (hit == engine::host::hosts.end() || !hit->second)
+        esc->notifier_ptr = nullptr;
+      else {
+        esc->notifier_ptr = hit->second.get();
+        esc->notifier_ptr->get_escalations().push_back(esc);
+      }
+
+      if (esc->get_escalation_period().empty())
+        esc->escalation_period_ptr = nullptr;
+      else {
+        timeperiod_map::const_iterator pit{
+            ::timeperiods.find(esc->get_escalation_period())};
+        esc->escalation_period_ptr =
+            pit != ::timeperiods.end() ? pit->second.get() : nullptr;
+      }
+
+      for (auto& cg : esc->get_contactgroups()) {
+        contactgroup_map::const_iterator cit{
+            engine::contactgroup::contactgroups.find(cg.first)};
+        cg.second = cit != engine::contactgroup::contactgroups.end()
+                        ? cit->second
+                        : nullptr;
+      }
       break;
     }
   }
