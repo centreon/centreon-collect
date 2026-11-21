@@ -57,9 +57,6 @@ class hostdependency : public dependency {
   bool get_fail_on_unreachable() const;
   void set_fail_on_unreachable(bool fail_on_unreachable);
 
-  bool check_for_circular_hostdependency_path(hostdependency* dep,
-                                              types dependency_type);
-  void resolve(uint32_t& w, uint32_t& e);
   bool get_fail_on(int state) const override;
 
   using dependency::operator==;

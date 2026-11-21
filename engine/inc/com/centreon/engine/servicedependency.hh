@@ -76,9 +76,6 @@ class servicedependency : public dependency {
   bool get_fail_on_critical() const;
   void set_fail_on_critical(bool fail_on_critical);
 
-  bool check_for_circular_servicedependency_path(servicedependency* dep,
-                                                 types dependency_type);
-  void resolve(uint32_t& w, uint32_t& e);
   bool get_fail_on(int state) const override;
 
   using dependency::operator==;

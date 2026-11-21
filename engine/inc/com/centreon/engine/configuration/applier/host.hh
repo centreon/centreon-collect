@@ -33,7 +33,7 @@ class host {
   void modify_object(configuration::Host* old_obj,
                      const configuration::Host& new_obj);
   void remove_object(uint64_t host_id);
-  void resolve_object(const configuration::Host& obj, error_cnt& err);
+  void resolve_object(const configuration::Host& obj);
 };
 
 }  // namespace com::centreon::engine::configuration::applier

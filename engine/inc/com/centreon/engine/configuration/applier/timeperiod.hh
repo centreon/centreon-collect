@@ -45,7 +45,7 @@ class timeperiod {
                      const configuration::Timeperiod& new_object);
   template <typename Key>
   void remove_object(const Key& p);
-  void resolve_object(const configuration::Timeperiod& obj, error_cnt& err);
+  void resolve_object(const configuration::Timeperiod& obj);
 };
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration

@@ -217,7 +217,7 @@ class notifier : public checkable {
       const noexcept;
   contactgroup_map& get_contactgroups() noexcept;
   const contactgroup_map& get_contactgroups() const noexcept;
-  void resolve(uint32_t& w, uint32_t& e);
+  void resolve_pointers();
   std::array<common::notifications::notification*, 6>
   get_current_notifications() const;
   int get_pending_flex_downtime() const;

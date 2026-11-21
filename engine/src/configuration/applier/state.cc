@@ -20,8 +20,6 @@
 #include <absl/container/fixed_array.h>
 #include <fmt/chrono.h>
 #include <sys/resource.h>
-#include <chrono>
-#include <cstdint>
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -53,8 +51,6 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
-#include "common/crypto/aes256.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -1670,8 +1666,8 @@ void applier::state::_processing(configuration::State& new_cfg,
     // Timing.
     tv[3] = std::chrono::system_clock::now();
 
-    // Check for circular paths between hosts.
-    pre_flight_circular_check(&err.config_warnings, &err.config_errors);
+    // Circular paths (host parent/child chains and notification/execution
+    // dependencies) are now validated upstream by state_helper::resolve.
 
     // Call start broker event the first time to run applier state.
     if (!has_already_been_loaded) {
@@ -1789,8 +1785,8 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     tv[3] = std::chrono::system_clock::now();
 
     config_logger->debug("Duration to reload the whitelist {}", tv[3] - tv[2]);
-    // Check for circular paths between hosts.
-    pre_flight_circular_check(&err.config_warnings, &err.config_errors);
+    // Circular paths (host parent/child chains and notification/execution
+    // dependencies) are now validated upstream by state_helper::resolve.
 
     // Call start broker event the first time to run applier state.
     if (!has_already_been_loaded) {
@@ -1838,7 +1834,7 @@ void applier::state::_resolve(
 
   for (auto& [key, obj] : cfg) {
     try {
-      aplyr.resolve_object(*obj.get(), err);
+      aplyr.resolve_object(*obj.get());
     } catch (const std::exception& e) {
       if (verify_config) {
         ++err.config_errors;

@@ -17,9 +17,8 @@
  *
  */
 
-#include "com/centreon/engine/anomalydetection.hh"
-
 #include <gtest/gtest.h>
+#include "com/centreon/engine/anomalydetection.hh"
 
 #include "../test_engine.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -49,7 +48,7 @@ class ADExtCmd : public TestEngine {
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
@@ -60,8 +59,8 @@ class ADExtCmd : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst, err);
-    svc_aply.resolve_object(svc, err);
+    hst_aply.resolve_object(hst);
+    svc_aply.resolve_object(svc);
 
     configuration::Anomalydetection ad{new_pb_configuration_anomalydetection(
         "test_host", "test_ad", "admin",
@@ -71,7 +70,7 @@ class ADExtCmd : public TestEngine {
     configuration::applier::anomalydetection ad_aply;
     ad_aply.add_object(ad);
 
-    ad_aply.resolve_object(ad, err);
+    ad_aply.resolve_object(ad);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

@@ -21,7 +21,6 @@
 #include <fstream>
 #include "../helper.hh"
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -46,6 +45,7 @@
 #include "common/engine_conf/service_helper.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/timeperiod_helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon;
@@ -578,7 +578,7 @@ TEST_F(Macro, PbContactGroupName) {
   ct_aply.add_object(ctct);
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -586,7 +586,7 @@ TEST_F(Macro, PbContactGroupName) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   init_macros();
   int now{500000000};
@@ -606,7 +606,7 @@ TEST_F(Macro, PbContactGroupAlias) {
   ct_aply.add_object(ctct);
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -614,7 +614,7 @@ TEST_F(Macro, PbContactGroupAlias) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
   init_macros();
   int now{500000000};
   set_time(now);
@@ -633,7 +633,7 @@ TEST_F(Macro, PbContactGroupMembers) {
   ct_aply.add_object(ctct);
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -641,7 +641,7 @@ TEST_F(Macro, PbContactGroupMembers) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
   init_macros();
   int now{500000000};
   set_time(now);
@@ -660,7 +660,7 @@ TEST_F(Macro, PbContactGroupNames) {
   ct_aply.add_object(ctct);
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -668,7 +668,7 @@ TEST_F(Macro, PbContactGroupNames) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
   init_macros();
   int now{500000000};
   set_time(now);
@@ -692,14 +692,14 @@ TEST_F(Macro, PbNotificationRecipients) {
   ct_aply.add_object(ctct1);
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
-  ct_aply.resolve_object(ctct1, err);
+  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct1);
   configuration::Contact ctct2;
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct2, err);
+  ct_aply.resolve_object(ctct2);
 
   configuration::Host hst;
   configuration::host_helper hst_hlp(&hst);
@@ -716,8 +716,8 @@ TEST_F(Macro, PbNotificationRecipients) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst, err);
-  svc_aply.resolve_object(svc, err);
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;
@@ -758,14 +758,14 @@ TEST_F(Macro, PbNotificationAuthor) {
   ct_aply.add_object(ctct1);
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
-  ct_aply.resolve_object(ctct1, err);
+  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct1);
   configuration::Contact ctct2;
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct2, err);
+  ct_aply.resolve_object(ctct2);
 
   configuration::Host hst;
   configuration::host_helper hst_hlp(&hst);
@@ -782,8 +782,8 @@ TEST_F(Macro, PbNotificationAuthor) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst, err);
-  svc_aply.resolve_object(svc, err);
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;
@@ -824,14 +824,14 @@ TEST_F(Macro, PbNotificationAuthorName) {
   ct_aply.add_object(ctct1);
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
-  ct_aply.resolve_object(ctct1, err);
+  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct1);
   configuration::Contact ctct2;
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct2, err);
+  ct_aply.resolve_object(ctct2);
 
   configuration::Host hst;
   configuration::host_helper hst_hlp(&hst);
@@ -848,8 +848,8 @@ TEST_F(Macro, PbNotificationAuthorName) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst, err);
-  svc_aply.resolve_object(svc, err);
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;
@@ -886,13 +886,13 @@ TEST_F(Macro, PbNotificationAuthorAlias) {
   ct_aply.add_object(ctct1);
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
-  ct_aply.resolve_object(ctct1, err);
+  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct1);
   configuration::Contact ctct2{
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct2, err);
+  ct_aply.resolve_object(ctct2);
 
   configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
@@ -903,8 +903,8 @@ TEST_F(Macro, PbNotificationAuthorAlias) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst, err);
-  svc_aply.resolve_object(svc, err);
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;
@@ -941,13 +941,13 @@ TEST_F(Macro, PbNotificationComment) {
   ct_aply.add_object(ctct1);
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
-  ct_aply.resolve_object(ctct1, err);
+  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct1);
   configuration::Contact ctct2{
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct2, err);
+  ct_aply.resolve_object(ctct2);
 
   configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
@@ -958,8 +958,8 @@ TEST_F(Macro, PbNotificationComment) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst, err);
-  svc_aply.resolve_object(svc, err);
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;

@@ -44,8 +44,7 @@ class servicedependency {
   void modify_object(configuration::Servicedependency* old_obj,
                      const configuration::Servicedependency& new_obj);
   void remove_object(uint64_t hash_key);
-  void resolve_object(const configuration::Servicedependency& obj,
-                      error_cnt& err);
+  void resolve_object(const configuration::Servicedependency& obj);
 };
 }  // namespace com::centreon::engine::configuration::applier
 

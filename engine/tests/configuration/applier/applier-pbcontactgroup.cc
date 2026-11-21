@@ -22,7 +22,6 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/globals.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -120,22 +119,29 @@ TEST_F(ApplierPbContactgroup, ResolveEmptyContactgroup) {
   grp.set_contactgroup_name("test");
   aplyr.add_object(grp);
   _state_hlp->expand(err);
-  aplyr.resolve_object(grp, err);
+  aplyr.resolve_object(grp);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
 }
 
-// Given a contactgroup with a non-existing contact
-// When the resolve_object() method is called
-// Then an exception is thrown
-// And the method returns 1 error
+// Given a contactgroup with a non-existing contact member
+// When the object is added and resolved (pure wiring now)
+// Then nothing throws: the missing member is simply skipped. Its existence is
+// validated by state_helper::resolve (see
+// common/tests/engine_conf/resolve_conf.cc).
 TEST_F(ApplierPbContactgroup, ResolveInexistentContact) {
+  configuration::error_cnt err;
   configuration::applier::contactgroup aplyr;
   configuration::Contactgroup grp;
   configuration::contactgroup_helper grp_hlp(&grp);
   grp.set_contactgroup_name("test");
   fill_string_group(grp.mutable_members(), "non_existing_contact");
-  ASSERT_THROW(aplyr.add_object(grp), std::exception);
+  ASSERT_NO_THROW(aplyr.add_object(grp));
+  _state_hlp->expand(err);
+  ASSERT_NO_THROW(aplyr.resolve_object(grp));
+  // The non-existing member was not wired into the group.
+  ASSERT_TRUE(
+      engine::contactgroup::contactgroups["test"]->get_members().empty());
 }
 
 // Given a contactgroup with a contact
@@ -156,7 +162,7 @@ TEST_F(ApplierPbContactgroup, ResolveContactgroup) {
   fill_string_group(grp.mutable_members(), "test");
   aply_grp.add_object(grp);
   _state_hlp->expand(err);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 }
 
 // Given a contactgroup with a contact already configured
@@ -178,7 +184,7 @@ TEST_F(ApplierPbContactgroup, SetContactgroupMembers) {
   fill_string_group(grp.mutable_members(), "test");
   aply_grp.add_object(grp);
   _state_hlp->expand(err);
-  aply_grp.resolve_object(grp, err);
+  aply_grp.resolve_object(grp);
   ASSERT_EQ(grp.members().data().size(), 1);
 
   configuration::Contactgroup grp1;
@@ -213,7 +219,7 @@ TEST_F(ApplierPbContactgroup, ContactRemove) {
   grp_hlp.hook("members", "test, test2");
   aply_grp.add_object(grp);
   _state_hlp->expand(err);
-  aply_grp.resolve_object(grp, err);
+  aply_grp.resolve_object(grp);
   ASSERT_EQ(
       engine::contactgroup::contactgroups["test_group"]->get_members().size(),
       2u);

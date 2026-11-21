@@ -39,7 +39,7 @@ class service {
   void modify_object(configuration::Service* old_obj,
                      const configuration::Service& new_obj);
   void remove_object(const std::pair<uint64_t, uint64_t>& key);
-  void resolve_object(const configuration::Service& obj, error_cnt& err);
+  void resolve_object(const configuration::Service& obj);
 };
 }  // namespace com::centreon::engine::configuration::applier
 

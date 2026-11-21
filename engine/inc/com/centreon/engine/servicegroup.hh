@@ -53,7 +53,6 @@ class servicegroup {
   void set_notes_url(std::string const& notes_url);
   std::string const& get_action_url() const;
   void set_action_url(std::string const& action_url);
-  void resolve(uint32_t& w, uint32_t& e);
 
   bool operator==(servicegroup const& obj) = delete;
   bool operator!=(servicegroup const& obj) = delete;

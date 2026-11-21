@@ -87,7 +87,6 @@ extern char const* sigs[35];
 extern int sig_id;
 
 extern int verify_config;
-extern int verify_circular_paths;
 extern int test_scheduling;
 
 extern unsigned int currently_running_service_checks;

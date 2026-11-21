@@ -21,7 +21,6 @@
 #include <fstream>
 #include "../helper.hh"
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -39,6 +38,7 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/process.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon;
@@ -732,7 +732,7 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   grp.parse("members", "test_host,test");
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
-//   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
+//   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //
 //   init_macros();
 //   int now{500000000};
@@ -774,7 +774,7 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   grp.parse("alias", "test_group_alias");
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
-//   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
+//   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //
 //   init_macros();
 //   int now{500000000};
@@ -1627,7 +1627,7 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   grp.parse("members", "test_host,test");
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
-//   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
+//   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //
 //   init_macros();
 //   int now{500000000};
@@ -1709,7 +1709,7 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   ASSERT_TRUE(grp.parse("notes", "test_notes"));
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
-//   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
+//   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //   init_macros();
 //   int now{500000000};
 //   set_time(now);
@@ -1752,7 +1752,7 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   ASSERT_TRUE(grp.parse("notes_url", "test_notes_url"));
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
-//   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
+//   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //   init_macros();
 //   int now{500000000};
 //   set_time(now);
@@ -1793,7 +1793,7 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   ASSERT_TRUE(grp.parse("action_url", "test_notes_url"));
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
-//   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
+//   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //   init_macros();
 //   int now{500000000};
 //   set_time(now);
@@ -1834,7 +1834,7 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   ASSERT_TRUE(grp.parse("action_url", "test_notes_url"));
 //   aply_grp.add_object(grp);
 //   aply_grp.expand_objects(*config);
-//   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
+//   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 //   init_macros();
 //   int now{500000000};
 //   set_time(now);
@@ -2008,8 +2008,8 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //       new_configuration_contact("admin1", false, "c,r")};
 //   ct_aply.add_object(ctct1);
 //   ct_aply.expand_objects(*config);
-//   ct_aply.resolve_object(ctct, err);
-//   ct_aply.resolve_object(ctct1, err);
+//   ct_aply.resolve_object(ctct);
+//   ct_aply.resolve_object(ctct1);
 //
 //   configuration::host hst{new_configuration_host("test_host", "admin")};
 //   configuration::applier::host hst_aply;
@@ -2020,8 +2020,8 @@ TEST_F(MacroService, TotalServicesOkZero) {
 //   configuration::applier::service svc_aply;
 //   svc_aply.add_object(svc);
 //
-//   hst_aply.resolve_object(hst, err);
-//   svc_aply.resolve_object(svc, err);
+//   hst_aply.resolve_object(hst);
+//   svc_aply.resolve_object(svc);
 //
 //   host_map const& hm{engine::host::hosts};
 //   _host3 = hm.begin()->second;

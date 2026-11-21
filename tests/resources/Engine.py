@@ -660,13 +660,14 @@ define command {{
                 f.write(file_content)
 
     @staticmethod
-    def create_contact_group(id, mbs):
+    def create_contact_group(id, mbs, name=None):
+        cg_name = name if name is not None else f"contactgroup_{id}"
         retval = """define contactgroup {{
-    contactgroup_name              contactgroup_{0}
-    alias                          contactgroup_{0}
+    contactgroup_name              {0}
+    alias                          {0}
     members                        {1}
 }}
-""".format(id, ",".join(mbs))
+""".format(cg_name, ",".join(mbs))
         logger.console('\n'.join(_truncate_line(line) for line in retval.splitlines()))
         return retval
 
@@ -905,6 +906,10 @@ define command {{
     command_name                    test-notif
     command_line                    {0}/notif.pl
 }}
+define command {{
+    command_name                    command_notif
+    command_line                    {0}/notif.pl
+}}
 """.format(ENGINE_HOME))
             with open(f"{config_dir}/connectors.cfg", "w") as f:
                 f.write("""define connector {
@@ -979,6 +984,8 @@ define timeperiod {
     register                       1
     host_notifications_enabled     1
     service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif
 }
 define contact {
     contact_name                   U1
@@ -1221,12 +1228,12 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
                     replaced = True
                     break
             else:
-                lines[i] = "{}={}\n".format(key, value)
+                lines[i] = f"{key}={value}\n"
                 replaced = True
                 break
 
     if not replaced and force:
-        lines.append("{}={}\n".format(key, value))
+        lines.append(f"{key}={value}\n")
 
     with open(filename, "w") as f:
         f.writelines(lines)
@@ -1511,6 +1518,39 @@ def ctn_engine_config_del_value_in_hosts(idx: int, desc: str, key: str,  file: s
         f.writelines(lines)
 
 
+def _ctn_engine_set_command_line(idx: int, name_pattern: str, new_command: str):
+    """
+    Replace in place the command_line of every command whose command_name
+    matches name_pattern (a regex fragment) in the commands.cfg of Engine
+    config idx. Shared core of ctn_engine_config_change_command (matches
+    command_<index>) and ctn_engine_config_add_command (matches an exact name).
+
+    Args:
+        idx (int): Index of the configuration (from 0)
+        name_pattern (str): Regex fragment matched against the command name.
+        new_command (str): The new command line.
+
+    Returns:
+        int: The number of command definitions updated.
+    """
+    path = f"{engine.get_config_dir(idx)}/commands.cfg"
+    with open(path, "r") as f:
+        lines = f.readlines()
+    name_re = re.compile(rf"^\s+command_name\s+{name_pattern}\s*$")
+    count = 0
+    for i, line in enumerate(lines):
+        if name_re.match(line):
+            for j in range(i + 1, len(lines)):
+                if re.match(r"^\s+command_line\s+", lines[j]):
+                    lines[j] = f"    command_line                    {new_command}\n"
+                    break
+            count += 1
+    if count:
+        with open(path, "w") as f:
+            f.writelines(lines)
+    return count
+
+
 def ctn_engine_config_change_command(idx: int, command_index: str, new_command: str):
     """
     Changes the command line of command whose index is command_index in the Engine config idx.
@@ -1520,23 +1560,7 @@ def ctn_engine_config_change_command(idx: int, command_index: str, new_command: 
         command_index (str): Index of the command (may be a regex)
         new_command (str): The new command line.
     """
-    conf_dir = engine.get_config_dir(idx)
-    with open(f"{conf_dir}/commands.cfg", "r") as f:
-        lines = f.readlines()
-    new_lines = []
-    r = re.compile(rf"^\s+command_name\s+command_{command_index}$")
-    found = 0
-    for line in lines:
-        if found == 1:
-            found = 0
-            new_lines.append(
-                f"    command_line                    {new_command}\n")
-        else:
-            new_lines.append(line)
-        if r.match(line) is not None:
-            found = 1
-    with open(f"{conf_dir}/commands.cfg", "w") as f:
-        f.writelines(new_lines)
+    _ctn_engine_set_command_line(idx, rf"command_{command_index}", new_command)
 
 
 def ctn_engine_config_add_timeperiod(idx: int, name: str, alias: str, ranges: dict = None):
@@ -1566,7 +1590,13 @@ def ctn_engine_config_add_timeperiod(idx: int, name: str, alias: str, ranges: di
 
 def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
     """
-    Add a new command in the commands.cfg for the Engine config idx.
+    Define a command in the commands.cfg for the Engine config idx.
+
+    This is an upsert: if a command with command_name already exists (typically
+    one provided by the default configuration), its command_line is replaced in
+    place. A command name must not be defined twice - a duplicate is rejected as
+    a configuration error (see CheckPollerConfig / state_helper::resolve) - so
+    this keyword overrides rather than appends a second definition.
 
     Args:
         idx (int): Index of the Engine configuration (from 0)
@@ -1574,8 +1604,13 @@ def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str,
         new_command (str): Command line
         connector (str, optional): Defaults to None.
     """
-    conf_dir = engine.get_config_dir(idx)
-    with open(f"{conf_dir}/commands.cfg", "a") as f:
+    # If the command already exists, replace its command_line in place instead
+    # of appending a duplicate definition.
+    if _ctn_engine_set_command_line(idx, re.escape(command_name), new_command):
+        return
+
+    path = f"{engine.get_config_dir(idx)}/commands.cfg"
+    with open(path, "a") as f:
         if connector is None:
             f.write(f"""define command {{
         command_name                   {command_name}
@@ -2141,6 +2176,32 @@ def ctn_add_host_group(index: int, id_host_group: int, members: list):
         f.write(engine.create_host_group(id_host_group, mbs))
 
 
+def ctn_engine_config_add_timeperiod(index: int, name: str, alias: str = None, exclude: str = None):
+    """
+    Append a timeperiod definition to the timeperiods.cfg of the engine
+    configuration `index`. Handy to inject an invalid timeperiod (e.g. one whose
+    `exclude` points at a non-existent timeperiod) to exercise configuration
+    checking.
+
+    Args:
+        index (int): index of the configuration (from 0).
+        name (str): the timeperiod_name of the block to add.
+        alias (str, optional): the alias; defaults to `name`.
+        exclude (str, optional): a value for the `exclude` directive (a
+            timeperiod name, possibly non-existent to make the config invalid).
+    """
+    conf_dir = engine.get_config_dir(index)
+    block = "define timeperiod {\n"
+    block += f"    name                           {name}\n"
+    block += f"    timeperiod_name                {name}\n"
+    block += f"    alias                          {alias or name}\n"
+    if exclude is not None:
+        block += f"    exclude                        {exclude}\n"
+    block += "}\n"
+    with open(f"{conf_dir}/timeperiods.cfg", "a+") as f:
+        f.write(block)
+
+
 def ctn_remove_host_group(index: int, id_host_group: int):
     """
     Remove a host group from the engine instance index.
@@ -2398,18 +2459,22 @@ def ctn_rename_service_group(index: int, old_servicegroup_name: str, new_service
         f.writelines(ll)
 
 
-def ctn_add_contact_group(index: int, id_contact_group: int, members: list):
+def ctn_add_contact_group(index: int, id_contact_group: int, members: list, name: str = None):
     """
-    Add a contact group on the engine instance index.
+    Add a contact group on the engine instance index. The members may
+    reference non-existing contacts on purpose (to exercise the configuration
+    validation).
 
     Args:
         index (int): Index of the poller configuration (from 0).
-        id_contact_group (int): ID of new contactgroup.
+        id_contact_group (int): ID of new contactgroup, used to name it unless
+            'name' is given.
         members (list): A list of the members (by name).
+        name (str): Override the default 'contactgroup_{id}' name.
     """
     conf_dir = engine.get_config_dir(index)
     with open(f"{conf_dir}/contactgroups.cfg", "a+") as f:
-        f.write(engine.create_contact_group(id_contact_group, members))
+        f.write(engine.create_contact_group(id_contact_group, members, name))
 
 
 def ctn_add_all_host_groups(nb_group_per_host: int, nb_group: int):
@@ -3865,18 +3930,19 @@ def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
         cfg (str): Configuration file name to add.
     """
     conf_dir = engine.get_config_dir(poller)
-    with open(f"{conf_dir}/centengine.cfg", "r") as ff:
+    centengine = f"{conf_dir}/centengine.cfg"
+    with open(centengine, "r") as ff:
         lines = ff.readlines()
-    new_line = f"cfg_file={CONF_DIR}/config{poller}/{cfg}\n"
-    # Do not add the file if it is already referenced (avoid duplicate loading).
-    if new_line in lines:
+
+    already = re.compile(rf"^\s*cfg_file=.*/{re.escape(cfg)}\s*$")
+    if any(already.match(line) for line in lines):
         return
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(i, new_line)
+            lines.insert(i, f"cfg_file={conf_dir}/{cfg}\n")
             break
-    with open(f"{conf_dir}/centengine.cfg", "w+") as ff:
+    with open(centengine, "w+") as ff:
         ff.writelines(lines)
 
 
@@ -5125,6 +5191,54 @@ define servicedependency {{
     host_name                      {host_name}
     dependent_service_description  {dependent_service}
     service_description            {service}
+}}
+""")
+
+
+def ctn_add_host_escalation(idx: int, host_name: str, contact_groups: str, escalation_period: str = "24x7"):
+    """
+    Add a host escalation on a host in the escalations.cfg file.
+
+    Args:
+        idx: Index of the poller (from 0).
+        host_name: Host name the escalation applies to.
+        contact_groups: Contact group name(s) notified by the escalation.
+        escalation_period: Escalation timeperiod name (default 24x7).
+    """
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/escalations.cfg"
+    with open(filename, "a+") as f:
+        f.write(f"""
+define hostescalation {{
+    host_name          {host_name}
+    escalation_period  {escalation_period}
+    escalation_options d,u,r
+    contact_groups     {contact_groups}
+}}
+""")
+
+
+def ctn_add_service_escalation(idx: int, host_name: str, service_description: str, contact_groups: str, escalation_period: str = "24x7"):
+    """
+    Add a service escalation on a service in the escalations.cfg file.
+
+    Args:
+        idx: Index of the poller (from 0).
+        host_name: Host name of the host containing the service.
+        service_description: Description of the service the escalation applies to.
+        contact_groups: Contact group name(s) notified by the escalation.
+        escalation_period: Escalation timeperiod name (default 24x7).
+    """
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/escalations.cfg"
+    with open(filename, "a+") as f:
+        f.write(f"""
+define serviceescalation {{
+    host_name           {host_name}
+    service_description {service_description}
+    escalation_period   {escalation_period}
+    escalation_options  w,u,c,r
+    contact_groups      {contact_groups}
 }}
 """)
 

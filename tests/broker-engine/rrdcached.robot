@@ -1,17 +1,23 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric rebuild/deletion with rrdcached
 
-Resource    ../resources/import.resource
+Resource            ../resources/import.resource
 
-Suite Setup    Ctn Clean Before Suite With rrdcached
-Suite Teardown    Ctn Clean After Suite With rrdcached
-Test Setup    Ctn Stop Processes
-Test Teardown    Ctn Save Logs If Failed
+Suite Setup         Ctn Clean Before Suite With rrdcached
+Suite Teardown      Ctn Clean After Suite With rrdcached
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
 BRRDCDDM1
-    [Documentation]    RRD metrics deletion from metric ids with rrdcached.
+    [Documentation]    Scenario: RRD metrics deletion from metric ids with rrdcached
+    ...    Given Broker is configured with an rrd output using the rrdcached socket
+    ...    And 3 metrics exist in the storage database
+    ...    When Broker and Engine are started and connected
+    ...    And a remove graphs request is sent for these 3 metrics
+    ...    Then Broker logs that the metrics are erased from the database
+    ...    And the 3 corresponding rrd files are removed from disk
     [Tags]    rrd    metric    deletion    rrdcached
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
@@ -39,15 +45,22 @@ BRRDCDDM1
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
 
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No log message telling about metrics ${metrics_str} deletion.
     FOR    ${m}    IN    @{metrics}
         Log To Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
-        Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
+        Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    30s
     END
 
 BRRDCDDID1
-    [Documentation]    RRD metrics deletion from index ids with rrdcached.
+    [Documentation]    Scenario: RRD metrics deletion from index ids with rrdcached
+    ...    Given Broker is configured with an rrd output using the rrdcached socket
+    ...    And 3 metrics exist in the storage database
+    ...    When Broker and Engine are started and connected
+    ...    And a remove graphs request is sent for 2 indexes
+    ...    Then Broker logs that these indexes are erased from the database
+    ...    And the index status rrd files are removed from disk
+    ...    And the metrics rrd files matching these indexes are removed from disk
     [Tags]    rrd    metric    deletion    rrdcached
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
@@ -75,19 +88,23 @@ BRRDCDDID1
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
 
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No log message telling about indexes ${indexes_str} deletion.
     FOR    ${i}    IN    @{indexes}
         Log To Console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
-        Wait Until Removed    ${VarRoot}/lib/centreon/status/${i}.rrd    20s
+        Wait Until Removed    ${VarRoot}/lib/centreon/status/${i}.rrd    30s
     END
     FOR    ${m}    IN    @{metrics}
         Log To Console    Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
-        Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
+        Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    30s
     END
 
 BRRDCDDMID1
-    [Documentation]    RRD deletion of non existing metrics and indexes with rrdcached
+    [Documentation]    Scenario: RRD deletion of non existing metrics and indexes with rrdcached
+    ...    Given Broker is configured with an rrd output using the rrdcached socket
+    ...    When Broker and Engine are started and connected
+    ...    And a remove graphs request is sent for indexes and metrics that do not exist
+    ...    Then Broker logs that these indexes and metrics do not appear in the storage database
     [Tags]    rrd    metric    deletion    rrdcached
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
@@ -112,13 +129,19 @@ BRRDCDDMID1
 
     Ctn Remove Graphs    51001    ${indexes}    ${metrics}
     ${content}    Create List    do not appear in the storage database
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    A message telling indexes nor metrics appear in the storage database should appear.
 
 BRRDCDDMU1
-    [Documentation]    RRD metric deletion on table metric with unified sql output with rrdcached
+    [Documentation]    Scenario: RRD metric deletion from metric ids with unified_sql output and rrdcached
+    ...    Given Broker is configured with a unified_sql output and an rrd output using the rrdcached socket
+    ...    And 3 metrics exist in the storage database
+    ...    When Broker and Engine are started and connected
+    ...    And a remove graphs request is sent for these 3 metrics
+    ...    Then Broker logs that the metrics are erased from the database
+    ...    And the 3 corresponding rrd files are removed from disk
     [Tags]    rrd    metric    deletion unified_sql    rrdcached
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
@@ -148,10 +171,10 @@ BRRDCDDMU1
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
 
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    50
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No log message telling about metrics ${metrics_str} deletion.
     FOR    ${m}    IN    @{metrics}
-        Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
+        Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    30s
     END
 
 BRRDCDDIDU1

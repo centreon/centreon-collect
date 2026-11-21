@@ -39,7 +39,7 @@ class hostdependency {
   void modify_object(configuration::Hostdependency* to_modify,
                      const configuration::Hostdependency& new_obj);
   void remove_object(uint64_t hash_key);
-  void resolve_object(const configuration::Hostdependency& obj, error_cnt& err);
+  void resolve_object(const configuration::Hostdependency& obj);
 };
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration

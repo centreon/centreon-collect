@@ -17,10 +17,13 @@
  *
  */
 #include "common/engine_conf/state_helper.hh"
+#include <absl/container/inlined_vector.h>
 #include <google/protobuf/descriptor.h>
 #include <rapidjson/rapidjson.h>
+#include <vector>
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/anomalydetection_helper.hh"
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/contactgroup_helper.hh"
 #include "common/engine_conf/host_helper.hh"
@@ -523,7 +526,8 @@ bool state_helper::apply_extended_conf(
  * @param pb_config The protobuf configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void state_helper::expand(configuration::error_cnt& err) {
+void state_helper::expand(configuration::error_cnt& err,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   configuration::State& pb_config = *static_cast<State*>(mut_obj());
 
   absl::flat_hash_map<std::string_view, const configuration::Host*> m_host;
@@ -571,7 +575,7 @@ void state_helper::expand(configuration::error_cnt& err) {
                                    m_servicegroups);
   // Timeperiods carry nothing to expand, but their mutual exclusions are
   // cross-checked here so a dangling exclusion invalidates the configuration.
-  timeperiod_helper::expand(pb_config, err);
+  timeperiod_helper::expand(pb_config, err, logger);
   // Expand custom variables
   state_helper::_expand_cv(pb_config);
 }
@@ -613,6 +617,378 @@ void state_helper::_expand_cv(configuration::State& s) {
         cv.set_is_sent(true);
     }
   }
+}
+
+/**
+ * @brief Validate the whole configuration once it has been expanded.
+ *
+ * This is the configuration-level counterpart of the Engine runtime objects'
+ * `resolve()` methods: it must run after `expand()` and only accumulates
+ * warnings/errors into @a err (it never throws), performing no runtime wiring.
+ * It builds the cross-reference indexes needed by the per-object validators
+ * (command and timeperiod names for now) and delegates to each
+ * `*_helper::resolve`. Consumed by CheckPollerConfig (Broker) and by Engine's
+ * verify-config / start / reload paths.
+ *
+ * @param err Warning/error counters, incremented in place.
+ * @param logger Logger for the diagnostics; defaults to the shared CONFIG
+ * logger when null.
+ */
+namespace {
+
+/* Circular-path validation on the expanded protobuf State. It rejects a
+ * configuration whose host parent/child relations or notification/execution
+ * dependencies form a cycle. It runs on the post-expand State (dependencies are
+ * concrete single pairs keyed by names), accumulates config_errors and never
+ * throws. Living in state_helper::resolve, it runs on both the Engine startup
+ * path and the Broker centralized-ingestion / CheckPollerConfig paths, so a
+ * cyclic configuration is rejected everywhere. */
+
+/* Part 1: circular host parent/child chains. A visited host is 'gray' (on the
+ * current DFS stack) then 'black' (fully explored); absent = unvisited. */
+enum class dfs_color { gray, black };
+
+/**
+ * @brief Depth-first walk of the host parent adjacency, collecting cycles.
+ *
+ * On a back-edge to a host still on the current stack (gray), every host on the
+ * stack from that host up to the current one is recorded as being on a loop.
+ * Mirrors the former Engine dfs_host_path.
+ *
+ * @param name The host currently being visited.
+ * @param by_name Index of every defined host, keyed by host name.
+ * @param status Per-host DFS color; a host is absent (unvisited), gray (on the
+ * current stack) or black (fully explored). Updated in place.
+ * @param on_loop Accumulates the names of the hosts found to be on a cycle.
+ * @param stack The current DFS recursion stack (host names).
+ */
+void dfs_host_parents(
+    std::string_view name,
+    const absl::flat_hash_map<std::string_view, const Host*>& by_name,
+    absl::flat_hash_map<std::string_view, dfs_color>& status,
+    absl::flat_hash_set<std::string_view>& on_loop,
+    absl::InlinedVector<std::string_view, 32>& stack) {
+  status[name] = dfs_color::gray;
+  stack.push_back(name);
+  if (auto it = by_name.find(name); it != by_name.end())
+    for (const auto& parent : it->second->parents().data()) {
+      if (!by_name.contains(parent))
+        continue;  // undefined parent: reported by host_helper::resolve
+      auto st = status.find(parent);
+      if (st == status.end())
+        dfs_host_parents(parent, by_name, status, on_loop, stack);
+      else if (st->second == dfs_color::gray) {
+        /* Back-edge: the loop is the stack slice from `parent` to the top. */
+        bool in_loop = false;
+        for (std::string_view n : stack) {
+          in_loop = in_loop || n == parent;
+          if (in_loop)
+            on_loop.insert(n);
+        }
+      }
+    }
+  stack.pop_back();
+  status[name] = dfs_color::black;
+}
+
+/**
+ * @brief Detect circular host parent/child chains and report each host on a
+ * cycle.
+ *
+ * @param s The expanded protobuf configuration.
+ * @param err Warning/error counters; incremented once per host on a cycle.
+ * @param log Logger receiving the human-readable diagnostics.
+ */
+void check_host_circular_paths(const State& s,
+                               error_cnt& err,
+                               const std::shared_ptr<spdlog::logger>& log) {
+  absl::flat_hash_map<std::string_view, const Host*> by_name;
+  by_name.reserve(s.hosts().size());
+  for (const auto& h : s.hosts())
+    by_name.emplace(h.host_name(), &h);
+
+  absl::flat_hash_map<std::string_view, dfs_color> status;
+  absl::flat_hash_set<std::string_view> on_loop;
+  absl::InlinedVector<std::string_view, 32> stack;
+
+  for (const auto& h : s.hosts())
+    if (!status.contains(h.host_name()))
+      dfs_host_parents(h.host_name(), by_name, status, on_loop, stack);
+
+  for (const auto& h : s.hosts())
+    if (on_loop.contains(h.host_name())) {
+      log->error(
+          "Error: The host '{}' is part of a circular parent/child chain!",
+          h.host_name());
+      err.config_errors++;
+    }
+}
+
+/* Parts 2 & 3: circular dependencies. Generic over the dependent/master key
+ * (host name for host dependencies, (host, service) pair for service
+ * dependencies). Mirrors check_for_circular_{host,service}dependency_path: from
+ * each root dependency we walk its "parent" dependencies (those whose dependent
+ * equals the current dependency's master) and flag a cycle when we reach a
+ * dependency whose master is the root's dependent. Execution dependencies
+ * always chain; notification dependencies chain only when inherits_parent is
+ * set. Callers pass only the dependencies of the type being checked. */
+template <typename Key>
+struct dep_edge {
+  Key dependent;
+  Key master;
+  bool inherits_parent;
+};
+
+/**
+ * @brief Depth-first search for a dependency cycle starting at @a root.
+ *
+ * From @a root we walk the "parent" dependencies (those whose dependent equals
+ * the current dependency's master) and report a cycle when reaching a
+ * dependency whose master is the root's dependent.
+ *
+ * @tparam Key The dependent/master key type (host name, or (host, service)).
+ * @param cur The dependency currently being visited (index into @a deps).
+ * @param root The dependency whose cycle membership is being tested.
+ * @param notification true for notification dependencies (which chain only when
+ * inherits_parent is set); false for execution dependencies (which always
+ * chain).
+ * @param deps All dependencies of the type being checked.
+ * @param by_dependent Index from a dependent key to the dependencies it owns.
+ * @param checked Guards against re-visiting a dependency within one root's walk.
+ * @return true if a cycle through @a root exists.
+ */
+template <typename Key>
+bool dfs_dependency_cycle(
+    size_t cur,
+    size_t root,
+    bool notification,
+    const std::vector<dep_edge<Key>>& deps,
+    const absl::flat_hash_map<Key, std::vector<size_t>>& by_dependent,
+    absl::flat_hash_set<size_t>& checked) {
+  if (!checked.insert(cur).second)
+    return false;
+  if (cur != root && deps[root].dependent == deps[cur].master)
+    return true;
+  if (notification && !deps[cur].inherits_parent)
+    return false;
+  if (auto it = by_dependent.find(deps[cur].master); it != by_dependent.end())
+    for (size_t nxt : it->second)
+      if (dfs_dependency_cycle(nxt, root, notification, deps, by_dependent,
+                               checked))
+        return true;
+  return false;
+}
+
+/**
+ * @brief Detect circular dependencies of a single kind and report each root on
+ * a cycle.
+ *
+ * @tparam Key The dependent/master key type (host name, or (host, service)).
+ * @tparam Describe A callable Key-edge -> std::string naming the offending
+ * dependency for the diagnostic.
+ * @param deps All dependencies of the type being checked (post-expand, concrete
+ * single pairs).
+ * @param notification true for notification dependencies, false for execution.
+ * @param err Warning/error counters; incremented once per root on a cycle.
+ * @param log Logger receiving the human-readable diagnostics.
+ * @param kind "notification" or "execution", used in the diagnostic message.
+ * @param describe Builds the human-readable description of a dependency.
+ */
+template <typename Key, typename Describe>
+void check_dependency_circular_paths(const std::vector<dep_edge<Key>>& deps,
+                                     bool notification,
+                                     error_cnt& err,
+                                     const std::shared_ptr<spdlog::logger>& log,
+                                     std::string_view kind,
+                                     Describe describe) {
+  absl::flat_hash_map<Key, std::vector<size_t>> by_dependent;
+  for (size_t i = 0; i < deps.size(); ++i)
+    by_dependent[deps[i].dependent].push_back(i);
+
+  for (size_t root = 0; root < deps.size(); ++root) {
+    absl::flat_hash_set<size_t> checked;
+    if (dfs_dependency_cycle(root, root, notification, deps, by_dependent,
+                             checked)) {
+      log->error(
+          "Error: A circular {} dependency (which could result in a deadlock) "
+          "exists for {}!",
+          kind, describe(deps[root]));
+      err.config_errors++;
+    }
+  }
+}
+
+/**
+ * @brief Run the three circular-path checks (host parent/child chains,
+ * notification and execution host & service dependencies) on the expanded
+ * State.
+ *
+ * @param s The expanded protobuf configuration.
+ * @param err Warning/error counters, incremented in place.
+ * @param log Logger receiving the human-readable diagnostics.
+ */
+void check_circular_paths(const State& s,
+                          error_cnt& err,
+                          const std::shared_ptr<spdlog::logger>& log) {
+  check_host_circular_paths(s, err, log);
+
+  {
+    std::vector<dep_edge<std::string_view>> notif, exec;
+    for (const auto& hd : s.hostdependencies()) {
+      if (hd.dependent_hosts().data().empty() || hd.hosts().data().empty())
+        continue;
+      dep_edge<std::string_view> e{hd.dependent_hosts().data(0),
+                                   hd.hosts().data(0), hd.inherits_parent()};
+      if (hd.dependency_type() == DependencyKind::notification_dependency)
+        notif.push_back(e);
+      else if (hd.dependency_type() == DependencyKind::execution_dependency)
+        exec.push_back(e);
+    }
+    auto describe = [](const dep_edge<std::string_view>& e) {
+      return fmt::format("host '{}'", e.dependent);
+    };
+    check_dependency_circular_paths(exec, false, err, log, "execution",
+                                    describe);
+    check_dependency_circular_paths(notif, true, err, log, "notification",
+                                    describe);
+  }
+
+  {
+    using key = std::pair<std::string_view, std::string_view>;
+    std::vector<dep_edge<key>> notif, exec;
+    for (const auto& sd : s.servicedependencies()) {
+      if (sd.dependent_hosts().data().empty() ||
+          sd.dependent_service_description().data().empty() ||
+          sd.hosts().data().empty() || sd.service_description().data().empty())
+        continue;
+      dep_edge<key> e{{sd.dependent_hosts().data(0),
+                       sd.dependent_service_description().data(0)},
+                      {sd.hosts().data(0), sd.service_description().data(0)},
+                      sd.inherits_parent()};
+      if (sd.dependency_type() == DependencyKind::notification_dependency)
+        notif.push_back(e);
+      else if (sd.dependency_type() == DependencyKind::execution_dependency)
+        exec.push_back(e);
+    }
+    auto describe = [](const dep_edge<key>& e) {
+      return fmt::format("service '{}' on host '{}'", e.dependent.second,
+                         e.dependent.first);
+    };
+    check_dependency_circular_paths(exec, false, err, log, "execution",
+                                    describe);
+    check_dependency_circular_paths(notif, true, err, log, "notification",
+                                    describe);
+  }
+}
+
+}  // namespace
+
+void state_helper::resolve(error_cnt& err,
+                           const std::shared_ptr<spdlog::logger>& logger) {
+  configuration::State& pb_config = *static_cast<State*>(mut_obj());
+  auto log = logger ? logger : log_v2::instance().get(log_v2::CONFIG);
+
+  /* Build a name index and, doing so, reject any object defined more than once
+   * under the same name: a named object must be unique. The insertion failing
+   * means the name was already seen. */
+  auto index_unique_names = [&](const auto& objects, auto&& name_of,
+                                std::string_view type_label) {
+    absl::flat_hash_set<std::string_view> names;
+    names.reserve(objects.size());
+    for (const auto& o : objects) {
+      if (!names.insert(name_of(o)).second) {
+        log->error("Error: {} '{}' is defined more than once", type_label,
+                   name_of(o));
+        err.config_errors++;
+      }
+    }
+    return names;
+  };
+
+  absl::flat_hash_set<std::string_view> timeperiod;
+  timeperiod.reserve(pb_config.timeperiods().size());
+  for (const auto& tp : pb_config.timeperiods())
+    timeperiod.insert(tp.timeperiod_name());
+
+  absl::flat_hash_set<std::string_view> command = index_unique_names(
+      pb_config.commands(),
+      [](const Command& c) -> std::string_view { return c.command_name(); },
+      "command");
+
+  absl::flat_hash_set<std::string_view> contact;
+  contact.reserve(pb_config.contacts().size());
+  for (const auto& c : pb_config.contacts())
+    contact.insert(c.contact_name());
+
+  absl::flat_hash_set<std::string_view> contactgroup;
+  contactgroup.reserve(pb_config.contactgroups().size());
+  for (const auto& cg : pb_config.contactgroups())
+    contactgroup.insert(cg.contactgroup_name());
+
+  // Index of every defined host name; the value tells whether the host carries
+  // at least one service or anomaly detection (used for the "no services"
+  // warning). Only already-declared hosts are marked, never inserted, so the
+  // key set keeps its host-existence meaning for the other validators.
+  absl::flat_hash_map<std::string_view, bool> host;
+  host.reserve(pb_config.hosts().size());
+  for (const auto& h : pb_config.hosts())
+    host.emplace(h.host_name(), false);
+
+  absl::flat_hash_set<std::pair<std::string_view, std::string_view>> service;
+  service.reserve(pb_config.services().size());
+  for (const auto& s : pb_config.services()) {
+    service.emplace(s.host_name(), s.service_description());
+    if (auto it = host.find(s.host_name()); it != host.end())
+      it->second = true;
+  }
+  for (const auto& ad : pb_config.anomalydetections()) {
+    if (auto it = host.find(ad.host_name()); it != host.end())
+      it->second = true;
+  }
+
+  const std::string& illegal_chars = pb_config.illegal_object_chars();
+  for (auto& c : pb_config.contacts())
+    contact_helper::resolve(c, command, timeperiod, illegal_chars, err, log);
+
+  for (auto& cg : pb_config.contactgroups())
+    contactgroup_helper::resolve(cg, contact, illegal_chars, err, log);
+
+  for (auto& hg : pb_config.hostgroups())
+    hostgroup_helper::resolve(hg, host, illegal_chars, err, log);
+
+  for (auto& sg : pb_config.servicegroups())
+    servicegroup_helper::resolve(sg, service, illegal_chars, err, log);
+
+  for (auto& hd : pb_config.hostdependencies())
+    hostdependency_helper::resolve(hd, host, timeperiod, err, log);
+
+  for (auto& sd : pb_config.servicedependencies())
+    servicedependency_helper::resolve(sd, service, timeperiod, err, log);
+
+  for (auto& he : pb_config.hostescalations())
+    hostescalation_helper::resolve(he, host, contactgroup, timeperiod, err,
+                                   log);
+
+  for (auto& se : pb_config.serviceescalations())
+    serviceescalation_helper::resolve(se, service, contactgroup, timeperiod,
+                                      err, log);
+
+  for (auto& h : pb_config.hosts())
+    host_helper::resolve(h, host, contact, contactgroup, command, timeperiod,
+                         illegal_chars, err, log);
+
+  for (auto& svc : pb_config.services())
+    service_helper::resolve(svc, host, contact, contactgroup, command,
+                            timeperiod, illegal_chars, err, log);
+
+  for (auto& ad : pb_config.anomalydetections())
+    anomalydetection_helper::resolve(ad, host, contact, contactgroup, command,
+                                     timeperiod, illegal_chars, err, log);
+
+  /* Cross-object circular-path validation (host parent/child chains and
+   * notification/execution dependencies), ported from the former Engine
+   * runtime pre_flight_circular_check. */
+  check_circular_paths(pb_config, err, log);
 }
 
 }  // namespace com::centreon::engine::configuration

@@ -57,6 +57,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/engine_notification_callbacks.hh"
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
+#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/macros/misc.hh"
@@ -191,8 +192,6 @@ int main(int argc, char* argv[]) {
       ("verify-config,v", "Verify all configuration data")
       ("test-scheduling,s", "Show projected/recommended check scheduling and other diagnostic info"
        " based on the current configuration files")
-      ("dont-verify-paths,x",
-       "Don't check for circular object paths - USE WITH CAUTION!")
       ("diagnose,D", "Generate a diagnostic file")
       ("broker-config,b", po::value<std::string>()->value_name("module_file"),
        "Broker configuration file")
@@ -258,8 +257,6 @@ int main(int argc, char* argv[]) {
         verify_config = true;
       if (vm.count("test-scheduling"))
         test_scheduling = true;
-      if (vm.count("dont-verify-paths"))
-        verify_circular_paths = false;
       if (vm.count("diagnose"))
         diagnose = true;
       if (vm.count("proto-conf"))
@@ -309,6 +306,7 @@ int main(int argc, char* argv[]) {
             if (broker_config.empty())
               broker_config = pb_cfg->broker_module_cfg_file();
             state_hlp.expand(err);
+            state_hlp.resolve(err);
           }
           configuration::applier::state::instance().apply(*pb_cfg, err);
           std::cout << "\n Checked " << commands::command::commands.size()
@@ -329,8 +327,7 @@ int main(int argc, char* argv[]) {
                     << " service escalations.\n Checked "
                     << servicegroup::servicegroups.size()
                     << " service groups.\n Checked " << service::services.size()
-                    << " services.\n Checked "
-                    << ::timeperiods.size()
+                    << " services.\n Checked " << ::timeperiods.size()
                     << " time periods.\n\n Total Warnings: "
                     << err.config_warnings
                     << "\n Total Errors:   " << err.config_errors << std::endl;
@@ -370,6 +367,11 @@ int main(int argc, char* argv[]) {
             if (broker_config.empty())
               broker_config = pb_cfg->broker_module_cfg_file();
             state_hlp.expand(err);
+            state_hlp.resolve(err);
+            if (err.config_errors)
+              throw engine_error() << fmt::format(
+                  "Cannot test scheduling: the configuration has {} error(s)",
+                  err.config_errors);
           }
 
           // Parse retention.
@@ -426,10 +428,18 @@ int main(int argc, char* argv[]) {
             }
           }
           if (!proto_valid) {
+            /* A user-edited centengine.cfg must be validated before we start;
+             * the proto pushed by Broker (proto_valid) is already validated by
+             * Broker (CheckPollerConfig) and is trusted as-is. */
             configuration::state_helper state_hlp(new_conf.get());
             configuration::parser p;
             p.parse(config_file, new_conf.get(), err);
             state_hlp.expand(err);
+            state_hlp.resolve(err);
+            if (err.config_errors)
+              throw engine_error() << fmt::format(
+                  "Cannot start: the configuration has {} error(s)",
+                  err.config_errors);
           }
           configuration::extended_conf::load_all(extended_conf_file.begin(),
                                                  extended_conf_file.end());
@@ -596,11 +606,6 @@ int main(int argc, char* argv[]) {
    * queue: they may have been enqueued by libopentelemetry.so, and their
    * destruction goes through vtables living in that library. */
   command_manager::instance().clear();
-
-  /* Destroy the timeperiods at a controlled point (they are a global now, no
-   * more timeperiod_manager) so it does not happen during static destruction.
-   * It is done after applier::state::clear() above. */
-  ::timeperiods.clear();
 
   /* The io_context is shared with the broker modules (externalcmd, cbmod
    * outputs): services they registered in it are destroyed by ~io_context,

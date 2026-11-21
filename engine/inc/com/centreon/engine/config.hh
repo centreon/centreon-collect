@@ -23,15 +23,4 @@
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/servicegroup.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif  // C++
-
-// Detects circular dependencies and paths.
-int pre_flight_circular_check(uint32_t* w, uint32_t* e);
-
-#ifdef __cplusplus
-}
-#endif  // C++
-
 #endif  // !CCE_CONFIG_HH

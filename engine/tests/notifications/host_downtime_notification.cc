@@ -18,10 +18,12 @@
  */
 
 #include <cstring>
+#include "common/engine_conf/timeperiod_helper.hh"
+#include "common/timeperiods/timeperiod.hh"
+#include "helper.hh"
 
 #include <com/centreon/engine/configuration/applier/timeperiod.hh>
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
@@ -30,9 +32,7 @@
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "common/engine_conf/timeperiod_helper.hh"
-#include "common/timeperiods/timeperiod.hh"
-#include "helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -54,12 +54,12 @@ class HostDowntimeNotification : public TestEngine {
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host aply;
     aply.add_object(hst);
-    aply.resolve_object(hst, err);
+    aply.resolve_object(hst);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

@@ -84,37 +84,6 @@ bool serviceescalation::is_viable(int state,
     return retval;
 }
 
-void serviceescalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
-  uint32_t errors = 0;
-
-  // Find the service.
-  service_map::const_iterator found{
-      service::services.find({get_hostname(), get_description()})};
-  if (found == service::services.end() || !found->second) {
-    config_logger->error(
-        "Error: Service '{}' on host '{}' specified in service escalation is "
-        "not defined anywhere!",
-        get_description(), get_hostname());
-    errors++;
-    notifier_ptr = nullptr;
-  } else {
-    notifier_ptr = found->second.get();
-    notifier_ptr->get_escalations().push_back(this);
-  }
-
-  try {
-    escalation::resolve(w, errors);
-  } catch (std::exception const& ee) {
-    config_logger->error("Error: Notifier escalation error: {}", ee.what());
-  }
-
-  // Add errors.
-  if (errors) {
-    e += errors;
-    throw engine_error() << "Cannot resolve service escalation";
-  }
-}
-
 /**
  * @brief Checks that this serviceescalation corresponds to the Configuration
  * object obj. This function doesn't check contactgroups as it is usually used

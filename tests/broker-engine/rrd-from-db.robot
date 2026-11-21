@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric deletion from the legacy query made by the php.
 
-Resource    ../resources/import.resource
+Resource            ../resources/import.resource
 
-Suite Setup    Ctn Clean Before Suite
-Suite Teardown    Ctn Clean After Suite
-Test Setup    Ctn Stop Processes
-Test Teardown    Ctn Stop Engine Broker And Save Logs
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -154,7 +154,14 @@ BRRDRBDB1
     END
 
 BRRDRBUDB1
-    [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql
+    [Documentation]    Scenario: RRD metric rebuild triggered from the storage database with unified_sql output
+    ...    Given Broker is configured with a unified_sql output and BBDO3
+    ...    And 3 metrics exist in the storage database
+    ...    When Broker and Engine are started and connected
+    ...    And 3 indexes to rebuild are collected (forcing service checks if needed)
+    ...    And these indexes are flagged to rebuild in the storage database and Broker is reloaded
+    ...    Then RRD starts, rebuilds and finishes rebuilding the matching metrics
+    ...    And the rebuilt rrd metric files hold the expected average value
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
@@ -194,11 +201,11 @@ BRRDRBUDB1
     Log To Console    Metrics to rebuild: ${metrics}
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
-    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    60
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
-    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    60
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics

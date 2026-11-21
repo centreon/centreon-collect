@@ -78,10 +78,10 @@ TEST_F(ApplierHostGroup, PbNewHostGroup) {
 
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_b, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_b));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   ASSERT_EQ(engine::hostgroup::hostgroups.size(), 1u);
   ASSERT_EQ(engine::hostgroup::hostgroups.begin()->second->members.size(), 3u);
@@ -120,9 +120,9 @@ TEST_F(ApplierHostGroup, PbHostRenamed) {
 
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
@@ -168,9 +168,9 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
 
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   engine::hostgroup* hg_obj{engine::hostgroup::hostgroups["temphg"].get()};
   ASSERT_EQ(hg_obj->members.size(), 2u);

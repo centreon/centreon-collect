@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
@@ -460,8 +461,7 @@ void applier::service::remove_object(const std::pair<uint64_t, uint64_t>& key) {
  *
  *  @param[in] obj  Service object.
  */
-void applier::service::resolve_object(const configuration::Service& obj,
-                                      error_cnt& err) {
+void applier::service::resolve_object(const configuration::Service& obj) {
   // Logging.
   config_logger->debug("Resolving service '{}' of host '{}'.",
                        obj.service_description(), obj.host_name());
@@ -486,8 +486,46 @@ void applier::service::resolve_object(const configuration::Service& obj,
         static_cast<uint64_t>(it->second->check_interval()));
   }
 
-  // Resolve service.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  // This is pure wiring: the notifier part, the host and the service
+  // description are validated by state_helper::resolve (single home). Here we
+  // only wire the host backlink.
+  auto* s = it->second.get();
+
+  // Wire the notifier-common runtime pointers (contacts, contact groups,
+  // commands, periods) and clear the escalations (refilled by the escalation
+  // appliers, which run afterwards).
+  s->resolve_pointers();
+
+  /* check if the service is a CMA service */
+  bool is_cma_service = false;
+  if (s->get_check_command_ptr()) {
+    if (s->get_check_command_ptr()->get_type() ==
+        commands::command::e_type::otel)
+      is_cma_service = true;
+    if (s->get_check_command_ptr()->get_type() ==
+        commands::command::e_type::forward) {
+      is_cma_service = std::static_pointer_cast<commands::forward>(
+                           s->get_check_command_ptr())
+                           ->get_sub_command()
+                           ->get_type() == commands::command::e_type::otel;
+    }
+  }
+  s->set_is_cma_service(is_cma_service);
+  if (is_cma_service)
+    config_logger->info(
+        "Service '{}' on host '{}' is detected as a CMA service.",
+        obj.service_description(), obj.host_name());
+
+  host_map::const_iterator hit{engine::host::hosts.find(obj.host_name())};
+  if (hit == engine::host::hosts.end() || !hit->second)
+    s->set_host_ptr(nullptr);
+  else {
+    s->set_host_ptr(hit->second);
+    hit->second->services.insert(
+        {{obj.host_name(), obj.service_description()}, s});
+    broker_relation_data(NEBTYPE_PARENT_ADD, s->get_host_ptr().get(), nullptr,
+                         nullptr, s);
+  }
 }
 
 /**
