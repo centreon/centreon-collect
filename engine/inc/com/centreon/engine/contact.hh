@@ -127,7 +127,6 @@ class contact {
   bool should_be_notified(common::notifications::notification_category cat,
                           common::notifications::reason_type type,
                           notifier const& notif) const;
-  void resolve(uint32_t& w, uint32_t& e);
   map_customvar const& get_custom_variables() const;
   map_customvar& get_custom_variables();
   com::centreon::common::timeperiods::timeperiod*

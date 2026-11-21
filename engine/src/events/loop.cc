@@ -26,9 +26,9 @@
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
+#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
-#include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 
 using namespace com::centreon::engine;
@@ -103,6 +103,13 @@ static void apply_conf(std::atomic<bool>* reloading) {
       std::string path(::pb_indexed_config.state().cfg_main());
       p.parse(path, cfg.get(), err);
       config_hlp.expand(err);
+      config_hlp.resolve(err);
+      /* A user may have edited centengine.cfg: reject a reload that carries
+       * configuration errors and keep running with the current configuration.
+       */
+      if (err.config_errors)
+        throw engine_error() << "Cannot reload: the configuration has "
+                             << err.config_errors << " error(s)";
     }
     configuration::extended_conf::update_state(cfg.get());
     configuration::applier::state::instance().apply(*cfg, err);

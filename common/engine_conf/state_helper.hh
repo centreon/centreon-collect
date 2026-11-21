@@ -42,6 +42,8 @@ class state_helper : public message_helper {
   bool set_global(const std::string_view& key, const std::string_view& value);
   void expand(configuration::error_cnt& err,
               const std::shared_ptr<spdlog::logger>& logger = nullptr);
+  void resolve(configuration::error_cnt& err,
+               const std::shared_ptr<spdlog::logger>& logger = nullptr);
 };
 }  // namespace com::centreon::engine::configuration
 
