@@ -281,6 +281,7 @@ The `Welcome` message gets a few additional parameters:
 - `broker_name`,
 - `extended_negociation`
 - `peer_type`
+- `timezone`
 
 If `cbmod` is configured with the new parameters, it fills these new fields.
 
@@ -300,6 +301,11 @@ The `Welcome` message is now defined as follows:
       bool extended_negotiation = 7;
       /* Engine configuration version sent by Engine so Broker is aware of it. */
       string engine_conf = 8;
+      /* Local timezone of the poller machine (IANA name), sent by Engine so Broker
+       * can evaluate notification/dependency timeperiods in the poller's timezone
+       * when a host/service carries no explicit timezone. Empty for non-Engine
+       * peers. */
+      string timezone = 9;
     }
 ```
 
@@ -312,7 +318,9 @@ The `version` and `extensions` fields do not change. `poller_id` and `poller_nam
 - MAP
 - UNKNOWN
 
-Finally, `extended_negotiation` is a boolean that indicates whether the program can handle the new negotiation, so for an `Engine`, whether it knows about the Protobuf configuration directory, and for a `Broker`, whether it knows about the PHP cache directory.
+`extended_negotiation` is a boolean that indicates whether the program can handle the new negotiation, so for an `Engine`, whether it knows about the Protobuf configuration directory, and for a `Broker`, whether it knows about the PHP cache directory.
+
+Finally, `timezone` holds the poller machine's local timezone (IANA name, for example `Europe/Paris`), as returned by `absl::LocalTimeZone()` on the `Engine` side. It is only filled by an `Engine`. `Broker` keeps it per poller and uses it as the fallback timezone to evaluate notification (and dependency) timeperiods when a host/service carries no explicit `timezone` directive: in that case `Engine` evaluates timeperiods in its machine's local timezone, and `Broker`, which may live in another timezone, must therefore use the poller's timezone rather than its own.
 
 Until now, when code was executed in `cbmod` or in `Broker`, we didn't have visibility on the running program, we didn't know if we were in a `Broker` or in an `Engine`. With this evolution, we can know. This is important since we want `Broker` to send the configuration to `Engine`.
 
