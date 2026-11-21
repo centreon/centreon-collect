@@ -224,3 +224,53 @@ TEST_F(Pb_Resolve, ContactNameIllegalCharsDisabledWhenEmpty) {
   ASSERT_EQ(err.config_warnings, 0u);
   ASSERT_EQ(err.config_errors, 0u);
 }
+
+// A contact group whose members all exist resolves without warning or error.
+TEST_F(Pb_Resolve, ContactgroupValid) {
+  State s = base_state();
+  add_valid_contact(s);  // contact "admin"
+  Contactgroup* cg = s.add_contactgroups();
+  cg->set_contactgroup_name("cg1");
+  cg->mutable_members()->add_data("admin");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A contact group referencing a non-existing contact is a single error.
+TEST_F(Pb_Resolve, ContactgroupNonExistingMember) {
+  State s = base_state();
+  add_valid_contact(s);  // contact "admin"
+  Contactgroup* cg = s.add_contactgroups();
+  cg->set_contactgroup_name("cg1");
+  cg->mutable_members()->add_data("ghost");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A contact group whose name contains a character listed in illegal_object_chars
+// is a single error.
+TEST_F(Pb_Resolve, ContactgroupNameWithIllegalChars) {
+  State s = base_state();
+  add_valid_contact(s);  // contact "admin"
+  Contactgroup* cg = s.add_contactgroups();
+  cg->set_contactgroup_name("cg!1");
+  cg->mutable_members()->add_data("admin");
+
+  state_helper hlp(&s);
+  s.set_illegal_object_chars("!$");
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}

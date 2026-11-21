@@ -97,34 +97,3 @@ std::ostream& operator<<(std::ostream& os, const contactgroup_map& obj) {
   }
   return os;
 }
-
-void contactgroup::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
-  uint32_t errors = 0;
-
-  for (contact_map::iterator it = _members.begin(), end = _members.end();
-       it != end; ++it) {
-    /* Check members */
-    if (!it->second) {
-      config_logger->error(
-          "Error: Contact '{}' specified in contact group '{}' is not defined "
-          "anywhere!",
-          it->first, _name);
-      errors++;
-    } else
-      it->second->get_parent_groups()[_name] = this;
-  }
-
-  /* Check for illegal characters in contact group name. */
-  if (contains_illegal_object_chars(_name)) {
-    config_logger->error(
-        "Error: The name of contact group '{}' contains one or more illegal "
-        "characters.",
-        _name);
-    errors++;
-  }
-
-  e += errors;
-  if (errors)
-    throw engine_error() << "Error: Cannot resolve contact group " << _name
-                         << "'";
-}
