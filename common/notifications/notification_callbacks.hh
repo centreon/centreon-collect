@@ -37,11 +37,20 @@ class notification_callbacks {
   virtual ~notification_callbacks() = default;
 
   /**
-   * @brief Get the program-wide notification configuration.
+   * @brief Get the effective notification configuration for a resource.
    *
-   * @return The global notification configuration snapshot.
+   * The returned @c enabled folds in the resource's own notification-enable
+   * flag together with the program-wide (Engine) or per-poller (Broker)
+   * setting, so a resource whose notifications are disabled yields
+   * @c enabled == false. The host application resolves the poller from the
+   * resource id; the library stays poller-agnostic.
+   *
+   * @param host_id The host id.
+   * @param service_id The service id; 0 designates a host.
+   *
+   * @return The effective notification configuration snapshot.
    */
-  virtual global_config get_global_config() const = 0;
+  virtual config get_config(uint64_t host_id, uint64_t service_id) const = 0;
 
   /**
    * @brief Get the notification-relevant state of a resource.

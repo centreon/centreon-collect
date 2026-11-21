@@ -51,17 +51,25 @@ notifier* get_resource(uint64_t host_id, uint64_t service_id) {
 }  // namespace
 
 /**
- * @brief Get the program-wide notification configuration.
+ * @brief Get the effective notification configuration for a resource.
  *
- * @return The global notification configuration snapshot.
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ *
+ * @return The effective notification configuration snapshot. @c enabled folds
+ * in the resource's own notification-enable flag, so an unknown resource or one
+ * with notifications disabled yields @c enabled == false.
  */
-notifications::global_config engine_notification_callbacks::get_global_config()
-    const {
-  notifications::global_config gc;
-  gc.enabled = pb_indexed_config.state().enable_notifications();
-  gc.send_recovery_notifications_anyway =
+notifications::config engine_notification_callbacks::get_config(
+    uint64_t host_id,
+    uint64_t service_id) const {
+  notifications::config cfg;
+  notifier* n = get_resource(host_id, service_id);
+  cfg.enabled = n && pb_indexed_config.state().enable_notifications() &&
+                n->get_notifications_enabled();
+  cfg.send_recovery_notifications_anyway =
       pb_indexed_config.state().send_recovery_notifications_anyway();
-  return gc;
+  return cfg;
 }
 
 /**
@@ -80,7 +88,6 @@ notifications::resource_state engine_notification_callbacks::get_state(
   if (!n)
     return rs;
 
-  rs.notifications_enabled = n->get_notifications_enabled();
   rs.flapping = n->get_is_flapping();
   rs.is_volatile = n->get_is_volatile();
   rs.hard_state = n->get_state_type() == checkable::hard;

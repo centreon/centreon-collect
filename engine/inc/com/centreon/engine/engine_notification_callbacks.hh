@@ -38,7 +38,8 @@ class engine_notification_callbacks
   engine_notification_callbacks() = default;
   ~engine_notification_callbacks() override = default;
 
-  common::notifications::global_config get_global_config() const override;
+  common::notifications::config get_config(uint64_t host_id,
+                                           uint64_t service_id) const override;
 
   common::notifications::resource_state get_state(
       uint64_t host_id,
