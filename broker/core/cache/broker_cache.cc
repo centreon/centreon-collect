@@ -225,7 +225,9 @@ void broker_cache::merge(
 
   /* Work on instances */
   if (section_enabled(CACHE_INSTANCES))
-    _instances.insert_or_assign(state.poller_id(), state.poller_name());
+    _instances.insert_or_assign(
+        state.poller_id(),
+        instance_info{state.poller_name(), state.enable_notifications()});
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -455,6 +457,14 @@ void broker_cache::apply(
 
   _logger->debug("Applying configuration diff for poller id {} and name '{}'",
                  diff.poller_id(), diff.poller_name());
+
+  /* A diff may toggle the program-wide notification flag without resending the
+   * whole state, so keep the cached value in sync. */
+  if (section_enabled(CACHE_INSTANCES) && diff.has_enable_notifications()) {
+    auto it = _instances.find(diff.poller_id());
+    if (it != _instances.end())
+      it->second.notifications_enabled = diff.enable_notifications();
+  }
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -1238,9 +1248,12 @@ void broker_cache::update_instance(
   absl::WriterMutexLock l{_mutex};
   auto& obj = instance->obj();
   if (section_enabled(CACHE_INSTANCES)) {
-    if (obj.running())
-      _instances.insert_or_assign(obj.instance_id(), obj.name());
-    else
+    if (obj.running()) {
+      /* The neb Instance event does not carry enable_notifications, so only
+       * refresh the name and keep any notifications_enabled value already set
+       * by merge()/apply(). */
+      _instances[obj.instance_id()].name = obj.name();
+    } else
       _instances.erase(obj.instance_id());
   }
 
@@ -1748,13 +1761,13 @@ void broker_cache::update_host(
        * overwrite it. */
       if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
         hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
+      index.replace(found, h);
+      updated = true;
 
       /* Acknowledgement event: decide under the lock, publish after release. */
       ack_to_close =
           _take_expired_acknowledgement(host_id, 0u, hst.acknowledgement_type(),
                                         static_cast<uint16_t>(hst.state()));
-      index.replace(found, h);
-      updated = true;
     } else {
       SPDLOG_LOGGER_WARN(_logger,
                          "Attempt to update host ({}) in Broker cache, but "
@@ -2624,7 +2637,23 @@ std::string broker_cache::instance(uint64_t instance_id) const {
   if (found == _instances.end())
     return "";
   else
-    return found->second;
+    return found->second.name;
+}
+
+/**
+ * @brief Tell whether notifications are enabled for the given poller.
+ *
+ * @param instance_id The poller ID.
+ *
+ * @return true if notifications are enabled (also the default when the poller
+ * is unknown).
+ */
+bool broker_cache::notifications_enabled(uint64_t instance_id) const {
+  absl::ReaderMutexLock l{_mutex};
+  auto found = _instances.find(instance_id);
+  if (found == _instances.end())
+    return true;
+  return found->second.notifications_enabled;
 }
 
 /**
@@ -2798,7 +2827,7 @@ std::vector<std::pair<uint64_t, uint64_t>> broker_cache::service_ids() const {
  */
 uint32_t broker_cache::first_active_instance_id() const {
   absl::ReaderMutexLock l{_mutex};
-  for (const auto& [id, name] : _instances) {
+  for (const auto& [id, info] : _instances) {
     if (id != 0)
       return id;
   }
@@ -3381,7 +3410,7 @@ void broker_cache::_load_cache() {
        * active downtimes (below) are read back in both modes. */
       if (!config::applier::state::instance().supports_centralized_conf()) {
         for (const auto& inst_pair : to_load.instances())
-          _instances.insert({inst_pair.id(), inst_pair.name()});
+          _instances.insert({inst_pair.id(), instance_info{inst_pair.name()}});
 
         /* Severities and tags: one entry per poller referencing them, or a
          * single one with poller_id 0 when no poller is known. */
@@ -3462,10 +3491,6 @@ void broker_cache::_load_cache() {
       if (to_load.next_downtime_comment_id() > _downtime_comment_id_base)
         _next_downtime_comment_id.store(to_load.next_downtime_comment_id(),
                                         std::memory_order_relaxed);
-      /* Restore open acknowledgements into the tracking map (both modes) so the
-       * cache can still close them on recovery after a restart. Not
-       * republished: the DB rows already exist; this only rebuilds the
-       * in-memory state. */
       for (const auto& a : to_load.acknowledgements()) {
         auto ack = std::make_shared<neb::pb_acknowledgement>();
         ack->mut_obj().CopyFrom(a);
@@ -3506,10 +3531,10 @@ void broker_cache::_save_cache() {
      * centralized mode they are rebuilt from the Engine configuration, so only
      * the active downtimes (below) are persisted. */
     if (!config::applier::state::instance().supports_centralized_conf()) {
-      for (const auto& [id, name] : _instances) {
+      for (const auto& [id, info] : _instances) {
         auto* inst_pair = to_save.add_instances();
         inst_pair->set_id(id);
-        inst_pair->set_name(name);
+        inst_pair->set_name(info.name);
       }
       /* Severities and tags: one entry per poller referencing them, to keep
        * the poller set, or a single one with poller_id 0 when it is empty. */
