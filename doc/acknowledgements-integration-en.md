@@ -2,6 +2,7 @@
 
 <!-- TOC -->
 * [Acknowledgements — Engine ↔ Broker integration](#acknowledgements--engine--broker-integration)
+  * [What is an acknowledgement?](#what-is-an-acknowledgement)
   * [Overview](#overview)
   * [Where the acknowledgement state lives](#where-the-acknowledgement-state-lives)
   * [The acknowledgement state (Engine side)](#the-acknowledgement-state-engine-side)
@@ -20,6 +21,30 @@
   * [Relation to poller HA](#relation-to-poller-ha)
   * [Before / after](#before--after)
 <!-- TOC -->
+
+---
+
+## What is an acknowledgement?
+
+When a host or service goes into a problem state (DOWN, UNREACHABLE, WARNING, CRITICAL…), Centreon
+notifies the relevant contacts and **repeats** those notifications at a regular interval for as long
+as the problem lasts. An **acknowledgement** is the action by which an operator says *"I've seen this
+problem, I'm taking care of it"*: it **silences the reminder notifications** for that resource
+without changing anything about its monitoring — the resource stays in its problem state, it is
+merely flagged as "handled". It usually carries a comment (author, a note) that remains visible in
+the UI.
+
+An acknowledgement therefore always applies to **the state of a host/service in problem**, never to a
+specific notification. You can only acknowledge something that is actually in a problem state, and
+the acknowledgement **goes away on its own** once the resource recovers (OK/UP). There are two
+flavours:
+
+- **normal**: the acknowledgement drops as soon as the state changes;
+- **sticky**: it persists until the resource has fully recovered, even if it moves from one problem
+  state to another (e.g. CRITICAL → WARNING).
+
+The rest of this document describes how that state — **decided** by Engine — is now **stored, closed
+and persisted** by Broker.
 
 ---
 

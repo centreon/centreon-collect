@@ -2,6 +2,7 @@
 
 <!-- TOC -->
 * [Acquittements — intégration Engine ↔ Broker](#acquittements--intégration-engine--broker)
+  * [Qu'est-ce qu'un acquittement ?](#quest-ce-quun-acquittement-)
   * [Vue d'ensemble](#vue-densemble)
   * [Où vit l'état d'acquittement](#où-vit-létat-dacquittement)
   * [L'état d'acquittement (côté Engine)](#létat-dacquittement-côté-engine)
@@ -20,6 +21,29 @@
   * [Lien avec la HA des pollers](#lien-avec-la-ha-des-pollers)
   * [Avant / après](#avant--après)
 <!-- TOC -->
+
+---
+
+## Qu'est-ce qu'un acquittement ?
+
+Quand un host ou un service tombe en problème (DOWN, UNREACHABLE, WARNING, CRITICAL…), Centreon
+prévient les contacts concernés et **répète** ces notifications à intervalle régulier tant que le
+problème dure. Un **acquittement** est le geste par lequel un opérateur dit *« j'ai vu ce problème,
+je le prends en charge »* : il **fait taire les notifications de rappel** pour cette ressource sans
+rien changer à sa supervision — la ressource reste en problème, elle est simplement marquée comme
+« prise en compte ». Un commentaire (auteur, explication) l'accompagne en général et reste visible
+dans l'interface.
+
+Un acquittement porte donc toujours sur **l'état d'un host/service en problème**, jamais sur une
+notification particulière. On ne peut acquitter que ce qui est effectivement en problème, et
+l'acquittement **disparaît de lui-même** au retour à la normale (OK/UP). Il en existe deux variantes :
+
+- **normal** : l'acquittement saute dès que l'état change ;
+- **sticky** (« collant ») : il persiste tant que la ressource n'est pas complètement guérie, même
+  si elle passe d'un état de problème à un autre (p. ex. CRITICAL → WARNING).
+
+Le reste de ce document décrit comment cet état — **décidé** par Engine — est désormais **stocké,
+fermé et persisté** par Broker.
 
 ---
 
