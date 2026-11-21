@@ -191,6 +191,9 @@ class broker_impl final : public Broker::Service {
   grpc::Status DeleteDowntime(grpc::ServerContext* context,
                               const GenericNameOrIndex* request,
                               ::google::protobuf::Empty* response) override;
+  grpc::Status CheckPollerConfig(grpc::ServerContext* context,
+                                 const CheckPollerConfigRequest* request,
+                                 CheckPollerConfigResponse* response) override;
 
  public:
   broker_impl();

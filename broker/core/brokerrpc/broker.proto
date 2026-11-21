@@ -226,6 +226,16 @@ service Broker {
    * @brief Delete (cancel) a previously scheduled downtime.
    */
   rpc DeleteDowntime(GenericNameOrIndex) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Validate an Engine poller configuration directory without applying
+   * it. The directory holds centengine.cfg and the .cfg files PHP generated.
+   *
+   * @return The list of configuration diagnostics (warnings/errors) and a flag
+   * telling whether the configuration is applicable (no error).
+   */
+  rpc CheckPollerConfig(CheckPollerConfigRequest)
+      returns (CheckPollerConfigResponse) {}
 }
 
 message PollerEntry {
@@ -559,4 +569,24 @@ message ScheduleDowntimeRequest {
 
 message ScheduleDowntimeResponse {
   uint64 downtime_id = 1;
+}
+
+message CheckPollerConfigRequest {
+  // Directory holding centengine.cfg and the other Engine .cfg files.
+  string directory = 1;
+}
+
+message ConfigDiagnostic {
+  enum Severity {
+    WARNING = 0;
+    ERROR = 1;
+  }
+  Severity severity = 1;
+  string message = 2;
+}
+
+message CheckPollerConfigResponse {
+  // true when the configuration has no error (warnings are tolerated).
+  bool ok = 1;
+  repeated ConfigDiagnostic diagnostics = 2;
 }
