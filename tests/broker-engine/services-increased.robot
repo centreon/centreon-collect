@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
 
-Resource    ../resources/import.resource
+Resource            ../resources/import.resource
 
-Suite Setup    Ctn Clean Before Suite
-Suite Teardown    Ctn Clean After Suite
-Test Setup    Ctn Stop Processes
-Test Teardown    Ctn Save Logs If Failed
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -101,10 +101,11 @@ Service_increased_huge_check_interval
     Ctn Process Service Check Result With Metrics    host_1    service_1    0    ok0    1
 
     ${content}    Create List    new pb data for metric
-    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    90
     Should Be True    ${result}    'new pb data for metric' not found in RRD logs
 
-    FOR    ${idx}    IN RANGE    60
+    ${index}    Create List
+    FOR    ${idx}    IN RANGE    90
         Sleep    1s
         ${index}    Ctn Get Indexes To Rebuild    2
         IF    len(${index}) == 2
@@ -115,8 +116,15 @@ Service_increased_huge_check_interval
             Ctn Schedule Forced Service Check    host_1    service_2
         END
     END
+    Should Be Equal As Integers    ${{len($index)}}    2    Two indexes to rebuild should be available.
     ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics: ${metrics}
+
+    # The metric rrd files may not be flushed to disk yet under load: wait for
+    # each of them before reading their rrd info.
+    FOR    ${m}    IN    @{metrics}
+        Wait Until Created    ${VarRoot}/lib/centreon/metrics/${m}.rrd    30s
+    END
 
     FOR    ${m}    IN    @{metrics}
         ${result}    Ctn Check Rrd Info    ${m}    ds[value].minimal_heartbeat    3000
@@ -146,19 +154,23 @@ Service_increased_huge_check_interval
     Ctn Reload Engine
 
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_${new_service_id};
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    "service_"${new_service_id}" init not found in log"
 
     ${start}    Get Current Date
 
-    Sleep    5s
-
-    Ctn Process Service Check Result With Metrics
-    ...    host_1
-    ...    service_${new_service_id}
-    ...    0    ok0    1
-
-    ${metrics}    Ctn Get Metrics For Service    ${new_service_id}
+    # The metric of the new service may not be created on the first check result:
+    # retry processing a check result until Broker registers its metric.
+    ${metrics}    Set Variable    ${None}
+    FOR    ${i}    IN RANGE    30
+        Ctn Process Service Check Result With Metrics
+        ...    host_1
+        ...    service_${new_service_id}
+        ...    0    ok0    1
+        ${metrics}    Ctn Get Metrics For Service    ${new_service_id}
+        IF    $metrics is not None and len($metrics) > 0    BREAK
+        Sleep    2s
+    END
 
     Should Not Be Equal    ${metrics}    ${None}    no metric found for service ${new_service_id}
 

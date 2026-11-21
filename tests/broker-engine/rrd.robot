@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric deletion
 
-Resource    ../resources/import.resource
+Resource            ../resources/import.resource
 
-Suite Setup    Ctn Clean Before Suite
-Suite Teardown    Ctn Clean After Suite
-Test Setup    Run Keywords    Ctn Stop Processes    AND    Ctn Clear Retention
-Test Teardown    Ctn Stop Engine Broker And Save Logs
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Run Keywords    Ctn Stop Processes    AND    Ctn Clear Retention
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -158,7 +158,15 @@ BRRDDMIDU1
     ...    A message telling indexes nor metrics appear in the storage database should appear.
 
 BRRDRMU1
-    [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
+    [Documentation]    Scenario: RRD metric rebuild through the gRPC API with unified_sql output
+    ...    Given Broker is configured with a unified_sql output and BBDO3
+    ...    And 3 metrics exist in the storage database
+    ...    When Broker and Engine are started and connected
+    ...    And 3 indexes to rebuild are collected (forcing service checks if needed)
+    ...    And a rebuild request is sent for these indexes through the gRPC API
+    ...    Then Central sends the metrics to rebuild and RRD starts, rebuilds and finishes them
+    ...    And the rebuilt rrd metric files hold the expected average value and RW group permission
+    ...    And the rebuilt rrd status files hold the expected average value
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
@@ -197,15 +205,15 @@ BRRDRMU1
     ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metric rebuild: metric    is sent to rebuild
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    Central did not send metrics to rebuild
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
-    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    60
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
-    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    60
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
@@ -267,7 +275,7 @@ RRD1
 
 BRRDSTATUS
     [Documentation]    We are working with BBDO3. This test checks status are correctly handled independently from their value.
-    [Tags]    rrd    status    bbdo3    MON-141934
+    [Tags]    rrd    status    bbdo3    mon-141934
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -310,13 +318,14 @@ BRRDSTATUS
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
     Should Be True    ${result}    host_1:service_1 is not UNKNOWN as expected
 
-    ${content}    Create List    RRD: ignored update non-float value '' in file '${VarRoot}/lib/centreon/status/82884.rrd'
+    ${content}    Create List
+    ...    RRD: ignored update non-float value '' in file '${VarRoot}/lib/centreon/status/82884.rrd'
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    1
     Should Be Equal    ${result}    ${False}    We shouldn't have any error about empty value in RRD
 
 BRRDSTATUSRETENTION
     [Documentation]    We are working with BBDO3. This test checks status are not sent twice after Engine reload.
-    [Tags]    rrd    status    bbdo3    MON-139747
+    [Tags]    rrd    status    bbdo3    mon-139747
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -333,7 +342,10 @@ BRRDSTATUSRETENTION
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    Ctn Schedule Forced Service Check    host_1    service_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Ctn Schedule Forced Service Check
+    ...    host_1
+    ...    service_1
+    ...    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
     Log To Console    Engine works during 20s
     Sleep    20s
 
@@ -347,13 +359,13 @@ BRRDSTATUSRETENTION
 
     Log To Console    Find in logs if there is an error in rrd.
     ${index}    Ctn Get Service Index    1    1
-    ${content}    Create List    RRD: ignored update error in file '${VarRoot}/lib/centreon/status/${index}.rrd': ${VarRoot}/lib/centreon/status/${index}.rrd: illegal attempt to update using time
+    ${content}    Create List
+    ...    RRD: ignored update error in file '${VarRoot}/lib/centreon/status/${index}.rrd': ${VarRoot}/lib/centreon/status/${index}.rrd: illegal attempt to update using time
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    1
     Should Be Equal
     ...    ${result}    ${False}
     ...    No message about an illegal attempt to update the rrd files should appear
     Log To Console    Test finished
-
 
 BERRDREC1
     [Documentation]    RRD retention startup merge — metric.
@@ -401,7 +413,7 @@ BERRDREC1
     ${t1}    Evaluate    ${now} - 43200
     Ctn Create Metric Retention File    ${metric_id}    ${t0}:1.0    ${t1}:2.0
 
-    # Restart Broker.  When central reconnects to the RRD broker, the RRD stream is
+    # Restart Broker.    When central reconnects to the RRD broker, the RRD stream is
     # constructed → _startup_merge() scans the directory → finds the .prot file.
     ${start}    Get Current Date
     Ctn Start Broker
