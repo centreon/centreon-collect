@@ -26,7 +26,7 @@ namespace com::centreon::engine::configuration {
 namespace applier {
 class timeperiod {
   void _add_exclusions(std::set<std::string> const& exclusions,
-                       com::centreon::engine::timeperiod* tp);
+                       com::centreon::common::timeperiods::timeperiod* tp);
 
  public:
   /**

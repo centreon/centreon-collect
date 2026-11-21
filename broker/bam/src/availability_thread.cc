@@ -25,6 +25,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
+using com::centreon::common::timeperiods::add_round_days_to_midnight;
 
 /**
  *  Constructor.
@@ -227,7 +228,7 @@ void availability_thread::_build_availabilities(time_t midnight) {
       }
       first_day = res.value_as_i32(0);
       first_day =
-          time::timeperiod::add_round_days_to_midnight(first_day, 3600 * 24);
+          add_round_days_to_midnight(first_day, 1);
     } catch (const std::exception& e) {
       std::string msg(fmt::format(
           "BAM-BI: availability thread could not select the BA availabilities "
@@ -245,7 +246,7 @@ void availability_thread::_build_availabilities(time_t midnight) {
   // Write the availabilities day after day.
   while (first_day < last_day) {
     time_t next_day =
-        time::timeperiod::add_round_days_to_midnight(first_day, 3600 * 24);
+        add_round_days_to_midnight(first_day, 1);
     _build_daily_availabilities(thread_id, first_day, next_day);
     first_day = next_day;
   }
@@ -294,7 +295,7 @@ void availability_thread::_build_daily_availabilities(int thread_id,
       uint32_t ba_id = res.value_as_i32(1);
       uint32_t timeperiod_id = res.value_as_i32(6);
       // Find the timeperiod.
-      time::timeperiod::ptr tp = _shared_tps.get_timeperiod(timeperiod_id);
+      timeperiod_ptr tp = _shared_tps.get_timeperiod(timeperiod_id);
       // No timeperiod found, skip.
       if (!tp) {
         _logger->debug("no timeperiod found with id {}", timeperiod_id);
@@ -348,11 +349,11 @@ void availability_thread::_build_daily_availabilities(int thread_id,
     while (_mysql->fetch_row(res)) {
       uint32_t ba_id = res.value_as_i32(1);
       // Get all the timeperiods associated with the ba of this event.
-      std::vector<std::pair<time::timeperiod::ptr, bool>> tps =
+      std::vector<ba_timeperiod> tps =
           _shared_tps.get_timeperiods_by_ba_id(ba_id);
       int count = 0;
       for (auto it = tps.begin(), end = tps.end(); it != end; ++it) {
-        uint32_t tp_id = it->first->get_id();
+        uint32_t tp_id = it->id;
         // Find the builder.
         auto found = builders.find(std::make_pair(ba_id, tp_id));
         // No builders found, create one.
@@ -370,9 +371,9 @@ void availability_thread::_build_daily_availabilities(int thread_id,
                                  res.value_as_i32(2),   // Start time
                                  res.value_as_i32(3),   // End time
                                  res.value_as_bool(5),  // Was in downtime
-                                 it->first, _logger);
+                                 it->tp, _logger);
         // Add the timeperiod is default flag.
-        found->second->set_timeperiod_is_default(it->second);
+        found->second->set_timeperiod_is_default(it->is_default);
       }
       _logger->debug("{} builder(s) were missing for ba {}", count, ba_id);
     }
@@ -434,8 +435,7 @@ void availability_thread::_write_availability(
  *  @return  The next midnight.
  */
 time_t availability_thread::_compute_next_midnight() {
-  return time::timeperiod::add_round_days_to_midnight(
-      misc::start_of_day(::time(nullptr)), 3600 * 24);
+  return add_round_days_to_midnight(misc::start_of_day(::time(nullptr)), 1);
 }
 
 /**

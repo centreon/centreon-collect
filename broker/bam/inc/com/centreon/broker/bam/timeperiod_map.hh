@@ -19,9 +19,22 @@
 #ifndef CCB_BAM_TIMEPERIOD_MAP_HH
 #define CCB_BAM_TIMEPERIOD_MAP_HH
 
-#include "com/centreon/broker/time/timeperiod.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 namespace com::centreon::broker::bam {
+
+/* BAM now evaluates timeperiods with the shared library; the numeric id stays
+ * external (it is the map key here, as common::timeperiods has no id). */
+using timeperiod_ptr =
+    std::shared_ptr<com::centreon::common::timeperiods::timeperiod>;
+
+/* A timeperiod attached to a BA, with its (external) id and default flag. */
+struct ba_timeperiod {
+  uint32_t id;
+  timeperiod_ptr tp;
+  bool is_default;
+};
+
 /**
  *  @class timeperiod_map timeperiod_map.hh
  * "com/centreon/broker/bam/timeperiod_map.hh"
@@ -35,15 +48,14 @@ class timeperiod_map {
   timeperiod_map& operator=(timeperiod_map const&);
   bool operator==(timeperiod_map const& other) const;
 
-  time::timeperiod::ptr get_timeperiod(uint32_t id) const;
-  void add_timeperiod(uint32_t id, time::timeperiod::ptr ptr);
+  timeperiod_ptr get_timeperiod(uint32_t id) const;
+  void add_timeperiod(uint32_t id, timeperiod_ptr ptr);
   void clear();
   void add_relation(uint32_t ba_id, uint32_t timeperiod_id, bool is_default);
-  std::vector<std::pair<time::timeperiod::ptr, bool> > get_timeperiods_by_ba_id(
-      uint32_t ba_id) const;
+  std::vector<ba_timeperiod> get_timeperiods_by_ba_id(uint32_t ba_id) const;
 
  private:
-  absl::btree_map<uint32_t, time::timeperiod::ptr> _map;
+  absl::btree_map<uint32_t, timeperiod_ptr> _map;
   typedef std::multimap<uint32_t, std::pair<uint32_t, bool> >
       timeperiod_relation_map;
   timeperiod_relation_map _timeperiod_relations;

@@ -24,6 +24,7 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <random>
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
@@ -70,9 +71,11 @@ namespace po = boost::program_options;
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 namespace crypto = com::centreon::common::crypto;
+using namespace com::centreon::common::timeperiods;
 namespace notifications = com::centreon::common::notifications;
 using com::centreon::broker::neb::cbmod;
 using com::centreon::common::log_v2::log_v2;
@@ -153,6 +156,10 @@ int main(int argc, char* argv[]) {
 
   notifications::notification_manager::load(
       std::make_unique<engine_notification_callbacks>());
+
+  /* The forbidden characters are not known yet at startup; they are refreshed
+   * by applier::globals once the configuration is applied. */
+  timeperiod_manager::load(log_v2::instance().get(log_v2::CONFIG), {});
 
   // Initialize the initial configuration state.
   {
@@ -328,7 +335,8 @@ int main(int argc, char* argv[]) {
                     << " service escalations.\n Checked "
                     << servicegroup::servicegroups.size()
                     << " service groups.\n Checked " << service::services.size()
-                    << " services.\n Checked " << timeperiod::timeperiods.size()
+                    << " services.\n Checked "
+                    << timeperiod_manager::instance().timeperiods().size()
                     << " time periods.\n\n Total Warnings: "
                     << err.config_warnings
                     << "\n Total Errors:   " << err.config_errors << std::endl;
@@ -594,6 +602,10 @@ int main(int argc, char* argv[]) {
    * queue: they may have been enqueued by libopentelemetry.so, and their
    * destruction goes through vtables living in that library. */
   command_manager::instance().clear();
+
+  /* applier::state::clear() above empties the timeperiod_manager: it is
+   * unloaded only now. */
+  timeperiod_manager::unload();
 
   /* The io_context is shared with the broker modules (externalcmd, cbmod
    * outputs): services they registered in it are destroyed by ~io_context,

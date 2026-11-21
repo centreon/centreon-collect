@@ -22,7 +22,6 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

@@ -25,8 +25,11 @@
 namespace com::centreon::engine {
 class host;
 class hostdependency;
-class timeperiod;
 }  // namespace com::centreon::engine
+namespace com::centreon::common::timeperiods {
+class timeperiod;
+}
+namespace com::centreon::engine {}  // namespace com::centreon::engine
 
 typedef absl::btree_multimap<
     std::string,

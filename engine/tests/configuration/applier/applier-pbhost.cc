@@ -20,12 +20,12 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
-#include "../../timeperiod/utils.hh"
 #include "cbmod_test.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/engine/broker.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
@@ -33,12 +33,12 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 

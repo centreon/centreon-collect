@@ -17,17 +17,19 @@
  */
 
 #include <gtest/gtest.h>
-#include "../../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timeperiod.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
+#include "common/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 #include "gtest/gtest.h"
 
 #include "helper.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 struct test_param {
   std::string name;
@@ -51,12 +53,16 @@ class timeperiod_exception : public ::testing::TestWithParam<test_param> {
     setenv("TZ", ":Europe/Paris", 1);
     tzset();
     init_config_state();
-    com::centreon::engine::timeperiod::timeperiods.clear();
+    com::centreon::common::timeperiods::timeperiod_manager::instance()
+        .timeperiods()
+        .clear();
     parse_timeperiods_cfg_file("tests/timeperiods.cfg");
   }
 
   static void TearDownTestSuite() {
-    com::centreon::engine::timeperiod::timeperiods.clear();
+    com::centreon::common::timeperiods::timeperiod_manager::instance()
+        .timeperiods()
+        .clear();
   }
 
   static void parse_timeperiods_cfg_file(const std::string& file_path);
@@ -218,11 +224,12 @@ TEST_P(timeperiod_exception, TestExceptions) {
   set_time(gmt_strtotimet(param.now));
   time_t calculated;
 
-  auto tp_search = timeperiod::timeperiods.find(param.name);
-  ASSERT_NE(tp_search, timeperiod::timeperiods.end());
+  auto tp_search =
+      timeperiod_manager::instance().timeperiods().find(param.name);
+  ASSERT_NE(tp_search, timeperiod_manager::instance().timeperiods().end());
 
-  get_next_valid_time(gmt_strtotimet(param.prefered), &calculated,
-                      tp_search->second.get());
+  calculated = tp_search->second.get()->get_next_valid_time(
+      gmt_strtotimet(param.prefered));
   ASSERT_EQ(calculated, gmt_strtotimet(param.expected))
       << " name:" << param.name << " now: " << param.now
       << " pref:" << param.prefered << " expected: " << param.expected

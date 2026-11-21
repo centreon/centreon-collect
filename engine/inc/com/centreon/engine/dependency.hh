@@ -19,7 +19,7 @@
 #ifndef CENTREON_ENGINE_DEPENDENCY_HH
 #define CENTREON_ENGINE_DEPENDENCY_HH
 
-#include <com/centreon/engine/timeperiod.hh>
+#include "common/timeperiods/timeperiod.hh"
 
 namespace com::centreon::engine {
 
@@ -63,7 +63,7 @@ class dependency {
   bool operator<(const dependency& obj) const;
   size_t internal_key() const;
 
-  com::centreon::engine::timeperiod* dependency_period_ptr;
+  com::centreon::common::timeperiods::timeperiod* dependency_period_ptr;
 
  protected:
   types _dependency_type;

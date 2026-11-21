@@ -24,10 +24,11 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/timeperiod.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/engine/timezone.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 namespace notifications = com::centreon::common::notifications;
 
 namespace {
@@ -80,7 +81,6 @@ notifications::resource_state engine_notification_callbacks::get_state(
     return rs;
 
   rs.notifications_enabled = n->get_notifications_enabled();
-  rs.in_downtime = n->is_in_downtime();
   rs.flapping = n->get_is_flapping();
   rs.is_volatile = n->get_is_volatile();
   rs.hard_state = n->get_state_type() == checkable::hard;
@@ -104,9 +104,10 @@ notifications::resource_state engine_notification_callbacks::get_state(
       n->get_recovery_notification_delay() * interval_length);
 
   timeperiod* tp{n->get_notification_timeperiod()};
-  timezone_locker lock{n->get_timezone()};
+  // No notification period means the contact may be notified at any time.
   rs.in_notification_period =
-      check_time_against_period_for_notif(std::time(nullptr), tp);
+      !tp || tp->check_time_against_period_for_notif(
+                 std::time(nullptr), string_to_timezone(n->get_timezone()));
 
   return rs;
 }

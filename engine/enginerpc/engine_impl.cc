@@ -19,6 +19,7 @@
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <future>
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <boost/asio.hpp>
 namespace asio = boost::asio;
@@ -51,6 +52,7 @@ namespace asio = boost::asio;
 #include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::string;
 namespace notifications = com::centreon::common::notifications;
 using com::centreon::common::log_v2::log_v2;
@@ -3291,10 +3293,11 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
 
           /* schedule a check for right now (or as soon as possible) */
           time(&preferred_time);
-          if (!check_time_against_period(preferred_time,
-                                         temp_host->check_period_ptr)) {
-            get_next_valid_time(preferred_time, &next_valid_time,
-                                temp_host->check_period_ptr);
+          if (temp_host->check_period_ptr &&
+              !temp_host->check_period_ptr->check_time_against_period(
+                  preferred_time)) {
+            next_valid_time =
+                temp_host->check_period_ptr->get_next_valid_time(preferred_time);
             temp_host->set_next_check(next_valid_time);
           } else
             temp_host->set_next_check(preferred_time);
@@ -3402,10 +3405,12 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
 
           /* schedule a check for right now (or as soon as possible) */
           time(&preferred_time);
-          if (!check_time_against_period(preferred_time,
-                                         temp_service->check_period_ptr)) {
-            get_next_valid_time(preferred_time, &next_valid_time,
-                                temp_service->check_period_ptr);
+          if (temp_service->check_period_ptr &&
+              !temp_service->check_period_ptr->check_time_against_period(
+                  preferred_time)) {
+            next_valid_time =
+                temp_service->check_period_ptr->get_next_valid_time(
+                    preferred_time);
             temp_service->set_next_check(next_valid_time);
           } else
             temp_service->set_next_check(preferred_time);
@@ -3555,8 +3560,9 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD ||
         request->mode() ==
             ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD) {
-      auto found = timeperiod::timeperiods.find(request->charval());
-      if (found != timeperiod::timeperiods.end())
+      auto found =
+          timeperiod_manager::instance().timeperiods().find(request->charval());
+      if (found != timeperiod_manager::instance().timeperiods().end())
         temp_timeperiod = found->second.get();
       if (temp_timeperiod == nullptr) {
         err = fmt::format("could not find timeperiod with value '{}'",
@@ -3670,8 +3676,9 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD ||
         request->mode() ==
             ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD) {
-      auto found = timeperiod::timeperiods.find(request->charval());
-      if (found != timeperiod::timeperiods.end())
+      auto found =
+          timeperiod_manager::instance().timeperiods().find(request->charval());
+      if (found != timeperiod_manager::instance().timeperiods().end())
         temp_timeperiod = found->second.get();
       if (temp_timeperiod == nullptr) {
         err = fmt::format("could not find timeperiod with value '{}'",
@@ -3769,8 +3776,9 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
       return 1;
     }
 
-    auto found = timeperiod::timeperiods.find(request->charval());
-    if (found != timeperiod::timeperiods.end())
+    auto found =
+        timeperiod_manager::instance().timeperiods().find(request->charval());
+    if (found != timeperiod_manager::instance().timeperiods().end())
       temp_timeperiod = found->second.get();
     if (temp_timeperiod == nullptr) {
       err = fmt::format("could not find timeperiod with value '{}'",

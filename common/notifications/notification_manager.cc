@@ -173,7 +173,7 @@ bool notification_manager::_is_notification_viable_normal(
     return false;
   }
 
-  if (rs.in_downtime) {
+  if (rs.scheduled_downtime_depth > 0) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger(),
         "This notifier is currently in a scheduled downtime, so "
@@ -317,7 +317,7 @@ bool notification_manager::_is_notification_viable_recovery(
         retval = false;
         send_later = true;
       }
-    } else if (rs.in_downtime) {
+    } else if (rs.scheduled_downtime_depth > 0) {
       SPDLOG_LOGGER_DEBUG(
           notifications_logger(),
           "This notifier is currently in a scheduled downtime, so "
@@ -499,7 +499,7 @@ bool notification_manager::_is_notification_viable_flapping(
   }
 
   /* Don't send notifications during scheduled downtime */
-  if (rs.in_downtime) {
+  if (rs.scheduled_downtime_depth > 0) {
     SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "We shouldn't notify about FLAPPING "
                         "events during scheduled downtime.");
@@ -578,7 +578,7 @@ bool notification_manager::_is_notification_viable_custom(
     return false;
   }
 
-  if (rs.in_downtime) {
+  if (rs.scheduled_downtime_depth > 0) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger(),
         "We shouldn't send a CUSTOM notification during scheduled downtime.");

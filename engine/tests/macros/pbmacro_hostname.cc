@@ -25,7 +25,7 @@
 
 #include "../helper.hh"
 #include "../test_engine.hh"
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -42,10 +42,11 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/process.hh"
-#include "com/centreon/engine/timeperiod.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 class MacroHostname : public TestEngine {
  protected:

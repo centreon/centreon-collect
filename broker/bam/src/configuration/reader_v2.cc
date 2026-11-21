@@ -27,7 +27,6 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/sql/mysql.hh"
-#include "com/centreon/broker/time/timeperiod.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 

@@ -26,8 +26,11 @@
 namespace com::centreon::engine {
 class service;
 class servicedependency;
-class timeperiod;
 }  // namespace com::centreon::engine
+namespace com::centreon::common::timeperiods {
+class timeperiod;
+}
+namespace com::centreon::engine {}  // namespace com::centreon::engine
 
 typedef std::unordered_multimap<
     std::pair<std::string, std::string>,

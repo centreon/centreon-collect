@@ -35,7 +35,11 @@ using contact_map_unsafe =
 namespace com::centreon::engine {
 class host;
 class service;
+}  // namespace com::centreon::engine
+namespace com::centreon::common::timeperiods {
 class timeperiod;
+}
+namespace com::centreon::engine {
 
 namespace commands {
 class command;
@@ -126,10 +130,14 @@ class contact {
   void resolve(uint32_t& w, uint32_t& e);
   map_customvar const& get_custom_variables() const;
   map_customvar& get_custom_variables();
-  timeperiod* get_host_notification_period_ptr() const;
-  void set_host_notification_period_ptr(timeperiod* period);
-  timeperiod* get_service_notification_period_ptr() const;
-  void set_service_notification_period_ptr(timeperiod* period);
+  com::centreon::common::timeperiods::timeperiod*
+  get_host_notification_period_ptr() const;
+  void set_host_notification_period_ptr(
+      com::centreon::common::timeperiods::timeperiod* period);
+  com::centreon::common::timeperiods::timeperiod*
+  get_service_notification_period_ptr() const;
+  void set_service_notification_period_ptr(
+      com::centreon::common::timeperiods::timeperiod* period);
 
   static contact_map contacts;
 
@@ -172,8 +180,9 @@ class contact {
   std::list<std::shared_ptr<commands::command>> _service_notification_commands;
   contactgroup_map_unsafe _contactgroups;
   map_customvar _custom_variables;
-  timeperiod* _host_notification_period_ptr;
-  timeperiod* _service_notification_period_ptr;
+  com::centreon::common::timeperiods::timeperiod* _host_notification_period_ptr;
+  com::centreon::common::timeperiods::timeperiod*
+      _service_notification_period_ptr;
 };
 
 }  // namespace com::centreon::engine

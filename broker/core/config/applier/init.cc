@@ -42,8 +42,10 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using com::centreon::common::log_v2::log_v2;
+using com::centreon::common::timeperiods::timeperiod_manager;
 
 namespace com::centreon::broker::config::applier {
 
@@ -85,6 +87,13 @@ void init(const std::string& engine_conf_version,
   io::events::load();
   multiplexing::engine::load();
   endpoint::load();
+#ifdef BROKER_COMPILATION
+  /* cbd only: timeperiods evaluated by Broker (BAM reporting, and soon the
+   * centralized notifications) go through this manager, which owns the logger
+   * they trace through. Not loaded in cbmod, where Engine's own main() already
+   * owns the timeperiod_manager. */
+  timeperiod_manager::load(log_v2::instance().get(log_v2::CONFIG), {});
+#endif
   mode = initialized;
 }
 
@@ -96,6 +105,9 @@ void deinit() {
   auto logger = log_v2::instance().get(log_v2::CORE);
   logger->info("unloading applier::endpoint");
   endpoint::unload();
+#ifdef BROKER_COMPILATION
+  timeperiod_manager::unload();
+#endif
   {
     auto eng = multiplexing::engine::instance_ptr();
     if (eng) {

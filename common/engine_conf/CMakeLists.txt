@@ -105,7 +105,9 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     tag_helper.cc
     tag_helper.hh
     timeperiod_helper.cc
-    timeperiod_helper.hh)
+    timeperiod_helper.hh
+    timeperiod_legacy.cc
+    timeperiod_legacy.hh)
   add_dependencies(centreon_engine_conf target_state_proto)
   target_link_libraries(centreon_engine_conf PUBLIC centreon_common_timeperiod fmt::fmt)
   include_directories(${CMAKE_SOURCE_DIR}/common/inc)

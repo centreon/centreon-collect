@@ -20,7 +20,7 @@
 #include "com/centreon/engine/events/loop.hh"
 #include <gtest/gtest.h>
 #include "../test_engine.hh"
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
@@ -32,6 +32,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 
 class LoopTest : public TestEngine {

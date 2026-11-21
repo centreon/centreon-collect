@@ -391,7 +391,6 @@ set(FILES
     "${SRC_DIR}/contact.cc"
     "${SRC_DIR}/contactgroup.cc"
     "${SRC_DIR}/customvariable.cc"
-    "${SRC_DIR}/daterange.cc"
     "${SRC_DIR}/dependency.cc"
     "${SRC_DIR}/diagnostic.cc"
     "${SRC_DIR}/exceptions/error.cc"
@@ -418,10 +417,7 @@ set(FILES
     "${SRC_DIR}/statusdata.cc"
     "${SRC_DIR}/string.cc"
     "${SRC_DIR}/tag.cc"
-    "${SRC_DIR}/timeperiod.cc"
-    "${SRC_DIR}/timerange.cc"
-    "${SRC_DIR}/timezone_locker.cc"
-    "${SRC_DIR}/timezone_manager.cc"
+    "${SRC_DIR}/timezone.cc"
     "${SRC_DIR}/utils.cc"
     "${SRC_DIR}/xsddefault.cc"
     # Headers.
@@ -437,7 +433,6 @@ set(FILES
     "${INC_DIR}/com/centreon/engine/contact.hh"
     "${INC_DIR}/com/centreon/engine/contactgroup.hh"
     "${INC_DIR}/com/centreon/engine/customvariable.hh"
-    "${INC_DIR}/com/centreon/engine/daterange.hh"
     "${INC_DIR}/com/centreon/engine/dependency.hh"
     "${INC_DIR}/com/centreon/engine/diagnostic.hh"
     "${INC_DIR}/com/centreon/engine/exceptions/error.hh"
@@ -468,10 +463,7 @@ set(FILES
     "${INC_DIR}/com/centreon/engine/statusdata.hh"
     "${INC_DIR}/com/centreon/engine/string.hh"
     "${INC_DIR}/com/centreon/engine/tag.hh"
-    "${INC_DIR}/com/centreon/engine/timeperiod.hh"
-    "${INC_DIR}/com/centreon/engine/timerange.hh"
-    "${INC_DIR}/com/centreon/engine/timezone_locker.hh"
-    "${INC_DIR}/com/centreon/engine/timezone_manager.hh"
+    "${INC_DIR}/com/centreon/engine/timezone.hh"
     "${INC_DIR}/com/centreon/engine/utils.hh"
     "${INC_DIR}/com/centreon/engine/version.hh"
     "${INC_DIR}/com/centreon/engine/xsddefault.hh")
@@ -506,7 +498,7 @@ target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 # Library engine target.
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
-add_dependencies(cce_core process_stat engine_rpc centreon_clib pb_neb_lib cbmod)
+add_dependencies(cce_core process_stat engine_rpc centreon_clib pb_neb_lib cbmod timeperiods)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 
@@ -519,6 +511,7 @@ target_link_libraries(
   centreon_clib
   centreon_engine_conf
   notifications
+  timeperiods
   fmt::fmt
   spdlog::spdlog
   # cbmod.so does not embed downtimes_lib: it uses the downtime_manager of the

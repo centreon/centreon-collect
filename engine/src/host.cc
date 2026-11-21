@@ -36,12 +36,13 @@
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/engine/timezone.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::common::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
@@ -1478,9 +1479,12 @@ int host::run_scheduled_check(int check_options, double latency) {
 
       // Make sure we rescheduled the next host check at a valid time.
       {
-        timezone_locker lock(get_timezone());
-        get_next_valid_time(preferred_time, &next_valid_time,
-                            this->check_period_ptr);
+        // No check period defined means any time is valid.
+        if (this->check_period_ptr)
+          next_valid_time = this->check_period_ptr->get_next_valid_time(
+              preferred_time, string_to_timezone(get_timezone()));
+        else
+          next_valid_time = std::max(preferred_time, ::time(nullptr));
       }
 
       /* the host could not be rescheduled properly - set the next check time
@@ -2293,9 +2297,10 @@ bool host::verify_check_viability(int check_options,
 
     // Make sure this is a valid time to check the host.
     {
-      timezone_locker lock(get_timezone());
-      if (!check_time_against_period(static_cast<unsigned long>(current_time),
-                                     this->check_period_ptr)) {
+      if (this->check_period_ptr &&
+          !this->check_period_ptr->check_time_against_period(
+              static_cast<unsigned long>(current_time),
+              string_to_timezone(get_timezone()))) {
         preferred_time = current_time;
         if (time_is_valid)
           *time_is_valid = false;
@@ -2550,8 +2555,8 @@ bool host::is_valid_escalation_for_notification(escalation const* e,
    * skip this escalation if it has a timeperiod and the current time
    * isn't valid
    */
-  if (!e->get_escalation_period().empty() &&
-      !check_time_against_period(current_time, e->escalation_period_ptr))
+  if (!e->get_escalation_period().empty() && e->escalation_period_ptr &&
+      !e->escalation_period_ptr->check_time_against_period(current_time))
     return false;
 
   /* skip this escalation if the state options don't match */
@@ -3149,9 +3154,13 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
     // Make sure we rescheduled the next host check at a valid time.
     {
-      timezone_locker lock{get_timezone()};
       preferred_time = get_next_check();
-      get_next_valid_time(preferred_time, &next_valid_time, check_period_ptr);
+      // No check period defined means any time is valid.
+      if (check_period_ptr)
+        next_valid_time = check_period_ptr->get_next_valid_time(
+            preferred_time, string_to_timezone(get_timezone()));
+      else
+        next_valid_time = std::max(preferred_time, ::time(nullptr));
       set_next_check(next_valid_time);
     }
 
@@ -3302,8 +3311,8 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
     /* Skip this dependency if it has a timeperiod and the current time is
      * not valid */
     time_t current_time{std::time(nullptr)};
-    if (!dep->get_dependency_period().empty() &&
-        !check_time_against_period(current_time, dep->dependency_period_ptr))
+    if (!dep->get_dependency_period().empty() && dep->dependency_period_ptr &&
+        !dep->dependency_period_ptr->check_time_against_period(current_time))
       return true;
 
     /* Get the status to use (use last hard state if it's currently in a soft
@@ -3375,8 +3384,9 @@ void host::check_result_freshness() {
 
     // See if the time is right...
     {
-      timezone_locker lock(host_ptr->get_timezone());
-      if (!check_time_against_period(current_time, host_ptr->check_period_ptr))
+      if (host_ptr->check_period_ptr &&
+          !host_ptr->check_period_ptr->check_time_against_period(
+              current_time, string_to_timezone(host_ptr->get_timezone())))
         continue;
     }
     /* the results for the last check of this host are stale */

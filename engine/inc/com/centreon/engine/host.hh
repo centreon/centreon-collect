@@ -243,7 +243,8 @@ class host : public notifier {
   bool is_valid_escalation_for_notification(escalation const* e,
                                             int options) const override;
   void handle_flap_detection_disabled();
-  timeperiod* get_notification_timeperiod() const override;
+  com::centreon::common::timeperiods::timeperiod* get_notification_timeperiod()
+      const override;
   bool get_notify_on_current_state() const override;
   bool is_in_downtime() const override;
   void resolve(uint32_t& w, uint32_t& e);

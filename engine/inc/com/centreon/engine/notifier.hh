@@ -33,7 +33,11 @@ namespace com::centreon::engine {
 // Forward declarations
 class escalation;
 class contact;
+}  // namespace com::centreon::engine
+namespace com::centreon::common::timeperiods {
 class timeperiod;
+}
+namespace com::centreon::engine {
 
 using AckType = com::centreon::broker::AckType;
 
@@ -192,7 +196,8 @@ class notifier : public checkable {
 
   virtual bool authorized_by_dependencies(
       dependency::types dependency_type) const = 0;
-  virtual timeperiod* get_notification_timeperiod() const = 0;
+  virtual com::centreon::common::timeperiods::timeperiod*
+  get_notification_timeperiod() const = 0;
   uint64_t host_id() const noexcept;
   uint64_t service_id() const noexcept;
 
@@ -219,8 +224,10 @@ class notifier : public checkable {
   void inc_pending_flex_downtime() noexcept;
   void dec_pending_flex_downtime() noexcept;
   void set_flap_type(uint32_t type) noexcept;
-  timeperiod* get_notification_period_ptr() const noexcept;
-  void set_notification_period_ptr(timeperiod* tp) noexcept;
+  com::centreon::common::timeperiods::timeperiod* get_notification_period_ptr()
+      const noexcept;
+  void set_notification_period_ptr(
+      com::centreon::common::timeperiods::timeperiod* tp) noexcept;
   int acknowledgement_timeout() const noexcept;
 
   map_customvar custom_variables;
@@ -239,7 +246,7 @@ class notifier : public checkable {
   uint32_t _notification_interval;
   uint32_t _modified_attributes;
   std::string _notification_period;
-  timeperiod* _notification_period_ptr;
+  com::centreon::common::timeperiods::timeperiod* _notification_period_ptr;
   uint32_t _first_notification_delay;
   uint32_t _recovery_notification_delay;
   bool _notifications_enabled;
