@@ -572,6 +572,107 @@ applier. Each ported check then has a single home, is picked up by
 being run twice. As `engine_conf` gains these checks, `CheckPollerConfig`
 becomes a true, central verify-config.
 
+### Analysis: porting `resolve()` checks onto the `State`
+
+Most of the "verify-config" validation lives in the
+`resolve(uint32_t& w, uint32_t& e)` methods of Engine's runtime objects. There
+are **13**: `notifier`, `service`, `host`, `contact`, `contactgroup`,
+`hostgroup`, `servicegroup`, `escalation`, `hostescalation`,
+`serviceescalation`, `hostdependency`, `servicedependency`, `anomalydetection`.
+
+Each splits cleanly into two parts:
+
+- **Validation** — either an intrinsic property of the object or the existence
+  of a reference ("does X exist / X == Y"). **Fully computable on the `State`
+  protobuf**, with no runtime object.
+- **Runtime wiring** — saving pointers (`*_ptr`, `it->second = …`), reverse
+  links (`services.insert`, `add_child_host`, `get_escalations().push_back`,
+  `get_parent_groups()`), event-broker notifications (`broker_relation_data`,
+  `broker_group_member`). This has nothing to do with validation and **stays in
+  the Engine applier**.
+
+None of these 13 methods performs validation that requires a live runtime
+object → **all 13 are migratable** to `engine_conf`, uniformly.
+
+Validation content to port, per object:
+
+| Object | Validation checks (→ portable onto State) |
+|--------|-------------------------------------------|
+| notifier | event_handler & check_command exist; check_period & notification_period exist; contacts & contactgroups exist |
+| service | (notifier) + referenced host exists; sane recovery; `notification_interval < check_interval`; illegal characters |
+| host | (notifier) + "no services" (warn); each of the host's services exists; parents exist; illegal characters; sane recovery |
+| contact | host+service notification commands non-empty; notification timeperiods exist; sane host+service recovery; illegal characters |
+| contactgroup | each member exists; illegal characters |
+| hostgroup / servicegroup | each member exists; illegal characters |
+| escalation | escalation_period exists; contactgroups exist |
+| hostescalation / serviceescalation | host / service exists (+ escalation) |
+| hostdependency / servicedependency | dependent & master host/service exist; not circular; dependency_period exists |
+| anomalydetection | (= service) + parent service exists |
+
+On the State side, the ported validator first builds name→object indexes
+(commands, timeperiods, contacts, contactgroups, hosts, services) plus a
+host→services index (which `resolve()` builds today as a side effect), then walks
+each type accumulating `(w, e)` into `error_cnt`.
+
+### What `expand()` already covers (and what remains to port)
+
+`expand()` and `resolve()` are **complementary**, with very little overlap.
+
+`expand()` handles **group-membership integrity**: it validates and fills
+host↔hostgroup, service↔servicegroup, contact↔contactgroup, flattens nested
+groups, **explodes** group-based dependencies/escalations into concrete entries
+(then clears the group fields), makes a service inherit from its host (host_id,
+contacts, contactgroups, notif interval/period, timezone), and cross-checks
+timeperiod exclusions. **Important: after `expand`, everything is referenced by
+concrete name** (`host_name`, `(host_name, service_description)`) → the ported
+validator uses exactly the same name-keyed lookups as `resolve()`.
+
+What `expand()` does **not** do, and therefore remains to port from `resolve()`:
+the *leaf* references (commands, timeperiods, a notifier's contacts/contactgroups,
+members declared on the group-definition side, hosts/services of
+escalations/dependencies/parents), and the pure checks (circularity, "host with
+no service", recovery sanity, interval, required fields, illegal characters).
+
+### Moving from early throw to accumulation
+
+Goal: have `CheckPollerConfig` **report all errors at once** and only fail at the
+end, instead of stopping at the first `throw`. Today `parse`+`expand` mix two
+behaviours: `error_cnt err` **accumulates** (`config_warnings`/`config_errors`),
+but ~54 sites also `throw`, aborting the rest.
+
+The throws fall into two families:
+
+- **`check_validity()` (~34 sites, parse phase)** — missing mandatory identity
+  fields (name, address, command line, id, type). An object with no name/id can
+  no longer be indexed or referenced → these are the *legitimate* candidates to
+  stay fatal (or to drop the object). **Detailed analysis still to do.**
+- **`expand()` & related (~20 sites)** — unresolvable cross-references.
+  **Analyzed: none is actually fatal** (no crash/corruption if removed). Two
+  shapes:
+  - *Accumulable* (throw in an `else` branch, nothing to skip):
+    `hostdependency:199/211`, `host_helper:343`, `hostescalation:168`,
+    `serviceescalation:189`, `timeperiod:328`.
+  - *Accumulable-with-guard* (the throw only guarded an `end()` iterator
+    dereference right below — just skip that block via `continue`):
+    `service_helper:302/324`, `contact_helper:180`, `serviceescalation:207`,
+    `servicedependency:327/344`, `contactgroup:136`, `servicegroup:129`.
+
+Three concrete points:
+
+1. `timeperiod_helper.cc:328` is already the target model (logs + counts each
+   error, throws as the last statement) → converting it = removing the throw.
+2. `servicedependency::_expand_services` (327/344) does not count yet and its
+   function has no `error_cnt& err` parameter → it must be added to the
+   signature.
+3. `state_helper::hook` (6 throws, 99-214) is **not** in `expand`: it is the
+   parser hook (key/value), with no access to `error_cnt` → a separate
+   accumulation mechanism (signature change).
+
+Latent bugs spotted along the way: uninitialized `double user_value` used when
+`SimpleAtod` fails (`state_helper:130/153`); a debug `std::cout`
+(`servicegroup_helper:125`); a "Coulx" typo (`servicedependency:344`); an empty
+`;` (`servicedependency:342`).
+
 ## Calculating the difference
 
 `Broker` is notified of new `Engine` configuration versions.
