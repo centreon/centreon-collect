@@ -23,8 +23,10 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 
 /**
@@ -43,13 +45,25 @@ void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
         obj.timeperiod_name(), obj.alias());
   }
 
+  // Check if the timeperiod already exists.
+  auto& timeperiods =
+      com::centreon::common::timeperiods::timeperiod_manager::instance()
+          .timeperiods();
+  if (timeperiods.contains(obj.timeperiod_name())) {
+    config_logger->error("Error: Timeperiod '{}' has already been defined",
+                         obj.timeperiod_name());
+    throw engine_error() << fmt::format("Could not register time period '{}'",
+                                        obj.timeperiod_name());
+  }
+
   // Add time period to the global configuration set.
   pb_indexed_config.mut_timeperiods().emplace(
       obj.timeperiod_name(), std::make_unique<Timeperiod>(obj));
 
   // Create time period.
-  auto tp = std::make_shared<engine::timeperiod>(obj);
-  engine::timeperiod::timeperiods.insert({obj.timeperiod_name(), tp});
+  auto tp =
+      std::make_shared<com::centreon::common::timeperiods::timeperiod>(obj);
+  timeperiods.insert({obj.timeperiod_name(), tp});
 }
 
 /**
@@ -65,14 +79,17 @@ void applier::timeperiod::modify_object(
                        to_modify->timeperiod_name());
 
   // Find time period object.
+  auto& timeperiods =
+      com::centreon::common::timeperiods::timeperiod_manager::instance()
+          .timeperiods();
   timeperiod_map::iterator it_obj =
-      engine::timeperiod::timeperiods.find(to_modify->timeperiod_name());
-  if (it_obj == engine::timeperiod::timeperiods.end() || !it_obj->second)
+      timeperiods.find(to_modify->timeperiod_name());
+  if (it_obj == timeperiods.end() || !it_obj->second)
     throw engine_error() << fmt::format(
         "Could not modify non-existing time period object '{}'",
         to_modify->timeperiod_name());
 
-  engine::timeperiod* tp(it_obj->second.get());
+  com::centreon::common::timeperiods::timeperiod* tp(it_obj->second.get());
 
   // Modify properties.
   if (to_modify->alias() != new_obj.alias()) {
@@ -110,10 +127,13 @@ void applier::timeperiod::remove_object(const std::string& key) {
   config_logger->debug("Removing time period '{}'.", key);
 
   // Find time period.
-  timeperiod_map::iterator it = engine::timeperiod::timeperiods.find(key);
-  if (it != engine::timeperiod::timeperiods.end() && it->second) {
+  auto& timeperiods =
+      com::centreon::common::timeperiods::timeperiod_manager::instance()
+          .timeperiods();
+  timeperiod_map::iterator it = timeperiods.find(key);
+  if (it != timeperiods.end() && it->second) {
     // Erase time period (will effectively delete the object).
-    engine::timeperiod::timeperiods.erase(it);
+    timeperiods.erase(it);
   }
 
   // Remove time period from the global configuration set.
@@ -134,12 +154,13 @@ void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj,
   config_logger->debug("Resolving time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
-  timeperiod_map::iterator it =
-      engine::timeperiod::timeperiods.find(obj.timeperiod_name());
-  if (engine::timeperiod::timeperiods.end() == it || !it->second)
+  auto& mgr =
+      com::centreon::common::timeperiods::timeperiod_manager::instance();
+  timeperiod_map::iterator it = mgr.timeperiods().find(obj.timeperiod_name());
+  if (mgr.timeperiods().end() == it || !it->second)
     throw engine_error() << "Cannot resolve non-existing "
                          << "time period '" << obj.timeperiod_name() << "'";
 
   // Resolve time period.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  mgr.resolve(*it->second, err.config_warnings, err.config_errors);
 }

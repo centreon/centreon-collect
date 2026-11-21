@@ -21,13 +21,14 @@
 #include <spdlog/common.h>
 #include <com/centreon/engine/macros.hh>
 
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/commands/raw_v2.hh"
 #include "common/log_v2/log_v2.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::commands;
 using com::centreon::common::log_v2::log_v2;
 

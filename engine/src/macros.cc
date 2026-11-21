@@ -25,8 +25,10 @@
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/utils.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 
 /******************************************************************/
@@ -294,9 +296,9 @@ int grab_datetime_macro_r(nagios_macros* mac,
     case MACRO_NEXTVALIDTIME:
       /* find the timeperiod */
       temp_timeperiod = nullptr;
-      it = timeperiod::timeperiods.find(arg1);
+      it = timeperiod_manager::instance().timeperiods().find(arg1);
 
-      if (it != timeperiod::timeperiods.end())
+      if (it != timeperiod_manager::instance().timeperiods().end())
         temp_timeperiod = it->second.get();
 
       if (temp_timeperiod == nullptr)
@@ -345,13 +347,13 @@ int grab_datetime_macro_r(nagios_macros* mac,
 
     case MACRO_ISVALIDTIME:
       output = std::to_string(
-          !check_time_against_period(test_time, temp_timeperiod));
+          !temp_timeperiod->check_time_against_period(test_time));
       break;
 
     case MACRO_NEXTVALIDTIME:
-      get_next_valid_time(test_time, &next_valid_time, temp_timeperiod);
+      next_valid_time = temp_timeperiod->get_next_valid_time(test_time);
       if (next_valid_time == test_time &&
-          !check_time_against_period(test_time, temp_timeperiod))
+          !temp_timeperiod->check_time_against_period(test_time))
         next_valid_time = (time_t)0L;
       get_datetime_string(&next_valid_time, tmp_date, MAX_DATETIME_LENGTH,
                           SHORT_TIME);

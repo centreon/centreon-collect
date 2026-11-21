@@ -20,6 +20,7 @@
 
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <absl/strings/escaping.h>
 #include <sys/time.h>
@@ -37,6 +38,7 @@
 #include "mmap.h"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::common::downtimes;
 namespace notifications = com::centreon::common::notifications;
@@ -1561,10 +1563,11 @@ int cmd_change_object_int_var(int cmd, char* args) {
 
         /* schedule a check for right now (or as soon as possible) */
         time(&preferred_time);
-        if (!check_time_against_period(preferred_time,
-                                       temp_host->check_period_ptr)) {
-          get_next_valid_time(preferred_time, &next_valid_time,
-                              temp_host->check_period_ptr);
+        if (temp_host->check_period_ptr &&
+            !temp_host->check_period_ptr->check_time_against_period(
+                preferred_time)) {
+          next_valid_time =
+              temp_host->check_period_ptr->get_next_valid_time(preferred_time);
           temp_host->set_next_check(next_valid_time);
         } else
           temp_host->set_next_check(preferred_time);
@@ -1626,10 +1629,12 @@ int cmd_change_object_int_var(int cmd, char* args) {
 
         /* schedule a check for right now (or as soon as possible) */
         time(&preferred_time);
-        if (!check_time_against_period(preferred_time,
-                                       found_svc->second->check_period_ptr)) {
-          get_next_valid_time(preferred_time, &next_valid_time,
-                              found_svc->second->check_period_ptr);
+        if (found_svc->second->check_period_ptr &&
+            !found_svc->second->check_period_ptr->check_time_against_period(
+                preferred_time)) {
+          next_valid_time =
+              found_svc->second->check_period_ptr->get_next_valid_time(
+                  preferred_time);
           found_svc->second->set_next_check(next_valid_time);
         } else
           found_svc->second->set_next_check(preferred_time);
@@ -1856,9 +1861,9 @@ int cmd_change_object_char_var(int cmd, char* args) {
       /* make sure the timeperiod is valid */
 
       temp_timeperiod = nullptr;
-      found = timeperiod::timeperiods.find(temp_ptr);
+      found = timeperiod_manager::instance().timeperiods().find(temp_ptr);
 
-      if (found != timeperiod::timeperiods.end())
+      if (found != timeperiod_manager::instance().timeperiods().end())
         temp_timeperiod = found->second.get();
 
       if (temp_timeperiod == nullptr) {
@@ -2181,9 +2186,9 @@ void enable_service_checks(service* svc) {
 
   /* schedule a check for right now (or as soon as possible) */
   time(&preferred_time);
-  if (!check_time_against_period(preferred_time, svc->check_period_ptr)) {
-    get_next_valid_time(preferred_time, &next_valid_time,
-                        svc->check_period_ptr);
+  if (svc->check_period_ptr &&
+      !svc->check_period_ptr->check_time_against_period(preferred_time)) {
+    next_valid_time = svc->check_period_ptr->get_next_valid_time(preferred_time);
     svc->set_next_check(next_valid_time);
   } else
     svc->set_next_check(preferred_time);
@@ -2999,9 +3004,9 @@ void enable_host_checks(host* hst) {
 
   /* schedule a check for right now (or as soon as possible) */
   time(&preferred_time);
-  if (!check_time_against_period(preferred_time, hst->check_period_ptr)) {
-    get_next_valid_time(preferred_time, &next_valid_time,
-                        hst->check_period_ptr);
+  if (hst->check_period_ptr &&
+      !hst->check_period_ptr->check_time_against_period(preferred_time)) {
+    next_valid_time = hst->check_period_ptr->get_next_valid_time(preferred_time);
     hst->set_next_check(next_valid_time);
   } else
     hst->set_next_check(preferred_time);

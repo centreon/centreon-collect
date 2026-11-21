@@ -20,6 +20,7 @@
 #include "test_engine.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::common::downtimes;
 
 /* Just a hash map helper to store host id by their name. It is useful
@@ -389,20 +390,9 @@ std::unique_ptr<timeperiod> TestEngine::new_timeperiod_with_timeranges(
 void TestEngine::apply_same_timeranges_to_every_day(
     timeperiod* tp,
     const std::vector<std::pair<int, int>>& ranges) {
-  configuration::DaysArray array;
-  auto add_for = [&](auto* day_list) {
-    for (const auto& r : ranges) {
-      auto* tr = day_list->Add();
-      tr->set_range_start(r.first);
-      tr->set_range_end(r.second);
-    }
-  };
-  add_for(array.mutable_sunday());
-  add_for(array.mutable_monday());
-  add_for(array.mutable_tuesday());
-  add_for(array.mutable_wednesday());
-  add_for(array.mutable_thursday());
-  add_for(array.mutable_friday());
-  add_for(array.mutable_saturday());
-  tp->set_days(array);
+  for (auto& day : tp->days) {
+    day.clear();
+    for (const auto& r : ranges)
+      day.emplace_back(r.first, r.second);
+  }
 }

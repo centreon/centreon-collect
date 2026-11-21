@@ -23,9 +23,11 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::string;
 
 hostdependency_mmap hostdependency::hostdependencies;
@@ -264,9 +266,10 @@ void hostdependency::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   // Find the timeperiod.
   if (!_dependency_period.empty()) {
     timeperiod_map::const_iterator it{
-        timeperiod::timeperiods.find(_dependency_period)};
+        timeperiod_manager::instance().timeperiods().find(_dependency_period)};
 
-    if (it == timeperiod::timeperiods.end() || !it->second) {
+    if (it == timeperiod_manager::instance().timeperiods().end() ||
+        !it->second) {
       config_logger->error(
           "Error: Dependency period '{}' specified in host dependency for host "
           "'{}' is not defined anywhere!",

@@ -18,6 +18,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <chrono>
 
@@ -29,7 +30,7 @@
 #include "com/centreon/engine/enginerpc.hh"
 
 #include "../test_engine.hh"
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"
@@ -43,7 +44,6 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/engine/version.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
@@ -51,6 +51,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
@@ -622,9 +623,6 @@ TEST_F(EngineRpc, GetHostDependenciesCount) {
   erpc.shutdown();
 }
 
-
-
-
 TEST_F(EngineRpc, DeleteWrongComment) {
   enginerpc erpc("0.0.0.0", 40001);
   std::unique_ptr<std::thread> th;
@@ -652,8 +650,6 @@ TEST_F(EngineRpc, DeleteWrongComment) {
   erpc.shutdown();
 }
 
-
-
 TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   enginerpc erpc("0.0.0.0", 40001);
   std::unique_ptr<std::thread> th;
@@ -665,9 +661,8 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   // first test
   _host->set_acknowledgement(AckType::NORMAL);
   // create comment
-  comment(
-      comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
-      "test-admin", oss.str(), false, comment::external, false, 0);
+  comment(comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
+          "test-admin", oss.str(), false, comment::external, false, 0);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
   auto output = execute(
@@ -676,9 +671,8 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   ASSERT_EQ(_host->problem_has_been_acknowledged(), false);
   // second test
   _host->set_acknowledgement(AckType::NORMAL);
-  comment(
-      comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
-      "test-admin", oss.str(), false, comment::external, false, 0);
+  comment(comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
+          "test-admin", oss.str(), false, comment::external, false, 0);
 
   output = execute(
       fmt::format("RemoveHostAcknowledgement byhostname {}", _host->name()));
@@ -704,10 +698,9 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   auto hst = hit->second;
   std::string ack_str{"my comment"};
   _svc->set_acknowledgement(AckType::NORMAL);
-  comment(
-      comment::service, comment::acknowledgment, hst->host_id(),
-      svc->service_id(), 10000, "test-admin", ack_str, false, comment::external,
-      false, 0);
+  comment(comment::service, comment::acknowledgment, hst->host_id(),
+          svc->service_id(), 10000, "test-admin", ack_str, false,
+          comment::external, false, 0);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
@@ -717,10 +710,9 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   ASSERT_EQ(svc->problem_has_been_acknowledged(), false);
 
   svc->set_acknowledgement(AckType::NORMAL);
-  comment(comment::service, comment::acknowledgment,
-                                  hst->host_id(), svc->service_id(), 10000,
-                                  "test-admin", ack_str, false,
-                                  comment::external, false, 0);
+  comment(comment::service, comment::acknowledgment, hst->host_id(),
+          svc->service_id(), 10000, "test-admin", ack_str, false,
+          comment::external, false, 0);
 
   output = execute("RemoveServiceAcknowledgement byids 12 13");
   {
@@ -1404,7 +1396,10 @@ TEST_F(EngineRpc, ChangeHostObjectCharVar) {
   std::mutex mutex;
   bool continuerunning = false;
 
-  ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
+  ASSERT_EQ(com::centreon::common::timeperiods::timeperiod_manager::instance()
+                .timeperiods()
+                .size(),
+            1u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
@@ -1442,7 +1437,10 @@ TEST_F(EngineRpc, ChangeServiceObjectCharVar) {
   auto hit = engine::host::hosts_by_id.find(svc->host_id());
   auto hst = hit->second;
 
-  ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
+  ASSERT_EQ(com::centreon::common::timeperiods::timeperiod_manager::instance()
+                .timeperiods()
+                .size(),
+            1u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
@@ -1477,7 +1475,10 @@ TEST_F(EngineRpc, ChangeContactObjectCharVar) {
   std::mutex mutex;
   bool continuerunning = false;
 
-  ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
+  ASSERT_EQ(com::centreon::common::timeperiods::timeperiod_manager::instance()
+                .timeperiods()
+                .size(),
+            1u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 

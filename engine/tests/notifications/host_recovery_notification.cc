@@ -22,7 +22,7 @@
 #include <cstring>
 
 #include "../helper.hh"
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
@@ -32,6 +32,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 namespace notifications = com::centreon::common::notifications;
@@ -85,7 +86,7 @@ class HostRecovery : public TestEngine {
   }
 
  protected:
-  std::unique_ptr<engine::timeperiod> _tperiod;
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> _tperiod;
   std::shared_ptr<engine::host> _host;
   std::time_t _current_time;
 };

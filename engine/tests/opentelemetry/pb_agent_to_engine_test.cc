@@ -19,6 +19,7 @@
 
 #include <absl/container/btree_set.h>
 #include <absl/synchronization/mutex.h>
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <grpcpp/grpcpp.h>
 #include <gtest/gtest.h>
@@ -55,6 +56,7 @@ namespace multi_index = boost::multi_index;
 #include "helper.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::agent;
 // using namespace com::centreon::engine::configuration;
 // using namespace com::centreon::engine::configuration::applier;
@@ -94,7 +96,6 @@ class agent_to_engine_test : public TestEngine {
   void SetUp() override {
     spdlog::default_logger()->set_level(spdlog::level::trace);
     otl_formatter::json_grpc_format = true;
-    timeperiod::timeperiods.clear();
     contact::contacts.clear();
     host::hosts.clear();
     host::hosts_by_id.clear();
@@ -103,6 +104,8 @@ class agent_to_engine_test : public TestEngine {
 
     std::unique_ptr<configuration::state_helper> state_hlp =
         init_config_state();
+    // init_config_state() loads the timeperiod_manager; clear it afterwards.
+    timeperiod_manager::instance().timeperiods().clear();
 
     configuration::applier::connector conn_aply;
     configuration::Connector cnn;

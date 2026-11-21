@@ -21,6 +21,7 @@ project("Centreon common" C CXX)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(downtimes)
+  add_subdirectory(timeperiods)
   add_subdirectory(log_v2)
   add_subdirectory(notifications)
 endif()
@@ -85,4 +86,5 @@ add_subdirectory(crypto)
 
 if(WITH_TESTING)
   add_subdirectory(tests)
+  add_subdirectory(benchmark)
 endif()

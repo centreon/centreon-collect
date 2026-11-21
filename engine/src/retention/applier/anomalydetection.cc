@@ -26,9 +26,10 @@
 #include "com/centreon/engine/retention/applier/utils.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timeperiod.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
 

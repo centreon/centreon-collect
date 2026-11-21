@@ -24,7 +24,7 @@
 
 #include "../helper.hh"
 #include "../test_engine.hh"
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/config.hh"
@@ -36,12 +36,12 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/retention/dump.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::common::downtimes;
@@ -90,7 +90,7 @@ TEST_F(HostNotification, SimpleNormalHostNotification) {
    * If we call time(), it is not the glibc time() function that will be called.
    */
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
@@ -119,7 +119,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotificationsdisabled) {
    */
   pb_indexed_config.mut_state().set_enable_notifications(false);
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
@@ -143,7 +143,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierNotifdisabled) {
    * If we call time(), it is not the glibc time() function that will be called.
    */
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
@@ -164,7 +164,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierNotifdisabled) {
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -186,7 +186,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
 TEST_F(HostNotification,
        SimpleNormalHostNotificationForcedWithNotificationDisabled) {
   pb_indexed_config.mut_state().set_enable_notifications(false);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -206,7 +206,7 @@ TEST_F(HostNotification,
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -226,7 +226,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -247,7 +247,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -268,7 +268,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -290,7 +290,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
 
 TEST_F(HostNotification,
        SimpleNormalHostNotificationWithHardStateAcknowledged) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -311,7 +311,7 @@ TEST_F(HostNotification,
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -334,7 +334,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
 
 TEST_F(HostNotification,
        SimpleNormalHostNotificationAfterPreviousWithNullInterval) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -358,7 +358,7 @@ TEST_F(HostNotification,
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -382,7 +382,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
 
 TEST_F(HostNotification,
        SimpleNormalHostNotificationOnStateBeforeFirstNotifDelay) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -408,7 +408,7 @@ TEST_F(HostNotification,
 
 TEST_F(HostNotification,
        SimpleNormalHostNotificationOnStateAfterFirstNotifDelay) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -436,7 +436,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
    * If we call time(), it is not the glibc time() function that will be called.
    */
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   apply_same_timeranges_to_every_day(tperiod.get(), {{0, 86400}});
 

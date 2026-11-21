@@ -27,6 +27,7 @@
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::common::notifications;
 namespace notifications = com::centreon::common::notifications;
 

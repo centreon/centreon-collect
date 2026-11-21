@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/contact.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -25,11 +26,12 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/engine/timezone.hh"
 #include "common/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
 namespace notifications = com::centreon::common::notifications;
@@ -834,9 +836,9 @@ bool contact::should_be_notified(notifications::notification_category cat,
         return false;
       }
       // See if the contact can be notified at this time for the host.
-      timezone_locker lock(get_timezone());
-      if (!check_time_against_period_for_notif(
-              std::time(nullptr), get_service_notification_period_ptr())) {
+      if (auto* tp = get_service_notification_period_ptr();
+          tp && !tp->check_time_against_period_for_notif(
+                    std::time(nullptr), string_to_timezone(get_timezone()))) {
         notifications_logger->info(
             "This contact shouldn't be notified at this time.");
         return false;
@@ -849,9 +851,9 @@ bool contact::should_be_notified(notifications::notification_category cat,
         return false;
       }
       // See if the contact can be notified at this time for the service.
-      timezone_locker lock(get_timezone());
-      if (!check_time_against_period_for_notif(
-              std::time(nullptr), get_host_notification_period_ptr())) {
+      if (auto* tp = get_host_notification_period_ptr();
+          tp && !tp->check_time_against_period_for_notif(
+                    std::time(nullptr), string_to_timezone(get_timezone()))) {
         notifications_logger->info(
             "This contact shouldn't be notified at this time.");
         return false;
@@ -1017,9 +1019,11 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
     _service_notification_period_ptr = nullptr;
   } else {
     timeperiod_map::const_iterator it(
-        timeperiod::timeperiods.find(get_service_notification_period()));
+        timeperiod_manager::instance().timeperiods().find(
+            get_service_notification_period()));
 
-    if (it == timeperiod::timeperiods.end() || !it->second) {
+    if (it == timeperiod_manager::instance().timeperiods().end() ||
+        !it->second) {
       config_logger->error(
           "Error: Service notification period '{}' specified for contact '{}' "
           "is not defined anywhere!",
@@ -1041,9 +1045,11 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
     _host_notification_period_ptr = nullptr;
   } else {
     timeperiod_map::const_iterator it(
-        timeperiod::timeperiods.find(get_host_notification_period()));
+        timeperiod_manager::instance().timeperiods().find(
+            get_host_notification_period()));
 
-    if (it == timeperiod::timeperiods.end() || !it->second) {
+    if (it == timeperiod_manager::instance().timeperiods().end() ||
+        !it->second) {
       config_logger->warn(
           "Error: Host notification period '{}' specified for contact '{}' is "
           "not defined anywhere!",

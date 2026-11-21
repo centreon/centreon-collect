@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 #include <signal.h>
 
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/commands/forward.hh"
 #include "helper.hh"
 
@@ -29,6 +29,7 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::commands;
 
 class connector_listener : public commands::command_listener {

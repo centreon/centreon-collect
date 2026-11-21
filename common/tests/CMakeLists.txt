@@ -47,6 +47,25 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     rapidjson_helper_test.cc
     test_main.cc
     timeperiod_utils_test.cc
+    timeperiods/utils.cc
+    timeperiods/bam_legacy_timeperiods.cc
+    timeperiods/calculate_time_from_day_of_month.cc
+    timeperiods/calculate_time_from_weekday_of_month.cc
+    timeperiods/get_next_invalid_time.cc
+    timeperiods/get_next_valid_time/between_two_years.cc
+    timeperiods/get_next_valid_time/calendar_date.cc
+    timeperiods/get_next_valid_time/dst_backward.cc
+    timeperiods/get_next_valid_time/dst_forward.cc
+    timeperiods/get_next_valid_time/earliest_daterange_first.cc
+    timeperiods/get_next_valid_time/exclusion.cc
+    timeperiods/get_next_valid_time/generic_month_date.cc
+    timeperiods/get_next_valid_time/normal_weekday.cc
+    timeperiods/get_next_valid_time/offset_weekday_of_generic_month.cc
+    timeperiods/get_next_valid_time/offset_weekday_of_specific_month.cc
+    timeperiods/get_next_valid_time/precedence.cc
+    timeperiods/get_next_valid_time/skip_interval.cc
+    timeperiods/get_next_valid_time/specific_month_date.cc
+    timeperiods/get_next_valid_time/timezone.cc
     utf8_test.cc
     ${TESTS_SOURCES})
 else()
@@ -70,7 +89,8 @@ set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
 
 target_compile_definitions(
   ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test"
-                   -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\")
+                   -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\"
+                   -DBAM_TP_CFG_DIR=\"${CMAKE_SOURCE_DIR}/broker/bam/test/time/cfg\")
 
 set_target_properties(
   ut_common
@@ -112,6 +132,8 @@ protobuf_generate(TARGET pb_grpc_test_lib
 add_test(NAME tests COMMAND ut_common)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_include_directories(ut_common PRIVATE ${CMAKE_SOURCE_DIR})
+
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
@@ -126,6 +148,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             log_v2
             gRPC::grpc++
             protobuf::libprotobuf
+            timeperiods
             Boost::program_options
             re2::re2
             OpenSSL::SSL
@@ -140,10 +163,11 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             absl::bits
             fmt::fmt
             stdc++fs
+            ${CMAKE_DL_LIBS}
             pthread)
 
   add_dependencies(ut_common centreon_common process_stat ctncrypto
-                   centreon_http)
+                   centreon_http timeperiods)
 
 else()
   target_link_libraries(

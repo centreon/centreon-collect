@@ -144,7 +144,7 @@ add_library(
   "${INC_DIR}/service_listener.hh"
   "${INC_DIR}/timeperiod_map.hh")
 target_link_libraries("${BAM}" bbdo_storage bbdo_bam centreon_pb_bbdo
-                      spdlog::spdlog)
+                      spdlog::spdlog centreon_engine_conf)
 target_precompile_headers(${BAM} PRIVATE precomp_inc/precomp.hh)
 set_target_properties("${BAM}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
@@ -167,7 +167,6 @@ if(WITH_TESTING)
       ${TEST_DIR}/exp_builder/availability_builder.cc
       ${TEST_DIR}/exp_parser/get_postfix.cc
       ${TEST_DIR}/exp_tokenizer/next.cc
-      ${TEST_DIR}/time/check_timeperiod.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} ${BAM}

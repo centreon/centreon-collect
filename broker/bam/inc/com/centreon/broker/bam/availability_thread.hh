@@ -24,7 +24,6 @@
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
-#include "com/centreon/broker/time/timeperiod.hh"
 #include "com/centreon/broker/timestamp.hh"
 
 namespace com::centreon::broker {

@@ -25,7 +25,6 @@
 #include "com/centreon/broker/bam/timeperiod_map.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
-#include "com/centreon/broker/time/timeperiod.hh"
 
 namespace com::centreon::broker {
 

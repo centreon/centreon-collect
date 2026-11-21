@@ -323,6 +323,7 @@ class broker_cache {
   struct instance_info {
     std::string name;
     bool notifications_enabled = true;
+    bool send_recovery_notifications_anyway = false;
   };
 
   enum cache_section : uint32_t {
@@ -561,6 +562,8 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::string instance(uint64_t instance_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   bool notifications_enabled(uint64_t instance_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool send_recovery_notifications_anyway(uint64_t instance_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   void remove_instance(uint64_t instance_id) ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host> host(const std::string& host_name) const

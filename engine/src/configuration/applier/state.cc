@@ -22,6 +22,7 @@
 #include <sys/resource.h>
 #include <chrono>
 #include <cstdint>
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -58,6 +59,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 using com::centreon::common::log_v2::log_v2;
 using com::centreon::engine::logging::broker_sink_mt;
@@ -219,7 +221,9 @@ void applier::state::clear() {
   engine::host::hosts_by_id.clear();
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
-  engine::timeperiod::timeperiods.clear();
+  com::centreon::common::timeperiods::timeperiod_manager::instance()
+      .timeperiods()
+      .clear();
   engine::comment::set_next_comment_id(1llu);
 
   applier::scheduler::instance().clear();
@@ -254,7 +258,6 @@ applier::state::~state() noexcept {
   engine::host::hosts_by_id.clear();
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
-  engine::timeperiod::timeperiods.clear();
   engine::comment::set_next_comment_id(1llu);
 }
 

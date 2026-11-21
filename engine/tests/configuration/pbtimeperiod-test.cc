@@ -17,6 +17,7 @@
  *
  */
 #include <fstream>
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <regex>
 
@@ -31,6 +32,7 @@
 
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 namespace com::centreon::engine::configuration {
 class time_period_comparator {
@@ -45,7 +47,7 @@ class time_period_comparator {
   static const std::map<std::string, unsigned> day_to_index, month_to_index;
 
   const configuration::Timeperiod& _conf_tp;
-  std::shared_ptr<com::centreon::engine::timeperiod> _result;
+  std::shared_ptr<com::centreon::common::timeperiods::timeperiod> _result;
 
   static std::list<configuration::Timerange> extract_timerange(
       const std::string& line_content,
@@ -168,7 +170,9 @@ time_period_comparator::time_period_comparator(
     : _conf_tp(conf_tp) {
   com::centreon::engine::configuration::applier::timeperiod applier;
 
-  com::centreon::engine::timeperiod::timeperiods.clear();
+  com::centreon::common::timeperiods::timeperiod_manager::instance()
+      .timeperiods()
+      .clear();
 
   for (const std::string& line : timeperiod_content) {
     if (line[0] == '#')
@@ -506,8 +510,8 @@ time_period_comparator::time_period_comparator(
   }
 
   applier.add_object(conf_tp);
-  _result =
-      com::centreon::engine::timeperiod::timeperiods[conf_tp.timeperiod_name()];
+  _result = com::centreon::common::timeperiods::timeperiod_manager::instance()
+                .timeperiods()[conf_tp.timeperiod_name()];
 }
 
 std::ostream& operator<<(std::ostream& s,
@@ -566,10 +570,47 @@ static std::ostream& operator<<(
 
 static bool operator==(
     const std::set<std::string>& excl1,
-    const std::unordered_multimap<std::string, engine::timeperiod*>& excl2) {
+    const std::unordered_multimap<
+        std::string,
+        com::centreon::common::timeperiods::timeperiod*>& excl2) {
   if (excl1.size() != excl2.size()) {
     std::cerr << "Exclude arrays have not the same size." << std::endl;
     return false;
+  }
+  return true;
+}
+
+static bool operator==(
+    const std::array<std::list<configuration::Timerange>, 7>& timerange1,
+    const std::array<std::list<com::centreon::common::timeperiods::timerange>,
+                     7>& timerange2) {
+  auto check_timeranges = [](const std::string_view day, auto& day1,
+                             auto& day2) -> bool {
+    if (day1.size() != day2.size()) {
+      std::cerr << day << " timeranges have not the same size: first size: "
+                << day1.size() << " ; second size: " << day2.size()
+                << std::endl;
+      return false;
+    }
+    for (auto& tr2 : day2) {
+      bool found = false;
+      for (auto& tr1 : day1) {
+        if (tr1.range_start() == tr2.get_range_start() &&
+            tr1.range_end() == tr2.get_range_end()) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        std::cerr << day << " timeranges are not the same." << std::endl;
+        return false;
+      }
+    }
+    return true;
+  };
+  for (int32_t i = 0; i < 7; i++) {
+    if (!check_timeranges(day_label[i], timerange1[i], timerange2[i]))
+      return false;
   }
   return true;
 }
@@ -635,6 +676,57 @@ static bool operator==(const std::set<std::string>& exclude1,
 static bool operator!=(const std::set<std::string>& exclude1,
                        const configuration::StringSet& exclude2) {
   return !(exclude1 == exclude2);
+}
+
+static bool operator==(
+    const Daterange& dr1,
+    const com::centreon::common::timeperiods::daterange& dr2) {
+  if (static_cast<uint32_t>(dr1.type()) !=
+      static_cast<uint32_t>(dr2.get_type())) {
+    std::cerr << "Dateranges not of the same type." << std::endl;
+    return false;
+  }
+  bool retval =
+      dr1.syear() == dr2.get_syear() && dr1.smon() == dr2.get_smon() &&
+      dr1.smday() == dr2.get_smday() && dr1.swday() == dr2.get_swday() &&
+      dr1.swday_offset() == dr2.get_swday_offset() &&
+      dr1.eyear() == dr2.get_eyear() && dr1.emon() == dr2.get_emon() &&
+      dr1.emday() == dr2.get_emday() && dr1.ewday() == dr2.get_ewday() &&
+      dr1.ewday_offset() == dr2.get_ewday_offset();
+
+  return retval;
+}
+
+static bool operator==(
+    const std::array<std::list<configuration::Daterange>,
+                     configuration::Daterange_TypeRange_none>& exc1,
+    const std::array<std::list<com::centreon::common::timeperiods::daterange>,
+                     configuration::Daterange_TypeRange_none>& exc2) {
+  auto compare_dateranges =
+      [](int32_t idx, const std::list<configuration::Daterange>& lst1,
+         const std::list<com::centreon::common::timeperiods::daterange>& lst2)
+      -> bool {
+    for (auto& dr1 : lst1) {
+      bool found = false;
+      for (auto& dr2 : lst2) {
+        if (dr1 == dr2) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        std::cerr << "Dateranges at index " << idx
+                  << " are not equals in exception arrays" << std::endl;
+        return false;
+      }
+    }
+    return true;
+  };
+  for (uint32_t idx = 0; idx < exc1.size(); idx++) {
+    if (!compare_dateranges(idx, exc1[idx], exc2[idx]))
+      return false;
+  }
+  return true;
 }
 
 static bool operator==(
@@ -735,7 +827,7 @@ bool time_period_comparator::is_result_equal() const {
     return false;
   }
 
-  if (!(_timeranges == _result->get_config().timeranges())) {
+  if (!(_timeranges == _result->days)) {
     std::cerr << "timeranges difference" << std::endl;
     // std::cerr << "_timeranges= " << _timeranges << std::endl;
     std::cerr << fmt::format("_conf_tp.timeranges= {}", _conf_tp.timeranges())
@@ -743,7 +835,7 @@ bool time_period_comparator::is_result_equal() const {
     return false;
   }
 
-  if (!(_exceptions == _result->get_config().exceptions())) {
+  if (!(_exceptions == _result->exceptions)) {
     std::cerr << "exception difference" << std::endl;
     // std::cerr << "_exceptions= " << _exceptions << std::endl;
     std::cerr << fmt::format("_conf_tp.exceptions= {}", _conf_tp.exceptions())
@@ -837,9 +929,11 @@ class timeperiod_config_parser_test
   static void TearDownTestSuite(){};
 
  protected:
-  void SetUp() override {}
+  void SetUp() override {
+    timeperiod_manager::load(spdlog::default_logger(), {});
+  }
 
-  void TearDown() override {}
+  void TearDown() override { timeperiod_manager::unload(); }
 };
 
 INSTANTIATE_TEST_SUITE_P(timeperiod_config_parser_test,

@@ -240,7 +240,8 @@ class service : public notifier {
                                             int options) const override;
   bool is_result_fresh(time_t current_time, int log_this);
   void handle_flap_detection_disabled();
-  timeperiod* get_notification_timeperiod() const override;
+  com::centreon::common::timeperiods::timeperiod* get_notification_timeperiod()
+      const override;
   bool get_notify_on_current_state() const override;
 
   bool authorized_by_dependencies(

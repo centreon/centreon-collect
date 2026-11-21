@@ -33,12 +33,13 @@
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/engine/timezone.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::common::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::string;
@@ -1882,10 +1883,13 @@ int service::handle_async_check_result(
 
     // Make sure we rescheduled the next service check at a valid time.
     {
-      timezone_locker lock(get_timezone());
       preferred_time = get_next_check();
-      get_next_valid_time(preferred_time, &next_valid_time,
-                          this->check_period_ptr);
+      // No check period defined means any time is valid.
+      if (this->check_period_ptr)
+        next_valid_time = this->check_period_ptr->get_next_valid_time(
+            preferred_time, string_to_timezone(get_timezone()));
+      else
+        next_valid_time = std::max(preferred_time, ::time(nullptr));
       set_next_check(next_valid_time);
     }
 
@@ -2334,14 +2338,19 @@ int service::run_scheduled_check(int check_options, double latency) {
 
       // Make sure we rescheduled the next service check at a valid time.
       {
-        timezone_locker lock(get_timezone());
-        get_next_valid_time(preferred_time, &next_valid_time,
-                            this->check_period_ptr);
+        const absl::TimeZone tz = string_to_timezone(get_timezone());
+        // No check period defined means any time is valid.
+        if (this->check_period_ptr)
+          next_valid_time =
+              this->check_period_ptr->get_next_valid_time(preferred_time, tz);
+        else
+          next_valid_time = std::max(preferred_time, ::time(nullptr));
 
         // The service could not be rescheduled properly.
         // Set the next check time for next week.
-        if (!time_is_valid && !check_time_against_period(
-                                  next_valid_time, this->check_period_ptr)) {
+        if (!time_is_valid && this->check_period_ptr &&
+            !this->check_period_ptr->check_time_against_period(next_valid_time,
+                                                              tz)) {
           set_next_check((time_t)(next_valid_time + 60 * 60 * 24 * 7));
           SPDLOG_LOGGER_WARN(
               runtime_logger,
@@ -2915,9 +2924,9 @@ bool service::verify_check_viability(int check_options,
 
     // Make sure this is a valid time to check the service.
     {
-      timezone_locker lock(get_timezone());
-      if (!check_time_against_period((unsigned long)current_time,
-                                     this->check_period_ptr)) {
+      if (this->check_period_ptr &&
+          !this->check_period_ptr->check_time_against_period(
+              (unsigned long)current_time, string_to_timezone(get_timezone()))) {
         preferred_time = current_time;
         if (time_is_valid)
           *time_is_valid = false;
@@ -3126,8 +3135,8 @@ bool service::is_valid_escalation_for_notification(escalation const* e,
    * skip this escalation if it has a timeperiod and the current time isn't
    * valid
    */
-  if (!e->get_escalation_period().empty() &&
-      !check_time_against_period(current_time, e->escalation_period_ptr))
+  if (!e->get_escalation_period().empty() && e->escalation_period_ptr &&
+      !e->escalation_period_ptr->check_time_against_period(current_time))
     return false;
 
   /* skip this escalation if the state options don't match */
@@ -3335,8 +3344,8 @@ bool service::authorized_by_dependencies(
     /* Skip this dependency if it has a timepriod and the the current time is
      * not valid */
     time_t current_time{std::time(nullptr)};
-    if (!dep->get_dependency_period().empty() &&
-        !check_time_against_period(current_time, dep->dependency_period_ptr))
+    if (!dep->get_dependency_period().empty() && dep->dependency_period_ptr &&
+        !dep->dependency_period_ptr->check_time_against_period(current_time))
       return true;
 
     /* Get the status to use (use last hard state if it's currently in a soft
@@ -3472,9 +3481,9 @@ void service::check_result_freshness() {
 
     // See if the time is right...
     {
-      timezone_locker lock(service_ptr->get_timezone());
-      if (!check_time_against_period(current_time,
-                                     service_ptr->check_period_ptr))
+      if (service_ptr->check_period_ptr &&
+          !service_ptr->check_period_ptr->check_time_against_period(
+              current_time, string_to_timezone(service_ptr->get_timezone())))
         continue;
     }
 
