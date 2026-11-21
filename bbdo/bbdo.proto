@@ -42,6 +42,11 @@ message Welcome {
   bool extended_negotiation = 7;
   /* Engine configuration version sent by Engine so Broker is aware of it. */
   string engine_conf = 8;
+  /* Local timezone of the poller machine (IANA name), sent by Engine so Broker
+   * can evaluate notification/dependency timeperiods in the poller's timezone
+   * when a host/service carries no explicit timezone. Empty for non-Engine
+   * peers. */
+  string timezone = 9;
 }
 
 /* io::bbdo, bbdo::de_pb_ack, 50 */

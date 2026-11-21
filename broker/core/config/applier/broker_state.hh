@@ -54,6 +54,11 @@ class broker_state : public state {
      * connect time. Used to distinguish real Engine stops from historical
      * running=false events replayed on Broker reconnect. */
     bool running = false;
+    /* Local timezone (IANA name) of the poller machine, advertised in the
+     * Welcome message. Empty when the peer did not send one (e.g. legacy
+     * Engine or relay-registered peer). Used as the timezone fallback when a
+     * host/service carries no explicit timezone. */
+    std::string timezone{};
   };
   struct peer {
     uint64_t poller_id;
@@ -66,6 +71,9 @@ class broker_state : public state {
     std::string available_conf{};
     std::string engine_conf{};
     uint64_t via_remote{0};
+    /* Local timezone (IANA name) advertised by the poller machine. Only set
+     * for ENGINE peers; empty otherwise. */
+    std::string timezone{};
   };
   struct broker_peer {
     uint64_t poller_id;
@@ -189,7 +197,10 @@ class broker_state : public state {
                 const std::string& broker_name,
                 common::PeerType peer_type,
                 bool extended_negotiation,
-                const std::string& engine_conf) override
+                const std::string& engine_conf,
+                const std::string& timezone) override
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  std::string poller_timezone(uint64_t poller_id) const override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool is_peer_conf_known(uint64_t poller_id) const override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);

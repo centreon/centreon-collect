@@ -15,6 +15,8 @@
  *
  * For more information : contact@centreon.com
  */
+#include <absl/time/time.h>
+
 #include "broker/core/bbdo/cbmod_stream.hh"
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
@@ -198,6 +200,11 @@ void cbmod_stream::specific_negotiate(Welcome& obj) {
     obj.set_extended_negotiation(true);
     obj.set_engine_conf(_state.engine_conf());
   }
+  /* Advertise the poller machine's local timezone so Broker can evaluate
+   * notification timeperiods in the poller's timezone when a host/service has
+   * no explicit timezone directive (which resolves, on Engine, to the machine's
+   * local timezone). */
+  obj.set_timezone(absl::LocalTimeZone().name());
 }
 
 }  // namespace com::centreon::broker::bbdo

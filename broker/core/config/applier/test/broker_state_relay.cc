@@ -65,7 +65,8 @@ TEST_F(BrokerStateRelayTest,
   broker_state state(_logger);
   /* pollers_config_dir is empty → is_relay() == true */
 
-  state.add_peer(1u, "poller-1", "broker-1", cccommon::ENGINE, true, "hash-v1");
+  state.add_peer(1u, "poller-1", "broker-1", cccommon::ENGINE, true, "hash-v1",
+                 "");
 
   auto requests = state.pop_pending_config_requests();
   ASSERT_EQ(requests.size(), 1u);
@@ -83,7 +84,8 @@ TEST_F(BrokerStateRelayTest, CentralDoesNotQueueConfigRequestOnEnginePeer) {
   state.set_pollers_config_dir("/tmp/fake-pollers");
   /* is_relay() == false */
 
-  state.add_peer(1u, "poller-1", "broker-1", cccommon::ENGINE, true, "hash-v1");
+  state.add_peer(1u, "poller-1", "broker-1", cccommon::ENGINE, true, "hash-v1",
+                 "");
 
   auto requests = state.pop_pending_config_requests();
   EXPECT_TRUE(requests.empty());
@@ -93,7 +95,8 @@ TEST_F(BrokerStateRelayTest, CentralDoesNotQueueConfigRequestOnEnginePeer) {
 TEST_F(BrokerStateRelayTest, PopPendingConfigRequestsDrainsQueue) {
   broker_state state(_logger);
 
-  state.add_peer(1u, "poller-1", "broker-1", cccommon::ENGINE, true, "hash-v1");
+  state.add_peer(1u, "poller-1", "broker-1", cccommon::ENGINE, true, "hash-v1",
+                 "");
 
   auto first = state.pop_pending_config_requests();
   ASSERT_EQ(first.size(), 1u);
@@ -110,7 +113,7 @@ TEST_F(BrokerStateRelayTest, RelayDoesNotQueueWhenNoExtendedNegotiation) {
   broker_state state(_logger);
 
   state.add_peer(1u, "poller-1", "broker-1", cccommon::ENGINE,
-                 /*extended_negotiation=*/false, "hash-v1");
+                 /*extended_negotiation=*/false, "hash-v1", "");
 
   auto requests = state.pop_pending_config_requests();
   EXPECT_TRUE(requests.empty());
@@ -120,8 +123,8 @@ TEST_F(BrokerStateRelayTest, RelayDoesNotQueueWhenNoExtendedNegotiation) {
 TEST_F(BrokerStateRelayTest, RelayQueuesMultiplePollers) {
   broker_state state(_logger);
 
-  state.add_peer(1u, "poller-1", "broker-1", cccommon::ENGINE, true, "v1");
-  state.add_peer(2u, "poller-2", "broker-2", cccommon::ENGINE, true, "v2");
+  state.add_peer(1u, "poller-1", "broker-1", cccommon::ENGINE, true, "v1", "");
+  state.add_peer(2u, "poller-2", "broker-2", cccommon::ENGINE, true, "v2", "");
 
   auto requests = state.pop_pending_config_requests();
   ASSERT_EQ(requests.size(), 2u);
@@ -149,7 +152,8 @@ TEST_F(BrokerStateRelayTest, RelayQueuesMultiplePollers) {
 TEST_F(BrokerStateRelayTest, RelayDoesNotQueueBrokerPeer) {
   broker_state state(_logger);
 
-  state.add_peer(3u, "remote-broker", "broker-3", cccommon::BROKER, true, "");
+  state.add_peer(3u, "remote-broker", "broker-3", cccommon::BROKER, true, "",
+                 "");
 
   auto requests = state.pop_pending_config_requests();
   EXPECT_TRUE(requests.empty());

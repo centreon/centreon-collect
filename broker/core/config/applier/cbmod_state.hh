@@ -62,7 +62,8 @@ class cbmod_state : public state {
                 const std::string& broker_name,
                 common::PeerType peer_type,
                 bool extended_negotiation,
-                const std::string& engine_conf) override;
+                const std::string& engine_conf,
+                const std::string& timezone) override;
   void remove_peer(uint64_t poller_id,
                    const std::string& poller_name,
                    const std::string& broker_name) override;
