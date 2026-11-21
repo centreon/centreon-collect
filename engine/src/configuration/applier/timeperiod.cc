@@ -145,8 +145,7 @@ void applier::timeperiod::remove_object(const std::string& key) {
  *
  *  @param[in] obj Unused.
  */
-void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj,
-                                         error_cnt& err) {
+void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj) {
   // Logging.
   config_logger->debug("Resolving time period '{}'.", obj.timeperiod_name());
 
@@ -156,6 +155,11 @@ void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj,
     throw engine_error() << "Cannot resolve non-existing "
                          << "time period '" << obj.timeperiod_name() << "'";
 
-  // Resolve time period.
-  it->second->resolve(::timeperiods, err.config_warnings, err.config_errors);
+  // This is pure wiring: the existence of the excluded time periods is
+  // validated by timeperiod_helper::expand (single home). The shared runtime
+  // resolve() is still used to wire the exclusion pointers; its warning/error
+  // counters are discarded here.
+  uint32_t w = 0;
+  uint32_t e = 0;
+  it->second->resolve(::timeperiods, w, e);
 }

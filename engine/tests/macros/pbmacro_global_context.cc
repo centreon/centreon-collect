@@ -72,7 +72,7 @@ class GlobalMacrosContext : public TestEngine {
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     configuration::Command env_cmd;
     configuration::command_helper env_cmd_hlp(&env_cmd);
@@ -91,8 +91,8 @@ class GlobalMacrosContext : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst, err);
-    svc_aply.resolve_object(svc, err);
+    hst_aply.resolve_object(hst);
+    svc_aply.resolve_object(svc);
 
     _host = engine::host::hosts.begin()->second;
     _host->set_current_state(engine::host::state_up);

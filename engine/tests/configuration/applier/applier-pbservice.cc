@@ -20,7 +20,6 @@
 #include <gtest/gtest.h>
 
 #include "../../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
@@ -28,6 +27,7 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "common/engine_conf/message_helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -280,7 +280,7 @@ TEST_F(ApplierService, PbServicesCheckValidity) {
 
   // No check command
   ASSERT_NO_THROW(csvc_hlp.check_validity(err));
-  svc_aply.resolve_object(csvc, err);
+  svc_aply.resolve_object(csvc);
 
   service_map const& sm(engine::service::services);
   ASSERT_EQ(sm.size(), 1u);
@@ -350,7 +350,7 @@ TEST_F(ApplierService, PbContactgroupResolution) {
   configuration::applier::contactgroup cg_aply;
   cg_aply.add_object(cg);
   configuration::error_cnt err;
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::Service svc;
@@ -380,7 +380,7 @@ TEST_F(ApplierService, PbContactgroupResolution) {
 
   svc_hlp.set_default_values();
   svc_aply.add_object(svc);
-  svc_aply.resolve_object(svc, err);
+  svc_aply.resolve_object(svc);
   service_id_map const& sm(engine::service::services_by_id);
   ASSERT_EQ(sm.size(), 1u);
   ASSERT_EQ(sm.begin()->first.first, 1u);
@@ -841,7 +841,7 @@ TEST_F(ApplierService, PbServicesCheckValidityTags) {
 
   // No check command
   ASSERT_NO_THROW(csvc_hlp.check_validity(err));
-  svc_aply.resolve_object(csvc, err);
+  svc_aply.resolve_object(csvc);
 
   service_map const& sm(engine::service::services);
   ASSERT_EQ(sm.size(), 1u);

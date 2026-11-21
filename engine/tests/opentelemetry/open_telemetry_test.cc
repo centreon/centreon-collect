@@ -94,7 +94,7 @@ void open_telemetry_test::SetUp() {
   configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
   ct_aply.add_object(ctct);
   state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::Host hst{new_pb_configuration_host("localhost", "admin")};
   configuration::applier::host hst_aply;
@@ -105,8 +105,8 @@ void open_telemetry_test::SetUp() {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst, err);
-  svc_aply.resolve_object(svc, err);
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
 }
 
 void open_telemetry_test::TearDown() {

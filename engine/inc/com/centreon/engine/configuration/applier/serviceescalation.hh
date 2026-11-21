@@ -33,8 +33,7 @@ class serviceescalation {
   void modify_object(configuration::Serviceescalation* old_obj,
                      const configuration::Serviceescalation& new_obj);
   void remove_object(uint64_t hash_key);
-  void resolve_object(const configuration::Serviceescalation& obj,
-                      error_cnt& err);
+  void resolve_object(const configuration::Serviceescalation& obj);
 };
 }  // namespace com::centreon::engine::configuration::applier
 

@@ -674,64 +674,65 @@ void state_helper::resolve(error_cnt& err,
   for (const auto& cg : pb_config.contactgroups())
     contactgroup.insert(cg.contactgroup_name());
 
-  absl::flat_hash_set<std::string_view> host;
+  // Index of every defined host name; the value tells whether the host carries
+  // at least one service or anomaly detection (used for the "no services"
+  // warning). Only already-declared hosts are marked, never inserted, so the
+  // key set keeps its host-existence meaning for the other validators.
+  absl::flat_hash_map<std::string_view, bool> host;
   host.reserve(pb_config.hosts().size());
   for (const auto& h : pb_config.hosts())
-    host.insert(h.host_name());
+    host.emplace(h.host_name(), false);
 
   absl::flat_hash_set<std::pair<std::string_view, std::string_view>> service;
   service.reserve(pb_config.services().size());
-  for (const auto& s : pb_config.services())
+  for (const auto& s : pb_config.services()) {
     service.emplace(s.host_name(), s.service_description());
+    if (auto it = host.find(s.host_name()); it != host.end())
+      it->second = true;
+  }
+  for (const auto& ad : pb_config.anomalydetections()) {
+    if (auto it = host.find(ad.host_name()); it != host.end())
+      it->second = true;
+  }
 
   const std::string& illegal_chars = pb_config.illegal_object_chars();
-  for (auto& c : pb_config.contacts()) {
+  for (auto& c : pb_config.contacts())
     contact_helper::resolve(c, command, timeperiod, illegal_chars, err, log);
-  }
 
-  for (auto& cg : pb_config.contactgroups()) {
+  for (auto& cg : pb_config.contactgroups())
     contactgroup_helper::resolve(cg, contact, illegal_chars, err, log);
-  }
 
-  for (auto& hg : pb_config.hostgroups()) {
+  for (auto& hg : pb_config.hostgroups())
     hostgroup_helper::resolve(hg, host, illegal_chars, err, log);
-  }
 
-  for (auto& sg : pb_config.servicegroups()) {
+  for (auto& sg : pb_config.servicegroups())
     servicegroup_helper::resolve(sg, service, illegal_chars, err, log);
-  }
 
-  for (auto& hd : pb_config.hostdependencies()) {
+  for (auto& hd : pb_config.hostdependencies())
     hostdependency_helper::resolve(hd, host, timeperiod, err, log);
-  }
 
-  for (auto& sd : pb_config.servicedependencies()) {
+  for (auto& sd : pb_config.servicedependencies())
     servicedependency_helper::resolve(sd, service, timeperiod, err, log);
-  }
 
-  for (auto& he : pb_config.hostescalations()) {
-    hostescalation_helper::resolve(he, host, contactgroup, timeperiod, err, log);
-  }
+  for (auto& he : pb_config.hostescalations())
+    hostescalation_helper::resolve(he, host, contactgroup, timeperiod, err,
+                                   log);
 
-  for (auto& se : pb_config.serviceescalations()) {
-    serviceescalation_helper::resolve(se, service, contactgroup, timeperiod, err,
-                                      log);
-  }
+  for (auto& se : pb_config.serviceescalations())
+    serviceescalation_helper::resolve(se, service, contactgroup, timeperiod,
+                                      err, log);
 
-  for (auto& h : pb_config.hosts()) {
+  for (auto& h : pb_config.hosts())
     host_helper::resolve(h, host, contact, contactgroup, command, timeperiod,
                          illegal_chars, err, log);
-  }
 
-  for (auto& svc : pb_config.services()) {
+  for (auto& svc : pb_config.services())
     service_helper::resolve(svc, host, contact, contactgroup, command,
                             timeperiod, illegal_chars, err, log);
-  }
 
-  for (auto& ad : pb_config.anomalydetections()) {
+  for (auto& ad : pb_config.anomalydetections())
     anomalydetection_helper::resolve(ad, host, contact, contactgroup, command,
                                      timeperiod, illegal_chars, err, log);
-  }
 }
 
 }  // namespace com::centreon::engine::configuration

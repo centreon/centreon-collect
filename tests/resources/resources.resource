@@ -361,6 +361,8 @@ Ctn Start Engine With Extended Conf
         ...    --extended-config\=/tmp/centengine_extend.json
         ...    ${conf}
         ...    alias=${alias}
+        ...    stdout=${log}/centengine-stdout.log
+        ...    stderr=${log}/centengine-stderr.log
     END
 
 Ctn Restart Engine

@@ -316,8 +316,7 @@ void applier::contact::remove_object(const std::string& key) {
  *
  *  @param[in,out] obj  Object to resolve.
  */
-void applier::contact::resolve_object(const configuration::Contact& obj,
-                                      [[maybe_unused]] error_cnt& err) {
+void applier::contact::resolve_object(const configuration::Contact& obj) {
   // Logging.
   config_logger->debug("Resolving contact '{}'.", obj.contact_name());
 

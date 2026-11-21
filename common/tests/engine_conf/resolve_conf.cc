@@ -55,7 +55,9 @@ class Pb_Resolve : public ::testing::Test {
 
   // Add a defined host to the State. A check period is set so the notifier
   // validation (now run on every host) does not raise the "no check time
-  // period" warning.
+  // period" warning. NOTE: a host with no service attached still raises the
+  // "no services associated" warning in host_helper::resolve, so every test
+  // that adds such a host must account for one extra config_warning.
   static void add_host(State& s, const std::string& name) {
     Host* h = s.add_hosts();
     h->set_host_name(name);
@@ -86,10 +88,10 @@ class Pb_Resolve : public ::testing::Test {
   }
 
   // Add a service dependency between two services. It keeps the default
-  // (unknown) dependency type: servicedependency::expand rebuilds its whole list
-  // from scratch and decomposes such a dependency into its notification and
-  // execution variants, exactly like a parsed configuration. Each validation
-  // issue is therefore reported once per variant (i.e. twice).
+  // (unknown) dependency type: servicedependency::expand rebuilds its whole
+  // list from scratch and decomposes such a dependency into its notification
+  // and execution variants, exactly like a parsed configuration. Each
+  // validation issue is therefore reported once per variant (i.e. twice).
   static Servicedependency* add_servicedependency(State& s,
                                                   const std::string& dep_host,
                                                   const std::string& dep_svc,
@@ -129,7 +131,9 @@ class Pb_Resolve : public ::testing::Test {
 
   // Add a host with a defined check period so the notifier-common validation
   // does not raise the "no check time period" warning. Built as raw protobuf,
-  // notifications_enabled stays false, so no notification-period warning either.
+  // notifications_enabled stays false, so no notification-period warning
+  // either. As for add_host, a host with no service raises the "no services"
+  // warning.
   static Host* add_notifier_host(State& s, const std::string& name) {
     Host* h = s.add_hosts();
     h->set_host_name(name);
@@ -137,7 +141,8 @@ class Pb_Resolve : public ::testing::Test {
     return h;
   }
 
-  // Add a service on a host, with a defined check period (see add_notifier_host).
+  // Add a service on a host, with a defined check period (see
+  // add_notifier_host).
   static Service* add_notifier_service(State& s,
                                        const std::string& host,
                                        const std::string& desc) {
@@ -362,8 +367,8 @@ TEST_F(Pb_Resolve, ContactgroupNonExistingMember) {
   ASSERT_EQ(err.config_errors, 1u);
 }
 
-// A contact group whose name contains a character listed in illegal_object_chars
-// is a single error.
+// A contact group whose name contains a character listed in
+// illegal_object_chars is a single error.
 TEST_F(Pb_Resolve, ContactgroupNameWithIllegalChars) {
   State s = base_state();
   add_valid_contact(s);  // contact "admin"
@@ -380,7 +385,8 @@ TEST_F(Pb_Resolve, ContactgroupNameWithIllegalChars) {
   ASSERT_EQ(err.config_errors, 1u);
 }
 
-// A host group whose members are all defined resolves cleanly.
+// A host group whose members are all defined resolves cleanly (the sole warning
+// is the member host having no service attached).
 TEST_F(Pb_Resolve, HostgroupValid) {
   State s = base_state();
   add_host(s, "host_1");
@@ -392,7 +398,7 @@ TEST_F(Pb_Resolve, HostgroupValid) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 0u);
 }
 
@@ -408,7 +414,7 @@ TEST_F(Pb_Resolve, HostgroupNonExistingMember) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -426,7 +432,7 @@ TEST_F(Pb_Resolve, HostgroupNameWithIllegalChars) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -490,7 +496,7 @@ TEST_F(Pb_Resolve, ServicegroupNameWithIllegalChars) {
 }
 
 // A host dependency between two defined hosts and a defined dependency period
-// resolves without any warning or error.
+// resolves without error (the two warnings are the hosts having no service).
 TEST_F(Pb_Resolve, HostdependencyValid) {
   State s = base_state();
   add_host(s, "host_1");
@@ -502,7 +508,7 @@ TEST_F(Pb_Resolve, HostdependencyValid) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 2u);
   ASSERT_EQ(err.config_errors, 0u);
 }
 
@@ -516,7 +522,7 @@ TEST_F(Pb_Resolve, HostdependencyNonExistingDependentHost) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -530,7 +536,7 @@ TEST_F(Pb_Resolve, HostdependencyNonExistingMasterHost) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -544,7 +550,7 @@ TEST_F(Pb_Resolve, HostdependencyCircular) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -561,7 +567,7 @@ TEST_F(Pb_Resolve, HostdependencyNonExistingDependencyPeriod) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 2u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -599,7 +605,7 @@ TEST_F(Pb_Resolve, ServicedependencyNonExistingDependentService) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 2u);
 }
 
@@ -616,12 +622,12 @@ TEST_F(Pb_Resolve, ServicedependencyNonExistingMasterService) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 2u);
 }
 
-// A service dependency of a service on itself is a circular error, reported once
-// per expanded variant (notification + execution).
+// A service dependency of a service on itself is a circular error, reported
+// once per expanded variant (notification + execution).
 TEST_F(Pb_Resolve, ServicedependencyCircular) {
   State s = base_state();
   add_host(s, "host_1");
@@ -636,8 +642,8 @@ TEST_F(Pb_Resolve, ServicedependencyCircular) {
   ASSERT_EQ(err.config_errors, 2u);
 }
 
-// A service dependency referencing a non-existing dependency period is an error,
-// reported once per expanded variant (notification + execution).
+// A service dependency referencing a non-existing dependency period is an
+// error, reported once per expanded variant (notification + execution).
 TEST_F(Pb_Resolve, ServicedependencyNonExistingDependencyPeriod) {
   State s = base_state();
   add_host(s, "host_1");
@@ -657,7 +663,8 @@ TEST_F(Pb_Resolve, ServicedependencyNonExistingDependencyPeriod) {
 }
 
 // A host escalation on a defined host, with a defined contact group and a
-// defined escalation period, resolves without any warning or error.
+// defined escalation period, resolves without error (the sole warning is the
+// host having no service attached).
 TEST_F(Pb_Resolve, HostescalationValid) {
   State s = base_state();
   add_host(s, "host_1");
@@ -670,7 +677,7 @@ TEST_F(Pb_Resolve, HostescalationValid) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 0u);
 }
 
@@ -698,7 +705,7 @@ TEST_F(Pb_Resolve, HostescalationNonExistingContactgroup) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -714,7 +721,7 @@ TEST_F(Pb_Resolve, HostescalationNonExistingEscalationPeriod) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -747,7 +754,7 @@ TEST_F(Pb_Resolve, ServiceescalationNonExistingService) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -785,8 +792,8 @@ TEST_F(Pb_Resolve, ServiceescalationNonExistingEscalationPeriod) {
   ASSERT_EQ(err.config_errors, 1u);
 }
 
-// A host with a defined check period, a defined check command and no other
-// referenced object resolves without any warning or error.
+// A host with a defined check period and check command resolves without error
+// (the sole warning is the host having no service attached).
 TEST_F(Pb_Resolve, HostValid) {
   State s = base_state();
   Host* h = add_notifier_host(s, "host_1");
@@ -796,7 +803,7 @@ TEST_F(Pb_Resolve, HostValid) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 0u);
 }
 
@@ -810,7 +817,7 @@ TEST_F(Pb_Resolve, HostNonExistingCheckCommand) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -824,7 +831,7 @@ TEST_F(Pb_Resolve, HostNonExistingParent) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -838,7 +845,7 @@ TEST_F(Pb_Resolve, HostNonExistingContactgroup) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_warnings, 1u);
   ASSERT_EQ(err.config_errors, 1u);
 }
 
@@ -852,7 +859,7 @@ TEST_F(Pb_Resolve, HostNoCheckPeriodWarning) {
   error_cnt err;
   hlp.expand(err);
   hlp.resolve(err);
-  ASSERT_EQ(err.config_warnings, 1u);
+  ASSERT_EQ(err.config_warnings, 2u);
   ASSERT_EQ(err.config_errors, 0u);
 }
 

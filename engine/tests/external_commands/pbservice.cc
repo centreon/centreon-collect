@@ -18,7 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -26,6 +25,7 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "common/engine_conf/service_helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -82,8 +82,8 @@ TEST_F(ServiceExternalCommand, AddServiceDowntime) {
 
   _state_hlp->expand(err);
 
-  hst_aply.resolve_object(hst, err);
-  svc_aply.resolve_object(svc, err);
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
 
   set_time(20000);
   time_t now = time(nullptr);
@@ -137,8 +137,8 @@ TEST_F(ServiceExternalCommand, AddServiceDowntimeByHostIpAddress) {
   configuration::error_cnt err;
   _state_hlp->expand(err);
 
-  hst_aply.resolve_object(hst, err);
-  svc_aply.resolve_object(svc, err);
+  hst_aply.resolve_object(hst);
+  svc_aply.resolve_object(svc);
 
   set_time(20000);
   time_t now = time(nullptr);

@@ -355,8 +355,8 @@ TEST_F(ApplierPbHost, PbHostParentChildUnreachable) {
   ASSERT_EQ(engine::host::hosts.size(), 2u);
 
   _state_hlp->expand(err);
-  hst_aply.resolve_object(hst_child, err);
-  hst_aply.resolve_object(hst_parent, err);
+  hst_aply.resolve_object(hst_child);
+  hst_aply.resolve_object(hst_parent);
 
   host_map::iterator child = engine::host::hosts.find("child_host");
   host_map::iterator parent = engine::host::hosts.find("parent_host");

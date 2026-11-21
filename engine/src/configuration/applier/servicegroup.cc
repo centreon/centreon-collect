@@ -171,8 +171,7 @@ void applier::servicegroup::remove_object(
 }
 
 void applier::servicegroup::resolve_object(
-    const configuration::Servicegroup& obj,
-    [[maybe_unused]] error_cnt& err) {
+    const configuration::Servicegroup& obj) {
   // Logging.
   config_logger->debug("Resolving service group '{}'", obj.servicegroup_name());
 
