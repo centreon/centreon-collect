@@ -694,6 +694,14 @@ void state_helper::resolve(error_cnt& err,
   for (auto& sg : pb_config.servicegroups()) {
     servicegroup_helper::resolve(sg, service, illegal_chars, err, log);
   }
+
+  for (auto& hd : pb_config.hostdependencies()) {
+    hostdependency_helper::resolve(hd, host, timeperiod, err, log);
+  }
+
+  for (auto& sd : pb_config.servicedependencies()) {
+    servicedependency_helper::resolve(sd, service, timeperiod, err, log);
+  }
 }
 
 }  // namespace com::centreon::engine::configuration

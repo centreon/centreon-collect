@@ -158,7 +158,7 @@ void applier::servicedependency::remove_object(uint64_t hash_key) {
  */
 void applier::servicedependency::resolve_object(
     const configuration::Servicedependency& obj,
-    error_cnt& err) {
+    [[maybe_unused]] error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving a service dependency.");
 
@@ -171,8 +171,29 @@ void applier::servicedependency::resolve_object(
   if (engine::servicedependency::servicedependencies.end() == it)
     throw engine_error() << "Cannot resolve non-existing service dependency";
 
-  // Resolve service dependency.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  // This is pure wiring: the existence of the dependent service, the master
+  // service and the dependency period is validated by state_helper::resolve
+  // (single home). Here we only wire the objects that exist and leave the rest
+  // unwired.
+  service_map::const_iterator svc_it = service::services.find(
+      {obj.dependent_hosts().data(0),
+       obj.dependent_service_description().data(0)});
+  it->second->dependent_service_ptr =
+      svc_it != service::services.end() ? svc_it->second.get() : nullptr;
+
+  svc_it = service::services.find(
+      {obj.hosts().data(0), obj.service_description().data(0)});
+  it->second->master_service_ptr =
+      svc_it != service::services.end() ? svc_it->second.get() : nullptr;
+
+  if (obj.dependency_period().empty())
+    it->second->dependency_period_ptr = nullptr;
+  else {
+    timeperiod_map::const_iterator pit{
+        ::timeperiods.find(obj.dependency_period())};
+    it->second->dependency_period_ptr =
+        pit != ::timeperiods.end() ? pit->second.get() : nullptr;
+  }
 }
 
 /**
