@@ -275,8 +275,8 @@ void reporting_stream::_apply(const DimensionTimeperiod& tp) {
   cfg::legacy_set_weekday(proto, 5, tp.friday());
   cfg::legacy_set_weekday(proto, 6, tp.saturday());
   _timeperiods.add_timeperiod(
-      tp.id(),
-      std::make_shared<com::centreon::common::timeperiods::timeperiod>(proto));
+      tp.id(), std::make_shared<com::centreon::common::timeperiods::timeperiod>(
+                   proto, _logger));
 }
 
 /**
@@ -474,7 +474,8 @@ void reporting_stream::_load_timeperiods() {
   ::timeperiod_map by_name;
   for (auto& [id, proto] : protos) {
     auto tp =
-        std::make_shared<com::centreon::common::timeperiods::timeperiod>(proto);
+        std::make_shared<com::centreon::common::timeperiods::timeperiod>(
+            proto, _logger);
     _timeperiods.add_timeperiod(id, tp);
     by_name[tp->get_name()] = tp;
   }

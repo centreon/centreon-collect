@@ -23,7 +23,6 @@
 #include <gtest/gtest.h>
 #include "broker/core/config/applier/broker_state.hh"
 #include "common/engine_conf/message_helper.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
 #include "gmock/gmock.h"
 
 using namespace com::centreon::broker;
@@ -44,10 +43,6 @@ class BrokerCacheTest : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::CORE);
     config::applier::state::load<config::applier::broker_state>("unittest");
     config::applier::state::instance().set_cache_dir("/tmp/broker_cache_test");
-    /* The cache owns its own timeperiod set; the process-wide manager is only
-     * loaded so the timeperiods library has a real logger and illegal-chars
-     * validator (as init.cc does in production). */
-    com::centreon::common::timeperiods::timeperiod_manager::load(_logger, {});
     _cache = std::make_unique<broker_cache>(_logger);
     _cache->enable_section(
         com::centreon::broker::cache::broker_cache::CACHE_ALL);

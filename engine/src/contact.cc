@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/engine/contact.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -1020,10 +1019,10 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
     _service_notification_period_ptr = nullptr;
   } else {
     timeperiod_map::const_iterator it(
-        timeperiod_manager::instance().timeperiods().find(
+        ::timeperiods.find(
             get_service_notification_period()));
 
-    if (it == timeperiod_manager::instance().timeperiods().end() ||
+    if (it == ::timeperiods.end() ||
         !it->second) {
       config_logger->error(
           "Error: Service notification period '{}' specified for contact '{}' "
@@ -1046,10 +1045,10 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
     _host_notification_period_ptr = nullptr;
   } else {
     timeperiod_map::const_iterator it(
-        timeperiod_manager::instance().timeperiods().find(
+        ::timeperiods.find(
             get_host_notification_period()));
 
-    if (it == timeperiod_manager::instance().timeperiods().end() ||
+    if (it == ::timeperiods.end() ||
         !it->second) {
       config_logger->warn(
           "Error: Host notification period '{}' specified for contact '{}' is "
@@ -1089,7 +1088,7 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
   }
 
   /* check for illegal characters in contact name */
-  if (contains_illegal_object_chars(const_cast<char*>(_name.c_str()))) {
+  if (contains_illegal_object_chars(_name)) {
     config_logger->error(
         "Error: The name of contact '{}' contains one or more illegal "
         "characters.",
