@@ -16,18 +16,20 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/engine/timezone.hh"
+#include "common/timeperiods/timezone.hh"
+
+#include <string_view>
 
 #include "absl/time/clock.h"
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 
 /**
  * @brief Convert an engine timezone directive into an immutable absl::TimeZone.
  *
  * The returned zone is meant to be passed as the per-call timezone parameter of
  * the timeperiods library, replacing the former process-global setenv/tzset
- * approach. Engine stores timezones in the TZ environment form, usually with a
+ * approach. The configuration stores timezones in the TZ environment form, usually with a
  * leading ':' (e.g. ":Europe/Paris"); absl::LoadTimeZone wants the bare IANA
  * name. An empty directive (the common case) means "use the daemon's local
  * timezone", and an unparsable name falls back to it as well.
@@ -40,11 +42,13 @@ absl::TimeZone string_to_timezone(const std::string& name) {
   if (name.empty())
     return absl::LocalTimeZone();
 
-  std::string bare = name.front() == ':' ? name.substr(1) : name;
+  std::string_view bare = name;
+  if (bare.front() == ':')
+    bare.remove_prefix(1);
   absl::TimeZone tz;
   if (absl::LoadTimeZone(bare, &tz))
     return tz;
   return absl::LocalTimeZone();
 }
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods

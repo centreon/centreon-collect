@@ -21,7 +21,7 @@
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/timezone.hh"
+#include "common/timeperiods/timezone.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/base64.hh"
 
@@ -261,7 +261,8 @@ static bool add_command_to_agent_conf(
     // Resolve the configured IANA zone to its current effective UTC offset and
     // DST state.
     const absl::TimeZone::CivilInfo info =
-        com::centreon::engine::string_to_timezone(timezone).At(absl::Now());
+        com::centreon::common::timeperiods::string_to_timezone(timezone).At(
+            absl::Now());
     serv->set_utc_offset(static_cast<int32_t>(info.offset));
     serv->set_dst_active(info.is_dst);
   }

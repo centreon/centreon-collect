@@ -26,14 +26,15 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone.hh"
 #include "common/notifications/notification_types.hh"
+#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
+using com::centreon::common::timeperiods::string_to_timezone;
 namespace notifications = com::centreon::common::notifications;
 
 contact_map contact::contacts;
