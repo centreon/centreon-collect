@@ -320,3 +320,64 @@ BEDWEND
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot
     ...    ${VarRoot}/lib/centreon-engine/config0/state.prot
     Should Be True    ${result}    Engine configurations seen by Broker and seen by Engine should be equal
+
+BEPOLLERTZ
+    [Documentation]    Scenario: GetPollers reports each poller's own local timezone
+    ...    Given three centralized Engine pollers started with distinct TZ environment variables (Europe/Paris, America/New_York, Asia/Shanghai)
+    ...    When they connect to the central Broker in BBDO3 centralized configuration mode and advertise their local timezone in the Welcome message
+    ...    Then the GetPollers gRPC method returns the three pollers, each with the timezone it advertised
+    [Tags]    broker    engine    notification    MON-187019
+    Ctn Clear Engine Logs
+    Ctn Config Centralized Engine    ${3}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Clear Broker Logs
+    Remove Directory    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration    timeout=30s
+
+    Ctn Start Broker    newGeneration=${True}
+    Ctn Start Engine With Timezones    Europe/Paris    America/New_York    Asia/Shanghai
+
+    # Wait for the three poller configurations to be serialized by Broker.
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=60s
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/2.prot    timeout=60s
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/3.prot    timeout=60s
+
+    # Config Centralized Engine ${3} => Poller0/id1, Poller1/id2, Poller2/id3.
+    &{expected}    Create Dictionary
+    ...    Poller0    Europe/Paris
+    ...    Poller1    America/New_York
+    ...    Poller2    Asia/Shanghai
+
+    # Wait for the three Engine pollers to be connected and known by the central broker.
+    ${count}    Set Variable    0
+    FOR    ${idx}    IN RANGE    0    30
+        ${result}    Ctn Get Pollers    51001
+        IF    ${result} is None or "peers" not in ${result}
+            Sleep    1s
+            CONTINUE
+        END
+        ${count}    Evaluate    len(${result['peers']})
+        IF    ${count} == 3
+            BREAK
+        END
+        Sleep    1s
+    END
+    Should Be Equal As Integers    ${count}    3    The three Engine pollers should be connected to the central broker.
+
+    FOR    ${peer}    IN    @{result['peers']}
+        Should Be Equal As Strings    ${peer['type']}    ENGINE    GetPollers should only return ENGINE peers.
+        Dictionary Should Contain Key    ${expected}    ${peer['pollerName']}    Unexpected poller name '${peer['pollerName']}'
+        Should Be Equal As Strings
+        ...    ${peer['timezone']}
+        ...    ${expected}[${peer['pollerName']}]
+        ...    Poller '${peer['pollerName']}' should advertise timezone ${expected}[${peer['pollerName']}]
+    END
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
