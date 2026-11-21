@@ -153,3 +153,141 @@ BECFGVAL4
 
     # A rejected configuration is considered processed: its .lck is consumed.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
+
+BECFGVAL5
+    [Documentation]    Scenario: PHP pushes a poller configuration with a host escalation referencing an undefined contact group
+    ...    Given a centralized engine configuration with a host escalation whose contact group does not exist
+    ...    And Broker is started in centralized mode
+    ...    When the configuration change is notified to Broker (no CheckPollerConfig call)
+    ...    Then Broker refuses to push the configuration to the poller
+    ...    And it does not store the poller .prot configuration
+    [Tags]    broker    engine    config    centralized    MON-187019
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Engine Add Cfg File    ${0}    escalations.cfg
+    # The user-edited configuration is invalid: a host escalation whose contact
+    # group is not defined anywhere.
+    Ctn Add Host Escalation    ${0}    host_1    ghost_cg
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}    only_central=True
+    Ctn Broker Config Log    central    config    debug
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True    only_central=True
+    # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    # Broker must validate at ingestion and refuse to push the invalid configuration.
+    ${content}    Create List    refusing to push it to the poller
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not refuse the invalid poller configuration
+
+    # A refused configuration must not be stored as the poller .prot file.
+    ${prot}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/new-1.prot
+    File Should Not Exist    ${prot}    a refused configuration must not be stored
+
+    # A rejected configuration is considered processed: its .lck is consumed.
+    Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
+
+BECFGVAL6
+    [Documentation]    Scenario: PHP pushes a poller configuration with a service escalation referencing an undefined contact group
+    ...    Given a centralized engine configuration with a service escalation whose contact group does not exist
+    ...    And Broker is started in centralized mode
+    ...    When the configuration change is notified to Broker (no CheckPollerConfig call)
+    ...    Then Broker refuses to push the configuration to the poller
+    ...    And it does not store the poller .prot configuration
+    [Tags]    broker    engine    config    centralized    MON-187019
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Engine Add Cfg File    ${0}    escalations.cfg
+    # The user-edited configuration is invalid: a service escalation whose
+    # contact group is not defined anywhere.
+    Ctn Add Service Escalation    ${0}    host_1    service_1    ghost_cg
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}    only_central=True
+    Ctn Broker Config Log    central    config    debug
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True    only_central=True
+    # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    # Broker must validate at ingestion and refuse to push the invalid configuration.
+    ${content}    Create List    refusing to push it to the poller
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not refuse the invalid poller configuration
+
+    # A refused configuration must not be stored as the poller .prot file.
+    ${prot}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/new-1.prot
+    File Should Not Exist    ${prot}    a refused configuration must not be stored
+
+    # A rejected configuration is considered processed: its .lck is consumed.
+    Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
+
+BECFGVAL7
+    [Documentation]    Scenario: PHP pushes a poller configuration with a host referencing an undefined notification period
+    ...    Given a centralized engine configuration where a host has a non-existing notification period
+    ...    And Broker is started in centralized mode
+    ...    When the configuration change is notified to Broker (no CheckPollerConfig call)
+    ...    Then Broker refuses to push the configuration to the poller
+    ...    And it does not store the poller .prot configuration
+    [Tags]    broker    engine    config    centralized    MON-187019
+    Ctn Config Centralized Engine    ${1}
+    # The user-edited configuration is invalid: a host whose notification period is
+    # not defined anywhere.
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    notification_period    ghost_tp
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}    only_central=True
+    Ctn Broker Config Log    central    config    debug
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True    only_central=True
+    # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    # Broker must validate at ingestion and refuse to push the invalid configuration.
+    ${content}    Create List    refusing to push it to the poller
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not refuse the invalid poller configuration
+
+    # A refused configuration must not be stored as the poller .prot file.
+    ${prot}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/new-1.prot
+    File Should Not Exist    ${prot}    a refused configuration must not be stored
+
+    # A rejected configuration is considered processed: its .lck is consumed.
+    Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
+
+BECFGVAL8
+    [Documentation]    Scenario: PHP pushes a poller configuration with a service referencing an undefined notification period
+    ...    Given a centralized engine configuration where a service has a non-existing notification period
+    ...    And Broker is started in centralized mode
+    ...    When the configuration change is notified to Broker (no CheckPollerConfig call)
+    ...    Then Broker refuses to push the configuration to the poller
+    ...    And it does not store the poller .prot configuration
+    [Tags]    broker    engine    config    centralized    MON-187019
+    Ctn Config Centralized Engine    ${1}
+    # The user-edited configuration is invalid: a service whose notification period
+    # is not defined anywhere.
+    Ctn Engine Config Set Value In Services    ${0}    service_1    notification_period    ghost_tp
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}    only_central=True
+    Ctn Broker Config Log    central    config    debug
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True    only_central=True
+    # Notify Broker of the (invalid) configuration WITHOUT calling CheckPollerConfig.
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    # Broker must validate at ingestion and refuse to push the invalid configuration.
+    ${content}    Create List    refusing to push it to the poller
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not refuse the invalid poller configuration
+
+    # A refused configuration must not be stored as the poller .prot file.
+    ${prot}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/new-1.prot
+    File Should Not Exist    ${prot}    a refused configuration must not be stored
+
+    # A rejected configuration is considered processed: its .lck is consumed.
+    Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
