@@ -668,6 +668,16 @@ void state_helper::resolve(error_cnt& err,
   for (const auto& c : pb_config.contacts())
     contact.insert(c.contact_name());
 
+  absl::flat_hash_set<std::string_view> host;
+  host.reserve(pb_config.hosts().size());
+  for (const auto& h : pb_config.hosts())
+    host.insert(h.host_name());
+
+  absl::flat_hash_set<std::pair<std::string_view, std::string_view>> service;
+  service.reserve(pb_config.services().size());
+  for (const auto& s : pb_config.services())
+    service.emplace(s.host_name(), s.service_description());
+
   const std::string& illegal_chars = pb_config.illegal_object_chars();
   for (auto& c : pb_config.contacts()) {
     contact_helper::resolve(c, command, timeperiod, illegal_chars, err, log);
@@ -675,6 +685,10 @@ void state_helper::resolve(error_cnt& err,
 
   for (auto& cg : pb_config.contactgroups()) {
     contactgroup_helper::resolve(cg, contact, illegal_chars, err, log);
+  }
+
+  for (auto& hg : pb_config.hostgroups()) {
+    hostgroup_helper::resolve(hg, host, illegal_chars, err, log);
   }
 }
 

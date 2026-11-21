@@ -23,6 +23,7 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/host.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -137,7 +138,7 @@ void applier::hostgroup::remove_object(
  *  @param[in] obj  Object to resolved.
  */
 void applier::hostgroup::resolve_object(const configuration::Hostgroup& obj,
-                                        error_cnt& err) {
+                                        [[maybe_unused]] error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving host group '{}'", obj.hostgroup_name());
 
@@ -148,6 +149,22 @@ void applier::hostgroup::resolve_object(const configuration::Hostgroup& obj,
     throw engine_error() << fmt::format(
         "Cannot resolve non-existing host group '{}'", obj.hostgroup_name());
 
-  // Resolve host group.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  // This is pure wiring: the existence of the member hosts and the illegal
+  // characters in the name are validated by state_helper::resolve (single
+  // home). Here we only wire each existing member back to its group; a missing
+  // member is left unlinked.
+  engine::hostgroup* hg = it->second.get();
+  for (auto& member : hg->members) {
+    host_map::const_iterator it_host{engine::host::hosts.find(member.first)};
+    if (it_host == engine::host::hosts.end() || !it_host->second)
+      member.second = nullptr;
+    else {
+      // Update or add of group for name.
+      if (it_host->second.get() != member.second)
+        broker_group_member(NEBTYPE_HOSTGROUPMEMBER_ADD, it_host->second.get(),
+                            hg);
+      it_host->second->get_parent_groups().push_back(hg);
+      member.second = it_host->second.get();
+    }
+  }
 }

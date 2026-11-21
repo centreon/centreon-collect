@@ -53,6 +53,12 @@ class Pb_Resolve : public ::testing::Test {
     t->set_alias(name);
   }
 
+  // Add a defined host to the State.
+  static void add_host(State& s, const std::string& name) {
+    Host* h = s.add_hosts();
+    h->set_host_name(name);
+  }
+
   // Add a fully valid contact (existing periods + commands) to the State.
   static Contact* add_valid_contact(State& s) {
     Contact* c = s.add_contacts();
@@ -274,3 +280,54 @@ TEST_F(Pb_Resolve, ContactgroupNameWithIllegalChars) {
   ASSERT_EQ(err.config_warnings, 0u);
   ASSERT_EQ(err.config_errors, 1u);
 }
+
+// A host group whose members are all defined resolves cleanly.
+TEST_F(Pb_Resolve, HostgroupValid) {
+  State s = base_state();
+  add_host(s, "host_1");
+  Hostgroup* hg = s.add_hostgroups();
+  hg->set_hostgroup_name("hg1");
+  hg->mutable_members()->add_data("host_1");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A host group referencing a non-existing host is a single error.
+TEST_F(Pb_Resolve, HostgroupNonExistingMember) {
+  State s = base_state();
+  add_host(s, "host_1");
+  Hostgroup* hg = s.add_hostgroups();
+  hg->set_hostgroup_name("hg1");
+  hg->mutable_members()->add_data("ghost");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host group whose name contains a character listed in illegal_object_chars
+// is a single error.
+TEST_F(Pb_Resolve, HostgroupNameWithIllegalChars) {
+  State s = base_state();
+  add_host(s, "host_1");
+  Hostgroup* hg = s.add_hostgroups();
+  hg->set_hostgroup_name("hg!1");
+  hg->mutable_members()->add_data("host_1");
+
+  state_helper hlp(&s);
+  s.set_illegal_object_chars("!$");
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
