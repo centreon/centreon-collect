@@ -3081,12 +3081,24 @@ d'acquittement en mode configuration centralisée.
 
 # Travaux préparatoires avant le Poller HA
 
-Les travaux décrits dans cette section sont implémentés **avant** le Poller HA. Ils ont deux
-objectifs : construire l'infrastructure de notification côté Broker sur des zones mono-poller,
-et la valider en profondeur avant d'introduire la complexité du HA multi-pollers.
+Les travaux décrits dans cette section sont implémentés **avant** le Poller HA. Le cœur de
+ces travaux est le **déplacement des notifications sur Broker** : avec `notification_mode =
+broker`, c'est un service de notification centralisé (et non plus chaque poller) qui décide et
+exécute les notifications. C'est une brique indispensable du Poller HA — sans elle, la chaîne
+de notification se romprait à chaque migration ou panne de poller. On construit donc cette
+infrastructure sur des zones mono-poller, et on la valide en profondeur, avant d'introduire la
+complexité du HA multi-pollers.
+
+Ce déplacement a toutefois un **prérequis** : Broker doit savoir évaluer les **timeperiods**
+(la viabilité d'une notification dépend de la plage de notification autorisée). Tant que ce
+calcul n'existe que dans Engine, le service de notification de Broker ne peut pas décider seul.
+L'extraction des timeperiods en bibliothèque gérable par Broker est donc le ticket **T0**, qui
+bloque le service de notification (T7) — voir
+[Prérequis : les timeperiods doivent être gérables par Broker](#prérequis--les-timeperiods-doivent-être-gérables-par-broker).
 
 | Ticket | Description                                       |
 |--------|---------------------------------------------------|
+| **T0** | Extraction des timeperiods en bibliothèque gérable par Broker (prérequis) |
 | **T1** | File neb à triple priorité                        |
 | **T2** | Suivi de l'état des downtimes dans `global_cache` |
 | **T3** | Endpoints BrokerRpc : downtimes et acquittements  |
@@ -3102,6 +3114,9 @@ gantt
     title Travaux préparatoires avant le Poller HA
     dateFormat  YYYY-MM-DD
 
+    section Prérequis
+    T0 · Timeperiods gérables par Broker  :t0, 2026-05-03, 5d
+
     section Infrastructure
     T1 · File neb à triple priorité       :t1, 2026-05-10, 5d
     T3 · BrokerRpc downtimes et acks      :t3, 2026-05-10, 5d
@@ -3115,7 +3130,7 @@ gantt
     T5 · Inherited downtimes BrokerRpc    :t5, after t3, 3d
 
     section Service notification
-    T7 · Service de notification Broker   :t7, after t3 t4, 5d
+    T7 · Service de notification Broker   :t7, after t0 t3 t4, 5d
 
     section Activation
     T8 · Paramètre notification_mode      :t8, after t6 t7, 2d
@@ -3124,9 +3139,43 @@ gantt
     T9 · Suite de tests mode broker       :t9, after t8 t2 t5, 5d
 ```
 
-T1, T3, T4 et T6 n'ont aucune dépendance et peuvent être développés en parallèle. T2
-requiert T1 (chemin neb prioritaire) et T3 (chemin BrokerRpc). T8 requiert T6 (côté Engine)
+T0 est un prérequis du service de notification : sans évaluation des timeperiods côté Broker,
+T7 ne peut pas décider de la viabilité d'une notification. T1, T3, T4 et T6 n'ont aucune
+dépendance et peuvent être développés en parallèle. T2 requiert T1 (chemin neb prioritaire)
+et T3 (chemin BrokerRpc). T7 requiert T0 (timeperiods), T3 et T4. T8 requiert T6 (côté Engine)
 et T7 (côté Broker). T9 est bloqué par tous les autres.
+
+## Prérequis : les timeperiods doivent être gérables par Broker
+
+Déplacer les notifications sur Broker (T7, `notification_mode = broker`) suppose que Broker
+sache **évaluer les plages horaires (timeperiods)**. La décision d'émettre une notification
+repose sur la *viabilité* (`is_notification_viable`), qui consulte la `notification_period`
+(et, selon les cas, la `check_period`) : « l'instant courant est-il dans la plage de
+notification autorisée ? », « quand la notification redeviendra-t-elle permise ? ». Tant que ce
+calcul n'existe que dans Engine, le service de notification de Broker ne peut pas décider seul —
+il ne saurait ni suspendre ni reprogrammer une notification en fonction de l'horaire.
+
+Ce prérequis a deux volets :
+
+1. **Le code d'évaluation des timeperiods doit être une bibliothèque indépendante d'Engine.**
+   Le calcul (`get_next_valid_time`, `check_time_against_period`, gestion des dateranges et des
+   exclusions) vivait dans `engine/`, couplé à ses globals. Il a été extrait dans une
+   bibliothèque autonome (`engine/src/timeperiods/`, cible `timeperiods`) : le registre des
+   timeperiods est porté par un `timeperiod_manager` (un par process), et tout couplage à
+   Engine a été coupé — le logger et les caractères interdits dans les noms sont **injectés au
+   `load()`** plutôt que lus dans les globals d'Engine. Broker peut donc linker cette
+   bibliothèque et l'utiliser telle quelle. Détails et comparatif des implémentations
+   (code actuel / Boost / Abseil) dans [doc/timeperiods-rework-fr.md](timeperiods-rework-fr.md).
+
+2. **Broker doit connaître les définitions de timeperiods.** Elles font partie de la
+   configuration centralisée : Broker les reçoit déjà via le `.prot` du poller et les stocke
+   dans son cache centralisé. Le service de notification alimente son `timeperiod_manager` à
+   partir de ce cache, exactement comme Engine alimente le sien depuis sa configuration
+   appliquée.
+
+En résumé : **le déplacement des notifications sur Broker (T7) est bloqué tant que les
+timeperiods ne sont pas gérables par Broker.** L'extraction de la bibliothèque (T0) est donc un
+prérequis des travaux préparatoires, et non une étape optionnelle.
 
 ## File `neb` à triple priorité
 
@@ -4245,8 +4294,9 @@ message NotificationRequest {
 ```
 
 Broker transfère `pb_notification_request` au service de notification. Ce service consulte les
-downtimes et acquittements actifs depuis la base de Broker et exécute la commande si les
-conditions de suppression ne sont pas remplies.
+downtimes et acquittements actifs depuis la base de Broker, **évalue la `notification_period`
+de la ressource** (d'où le prérequis [T0 : timeperiods gérables par Broker](#prérequis--les-timeperiods-doivent-être-gérables-par-broker))
+et exécute la commande si les conditions de suppression ne sont pas remplies.
 
 Avantages :
 - Seul le service de notification a besoin d'accéder à l'infrastructure de notification

@@ -2731,12 +2731,23 @@ configuration mode.
 
 # Preparatory work before Poller HA
 
-The work described in this section is implemented **before** Poller HA. It serves two purposes:
-building the Broker-side notification infrastructure on single-poller zones, and validating it
-thoroughly before the complexity of multi-poller HA is introduced.
+The work described in this section is implemented **before** Poller HA. Its core is **moving
+notifications onto Broker**: with `notification_mode = broker`, a centralized notification
+service (rather than each poller) decides on and runs notifications. This is an indispensable
+building block of Poller HA — without it the notification chain would break on every poller
+migration or failure. So this infrastructure is built on single-poller zones, and validated
+thoroughly, before the complexity of multi-poller HA is introduced.
+
+That move has a **prerequisite**, though: Broker must be able to evaluate **timeperiods** (a
+notification's viability depends on the allowed notification window). As long as that
+computation lives only in Engine, Broker's notification service cannot decide on its own.
+Extracting timeperiods into a Broker-manageable library is therefore ticket **T0**, which
+gates the notification service (T7) — see
+[Prerequisite: timeperiods must be Broker-manageable](#prerequisite-timeperiods-must-be-broker-manageable).
 
 | Ticket | Description |
 |--------|-------------|
+| **T0** | Extract timeperiods into a Broker-manageable library (prerequisite) |
 | **T1** | Triple-priority neb queue |
 | **T2** | `global_cache` downtime state tracking |
 | **T3** | BrokerRpc endpoints: downtimes and acknowledgements |
@@ -2752,6 +2763,9 @@ gantt
     title Preparatory work before Poller HA
     dateFormat  YYYY-MM-DD
 
+    section Prerequisite
+    T0 · Broker-manageable timeperiods    :t0, 2023-12-25, 5d
+
     section Infrastructure
     T1 · Triple-priority neb queue         :t1, 2024-01-01, 5d
     T3 · BrokerRpc downtime & ack         :t3, 2024-01-01, 5d
@@ -2765,7 +2779,7 @@ gantt
     T5 · Inherited downtimes via RPC      :t5, after t3, 3d
 
     section Broker notification
-    T7 · Notification service             :t7, after t3 t4, 5d
+    T7 · Notification service             :t7, after t0 t3 t4, 5d
 
     section Activation
     T8 · notification_mode parameter      :t8, after t6 t7, 2d
@@ -2774,9 +2788,42 @@ gantt
     T9 · Test suite (broker mode)         :t9, after t8 t2 t5, 5d
 ```
 
-T1, T3, T4, and T6 have no dependencies and can be developed in parallel. T2 requires
-both T1 (neb priority path) and T3 (BrokerRpc path). T8 requires both T6 (Engine side)
-and T7 (Broker side). T9 gates on everything.
+T0 is a prerequisite of the notification service: without Broker-side timeperiod evaluation,
+T7 cannot decide on a notification's viability. T1, T3, T4, and T6 have no dependencies and can
+be developed in parallel. T2 requires both T1 (neb priority path) and T3 (BrokerRpc path). T7
+requires T0 (timeperiods), T3, and T4. T8 requires both T6 (Engine side) and T7 (Broker side).
+T9 gates on everything.
+
+## Prerequisite: timeperiods must be Broker-manageable
+
+Moving notifications onto Broker (T7, `notification_mode = broker`) assumes Broker can
+**evaluate timeperiods**. The decision to send a notification rests on *viability*
+(`is_notification_viable`), which consults the `notification_period` (and, depending on the
+case, the `check_period`): "is the current instant within the allowed notification window?",
+"when will notifications become allowed again?". As long as that computation lives only in
+Engine, Broker's notification service cannot decide on its own — it could neither suspend nor
+reschedule a notification based on the time of day.
+
+This prerequisite has two parts:
+
+1. **The timeperiod evaluation code must be a library independent of Engine.** The computation
+   (`get_next_valid_time`, `check_time_against_period`, daterange and exclusion handling) used
+   to live in `engine/`, coupled to its globals. It has been extracted into a standalone
+   library (`engine/src/timeperiods/`, target `timeperiods`): the timeperiod registry is owned
+   by a `timeperiod_manager` (one per process), and every coupling to Engine has been removed —
+   the logger and the characters forbidden in names are **injected at `load()`** rather than
+   read from Engine globals. Broker can therefore link this library and use it as-is.
+   Details and an implementation comparison (current code / Boost / Abseil) in
+   [doc/timeperiods-rework-en.md](timeperiods-rework-en.md).
+
+2. **Broker must know the timeperiod definitions.** They are part of the centralized
+   configuration: Broker already receives them via the poller's `.prot` and stores them in its
+   centralized cache. The notification service feeds its `timeperiod_manager` from that cache,
+   exactly as Engine feeds its own from its applied configuration.
+
+In short: **moving notifications onto Broker (T7) is blocked until timeperiods are
+Broker-manageable.** Extracting the library (T0) is therefore a prerequisite of the preparatory
+work, not an optional step.
 
 ## Triple-priority neb queue
 
@@ -3855,8 +3902,9 @@ message NotificationRequest {
 ```
 
 Broker forwards `pb_notification_request` to the notification service. The notification
-service checks active downtimes and acknowledgements from Broker's database and executes the
-command if suppression conditions are not met.
+service checks active downtimes and acknowledgements from Broker's database, **evaluates the
+resource's `notification_period`** (hence the [T0: Broker-manageable timeperiods](#prerequisite-timeperiods-must-be-broker-manageable)
+prerequisite) and executes the command if suppression conditions are not met.
 
 Advantages:
 - Only the notification service needs access to the notification infrastructure
