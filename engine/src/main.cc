@@ -607,11 +607,6 @@ int main(int argc, char* argv[]) {
    * destruction goes through vtables living in that library. */
   command_manager::instance().clear();
 
-  /* Destroy the timeperiods at a controlled point (they are a global now, no
-   * more timeperiod_manager) so it does not happen during static destruction.
-   * It is done after applier::state::clear() above. */
-  ::timeperiods.clear();
-
   /* The io_context is shared with the broker modules (externalcmd, cbmod
    * outputs): services they registered in it are destroyed by ~io_context,
    * so it must be destroyed while their libraries are still mapped. Only
