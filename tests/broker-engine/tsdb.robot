@@ -5,7 +5,7 @@ Resource            ../resources/import.resource
 
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
+Test Setup          Run Keywords    Ctn Stop Processes    AND    Remove File    ${rrdLog}
 Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
@@ -201,6 +201,8 @@ VICT_ONE_CHECK_STATUS
     END
 
     Should Be True    ${now} < ${timeout}
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    no_rrd_test=${True}
 
 
 VICT_ONE_CHECK_METRIC_AFTER_FAILURE
