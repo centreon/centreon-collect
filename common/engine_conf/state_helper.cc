@@ -690,6 +690,10 @@ void state_helper::resolve(error_cnt& err,
   for (auto& hg : pb_config.hostgroups()) {
     hostgroup_helper::resolve(hg, host, illegal_chars, err, log);
   }
+
+  for (auto& sg : pb_config.servicegroups()) {
+    servicegroup_helper::resolve(sg, service, illegal_chars, err, log);
+  }
 }
 
 }  // namespace com::centreon::engine::configuration

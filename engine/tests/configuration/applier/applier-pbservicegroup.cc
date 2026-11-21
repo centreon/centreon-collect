@@ -98,10 +98,11 @@ TEST_F(ApplierServicegroup, PbResolveEmptyservicegroup) {
   ASSERT_EQ(err.config_errors, 0);
 }
 
-// Given a servicegroup with a non-existing service
-// When the resolve_object() method is called
-// Then an exception is thrown
-// And the method returns 1 error
+// Given a servicegroup with a non-existing service member
+// When the object is added and resolved (pure wiring now)
+// Then nothing throws: the missing member is left unwired (nullptr). Its
+// existence is validated by state_helper::resolve (see
+// common/tests/engine_conf/resolve_conf.cc).
 TEST_F(ApplierServicegroup, PbResolveInexistentService) {
   configuration::error_cnt err;
   configuration::applier::servicegroup aplyr;
@@ -111,9 +112,13 @@ TEST_F(ApplierServicegroup, PbResolveInexistentService) {
   fill_pair_string_group(grp.mutable_members(), "host1,non_existing_service");
   aplyr.add_object(grp);
   _state_hlp->expand(err);
-  ASSERT_THROW(aplyr.resolve_object(grp, err), std::exception);
+  ASSERT_NO_THROW(aplyr.resolve_object(grp, err));
   ASSERT_EQ(err.config_warnings, 0);
-  ASSERT_EQ(err.config_errors, 1);
+  ASSERT_EQ(err.config_errors, 0);
+  // The non-existing member is kept but left unwired (no runtime service).
+  auto& members = engine::servicegroup::servicegroups["test"]->members;
+  ASSERT_EQ(members.size(), 1u);
+  ASSERT_EQ(members.begin()->second, nullptr);
 }
 
 // Given a servicegroup with a service and a host

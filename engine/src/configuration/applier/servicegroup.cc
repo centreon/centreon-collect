@@ -22,6 +22,7 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/service.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -171,9 +172,9 @@ void applier::servicegroup::remove_object(
 
 void applier::servicegroup::resolve_object(
     const configuration::Servicegroup& obj,
-    error_cnt& err) {
+    [[maybe_unused]] error_cnt& err) {
   // Logging.
-  config_logger->debug("Removing service group '{}'", obj.servicegroup_name());
+  config_logger->debug("Resolving service group '{}'", obj.servicegroup_name());
 
   // Find service group.
   servicegroup_map::const_iterator it =
@@ -183,8 +184,25 @@ void applier::servicegroup::resolve_object(
         "Cannot resolve non-existing service group '{}'",
         obj.servicegroup_name());
 
-  // Resolve service group.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  // This is pure wiring: the existence of the member services and the illegal
+  // characters in the name are validated by state_helper::resolve (single
+  // home). Here we only wire each existing member back to its group; a missing
+  // member is left unlinked.
+  engine::servicegroup* sg = it->second.get();
+  for (auto& member : sg->members) {
+    service_map::const_iterator it_svc{
+        engine::service::services.find(member.first)};
+    if (it_svc == engine::service::services.end() || !it_svc->second)
+      member.second = nullptr;
+    else {
+      // Update or add of group for name.
+      if (it_svc->second.get() != member.second)
+        broker_group_member(NEBTYPE_SERVICEGROUPMEMBER_ADD,
+                            it_svc->second.get(), sg);
+      it_svc->second->get_parent_groups().push_back(sg);
+      member.second = it_svc->second.get();
+    }
+  }
 }
 
 /**

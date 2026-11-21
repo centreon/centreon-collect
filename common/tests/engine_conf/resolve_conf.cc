@@ -59,6 +59,15 @@ class Pb_Resolve : public ::testing::Test {
     h->set_host_name(name);
   }
 
+  // Add a defined service to the State.
+  static void add_service(State& s,
+                          const std::string& host,
+                          const std::string& description) {
+    Service* svc = s.add_services();
+    svc->set_host_name(host);
+    svc->set_service_description(description);
+  }
+
   // Add a fully valid contact (existing periods + commands) to the State.
   static Contact* add_valid_contact(State& s) {
     Contact* c = s.add_contacts();
@@ -331,3 +340,61 @@ TEST_F(Pb_Resolve, HostgroupNameWithIllegalChars) {
   ASSERT_EQ(err.config_errors, 1u);
 }
 
+// A service group whose members are all defined resolves cleanly.
+TEST_F(Pb_Resolve, ServicegroupValid) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_service(s, "host_1", "svc_1");
+  Servicegroup* sg = s.add_servicegroups();
+  sg->set_servicegroup_name("sg1");
+  auto* m = sg->mutable_members()->add_data();
+  m->set_first("host_1");
+  m->set_second("svc_1");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A service group referencing a non-existing service is a single error.
+TEST_F(Pb_Resolve, ServicegroupNonExistingMember) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_service(s, "host_1", "svc_1");
+  Servicegroup* sg = s.add_servicegroups();
+  sg->set_servicegroup_name("sg1");
+  auto* m = sg->mutable_members()->add_data();
+  m->set_first("host_1");
+  m->set_second("ghost_svc");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A service group whose name contains a character listed in
+// illegal_object_chars is a single error.
+TEST_F(Pb_Resolve, ServicegroupNameWithIllegalChars) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_service(s, "host_1", "svc_1");
+  Servicegroup* sg = s.add_servicegroups();
+  sg->set_servicegroup_name("sg!1");
+  auto* m = sg->mutable_members()->add_data();
+  m->set_first("host_1");
+  m->set_second("svc_1");
+
+  state_helper hlp(&s);
+  s.set_illegal_object_chars("!$");
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
