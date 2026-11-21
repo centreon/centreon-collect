@@ -12,6 +12,7 @@
   - [8. Extraction plan](#8-extraction-plan)
   - [9. Open leads](#9-open-leads)
   - [10. Benchmarks — current baseline](#10-benchmarks--current-baseline)
+  - [11. Final library architecture (as implemented)](#11-final-library-architecture-as-implemented)
 
 This document analyses extracting engine's *timeperiods* code into a shared
 library reusable by broker (notably for evaluating notification time windows on
@@ -416,3 +417,60 @@ blow up and become uninterpretable.
 These figures are the **baseline** (under `TZ=UTC`) to compare against for a
 possible Abseil port (cf. §9) — in particular on the exceptions path and the
 exclusion chain.
+
+## 11. Final library architecture (as implemented)
+
+The extraction and rework are done; this section describes where the library
+landed.
+
+**Location & contents.** `common/timeperiods/` is a standalone static library
+(`timeperiods`) with no dependency on any host application:
+
+- `timeperiod` — the value class / recurrence engine.
+- `daterange`, `timerange` — the building blocks (exceptions and time ranges).
+- `timezone` — `string_to_timezone()`, converting an Engine timezone directive
+  (e.g. `:Europe/Paris`) into an `absl::TimeZone`.
+- the `timeperiod_map` typedef: `absl::flat_hash_map<std::string,
+  std::shared_ptr<timeperiod>>` (keyed by name).
+
+**Timezone: per-call, no global state.** Every evaluation method
+(`check_time_against_period`, `check_time_against_period_for_notif`,
+`get_next_valid_time`, `get_next_invalid_time`, `duration_intersect`) takes an
+explicit `absl::TimeZone` (defaulting to the daemon's local zone). The former
+`setenv`/`tzset`/`timezone_manager` global approach is gone: civil-time
+conversions go through `absl::FromTM`/`ToTM` against the passed zone. The
+methods are `const` and cyclic-exclusion-safe (a per-traversal `chain` guard
+breaks `A excludes B excludes A`).
+
+**Exclusion resolution.** A `timeperiod`'s `exclude` directives are stored by
+name and, once the objects exist, linked to raw pointers by
+`timeperiod::resolve(const timeperiod_map& all, …)`. That linkage is a runtime
+object-graph fact that does not survive serialization, so **every consumer that
+builds `timeperiod` objects resolves them against its own map**.
+
+**Logger injected, no global.** Each `timeperiod` carries its own logger, passed
+to the constructor (`timeperiod(obj, logger)`), with a silent null-sink fallback
+when none is given; the library no longer reaches a process-global logger.
+`timerange` validates its bounds by throwing a descriptive exception (no
+logging). This is what lets Broker run the library with a *dedicated* logger
+(cf. the `CheckPollerConfig` endpoint) without touching any shared logger.
+
+**No manager — each consumer owns its collection.** There is no
+`timeperiod_manager` anymore; the collection lives wherever it is used:
+
+- **Engine**: a process-global `::timeperiods` (`timeperiod_map`, declared in
+  `engine/globals`), fed by `applier::timeperiod` and cleared at a controlled
+  point on shutdown.
+- **Broker (notifications)**: `broker_cache` owns its own `_timeperiods`
+  (name-keyed), fed from the config `State`/`DiffState`, reference-counted per
+  poller (a timeperiod is dropped when the last poller referencing it leaves).
+- **BAM**: `reporting_stream` owns its own `bam::timeperiod_map` (keyed by the
+  numeric reporting id), fed from BBDO `dimension_timeperiod` events.
+
+**Where validation lives.** Character/name validation is a host concern (Engine
+does it in `applier::timeperiod::add_object` via `contains_illegal_object_chars`;
+the same check is being added to `engine_conf` for the Broker-side
+`CheckPollerConfig`). Cross-reference validation (an `exclude` naming an
+undefined timeperiod) lives in `engine_conf`'s `timeperiod_helper::expand`, so
+both Engine and Broker reject such a configuration at parse/expand time — it
+reports every offending timeperiod, then fails.

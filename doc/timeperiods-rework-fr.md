@@ -12,6 +12,7 @@
   - [8. Plan d'extraction](#8-plan-dextraction)
   - [9. Pistes à explorer](#9-pistes-à-explorer)
   - [10. Benchmarks — baseline actuelle](#10-benchmarks--baseline-actuelle)
+  - [11. Architecture finale de la librairie (telle qu'implémentée)](#11-architecture-finale-de-la-librairie-telle-quimplémentée)
 
 Ce document analyse l'extraction du code des *timeperiods* d'engine vers une
 bibliothèque partagée réutilisable par broker (notamment pour l'évaluation des
@@ -425,3 +426,65 @@ sur 10 répétitions. Instants de référence fixes et déterministes (mer.
 Ces chiffres constituent la **baseline** (sous `TZ=UTC`) à comparer lors d'un
 éventuel portage Abseil (cf. §9) — en particulier sur le chemin exceptions et la
 chaîne d'exclusions.
+
+## 11. Architecture finale de la librairie (telle qu'implémentée)
+
+L'extraction et la refonte sont faites ; cette section décrit où la librairie a
+atterri.
+
+**Emplacement & contenu.** `common/timeperiods/` est une librairie statique
+autonome (`timeperiods`) sans dépendance à une application hôte :
+
+- `timeperiod` — la classe valeur / le moteur de récurrence.
+- `daterange`, `timerange` — les briques de base (exceptions et plages horaires).
+- `timezone` — `string_to_timezone()`, qui convertit une directive de fuseau
+  Engine (p. ex. `:Europe/Paris`) en `absl::TimeZone`.
+- le typedef `timeperiod_map` : `absl::flat_hash_map<std::string,
+  std::shared_ptr<timeperiod>>` (clé par nom).
+
+**Fuseau : par appel, sans état global.** Chaque méthode d'évaluation
+(`check_time_against_period`, `check_time_against_period_for_notif`,
+`get_next_valid_time`, `get_next_invalid_time`, `duration_intersect`) prend un
+`absl::TimeZone` explicite (par défaut le fuseau local du daemon). L'ancienne
+approche globale `setenv`/`tzset`/`timeperiod_manager` a disparu : les
+conversions de temps civil passent par `absl::FromTM`/`ToTM` sur le fuseau
+passé. Les méthodes sont `const` et sûres vis-à-vis des exclusions cycliques
+(une garde `chain` par parcours casse `A exclut B exclut A`).
+
+**Résolution des exclusions.** Les directives `exclude` d'une `timeperiod` sont
+stockées par nom et, une fois les objets construits, liées à des pointeurs bruts
+par `timeperiod::resolve(const timeperiod_map& all, …)`. Ce câblage est un fait
+de graphe d'objets à l'exécution qui ne survit pas à la sérialisation : **chaque
+consommateur qui construit des objets `timeperiod` les résout donc contre sa
+propre map**.
+
+**Logger injecté, pas de global.** Chaque `timeperiod` porte son propre logger,
+passé au constructeur (`timeperiod(obj, logger)`), avec un repli silencieux
+(null sink) quand aucun n'est fourni ; la librairie n'atteint plus de logger
+process-global. `timerange` valide ses bornes en levant une exception
+descriptive (sans loguer). C'est ce qui permet à Broker d'exécuter la librairie
+avec un logger *dédié* (cf. l'endpoint `CheckPollerConfig`) sans toucher au
+moindre logger partagé.
+
+**Plus de manager — chaque consommateur possède sa collection.** Il n'y a plus
+de `timeperiod_manager` ; la collection vit là où elle est utilisée :
+
+- **Engine** : un global process `::timeperiods` (`timeperiod_map`, déclaré dans
+  `engine/globals`), alimenté par `applier::timeperiod` et vidé à un point
+  contrôlé à l'arrêt.
+- **Broker (notifications)** : `broker_cache` possède sa propre `_timeperiods`
+  (clé par nom), alimentée depuis le `State`/`DiffState` de config, comptée par
+  poller (une timeperiod est retirée quand le dernier poller qui la référence
+  s'en va).
+- **BAM** : `reporting_stream` possède sa propre `bam::timeperiod_map` (clé par
+  l'id numérique de reporting), alimentée depuis les événements BBDO
+  `dimension_timeperiod`.
+
+**Où vit la validation.** La validation des caractères/noms est une affaire de
+l'hôte (Engine la fait dans `applier::timeperiod::add_object` via
+`contains_illegal_object_chars` ; le même check est en cours d'ajout dans
+`engine_conf` pour le `CheckPollerConfig` côté Broker). La validation des
+références croisées (un `exclude` nommant une timeperiod inexistante) vit dans
+`timeperiod_helper::expand` d'`engine_conf`, si bien qu'Engine comme Broker
+rejettent une telle configuration au moment du parse/expand — elle signale
+chaque timeperiod fautive, puis échoue.
