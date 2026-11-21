@@ -1563,7 +1563,7 @@ def ctn_engine_config_change_command(idx: int, command_index: str, new_command: 
     _ctn_engine_set_command_line(idx, rf"command_{command_index}", new_command)
 
 
-def ctn_engine_config_add_timeperiod(idx: int, name: str, alias: str, ranges: dict = None):
+def ctn_engine_config_add_timeperiod(idx: int, name: str, alias: str = None, ranges: dict = None, exclude: str = None):
     """
     Append a timeperiod definition to timeperiods.cfg for the Engine config idx.
 
@@ -1574,17 +1574,21 @@ def ctn_engine_config_add_timeperiod(idx: int, name: str, alias: str, ranges: di
         ranges (dict, optional): Day-name → time-range string, e.g.
             {"monday": "00:00-24:00", "tuesday": "00:00-24:00"}.
             Omit or pass None for a period that is never active.
+        exclude (str, optional): a value for the `exclude` directive (a
+            timeperiod name, possibly non-existent to make the config invalid).
     """
     lines = f"""define timeperiod {{
     name                           {name}
     timeperiod_name                {name}
-    alias                          {alias}
+    alias                          {alias or name}
 """
     if ranges:
         for day, time_range in ranges.items():
             lines += f"    {day:<30} {time_range}\n"
+    if exclude is not None:
+        lines += f"    exclude                        {exclude}\n"
     lines += "}\n"
-    with open(f"{CONF_DIR}/config{idx}/timeperiods.cfg", "a") as f:
+    with open(f"{engine.get_config_dir(idx)}/timeperiods.cfg", "a") as f:
         f.write(lines)
 
 
@@ -2174,32 +2178,6 @@ def ctn_add_host_group(index: int, id_host_group: int, members: list):
     conf_dir = engine.get_config_dir(index)
     with open(f"{conf_dir}/hostgroups.cfg", "a+") as f:
         f.write(engine.create_host_group(id_host_group, mbs))
-
-
-def ctn_engine_config_add_timeperiod(index: int, name: str, alias: str = None, exclude: str = None):
-    """
-    Append a timeperiod definition to the timeperiods.cfg of the engine
-    configuration `index`. Handy to inject an invalid timeperiod (e.g. one whose
-    `exclude` points at a non-existent timeperiod) to exercise configuration
-    checking.
-
-    Args:
-        index (int): index of the configuration (from 0).
-        name (str): the timeperiod_name of the block to add.
-        alias (str, optional): the alias; defaults to `name`.
-        exclude (str, optional): a value for the `exclude` directive (a
-            timeperiod name, possibly non-existent to make the config invalid).
-    """
-    conf_dir = engine.get_config_dir(index)
-    block = "define timeperiod {\n"
-    block += f"    name                           {name}\n"
-    block += f"    timeperiod_name                {name}\n"
-    block += f"    alias                          {alias or name}\n"
-    if exclude is not None:
-        block += f"    exclude                        {exclude}\n"
-    block += "}\n"
-    with open(f"{conf_dir}/timeperiods.cfg", "a+") as f:
-        f.write(block)
 
 
 def ctn_remove_host_group(index: int, id_host_group: int):
