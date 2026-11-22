@@ -21,9 +21,13 @@
 
 #include <vector>
 
+#include <ctime>
+
 #include "bbdo/internal.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "common/log_v2/log_v2.hh"
+#include "common/notifications/contact_viability.hh"
+#include "common/notifications/notification_manager.hh"
 
 namespace com::centreon::broker {
 
@@ -289,16 +293,70 @@ notifications::delivery_result broker_notification_callbacks::deliver(
   }
   uint64_t poller_id = host->obj().instance_id();
 
-  /* TODO(MON-187019) brick 1 placeholder: contact selection (contacts,
-   * contactgroups, escalations, per-contact filtering) is not ported to the
-   * broker cache yet. A fixed contact list is injected so the dispatch channel
-   * can be exercised end to end; brick 3 replaces this with the real
-   * selection and the escalation-adjusted interval. */
-  static const std::vector<std::string> injected_contacts{"John_Doe"};
+  /* Read the resource's current state and re-notification interval. The
+   * interval_length ("duration of one interval unit") is poller-wide. */
+  const bool is_host = service_id == 0;
+  const std::chrono::seconds interval_length = cache.interval_length(poller_id);
+  int current_state = host->obj().state();
+  std::chrono::seconds notification_interval{0};
+  if (is_host) {
+    notification_interval =
+        static_cast<int64_t>(host->obj().notification_interval()) *
+        interval_length;
+  } else {
+    auto svc = cache.service(host_id, service_id);
+    if (!svc) {
+      SPDLOG_LOGGER_WARN(_logger,
+                         "notification for service ({}, {}) unknown to the "
+                         "broker cache: dropped",
+                         host_id, service_id);
+      return result;
+    }
+    current_state = svc->obj().state();
+    notification_interval =
+        static_cast<int64_t>(svc->obj().notification_interval()) *
+        interval_length;
+  }
+
+  /* Select the contacts to notify: the resource's direct contacts and the
+   * members of its contactgroups, each filtered by the shared
+   * should_notify_contact viability (enable flag, contact notification period
+   * in the contact's timezone, notify_on bitmask). Escalations are not handled
+   * yet. */
+  const std::time_t now = std::time(nullptr);
+  absl::btree_set<std::string> notified;
+  for (const std::string& name :
+       cache.notification_contact_names(host_id, service_id)) {
+    auto c = cache.contact_config(name);
+    if (!c)
+      continue;
+    const std::string& period =
+        is_host ? c->host_notification_period : c->service_notification_period;
+    const bool in_period =
+        cache.in_notification_period(period, c->timezone, now);
+    /* Recovery goes to the contacts told about the ongoing problem; the
+     * notification_manager keeps that set. */
+    bool already_notified = false;
+    if (cat == notifications::cat_recovery) {
+      const notifications::notification* prev =
+          notifications::notification_manager::instance().current_notification(
+              host_id, service_id, notifications::cat_normal);
+      already_notified = prev && prev->sent_to(name);
+    }
+    if (notifications::should_notify_contact(*c, is_host, cat, type,
+                                             current_state, in_period,
+                                             already_notified))
+      notified.insert(name);
+  }
+
+  if (notified.empty()) {
+    SPDLOG_LOGGER_INFO(
+        _logger, "no contact to notify for resource ({}, {}) on poller {}",
+        host_id, service_id, poller_id);
+    return result;
+  }
 
   auto evt = std::make_shared<bbdo::pb_notification_execute>();
-  /* Broadcast (destination_id kept as a hint for a future targeted routing):
-   * every poller receives the event, only the supervisor acts on it. */
   evt->source_id = 0;
   evt->destination_id = static_cast<uint32_t>(poller_id);
   auto& obj = evt->mut_obj();
@@ -312,7 +370,7 @@ notifications::delivery_result broker_notification_callbacks::deliver(
   obj.set_author(author);
   obj.set_message(message);
   obj.set_options(static_cast<uint32_t>(options));
-  for (const auto& c : injected_contacts)
+  for (const std::string& c : notified)
     obj.add_contacts(c);
 
   /* Deliver the execution to the poller supervising the resource: queue it on
@@ -327,12 +385,11 @@ notifications::delivery_result broker_notification_callbacks::deliver(
       _logger,
       "dispatched notification execution for resource ({}, {}) to poller {} "
       "with {} contact(s)",
-      host_id, service_id, poller_id, injected_contacts.size());
+      host_id, service_id, poller_id, notified.size());
 
-  /* Report the injected contacts as notified so the notification_manager
-   * bookkeeping (last_notification, recovery routing) works end to end. */
-  result.notified_contacts.insert(injected_contacts.begin(),
-                                  injected_contacts.end());
+  result.notification_interval = notification_interval;
+  result.escalated = false;
+  result.notified_contacts = std::move(notified);
   return result;
 }
 
