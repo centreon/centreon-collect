@@ -1169,7 +1169,9 @@ def ctn_prepare_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, 
 
 def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
     """
-    Configure all the necessary files for num instances of centengine.
+    Configure all the necessary files for num instances of centengine. This is for a legacy
+    configuration. If you want to configure a centralized centengine configuration, you must
+    use ctn_config_centralized_engine instead.
 
     Args:
         num (int): How many engine configurations to start

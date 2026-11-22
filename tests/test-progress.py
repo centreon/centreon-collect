@@ -364,7 +364,7 @@ def fmt_duration(seconds):
     return f"{s}s"
 
 
-def status_lines(test_name, idx, total, elapsed, colour):
+def status_lines(test_name, idx, total, elapsed, colour, finished_count=None):
     """Build the status report for a test as a list of printable lines.
 
     Args:
@@ -374,13 +374,20 @@ def status_lines(test_name, idx, total, elapsed, colour):
         elapsed: Elapsed time of the running run in seconds, or None if no
             run is in progress (disables the ETA estimation).
         colour: Use ANSI colors in the produced lines.
+        finished_count: Number of tests whose result is already known. When
+            given, "Remaining" is derived from it so the final frame (where the
+            current test's own </test> has been scanned) reaches 0; during a
+            live run it equals idx, leaving the count unchanged. Defaults to
+            idx (the current test still counts as remaining).
 
     Returns:
         A tuple (lines, pct): the report as a list of printable lines, and
         the progress percentage so callers reuse it without recomputing it.
     """
     position = idx + 1                 # 1-based
-    remaining_count = total - idx      # this one included
+    if finished_count is None:
+        finished_count = idx           # current test not yet finished
+    remaining_count = total - finished_count
     pct = position / total * 100
 
     # Timing: if a real run is in progress, estimate the remaining time from
@@ -486,6 +493,7 @@ def progress_loop(tests, run_args, pid):
         index.setdefault(name, i)
     total = len(tests)
     current = None                     # last test successfully detected
+    elapsed = None                     # last known elapsed time of the run
     if colour:
         sys.stdout.write("\033[?25l")  # hide the cursor while refreshing
     try:
@@ -493,9 +501,14 @@ def progress_loop(tests, run_args, pid):
             # Poll the followed process directly: gone => the run has ended.
             et = subprocess.run(["ps", "-o", "etimes=", "-p", pid],
                                 capture_output=True, text=True).stdout.strip()
-            if not et.isdigit():
-                break
-            elapsed = int(et)
+            # The last test's closing </test> (with its status) is written just
+            # before the process exits, i.e. during our sleep. So even once the
+            # run is gone we must scan and render one final frame, otherwise the
+            # last test stays stuck in its "in progress" state and its result
+            # never lands in `results`/`failed_idx`.
+            finished = not et.isdigit()
+            if not finished:
+                elapsed = int(et)
             detected, results = scanner.scan()
             if detected in index:
                 current = detected
@@ -510,8 +523,9 @@ def progress_loop(tests, run_args, pid):
                         f"{out_xml}…"]
                 pct = 0.0
             else:
+                finished_count = sum(1 for n in results if n in index)
                 body, pct = status_lines(current, index[current], total,
-                                         elapsed, colour)
+                                         elapsed, colour, finished_count)
             if failed_idx:
                 # Failed test names, in run order (their position in the run).
                 failed_names = sorted(
@@ -540,6 +554,8 @@ def progress_loop(tests, run_args, pid):
             sys.stdout.write("\033[H\033[J" if colour else "")
             sys.stdout.write("\n".join(screen) + "\n")
             sys.stdout.flush()
+            if finished:
+                break
             time.sleep(REFRESH_INTERVAL)
     except KeyboardInterrupt:
         print()
