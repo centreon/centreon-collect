@@ -28,6 +28,7 @@
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/notification_execution.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "common/engine_conf/parser.hh"
 
@@ -230,6 +231,22 @@ void loop::_dispatching() {
         process_logger->info("Already reloading...");
       }
       _need_reload = false;
+    }
+
+    /* notification_mode=broker: Broker made the notification decision (contact
+     * selection + escalations) and dispatched the execution here. Run each
+     * pending notification (macros + notification commands); a resource this
+     * poller does not supervise is ignored by execute_broker_notification. */
+    for (auto& ne : cbm->drain_notification_executes()) {
+      execute_broker_notification(
+          ne.host_id(), ne.service_id(),
+          static_cast<com::centreon::common::notifications::reason_type>(
+              ne.reason_type()),
+          ne.notification_id(), ne.notification_number(), ne.escalated(),
+          ne.author(), ne.message(),
+          static_cast<com::centreon::common::notifications::notification_option>(
+              ne.options()),
+          ne.contacts());
     }
 
     // Get the current time.

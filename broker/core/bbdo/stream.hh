@@ -72,6 +72,11 @@ class stream : public basic_stream {
   void negotiate(negotiation_type neg);
   virtual bool supports_centralized_conf() const = 0;
   virtual void specific_negotiate(Welcome& obj) = 0;
+  /* Receive-side counterpart of specific_negotiate(): called during the
+   * handshake with the peer's Welcome so a subclass can extract negotiation
+   * parameters the peer advertised (e.g. Engine learning that Broker owns the
+   * notification decision). Default: nothing to extract. */
+  virtual void specific_negotiate_received(const Welcome& peer) {}
   void set_negotiate(bool negotiate);
 };
 }  // namespace com::centreon::broker::bbdo

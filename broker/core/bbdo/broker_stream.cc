@@ -342,6 +342,17 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     _send_diff_state_for_poller(poller_id());
   }
 
+  /* notification_mode=broker: deliver the notification executions the
+   * dispatcher queued for the poller this stream supervises. */
+  if (peer_type() == common::ENGINE) {
+    for (auto& evt : _state.pop_pending_notification_executes(poller_id())) {
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "BBDO: sending notification execution to poller {}",
+                          poller_id());
+      _write(evt);
+    }
+  }
+
   // Relay ENGINE stream: forward any pending DiffState from the central.
   if (peer_type() == common::ENGINE && _state.is_relay()) {
     auto diff = _state.pop_pending_diff_state_for_engine(poller_id());
@@ -417,12 +428,15 @@ bool broker_stream::supports_centralized_conf() const {
 
 /**
  * @brief Fill the Welcome message with broker-specific negotiation parameters.
- * Sets the extended negotiation flag if centralized configuration is supported.
+ * Sets the extended negotiation flag if centralized configuration is supported,
+ * and tells Engine whether Broker owns the notification decision so Engine can
+ * stop deciding notifications on its own (notification_mode=broker).
  *
  * @param obj The Welcome message to fill.
  */
 void broker_stream::specific_negotiate(Welcome& obj) {
   obj.set_extended_negotiation(supports_centralized_conf());
+  obj.set_broker_handles_notifications(_state.notifications_on_broker());
 }
 
 }  // namespace com::centreon::broker::bbdo

@@ -98,6 +98,7 @@ enum data_element {
   de_pb_diff_state_ack = 11,
   de_pb_config_request = 12,
   de_pb_config_revoke = 13,
+  de_pb_notification_execute = 14,
 };
 }
 namespace neb {

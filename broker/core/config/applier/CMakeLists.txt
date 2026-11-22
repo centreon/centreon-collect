@@ -18,6 +18,8 @@
 include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/core)
 
 add_library(broker_applier_state STATIC
+  broker_notification_callbacks.cc
+  broker_notification_callbacks.hh
   broker_state.cc
   broker_state.hh
   endpoint.cc

@@ -17,6 +17,7 @@
  */
 #include <boost/preprocessor/seq/for_each.hpp>
 
+#include <array>
 #include <memory>
 #include <absl/strings/match.h>
 #include "absl/synchronization/mutex.h"
@@ -244,6 +245,20 @@ void broker_cache::merge(
       _timeperiod_pollers[tp.timeperiod_name()].insert(state.poller_id());
     }
     _resolve_timeperiods();
+  }
+
+  /* Work on notification contacts and contactgroups. Reference-counted per
+   * poller like the timeperiods above. A full state rebuilds this poller's
+   * contribution: drop it first, then re-insert, so contacts/contactgroups
+   * removed from the poller's configuration do not linger. Names are stored
+   * as-is; contactgroups are expanded to contacts lazily at notification time
+   * (see contactgroup_members()), so no resolution is done here. */
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
+    _remove_poller_from_contacts(state.poller_id());
+    for (const engine::configuration::Contact& c : state.contacts())
+      _insert_contact(c, state.poller_id());
+    for (const engine::configuration::Contactgroup& cg : state.contactgroups())
+      _insert_contactgroup(cg, state.poller_id());
   }
 
   /* Work on severities */
@@ -516,8 +531,9 @@ void broker_cache::_insert_service_notif_dep(
     return;
 
   const auto& by_name_idx = _services.get<by_name>();
-  auto dependent = by_name_idx.find(std::make_pair(
-      dep.dependent_hosts().data(0), dep.dependent_service_description().data(0)));
+  auto dependent = by_name_idx.find(
+      std::make_pair(dep.dependent_hosts().data(0),
+                     dep.dependent_service_description().data(0)));
   auto master = by_name_idx.find(
       std::make_pair(dep.hosts().data(0), dep.service_description().data(0)));
   if (dependent == by_name_idx.end() || master == by_name_idx.end()) {
@@ -534,6 +550,90 @@ void broker_cache::_insert_service_notif_dep(
       (*master)->obj().host_id(), (*master)->obj().service_id(), poller_id,
       dep.dependency_period(), dep.inherits_parent(),
       dep.notification_failure_options(), servicedependency_key(dep)});
+}
+
+/**
+ * @brief Store (or replace) a notification contact and register @p poller_id as
+ * one of its referencing pollers.
+ *
+ * The contact is stored by name; only the fields the notification decision
+ * needs are kept. Resolution of the contactgroups the contact belongs to is not
+ * done here (it happens at notification time).
+ *
+ * @param c A configuration Contact (post-expand).
+ * @param poller_id The poller referencing this contact.
+ */
+void broker_cache::_insert_contact(const engine::configuration::Contact& c,
+                                   uint64_t poller_id) {
+  const std::string& name = c.contact_name();
+  contact entry;
+  entry.name = name;
+  entry.host_notifications_enabled = c.host_notifications_enabled();
+  entry.service_notifications_enabled = c.service_notifications_enabled();
+  entry.host_notification_period = c.host_notification_period();
+  entry.service_notification_period = c.service_notification_period();
+  entry.host_notification_options = c.host_notification_options();
+  entry.service_notification_options = c.service_notification_options();
+  entry.timezone = c.timezone();
+  auto [it, inserted] = _contacts.try_emplace(name, std::move(entry),
+                                              absl::flat_hash_set<uint64_t>{});
+  if (!inserted)
+    it->second.first = std::move(entry);
+  it->second.second.insert(poller_id);
+}
+
+/**
+ * @brief Store (or replace) a notification contactgroup and register
+ * @p poller_id as one of its referencing pollers.
+ *
+ * The Engine flattens nested contactgroups into `members` before the
+ * configuration reaches Broker, so `members` holds only concrete contact names.
+ *
+ * @param cg A configuration Contactgroup (post-expand).
+ * @param poller_id The poller referencing this contactgroup.
+ */
+void broker_cache::_insert_contactgroup(
+    const engine::configuration::Contactgroup& cg,
+    uint64_t poller_id) {
+  const std::string& name = cg.contactgroup_name();
+  contactgroup entry;
+  entry.name = name;
+  for (const std::string& member : cg.members().data())
+    entry.members.insert(member);
+  auto [it, inserted] = _contactgroups.try_emplace(
+      name, std::move(entry), absl::flat_hash_set<uint64_t>{});
+  if (!inserted)
+    it->second.first = std::move(entry);
+  it->second.second.insert(poller_id);
+}
+
+/**
+ * @brief Drop @p poller_id from every contact and contactgroup reference set,
+ * erasing the entries no poller references anymore.
+ *
+ * Used both on a full re-merge (to rebuild the poller's contribution from
+ * scratch) and on poller removal.
+ *
+ * @param poller_id The poller to drop.
+ */
+void broker_cache::_remove_poller_from_contacts(uint64_t poller_id) {
+  std::vector<std::string> orphaned;
+  for (auto& [name, value] : _contacts) {
+    value.second.erase(poller_id);
+    if (value.second.empty())
+      orphaned.push_back(name);
+  }
+  for (const std::string& name : orphaned)
+    _contacts.erase(name);
+
+  orphaned.clear();
+  for (auto& [name, value] : _contactgroups) {
+    value.second.erase(poller_id);
+    if (value.second.empty())
+      orphaned.push_back(name);
+  }
+  for (const std::string& name : orphaned)
+    _contactgroups.erase(name);
 }
 
 /**
@@ -615,6 +715,39 @@ void broker_cache::apply(
         }
       }
       _resolve_timeperiods();
+    }
+  }
+
+  /* Work on notification contacts and contactgroups. Same reference-counted
+   * per-poller model as the timeperiods above; a DiffContact/DiffContactgroup
+   * carries added, modified and removed (by name) entries. */
+  if (section_enabled(CACHE_NOTIFICATIONS)) {
+    const engine::configuration::DiffContact& dc = diff.contacts();
+    for (const engine::configuration::Contact& c : dc.added())
+      _insert_contact(c, diff.poller_id());
+    for (const engine::configuration::Contact& c : dc.modified())
+      _insert_contact(c, diff.poller_id());
+    for (const std::string& name : dc.removed()) {
+      auto it = _contacts.find(name);
+      if (it != _contacts.end()) {
+        it->second.second.erase(diff.poller_id());
+        if (it->second.second.empty())
+          _contacts.erase(it);
+      }
+    }
+
+    const engine::configuration::DiffContactgroup& dcg = diff.contactgroups();
+    for (const engine::configuration::Contactgroup& cg : dcg.added())
+      _insert_contactgroup(cg, diff.poller_id());
+    for (const engine::configuration::Contactgroup& cg : dcg.modified())
+      _insert_contactgroup(cg, diff.poller_id());
+    for (const std::string& name : dcg.removed()) {
+      auto it = _contactgroups.find(name);
+      if (it != _contactgroups.end()) {
+        it->second.second.erase(diff.poller_id());
+        if (it->second.second.empty())
+          _contactgroups.erase(it);
+      }
     }
   }
 
@@ -1501,6 +1634,9 @@ void broker_cache::remove_instance(uint64_t instance_id) {
 
     _host_notif_deps.get<by_instance>().erase(instance_id);
     _service_notif_deps.get<by_instance>().erase(instance_id);
+
+    /* Contacts/contactgroups are reference-counted per poller too. */
+    _remove_poller_from_contacts(instance_id);
   }
 
   if (!section_enabled(CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES))
@@ -2956,6 +3092,228 @@ std::vector<service_notif_dep> broker_cache::service_notif_dependencies(
   for (auto it = range.first; it != range.second; ++it)
     result.push_back(*it);
   return result;
+}
+
+/**
+ * @brief Look up a cached notification contact by name.
+ *
+ * @param name The contact name.
+ *
+ * @return The cached contact, or std::nullopt when no contact of that name is
+ * known to the cache.
+ */
+std::optional<broker_cache::contact> broker_cache::contact_config(
+    const std::string& name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto it = _contacts.find(name);
+  if (it == _contacts.end())
+    return std::nullopt;
+  return it->second.first;
+}
+
+/**
+ * @brief Expand a contactgroup to the names of its member contacts.
+ *
+ * This is the contactgroup->contacts resolution done at notification time: the
+ * group members are read straight from the cache instead of being flattened
+ * onto the resources or contacts at configuration time.
+ *
+ * @param name The contactgroup name.
+ *
+ * @return The member contact names; empty when the group is unknown or has no
+ * member.
+ */
+std::vector<std::string> broker_cache::contactgroup_members(
+    const std::string& name) const {
+  absl::ReaderMutexLock l{&_mutex};
+  std::vector<std::string> result;
+  auto it = _contactgroups.find(name);
+  if (it == _contactgroups.end())
+    return result;
+  const auto& members = it->second.first.members;
+  result.reserve(members.size());
+  for (const std::string& member : members)
+    result.push_back(member);
+  return result;
+}
+
+/**
+ * @brief Evaluate the notification dependencies of a resource.
+ *
+ * Broker counterpart of Engine's host/service::authorized_by_dependencies for
+ * dependency::notification. Takes the read lock once and dispatches to the
+ * recursive per-type helpers (which require the lock held: absl reader locks
+ * are not reentrant, so the inherits_parent recursion must not re-lock).
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ *
+ * @return false when a master resource fails the dependency test; true
+ * otherwise (including for a resource unknown to the cache).
+ */
+bool broker_cache::notification_authorized_by_dependencies(
+    uint64_t host_id,
+    uint64_t service_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  std::time_t now = std::time(nullptr);
+  return service_id
+             ? _service_notification_authorized_by_dependencies(host_id,
+                                                                service_id, now)
+             : _host_notification_authorized_by_dependencies(host_id, now);
+}
+
+/**
+ * @brief Notification-dependency evaluation for a host (see
+ * notification_authorized_by_dependencies). The lock must be held by the
+ * caller.
+ *
+ * @param host_id The dependent host id.
+ * @param now The reference time for the dependency-period checks.
+ *
+ * @return Whether the host's notification dependencies authorize a
+ * notification.
+ */
+bool broker_cache::_host_notification_authorized_by_dependencies(
+    uint64_t host_id,
+    std::time_t now) const {
+  const auto& hosts_by_id = _hosts.get<by_id>();
+  auto dependent = hosts_by_id.find(host_id);
+  if (dependent == hosts_by_id.end())
+    return true;
+
+  const absl::TimeZone tz =
+      common::timeperiods::string_to_timezone((*dependent)->obj().timezone());
+
+  /* action_hd_* bits are aligned with the neb host state enum
+   * (UP=0, DOWN=1, UNREACHABLE=2). */
+  static constexpr std::array<uint32_t, 3> fail_bit{
+      engine::configuration::action_hd_up,
+      engine::configuration::action_hd_down,
+      engine::configuration::action_hd_unreachable};
+
+  const auto& deps = _host_notif_deps.get<by_dependent>();
+  for (auto [it, end] = deps.equal_range(host_id); it != end; ++it) {
+    const host_notif_dep& dep = *it;
+    auto master = hosts_by_id.find(dep.master_host_id);
+    if (master == hosts_by_id.end())
+      continue;
+    const Host& m = (*master)->obj();
+
+    /* The dependency does not apply when now is outside its dependency
+     * period. */
+    if (!dep.dependency_period.empty()) {
+      auto tp = _timeperiods.find(dep.dependency_period);
+      if (tp != _timeperiods.end() &&
+          !tp->second->check_time_against_period(now, tz))
+        return true;
+    }
+
+    bool soft_state_dependencies = false;
+    if (auto inst = _instances.find(dep.poller_id); inst != _instances.end())
+      soft_state_dependencies = inst->second.soft_state_dependencies;
+
+    /* Use the last hard state when the master is in a soft state, unless the
+     * poller opted into soft-state dependencies. */
+    int state = (m.state_type() == Host::SOFT && !soft_state_dependencies)
+                    ? m.last_hard_state()
+                    : m.state();
+
+    if (state >= 0 && state < static_cast<int>(fail_bit.size()) &&
+        (dep.notification_failure_options & fail_bit[state]))
+      return false;
+
+    if (state == Host::UP && !m.checked() &&
+        (dep.notification_failure_options &
+         engine::configuration::action_hd_pending))
+      return false;
+
+    if (dep.inherits_parent &&
+        !_host_notification_authorized_by_dependencies(dep.master_host_id, now))
+      return false;
+  }
+  return true;
+}
+
+/**
+ * @brief Notification-dependency evaluation for a service (see
+ * notification_authorized_by_dependencies). The lock must be held by the
+ * caller.
+ *
+ * @param host_id The dependent service's host id.
+ * @param service_id The dependent service id.
+ * @param now The reference time for the dependency-period checks.
+ *
+ * @return Whether the service's notification dependencies authorize a
+ * notification.
+ */
+bool broker_cache::_service_notification_authorized_by_dependencies(
+    uint64_t host_id,
+    uint64_t service_id,
+    std::time_t now) const {
+  const auto& svc_by_id = _services.get<by_id>();
+  auto dependent = svc_by_id.find(std::make_pair(host_id, service_id));
+  if (dependent == svc_by_id.end())
+    return true;
+
+  /* Notification timezone inheritance: an empty service timezone falls back to
+   * the host's, mirroring get_state. */
+  std::string tz_str = (*dependent)->obj().timezone();
+  if (tz_str.empty()) {
+    const auto& hosts_by_id = _hosts.get<by_id>();
+    auto h = hosts_by_id.find(host_id);
+    if (h != hosts_by_id.end())
+      tz_str = (*h)->obj().timezone();
+  }
+  const absl::TimeZone tz = common::timeperiods::string_to_timezone(tz_str);
+
+  /* action_sd_* bit order differs from the neb service state enum
+   * (OK=0, WARNING=1, CRITICAL=2, UNKNOWN=3), so map explicitly. */
+  static constexpr std::array<uint32_t, 4> fail_bit{
+      engine::configuration::action_sd_ok,
+      engine::configuration::action_sd_warning,
+      engine::configuration::action_sd_critical,
+      engine::configuration::action_sd_unknown};
+
+  const auto& deps = _service_notif_deps.get<by_dependent>();
+  for (auto [it, end] = deps.equal_range(std::make_pair(host_id, service_id));
+       it != end; ++it) {
+    const service_notif_dep& dep = *it;
+    auto master = svc_by_id.find(
+        std::make_pair(dep.master_host_id, dep.master_service_id));
+    if (master == svc_by_id.end())
+      continue;
+    const Service& m = (*master)->obj();
+
+    if (!dep.dependency_period.empty()) {
+      auto tp = _timeperiods.find(dep.dependency_period);
+      if (tp != _timeperiods.end() &&
+          !tp->second->check_time_against_period(now, tz))
+        return true;
+    }
+
+    bool soft_state_dependencies = false;
+    if (auto inst = _instances.find(dep.poller_id); inst != _instances.end())
+      soft_state_dependencies = inst->second.soft_state_dependencies;
+
+    int state = (m.state_type() == Service::SOFT && !soft_state_dependencies)
+                    ? m.last_hard_state()
+                    : m.state();
+
+    if (state >= 0 && state < static_cast<int>(fail_bit.size()) &&
+        (dep.notification_failure_options & fail_bit[state]))
+      return false;
+
+    if (state == Service::OK && !m.checked() &&
+        (dep.notification_failure_options &
+         engine::configuration::action_sd_pending))
+      return false;
+
+    if (dep.inherits_parent &&
+        !_service_notification_authorized_by_dependencies(
+            dep.master_host_id, dep.master_service_id, now))
+      return false;
+  }
+  return true;
 }
 
 /**

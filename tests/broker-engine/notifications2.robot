@@ -11,7 +11,7 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 
-host_rec_notif_with_downtime
+HOST_REC_NOTIF_WITH_DT
     [Documentation]    Scenario: host notifications across a downtime episode until recovery
     ...    Given a DOWN host for which a downtime is scheduled
     ...    When the downtime suppresses notifications, then is removed while the host is still DOWN, and the host later returns to UP
@@ -82,7 +82,7 @@ host_rec_notif_with_downtime
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_state_alerts_soft_and_hard
+SRV_STATE_ALERTS_SOFT_AND_HARD
     [Documentation]    Scenario: successive state changes raise SOFT then HARD service alerts
     ...    Given a service configured with several check attempts
     ...    When the service stays CRITICAL over successive checks
@@ -132,7 +132,7 @@ srv_state_alerts_soft_and_hard
     Ctn Kindly Stop Broker
 
 
-srv_notif_escalations
+SRV_NOTIF_ESCALATIONS
     [Documentation]    Scenario: service notifications follow the configured escalations
     ...    Given services with notification escalations to different contact groups
     ...    When the services stay CRITICAL across successive notifications
@@ -248,7 +248,7 @@ srv_notif_escalations
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The second notification of U4 is not sent
 
-host_notif_dependency
+HOST_NOTIF_DEPENDENCY
     [Documentation]    Scenario: a host notification is suppressed by a host dependency
     ...    Given a host depending on another host that has already been notified
     ...    When the dependent host enters a DOWN state
@@ -356,7 +356,7 @@ host_notif_dependency
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srv_notif_dependency
+SRV_NOTIF_DEPENDENCY
     [Documentation]    Scenario: a service notification is suppressed by a service dependency
     ...    Given a service depending on another service that has already been notified
     ...    When the dependent service enters a CRITICAL state
@@ -468,7 +468,7 @@ srv_notif_dependency
     Ctn Kindly Stop Broker
 
 
-srv_notif_multiple_commands
+SRV_NOTIF_MULTIPLE_COMMANDS
     [Documentation]    Scenario: a contact with several notification commands runs them all
     ...    Given a contact configured with two service notification commands
     ...    When a service enters a CRITICAL HARD state
@@ -520,7 +520,7 @@ srv_notif_multiple_commands
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-srvgrp_notif_dependency
+SRVGRP_NOTIF_DEPENDENCY
     [Documentation]    Scenario: service notifications are suppressed by a servicegroup dependency
     ...    Given a servicegroup depending on another servicegroup that has already been notified
     ...    When a service of the dependent servicegroup enters a CRITICAL state
@@ -677,7 +677,7 @@ srvgrp_notif_dependency
     Ctn Kindly Stop Broker
 
 
-hostgrp_notif_dependency
+HOSTGRP_NOTIF_DEPENDENCY
     [Documentation]    Scenario: host notifications are suppressed by a hostgroup dependency
     ...    Given a hostgroup depending on another hostgroup that has already been notified
     ...    When a host of the dependent hostgroup enters a DOWN state
@@ -789,7 +789,7 @@ hostgrp_notif_dependency
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-first_notif_delay_equal_retry_interval
+FIRST_NOTIF_DELAY_EQUAL_RETRY_INTERVAL
     [Documentation]    Scenario: first notification delay equal to the retry interval
     ...    Given a service whose first_notification_delay equals its retry interval
     ...    When the service enters a CRITICAL HARD state
@@ -840,7 +840,7 @@ first_notif_delay_equal_retry_interval
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-first_notif_delay_gt_retry_interval
+FIRST_NOTIF_DELAY_GT_RETRY_INTERVAL
     [Documentation]    Scenario: first notification delay greater than the retry interval
     ...    Given a service whose first_notification_delay is greater than its retry interval
     ...    When the service enters a CRITICAL HARD state
@@ -890,7 +890,7 @@ first_notif_delay_gt_retry_interval
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-first_notif_delay_lt_retry_interval
+FIRST_NOTIF_DELAY_LT_RETRY_INTERVAL
     [Documentation]    Scenario: first notification delay smaller than the retry interval
     ...    Given a service whose first_notification_delay is smaller than its retry interval
     ...    When the service enters a CRITICAL HARD state
@@ -940,7 +940,7 @@ first_notif_delay_lt_retry_interval
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-rec_notif_outside_tp_not_sent
+REC_NOTIF_OUTSIDE_TP_NOT_SENT
     [Documentation]    Scenario: a recovery is not sent outside the notification period when the flag is off
     ...    Given a CRITICAL service inside its notification period
     ...    When the service recovers outside its notification period and send_recovery_notifications_anyway is off
@@ -991,7 +991,7 @@ rec_notif_outside_tp_not_sent
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Not Be True    ${result}    The notification is sent out of time period
 
-rec_notif_outside_tp_sent_when_enabled
+REC_NOTIF_OUTSIDE_TP_SENT_WHEN_ENABLED
     [Documentation]    Scenario: a recovery is sent outside the notification period when the flag is on
     ...    Given a CRITICAL service inside its notification period
     ...    When the service recovers outside its notification period and send_recovery_notifications_anyway is on
