@@ -29,7 +29,7 @@ if (WITH_SAMPLE_CONFIG)
   install(DIRECTORY "${SRC_DIR}/"
     DESTINATION "${PREFIX_AGENT_CONF}"
     COMPONENT "runtime"
-    FILES_MATCHING PATTERN "*.cfg")
+    FILES_MATCHING PATTERN "centagent.json")
 
   install(CODE "
   function(my_chown user group file)
