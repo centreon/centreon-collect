@@ -232,6 +232,9 @@ class stream : public io::stream {
   std::time_t _next_loop_timeout;
 
   asio::steady_timer _queues_timer ABSL_GUARDED_BY(_timer_m);
+  /* A bulk reached its size limit while the check_queues was running: the
+   * next one is scheduled immediately. */
+  std::atomic_bool _check_queues_wake{false};
   /* To give the order to stop the check_queues */
   std::atomic_bool _stop_check_queues;
   /* When the check_queues is really stopped */
@@ -418,6 +421,10 @@ class stream : public io::stream {
   bool _is_valid_poller(uint64_t instance_id);
   void _check_queues(boost::system::error_code ec)
       ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
+  void _schedule_check_queues(std::chrono::seconds delay)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_timer_m);
+  void _wake_check_queues() ABSL_LOCKS_EXCLUDED(_timer_m);
+  void _set_bulk_size_limits();
   void _flush_status_binds(bool force)
       ABSL_LOCKS_EXCLUDED(_status_bind_flush_m);
   void _check_deleted_index();

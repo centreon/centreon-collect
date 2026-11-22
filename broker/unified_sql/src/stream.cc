@@ -245,13 +245,7 @@ stream::stream(const database_config& dbcfg,
     throw;
   }
   absl::MutexLock l(_timer_m);
-  _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
-  _queues_timer.async_wait([this](const boost::system::error_code& err) {
-    if (!err) {
-      absl::ReaderMutexLock lck(_barrier_timer_m);
-      _check_queues(err);
-    }
-  });
+  _schedule_check_queues(std::chrono::seconds(queue_timer_duration));
   _start_loop_timer();
   SPDLOG_LOGGER_INFO(_logger_sql, "Unified sql stream running loop_interval={}",
                      _loop_timeout);
@@ -1448,6 +1442,78 @@ void stream::_init_statements() {
           std::make_unique<database::mysql_stmt>(sscr_resources_query);
       _mysql.prepare_statement(*_sscr_resources_update);
     }
+  }
+  _set_bulk_size_limits();
+}
+
+/**
+ * @brief Give the bulks their size limit, under the server max_allowed_packet:
+ * a bulk that reaches it wakes the check_queues up, which sends it without
+ * waiting for its timer. Without bulk prepared statements, the limit bounds
+ * the multi-row queries.
+ *
+ * The downtimes bulk is not concerned: it is bound and sent in the same
+ * check_queues.
+ */
+void stream::_set_bulk_size_limits() {
+  size_t limit = _mysql.bulk_size_limit();
+  if (_dedicated_connections)
+    limit = std::min(limit, _dedicated_connections->bulk_size_limit());
+  SPDLOG_LOGGER_INFO(_logger_sql,
+                     "unified_sql: bulks and queries are bounded to {} bytes",
+                     limit);
+
+  auto wake = [this] { _wake_check_queues(); };
+  if (!_bulk_prepared_statement) {
+    /* The multi-row queries are split, there is nothing to wake up. */
+    for (database::bulk_or_multi* q : {_perfdata_query.get(), _logs.get(),
+                                       _downtimes.get(), _comments.get()})
+      if (q)
+        q->set_size_limit(limit, nullptr);
+    return;
+  }
+  for (bulk_bind* b : {_hscr_bind.get(), _sscr_bind.get(),
+                       _hscr_resources_bind.get(), _sscr_resources_bind.get()})
+    if (b)
+      b->set_size_limit(limit, wake);
+  for (database::bulk_or_multi* q :
+       {_perfdata_query.get(), _logs.get(), _comments.get()})
+    if (q)
+      q->set_size_limit(limit, wake);
+}
+
+/**
+ * @brief Arm the queues timer: _check_queues() will run after delay.
+ *
+ * @param delay The delay before the check.
+ */
+void stream::_schedule_check_queues(std::chrono::seconds delay) {
+  _queues_timer.expires_after(delay);
+  _queues_timer.async_wait([this](const boost::system::error_code& err) {
+    if (!err) {
+      absl::ReaderMutexLock lck(_barrier_timer_m);
+      _check_queues(err);
+    }
+  });
+}
+
+/**
+ * @brief Called by a bulk that reaches its size limit, with the bulk locked:
+ * the check_queues runs now instead of waiting for its timer. Only the ready()
+ * bulks are sent, so the other ones keep their own delay.
+ *
+ * If the check_queues is running, there is no wait to cancel: the flag makes
+ * it schedule the next check immediately.
+ */
+void stream::_wake_check_queues() {
+  _check_queues_wake = true;
+  absl::MutexLock l(_timer_m);
+  if (_stop_check_queues)
+    return;
+  /* The cancelled wait gets operation_aborted and does nothing. */
+  if (_queues_timer.cancel() > 0) {
+    _check_queues_wake = false;
+    _schedule_check_queues(std::chrono::seconds(0));
   }
 }
 

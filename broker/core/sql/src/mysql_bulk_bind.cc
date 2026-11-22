@@ -88,6 +88,7 @@ void mysql_bulk_bind::set_value_as_i64(size_t range,
       _bind[range].is_unsigned = unsgn;                                   \
     }                                                                     \
     _column[range].set_value_##ftype(_current_row, value);                \
+    _data_size += 1 + _wire_size(value);                                  \
     _bind[range].buffer = _column[range].get_buffer();                    \
     _bind[range].u.indicator = _column[range].indicator_buffer();         \
     _bind[range].length = _column[range].length_buffer();                 \
@@ -100,6 +101,7 @@ void mysql_bulk_bind::set_value_as_i64(size_t range,
       _bind[range].is_unsigned = unsgn;                                   \
     }                                                                     \
     _column[range].set_null_##ftype(_current_row);                        \
+    ++_data_size;                                                         \
     _bind[range].buffer = _column[range].get_buffer();                    \
     _bind[range].u.indicator = _column[range].indicator_buffer();         \
     _bind[range].length = _column[range].length_buffer();                 \
@@ -196,4 +198,26 @@ void mysql_bulk_bind::reserve(size_t size) {
  */
 void mysql_bulk_bind::next_row() {
   ++_current_row;
+  if (_size_limit && !_size_limit_reached && _data_size >= _size_limit) {
+    _size_limit_reached = true;
+    if (_on_size_limit)
+      _on_size_limit();
+  }
+}
+
+/**
+ * @brief Set a size limit to this bind. When a row makes the estimated size
+ * of the data reach it, on_size_limit is called, once: the owner of the bind
+ * can then send it without waiting, before the server refuses it.
+ *
+ * on_size_limit is called from next_row(), so with the locks held by the
+ * caller of next_row(): it must not take them.
+ *
+ * @param limit The limit in bytes, 0 for no limit.
+ * @param on_size_limit The function to call when the limit is reached.
+ */
+void mysql_bulk_bind::set_size_limit(size_t limit,
+                                     std::function<void()> on_size_limit) {
+  _size_limit = limit;
+  _on_size_limit = std::move(on_size_limit);
 }

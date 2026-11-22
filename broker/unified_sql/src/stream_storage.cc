@@ -988,14 +988,16 @@ void stream::_check_queues(boost::system::error_code ec) {
 
     if (!_stop_check_queues) {
       absl::MutexLock l(_timer_m);
-      _logger_sql->trace("unified_sql: rescheduling queues check timer in 5s.");
-      _queues_timer.expires_after(std::chrono::seconds(5));
-      _queues_timer.async_wait([this](const boost::system::error_code& err) {
-        if (!err) {
-          absl::ReaderMutexLock lck(_barrier_timer_m);
-          _check_queues(err);
-        }
-      });
+      if (_check_queues_wake.exchange(false)) {
+        _logger_sql->trace(
+            "unified_sql: a bulk reached its size limit, queues checked "
+            "again now.");
+        _schedule_check_queues(std::chrono::seconds(0));
+      } else {
+        _logger_sql->trace(
+            "unified_sql: rescheduling queues check timer in 5s.");
+        _schedule_check_queues(std::chrono::seconds(5));
+      }
     } else {
       SPDLOG_LOGGER_INFO(_logger_sql,
                          "SQL: check_queues correctly interrupted.");

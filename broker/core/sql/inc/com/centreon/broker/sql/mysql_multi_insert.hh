@@ -38,7 +38,7 @@ class mysql_multi_insert {
   // The second part of the query, like "ON DUPLICATE KEY UPDATE...". This part
   // may be empty.
   const std::string _on_duplicate_key_part;
-  const unsigned _max_query_begin_length;
+  size_t _max_query_begin_length;
 
   // The list of queries. The first one is filled and once its length arrives
   // to _max_query_begin_length, a new one is appended.
@@ -67,6 +67,8 @@ class mysql_multi_insert {
    *
    */
   void clear_queries() { _queries.clear(); }
+
+  void set_max_query_length(size_t max_length);
 
   unsigned execute_queries(mysql& pool,
                            my_error::code ec = my_error::empty,
@@ -121,10 +123,16 @@ class bulk_or_multi {
   std::chrono::system_clock::duration _execute_delay_ready;
   unsigned _row_count_ready;
 
+  /* Given to each bulk bind created, see mysql_bulk_bind::set_size_limit(). */
+  size_t _size_limit = 0u;
+  std::function<void()> _on_size_limit;
+
   // multi insert attribute used when bulk queries aren't available
   std::unique_ptr<mysql_multi_insert> _mult_insert;
 
   mutable std::mutex _protect;
+
+  void _new_bulk_bind();
 
  public:
   bulk_or_multi(mysql& connexion,
@@ -148,6 +156,7 @@ class bulk_or_multi {
 
   bool ready() const;
   void force_ready();
+  void set_size_limit(size_t limit, std::function<void()> on_size_limit);
 
   unsigned row_count() const { return _row_count; }
   std::chrono::seconds get_oldest_waiting_event_delay() const;
