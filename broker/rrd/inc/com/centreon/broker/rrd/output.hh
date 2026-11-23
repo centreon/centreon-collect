@@ -75,6 +75,7 @@ class output : public io::stream {
          std::string const& status_path,
          uint32_t cache_size,
          bool ignore_update_errors,
+         std::string const& host,
          unsigned short port,
          bool write_metrics = true,
          bool write_status = true);
