@@ -254,8 +254,15 @@ flowchart TD
     ce mode.
   * sinon → appeler les RPC de downtime, d'acquittement et de commentaire
     d'**Engine** (historique).
-* **Toutes les autres commandes** (résultats de contrôle, bascules de notification,
-  changements de variables d'objet, contrôles forcés…) vont toujours vers
+* **Bascules de notification par hôte ou service** (`ENABLE/DISABLE_HOST_NOTIFICATIONS`,
+  `*_SVC_NOTIFICATIONS`, `*_HOST_SVC_NOTIFICATIONS`, `*_HOST_AND_CHILD_NOTIFICATIONS`,
+  `*_ALL_NOTIFICATIONS_BEYOND_HOST`) suivent aussi `notification_mode` : en mode
+  `broker`, `SetHostNotifications(HostNotificationsRequest { host, enabled, scope })`
+  et `SetServiceNotifications(ServiceNotificationsRequest { service, enabled })` de
+  **Broker**. L'interrupteur l'emporte sur la valeur configurée et survit aux
+  redémarrages de Broker et d'Engine, comme un `MODATTR` retenu côté Engine.
+* **Toutes les autres commandes** (résultats de contrôle, bascules globales ou par
+  contact, changements de variables d'objet, contrôles forcés…) vont toujours vers
   **Engine**.
 
 ## Exemple des downtimes
@@ -346,7 +353,7 @@ En mode historique (`notification_mode = engine`), PHP continue d'appeler les
 | Acquittements                    | `AcknowledgementHostProblem`, `AcknowledgementServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement`                                                                                                                                                                                             | `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` (quand `notification_mode = broker`) |
 | Commentaires                     | `AddHostComment`, `AddServiceComment`, `DeleteComment`, `DeleteAllHostComments`, `DeleteAllServiceComments`                                                                                                                                                                                                            | mêmes noms côté Broker (`HostCommentRequest` / `ServiceCommentRequest` / `CommentIdentifier`), quand `notification_mode = broker` |
 | Contrôles                        | `ProcessHostCheckResult`, `ProcessServiceCheckResult`, `ScheduleHostCheck`, `ScheduleServiceCheck`, `ScheduleHostServiceCheck`                                                                                                                                                                                         | —                                   |
-| Notifications / bascules         | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, …                                                                                                                                                                                                                                 | —                                   |
+| Notifications / bascules         | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, …                                                                                                                                                                                                                                 | `SetHostNotifications` (scopes HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN, BEYOND_HOST), `SetServiceNotifications` — quand `notification_mode = broker`, pour les bascules par hôte/service ; les autres restent sur Engine |
 | Changements de variables d'objet | `ChangeHostObjectIntVar`, `ChangeServiceObjectCustomVar`, …                                                                                                                                                                                                                                                            | —                                   |
 
 > La liste des familles de downtime/acquittement qui migreront progressivement vers
