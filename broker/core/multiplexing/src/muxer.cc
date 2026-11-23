@@ -175,6 +175,10 @@ std::shared_ptr<muxer> muxer::create(std::string name,
       log_v2::instance()
           .get(log_v2::CONFIG)
           ->debug("muxer: muxer '{}' already exists, reusing it", name);
+      // The engine may have been unloaded and loaded again while this muxer
+      // was still alive: it must unsubscribe from the new engine, not the old.
+      if (retval->_engine != parent)
+        retval->_engine = parent;
       retval->set_read_filter(r_filter);
       retval->set_write_filter(w_filter);
       SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
