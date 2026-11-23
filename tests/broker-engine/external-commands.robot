@@ -14,6 +14,7 @@ Test Teardown    Ctn Save Logs If Failed
 *** Test Cases ***
 BEEXTCMD1
     [Documentation]    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
+    ...    The gRPC iteration also checks that Engine logs the deprecation of its command RPC.
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
@@ -35,6 +36,12 @@ BEEXTCMD1
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
+        IF    ${use_grpc} == 1
+            # The Engine command RPCs are deprecated for PHP: Engine must say so.
+            ${content}    Create List    gRPC method /com.centreon.engine.Engine/ChangeServiceObjectIntVar is deprecated
+            ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+            Should Be True    ${result}    Engine should warn that ChangeServiceObjectIntVar is deprecated
+        END
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
