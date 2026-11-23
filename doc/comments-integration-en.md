@@ -223,6 +223,71 @@ old retention file relinks it through `retention/applier/comment.cc`.
 
 ---
 
+## `notification_mode = broker`: Broker creates and deletes comments
+
+`broker/core/inc/com/centreon/broker/broker_comments.hh`, `broker/core/src/broker_comments.cc`
+
+Everything above describes the Engine → Broker circuit. In `notification_mode = broker`, Broker
+produces comments itself: those of the downtimes and acknowledgements it owns and, through the
+RPCs below, **user** comments. A single module of free functions, `broker_comments`, builds the
+three events unified_sql already knows how to process:
+
+| Function | Published `pb_comment` | Engine counterpart |
+|---|---|---|
+| `publish_comment(...)` | full comment, `internal_id` minted in Broker's range, `instance_id` of the host's poller | `comment` + `broker_comment_data(ADD)` |
+| `publish_comment_deletion(internal_id, instance_id)` | `internal_id` + `instance_id` + `deletion_time` | `comment::delete_comment(id)` |
+| `publish_comments_deletion(host_id, service_id, instance_id)` | `internal_id = 0` (sentinel), `host_id`, `service_id`, `deletion_time` | `DEL_ALL_*_COMMENTS` |
+
+`broker_downtime_callbacks` and `broker_acknowledgement_manager` go through this module: there
+is only one way to build a comment on the Broker side.
+
+### RPCs
+
+```proto
+rpc AddHostComment(HostCommentRequest) returns (AddCommentResponse) {}
+rpc AddServiceComment(ServiceCommentRequest) returns (AddCommentResponse) {}
+rpc DeleteComment(CommentIdentifier) returns (google.protobuf.Empty) {}
+rpc DeleteAllHostComments(HostIdentifier) returns (google.protobuf.Empty) {}
+rpc DeleteAllServiceComments(ServiceIdentifier) returns (google.protobuf.Empty) {}
+
+message HostCommentRequest {      // same content as EngineComment, resource by name or id
+  HostIdentifier host = 1; string user = 2; string comment_data = 3;
+  bool persistent = 4; uint32 entry_time = 5;  // 0: now
+}
+message ServiceCommentRequest {
+  ServiceIdentifier service = 1; string user = 2; string comment_data = 3;
+  bool persistent = 4; uint32 entry_time = 5;
+}
+message AddCommentResponse { uint64 internal_id = 1; }
+message CommentIdentifier  { uint64 internal_id = 1; }
+```
+
+`AddHostComment` / `AddServiceComment` create a `USER` comment, source `EXTERNAL`, and return its
+`internal_id` (Engine returns nothing, PHP used to read the id back from the database). Like the
+other RPCs of this mode: `UNAVAILABLE` outside broker mode, `NOT_FOUND` when the resource is
+unknown to the cache, `INVALID_ARGUMENT` when the resource identifier is empty.
+
+### Deletion by id: the id range stands for the poller
+
+Engine deletes by `(internal_id, instance_id)` because its ids are minted per poller and are only
+unique per poller. Broker mints its own in a partitioned range (`broker_cache::comment_id_base`,
+from `0x3FFFFFFF`) with a **single counter** for the platform: an id in that range identifies its
+row alone. `DeleteComment` therefore publishes a deletion with `instance_id = 0`, and unified_sql,
+when `internal_id != 0 && instance_id == 0`, filters on `internal_id` alone. An id **below** the
+range is a poller id: Broker refuses it with `FAILED_PRECONDITION` rather than risk hitting a
+homonym on another poller. The only residual risk is id reuse by a Broker that lost its cache
+file (the counter is persisted there).
+
+`DeleteAll*Comments` keeps Engine's semantics: **every** comment of the resource is deleted
+whatever its type, downtime and acknowledgement comments included.
+
+### Tests
+
+`tests/broker-engine/comments-broker.robot` (`BECMTBRK1` to `BECMTBRK3`): add then delete by id,
+bulk deletion on a host then a service, refusal of a poller-minted id.
+
+---
+
 ## Comment identity: comment_id vs internal_id
 
 The `centreon_storage.comments` table carries **two** identifiers:

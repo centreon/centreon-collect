@@ -117,7 +117,8 @@ Arborescence que PHP doit produire :
 * **Défaut :** `engine` (absent ⇒ `engine`)
 * **Signification :** détermine qui gère les downtimes et les acquittements :
   * `broker` → Broker charge le `downtime_manager` et le gestionnaire
-    d'acquittements, possède les downtimes **et les acquittements**, planifie en
+    d'acquittements, possède les downtimes, **les acquittements et les
+    commentaires utilisateur**, planifie en
     interne les downtimes hérités de BAM et est le seul à écrire
     `scheduled_downtime_depth`, `acknowledged` et `acknowledgement_type`. Engine
     n'est jamais informé des downtimes ni des acquittements : une commande
@@ -236,22 +237,26 @@ flowchart TD
     classDef broker fill:#4a90d9,color:#fff;
 
     CMD["Commande externe depuis PHP"]
-    CMD --> Q1{"Downtime ou acquittement ?"}
-    Q1 -- "non (résultat de contrôle,<br/>commentaire, activation/désactivation,<br/>changement de variable…)" --> ENG["Engine enginerpc"]:::engine
+    CMD --> Q1{"Downtime, acquittement<br/>ou commentaire ?"}
+    Q1 -- "non (résultat de contrôle,<br/>activation/désactivation,<br/>changement de variable…)" --> ENG["Engine enginerpc"]:::engine
     Q1 -- "oui" --> Q2{"notification_mode Broker = broker ?"}
-    Q2 -- "oui" --> BRK["Broker brokerrpc<br/>ScheduleDowntime / DeleteDowntime<br/>Acknowledge*Problem / Remove*Acknowledgement"]:::broker
-    Q2 -- "non (engine / absent)" --> ENG2["Engine enginerpc<br/>Schedule*Downtime / DeleteDowntime*<br/>Acknowledgement*Problem / Remove*Acknowledgement"]:::engine
+    Q2 -- "oui" --> BRK["Broker brokerrpc<br/>ScheduleDowntime / DeleteDowntime<br/>Acknowledge*Problem / Remove*Acknowledgement<br/>Add*Comment / Delete*Comment(s)"]:::broker
+    Q2 -- "non (engine / absent)" --> ENG2["Engine enginerpc<br/>Schedule*Downtime / DeleteDowntime*<br/>Acknowledgement*Problem / Remove*Acknowledgement<br/>Add*Comment / Delete*Comment(s)"]:::engine
 ```
 
-* **Downtimes et acquittements** suivent `notification_mode` :
-  * `notification_mode = broker` → appeler le `ScheduleDowntime` / `DeleteDowntime`
-    et les `AcknowledgeHostProblem` / `AcknowledgeServiceProblem` /
-    `RemoveHostAcknowledgement` / `RemoveServiceAcknowledgement` de **Broker**. Les
-    RPC d'acquittement d'Engine ne doivent **plus** être appelées dans ce mode.
-  * sinon → appeler les RPC de downtime et d'acquittement d'**Engine** (historique).
-* **Toutes les autres commandes** (résultats de contrôle, commentaires, bascules de
-  notification, changements de variables d'objet, contrôles forcés…) vont toujours
-  vers **Engine**.
+* **Downtimes, acquittements et commentaires** suivent `notification_mode` :
+  * `notification_mode = broker` → appeler le `ScheduleDowntime` / `DeleteDowntime`,
+    les `AcknowledgeHostProblem` / `AcknowledgeServiceProblem` /
+    `RemoveHostAcknowledgement` / `RemoveServiceAcknowledgement` et les
+    `AddHostComment` / `AddServiceComment` / `DeleteComment` /
+    `DeleteAllHostComments` / `DeleteAllServiceComments` de **Broker**. Les RPC
+    d'acquittement et de commentaire d'Engine ne doivent **plus** être appelées dans
+    ce mode.
+  * sinon → appeler les RPC de downtime, d'acquittement et de commentaire
+    d'**Engine** (historique).
+* **Toutes les autres commandes** (résultats de contrôle, bascules de notification,
+  changements de variables d'objet, contrôles forcés…) vont toujours vers
+  **Engine**.
 
 ## Exemple des downtimes
 
@@ -281,7 +286,7 @@ message ScheduleDowntimeResponse {
 
 Broker résout l'hôte/le service dans son cache centralisé, planifie le downtime dans
 son `downtime_manager` et renvoie le `downtime_id` généré. L'annulation utilise
-`DeleteDowntime(GenericNameOrIndex)`.
+`DeleteDowntime(DowntimeIdentifier { downtime_id })`.
 
 Pour la même opération en mode historique (`notification_mode = engine`), PHP
 continue d'appeler les `ScheduleHostDowntime` / `ScheduleServiceDowntime` /
@@ -339,7 +344,7 @@ En mode historique (`notification_mode = engine`), PHP continue d'appeler les
 | Planification de downtime        | `ScheduleHostDowntime`, `ScheduleServiceDowntime`, `ScheduleHostServicesDowntime`, `ScheduleHostGroupHostsDowntime`, `ScheduleHostGroupServicesDowntime`, `ScheduleServiceGroupHostsDowntime`, `ScheduleServiceGroupServicesDowntime`, `ScheduleAndPropagateHostDowntime`, `ScheduleAndPropagateTriggeredHostDowntime` | `ScheduleDowntime`                  |
 | Suppression de downtime          | `DeleteDowntime`, `DeleteHostDowntimeFull`, `DeleteServiceDowntimeFull`, `DeleteDowntimeByHostName`, `DeleteDowntimeByHostGroupName`, `DeleteDowntimeByStartTimeComment`                                                                                                                                               | `DeleteDowntime`                    |
 | Acquittements                    | `AcknowledgementHostProblem`, `AcknowledgementServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement`                                                                                                                                                                                             | `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` (quand `notification_mode = broker`) |
-| Commentaires                     | `AddHostComment`, `AddServiceComment`, `DeleteComment`, `DeleteAllHostComments`, `DeleteAllServiceComments`                                                                                                                                                                                                            | —                                   |
+| Commentaires                     | `AddHostComment`, `AddServiceComment`, `DeleteComment`, `DeleteAllHostComments`, `DeleteAllServiceComments`                                                                                                                                                                                                            | mêmes noms côté Broker (`HostCommentRequest` / `ServiceCommentRequest` / `CommentIdentifier`), quand `notification_mode = broker` |
 | Contrôles                        | `ProcessHostCheckResult`, `ProcessServiceCheckResult`, `ScheduleHostCheck`, `ScheduleServiceCheck`, `ScheduleHostServiceCheck`                                                                                                                                                                                         | —                                   |
 | Notifications / bascules         | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, …                                                                                                                                                                                                                                 | —                                   |
 | Changements de variables d'objet | `ChangeHostObjectIntVar`, `ChangeServiceObjectCustomVar`, …                                                                                                                                                                                                                                                            | —                                   |
