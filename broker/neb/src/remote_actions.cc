@@ -26,6 +26,7 @@
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/strings/match.h>
 #include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
 #include <openssl/evp.h>
@@ -335,6 +336,37 @@ void handle_chunk(const ConfigChunk& c,
 }
 
 /**
+ * @brief Tell if a staged broker file is new or differs from the installed
+ * one: cbmod reads its configuration once, so Engine must restart.
+ */
+bool broker_config_changed(const deployment& d) {
+  for (auto& p : d.files) {
+    const staged_file& f = *p.second;
+    /* Only cbmod configurations: on the central, the broker directory also
+     * holds the cbd ones, reloaded by cbd itself. */
+    if (f.target != "broker" ||
+        !absl::EndsWith(f.final_path.filename().string(), "module.json"))
+      continue;
+    std::error_code ec;
+    if (!fs::exists(f.final_path, ec))
+      return true;
+    std::string content;
+    try {
+      content = com::centreon::common::read_file_content(f.final_path);
+    } catch (const std::exception&) {
+      return true;
+    }
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    unsigned int size = 0;
+    EVP_Digest(content.data(), content.size(), hash, &size, EVP_sha256(),
+               nullptr);
+    if (to_hex(hash, size) != f.sha256)
+      return true;
+  }
+  return false;
+}
+
+/**
  * @brief Move every staged file in place, keeping <file>.prev. On a failure,
  * the files already moved are restored.
  *
@@ -418,6 +450,7 @@ void handle_commit(const ConfigCommit& c,
       error = fmt::format("{} files expected, {} received complete",
                           c.files_count(), complete);
   }
+  bool broker_changed = error.empty() && broker_config_changed(*d);
   if (error.empty())
     error = swap_files(*d);
   remove_staging(*d);
@@ -434,7 +467,11 @@ void handle_commit(const ConfigCommit& c,
                      "remote actions: deployment '{}': {} files installed, "
                      "action '{}', config version {}",
                      d->id, d->files.size(), c.action(), version);
-  if (c.action() == "reload") {
+  if (c.action() == "reload" && broker_changed) {
+    reply(channel, d->id, -1, REMOTE_APPLIED,
+          "restart requested (broker configuration changed)", version);
+    delayed_restart();
+  } else if (c.action() == "reload") {
     {
       absl::MutexLock lck(&g_deploy_m);
       if (g_pending_reload)
