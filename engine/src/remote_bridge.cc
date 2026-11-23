@@ -26,6 +26,7 @@
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/broker/neb/remote_actions.hh"
 
 using namespace com::centreon::engine;
 
@@ -60,4 +61,17 @@ void remote_bridge::request_restart() {
     return 0;
   });
   command_manager::instance().enqueue(std::move(task));
+}
+
+void remote_bridge::install() {
+  com::centreon::broker::neb::remote_actions::engine_bridge b;
+  b.run_external_command =
+      [](const std::string& command,
+         std::function<void(int, const std::string&)>&& done) {
+        run_external_command(command, std::move(done));
+      };
+  b.main_config_file = &main_config_file;
+  b.request_reload = &request_reload;
+  b.request_restart = &request_restart;
+  com::centreon::broker::neb::remote_actions::set_engine_bridge(std::move(b));
 }

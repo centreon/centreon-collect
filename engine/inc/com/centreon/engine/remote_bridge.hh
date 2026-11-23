@@ -53,6 +53,11 @@ void request_reload();
  */
 void request_restart();
 
+/**
+ * @brief Install these functions in cbmod (remote actions), once cbm exists.
+ */
+void install();
+
 }  // namespace com::centreon::engine::remote_bridge
 
 #endif  // !CCE_REMOTE_BRIDGE_HH

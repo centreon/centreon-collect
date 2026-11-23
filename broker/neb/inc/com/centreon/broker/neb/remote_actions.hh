@@ -19,6 +19,7 @@
 #ifndef CCB_NEB_REMOTE_ACTIONS_HH
 #define CCB_NEB_REMOTE_ACTIONS_HH
 
+#include <functional>
 #include <string>
 
 namespace com::centreon::broker::neb {
@@ -33,6 +34,21 @@ namespace com::centreon::broker::neb {
  */
 class remote_actions {
  public:
+  /**
+   * @brief Engine functions used by the remote actions. Engine installs them
+   * after creating cbmod, so that cbmod does not reference Engine symbols
+   * (it is also linked into binaries without Engine).
+   */
+  struct engine_bridge {
+    std::function<void(const std::string& command,
+                       std::function<void(int, const std::string&)>&& done)>
+        run_external_command;
+    std::function<std::string()> main_config_file;
+    std::function<void()> request_reload;
+    std::function<void()> request_restart;
+  };
+
+  static void set_engine_bridge(engine_bridge&& bridge);
   static void load(const std::string& broker_config_file);
   static void unload();
   static void reload_done(bool success, const std::string& message);

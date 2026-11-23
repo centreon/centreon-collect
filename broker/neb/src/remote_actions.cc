@@ -22,7 +22,6 @@
 #include "broker/core/bbdo/remote.hh"
 #include "com/centreon/common/file_system.hh"
 #include "com/centreon/common/pool.hh"
-#include "com/centreon/engine/remote_bridge.hh"
 #include "common/log_v2/log_v2.hh"
 
 #include <absl/container/flat_hash_map.h>
@@ -39,13 +38,48 @@
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 namespace fs = std::filesystem;
-namespace bridge = com::centreon::engine::remote_bridge;
 
 namespace {
 
 std::shared_ptr<spdlog::logger> logger() {
   return log_v2::instance().get(log_v2::NEB);
 }
+
+/* Engine functions, installed by Engine (see engine_bridge). */
+absl::Mutex g_bridge_m;
+neb::remote_actions::engine_bridge g_bridge ABSL_GUARDED_BY(g_bridge_m);
+
+namespace bridge {
+void run_external_command(const std::string& command,
+                          std::function<void(int, const std::string&)>&& done) {
+  decltype(g_bridge.run_external_command) f;
+  {
+    absl::MutexLock lck(&g_bridge_m);
+    f = g_bridge.run_external_command;
+  }
+  if (f)
+    f(command, std::move(done));
+  else
+    done(-1, "engine bridge not installed");
+}
+
+std::string main_config_file() {
+  absl::MutexLock lck(&g_bridge_m);
+  return g_bridge.main_config_file ? g_bridge.main_config_file() : "";
+}
+
+void request_reload() {
+  absl::MutexLock lck(&g_bridge_m);
+  if (g_bridge.request_reload)
+    g_bridge.request_reload();
+}
+
+void request_restart() {
+  absl::MutexLock lck(&g_bridge_m);
+  if (g_bridge.request_restart)
+    g_bridge.request_restart();
+}
+}  // namespace bridge
 
 /* Request ids already handled, to drop a replayed request. */
 constexpr size_t max_known_requests = 1000;
@@ -493,4 +527,12 @@ void neb::remote_actions::reload_done(bool success,
   else
     reply(p->channel, p->id, -1, REMOTE_REJECTED,
           fmt::format("engine reload failed: {}", message), p->config_version);
+}
+
+/**
+ * @brief Install the Engine functions used by the remote actions.
+ */
+void neb::remote_actions::set_engine_bridge(engine_bridge&& b) {
+  absl::MutexLock lck(&g_bridge_m);
+  g_bridge = std::move(b);
 }

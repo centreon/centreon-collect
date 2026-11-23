@@ -60,6 +60,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/remote_bridge.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -492,6 +493,8 @@ int main(int argc, char* argv[]) {
            * this, imply we also have to check if cbm is defined in broker.cc.
            */
           cbm = std::make_unique<cbmod>(broker_config);
+          // Engine functions used by the downstream remote actions.
+          com::centreon::engine::remote_bridge::install();
           // Send program data to broker.
           broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 
