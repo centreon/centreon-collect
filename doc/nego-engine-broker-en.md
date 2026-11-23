@@ -5851,6 +5851,17 @@ called as a plain method, no business logic duplicated
 ignored by Broker. Only downtime deletions by criteria, which have no typed RPC, stay
 `UNIMPLEMENTED`.
 
+Test coverage of the routing comes for free from the Robot tooling: every legacy line
+the keywords of `Engine.py` emit (`Ctn Process Service Check Result`, `Ctn Acknowledge
+Service Problem`, `Ctn Disable Host Check`, ...) goes through a single helper,
+`Ctn Send External Command`, which writes the line to the poller command pipe by default
+and hands it to `ExecuteExternalCommand` when the Robot variable `${EXTCMD_MODE}` is
+`broker` (`Ctn Set External Command Mode    broker` in a test, or
+`--variable EXTCMD_MODE:broker` for a whole campaign). The BBDO3 tests of
+`external-commands.robot`, `external-commands2.robot` and `acknowledgement.robot` run in
+broker mode, their BBDO2 twins keep the pipe, so both paths stay covered without
+doubling the campaign.
+
 > For the PHP side of moving external commands to gRPC and the Engine/Broker routing
 > rule based on `notification_mode`, see
 > [PHP evolutions — External commands over gRPC](./php-evolutions-en.md#evolution-2--external-commands-over-grpc).
