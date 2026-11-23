@@ -589,6 +589,10 @@ void api::_finish_command(const std::shared_ptr<command_request>& req) {
         worst = r.first;
     ci.status = worst;
   }
+  for (auto& ci : req->items)
+    SPDLOG_LOGGER_INFO(_logger,
+                       "remote api: commands request {} poller {}: {} {}",
+                       req->id, ci.poller_id, ci.status, ci.message);
   json j = _command_json(*req);
   auto answer = std::move(req->answer);
   if (answer)
