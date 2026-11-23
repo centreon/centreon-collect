@@ -263,6 +263,117 @@ BBDO2).
 
 ---
 
+## Mode `notification_mode = broker` : Broker est l'autorité d'acquittement
+
+`broker/core/inc/com/centreon/broker/broker_acknowledgement_manager.hh`, `broker/core/src/broker_acknowledgement_manager.cc`
+
+Tout ce qui précède décrit le mode `engine` : Engine pose et lève l'acquittement, Broker le suit. En
+`notification_mode = broker`, Engine **n'est jamais informé** des acquittements (voir
+[Gestion centralisée des downtimes et acquittements](./nego-engine-broker-fr.md#gestion-centralisée-des-downtimes-et-acquittements)).
+Broker les reçoit par `BrokerRpc`, les stocke, les exporte en base et les lève lui-même. Le
+`broker_acknowledgement_manager` est un singleton chargé par `broker_state` dans ce mode seulement,
+à côté du `downtime_manager` ; tout l'état vit dans `broker_cache`, la classe ne fait qu'orchestrer.
+
+### Points d'entrée gRPC
+
+```proto
+rpc AcknowledgeHostProblem(AcknowledgementRequest) returns (google.protobuf.Empty) {}
+rpc AcknowledgeServiceProblem(AcknowledgementRequest) returns (google.protobuf.Empty) {}
+rpc RemoveHostAcknowledgement(HostIdentifier) returns (google.protobuf.Empty) {}
+rpc RemoveServiceAcknowledgement(ServiceIdentifier) returns (google.protobuf.Empty) {}
+
+message AcknowledgementRequest {   // mêmes champs que EngineAcknowledgement (engine.proto)
+  string host_name = 1; string service_desc = 2;
+  string ack_author = 3; string ack_data = 4;
+  enum Type { NORMAL = 0; STICKY = 1; } Type type = 5;
+  bool notify = 6; bool persistent = 7;
+}
+message HostIdentifier { oneof host { string host_name = 1; uint64 host_id = 2; } }
+```
+
+`AcknowledgementRequest` reprend champ pour champ la requête d'Engine : PHP change de cible gRPC et de
+nom de RPC, pas de contenu. Les échecs passent par le statut gRPC : `UNAVAILABLE` hors mode broker,
+`NOT_FOUND` pour une ressource inconnue du cache, `FAILED_PRECONDITION` si la ressource est UP/OK
+(« cannot acknowledge a non-existent problem », comme Engine), `INVALID_ARGUMENT` si l'identifiant est
+vide.
+
+### Pose d'un acquittement : le flux d'Engine, rejoué par Broker
+
+`broker_acknowledgement_manager::acknowledge()` reproduit `acknowledge_host_problem()` /
+`acknowledge_service_problem()` d'Engine, étape par étape :
+
+| Étape Engine | Équivalent Broker |
+|---|---|
+| refus si UP/OK | état lu dans le cache, `FAILED_PRECONDITION` |
+| commentaire `acknowledgment` interne | `pb_comment` (entry_type ACKNOWLEDGMENT, source INTERNAL, id dans la plage partitionnée de Broker, **même `entry_time` que l'ack** : la GUI joint les deux lignes dessus) |
+| `broker_acknowledgement_data` → `pb_acknowledgement` | `pb_acknowledgement` publié, avec `instance_id` du poller du host, `state` courant et le nouveau champ `comment_id` (13) |
+| `set_acknowledgement(type)` + `update_status(STATUS_ACKNOWLEDGEMENT)` | `broker_cache::set_acknowledgement_type()` **synchrone** (la prochaine décision de notification doit voir le flag), puis `pb_adaptive_*_status{acknowledgement_type}` pour la base |
+| `notify(reason_acknowledgement)` si `notify` | `notification_manager::notify(reason_acknowledgement, author, data)` ; l'exécution part vers le poller par `pb_notification_execute` |
+| ligne `EXTERNAL COMMAND: ACKNOWLEDGE_*` → `logs` | `pb_log_entry` msg_type `SERVICE_ACKNOWLEDGE_PROBLEM` (10) / `HOST_ACKNOWLEDGE_PROBLEM` (11), auteur dans `notification_contact`, commentaire dans `output` |
+
+Un nouvel acquittement sur une ressource déjà acquittée remplace le précédent et supprime son
+commentaire non persistant, comme `delete_acknowledgement_comment()` côté Engine.
+
+### Levée
+
+* **Explicite** (`remove()`) : `set_acknowledgement_type(NONE)` applique la règle de fermeture de
+  `_take_expired_acknowledgement` avec l'état courant — la ressource est encore en problème, donc
+  l'ack reçoit son `deletion_time` et est republié ; le commentaire non persistant est supprimé ; un
+  adaptive status `NONE` réaligne `hosts`/`services`/`resources`.
+* **Automatique** (`clear_on_state_change()`), appelée par `broker_notification_dispatcher` pour **chaque**
+  `pb_host_status`/`pb_service_status` (SOFT compris), *avant* la décision de notification, avec la
+  règle de `notifier::handle_state()` : un ack NORMAL est levé à tout changement d'état, un ack STICKY
+  seulement au retour UP/OK. L'ordre compte : la sortie d'un ack non sticky (WARNING → CRITICAL) doit
+  être notifiée, donc le flag doit être retombé quand `notify()` lit `get_state().acknowledged`. La
+  règle de fermeture est appliquée avec l'état **de l'événement**, pas celui du cache, pour rester
+  déterministe : à la guérison l'ack est retiré du cache sans `deletion_time`, exactement comme en
+  mode engine (voir « Fermeture »).
+
+### Les gardes : ne pas laisser Engine écraser Broker
+
+Engine ne connaît pas l'ack, donc chaque status qu'il envoie porte `acknowledgement_type = NONE`. Sans
+garde, le cache remettrait le type à NONE et unified_sql `acknowledged = 0` à chaque check. Même
+solution que pour `scheduled_downtime_depth` :
+
+* `broker_cache::update_host/update_service(pb_*_status)` n'appliquent le type venant d'Engine que si
+  `notification_manager::is_loaded()` est faux ;
+* `unified_sql` binde `NULL` sur `acknowledged` / `acknowledgement_type` des requêtes de status
+  (`hosts`, `services`, `resources`) et les requêtes portent `COALESCE(?, colonne)`.
+
+Le fait « Broker est propriétaire » est lu par `notification_manager::is_loaded()`, chargé au même
+endroit que le manager d'acquittement.
+
+### Redémarrages
+
+* **Broker redémarre** : les acks sont rechargés depuis `BrokerCache.acknowledgements` (comment_id
+  compris), mais les hosts/services du cache sont reconstruits avec le type NONE, et Engine ne peut
+  pas le rétablir. Deux mécanismes le restaurent : `broker_cache::_restore_acknowledgement_type()` à
+  l'insertion d'une définition `pb_host`/`pb_service` (mode BBDO3 non centralisé), et
+  `reinject_pending_acknowledgements()` aux deux points de réinjection des downtimes (barrière de
+  démarrage, `_process_engine_state` après merge en mode centralisé). Dans les deux cas un adaptive
+  status est republié, car les définitions qui ont reconstruit les ressources en base ont écrit
+  `acknowledged = 0`.
+* **Engine redémarre** : il renvoie ses définitions avec le type NONE ; `_restore_acknowledgement_type`
+  remet le flag en place (copie-sur-écriture, l'événement entrant est partagé avec les flux de sortie).
+
+### Ce qu'Engine perd dans ce mode (à traiter)
+
+* Les macros `$TOTAL*UNHANDLED$` comptent un problème acquitté comme non traité (déjà vrai pour les
+  downtimes) — correction prévue par un miroir descendant vers le poller, voir la note dédiée dans
+  `nego-engine-broker`.
+* L'expiration par `acknowledgement_timeout` est un timer Engine : elle ne se déclenche plus. Non
+  portée côté Broker pour l'instant.
+
+### Tests
+
+`tests/broker-engine/acknowledgements-broker.robot` (`BEACKBRK1` à `BEACKBRK5`) : pose et levée à la
+guérison, levée explicite, sticky/normal sur changement d'état, ack d'hôte survivant à un redémarrage
+de Broker, et décision de notification (CRITICAL, ACKNOWLEDGEMENT, suppression pendant l'ack,
+RECOVERY). UT : `BrokerNotificationDeliverTest.{EngineStatusKeepsBrokerAcknowledgement,
+AcknowledgementClosingRule, ReinjectPendingAcknowledgements}`.
+
+---
+
 ## gRPC : GetAcknowledgements
 
 `broker/core/brokerrpc/broker.proto`, `broker_impl.cc`
