@@ -135,7 +135,7 @@ sub action_centreonnodessync {
     }
 
     $request = "
-        SELECT id, name, localhost, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type, uid
+        SELECT id, name, localhost, poller_type, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type, uid
         FROM nagios_server
         WHERE ns_activate = '1'
     ";
@@ -151,7 +151,15 @@ sub action_centreonnodessync {
     my $register_temp = {};
     my $register_nodes = [];
     foreach my $node (values %$datas) {
-        if ($node->{localhost} == 1) {
+        # localhost=1 means "this row is the box gorgone itself runs on" on a
+        # classic VM/RPM install: never register it as a node, it's the core
+        # (SETCOREID below). In a docker/k8s split (poller_type='docker'),
+        # localhost=1 just means "this is the Central poller" - gorgone-central
+        # itself is a separate process (its own gorgonecore.id, never 1) and
+        # the Central poller must be reached the same way as any other node
+        # (pullwss), not nulled into a self-target by core.pm's SETCOREID
+        # shortcut.
+        if ($node->{localhost} == 1 && (!defined($node->{poller_type}) || $node->{poller_type} ne 'docker')) {
             $core_id  = $node->{id};
             $core_uid = $node->{uid};
             next;
