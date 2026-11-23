@@ -270,6 +270,8 @@ class broker_state : public state {
   void on_cache_sections_declared() override;
   void _configure_cache_directories(
       const com::centreon::broker::config::state& s) override;
+  void _resolve_pollers_config_dir(
+      const com::centreon::broker::config::state& s) override;
   void load_pollers_config_in_cache();
   void apply_poller_diff_in_cache(uint64_t poller_id);
   void remove_poller_config(uint64_t poller_id) override;

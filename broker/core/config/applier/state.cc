@@ -154,8 +154,11 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   //      set_pollers_config_dir(s.pollers_config_dir());
   //  }
 
-  /* Before the modules: loading one declares the cache sections it reads, so
-   * the cache has to exist by then. */
+  /* The pollers configuration directory first: the cache reads at its
+   * construction whether it runs in centralized mode, and that is what says
+   * so. Then the cache, before the modules: loading one declares the cache
+   * sections it reads, so the cache has to exist by then. */
+  _resolve_pollers_config_dir(s);
   initialize_cache();
 
   // Apply modules configuration.
