@@ -417,6 +417,14 @@ sub proxy {
     } elsif ($action eq 'PROXYDELNODE' && $target_complete eq '') {
         my (undef, $decoded) = $connector->json_decode(argument => $data);
         return $connector->action_proxydelnode(data => $decoded, token => $token);
+    } elsif ($action eq 'PROXYHEALTHCHECK' && $target_complete eq '') {
+        # answering proves this process's event loop is actually running messages, not wedged
+        # (see hooks.pm's check_httpserver_health()).
+        $connector->send_internal_action({
+            action => 'PROXYHEALTHCHECK',
+            data => { httpserver => 1 }
+        });
+        return ;
     }
 
     if ($target_complete !~ /^(.+)~~(.+)$/) {
