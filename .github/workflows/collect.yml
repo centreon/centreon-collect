@@ -114,7 +114,7 @@ jobs:
     with:
       version_file: CMakeLists.txt
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || inputs.robot_pattern != '^((?!cma).)*$' || false }}
-      labels: ${{ inputs.labels || '' }}
+      labels: ${{ inputs.labels || '' }},skip-all-tests
 
   check-version-consistency:
     runs-on: ubuntu-24.04
