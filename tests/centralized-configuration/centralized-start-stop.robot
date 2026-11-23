@@ -36,7 +36,7 @@ BECSS1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -72,7 +72,7 @@ BECSS2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -110,7 +110,7 @@ BECSS3
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -148,7 +148,7 @@ BECSS4
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -189,7 +189,7 @@ BECSS_GRPC1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -230,7 +230,7 @@ BECSS_GRPC2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -273,7 +273,7 @@ BECSS_GRPC3
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -316,7 +316,7 @@ BECSS_GRPC4
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -353,7 +353,7 @@ BECSS_GRPC_COMPRESS1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection not established between Engine and Broker
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -408,13 +408,13 @@ BECSS_CRYPTED_GRPC1
         ${result}    Ctn Check Connections
         Should Be True    ${result}    Connection between Engine and Broker not established
 
-        # On the first iteration the .lck file is present so Broker processes
-        # the new configuration and sends it to Engine.  On subsequent iterations
-        # the .lck file has been deleted by Broker; both sides already know the
-        # configuration (Broker from its .prot file, Engine from state.prot).
+        # On the first iteration an announcement is present, so Broker reads it
+        # and sends the configuration to Engine.  On subsequent iterations the
+        # announcement is gone -- Broker consumed it as soon as it had prepared
+        # the configuration -- and both sides already know it (Broker from its
+        # .prot file, Engine from state.prot).
         IF    ${i} == 0
             ${content}    Create List
-            ...    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1
             ...    sending DiffState to poller 1
             ...    BBDO: received diff state ack
             ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -586,7 +586,12 @@ BECSS_ENGINE_DELETE_HOST
     Ctn Engine Config Remove Host    ${0}    host_16
     Ctn Notify Broker Of Engine Config Change    ${0}
 
-    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    sending DiffState to poller 1    BBDO: received diff state ack
+    # What is checked is the delivery and its acknowledgement. Looking for the
+    # announcement being read would be a race: it is consumed as soon as the
+    # configuration is prepared, which happens without waiting for the poller, so
+    # by the time Engine reconnects there is nothing left to find -- what waits
+    # for it then is new-1.prot.
+    ${content}    Create List    sending DiffState to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 

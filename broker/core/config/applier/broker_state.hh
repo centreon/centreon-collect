@@ -92,11 +92,27 @@ class broker_state : public state {
     bool extended_negotiation;
   };
 
+  /**
+   * @brief The configurations of the other pollers, and the index built over
+   * them.
+   *
+   * The two travel together on purpose: `objects` holds non-owning
+   * `std::string_view` pointing into `states`, so the caller must keep the
+   * whole thing alive for as long as it uses the index. The states are held
+   * behind `unique_ptr` so that moving or returning this structure never moves
+   * the messages themselves, which would dangle every view.
+   */
+  struct foreign_states {
+    std::vector<std::unique_ptr<com::centreon::engine::configuration::State>>
+        states;
+    com::centreon::engine::configuration::foreign_objects objects;
+  };
+
  public:
   enum notification_mode { notification_mode_engine, notification_mode_broker };
 
-  /* @brief True when Broker owns the notification decision. Advertised to Engine
-   * at negotiation so it stops deciding notifications on its own. */
+  /* @brief True when Broker owns the notification decision. Advertised to
+   * Engine at negotiation so it stops deciding notifications on its own. */
   bool notifications_on_broker() const {
     return _notification_mode == notification_mode_broker;
   }
@@ -168,7 +184,24 @@ class broker_state : public state {
   absl::flat_hash_map<uint64_t, std::string> _engine_configuration
       ABSL_GUARDED_BY(_connected_peers_m);
   std::atomic<bool> _watch_engine_conf_stopped{false};
-  std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
+  /* Safety net, not the engine: inotify is what wakes Broker up on a
+   * configuration push. This fires rarely, and only covers what events cannot
+   * -- a watch that could not be established again, a directory on a
+   * filesystem inotify does not serve. */
+  std::unique_ptr<boost::asio::steady_timer> _safety_timer;
+  /* Coalescing timer. A deploy-all touches one .lck per poller in a burst, and
+   * handling them as one batch reads the configuration store once instead of
+   * once per poller. Every event pushes this timer back, up to a ceiling so a
+   * continuous stream cannot postpone the work forever. */
+  std::unique_ptr<boost::asio::steady_timer> _debounce_timer;
+  /* When the burst being coalesced started, so the ceiling can be applied.
+   * Empty when no burst is pending. Strand-only, like the timers. */
+  std::optional<std::chrono::steady_clock::time_point> _burst_started_at;
+  /* Whether a wait is currently outstanding on the inotify descriptor. Arming
+   * is attempted from more than one place -- the start, and the moment the
+   * watcher appears if it did not exist then -- and two waits on one descriptor
+   * would both fire for a single event. Strand-only. */
+  bool _inotify_wait_armed = false;
   /* Strand serializing every engine-configuration watcher handler so the
    * destructor can drain any in-flight handler before the watched resources are
    * destroyed (closes the shutdown race). Created together with the timer. */
@@ -176,9 +209,26 @@ class broker_state : public state {
       _watch_strand;
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
+  /* Where the configuration work runs. Reading a poller configuration --
+   * hash_directory, parse, expand, resolve, and the reload of the stored
+   * configurations behind it -- takes seconds on a large platform, and running
+   * it on _watch_strand would hold up the draining of the inotify queue for
+   * just as long: a strand serializes its handlers, so the wait could not
+   * complete while a configuration is being read.
+   *
+   * A second strand on the shared pool is all it takes. Two strands run
+   * independently of one another, so the watching keeps up while a
+   * configuration is read, and the work is still serialized with itself. */
+  std::unique_ptr<boost::asio::strand<boost::asio::io_context::executor_type>>
+      _config_strand;
+  /* Set when the watcher reports that the events it read cannot be taken as
+   * complete -- the kernel dropped some, or the watch had to be established
+   * again -- which only a scan can make up for. Written from the strand and
+   * read from the configuration worker, hence the atomic. */
+  std::atomic<bool> _scan_requested_by_watcher{false};
 
-  /* Startup readiness barrier hook (mechanism lives in the base state): once the
-   * engine is started, re-inject the persisted active downtimes so they are
+  /* Startup readiness barrier hook (mechanism lives in the base state): once
+   * the engine is started, re-inject the persisted active downtimes so they are
    * ordered after the flushed startup definitions. No-op in non-broker mode. */
   void _on_barrier_released() override;
 
@@ -188,10 +238,43 @@ class broker_state : public state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::optional<bool> _prepare_diff_from_new_prot_file(uint64_t poller_id)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  void _start_watch_engine_conf_timer();
-  uint32_t _get_lck_file_if_exists(uint32_t poller_id) noexcept;
-  void _watch_engine_conf(absl::flat_hash_set<uint32_t>* poller_ids);
-  void _check_last_engine_conf() ABSL_LOCKS_EXCLUDED(_lck_set_m);
+  void _start_watching();
+  void _arm_inotify_wait();
+  void _arm_debounce();
+  void _arm_safety_timer();
+  /* What one read of the inotify queue found. The two announcement shapes are
+   * routed apart from here on, so they are counted apart. */
+  struct watch_report {
+    /* A `pollers.lck` was written or renamed into place. Its poller ids are not
+     * here: the file is read by the worker. */
+    bool batch_announced = false;
+    /* At least one `<poller_id>.lck` was reported, and its id queued in
+     * _lck_set. */
+    bool pollers_announced = false;
+    /* What happened in the directory is partly unknown -- the kernel dropped
+     * events, or the watch had to be established again -- and only a scan can
+     * make up for it. Names no poller, hence a flag of its own: without it a
+     * read that reported nothing else would post no work at all. */
+    bool rescan_requested = false;
+  };
+  watch_report _read_watch_events() ABSL_LOCKS_EXCLUDED(_lck_set_m);
+  uint32_t _lck_file_for_poller(uint32_t poller_id) noexcept;
+  void _remove_lck_file(uint32_t poller_id) noexcept;
+  absl::flat_hash_set<uint32_t> _read_poller_batch();
+  void _remove_poller_batch();
+  absl::flat_hash_set<uint32_t> _scan_for_announcements(
+      const absl::flat_hash_set<uint32_t>& already_queued);
+  void _post_individual_work(bool force_scan) ABSL_LOCKS_EXCLUDED(_lck_set_m);
+  void _post_batch_work();
+
+  std::unique_ptr<engine::configuration::State> _read_poller_conf(
+      uint32_t poller_id,
+      const foreign_states& foreign,
+      bool& refused);
+  bool _store_poller_conf(uint32_t poller_id,
+                          const engine::configuration::State& state,
+                          const std::string& version);
+  void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set);
   bool _feed_cache_and_wake_up_resources(uint64_t poller_id);
   bool _is_engine_peer_connected(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
@@ -232,6 +315,9 @@ class broker_state : public state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<peer> connected_peers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  /* Whether a configuration is prepared for this peer and still owes it a
+   * delivery. Expects _connected_peers_m to be held. */
+  static bool _peer_needs_update(const engine_peer& peer);
   bool engine_peer_needs_update(uint64_t poller_id) const;
   void acknowledge_engine_peer(uint64_t poller_id);
   void set_poller_engine_conf(uint32_t poller_id,
@@ -248,24 +334,22 @@ class broker_state : public state {
   bool supports_centralized_conf() const override {
     return !_pollers_config_dir.empty();
   }
+  /**
+   * @brief Whether the directories this instance needs are configured.
+   *
+   * An empty path is not harmless: joining a file name onto it yields a
+   * *relative* path, resolved against whatever the working directory of cbd
+   * happens to be. Reading there finds foreign files, and writing there leaves
+   * some -- which is how a legacy poller once got handed a configuration
+   * prepared for another platform. Every use of these directories is therefore
+   * guarded rather than assumed.
+   */
+  bool pollers_config_dir_usable() const noexcept {
+    return !_pollers_config_dir.empty();
+  }
   void create_prot_file(
       const com::centreon::engine::configuration::State& conf);
 
-  /**
-   * @brief The configurations of the other pollers, and the index built over
-   * them.
-   *
-   * The two travel together on purpose: `objects` holds non-owning
-   * `std::string_view` pointing into `states`, so the caller must keep the
-   * whole thing alive for as long as it uses the index. The states are held
-   * behind `unique_ptr` so that moving or returning this structure never moves
-   * the messages themselves, which would dangle every view.
-   */
-  struct foreign_states {
-    std::vector<std::unique_ptr<com::centreon::engine::configuration::State>>
-        states;
-    com::centreon::engine::configuration::foreign_objects objects;
-  };
   foreign_states load_foreign_objects() const;
 
   enum class relay_config_response { unknown, up_to_date, diff_ready };

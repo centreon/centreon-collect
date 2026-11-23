@@ -25,7 +25,7 @@ CBEDB1
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    0
+    Ctn Push Configuration Per Poller And Wait    ${start}    0
     ${content}    Create List    error while starting connection
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
@@ -52,7 +52,7 @@ CBEDB2
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    0
+    Ctn Push Configuration Per Poller And Wait    ${start}    0
 
     FOR    ${t}    IN RANGE    60
         ${result}    Ctn Check Sql Connections Count With Grpc    51001    ${3}
@@ -92,7 +92,7 @@ CBEDB3
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    0
+    Ctn Push Configuration Per Poller And Wait    ${start}    0
 
     FOR    ${t}    IN RANGE    60
         ${result}    Ctn Check All Sql Connections Down With Grpc    51001
@@ -129,7 +129,7 @@ CBDBM1
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
 
-	Ctn Wait For Engine Configuration To Be Applied    ${start}    0
+	Ctn Push Configuration Per Poller And Wait    ${start}    0
 
         ${content}    Create List    error while starting connection
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20

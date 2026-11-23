@@ -30,6 +30,7 @@ CBEUHSEV1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    config    debug
     Ctn Clear Retention
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine    newGeneration=True
@@ -95,6 +96,7 @@ CBEUHSEV2
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    config    debug
     Ctn Clear Retention
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine    newGeneration=True

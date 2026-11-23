@@ -98,7 +98,7 @@ BECNTAG1
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # Phase 1: all 4 pollers tagged → exactly 20 hosts (IDs from all pollers) and 400 services
     Log To Console    Phase 1: verifying hosts and services identity in broker cache
@@ -210,7 +210,7 @@ BECNTAG2
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # Verify initial state: hosts are reachable by the original tag names
     ${result}    Ctn Check Hosts By Tag With Timeout    51001    tag2    ${1}    ${all_host_ids}    60
@@ -276,7 +276,7 @@ BECNTAG3
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # GetTags must return exactly 4 entries (one per TagType) with the expected names
     ${result}    Ctn Check Tags Count With Timeout    51001    4    60
@@ -332,7 +332,7 @@ BECNTAG4
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # Verify cache is correct before restart
     ${result}    Ctn Check Tags Count With Timeout    51001    4    60
@@ -349,7 +349,7 @@ BECNTAG4
     Log To Console    Restarting broker
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
-    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+    Ctn Push Configuration Per Poller And Wait    ${start}    ${0}    ${4}
 
     # Cache must be fully repopulated after restart
     ${result}    Ctn Check Tags Count With Timeout    51001    4    60

@@ -291,3 +291,80 @@ BECFGVAL8
 
     # A rejected configuration is considered processed: its .lck is consumed.
     Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
+
+BECFGVAL9
+    [Documentation]    Scenario: PHP pushes a valid configuration for a poller that is not connected
+    ...    Given a valid centralized engine configuration for poller 1
+    ...    And Broker is started in centralized mode while Engine is left stopped
+    ...    When the configuration change is notified to Broker
+    ...    Then Broker prepares and stores the poller configuration once
+    ...    And it consumes the .lck, new-1.prot being what says the delivery is pending
+    ...    And nothing at all happens about that poller on the following cycles
+    [Tags]    broker    engine    config    centralized    MON-187019
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}    only_central=True
+    Ctn Broker Config Log    central    config    debug
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True    only_central=True
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    # The configuration is valid, so Broker prepares it even though no poller
+    # can receive it yet.
+    ${content}    Create List    New Engine configuration for poller 1 stored
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not store the valid poller configuration
+    ${prot}    Set Variable
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/new-1.prot
+    File Should Exist    ${prot}    a valid configuration must be stored
+
+    # The announcement has been read and what it announced is on disk, so it
+    # must be gone -- PHP waits for exactly that. What says the delivery is
+    # still pending is new-1.prot, checked just above, and it says so whether
+    # the poller is connected or not.
+    Wait Until Removed    ${VarRoot}/lib/centreon/config/1.lck    15s
+
+    # From here on, nothing more must happen about that poller. The 2s wait puts
+    # ${middle} strictly after the preparation logged above, since the date is
+    # rounded down to the second.
+    Sleep    2s
+    ${middle}    Ctn Get Round Current Date
+    # The watcher runs every 5s, so several cycles go by here.
+    Sleep    20s
+
+    # Counting the preparations would prove nothing: the poller being absent was
+    # already enough to skip the delivery. What must not happen is the whole
+    # configuration store being parsed again on every cycle just because a .lck
+    # is waiting for its poller.
+    ${reload}    Create List    stored poller configurations for the cross-poller validation
+    ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${reload}    5
+    Should Not Be True
+    ...    ${found}
+    ...    Broker parsed every stored poller configuration again while nothing was being deployed
+
+    # And the cause of that reload, the requeuing of an announcement, must not
+    # happen either -- there is none left to requeue.
+    ${orphan}    Create List    Found orphan lock file
+    ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${orphan}    5
+    Should Not Be True    ${found}    the lock file was requeued while its poller was still absent
+
+    # Nor must the configuration be prepared a second time.
+    ${stored}    Create List    New Engine configuration for poller 1 stored
+    ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${stored}    5
+    Should Not Be True    ${found}    Broker prepared the configuration again for an absent poller
+
+    # Nor must the directory be scanned at all: the scan is a safety net for what
+    # inotify cannot report, and nothing here asked for it.
+    ${scan}    Create List    Scanning the engine configuration directory
+    ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${scan}    5
+    Should Not Be True    ${found}    Broker scanned the cache directory while nothing asked for it
+    File Should Not Exist
+    ...    ${VarRoot}/lib/centreon/config/1.lck
+    ...    the announcement must not come back
+
+    # An empty inotify queue is the ordinary case and must not be logged as an
+    # error, otherwise every cycle leaves one error line behind.
+    ${inotify}    Create List    Unable to read from inotify
+    ${found}    Ctn Find In Log With Timeout    ${centralLog}    ${middle}    ${inotify}    5
+    Should Not Be True    ${found}    an empty inotify queue must not be reported as an error
