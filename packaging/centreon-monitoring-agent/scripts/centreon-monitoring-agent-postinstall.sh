@@ -5,7 +5,11 @@ startCentagent() {
   systemctl unmask centagent.service ||:
   systemctl preset centagent.service ||:
   systemctl enable centagent.service ||:
-  systemctl restart centagent.service ||:
+  # rpm passes a number as $1: the restart is done by %posttrans, once the
+  # whole transaction is applied (see centreon-monitoring-agent-posttrans.sh).
+  case "$1" in
+    '' | *[!0-9]*) systemctl restart centagent.service ||: ;;
+  esac
 }
 
 
@@ -27,5 +31,5 @@ if  [ "$1" = "configure" ]; then
 fi
 
 
-startCentagent
+startCentagent "$1"
 
