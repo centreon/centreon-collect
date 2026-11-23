@@ -131,16 +131,13 @@ if docker logs "$CONTAINER_NAME" 2>&1 | grep -Ei "Compilation failed|Can't locat
 fi
 summary_step_pass
 
-# grpc-signal.pl (used by the systemctl shim for centengine SignalProcess
-# calls) needs Protocol::HTTP2::Client to be loadable and its own syntax valid.
-summary_step_start "grpc-signal.pl and Protocol::HTTP2::Client are loadable"
-echo "=== [boot] Checking grpc-signal.pl and its Perl dependencies ==="
+# Native gRPC reload/restart (gorgone::class::engine::grpcsignal, used for
+# both centengine and cbd - the systemctl/grpc-signal.pl shim is gone) needs
+# Protocol::HTTP2::Client to be loadable.
+summary_step_start "Protocol::HTTP2::Client is loadable"
+echo "=== [boot] Checking Protocol::HTTP2::Client ==="
 if ! docker exec "$CONTAINER_NAME" perl -e 'require Protocol::HTTP2::Client'; then
   echo "::error::Protocol::HTTP2::Client failed to load inside the container"
-  exit 1
-fi
-if ! docker exec "$CONTAINER_NAME" perl -c /usr/local/lib/centreon-gorgone/grpc-signal.pl; then
-  echo "::error::grpc-signal.pl failed its Perl syntax check"
   exit 1
 fi
 summary_step_pass

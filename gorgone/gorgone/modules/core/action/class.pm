@@ -88,6 +88,15 @@ sub new {
     $connector->{engine_grpc_port} = defined($connector->{config}->{engine_grpc}->{port}) && $connector->{config}->{engine_grpc}->{port} ne '' ?
         $connector->{config}->{engine_grpc}->{port} : 50155;
 
+    # Same idea as engine_grpc, for cbd's Broker/SignalProcess RPC (see
+    # broker.proto): opt-in, off by default.
+    $connector->{broker_grpc_enable} = defined($connector->{config}->{broker_grpc}->{enable}) && $connector->{config}->{broker_grpc}->{enable} =~ /true|1/i ?
+        1 : 0;
+    $connector->{broker_grpc_host} = defined($connector->{config}->{broker_grpc}->{host}) && $connector->{config}->{broker_grpc}->{host} ne '' ?
+        $connector->{config}->{broker_grpc}->{host} : 'cbd';
+    $connector->{broker_grpc_port} = defined($connector->{config}->{broker_grpc}->{port}) && $connector->{config}->{broker_grpc}->{port} ne '' ?
+        $connector->{config}->{broker_grpc}->{port} : 51001;
+
     $connector->set_signal_handlers();
     return $connector;
 }
@@ -371,27 +380,40 @@ sub is_command_authorized {
     return 1;
 }
 
-# Recognizes a resolved 'sudo systemctl reload|restart centengine' command
-# (the same shape legacycmd builds from cfg_nagios's engine_*_command
-# columns - see the whitelist regex in whitelist.conf.d/centreon.yaml) and,
-# if engine_grpc.enable is set, returns what's needed to send it as a gRPC
-# SignalProcess call instead: the gRPC method path and the signal_process()
-# options. Pattern-matching the command itself (rather than requiring a
-# caller-supplied field) means this works transparently for every existing
-# caller (legacycmd, the HTTP COMMAND/ACTIONENGINE actions) with no change on
-# their side.
+# Recognizes a resolved 'sudo systemctl reload|restart centengine|cbd' command
+# (the same shape legacycmd builds from cfg_nagios's engine_*_command /
+# broker_reload_command / broker_restart_command columns - see the whitelist
+# regex in whitelist.conf.d/centreon.yaml) and, if the matching *_grpc.enable
+# is set, returns what's needed to send it as a gRPC SignalProcess call
+# instead: the gRPC method path and the signal_process() options.
+# Pattern-matching the command itself (rather than requiring a caller-
+# supplied field) means this works transparently for every existing caller
+# (legacycmd, the HTTP COMMAND/ACTIONENGINE actions) with no change on their
+# side.
 sub grpc_signal_for_command {
     my ($self, %options) = @_;
 
-    return if ($self->{engine_grpc_enable} != 1);
-    return if ($options{command} !~ /^sudo\s+(?:\/bin\/|\/usr\/bin\/)?systemctl\s+(reload|restart)\s+centengine(?:\.service)?\s*$/);
+    return if ($options{command} !~ /^sudo\s+(?:\/bin\/|\/usr\/bin\/)?systemctl\s+(reload|restart)\s+(centengine|cbd)(?:\.service)?\s*$/);
+    my ($action, $service) = ($1, $2);
 
-    return (
-        path => '/com.centreon.engine.Engine/SignalProcess',
-        host => $self->{engine_grpc_host},
-        port => $self->{engine_grpc_port},
-        signal => $1
-    );
+    if ($service eq 'centengine' && $self->{engine_grpc_enable} == 1) {
+        return (
+            path => '/com.centreon.engine.Engine/SignalProcess',
+            host => $self->{engine_grpc_host},
+            port => $self->{engine_grpc_port},
+            signal => $action
+        );
+    }
+    if ($service eq 'cbd' && $self->{broker_grpc_enable} == 1) {
+        return (
+            path => '/com.centreon.broker.Broker/SignalProcess',
+            host => $self->{broker_grpc_host},
+            port => $self->{broker_grpc_port},
+            signal => $action
+        );
+    }
+
+    return;
 }
 
 sub action_command {
@@ -502,10 +524,10 @@ sub action_command {
         my ($error, $stdout, $return_code);
         my %grpc = $self->grpc_signal_for_command(command => $command->{command});
         if (%grpc) {
-            # Engine reload/restart over native gRPC instead of shelling out
-            # (see grpc_signal_for_command()) - mapped onto the same (error,
-            # stdout, return_code) shape backtick() returns so the rest of
-            # this loop's reporting is unchanged either way.
+            # Engine/broker reload/restart over native gRPC instead of
+            # shelling out (see grpc_signal_for_command()) - mapped onto the
+            # same (error, stdout, return_code) shape backtick() returns so
+            # the rest of this loop's reporting is unchanged either way.
             my ($status, $message) = gorgone::class::engine::grpcsignal::signal_process(
                 logger => $self->{logger},
                 path => $grpc{path},
@@ -782,13 +804,13 @@ sub action_actionengine {
         }
     }
 
-    # Engine reload/restart over native gRPC: replaces the resolved 'sudo
-    # systemctl reload|restart centengine' command entirely on nodes that
-    # opted in (engine_grpc.enable, see new() and grpc_signal_for_command())
-    # - no shell exec, no whitelist check needed for this case.
-    # Plugins validation above still runs first: the gRPC branch only
-    # replaces the final systemctl exec, not the plugin install step that
-    # used to happen before it on every path.
+    # Engine/broker reload/restart over native gRPC: replaces the resolved
+    # 'sudo systemctl reload|restart centengine|cbd' command entirely on
+    # nodes that opted in (engine_grpc.enable/broker_grpc.enable, see new()
+    # and grpc_signal_for_command()) - no shell exec, no whitelist check
+    # needed for this case. Plugins validation above still runs first: the
+    # gRPC branch only replaces the final systemctl exec, not the plugin
+    # install step that used to happen before it on every path.
     my %grpc = $self->grpc_signal_for_command(command => $options{data}->{content}->{command});
     if (%grpc) {
         my $start = time();
