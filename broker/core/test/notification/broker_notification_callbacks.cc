@@ -677,7 +677,7 @@ class BrokerNotificationDeliverTest : public ::testing::Test {
   /** @brief Pop the single notification execute queued for @p poller_id, or
    * nullptr when the poller's queue is empty. */
   std::shared_ptr<io::data> pop_one(uint64_t poller_id) {
-    auto pending = _state->pop_pending_notification_executes(poller_id);
+    auto pending = _state->pop_pending_for_poller(poller_id);
     if (pending.empty())
       return nullptr;
     return pending.front();
