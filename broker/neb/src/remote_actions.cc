@@ -20,8 +20,7 @@
 
 #include "broker/core/bbdo/internal.hh"
 #include "broker/core/bbdo/remote.hh"
-#include "com/centreon/engine/command_manager.hh"
-#include "com/centreon/engine/commands/processing.hh"
+#include "com/centreon/engine/remote_bridge.hh"
 #include "common/log_v2/log_v2.hh"
 
 #include <absl/container/flat_hash_set.h>
@@ -98,25 +97,15 @@ void handle_command(const RemoteCommand& cmd,
   SPDLOG_LOGGER_INFO(logger, "remote actions: request '{}' with {} commands",
                      request_id, cmd.commands_size());
   for (int i = 0; i < cmd.commands_size(); ++i) {
-    std::packaged_task<int()> task(
-        [channel, request_id, i, deadline, line = cmd.commands(i)]() -> int {
-          /* On the Engine main loop. */
-          if (deadline && time(nullptr) > static_cast<time_t>(deadline)) {
-            reply(channel, request_id, i, REMOTE_REJECTED,
-                  "request expired before execution");
-            return 0;
-          }
-          std::string error;
-          int ret = com::centreon::engine::commands::processing::
-              execute_with_status(line, &error);
-          if (ret == 0)
+    com::centreon::engine::remote_bridge::run_external_command(
+        cmd.commands(i),
+        [channel, request_id, i](int code, const std::string& error) {
+          /* On the Engine main loop, after execution. */
+          if (code == 0)
             reply(channel, request_id, i, REMOTE_APPLIED, "");
           else
             reply(channel, request_id, i, REMOTE_REJECTED, error);
-          return 0;
         });
-    com::centreon::engine::command_manager::instance().enqueue(
-        std::move(task));
   }
 }
 

@@ -401,7 +401,7 @@ add_library(remote_api STATIC ${SRC_DIR}/remote_api.cc)
 target_include_directories(remote_api PRIVATE ${CMAKE_SOURCE_DIR}/common/http/inc)
 target_precompile_headers(remote_api PRIVATE
                           ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
-add_dependencies(remote_api pb_bbdo_lib pb_common_lib centreon_http)
+add_dependencies(remote_api pb_bbdo_lib pb_common_lib pb_extcmd_lib centreon_http)
 set_target_properties(remote_api PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_executable(cbd ${SRC_DIR}/main.cc)

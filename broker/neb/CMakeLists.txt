@@ -96,7 +96,7 @@ add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc ${SRC_DIR}/remote_actions.cc
                          ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc)
 
 set_target_properties(cbmod PROPERTIES PREFIX "" POSITION_INDEPENDENT_CODE ON)
-add_dependencies(cbmod target_state_proto)
+add_dependencies(cbmod target_state_proto pb_bbdo_lib pb_extcmd_lib)
 
 target_precompile_headers(cbmod REUSE_FROM nebbase)
 target_link_libraries(

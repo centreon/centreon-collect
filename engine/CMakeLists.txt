@@ -385,6 +385,7 @@ set(FILES
     "${SRC_DIR}/checkable.cc"
     "${SRC_DIR}/check_result.cc"
     "${SRC_DIR}/command_manager.cc"
+    "${SRC_DIR}/remote_bridge.cc"
     "${SRC_DIR}/comment.cc"
     "${SRC_DIR}/config.cc"
     "${SRC_DIR}/contact.cc"
