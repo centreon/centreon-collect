@@ -654,6 +654,27 @@ Ctn Process Host Result Hard
     END
 
 
+Ctn Wait For Broker Multiplexing Started
+    [Documentation]    Wait until the central Broker has started its multiplexing
+    ...    engine: before, its startup readiness barrier holds the events, so the
+    ...    Broker cache knows neither the hosts nor the poller configurations and
+    ...    the Broker gRPC commands working on them fail.
+    [Arguments]    ${start}    ${timeout}=${60}
+    ${content}    Create List    multiplexing: engine started
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
+    Should Be True    ${result}    The central Broker did not start its multiplexing engine in time
+
+Ctn Wait For Broker Cache Poller Diff
+    [Documentation]    Centralized configuration: wait until the Broker cache has
+    ...    applied the configuration of the given poller (its contacts,
+    ...    contactgroups, hosts...). The diff goes through the multiplexing
+    ...    engine, so it can be applied a little after it is started. Needs the
+    ...    central cache logger at debug level.
+    [Arguments]    ${start}    ${poller_id}=${1}    ${timeout}=${60}
+    ${content}    Create List    Applying configuration diff for poller id ${poller_id} and name
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
+    Should Be True    ${result}    The Broker cache did not apply the configuration of poller ${poller_id} in time
+
 Ctn Wait For Engine To Be Ready
     [Arguments]    ${start}    ${nbEngine}=1
     FOR    ${i}    IN RANGE    ${nbEngine}

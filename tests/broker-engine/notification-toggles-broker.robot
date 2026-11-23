@@ -29,6 +29,7 @@ BENOTBRK1
     Ctn Config Notifications
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    cache    debug
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    notifications    debug
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -43,6 +44,8 @@ BENOTBRK1
     Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Clear Prot Files
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker    newGeneration=${True}
@@ -50,6 +53,7 @@ BENOTBRK1
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
     Ctn Wait For Broker Notification Services    ${start}
+    Ctn Wait For Broker Cache Poller Diff    ${start}    ${1}
     ${result}    Ctn Check Resource Notifications Enabled With Timeout    host_1    service_1    ${True}    60
     Should Be True    ${result}    service_1 should start with notifications enabled
 
@@ -99,6 +103,7 @@ BENOTBRK2
     Ctn Broker Config Log    central    cache    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -162,6 +167,7 @@ BENOTBRK3
     Ctn Broker Config Log    central    core    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -209,6 +215,7 @@ Ctn Wait For Broker Notification Services
     ${content}    Create List    acknowledgement management enabled, acknowledgement manager loaded
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
     Should Be True    ${result}    Broker did not enable notification_mode=broker services in time
+    Ctn Wait For Broker Multiplexing Started    ${start}    ${timeout}
 
 Ctn Config Notifications
     [Documentation]    Configuring engine notification settings (same as notifications.robot).

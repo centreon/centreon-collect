@@ -28,6 +28,7 @@ BENOTSET1
     Ctn Config Notifications
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    cache    debug
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    notifications    debug
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -42,6 +43,8 @@ BENOTSET1
     Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Clear Prot Files
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker    newGeneration=${True}
@@ -49,6 +52,7 @@ BENOTSET1
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
     Ctn Wait For Broker Notification Services    ${start}
+    Ctn Wait For Broker Cache Poller Diff    ${start}    ${1}
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
@@ -91,6 +95,7 @@ BENOTSET2
     Ctn Config Notifications
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    cache    debug
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    notifications    debug
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -105,6 +110,8 @@ BENOTSET2
     Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Clear Prot Files
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker    newGeneration=${True}
@@ -112,6 +119,7 @@ BENOTSET2
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
     Ctn Wait For Broker Notification Services    ${start}
+    Ctn Wait For Broker Cache Poller Diff    ${start}    ${1}
 
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    120    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
@@ -157,6 +165,7 @@ Ctn Wait For Broker Notification Services
     ${content}    Create List    acknowledgement management enabled, acknowledgement manager loaded
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
     Should Be True    ${result}    Broker did not enable notification_mode=broker services in time
+    Ctn Wait For Broker Multiplexing Started    ${start}    ${timeout}
 
 Ctn Config Notifications
     [Documentation]    Configuring engine notification settings (same as notifications.robot).

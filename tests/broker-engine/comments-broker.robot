@@ -32,6 +32,7 @@ BECMTBRK1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Clear Logs
+    Ctn Clear Db    comments
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
@@ -69,6 +70,7 @@ BECMTBRK2
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Clear Logs
+    Ctn Clear Db    comments
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
@@ -113,6 +115,7 @@ BECMTBRK3
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Clear Logs
+    Ctn Clear Db    comments
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
@@ -140,3 +143,4 @@ Ctn Wait For Broker Acknowledgement Manager
     ${content}    Create List    acknowledgement management enabled, acknowledgement manager loaded
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
     Should Be True    ${result}    Broker did not enable notification_mode=broker services in time
+    Ctn Wait For Broker Multiplexing Started    ${start}    ${timeout}

@@ -32,6 +32,7 @@ BEACKBRK1
     Ctn Broker Config Log    central    core    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -94,6 +95,7 @@ BEACKBRK2
     Ctn Broker Config Log    central    core    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -143,6 +145,7 @@ BEACKBRK3
     Ctn Broker Config Log    central    core    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -226,6 +229,7 @@ BEACKBRK4
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Set Hosts Passive    ${0}    host_1
     Ctn Clear Retention
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -317,6 +321,7 @@ BEACKBRK5
     Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Clear Logs
 
     ${start}    Get Current Date
     Ctn Start Broker    newGeneration=${True}
@@ -374,6 +379,7 @@ Ctn Wait For Broker Acknowledgement Manager
     ${content}    Create List    acknowledgement management enabled, acknowledgement manager loaded
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
     Should Be True    ${result}    Broker did not enable acknowledgement management (notification_mode=broker) in time
+    Ctn Wait For Broker Multiplexing Started    ${start}    ${timeout}
 
 Ctn Config Notifications
     [Documentation]    Configuring engine notification settings (same as notifications.robot).
