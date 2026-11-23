@@ -20,6 +20,7 @@
 
 #include "broker/core/bbdo/internal.hh"
 #include "broker/core/bbdo/remote.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/misc/uuid.hh"
 #include "com/centreon/common/http/http_server.hh"
 #include "com/centreon/common/http/https_connection.hh"
@@ -31,6 +32,8 @@
 #include <absl/strings/match.h>
 #include <absl/strings/str_split.h>
 #include <algorithm>
+#include <csignal>
+#include <unistd.h>
 #include <nlohmann/json.hpp>
 
 using namespace com::centreon::broker;
@@ -175,6 +178,9 @@ class api : public std::enable_shared_from_this<api> {
     std::string config_version;
     std::vector<std::string> plugins_missing;
     time_t last_progress = 0;
+    /* At least one "broker" file: the central cbd reloads itself when this
+     * deployment targets its own poller. */
+    bool broker_files = false;
     time_t finished_at = 0;
   };
 
@@ -677,6 +683,8 @@ void api::_post_deployment(const json& body, answer_function&& answer) {
                                   fl.path)));
         return;
       }
+      if (fl.target == "broker")
+        d->broker_files = true;
       files.push_back(std::move(fl));
     }
   }
@@ -840,6 +848,14 @@ void api::_on_result(uint64_t poller_id, const RemoteResult& r) {
     d.finished_at = d.last_progress;
     if (status == st_applied && !d.config_version.empty())
       _config_versions[poller_id] = d.config_version;
+    if (status == st_applied && d.broker_files &&
+        poller_id == config::applier::state::instance().poller_id()) {
+      SPDLOG_LOGGER_INFO(_logger,
+                         "remote api: deployment {} changed the configuration "
+                         "of this broker, reloading it",
+                         d.id);
+      asio::post(*_io_context, []() { ::kill(::getpid(), SIGHUP); });
+    }
     SPDLOG_LOGGER_INFO(_logger, "remote api: deployment {} on poller {}: {} {}",
                        d.id, poller_id, d.status, d.message);
   }

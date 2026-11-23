@@ -33,7 +33,7 @@ namespace com::centreon::broker::neb {
  */
 class remote_actions {
  public:
-  static void load();
+  static void load(const std::string& broker_config_file);
   static void unload();
   static void reload_done(bool success, const std::string& message);
 };

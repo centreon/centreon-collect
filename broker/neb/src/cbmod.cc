@@ -72,7 +72,7 @@ cbmod::cbmod(const std::string& config_file)
       config::applier::state::instance().get_bbdo_version().major_v > 2;
 
   /* Downstream remote actions from the central (BBDO). */
-  remote_actions::load();
+  remote_actions::load(config_file);
 }
 
 /**
