@@ -3702,3 +3702,36 @@ def ctn_remote_api_send_commands(poller_id: int, *commands):
     elapsed = time.time() - start
     logger.console(f"remote api answer in {elapsed:.1f}s: {code} {answer}")
     return [code, elapsed, answer]
+
+
+def ctn_config_remote_actions_tls(central_cert: str, central_key: str, poller_ca: str, ca_name: str = "localhost"):
+    """
+    Switch the central input and the module0 output to gRPC with TLS, as in
+    the gorgone-less PoC contract (central: encryption + certificate + key,
+    poller: encryption + CA + ca_name).
+
+    Args:
+        central_cert (str): Certificate of the central broker.
+        central_key (str): Private key of the central broker.
+        poller_ca (str): CA the poller trusts to verify the central.
+        ca_name (str): Name expected in the central certificate.
+    """
+    ctn_change_broker_tcp_input_to_grpc("central")
+    ctn_change_broker_tcp_output_to_grpc("module0")
+
+    def central(conf):
+        for v in conf["centreonBroker"]["input"]:
+            if v.get("type") == "grpc" or v.get("transport_protocol") == "grpc":
+                v["encryption"] = "yes"
+                v["public_cert"] = central_cert
+                v["private_key"] = central_key
+
+    def poller(conf):
+        for v in conf["centreonBroker"]["output"]:
+            if v.get("type") == "grpc" or v.get("transport_protocol") == "grpc":
+                v["encryption"] = "yes"
+                v["ca_certificate"] = poller_ca
+                v["ca_name"] = ca_name
+
+    _apply_conf("central", central)
+    _apply_conf("module0", poller)

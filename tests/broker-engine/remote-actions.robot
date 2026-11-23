@@ -80,10 +80,54 @@ BERA3
     Should Be Equal As Integers    ${code}    200
     Should Be Equal As Strings    ${answer}[items][0][status]    PEER_TOO_OLD
 
+BERA4
+    [Documentation]    Given the poller connects over gRPC with TLS and verifies the central certificate against its CA
+    ...    (remote_actions_insecure off), when the web posts a command, then the engine executes it.
+    [Tags]    broker    engine    remote_actions    tls
+    Ctn Config Remote Actions    ${True}    ${False}
+    Ctn Create Key And Certificate    localhost    ${EtcRoot}/centreon-broker/ra-central.key
+    ...    ${EtcRoot}/centreon-broker/ra-central.crt    ${True}
+    Ctn Config Remote Actions Tls    ${EtcRoot}/centreon-broker/ra-central.crt
+    ...    ${EtcRoot}/centreon-broker/ra-central.key    ${EtcRoot}/centreon-broker/ra-central.crt
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+    ${found}    Ctn Remote Api Wait Poller    1    60
+    Should Be True    ${found}    The poller engine does not announce remote actions over TLS.
+
+    ${code}    ${elapsed}    ${answer}    Ctn Remote Api Send Commands    1
+    ...    [TS] SCHEDULE_FORCED_SVC_CHECK;host_1;service_4;TS
+    Should Be Equal As Integers    ${code}    200
+    Should Be Equal As Strings    ${answer}[items][0][status]    APPLIED
+
+BERA5
+    [Documentation]    Given the central presents a certificate not signed by the CA of the poller, then the poller
+    ...    does not connect and the web gets NOT_CONNECTED for it (remote_actions_insecure off).
+    [Tags]    broker    engine    remote_actions    tls
+    Ctn Config Remote Actions    ${True}    ${False}
+    Ctn Create Key And Certificate    localhost    ${EtcRoot}/centreon-broker/ra-central.key
+    ...    ${EtcRoot}/centreon-broker/ra-central.crt    ${True}
+    Ctn Create Key And Certificate    localhost    ${EtcRoot}/centreon-broker/ra-rogue.key
+    ...    ${EtcRoot}/centreon-broker/ra-rogue.crt    ${True}
+    Ctn Config Remote Actions Tls    ${EtcRoot}/centreon-broker/ra-rogue.crt
+    ...    ${EtcRoot}/centreon-broker/ra-rogue.key    ${EtcRoot}/centreon-broker/ra-central.crt
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+    ${found}    Ctn Remote Api Wait Poller    1    30
+    Should Not Be True    ${found}    The poller announced remote actions to a central with a rogue certificate.
+
+    ${code}    ${elapsed}    ${answer}    Ctn Remote Api Send Commands    1
+    ...    [TS] SCHEDULE_FORCED_SVC_CHECK;host_1;service_5;TS
+    Should Be Equal As Integers    ${code}    200
+    Should Be Equal As Strings    ${answer}[items][0][status]    NOT_CONNECTED
+
 
 *** Keywords ***
 Ctn Config Remote Actions
-    [Arguments]    ${enabled}
+    [Arguments]    ${enabled}    ${insecure}=${True}
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -95,7 +139,9 @@ Ctn Config Remote Actions
     Ctn Broker Config Remote Api    central
     IF    ${enabled}
         Ctn Broker Config Add Item    module0    remote_actions    yes
-        # No TLS in this suite: PoC escape hatch.
+    END
+    IF    ${enabled} and ${insecure}
+        # No TLS in these cases: PoC escape hatch.
         Ctn Broker Config Add Item    module0    remote_actions_insecure    yes
     END
     Ctn Clear Retention
