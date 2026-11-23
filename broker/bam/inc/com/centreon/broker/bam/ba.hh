@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2015, 2021-2025 Centreon
+ * Copyright 2014-2015, 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,8 +40,8 @@ class kpi;
 class ba : public computable, public service_listener {
   const uint32_t _id;
   const configuration::ba::state_source _state_source;
-  const uint32_t _host_id;
-  const uint32_t _service_id;
+  const uint64_t _host_id;
+  const uint64_t _service_id;
   const bool _generate_virtual_status;
   bool _in_downtime;
   timestamp _last_kpi_update;
@@ -61,7 +61,6 @@ class ba : public computable, public service_listener {
   struct impact_info {
     std::shared_ptr<kpi> kpi_ptr;
     impact_values hard_impact;
-    impact_values soft_impact;
     bool in_downtime;
   };
 
@@ -82,13 +81,14 @@ class ba : public computable, public service_listener {
   double _level_critical{0.0};
   double _level_warning{0.0};
 
-  /* _level_hard and _level_soft are the current levels of the ba, the soft one
-   * and the hard one. */
+  /* The current level of the BA. Only the hard state of the KPIs takes part
+   * in it: a soft state never decided anything here. */
   double _level_hard{100.0};
-  double _level_soft{100.0};
 
   std::unordered_map<kpi*, impact_info> _impacts;
   bool _valid{true};
+  /* Why the BA is invalid, shown as its output while it is. */
+  std::string _invalid_reason;
   configuration::ba::downtime_behaviour _dt_behaviour{
       configuration::ba::dt_ignore};
   int _recompute_count{0};
@@ -98,7 +98,6 @@ class ba : public computable, public service_listener {
   virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual bool _apply_changes(kpi* child,
                               const impact_values& new_hard_impact,
-                              const impact_values& new_soft_impact,
                               bool in_downtime) = 0;
   virtual std::shared_ptr<pb_ba_status> _generate_ba_status(
       bool state_changed) const = 0;
@@ -106,8 +105,8 @@ class ba : public computable, public service_listener {
 
  public:
   ba(uint32_t id,
-     uint32_t host_id,
-     uint32_t service_id,
+     uint64_t host_id,
+     uint64_t service_id,
      configuration::ba::state_source source,
      bool generate_virtual_status,
      const std::shared_ptr<spdlog::logger>& logger);
@@ -116,24 +115,22 @@ class ba : public computable, public service_listener {
   ba& operator=(ba const& other) = delete;
   void add_impact(std::shared_ptr<kpi> const& impact);
   virtual double get_downtime_impact_hard() { return 0.0; }
-  virtual double get_downtime_impact_soft() { return 0.0; }
   int32_t get_ack_impact_hard() const;
   std::shared_ptr<pb_ba_event> get_ba_event();
   uint32_t get_id() const;
-  uint32_t get_host_id() const;
-  uint32_t get_service_id() const;
+  uint64_t get_host_id() const;
+  uint64_t get_service_id() const;
   bool in_downtime() const;
   timestamp get_last_kpi_update() const;
   std::string const& get_name() const;
   virtual std::string get_output() const = 0;
   virtual std::string get_perfdata() const = 0;
   virtual state get_state_hard() const = 0;
-  virtual state get_state_soft() const = 0;
   configuration::ba::state_source get_state_source() const;
   void remove_impact(std::shared_ptr<kpi> const& impact);
   void set_initial_event(const pb_ba_event& event);
   void set_name(std::string const& name);
-  void set_valid(bool valid);
+  void set_valid(bool valid, const std::string& reason = "");
   void set_downtime_behaviour(configuration::ba::downtime_behaviour value);
   void set_state_source(configuration::ba::state_source source);
   void visit(io::stream* visitor, bool seed_service_status = false);
@@ -143,6 +140,9 @@ class ba : public computable, public service_listener {
                       io::stream* visitor) override;
   void set_inherited_downtime(inherited_downtime const& dwn);
   void set_inherited_downtime(pb_inherited_downtime const& dwn);
+  void restore_inherited_downtime();
+  bool has_inherited_downtime() const { return _inherited_downtime != nullptr; }
+  void adopt_inherited_downtime(io::stream* visitor);
   void set_level_critical(double level);
   void set_level_warning(double level);
   void update_from(computable* child, io::stream* visitor) override;

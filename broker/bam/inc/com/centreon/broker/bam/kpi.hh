@@ -57,7 +57,6 @@ class kpi : public computable {
   uint32_t get_ba_id() const;
   timestamp get_last_state_change() const;
   virtual void impact_hard(impact_values& hard_impact) = 0;
-  virtual void impact_soft(impact_values& soft_impact) = 0;
   virtual void set_initial_event(const KpiEvent& e);
   virtual void visit(io::stream* visitor) = 0;
   virtual bool in_downtime() const;

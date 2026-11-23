@@ -1,12 +1,12 @@
 *** Settings ***
-Documentation       Centreon Broker and BAM with centralized configuration.
+Documentation     Centreon Broker and BAM with centralized configuration.
 
-Resource            ../resources/import.resource
+Resource          ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn BAM Setup
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup       Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup        Ctn BAM Setup
+Test Teardown     Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -137,7 +137,7 @@ BECBAMIDTU2
     # KPI set to critical
     Log To Console    KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
@@ -221,6 +221,80 @@ BECBAMIDTU2
     Ctn Stop Engine
     Ctn Kindly Stop Broker    no_rrd_test=True
 
+BECBAMIDTU3
+    [Documentation]    Scenario: An inherited downtime is lifted after a restart of Broker during which the KPI downtime expired, Broker owning the downtimes
+    ...    Given a centralized platform where Broker owns the downtimes
+    ...    And a BA of type "worst" with one service, CRITICAL, so the BA is CRITICAL
+    ...    And a short downtime on the service, so the BA is in an inherited downtime
+    ...    When Broker is stopped long enough for the service downtime to expire
+    ...    And Broker is started again
+    ...    Then the downtime_manager tells the BA its inherited downtime is still there
+    ...    And the BA lifts it, its KPI being out of downtime
+    ...    And no downtime remains
+    [Tags]    broker    downtime    engine    bam    start    stop
+    Ctn Clear Commands Status
+    Ctn Clear Downtimes
+    Ctn Clear Retention
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+
+    Ctn Clone Engine Config To Db
+    Ctn Add Bam Config To Engine
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
+    Ctn Create Ba With Services    test    worst    ${svc}
+    Ctn Add Bam Config To Broker    central
+    ${cmd_1}    Ctn Get Service Command Id    314
+    Ctn Set Command Status    ${cmd_1}    2
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    1
+
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
+
+    # A downtime short enough to expire while Broker is down.
+    ${dt_id}    Ctn Broker Schedule Service Downtime    host_16    service_314    40
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
+    Should Be True    ${result}    The BA ba_1 is not in downtime as it should
+    ${result}    Ctn Number Of Downtimes Is    2    30
+    Should Be True    ${result}    We should have two downtimes
+
+    Ctn Kindly Stop Broker    no_rrd_test=True
+    Sleep    45s
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    ${ready}    Ctn Wait For Broker To Be Ready
+    Should Be True    ${ready}    Broker gRPC server should be ready after restart
+
+    ${content}    Create List    takes it back
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The BA did not recognize its inherited downtime in the downtime_manager
+
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    Should Be True    ${result}    The inherited downtime of BA ba_1 was not lifted
+    ${result}    Ctn Number Of Downtimes Is    0    60
+    Should Be True    ${result}    We should have no more downtime
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker    no_rrd_test=True
+
 BECBAMIGNDTU1
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured.
     ...    The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in
@@ -270,12 +344,12 @@ BECBAMIGNDTU1
 
     # KPI set to ok
     Ctn Process Service Result Hard    host_16    service_313    0    output critical for 313
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
@@ -347,7 +421,6 @@ BECBAMIGNDTU1
     # RRD-duplicate teardown check here.
     Ctn Kindly Stop Broker    no_rrd_test=True
 
-
 BECBAMIGNDTU2
     [Documentation]    Given BBDO version 3.0.1 is configured
     ...    And a BA of type "worst" with two services is set up
@@ -392,12 +465,12 @@ BECBAMIGNDTU2
 
     # KPI set to ok
     Ctn Process Service Result Hard    host_16    service_313    0    output critical for 313
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
@@ -467,4 +540,3 @@ Ctn BAM Setup
     Execute SQL String    UPDATE hosts SET scheduled_downtime_depth=0
     Execute SQL String    UPDATE resources SET in_downtime=0
     Disconnect From Database
-

@@ -19,6 +19,9 @@
 #ifndef CCB_BAM_REPORTING_STREAM_HH
 #define CCB_BAM_REPORTING_STREAM_HH
 
+#include <absl/container/flat_hash_set.h>
+#include <functional>
+
 #include "bbdo/bam/ba_event.hh"
 #include "com/centreon/broker/bam/availability_thread.hh"
 #include "com/centreon/broker/bam/internal.hh"
@@ -46,14 +49,18 @@ class dimension_timeperiod;
 class reporting_stream : public io::stream {
   uint32_t _ack_events;
   uint32_t _pending_events;
-  uint32_t _queries_per_transaction;
   std::string _status;
   mutable std::mutex _statusm;
-  uint32_t _transaction_queries;
   mysql _mysql;
   database::mysql_stmt _ba_full_event_insert;
+  database::mysql_stmt _ba_event_exists;
+  database::mysql_stmt _kpi_event_exists;
   database::mysql_stmt _ba_event_update;
   database::mysql_stmt _ba_duration_event_insert;
+  /* The rebuild's own insert: it knows the ba_event_id of every duration it
+   * writes, so it does not need the sub-select of the statement above and can
+   * send its rows by batches. */
+  std::unique_ptr<database::bulk_or_multi> _ba_duration_event_rebuild_insert;
   database::mysql_stmt _ba_duration_event_update;
   database::mysql_stmt _kpi_full_event_insert;
   std::unique_ptr<database::bulk_or_multi> _kpi_event_update;
@@ -78,11 +85,15 @@ class reporting_stream : public io::stream {
 
   using id_start =
       std::pair<uint32_t /*ba_id or kpi_id */, uint64_t /*start_time*/>;
-  using id_start_to_event_id =
-      absl::flat_hash_map<id_start, uint32_t /*event_id*/>;
-
-  id_start_to_event_id _ba_event_cache;
-  id_start_to_event_id _kpi_event_cache;
+  /* The events known to be in the DB, by (id, start_time): what write() needs
+   * is whether to UPDATE or INSERT. Loaded at startup with the open events
+   * only -- the ones that will be updated -- and completed on the way: a key
+   * that is not here is looked up in the DB before being inserted, so an old
+   * event replayed from a retention file is updated rather than duplicated.
+   * The two tables used to be loaded whole, years of history for a yes/no
+   * question. The row ids used to be kept as values and were never read. */
+  absl::flat_hash_set<id_start> _ba_event_cache;
+  absl::flat_hash_set<id_start> _kpi_event_cache;
 
   /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
@@ -91,8 +102,8 @@ class reporting_stream : public io::stream {
   reporting_stream(database_config const& db_cfg,
                    const std::shared_ptr<spdlog::logger>& logger);
   ~reporting_stream();
-  reporting_stream(const reporting_stream&);
-  reporting_stream& operator=(const reporting_stream&);
+  reporting_stream(const reporting_stream&) = delete;
+  reporting_stream& operator=(const reporting_stream&) = delete;
   uint32_t flush() override;
   uint32_t stop() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
@@ -107,37 +118,33 @@ class reporting_stream : public io::stream {
   void _close_all_events();
   void _load_timeperiods();
   void _load_kpi_ba_events();
+  bool _event_known(absl::flat_hash_set<id_start>& cache,
+                    database::mysql_stmt& exists,
+                    const id_start& key);
   void _prepare();
   void _commit();
-  void _process_ba_event(std::shared_ptr<io::data> const& e);
   void _process_pb_ba_event(std::shared_ptr<io::data> const& e);
-  void _process_ba_duration_event(std::shared_ptr<io::data> const& e);
   void _process_pb_ba_duration_event(std::shared_ptr<io::data> const& e);
-  void _process_kpi_event(std::shared_ptr<io::data> const& e);
+  void _insert_ba_duration_event(const BaDurationEvent& bde, int thread_id);
   void _process_pb_kpi_event(std::shared_ptr<io::data> const& e);
-  void _process_dimension(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension(std::shared_ptr<io::data> const& e);
   void _dimension_dispatch(std::shared_ptr<io::data> const& e);
-  void _process_dimension_ba(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_ba(std::shared_ptr<io::data> const& e);
-  void _process_dimension_bv(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_bv(std::shared_ptr<io::data> const& e);
-  void _process_dimension_ba_bv_relation(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_ba_bv_relation(std::shared_ptr<io::data> const& e);
-  void _process_dimension_truncate_signal(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_truncate_signal(
       std::shared_ptr<io::data> const& e);
   void _process_dimension_truncate_signal(bool updates_tarted);
   void _process_dimension_kpi(std::shared_ptr<io::data> const& e);
-  void _process_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_timeperiod(std::shared_ptr<io::data> const& e);
-  void _process_dimension_ba_timeperiod_relation(
-      std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_ba_timeperiod_relation(
       std::shared_ptr<io::data> const& e);
   void _process_rebuild(std::shared_ptr<io::data> const& e);
   void _update_status(std::string_view status);
-  void _compute_event_durations(const BaEvent& ev, io::stream* visitor);
+  uint32_t _compute_event_durations(
+      const BaEvent& ev,
+      const std::function<void(const BaDurationEvent&)>& sink);
+  void _compute_event_durations(const BaEvent& ev);
 };
 }  // namespace bam
 }  // namespace com::centreon::broker

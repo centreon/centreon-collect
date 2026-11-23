@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "broker/core/bbdo/broker_stream.hh"
-#include "broker/core/config/applier/broker_state.hh"
+// #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/misc/string.hh"

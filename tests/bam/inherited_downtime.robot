@@ -1,12 +1,12 @@
 *** Settings ***
-Documentation       Centreon Broker and BAM
+Documentation     Centreon Broker and BAM
 
-Resource            ../resources/import.resource
+Resource          ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn BAM Setup
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup       Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup        Ctn BAM Setup
+Test Teardown     Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -110,7 +110,7 @@ BEBAMIDT2
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
@@ -133,7 +133,7 @@ BEBAMIDT2
         Ctn Stop Engine
         ${start}    Ctn Get Round Current Date
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
 
         # Broker is restarted
         Log To Console    Broker is stopped (step ${i})
@@ -162,6 +162,83 @@ BEBAMIDT2
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     Log To Console    Broker is stopped (end of BEBAMIDT2)
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BEBAMIDT3
+    [Documentation]    Scenario: An inherited downtime is lifted after a restart of Broker during which the KPI left downtime
+    ...    Given a BA of type "worst" with one service, CRITICAL, so the BA is CRITICAL
+    ...    And a downtime on the service, so the BA is in an inherited downtime
+    ...    When Broker is stopped
+    ...    And the downtime of the service is deleted while Broker is down
+    ...    And Broker is started again
+    ...    Then the inherited downtime of the BA is lifted, although Broker never saw the KPI leave downtime while it ran
+    ...    Whether through the state restored from the database or through the downtime Engine replays on the virtual service
+    ...    And no downtime remains
+    [Tags]    broker    downtime    engine    bam    start    stop
+    Ctn Clear Commands Status
+    Ctn Clear Retention
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Config Engine    ${1}
+
+    Ctn Clone Engine Config To Db
+    Ctn Add Bam Config To Engine
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
+    Ctn Create Ba With Services    test    worst    ${svc}
+    Ctn Add Bam Config To Broker    central
+    ${cmd_1}    Ctn Get Service Command Id    314
+    Ctn Set Command Status    ${cmd_1}    2
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
+
+    Ctn Schedule Service Downtime    host_16    service_314    3600
+    ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
+    Should Be True    ${result}    The BA ba_1 is not in downtime as it should
+    ${result}    Ctn Check Downtimes With Timeout    2    60
+    Should Be True    ${result}    We should have two downtimes
+
+    # Broker is down while the KPI leaves downtime: its in-memory inherited
+    # downtime is gone, and the database only says the BA is in downtime.
+    Ctn Kindly Stop Broker
+    Ctn Delete Service Downtime    host_16    service_314
+    Sleep    2s
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+
+    # Two paths lift the downtime, and which one runs depends on what the database
+    # says of the KPI at startup: still in downtime (the deletion happened while
+    # Broker was down and nobody wrote it) -> the inherited downtime is restored from
+    # the database and the replayed deletion lifts it; already out -> the downtime
+    # Engine replays on the virtual service is recognized as BAM's and lifted at once.
+    # What is asserted is the decision both paths end with.
+    ${content}    Create List    inherited downtime computation downtime false
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The BA did not decide to lift its inherited downtime after the restart
+
+    ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    Should Be True    ${result}    The inherited downtime of BA ba_1 was not lifted
+    ${result}    Ctn Check Downtimes With Timeout    0    60
+    Should Be True    ${result}    We should have no more downtime
+
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -213,12 +290,12 @@ BEBAMIGNDT1
 
     # KPI set to ok
     Ctn Process Service Result Hard    host_16    service_313    0    output critical for service_313
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
@@ -313,12 +390,12 @@ BEBAMIGNDT2
 
     # KPI set to ok
     Ctn Process Service Result Hard    host_16    service_313    0    output critical for service_313
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_313    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical

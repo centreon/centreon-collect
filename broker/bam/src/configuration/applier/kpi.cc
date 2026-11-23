@@ -46,28 +46,6 @@ applier::kpi::kpi(const std::shared_ptr<spdlog::logger>& logger)
       _mapping(nullptr) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-applier::kpi::kpi(applier::kpi const& other) {
-  _internal_copy(other);
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-applier::kpi& applier::kpi::operator=(applier::kpi const& other) {
-  if (this != &other)
-    _internal_copy(other);
-  return *this;
-}
-
-/**
  *  Apply configuration.
  *
  *  @param[in]     my_kpis      Object to copy.
@@ -246,20 +224,6 @@ void applier::kpi::visit(io::stream* visitor) {
        end(_applied.end());
        it != end; ++it)
     it->second.obj->visit(visitor);
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] other  Object to copy.
- */
-void applier::kpi::_internal_copy(const applier::kpi& other) {
-  _logger = other._logger;
-  _applied = other._applied;
-  _bas = other._bas;
-  _book = other._book;
-  _boolexps = other._boolexps;
-  _mapping = other._mapping;
 }
 
 /**

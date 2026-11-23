@@ -24,11 +24,11 @@
  * rebuild costs as the platform grows, so that replacing it with an index kept
  * up to date incrementally can be decided on figures rather than on principle.
  *
- * DISABLED_ on purpose: this is a measurement, not an assertion, and it writes
- * hundreds of megabytes. Run it explicitly:
+ * A measurement, not an assertion: it writes hundreds of megabytes and takes
+ * minutes, so it lives in a target of its own rather than in ut_broker. Run it
+ * explicitly:
  *
- *   tests/ut_broker --gtest_also_run_disabled_tests \
- *                   --gtest_filter='*ForeignObjectsCost*'
+ *   tests/ut_broker_bench
  */
 
 #include <fmt/format.h>
@@ -97,18 +97,17 @@ class ForeignObjectsCost : public ::testing::Test {
  protected:
   std::filesystem::path _dir;
 
+  /* The state is loaded once for the process by the global environment of
+   * main.cc, and so is everything the applier needs (log_v2, the pool).
+   * Loading it again here would throw; only the directory holding the stored
+   * configurations belongs to each measurement. */
   void SetUp() override {
-    com::centreon::broker::config::applier::state::load<broker_state>(
-        "unittest");
     _dir = std::filesystem::temp_directory_path() / "ut_foreign_bench";
     std::filesystem::remove_all(_dir);
     std::filesystem::create_directories(_dir);
   }
 
-  void TearDown() override {
-    com::centreon::broker::config::applier::state::unload();
-    std::filesystem::remove_all(_dir);
-  }
+  void TearDown() override { std::filesystem::remove_all(_dir); }
 
   /** @brief One measurement: @p pollers stored configurations of @p hosts hosts
    * carrying @p services_per_host services each. */
@@ -161,14 +160,14 @@ class ForeignObjectsCost : public ::testing::Test {
   }
 };
 
-TEST_F(ForeignObjectsCost, DISABLED_PlatformSizes) {
+TEST_F(ForeignObjectsCost, PlatformSizes) {
   fmt::print(
       "\n--- load_foreign_objects(), one call per configuration cycle ---\n");
   for (uint32_t pollers : {1u, 5u, 10u, 20u})
     measure(pollers, 400, 25);
 }
 
-TEST_F(ForeignObjectsCost, DISABLED_LargePollers) {
+TEST_F(ForeignObjectsCost, LargePollers) {
   fmt::print("\n--- larger pollers ---\n");
   measure(5, 2000, 25);
   measure(10, 2000, 25);
@@ -211,7 +210,7 @@ borrowing_index load_borrowing(const std::filesystem::path& dir) {
 
 }  // namespace
 
-TEST_F(ForeignObjectsCost, DISABLED_BorrowingVersusOwning) {
+TEST_F(ForeignObjectsCost, BorrowingVersusOwning) {
   auto* st = static_cast<broker_state*>(
       &com::centreon::broker::config::applier::state::instance());
   st->set_pollers_config_dir(_dir);
@@ -261,7 +260,7 @@ TEST_F(ForeignObjectsCost, DISABLED_BorrowingVersusOwning) {
  * 50,000 services frees hundreds of thousands of protobuf allocations, so the
  * question is whether the measured slowdown is that cost entering the
  * measurement rather than any new work. */
-TEST_F(ForeignObjectsCost, DISABLED_WhereTheTimeGoes) {
+TEST_F(ForeignObjectsCost, WhereTheTimeGoes) {
   auto* st = static_cast<broker_state*>(
       &com::centreon::broker::config::applier::state::instance());
   st->set_pollers_config_dir(_dir);

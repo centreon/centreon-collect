@@ -34,7 +34,6 @@ namespace bam {
 // Forward declarations.
 class bool_expression;
 class bool_service;
-class bool_call;
 class service_book;
 
 namespace configuration {
@@ -54,7 +53,6 @@ class bool_expression {
     configuration::bool_expression cfg;
     std::shared_ptr<bam::bool_expression> obj;
     std::list<std::shared_ptr<bam::bool_service>> svc;
-    std::list<std::shared_ptr<bam::bool_call>> call;
   };
 
   std::map<uint32_t, applied> _applied;
@@ -64,7 +62,6 @@ class bool_expression {
 
   std::shared_ptr<bam::bool_expression> _new_bool_exp(
       configuration::bool_expression const& cfg);
-  void _resolve_expression_calls();
 
  public:
   bool_expression(const std::shared_ptr<spdlog::logger>& logger)

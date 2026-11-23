@@ -35,7 +35,6 @@ class kpi;
  *  of value.
  */
 class ba_worst : public ba {
-  state _computed_soft_state = state_ok;
   state _computed_hard_state = state_ok;
 
   void _open_new_event(io::stream* visitor, short service_hard_state);
@@ -48,19 +47,17 @@ class ba_worst : public ba {
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
   bool _apply_changes(kpi* child,
                       const impact_values& new_hard_impact,
-                      const impact_values& new_soft_impact,
                       bool in_downtime) override;
   std::shared_ptr<pb_ba_status> _generate_ba_status(
       bool state_changed) const override;
 
  public:
   ba_worst(uint32_t id,
-           uint32_t host_id,
-           uint32_t service_id,
+           uint64_t host_id,
+           uint64_t service_id,
            bool generate_virtual_status,
            const std::shared_ptr<spdlog::logger>& logger);
   state get_state_hard() const override;
-  state get_state_soft() const override;
   std::string get_output() const override;
   std::string get_perfdata() const override;
 };

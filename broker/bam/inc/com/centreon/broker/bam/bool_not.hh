@@ -44,7 +44,6 @@ class bool_not : public bool_value {
   void set_value(std::shared_ptr<bool_value>& value);
   double value_hard() const override;
   bool boolean_value() const override;
-  double value_soft();
   bool state_known() const override;
   bool in_downtime() const override;
   void update_from(computable* child, io::stream* visitor) override;

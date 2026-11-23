@@ -29,6 +29,19 @@ namespace com::centreon::broker {
 
 namespace bam {
 
+/* The author and the comment of the downtime BAM puts on the virtual service
+ * of a BA that inherits the downtimes of its KPIs. They are what tells such a
+ * downtime apart from one a user set by hand: the removal targets them, and a
+ * BA that finds them on its service after a restart knows its downtime is the
+ * inherited one. std::string rather than string_view, on purpose: the
+ * downtime_manager takes const std::string&, so a view would be copied into a
+ * fresh string at every call, while these two are built once for the life of
+ * the process and bound by reference everywhere. */
+inline const std::string inherited_downtime_author{
+    "Centreon Broker BAM Module"};
+inline const std::string inherited_downtime_comment{
+    "Automatic downtime triggered by BA downtime inheritance"};
+
 using pb_inherited_downtime =
     io::protobuf<InheritedDowntime,
                  make_type(io::bam, bam::de_pb_inherited_downtime)>;

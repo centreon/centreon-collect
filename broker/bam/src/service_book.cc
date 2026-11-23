@@ -35,8 +35,8 @@ static constexpr bool time_is_undefined(uint64_t t) {
  *  @param[in]     service_id  Service ID.
  *  @param[in,out] listnr      Service listener.
  */
-void service_book::listen(uint32_t host_id,
-                          uint32_t service_id,
+void service_book::listen(uint64_t host_id,
+                          uint64_t service_id,
                           service_listener* listnr) {
   _logger->trace("BAM: service ({}, {}) added to service book", host_id,
                  service_id);
@@ -56,8 +56,8 @@ void service_book::listen(uint32_t host_id,
  *  @param[in] service_id  Service ID.
  *  @param[in] listnr      Service listener.
  */
-void service_book::unlisten(uint32_t host_id,
-                            uint32_t service_id,
+void service_book::unlisten(uint64_t host_id,
+                            uint64_t service_id,
                             service_listener* listnr) {
   auto found = _book.find(std::make_pair(host_id, service_id));
   if (found != _book.end()) {

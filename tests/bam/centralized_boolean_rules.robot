@@ -460,7 +460,200 @@ CBABOOCOMPL_RELOAD
     [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
+CBABOOKPIKINDS
+    [Documentation]    Scenario: A BA keeps its three kinds of KPI when the host/service ids come from the global cache
+    ...    Given a centralized platform, where Broker answers the host/service questions from its global cache
+    ...    And a child BA of type "worst" built on service_314
+    ...    And a parent BA of type "worst" holding one KPI of each kind: service_303, a boolean rule on service_302 and the child BA
+    ...    When the three services are OK
+    ...    Then the parent BA is OK
+    ...    When service_314 alone becomes CRITICAL
+    ...    Then the parent BA is CRITICAL, which its BA KPI alone can explain
+    ...    When service_302 alone becomes CRITICAL
+    ...    Then the parent BA is CRITICAL, which its boolean KPI alone can explain
+    ...    When service_303 alone becomes CRITICAL
+    ...    Then the parent BA is CRITICAL, which its service KPI alone can explain
+    [Tags]    broker    engine    bam    boolean_expression
+    Ctn BAM Init
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
+    Ctn Set Services Passive    ${0}    service_314
+    Ctn Clone Engine Config To Db
+    Ctn Add Bam Config To Engine
+
+    # One KPI of each kind, and only the first one names a service. A boolean
+    # rule and a BA carry no service at all, yet the applier asks about them
+    # just the same -- with a couple of zeros. Reading that couple as a
+    # deactivated service would drop those two KPIs, and the BA would then stay
+    # OK below while its KPI is CRITICAL.
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
+    ${child_ba}    Ctn Create Ba With Services    child-ba    worst    ${svc}
+    ${parent_ba}    Ctn Create Ba    parent-ba    worst    100    100
+    Ctn Add Service Kpi    host_16    service_303    ${parent_ba[0]}    40    30    20
+    Ctn Add Boolean Kpi
+    ...    ${parent_ba[0]}
+    ...    {host_16 service_302} {IS} {CRITICAL}
+    ...    True
+    ...    100
+    Ctn Add Ba Kpi    ${child_ba[0]}    ${parent_ba[0]}    1    2    3
+
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    Ctn Start Broker    newGeneration=True
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    # Every service OK: both BAs are OK, and each of the three KPIs is in a
+    # known state.
+    Ctn Process Service Result Hard    host_16    service_302    0    output ok for service_302
+    Ctn Process Service Result Hard    host_16    service_303    0    output ok for service_303
+    Ctn Process Service Result Hard    host_16    service_314    0    output ok for service_314
+    ${result}    Ctn Check Ba Status With Timeout    parent-ba    0    60
+    Ctn Dump Ba On Error    ${result}    ${parent_ba[0]}
+    Should Be True    ${result}    The 'parent-ba' BA is not OK as expected
+
+    # The BA KPI. Nothing else is CRITICAL, so a parent that stays OK says its
+    # BA KPI was dropped at load time.
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
+    ${result}    Ctn Check Ba Status With Timeout    child-ba    2    60
+    Ctn Dump Ba On Error    ${result}    ${child_ba[0]}
+    Should Be True    ${result}    The 'child-ba' BA is not CRITICAL as expected
+    ${result}    Ctn Check Ba Status With Timeout    parent-ba    2    60
+    Ctn Dump Ba On Error    ${result}    ${parent_ba[0]}
+    Should Be True    ${result}    The 'parent-ba' BA did not follow its child: its BA KPI is missing
+
+    Ctn Process Service Result Hard    host_16    service_314    0    output ok for service_314
+    ${result}    Ctn Check Ba Status With Timeout    parent-ba    0    60
+    Ctn Dump Ba On Error    ${result}    ${parent_ba[0]}
+    Should Be True    ${result}    The 'parent-ba' BA is not OK again as expected
+
+    # The boolean KPI, alone this time.
+    Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
+    ${result}    Ctn Check Ba Status With Timeout    parent-ba    2    60
+    Ctn Dump Ba On Error    ${result}    ${parent_ba[0]}
+    Should Be True    ${result}    The 'parent-ba' BA did not follow its boolean rule: its boolean KPI is missing
+
+    Ctn Process Service Result Hard    host_16    service_302    0    output ok for service_302
+    ${result}    Ctn Check Ba Status With Timeout    parent-ba    0    60
+    Ctn Dump Ba On Error    ${result}    ${parent_ba[0]}
+    Should Be True    ${result}    The 'parent-ba' BA is not OK again as expected
+
+    # The service KPI, the only one the cache has something to say about.
+    Ctn Process Service Result Hard    host_16    service_303    2    output critical for service_303
+    ${result}    Ctn Check Ba Status With Timeout    parent-ba    2    60
+    Ctn Dump Ba On Error    ${result}    ${parent_ba[0]}
+    Should Be True    ${result}    The 'parent-ba' BA did not follow service_303: its service KPI is missing
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
+CBABOODEACTIVATEDSVC
+    [Documentation]    Scenario: A KPI whose service is deactivated is dropped once the global cache knows the poller
+    ...    Given a centralized platform, where Broker answers the host/service questions from its global cache
+    ...    And a BA of type "worst" with two service KPIs, service_302 and service_303
+    ...    When the configuration is acknowledged, so that the cache holds the poller
+    ...    And service_303 is then deactivated -- its row says so and the export no longer carries it
+    ...    Then the cache no longer holds service_303
+    ...    And on the next start, where the cache is filled from the stored configuration, the KPI of service_303 is dropped
+    ...    And the KPI of service_302 is kept, the BA still following it
+    [Tags]    broker    engine    bam    boolean_expression
+    Ctn BAM Init
+    # Start from a cache that owes nothing to the previous test: the cache file
+    # still holds the configuration, so a service dropped from the export here
+    # would come back from the disk.
+    Ctn Clear Broker Cache
+    Ctn Clear Prot Files
+    Ctn Set Services Passive    ${0}    service_302
+    Ctn Set Services Passive    ${0}    service_303
+    Ctn Clone Engine Config To Db
+    Ctn Add Bam Config To Engine
+
+    ${id_ba__sid}    Ctn Create Ba    deactivated-ba    worst    100    100
+    Ctn Add Service Kpi    host_16    service_302    ${id_ba__sid[0]}    40    30    20
+    Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
+
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    Ctn Start Broker    newGeneration=True
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${content}    Create List    host/service ids are taken from the global cache.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not take the host/service ids from the global cache
+
+    # The poller has to have acknowledged its configuration before anything is
+    # concluded from the cache: until then the cache knows nothing of it, and
+    # nothing of its services either.
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=60s
+    ${svc_ids}    Ctn Get Service Ids    ${51001}
+    Should Contain    ${svc_ids}    ${{ (16, 303) }}    The cache does not hold service_303 yet, nothing can be told from its absence later
+
+    # Deactivating a service is two things at once, and a test doing only one of
+    # them measures the wrong regime: the row is what the configuration database
+    # says, the absence from the export is what the global cache sees.
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    UPDATE service SET service_activate='0' WHERE service_description='service_303'
+    Disconnect From Database
+    Ctn Engine Config Remove Service    ${0}    host_16    service_303
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    # The cache follows the difference the poller acknowledges, so this is what
+    # says the export went all the way through.
+    FOR    ${i}    IN RANGE    60
+        ${svc_ids}    Ctn Get Service Ids    ${51001}
+        ${gone}    Evaluate    (16, 303) not in $svc_ids
+        IF    ${gone}    BREAK
+        Sleep    1s
+    END
+    Should Be True    ${gone}    The cache still holds service_303 after it was dropped from the export
+
+    # BAM reads its configuration once, at startup. Restarting Broker is what
+    # puts the two in the order production has them: the cache filled from the
+    # stored configuration, then BAM reading it.
+    Ctn Kindly Stop Broker
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+
+    ${content}    Create List    linked to a deactivated service
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    The KPI of the deactivated service_303 was not dropped
+
+    # And only that one: a cache that answered for every service would have
+    # taken the KPI of service_302 with it.
+    ${dropped}    Grep File    ${centralLog}    linked to a deactivated service
+    ${count}    Get Line Count    ${dropped}
+    Should Be Equal As Integers    ${count}    ${1}    ${count} KPIs were dropped instead of the one of service_303
+
+    Ctn Process Service Result Hard    host_16    service_302    0    output ok for service_302
+    ${result}    Ctn Check Ba Status With Timeout    deactivated-ba    0    60
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The 'deactivated-ba' BA is not OK as expected
+
+    Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
+    ${result}    Ctn Check Ba Status With Timeout    deactivated-ba    2    60
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The 'deactivated-ba' BA did not follow service_302: its KPI was dropped too
+
+    # This test leaves the platform amputated of a service: the row says it is
+    # deactivated, the export no longer carries it, and both the cache file and
+    # the stored poller configurations hold that state -- which the next suite
+    # would start from, and drop the KPIs of service_303 without asking for it.
+    [Teardown]    Run Keywords
+    ...    Ctn Stop Engine Broker And Save Logs
+    ...    AND    Ctn Reactivate Service 303
+
 *** Keywords ***
+Ctn Reactivate Service 303
+    [Documentation]    Undo what CBABOODEACTIVATEDSVC did to the shared platform.
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    UPDATE service SET service_activate='1' WHERE service_description='service_303'
+    Disconnect From Database
+    Ctn Clear Broker Cache
+    Ctn Clear Prot Files
+
 Ctn BAM Init
     Ctn Clear Commands Status
     Ctn Clear Retention

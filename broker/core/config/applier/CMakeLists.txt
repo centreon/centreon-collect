@@ -67,6 +67,5 @@ if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES}
       ${CMAKE_CURRENT_SOURCE_DIR}/test/broker_state_relay.cc
-      ${CMAKE_CURRENT_SOURCE_DIR}/test/broker_state_foreign_bench.cc
       PARENT_SCOPE)
 endif(WITH_TESTING)

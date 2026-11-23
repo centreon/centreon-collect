@@ -48,7 +48,6 @@ add_library(
   "${SRC_DIR}/ba_svc_mapping.cc"
   "${SRC_DIR}/bool_and.cc"
   "${SRC_DIR}/bool_binary_operator.cc"
-  "${SRC_DIR}/bool_call.cc"
   "${SRC_DIR}/bool_constant.cc"
   "${SRC_DIR}/bool_equal.cc"
   "${SRC_DIR}/bool_expression.cc"
@@ -101,7 +100,6 @@ add_library(
   "${INC_DIR}/ba_worst.hh"
   "${INC_DIR}/bool_and.hh"
   "${INC_DIR}/bool_binary_operator.hh"
-  "${INC_DIR}/bool_call.hh"
   "${INC_DIR}/bool_constant.hh"
   "${INC_DIR}/bool_equal.hh"
   "${INC_DIR}/bool_expression.hh"
@@ -163,6 +161,8 @@ if(WITH_TESTING)
       ${TEST_DIR}/ba/kpi_service.cc
       ${TEST_DIR}/ba/kpi_ba.cc
       ${TEST_DIR}/configuration/applier-boolexp.cc
+      ${TEST_DIR}/configuration/applier-circular.cc
+      ${TEST_DIR}/configuration/applier-reload.cc
       ${TEST_DIR}/exp_builder/exp_builder.cc
       ${TEST_DIR}/exp_builder/availability_builder.cc
       ${TEST_DIR}/exp_parser/get_postfix.cc

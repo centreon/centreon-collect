@@ -20,6 +20,7 @@
 
 #include "bbdo/events.hh"
 #include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
@@ -31,20 +32,28 @@ event_cache_visitor::event_cache_visitor()
     : io::stream("event_cache_visitor") {}
 
 /**
- *  Commit all the event cache to another stream.
+ *  Commit all the cached events to the multiplexing, as a single batch.
  *
- *  @param[out] to  The stream to commit to.
+ *  Each publish() locks the multiplexing engine, queues the events and runs a
+ *  drain that settles every muxer. Publishing the events one by one, as was
+ *  done until 2026-09, ran that cycle for each of them; a batch runs it once.
+ *  The order others / BA events / KPI events is kept.
+ *
+ *  @param[out] to  The publisher to commit to.
  */
-void event_cache_visitor::commit_to(io::stream& to) {
-  for (auto const& o : _others)
-    to.write(o);
-  for (auto const& ba : _ba_events)
-    to.write(ba);
-  for (auto const& kpi : _kpi_events)
-    to.write(kpi);
+void event_cache_visitor::commit_to(multiplexing::publisher& to) {
+  std::deque<std::shared_ptr<io::data>> batch;
+  for (auto& o : _others)
+    batch.push_back(std::move(o));
+  for (auto& ba : _ba_events)
+    batch.push_back(std::move(ba));
+  for (auto& kpi : _kpi_events)
+    batch.push_back(std::move(kpi));
   _others.clear();
   _ba_events.clear();
   _kpi_events.clear();
+  if (!batch.empty())
+    to.write(batch);
 }
 
 /**

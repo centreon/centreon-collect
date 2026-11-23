@@ -34,8 +34,8 @@ using namespace com::centreon::broker::bam;
  * @param service_id The service ID of the service.
  * @param logger The logger to use.
  */
-bool_service::bool_service(uint32_t host_id,
-                           uint32_t service_id,
+bool_service::bool_service(uint64_t host_id,
+                           uint64_t service_id,
                            const std::shared_ptr<spdlog::logger>& logger)
     : bool_value(logger),
       _host_id(host_id),
@@ -49,7 +49,7 @@ bool_service::bool_service(uint32_t host_id,
  *
  *  @return Host ID.
  */
-uint32_t bool_service::get_host_id() const {
+uint64_t bool_service::get_host_id() const {
   return _host_id;
 }
 
@@ -58,7 +58,7 @@ uint32_t bool_service::get_host_id() const {
  *
  *  @return Service ID.
  */
-uint32_t bool_service::get_service_id() const {
+uint64_t bool_service::get_service_id() const {
   return _service_id;
 }
 

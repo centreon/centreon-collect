@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2017, 2021 Centreon
+ * Copyright 2014-2017, 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,8 +73,15 @@ void reader_v2::read(state& st) {
     _load(st.get_kpis());
     SPDLOG_LOGGER_INFO(_logger, "loading boolean expressions.");
     _load(st.get_bool_exps());
-    SPDLOG_LOGGER_INFO(_logger, "loading mapping hosts <-> services.");
-    _load(st.get_hst_svc_mapping(), st.get_bool_exps(), st.get_kpis());
+    /* In centralized configuration the global cache answers the host/service
+     * questions on its own, so there is no mapping to fill and none of the
+     * queries below has to be made. */
+    if (auto* mapping = st.get_local_hst_svc_mapping()) {
+      SPDLOG_LOGGER_INFO(_logger, "loading mapping hosts <-> services.");
+      _load(*mapping, st.get_bool_exps(), st.get_kpis());
+    } else
+      SPDLOG_LOGGER_INFO(_logger,
+                         "host/service ids are taken from the global cache.");
     SPDLOG_LOGGER_INFO(_logger, "bam configuration loaded.");
   } catch (std::exception const& e) {
     SPDLOG_LOGGER_ERROR(_logger, "Error while reading bam configuration: {}",
@@ -142,7 +149,7 @@ void reader_v2::_load(state::kpis& kpis) {
       database::mysql_result res(future.get());
       while (_mysql.fetch_row(res)) {
         std::string kpi_name;
-        uint32_t service_id = res.value_as_u32(3);
+        uint64_t service_id = res.value_as_u64(3);
         uint32_t boolean_id = res.value_as_u32(7);
         uint32_t id_indicator_ba = res.value_as_u32(5);
 
@@ -157,7 +164,7 @@ void reader_v2::_load(state::kpis& kpis) {
         uint32_t kpi_id(res.value_as_u32(0));
         kpis[kpi_id] = kpi(kpi_id,                 // ID.
                            res.value_as_i32(1),    // State type.
-                           res.value_as_u32(2),    // Host ID.
+                           res.value_as_u64(2),    // Host ID.
                            service_id,             // Service ID.
                            res.value_as_u32(4),    // BA ID.
                            id_indicator_ba,        // BA indicator ID.
@@ -215,7 +222,7 @@ void reader_v2::_load(state::kpis& kpis) {
                       "   ON s.service_id=hsr.service_service_id"
                       " WHERE s.service_description IN ({})",
                       descriptions));
-      absl::flat_hash_map<uint32_t, std::pair<uint32_t, uint32_t>> meta_service;
+      absl::flat_hash_map<uint32_t, std::pair<uint64_t, uint64_t>> meta_service;
       try {
         std::promise<database::mysql_result> promise;
         std::future<database::mysql_result> future = promise.get_future();
@@ -230,8 +237,8 @@ void reader_v2::_load(state::kpis& kpis) {
           if (!absl::ConsumePrefix(&number, k_meta_prefix) ||
               !absl::SimpleAtoi(number, &meta_id))
             continue;
-          meta_service.emplace(meta_id, std::make_pair(res.value_as_u32(1),
-                                                       res.value_as_u32(2)));
+          meta_service.emplace(meta_id, std::make_pair(res.value_as_u64(1),
+                                                       res.value_as_u64(2)));
         }
       } catch (const std::exception& e) {
         throw msg_fmt("could not retrieve virtual meta-service's service: {}",
@@ -354,8 +361,8 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
         std::move(promise), 0);
     database::mysql_result res(future.get());
     while (_mysql.fetch_row(res)) {
-      uint32_t host_id = res.value_as_u32(2);
-      uint32_t service_id = res.value_as_u32(3);
+      uint64_t host_id = res.value_as_u64(2);
+      uint64_t service_id = res.value_as_u64(3);
       std::string hostname = res.value_as_str(0);
       std::string service_description = res.value_as_str(1);
       service_description.erase(0, k_ba_prefix.size());
@@ -495,7 +502,7 @@ reader_v2::_named_services(const state::bool_exps& bool_exps) const {
  *  @param[in]  names   The couples to resolve.
  */
 void reader_v2::_resolve_named_services(
-    bam::hst_svc_mapping& mapping,
+    bam::local_hst_svc_mapping& mapping,
     const absl::flat_hash_set<std::pair<std::string, std::string>>& names) {
   if (names.empty())
     return;
@@ -533,7 +540,7 @@ void reader_v2::_resolve_named_services(
   database::mysql_result res(future.get());
   while (_mysql.fetch_row(res))
     mapping.set_service(res.value_as_str(2), res.value_as_str(3),
-                        res.value_as_u32(0), res.value_as_u32(1),
+                        res.value_as_u64(0), res.value_as_u64(1),
                         res.value_as_str(4) == "1");
 }
 
@@ -549,14 +556,15 @@ void reader_v2::_resolve_named_services(
  *  @param[out] mapping The mapping to fill.
  *  @param[in]  kpis    The KPIs, already loaded.
  */
-void reader_v2::_load_kpi_services_activation(bam::hst_svc_mapping& mapping,
-                                              const state::kpis& kpis) {
+void reader_v2::_load_kpi_services_activation(
+    bam::local_hst_svc_mapping& mapping,
+    const state::kpis& kpis) {
   /* The couples, and not a service id to host id map: the same service can be
    * attached to several hosts, and each of those couples is a KPI of its own
    * whose activation has to be recorded. Keying by service id alone would
    * silently keep one of them. */
-  absl::flat_hash_set<std::pair<uint32_t, uint32_t>> couples;
-  absl::flat_hash_set<uint32_t> service_ids;
+  absl::flat_hash_set<std::pair<uint64_t, uint64_t>> couples;
+  absl::flat_hash_set<uint64_t> service_ids;
   for (const auto& [id, k] : kpis) {
     if (k.is_service()) {
       couples.emplace(k.get_host_id(), k.get_service_id());
@@ -575,9 +583,9 @@ void reader_v2::_load_kpi_services_activation(bam::hst_svc_mapping& mapping,
   std::future<database::mysql_result> future = promise.get_future();
   _mysql.run_query_and_get_result(query, std::move(promise), 0);
   database::mysql_result res(future.get());
-  absl::flat_hash_map<uint32_t, bool> activated;
+  absl::flat_hash_map<uint64_t, bool> activated;
   while (_mysql.fetch_row(res))
-    activated[res.value_as_u32(0)] = res.value_as_str(1) == "1";
+    activated[res.value_as_u64(0)] = res.value_as_str(1) == "1";
 
   for (const auto& [host_id, service_id] : couples) {
     auto found = activated.find(service_id);
@@ -612,7 +620,7 @@ void reader_v2::_load_kpi_services_activation(bam::hst_svc_mapping& mapping,
  *  @param[in]  bool_exps  The boolean expressions, already loaded.
  *  @param[in]  kpis       The KPIs, already loaded.
  */
-void reader_v2::_load(bam::hst_svc_mapping& mapping,
+void reader_v2::_load(bam::local_hst_svc_mapping& mapping,
                       const state::bool_exps& bool_exps,
                       const state::kpis& kpis) {
   try {
