@@ -762,12 +762,17 @@ spdlog, and the real ratio is a little less than shown.
 | BAM configuration load, `mapping` step | `bam-startup`, services axis (`bench-bam.sh`) | 3 418 ms at 200 000 services, 99 % of the load (campaign of 2026-09-15, biased by ~300 ms of populating not yet settled) | 10 ms of mapping, 36 ms in all, at 200 000 services | only the couples the boolean rules name are resolved, instead of the whole service table (`7170f289b8`); the populating now settles first |
 | UPDATE statements per unchanged check result | `bam-steady`, 1000 KPI services, 200 results/s for 120 s, `updates_per_result` | `with-bam` 3.002, `no-bam` 2.002: BAM adds **1** per result (measured on `d4442094e6`, the parent of the change) | `with-bam` 2.001, `no-bam` 2.002: BAM adds **0**; 24 000 identical `UPDATE mod_bam_kpi` gone from the window | a KPI visits itself only when it changed; 2026-09-20, `66b5cfa0ab`. The 2 that remain are `unified_sql`'s, on `services` and `resources` |
 | Engine startup, 10 000 services | `engine-startup`, legacy vs `state.prot` | 286 / 282 ms | 153 / 157 ms | reading the serialized state instead of the `.cfg` files: `config-read` 27-44 → 8 ms, `expand` and `resolve` gone; 2026-08-21 |
-| Engine configuration load | `engine-config-load`, 1k / 10k / 50k services | 0.03 / 0.13 / 1.22 s CPU | — | reference only; `cpu_ms_per_service` grows from 0.013 (10k) to 0.024 (50k): the `objects` phase is super-linear (~N^1.7), still open |
+| Engine configuration load, `objects` phase | `engine-config-load --sizes 10000,20000,50000,100000 --repeat 2`, `phase.objects_ms` and `cpu_ms_per_service` | 54 / 169 / 867 / 2 785 ms, i.e. ~N^1.7; 0.013 → 0.035 CPU-ms per service; 3.2 s in all at 100k | 27 / 61 / 152 / 319 ms, linear; 0.010-0.011 CPU-ms per service at every size; 0.78 s in all at 100k | `host::resolve_object` walked every service of the platform per host to rebuild a backlink the service resolver builds anyway (hosts × services, found with callgrind); the walk is gone. 2026-09-21. `config-read` is now the phase to watch, linear, 264 ms at 100k |
 | steady-state cost of a check | `load`, 50 hosts × 20 services | active ≈ 15.8 ms of collect CPU per check, passive ≈ 0.77 ms per result | — | reference only; the gap is the fork of the plugin |
 | allocations of cbd on the check path | `alloc`, profile EALLOC4 | 1 006 877 `alloc_calls` | 761 039 (−24.4 %), then 688 332 (−9.6 % more) | debug strings built with the log off and `const std::string&` taking literals, then the perfdata parser; 2026-08-22. Compare allocations **per call**, never totals |
 
-Two figures above are marked *reference only*: nothing was changed against them, they are
-where the code stands, to be compared with after a change touching that path.
+One figure above is marked *reference only*: nothing was changed against it, it is where the
+code stands, to be compared with after a change touching that path.
+
+Every figure of this table was taken with an optimized build (`RelWithDebInfo` or `Release`).
+Check `CMAKE_BUILD_TYPE` in the build directory and `nm -D <binary> | grep assert_fail` before
+measuring: a Debug build was found installed in the container on 2026-09-21, nine times slower
+on the same work, and only an A/B where both sides share the build type says anything.
 
 ## In more depth
 
