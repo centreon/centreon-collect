@@ -31,6 +31,7 @@ BECMTBRK1
     Ctn Broker Config Log    central    core    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
+    Ctn Clear Logs
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
@@ -67,6 +68,7 @@ BECMTBRK2
     Ctn Broker Config Log    central    core    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
+    Ctn Clear Logs
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
@@ -110,6 +112,7 @@ BECMTBRK3
     Ctn Broker Config Log    central    core    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
+    Ctn Clear Logs
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
