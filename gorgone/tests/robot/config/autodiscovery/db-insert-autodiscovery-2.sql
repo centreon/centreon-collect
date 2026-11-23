@@ -46,6 +46,25 @@ CREATE TABLE IF NOT EXISTS `mod_auto_disco_change` (
 ALTER TABLE `mod_auto_disco_change`
   ADD CONSTRAINT `mod_auto_disco_change_fk_1` FOREIGN KEY (`rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE;
 
+-- Rule 4 transformations: each field is stored data and must never be run as Perl code.
+-- CHAR(59) is a semicolon and CHAR(35) a hash sign: CONCAT is used because the robot SQL runner splits statements on semicolons.
+-- The injection rows target $storageid$, which is not part of the service name, so they cannot change it.
+INSERT INTO `mod_auto_disco_change` (`rule_id`, `change_str`, `change_regexp`, `change_replace`, `change_modifier`, `change_order`) VALUES
+-- legitimate transformations: capture group backreference, 'g' flag, 'i' flag.
+(4, '$name$', '^/var/([a-z]+)', 'VAR-$1', '', 0),
+(4, '@SERVICENAME@', '/', '_', 'g', 1),
+(4, '@SERVICENAME@', '^sec-', 'Safe-', 'i', 2),
+-- injection through the modifier: close the substitution and append a statement.
+(4, '$storageid$', 'x', 'x', CONCAT(CHAR(59), ' system(q{touch /tmp/robotChangeVarsModifier}) ', CHAR(35)), 3),
+-- injection through the 'e' modifier: the replacement is run as code.
+(4, '$storageid$', '.+', 'system(q{touch /tmp/robotChangeVarsEFlag})', 'e', 4),
+-- injection through the replacement: double quoted interpolation.
+(4, '$storageid$', '.+', '@{[ system(q{touch /tmp/robotChangeVarsReplace}) ]}', '', 5),
+-- injection through the regexp: embedded code block.
+(4, '$storageid$', '(?{ system(q{touch /tmp/robotChangeVarsRegexp}) })', '', '', 6),
+-- injection through the regexp: close the pattern delimiter and append a statement.
+(4, '$storageid$', CONCAT('x}{y}', CHAR(59), ' system(q{touch /tmp/robotChangeVarsDelimiter}) ', CHAR(35)), '', '', 7);
+
 CREATE TABLE IF NOT EXISTS `mod_auto_disco_ht_rule_relation` (
 	`hrr_id` int(11) NOT NULL AUTO_INCREMENT,
 	`host_host_id` int(11) NOT NULL,
@@ -59,7 +78,7 @@ ALTER TABLE `mod_auto_disco_ht_rule_relation`
   ADD CONSTRAINT `mod_auto_disco_ht_rule_relation_fk_1` FOREIGN KEY (`host_host_id`) REFERENCES `host` (`host_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `mod_auto_disco_ht_rule_relation_fk_2` FOREIGN KEY (`rule_rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE;
 
-INSERT INTO `mod_auto_disco_ht_rule_relation` (`host_host_id`, `rule_rule_id`)  VALUES (10,2), (10,3);
+INSERT INTO `mod_auto_disco_ht_rule_relation` (`host_host_id`, `rule_rule_id`)  VALUES (10,2), (10,3), (10,4);
 --
 -- STRUCTURE FOR mod_auto_disco_inst_rule_relation
 --
