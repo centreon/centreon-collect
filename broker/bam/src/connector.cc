@@ -141,16 +141,18 @@ std::unique_ptr<bam::connector> connector::create_monitoring_connector(
   /* Here a subscription is made to the global cache by the monitoring stream.
    * The return value is an ID to remember the subscription, needed for example
    * to unsubscribe when the connector is destroyed.
-   * Each time a new configuration updates the cache, BAM stream loads its
-   * configuration again. */
-  retval->_config_subscription =
-      config::applier::state::instance()
-          .cache()
-          .subscribe_configuration_changed([endpoint_name] {
-            if (config::applier::endpoint::loaded())
-              config::applier::endpoint::instance().update_endpoint(
-                  endpoint_name);
-          });
+   * Each time a new configuration updates the cache, BAM stream reloads its
+   * configuration. */
+  auto reload = [endpoint_name] {
+    if (config::applier::endpoint::loaded())
+      config::applier::endpoint::instance().update_endpoint(endpoint_name);
+  };
+  auto& cache = config::applier::state::instance().cache();
+  retval->_config_subscription = cache.subscribe_configuration_changed(reload);
+  /* And once the cache is ready (Broker-owned state re-injected): the update()
+   * that follows seeds the KPI service states from the cache, see
+   * service_book::seed_from_cache(). */
+  cache.on_ready(reload);
   return retval;
 }
 
