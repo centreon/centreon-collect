@@ -19,9 +19,10 @@
 
 #include "com/centreon/broker/broker_acknowledgement_manager.hh"
 
-#include <fmt/format.h>
+// #include <fmt/format.h>
 
 #include "broker/core/config/applier/state.hh"
+#include "com/centreon/broker/broker_comments.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/notifications/notification_manager.hh"
@@ -65,10 +66,7 @@ broker_acknowledgement_manager& broker_acknowledgement_manager::instance() {
 /**
  * @brief Publish the acknowledgement comment (entry_type ACKNOWLEDGMENT,
  * source INTERNAL), the way Engine creates one in acknowledge_host_problem().
- *
- * The internal_id is drawn from Broker's partitioned range so it never
- * collides with the ids Engine mints; instance_id is the host's poller so the
- * row is addressable by unified_sql.
+ * Thin wrapper over broker_comments::publish_comment().
  *
  * @param host_id      The host id of the acknowledged resource.
  * @param service_id   The service id, 0 for a host.
@@ -89,50 +87,21 @@ uint64_t broker_acknowledgement_manager::_create_comment(
     const std::string& comment_data,
     bool persistent,
     time_t entry_time) {
-  auto& cache = config::applier::state::instance().cache();
-  uint64_t internal_id = cache.next_downtime_comment_id();
-
-  auto ev = std::make_shared<neb::pb_comment>();
-  auto& obj = ev->mut_obj();
-  obj.set_author(author);
-  obj.set_type(service_id == 0 ? Comment_Type_HOST : Comment_Type_SERVICE);
-  obj.set_data(comment_data);
-  /* Same entry_time as the acknowledgement: the GUI joins both rows on it. */
-  obj.set_entry_time(entry_time);
-  obj.set_entry_type(Comment_EntryType_ACKNOWLEDGMENT);
-  obj.set_host_id(host_id);
-  obj.set_service_id(service_id);
-  obj.set_internal_id(internal_id);
-  obj.set_persistent(persistent);
-  obj.set_instance_id(instance_id);
-  obj.set_source(Comment_Src_INTERNAL);
-
-  multiplexing::publisher pblshr;
-  pblshr.write(ev);
-  return internal_id;
+  return broker_comments::publish_comment(
+      host_id, service_id, instance_id, Comment_EntryType_ACKNOWLEDGMENT,
+      Comment_Src_INTERNAL, author, comment_data, persistent, entry_time);
 }
 
 /**
- * @brief Publish the deletion of an acknowledgement comment (a pb_comment
- * carrying only internal_id/instance_id/deletion_time, like
- * broker_downtime_callbacks::delete_downtime_comment). No-op when comment_id
- * is 0.
+ * @brief Publish the deletion of an acknowledgement comment (see
+ * broker_comments::publish_comment_deletion()). No-op when comment_id is 0.
  *
  * @param comment_id  The internal_id of the comment to delete.
  * @param instance_id The poller id the comment was created with.
  */
 void broker_acknowledgement_manager::_delete_comment(uint64_t comment_id,
                                                      uint32_t instance_id) {
-  if (comment_id == 0)
-    return;
-  auto ev = std::make_shared<neb::pb_comment>();
-  auto& obj = ev->mut_obj();
-  obj.set_internal_id(comment_id);
-  obj.set_instance_id(instance_id);
-  obj.set_deletion_time(time(nullptr));
-
-  multiplexing::publisher pblshr;
-  pblshr.write(ev);
+  broker_comments::publish_comment_deletion(comment_id, instance_id);
 }
 
 /**

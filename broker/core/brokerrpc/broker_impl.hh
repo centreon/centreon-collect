@@ -189,8 +189,25 @@ class broker_impl final : public Broker::Service {
                                 const ScheduleDowntimeRequest* request,
                                 ScheduleDowntimeResponse* response) override;
   grpc::Status DeleteDowntime(grpc::ServerContext* context,
-                              const GenericNameOrIndex* request,
+                              const DowntimeIdentifier* request,
                               ::google::protobuf::Empty* response) override;
+  grpc::Status AddHostComment(grpc::ServerContext* context,
+                              const HostCommentRequest* request,
+                              AddCommentResponse* response) override;
+  grpc::Status AddServiceComment(grpc::ServerContext* context,
+                                 const ServiceCommentRequest* request,
+                                 AddCommentResponse* response) override;
+  grpc::Status DeleteComment(grpc::ServerContext* context,
+                             const CommentIdentifier* request,
+                             ::google::protobuf::Empty* response) override;
+  grpc::Status DeleteAllHostComments(
+      grpc::ServerContext* context,
+      const HostIdentifier* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status DeleteAllServiceComments(
+      grpc::ServerContext* context,
+      const ServiceIdentifier* request,
+      ::google::protobuf::Empty* response) override;
   grpc::Status AcknowledgeHostProblem(
       grpc::ServerContext* context,
       const AcknowledgementRequest* request,
