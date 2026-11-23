@@ -1,12 +1,12 @@
 *** Settings ***
-Documentation       Centreon Broker and BAM with centralized configuration.
+Documentation     Centreon Broker and BAM with centralized configuration.
 
-Resource            ../resources/import.resource
+Resource          ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn BAM Setup
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup       Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup        Ctn BAM Setup
+Test Teardown     Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -18,8 +18,8 @@ CBAWORST_ACK
     ...    Then the Business Activity is acknowledged
     ...    When the acknowledgement is removed from the service
     ...    Then the Business Activity is no longer acknowledged
-
     [Tags]    broker    downtime    engine    bam    MON-160249
+
     Ctn BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
@@ -56,13 +56,23 @@ CBAWORST_ACK
     Ctn Acknowledge Service Problem    host_16    service_303
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Check Query Result    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303    >    ${0.5}    retry_timeout=30s    retry_pause=1s
+    Check Query Result
+    ...    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303
+    ...    >
+    ...    ${0.5}
+    ...    retry_timeout=30s
+    ...    retry_pause=1s
     Disconnect From Database
 
     # The acknowledgement is removed.
     Ctn Remove Service Acknowledgement    host_16    service_303
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Check Query Result    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303    <    ${0.01}    retry_timeout=30s    retry_pause=1s
+    Check Query Result
+    ...    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303
+    ...    <
+    ...    ${0.01}
+    ...    retry_timeout=30s
+    ...    retry_pause=1s
     Disconnect From Database
 
 CBAWORST
@@ -1009,7 +1019,9 @@ BECPB_BA_DURATION_EVENT
         ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations
         Log To Console    ${output}
     END
-    Should Be True    "${output}" != "()"    No row recorded in mod_bam_reporting_ba_events_durations with ba_event_id=1
+    Should Be True
+    ...    "${output}" != "()"
+    ...    No row recorded in mod_bam_reporting_ba_events_durations with ba_event_id=1
     Should Be True    ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
     Should Be True    ${output[0][3]} == ${output[0][1]} - ${output[0][0]}
     Should Be True    ${output[0][4]} == 1
@@ -1296,9 +1308,9 @@ CBA_IMPACT_IMPACT
         ...    ${value}
         ...    output ${state} for service 302
 
-	# Sometimes the parent BA emits two status with less than one second between them
-	# So we wait for 1s here to avoid the duplicate status in RRD.
-	Sleep    1s
+        # Sometimes the parent BA emits two status with less than one second between them
+        # So we wait for 1s here to avoid the duplicate status in RRD.
+        Sleep    1s
         Ctn Process Service Result Hard
         ...    host_16
         ...    service_303
@@ -1365,7 +1377,8 @@ CBA_DISABLED
 
     ${res}    Grep File
     ...    ${centralLog}
-    ...    The configured write filters for the endpoint 'centreon-bam-reporting' are too restrictive and will be ignored    regexp=True
+    ...    The configured write filters for the endpoint 'centreon-bam-reporting' are too restrictive and will be ignored
+    ...    regexp=True
     Should Be Empty    ${res}    A filter error of centreon-bam-reporting had been found in log
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
@@ -1377,8 +1390,8 @@ CBA_SERVICE_PNAME_AFTER_RELOAD
     ...    Then the BA service "test" should have a status of 0 within 30 seconds
     ...    When I reload the broker
     ...    Then the database should still contain a BA service with name "test" and parent_name "_Module_BAM_1"
-
     [Tags]    broker    engine    bam    MON-153476
+
     Ctn Bam Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
@@ -1401,7 +1414,12 @@ CBA_SERVICE_PNAME_AFTER_RELOAD
     Should Be True    ${result}    The BA test is not OK as expected
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Check Query Result    SELECT CONCAT(name, '|', parent_name) FROM resources WHERE id=${ba[1]}    ==    test|_Module_BAM_1    retry_timeout=50s    retry_pause=1s
+    Check Query Result
+    ...    SELECT CONCAT(name, '|', parent_name) FROM resources WHERE id=${ba[1]}
+    ...    ==
+    ...    test|_Module_BAM_1
+    ...    retry_timeout=50s
+    ...    retry_pause=1s
 
     Ctn Reload Broker
 
@@ -1409,10 +1427,139 @@ CBA_SERVICE_PNAME_AFTER_RELOAD
 
     ${output}    Query
     ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
-    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
+    Should Be Equal As Strings
+    ...    ${output}
+    ...    (('test', '_Module_BAM_1'),)
+    ...    name or parent name of ba ${ba[1]} is not as expected
     Disconnect From Database
 
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+
+CBA_CONF_PUSHED_NO_RELOAD
+    [Documentation]    Scenario: a BA created after Broker started is taken into account when its configuration is pushed, without any Broker reload
+    ...    Given Broker and Engine are started in centralized mode with no BA
+    ...    When a BA of type "worst" on two services is created and the Engine configuration is pushed through the .lck file
+    ...    Then Broker asks the BAM endpoint to reload once the poller configuration is applied to the global cache
+    ...    And the BA becomes OK without any reload of Broker
+    ...    When one of its services becomes CRITICAL
+    ...    Then the BA becomes CRITICAL
+    [Tags]    broker    engine    bam    centralized    MON-187019
+    Ctn BAM Init
+    # No BA yet, so nothing wrote the BAM services file centengine.cfg refers to
+    # (in centralized mode the poller configuration lives under VarRoot).
+    Create File    ${VarRoot}/lib/centreon/config/1/centreon-bam-services.cfg    ${EMPTY}
+
+    Ctn Start Broker    newGeneration=True
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+    Wait Until Created
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot
+    ...    timeout=60s
+
+    # The BA is created once everything runs: PHP would push it the same way.
+    ${push}    Ctn Get Round Current Date
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    pushed    worst    ${svc}
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    ${content}    Create List    endpoint applier: update requested for endpoint centreon-bam-monitoring
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${push}    ${content}    60
+    Should Be True    ${result}    Broker should ask the BAM endpoint to reload after the configuration push
+
+    ${result}    Ctn Check Ba Status With Timeout    pushed    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA pushed should be OK without any Broker reload
+
+    Ctn Process Service Result Hard    host_16    service_303    2    output critical for 303
+    ${result}    Ctn Check Ba Status With Timeout    pushed    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA pushed should be CRITICAL
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CBA_PROT_LOST_RESTART
+    [Documentation]    Scenario: a BA survives the loss of the stored poller configuration across a Broker restart
+    ...    Given a BA of type "worst" on two services is OK
+    ...    When Broker is stopped, its stored poller configuration (1.prot) is deleted and Broker is started again
+    ...    Then BAM cannot resolve the KPI services when it opens, since the global cache is empty
+    ...    And Engine sends its configuration back, Broker stores it, feeds the cache and asks the BAM endpoint to reload
+    ...    And the BA reacts to a CRITICAL service without any reload of Broker
+    [Tags]    broker    engine    bam    centralized    MON-187019
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    lost    worst    ${svc}
+    Ctn Start Broker    newGeneration=True
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${result}    Ctn Check Ba Status With Timeout    lost    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA lost should be OK
+
+    # A user deletes the stored configuration by mistake, then restarts Broker.
+    Ctn Kindly Stop Broker
+    Ctn Clear Prot Files    broker_only=${True}
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+
+    ${content}    Create List    endpoint applier: update requested for endpoint centreon-bam-monitoring
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    Broker should ask the BAM endpoint to reload once the poller configuration is back
+    Wait Until Created
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot
+    ...    timeout=60s
+
+    Ctn Process Service Result Hard    host_16    service_303    2    output critical for 303
+    ${result}    Ctn Check Ba Status With Timeout    lost    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA lost should be CRITICAL after the restart without its stored configuration
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CBA_KPI_SERVICE_ADDED_LATER
+    [Documentation]    Scenario: a KPI whose service does not exist yet becomes active when the service is added to the configuration
+    ...    Given a BA of type "worst" with two KPIs, one on service_314 and one on service_303
+    ...    And service_303 is not in the Engine configuration when Broker starts, so BAM drops that KPI
+    ...    When service_303 is added to the Engine configuration and pushed
+    ...    Then Broker asks the BAM endpoint to reload once the diff is applied to the global cache
+    ...    And a CRITICAL result on service_303 makes the BA CRITICAL, without any reload of Broker
+    [Tags]    broker    engine    bam    centralized    MON-187019
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    later    worst    ${svc}
+    ${cmd_303}    Ctn Get Service Command Id    ${303}
+    Ctn Engine Config Remove Service    ${0}    host_16    service_303
+    Ctn Notify Broker Of Engine Config Change    ${0}
+    Ctn Start Broker    newGeneration=True
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    # Only the KPI on service_314 exists: the BA is OK on it alone.
+    ${result}    Ctn Check Ba Status With Timeout    later    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA later should be OK
+    ${content}    Create List    endpoint applier: update requested for endpoint centreon-bam-monitoring
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    The first configuration round should ask the BAM endpoint to reload
+
+    # service_303 is added and pushed (the keyword announces the change).
+    ${push}    Ctn Get Round Current Date
+    Ctn Set Command Status    ${cmd_303}    ${2}
+    Ctn Engine Config Add Service    ${0}    ${16}    ${303}    service_303    command_${cmd_303}
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${push}    ${content}    60
+    Should Be True    ${result}    Broker should ask the BAM endpoint to reload after the service was added
+
+    Ctn Process Service Result Hard    host_16    service_303    2    output critical for 303
+    ${result}    Ctn Check Ba Status With Timeout    later    2    90
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA later should be CRITICAL once its KPI on service_303 is active
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
 *** Keywords ***
@@ -1450,6 +1597,7 @@ Ctn BAM Init
     ...    Engine configuration.
     Ctn Clear Commands Status
     Ctn Clear Retention
+    Ctn Clear Prot Files
     Ctn Clear Db Conf    mod_bam
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module

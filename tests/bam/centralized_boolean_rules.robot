@@ -657,6 +657,7 @@ Ctn Reactivate Service 303
 Ctn BAM Init
     Ctn Clear Commands Status
     Ctn Clear Retention
+    Ctn Clear Prot Files
     Ctn Clear Db Conf    mod_bam
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module
