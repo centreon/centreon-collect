@@ -20,9 +20,11 @@
 #define CENTREON_BROKER_CORE_SRC_BROKERIMPL_HH_
 
 #include <grpcpp/server_context.h>
+#include <spdlog/logger.h>
 #include "bbdo/events.hh"
 #include "broker/broker.grpc.pb.h"
 #include "broker/broker.pb.h"
+#include "broker/core/cache/notification_toggles.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "neb.pb.h"
 
@@ -47,6 +49,19 @@ using pb_ba_info =
 }
 
 class broker_impl final : public Broker::Service {
+  /* Broker's CORE logger, resolved once at construction. */
+  std::shared_ptr<spdlog::logger> _logger;
+
+  grpc::Status _set_contact_notifications(
+      const ContactNotificationsRequest& request,
+      cache::notification_toggles::notifier n) const;
+  grpc::Status _set_contactgroup_notifications(
+      const ContactgroupNotificationsRequest& request,
+      cache::notification_toggles::notifier n) const;
+  grpc::Status _set_contact_notification_period(
+      const ContactNotificationPeriodRequest& request,
+      cache::notification_toggles::notifier n) const;
+
   grpc::Status GetVersion(grpc::ServerContext* context,
                           const ::google::protobuf::Empty* /*request*/,
                           Version* response) override;
@@ -231,6 +246,38 @@ class broker_impl final : public Broker::Service {
   grpc::Status SendCustomServiceNotification(
       grpc::ServerContext* context,
       const ServiceCustomNotificationRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetHostNotificationPeriod(
+      grpc::ServerContext* context,
+      const HostNotificationPeriodRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetServiceNotificationPeriod(
+      grpc::ServerContext* context,
+      const ServiceNotificationPeriodRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactHostNotifications(
+      grpc::ServerContext* context,
+      const ContactNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactServiceNotifications(
+      grpc::ServerContext* context,
+      const ContactNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactgroupHostNotifications(
+      grpc::ServerContext* context,
+      const ContactgroupNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactgroupServiceNotifications(
+      grpc::ServerContext* context,
+      const ContactgroupNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactHostNotificationPeriod(
+      grpc::ServerContext* context,
+      const ContactNotificationPeriodRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactServiceNotificationPeriod(
+      grpc::ServerContext* context,
+      const ContactNotificationPeriodRequest* request,
       ::google::protobuf::Empty* response) override;
   grpc::Status AcknowledgeHostProblem(
       grpc::ServerContext* context,

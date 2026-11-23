@@ -24,7 +24,7 @@
 #include <algorithm>
 
 #include "broker/core/bbdo/internal.hh"
-#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/cache/notification_toggles.hh"
 #include "broker/core/config/applier/init.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/notifications/notification_manager.hh"
@@ -1002,6 +1002,169 @@ TEST_F(BrokerNotificationDeliverTest, ReinjectNotificationOverrides) {
   ASSERT_TRUE(_cache->host(1)->obj().notify());
   _cache->reinject_pending_notification_overrides();
   ASSERT_FALSE(_cache->host(1)->obj().notify());
+}
+
+/**
+ * @brief notification_mode=broker: the notification timeperiod set through the
+ * Broker API wins over the definitions and adaptives Engine sends, and is put
+ * back after a configuration merge.
+ */
+TEST_F(BrokerNotificationDeliverTest,
+       NotificationPeriodOverrideSurvivesDefinition) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(7);
+  auto* tp = st.mutable_timeperiods()->Add();
+  tp->set_timeperiod_name("workhours");
+  tp->set_alias("workhours");
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  auto* svc = st.mutable_services()->Add();
+  svc->set_host_id(1);
+  svc->set_service_id(5);
+  svc->set_host_name("host_1");
+  svc->set_service_description("service_1");
+  svc->set_notifications_enabled(true);
+  svc->set_notification_period("24x7");
+  _cache->merge(st);
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "24x7");
+  EXPECT_TRUE(_cache->has_timeperiod("workhours"));
+  EXPECT_FALSE(_cache->has_timeperiod("nowhere"));
+
+  ASSERT_TRUE(_cache->set_notification_period(1, 5, "workhours"));
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "workhours");
+  /* The notify switch is not an override of its own: untouched. */
+  ASSERT_TRUE(_cache->service(1, 5)->obj().notify());
+
+  /* Engine resends the definition with the configured period. */
+  auto def = std::make_shared<neb::pb_service>();
+  auto& o = def->mut_obj();
+  o.set_host_id(1);
+  o.set_service_id(5);
+  o.set_host_name("host_1");
+  o.set_description("service_1");
+  o.set_enabled(true);
+  o.set_notify(true);
+  o.set_notification_period("24x7");
+  _cache->update_service(def);
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "workhours");
+
+  /* An adaptive from Engine does not win either in broker mode. */
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(5);
+  as->mut_obj().set_notification_period("24x7");
+  _cache->update_service(as);
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "workhours");
+
+  /* A merge rebuilds the service from the configuration, the reinjection puts
+   * the period back. */
+  _cache->merge(st);
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "24x7");
+  _cache->reinject_pending_notification_overrides();
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "workhours");
+
+  /* Unknown resource. */
+  ASSERT_FALSE(_cache->set_notification_period(1, 99, "workhours"));
+}
+
+/**
+ * @brief notification_mode=broker: a contact switch set through the Broker API
+ * drives the contact selection of deliver() and survives a configuration
+ * merge that rebuilds the contact with the configured value.
+ */
+TEST_F(BrokerNotificationDeliverTest, ContactOverrideSurvivesMerge) {
+  using cache::notification_toggles::notifier;
+  merge_service_with_contact(_cache, /*enabled=*/true);
+  ASSERT_TRUE(
+      _cache->contact_config("John_Doe")->service_notifications_enabled);
+
+  ASSERT_TRUE(cache::notification_toggles::set_contact_notifications(
+      *_cache, "John_Doe", notifier::service, false));
+  auto c = _cache->contact_config("John_Doe");
+  ASSERT_TRUE(c.has_value());
+  EXPECT_FALSE(c->service_notifications_enabled);
+
+  /* Nobody left to notify: no dispatch. Acknowledgement category: not
+   * filtered by the contact's state options (empty in this fixture), only by
+   * its switch. */
+  notifications::delivery_result res =
+      _cb->deliver(1, 5, notifications::cat_acknowledgement,
+                   notifications::reason_acknowledgement, 1, 2, "admin", "ack",
+                   notifications::notification_option_none);
+  EXPECT_TRUE(res.notified_contacts.empty());
+  EXPECT_FALSE(pop_one(7));
+
+  /* The configuration re-enables the contact: the override wins. */
+  merge_service_with_contact(_cache, /*enabled=*/true);
+  EXPECT_FALSE(
+      _cache->contact_config("John_Doe")->service_notifications_enabled);
+
+  /* Switched back on through the API. */
+  ASSERT_TRUE(cache::notification_toggles::set_contact_notifications(
+      *_cache, "John_Doe", notifier::service, true));
+  res = _cb->deliver(1, 5, notifications::cat_acknowledgement,
+                     notifications::reason_acknowledgement, 1, 2, "admin",
+                     "ack", notifications::notification_option_none);
+  EXPECT_EQ(res.notified_contacts.count("John_Doe"), 1u);
+  EXPECT_TRUE(pop_one(7));
+
+  /* Unknown contact. */
+  EXPECT_FALSE(cache::notification_toggles::set_contact_notifications(
+      *_cache, "nobody", notifier::service, false));
+}
+
+/**
+ * @brief notification_mode=broker: a contactgroup switch fans out to its
+ * members (each gets its own override), and the contact notification
+ * timeperiods are overridable per side.
+ */
+TEST_F(BrokerNotificationDeliverTest, ContactgroupToggleAndContactPeriod) {
+  namespace cfg = com::centreon::engine::configuration;
+  using cache::notification_toggles::notifier;
+  cfg::State st;
+  st.set_poller_id(7);
+  for (const char* name : {"John_Doe", "Jane_Doe"}) {
+    auto* c = st.mutable_contacts()->Add();
+    c->set_contact_name(name);
+    c->set_host_notifications_enabled(true);
+    c->set_service_notifications_enabled(true);
+    c->set_host_notification_period("24x7");
+    c->set_service_notification_period("24x7");
+  }
+  auto* cg = st.mutable_contactgroups()->Add();
+  cg->set_contactgroup_name("admins");
+  cg->mutable_members()->add_data("John_Doe");
+  cg->mutable_members()->add_data("Jane_Doe");
+  _cache->merge(st);
+
+  auto count = cache::notification_toggles::set_contactgroup_notifications(
+      *_cache, "admins", notifier::host, false);
+  ASSERT_TRUE(count.has_value());
+  EXPECT_EQ(*count, 2u);
+  for (const char* name : {"John_Doe", "Jane_Doe"}) {
+    auto c = _cache->contact_config(name);
+    ASSERT_TRUE(c.has_value());
+    EXPECT_FALSE(c->host_notifications_enabled);
+    EXPECT_TRUE(c->service_notifications_enabled);
+  }
+  /* Unknown contactgroup. */
+  EXPECT_FALSE(cache::notification_toggles::set_contactgroup_notifications(
+                   *_cache, "nobody", notifier::host, false)
+                   .has_value());
+
+  /* Contact notification timeperiods, one side at a time. */
+  ASSERT_TRUE(cache::notification_toggles::set_contact_notification_period(
+      *_cache, "John_Doe", notifier::service, "workhours"));
+  auto john = _cache->contact_config("John_Doe");
+  EXPECT_EQ(john->service_notification_period, "workhours");
+  EXPECT_EQ(john->host_notification_period, "24x7");
+  /* Survives the configuration merge too. */
+  _cache->merge(st);
+  john = _cache->contact_config("John_Doe");
+  EXPECT_EQ(john->service_notification_period, "workhours");
+  EXPECT_FALSE(john->host_notifications_enabled);
 }
 
 /**
