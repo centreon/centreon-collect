@@ -3606,3 +3606,99 @@ def ctn_broker_get_bbdo_version():
             return conf["centreonBroker"]["bbdo_version"]
         else:
             return "2.0.0"
+
+
+def ctn_broker_config_remote_api(name: str, port: int = 8099, token: str = "robot-token"):
+    """
+    Enable the remote API (downstream commands and configuration, gorgone-less
+    PoC) on a broker instance, listening on 127.0.0.1.
+
+    Args:
+        name (str): Which broker instance: central, rrd or module%d.
+        port (int): Listening port.
+        token (str): Bearer token.
+
+    *Example:*
+
+    | Ctn Broker Config Remote Api | central | 8099 | robot-token |
+    """
+    ctn_broker_config_add_item(name, "remote_api", {
+        "listen_address": "127.0.0.1", "port": str(port), "token": token})
+
+
+def ctn_remote_api_request(method: str, path: str, body=None, token: str = "robot-token", port: int = 8099, timeout: int = 40):
+    """
+    Send a request to the remote API of the central broker.
+
+    Args:
+        method (str): GET or POST.
+        path (str): Path, e.g. /v1/pollers.
+        body: Python object sent as JSON, or None.
+        token (str): Bearer token.
+        port (int): API port.
+        timeout (int): Socket timeout in seconds.
+
+    Returns:
+        A list [HTTP status, decoded JSON body] ([0, {}] if unreachable).
+    """
+    import urllib.request
+    import urllib.error
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(
+        f"http://127.0.0.1:{port}{path}", data=data, method=method,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return [r.status, json.loads(r.read() or b"{}")]
+    except urllib.error.HTTPError as e:
+        return [e.code, json.loads(e.read() or b"{}")]
+    except Exception as e:
+        logger.console(f"remote api request failed: {e}")
+        return [0, {}]
+
+
+def ctn_remote_api_wait_poller(poller_id: int, timeout: int = 60, remote_actions: bool = True):
+    """
+    Wait until GET /v1/pollers lists the engine of a poller with the given
+    remote_actions flag.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        timeout (int): Timeout in seconds.
+        remote_actions (bool): Expected remote_actions value.
+
+    Returns:
+        True if found before the timeout.
+    """
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        code, body = ctn_remote_api_request("GET", "/v1/pollers", timeout=5)
+        if code == 200:
+            for p in body.get("pollers", []):
+                if p.get("poller_id") == str(poller_id) and p.get("remote_actions") == remote_actions:
+                    return True
+        time.sleep(1)
+    return False
+
+
+def ctn_remote_api_send_commands(poller_id: int, *commands):
+    """
+    POST /v1/commands with the given external commands for one poller. The
+    string TS in a command is replaced by the current timestamp.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        commands: Commands, e.g. "[TS] SCHEDULE_FORCED_SVC_CHECK;host_1;service_1;TS".
+
+    Returns:
+        A list [HTTP status, elapsed seconds, decoded JSON body].
+    """
+    now = str(int(time.time()))
+    body = {"request_id": f"robot-{time.time_ns()}", "timeout_ms": 10000,
+            "items": [{"poller_id": str(poller_id),
+                       "commands": [c.replace("TS", now) for c in commands]}]}
+    start = time.time()
+    code, answer = ctn_remote_api_request("POST", "/v1/commands", body)
+    elapsed = time.time() - start
+    logger.console(f"remote api answer in {elapsed:.1f}s: {code} {answer}")
+    return [code, elapsed, answer]

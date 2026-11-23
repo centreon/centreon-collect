@@ -223,6 +223,8 @@ EXPOSE 5670
 EXPOSE 51002
 # api_control.py (reload/restart shim)
 EXPOSE 8080
+# remote_api (downstream commands and configuration, gorgone-less PoC)
+EXPOSE 8099
 
 WORKDIR /var/lib/centreon-broker
 
