@@ -114,6 +114,7 @@ BECBAMIDTU2
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    config    info
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Flush Log    central    0
@@ -184,11 +185,18 @@ BECBAMIDTU2
         Log To Console    Broker is stopped (step ${i})
         Ctn Kindly Stop Broker
         Log To Console    Broker is started
+        ${start}    Ctn Get Round Current Date
         Ctn Start Broker    newGeneration=True
         # Ctn Start Broker returns before the gRPC server is listening; wait for
         # it so the gRPC calls below this loop do not hit a refused connection.
         ${ready}    Ctn Wait For Broker To Be Ready
         Should Be True    ${ready}    Broker gRPC server should be ready after restart
+        # The persisted downtimes are given back to the downtime manager when
+        # the startup readiness barrier is released: before that, the gRPC
+        # DeleteDowntime below would not find the downtime.
+        ${content}    Create List    all output streams ready; starting the multiplexing engine
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+        Should Be True    ${result}    The startup readiness barrier of cbd was not released after restart
 
         Log To Console    We should have two downtimes (3)
         ${result}    Ctn Number Of Downtimes Is    2    30
