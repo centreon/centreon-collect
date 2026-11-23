@@ -4261,6 +4261,15 @@ database says is in downtime, and whose impacting KPIs are all in downtime, gets
 inherited downtime object back, silently, since the downtime already exists on its
 virtual service. `BECBAMIDTU2` and `BEBAMIDT2` are the tests that caught the regression.
 
+That restoration has a blind spot: when the KPIs left downtime while cbd was down, not
+every KPI is in downtime at startup, the object is not recreated, and the downtime BAM had
+put on the virtual service would stay for ever. The downtime itself closes it: it carries
+BAM's author and comment, shared constants of `internal.hh`. A BA that sees such a downtime
+active on its virtual service — replayed by Engine when the poller connects, or found in
+the Broker `downtime_manager` at the first apply when Broker owns the downtimes — takes it
+back as its inherited downtime and recomputes at once, which lifts it if the KPIs no longer
+justify it (`ba::adopt_inherited_downtime`; `BEBAMIDT3`, `BECBAMIDTU3`).
+
 ## Circular definitions
 
 A BA can be a KPI of another BA, and a boolean rule can read any service, including the
