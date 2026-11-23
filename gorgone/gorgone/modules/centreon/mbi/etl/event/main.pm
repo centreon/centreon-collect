@@ -148,7 +148,7 @@ sub processByDay {
 			
    	while (my ($liveserviceName, $liveserviceId) = each (%$liveServices)) {
    		if (!defined($etl->{run}->{options}->{service_only}) || $etl->{run}->{options}->{service_only} == 0) {
-            push @{$etl->{run}->{schedule}->{event}->{stages}->[1]}, {
+            push @{$etl->{run}->{schedule}->{event}->{stages}->[2]}, {
                 type => 'availability_day_hosts',
                 liveserviceName => $liveserviceName,
                 liveserviceId => $liveserviceId,
@@ -158,7 +158,7 @@ sub processByDay {
         }
 		
         if (!defined($etl->{run}->{options}->{host_only}) || $etl->{run}->{options}->{host_only} == 0) {
-            push @{$etl->{run}->{schedule}->{event}->{stages}->[1]}, {
+            push @{$etl->{run}->{schedule}->{event}->{stages}->[2]}, {
                 type => 'availability_day_services',
                 liveserviceName => $liveserviceName,
                 liveserviceId => $liveserviceId,
@@ -174,14 +174,14 @@ sub processHostgroupAvailability {
 
 	$time->insertTimeEntriesForPeriod($start, $end);
 	if (!defined($etl->{run}->{options}->{service_only}) || $etl->{run}->{options}->{service_only} == 0) {
-		push @{$etl->{run}->{schedule}->{event}->{stages}->[2]}, {
+		push @{$etl->{run}->{schedule}->{event}->{stages}->[3]}, {
             type => 'availability_month_services',
             start => $start,
             end => $end
         };
 	}
 	if (!defined($etl->{run}->{options}->{host_only}) || $etl->{run}->{options}->{host_only} == 0) {
-        push @{$etl->{run}->{schedule}->{event}->{stages}->[2]}, {
+        push @{$etl->{run}->{schedule}->{event}->{stages}->[3]}, {
             type => 'availability_month_hosts',
             start => $start,
             end => $end
@@ -228,7 +228,7 @@ sub dailyProcessing {
         processHostgroupAvailability($etl, $utils->subtractDateMonths($end, 1), $utils->subtractDateDays($end, 1));
     }
 
-    push @{$etl->{run}->{schedule}->{event}->{stages}->[0]},
+    push @{$etl->{run}->{schedule}->{event}->{stages}->[1]},
         { type => 'events', services => 1, start => $start, end => $end }, { type => 'events', hosts => 1, start => $start, end => $end };
 }
 
@@ -270,7 +270,7 @@ sub rebuildProcessing {
     }
 
     if (!defined($etl->{run}->{options}->{availability_only}) || $etl->{run}->{options}->{availability_only} == 0) {
-        push @{$etl->{run}->{schedule}->{event}->{stages}->[0]},
+        push @{$etl->{run}->{schedule}->{event}->{stages}->[1]},
             { type => 'events', services => 1, start => $start, end => $end }, { type => 'events', hosts => 1, start => $start, end => $end };
     }
 }
