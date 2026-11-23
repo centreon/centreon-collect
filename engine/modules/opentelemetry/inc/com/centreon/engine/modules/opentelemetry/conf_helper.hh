@@ -113,7 +113,7 @@ e_get_otel_commands_ret get_otel_commands(
       if (handler(hst->check_command(), cmd_line, "", hst->host_id(), 0,
                   hst->check_interval(), hst->retry_interval(),
                   hst->max_check_attempts(), hst->check_period(),
-                  hst->get_timezone(), logger)) {
+                  hst->get_timezone(), hst->event_handler(), logger)) {
         ret = e_get_otel_commands_ret::success;
       }
     } else {
@@ -146,7 +146,8 @@ e_get_otel_commands_ret get_otel_commands(
         if (handler(serv->check_command(), cmd_line, serv->name(),
                     serv->host_id(), serv->service_id(), serv->check_interval(),
                     serv->retry_interval(), serv->max_check_attempts(),
-                    serv->check_period(), serv->get_timezone(), logger)) {
+                    serv->check_period(), serv->get_timezone(),
+                    serv->event_handler(), logger)) {
           ret = e_get_otel_commands_ret::success;
         }
       } else {

@@ -104,6 +104,8 @@ message AgentConfiguration {
   string salt = 10;
   // timeperiod definitions referenced by services' check_period_name
   repeated com.centreon.engine.configuration.Timeperiod timeperiods = 11;
+  string global_host_event_handler = 12;
+  string global_service_event_handler = 13;
 }
 
 // Service (poller configuration definition)
@@ -121,6 +123,7 @@ message Service {
   string timezone = 10;
   optional sint32 utc_offset = 11;
   optional bool dst_active = 12;
+  string event_handler = 13;
 }
 
 // message used by engine to make agent do a force check
