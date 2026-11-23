@@ -96,7 +96,7 @@ void engine::unload() {
       // ABSL_LOCKS_EXCLUDED(_kiew_m) on publish().
       std::deque<std::shared_ptr<io::data>> kiew_copy;
       {
-        absl::MutexLock kiew_lck(&instance->_kiew_m);
+        absl::MutexLock kiew_lck(instance->_kiew_m);
         kiew_copy = std::move(instance->_kiew);
       }
       instance->publish(kiew_copy);
@@ -144,7 +144,7 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
  */
 template <typename It>
 bool engine::_enqueue(It first, It last) {
-  absl::MutexLock lck(&_kiew_m);
+  absl::MutexLock lck(_kiew_m);
   switch (_state) {
     case stopped:
       SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event(s) to file",
@@ -305,7 +305,7 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
  */
 void engine::update_write_filter(const muxer* subscriber,
                                  const muxer_filter& filter) {
-  absl::MutexLock lck(&_kiew_m);
+  absl::MutexLock lck(_kiew_m);
   for (auto& m : _muxers) {
     auto w = m.mux.lock();
     if (w && w.get() == subscriber) {
@@ -399,7 +399,7 @@ std::string engine::_cache_file_path() const {
 void engine::_wake_drainer() {
   bool mine = false;
   {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     if (!_draining && !_kiew.empty() && !_muxers.empty()) {
       _draining = true;
       mine = true;
@@ -422,7 +422,7 @@ void engine::_wake_drainer() {
  * the queue, and waiting for it would hang.
  */
 void engine::_wait_drained() {
-  absl::MutexLock lck(&_kiew_m);
+  absl::MutexLock lck(_kiew_m);
   auto drained = [this]() ABSL_NO_THREAD_SAFETY_ANALYSIS {
     return !_draining && (_kiew.empty() || _muxers.empty());
   };
@@ -470,7 +470,7 @@ void engine::_drain() {
     _targets.clear();
 
     {
-      absl::MutexLock lck(&_kiew_m);
+      absl::MutexLock lck(_kiew_m);
       if (_kiew.empty() || _muxers.empty()) {
         _draining = false;
         return;
@@ -558,7 +558,7 @@ void engine::_drain() {
      * batch, and counted in _pending so the next batch waits for it
      * (serialization). nullptr in engine mode → nothing posted. */
     if (sink)
-      asio::post(*_io_context, [this, keep_alive, sink] {
+      asio::post(sink->executor(), [this, keep_alive, sink] {
         sink->on_events(_batch);
         if (_one_done())
           _drain();

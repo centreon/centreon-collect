@@ -19,6 +19,8 @@
 
 #include "com/centreon/broker/broker_notification_dispatcher.hh"
 
+#include <boost/asio/post.hpp>
+
 #include "com/centreon/broker/broker_acknowledgement_manager.hh"
 
 #include "com/centreon/broker/neb/internal.hh"
@@ -30,8 +32,59 @@ namespace notifications = com::centreon::common::notifications;
 
 namespace com::centreon::broker {
 
-broker_notification_dispatcher::broker_notification_dispatcher()
-    : _logger{log_v2::instance().get(log_v2::NOTIFICATIONS)} {}
+broker_notification_dispatcher::broker_notification_dispatcher(
+    boost::asio::io_context& io_context)
+    : _logger{log_v2::instance().get(log_v2::NOTIFICATIONS)},
+      _strand{boost::asio::make_strand(io_context)} {}
+
+/**
+ * @brief Ask for a notification from outside the batch pipeline (an
+ * acknowledgement with notify, a custom notification RPC). The decision runs
+ * on the strand, serialized with the batches, so the caller returns at once.
+ *
+ * @param host_id    The host id.
+ * @param service_id The service id, 0 for a host.
+ * @param reason     The notification reason (acknowledgement, custom, ...).
+ * @param author     The author carried by the notification.
+ * @param comment    The comment carried by the notification.
+ * @param options    broadcast / forced / increment flags.
+ */
+void broker_notification_dispatcher::post_notify(
+    uint64_t host_id,
+    uint64_t service_id,
+    notifications::reason_type reason,
+    const std::string& author,
+    const std::string& comment,
+    notifications::notification_option options) {
+  boost::asio::post(
+      _strand, [host_id, service_id, reason, author, comment, options] {
+        if (!notifications::notification_manager::is_loaded())
+          return;
+        notifications::notification_manager::instance().notify(
+            host_id, service_id, reason, author, comment, options);
+      });
+}
+
+/**
+ * @brief Set the notification number of a resource from outside the batch
+ * pipeline (SET_*_NOTIFICATION_NUMBER). Runs on the strand; the manager then
+ * publishes the new number to the database through its backend.
+ *
+ * @param host_id    The host id.
+ * @param service_id The service id, 0 for a host.
+ * @param number     The new notification number.
+ */
+void broker_notification_dispatcher::post_set_notification_number(
+    uint64_t host_id,
+    uint64_t service_id,
+    uint32_t number) {
+  boost::asio::post(_strand, [host_id, service_id, number] {
+    if (!notifications::notification_manager::is_loaded())
+      return;
+    notifications::notification_manager::instance().set_notification_number(
+        host_id, service_id, number);
+  });
+}
 
 /**
  * @brief Drive the notification decision for a batch of events.

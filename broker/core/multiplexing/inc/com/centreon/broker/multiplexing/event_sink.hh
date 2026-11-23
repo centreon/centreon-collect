@@ -20,6 +20,8 @@
 #ifndef CCB_MULTIPLEXING_EVENT_SINK_HH
 #define CCB_MULTIPLEXING_EVENT_SINK_HH
 
+#include <boost/asio/any_io_executor.hpp>
+
 #include <deque>
 #include <memory>
 
@@ -49,6 +51,15 @@ class event_sink {
    */
   virtual void on_events(
       const std::deque<std::shared_ptr<io::data>>& events) = 0;
+
+  /**
+   * @brief The executor the engine posts on_events() to.
+   *
+   * A sink that is not thread-safe returns a strand: the engine then never
+   * runs two of its batches concurrently, and the sink can post its own
+   * out-of-band work on the same strand to serialize it with the batches.
+   */
+  virtual boost::asio::any_io_executor executor() = 0;
 };
 
 }  // namespace com::centreon::broker::multiplexing

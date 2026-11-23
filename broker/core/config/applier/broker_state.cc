@@ -198,20 +198,22 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
         "notification_mode=broker: notification decision enabled, "
         "notification manager loaded");
 
+    /* Register the notification trigger as an event_sink on the multiplexing
+     * engine: it drives the notification_manager on each host/service status
+     * batch, on its own strand — the manager is not thread-safe, every other
+     * caller posts its work on that strand too. */
+    _notification_dispatcher = std::make_unique<broker_notification_dispatcher>(
+        com::centreon::common::pool::instance().io_context());
+    multiplexing::engine::instance_ptr()->set_notification_sink(
+        _notification_dispatcher.get());
+
     /* Broker is also the acknowledgement authority: Engine is never told about
-     * acknowledgements, Broker stores, exports and clears them itself. */
-    broker_acknowledgement_manager::load();
+     * acknowledgements, Broker stores, exports and clears them itself. Loaded
+     * after the dispatcher it posts its notifications to. */
+    broker_acknowledgement_manager::load(*_notification_dispatcher);
     logger->info(
         "notification_mode=broker: acknowledgement management enabled, "
         "acknowledgement manager loaded");
-
-    /* Register the notification trigger as an event_sink on the multiplexing
-     * engine: it drives the notification_manager on each host/service status
-     * batch. */
-    _notification_dispatcher =
-        std::make_unique<broker_notification_dispatcher>();
-    multiplexing::engine::instance_ptr()->set_notification_sink(
-        _notification_dispatcher.get());
   }
 
   state::apply(s, run_mux);
