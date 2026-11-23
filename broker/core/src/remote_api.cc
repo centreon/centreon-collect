@@ -51,7 +51,8 @@ namespace {
 constexpr size_t chunk_size = 1u << 20;
 constexpr int default_command_timeout_ms = 10000;
 constexpr int max_command_timeout_ms = 30000;
-constexpr time_t deployment_progress_timeout = 30;
+/* Below the 30 s budget of the web, its own overhead included. */
+constexpr time_t deployment_progress_timeout = 20;
 constexpr time_t deployment_keep_duration = 3600;
 
 /* Status names of the HTTP contract. */
