@@ -261,6 +261,18 @@ flowchart TD
   et `SetServiceNotifications(ServiceNotificationsRequest { service, enabled })` de
   **Broker**. L'interrupteur l'emporte sur la valeur configurée et survit aux
   redémarrages de Broker et d'Engine, comme un `MODATTR` retenu côté Engine.
+* **Bascules par contact et timeperiods de notification** : en mode `broker`,
+  `ENABLE/DISABLE_CONTACT_{HOST,SVC}_NOTIFICATIONS` → `SetContactHostNotifications` /
+  `SetContactServiceNotifications(ContactNotificationsRequest { contact { name }, enabled })`,
+  `ENABLE/DISABLE_CONTACTGROUP_{HOST,SVC}_NOTIFICATIONS` → `SetContactgroupHostNotifications` /
+  `SetContactgroupServiceNotifications(ContactgroupNotificationsRequest { contactgroup { name },
+  enabled })` (éclatées sur les membres), `CHANGE_CONTACT_{HOST,SVC}_NOTIFICATION_TIMEPERIOD` →
+  `SetContactHostNotificationPeriod` / `SetContactServiceNotificationPeriod(
+  ContactNotificationPeriodRequest { contact { name }, timeperiod })`,
+  `CHANGE_{HOST,SVC}_NOTIFICATION_TIMEPERIOD` → `SetHostNotificationPeriod` /
+  `SetServiceNotificationPeriod({ host | service, timeperiod })`. Une RPC par commande legacy,
+  contacts et contactgroups désignés par nom, timeperiod inconnue de Broker refusée
+  (`NOT_FOUND`). Mêmes règles de persistance que les bascules par ressource.
 * **Réglages du notifier** : `SET_*_NOTIFICATION_NUMBER` → `SetHostNotificationNumber` /
   `SetServiceNotificationNumber`, `SEND_CUSTOM_*_NOTIFICATION` →
   `SendCustomHostNotification` / `SendCustomServiceNotification` (les options 1/2/4
@@ -359,7 +371,7 @@ En mode historique (`notification_mode = engine`), PHP continue d'appeler les
 | Acquittements                    | `AcknowledgementHostProblem`, `AcknowledgementServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement`                                                                                                                                                                                             | `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` (quand `notification_mode = broker`) |
 | Commentaires                     | `AddHostComment`, `AddServiceComment`, `DeleteComment`, `DeleteAllHostComments`, `DeleteAllServiceComments`                                                                                                                                                                                                            | mêmes noms côté Broker (`HostCommentRequest` / `ServiceCommentRequest` / `CommentIdentifier`), quand `notification_mode = broker` |
 | Contrôles                        | `ProcessHostCheckResult`, `ProcessServiceCheckResult`, `ScheduleHostCheck`, `ScheduleServiceCheck`, `ScheduleHostServiceCheck`                                                                                                                                                                                         | —                                   |
-| Notifications / bascules         | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, …                                                                                                                                                                                                                                 | `SetHostNotifications` (scopes HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN, BEYOND_HOST), `SetServiceNotifications` — quand `notification_mode = broker`, pour les bascules par hôte/service ; les autres restent sur Engine |
+| Notifications / bascules         | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, …                                                                                                                                                                                                                                 | `SetHostNotifications` (scopes HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN, BEYOND_HOST), `SetServiceNotifications`, `SetContact{Host,Service}Notifications`, `SetContactgroup{Host,Service}Notifications`, `SetContact{Host,Service}NotificationPeriod`, `Set{Host,Service}NotificationPeriod` — quand `notification_mode = broker`, pour les bascules par hôte/service/contact/contactgroup et les timeperiods de notification ; les autres restent sur Engine |
 | Changements de variables d'objet | `ChangeHostObjectIntVar`, `ChangeServiceObjectCustomVar`, …                                                                                                                                                                                                                                                            | —                                   |
 
 > La liste des familles de downtime/acquittement qui migreront progressivement vers
