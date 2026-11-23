@@ -414,7 +414,6 @@ set_target_properties(cbd PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(
   cbd PRIVATE
   remote_api
-  centreon_http
   -Wl,--whole-archive
   log_v2
   sql
