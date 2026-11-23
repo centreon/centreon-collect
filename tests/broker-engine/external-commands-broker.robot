@@ -76,8 +76,8 @@ BEEXTBRK2
     ...    Then each is refused with an explicit error and nothing reaches the poller
     ...    When a hostgroup command is sent, or a global command without poller, or on an unknown poller
     ...    Then each is refused with an explicit error
-    ...    When an acknowledgement or a notification switch is sent
-    ...    Then it is refused because Broker owns it in notification_mode=broker, naming the gRPC method to use
+    ...    When a native command is malformed or names an unknown host
+    ...    Then Broker, which executes it itself in notification_mode=broker, refuses it with the conversion or RPC error
     [Tags]    broker    engine    external_commands    broker_external_commands
     Ctn Config Centralized Engine    ${1}    ${5}    ${5}
     Ctn Clear Prot Files
@@ -113,18 +113,20 @@ BEEXTBRK2
     Should Contain    ${err}    unknown service
     ${err}    Ctn Broker Execute External Command    ENABLE_HOSTGROUP_HOST_CHECKS;hostgroup_1
     Should Contain    ${err}    not routed by Broker
-    ${err}    Ctn Broker Execute External Command    DEL_SVC_DOWNTIME;12
-    Should Contain    ${err}    use the DeleteDowntime gRPC method
+    ${err}    Ctn Broker Execute External Command    DEL_HOST_DOWNTIME_FULL;host_1;1;2;1;0;60;admin;c
+    Should Contain    ${err}    has no exact DeleteDowntime counterpart
     ${err}    Ctn Broker Execute External Command    ENABLE_EVENT_HANDLERS
     Should Contain    ${err}    the request must name the poller
     ${err}    Ctn Broker Execute External Command    ENABLE_EVENT_HANDLERS    poller=999
     Should Contain    ${err}    poller 999 is not connected
     ${err}    Ctn Broker Execute External Command    ENABLE_EVENT_HANDLERS    poller=nowhere
     Should Contain    ${err}    unknown poller 'nowhere'
-    ${err}    Ctn Broker Execute External Command    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;1;1;admin;ack
-    Should Contain    ${err}    use the AcknowledgeServiceProblem gRPC method
-    ${err}    Ctn Broker Execute External Command    DISABLE_HOST_NOTIFICATIONS;host_1
-    Should Contain    ${err}    use the SetHostNotifications gRPC method
+    # Natives are executed by Broker itself: an argument error is a conversion
+    # error, a wrong target is the typed RPC's error.
+    ${err}    Ctn Broker Execute External Command    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;1;1;admin
+    Should Contain    ${err}    missing argument 'comment'
+    ${err}    Ctn Broker Execute External Command    DISABLE_HOST_NOTIFICATIONS;host_999
+    Should Contain    ${err}    could not find host
 
     ${content}    Create List    EXTERNAL COMMAND:
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    5
@@ -195,3 +197,81 @@ BEEXTBRK3
     Should Be Empty    ${err}
     ${result}    Ctn Check Service Resource Status With Timeout    host_26    service_501    ${2}    60
     Should Be True    ${result}    Service (host_26, service_501) should be CRITICAL
+
+BEEXTBRK4
+    [Documentation]    Scenario: in notification_mode=broker, Broker executes the legacy natives itself
+    ...    Given a BBDO3 platform with notification_mode=broker and a CRITICAL HARD service
+    ...    When ACKNOWLEDGE_SVC_PROBLEM is sent as a legacy line to ExecuteExternalCommand
+    ...    Then the acknowledgement is stored as if AcknowledgeServiceProblem had been called
+    ...    When SCHEDULE_SVC_DOWNTIME and then DEL_SVC_DOWNTIME are sent as legacy lines
+    ...    Then the downtime appears and disappears in the database
+    ...    When DISABLE_SVC_NOTIFICATIONS is sent as a legacy line
+    ...    Then the service notifications are disabled in the Broker cache and the database
+    [Tags]    broker    engine    external_commands    broker_external_commands    broker_notification
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Ctn Clear Prot Files
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
+    Ctn Clear Db    downtimes
+
+    ${start}    Get Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    ${content}    Create List    acknowledgement management enabled, acknowledgement manager loaded
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not enable its notification_mode=broker services in time
+
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    (1;1) is critical
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (1;1) should be critical HARD
+
+    # 1. Acknowledgement through the legacy line.
+    ${d}    Ctn Get Round Current Date
+    ${err}    Ctn Broker Execute External Command    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;1;1;admin;acked through the legacy line
+    Should Be Empty    ${err}
+    ${content}    Create List    external command ACKNOWLEDGE_SVC_PROBLEM executed by Broker as AcknowledgeServiceProblem
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+    Should Be True    ${result}    Broker should log that it executed the native itself
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
+    Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
+    ${result}    Ctn Check Resource Acknowledged With Timeout    host_1    service_1    ${True}    30
+    Should Be True    ${result}    resources.acknowledged should be set on service (1;1)
+    ${content}    Create List    EXTERNAL COMMAND: ACKNOWLEDGE_SVC_PROBLEM
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    5
+    Should Not Be True    ${result}    The native must not reach the poller
+
+    # 2. Downtime through the legacy lines.
+    ${now}    Ctn Get Round Current Date
+    ${end}    Evaluate    ${now} + 3600
+    ${err}    Ctn Broker Execute External Command    SCHEDULE_SVC_DOWNTIME;host_1;service_1;${now};${end};1;0;3600;admin;legacy downtime
+    Should Be Empty    ${err}
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    ${60}
+    Should Be True    ${result}    Service (1;1) should be in downtime
+    ${result}    Ctn Check Number Of Downtimes    ${1}    ${now}    ${60}
+    Should Be True    ${result}    One downtime should be stored
+    ${dt_id}    Ctn Get Downtime Id    host_1    service_1
+    ${err}    Ctn Broker Execute External Command    DEL_SVC_DOWNTIME;${dt_id}
+    Should Be Empty    ${err}
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0    ${60}
+    Should Be True    ${result}    Service (1;1) should no longer be in downtime
+
+    # 3. Notification switch through the legacy line.
+    ${err}    Ctn Broker Execute External Command    DISABLE_SVC_NOTIFICATIONS;host_1;service_1
+    Should Be Empty    ${err}
+    ${result}    Ctn Check Resource Notifications Enabled With Timeout    host_1    service_1    ${False}    60
+    Should Be True    ${result}    service_1 notifications should be disabled by the legacy line
+    ${err}    Ctn Broker Execute External Command    ENABLE_SVC_NOTIFICATIONS;host_1;service_1
+    Should Be Empty    ${err}
+    ${result}    Ctn Check Resource Notifications Enabled With Timeout    host_1    service_1    ${True}    60
+    Should Be True    ${result}    service_1 notifications should be enabled again
