@@ -1,0 +1,10 @@
+gorgone:
+  modules:
+    - name: action
+      package: "gorgone::modules::core::action::hooks"
+      enable: true
+      command_timeout: 30
+      engine_grpc:
+        enable: true
+        host: 127.0.0.1
+        port: 1

@@ -27,6 +27,7 @@ use warnings;
 use gorgone::standard::library;
 use gorgone::standard::constants qw(:all);
 use gorgone::standard::misc;
+use gorgone::class::engine::grpcsignal;
 use JSON::XS;
 use File::Basename;
 use File::Copy;
@@ -72,6 +73,20 @@ sub new {
     $connector->{engine_childs} = {};
     $connector->{max_concurrent_engine} = defined($connector->{config}->{max_concurrent_engine}) ?
         $connector->{config}->{max_concurrent_engine} : 3;
+
+    # Engine reload/restart over native gRPC instead of shelling out to
+    # systemctl: opt-in, off by default (zero behavior change for RPM/DEB
+    # installs, which don't have centengine's gRPC port reachable at a fixed
+    # local address). Enabled only where legacycmd and centengine are known to
+    # be on the same docker/k8s network under this convention, via
+    # GORGONE__GORGONE__MODULES__ACTION__ENGINE_GRPC__ENABLE (module config
+    # can't be set twice - see 10-create-config.sh's note on 39-action.yaml).
+    $connector->{engine_grpc_enable} = defined($connector->{config}->{engine_grpc}->{enable}) && $connector->{config}->{engine_grpc}->{enable} =~ /true|1/i ?
+        1 : 0;
+    $connector->{engine_grpc_host} = defined($connector->{config}->{engine_grpc}->{host}) && $connector->{config}->{engine_grpc}->{host} ne '' ?
+        $connector->{config}->{engine_grpc}->{host} : 'centengine';
+    $connector->{engine_grpc_port} = defined($connector->{config}->{engine_grpc}->{port}) && $connector->{config}->{engine_grpc}->{port} ne '' ?
+        $connector->{config}->{engine_grpc}->{port} : 50155;
 
     $connector->set_signal_handlers();
     return $connector;
@@ -356,6 +371,29 @@ sub is_command_authorized {
     return 1;
 }
 
+# Recognizes a resolved 'sudo systemctl reload|restart centengine' command
+# (the same shape legacycmd builds from cfg_nagios's engine_*_command
+# columns - see the whitelist regex in whitelist.conf.d/centreon.yaml) and,
+# if engine_grpc.enable is set, returns what's needed to send it as a gRPC
+# SignalProcess call instead: the gRPC method path and the signal_process()
+# options. Pattern-matching the command itself (rather than requiring a
+# caller-supplied field) means this works transparently for every existing
+# caller (legacycmd, the HTTP COMMAND/ACTIONENGINE actions) with no change on
+# their side.
+sub grpc_signal_for_command {
+    my ($self, %options) = @_;
+
+    return if ($self->{engine_grpc_enable} != 1);
+    return if ($options{command} !~ /^sudo\s+(?:\/bin\/|\/usr\/bin\/)?systemctl\s+(reload|restart)\s+centengine(?:\.service)?\s*$/);
+
+    return (
+        path => '/com.centreon.engine.Engine/SignalProcess',
+        host => $self->{engine_grpc_host},
+        port => $self->{engine_grpc_port},
+        signal => $1
+    );
+}
+
 sub action_command {
     my ($self, %options) = @_;
     
@@ -461,14 +499,32 @@ sub action_command {
         }
 
         my $start = time();
-        my ($error, $stdout, $return_code) = gorgone::standard::misc::backtick(
-            command => $command->{command},
-            timeout => (defined($command->{timeout})) ? $command->{timeout} : $self->{command_timeout},
-            no_shell_interpretation => (defined($command->{no_shell_interpretation})) ? $command->{no_shell_interpretation} : undef,
-            wait_exit => 1,
-            redirect_stderr => 1,
-            logger => $self->{logger}
-        );
+        my ($error, $stdout, $return_code);
+        my %grpc = $self->grpc_signal_for_command(command => $command->{command});
+        if (%grpc) {
+            # Engine reload/restart over native gRPC instead of shelling out
+            # (see grpc_signal_for_command()) - mapped onto the same (error,
+            # stdout, return_code) shape backtick() returns so the rest of
+            # this loop's reporting is unchanged either way.
+            my ($status, $message) = gorgone::class::engine::grpcsignal::signal_process(
+                logger => $self->{logger},
+                path => $grpc{path},
+                host => $grpc{host},
+                port => $grpc{port},
+                signal => $grpc{signal},
+                timeout => (defined($command->{timeout})) ? $command->{timeout} : $self->{command_timeout}
+            );
+            ($error, $stdout, $return_code) = $status == -1 ? (-1010, $message, -1) : (0, 'signal sent via gRPC', 0);
+        } else {
+            ($error, $stdout, $return_code) = gorgone::standard::misc::backtick(
+                command => $command->{command},
+                timeout => (defined($command->{timeout})) ? $command->{timeout} : $self->{command_timeout},
+                no_shell_interpretation => (defined($command->{no_shell_interpretation})) ? $command->{no_shell_interpretation} : undef,
+                wait_exit => 1,
+                redirect_stderr => 1,
+                logger => $self->{logger}
+            );
+        }
         my $end = time();
         if ($error <= -1000) {
             $self->send_log(
@@ -709,6 +765,78 @@ sub action_actionengine {
         return -1;
     }
 
+    if (defined($options{data}->{content}->{plugins}) && $options{data}->{content}->{plugins} ne '') {
+        my ($rv, $message) = $self->validate_plugins(file => $options{data}->{content}->{plugins});
+        if ($rv && $self->{paranoid_plugins} == 1) {
+            $self->{logger}->writeLogError("[action] $message");
+            $self->send_log(
+                socket => $options{socket_log},
+                code => GORGONE_ACTION_FINISH_KO,
+                token => $options{token},
+                logging => $options{data}->{logging},
+                data => {
+                    message => $message
+                }
+            );
+            return -1;
+        }
+    }
+
+    # Engine reload/restart over native gRPC: replaces the resolved 'sudo
+    # systemctl reload|restart centengine' command entirely on nodes that
+    # opted in (engine_grpc.enable, see new() and grpc_signal_for_command())
+    # - no shell exec, no whitelist check needed for this case.
+    # Plugins validation above still runs first: the gRPC branch only
+    # replaces the final systemctl exec, not the plugin install step that
+    # used to happen before it on every path.
+    my %grpc = $self->grpc_signal_for_command(command => $options{data}->{content}->{command});
+    if (%grpc) {
+        my $start = time();
+        my ($status, $message) = gorgone::class::engine::grpcsignal::signal_process(
+            logger => $self->{logger},
+            path => $grpc{path},
+            host => $grpc{host},
+            port => $grpc{port},
+            signal => $grpc{signal},
+            timeout => $self->{command_timeout}
+        );
+        my $end = time();
+        if ($status == -1) {
+            $self->{logger}->writeLogError("[action] engine grpc signal failed: $message");
+            $self->send_log(
+                socket => $options{socket_log},
+                code => GORGONE_ACTION_FINISH_KO,
+                token => $options{token},
+                logging => $options{data}->{logging},
+                data => {
+                    message => 'engine grpc signal failed: ' . $message,
+                    metrics => {
+                        start => $start,
+                        end => $end,
+                        duration => $end - $start
+                    }
+                }
+            );
+            return -1;
+        }
+
+        $self->send_log(
+            socket => $options{socket_log},
+            code => GORGONE_ACTION_FINISH_OK,
+            token => $options{token},
+            logging => $options{data}->{logging},
+            data => {
+                message => 'actionengine has finished successfully',
+                metrics => {
+                    start => $start,
+                    end => $end,
+                    duration => $end - $start
+                }
+            }
+        );
+        return 0;
+    }
+
     if ($self->is_command_authorized(command => $options{data}->{content}->{command})) {
         my $commandtolog = $options{data}->{content}->{command};
         unless ($self->{logger}->is_debug()) {
@@ -728,23 +856,6 @@ sub action_actionengine {
             }
         );
         return -1;
-    }
-
-    if (defined($options{data}->{content}->{plugins}) && $options{data}->{content}->{plugins} ne '') {
-        my ($rv, $message) = $self->validate_plugins(file => $options{data}->{content}->{plugins});
-        if ($rv && $self->{paranoid_plugins} == 1) {
-            $self->{logger}->writeLogError("[action] $message");
-            $self->send_log(
-                socket => $options{socket_log},
-                code => GORGONE_ACTION_FINISH_KO,
-                token => $options{token},
-                logging => $options{data}->{logging},
-                data => {
-                    message => $message
-                }
-            );
-            return -1;
-        }
     }
 
     my $start = time();
