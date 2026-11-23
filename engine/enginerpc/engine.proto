@@ -28,6 +28,18 @@ import "process_stat.proto";
 package com.centreon.engine;
 
 service Engine {
+  /*
+   * Command RPCs carrying `option deprecated = true` are the ones PHP must no
+   * longer call directly: with HA, PHP does not know which poller supervises
+   * a resource. The legacy external command line goes to Broker's
+   * `ExecuteExternalCommand` (brokerrpc), which routes it to the owning
+   * poller. Engine still serves them (a warning is logged on the first call
+   * of each, once per run) until PHP has migrated; they will be removed
+   * afterwards.
+   * Observation (`Get*`, stats, logs) and process control (`SignalProcess`,
+   * `ShutdownProgram`, `NewThresholdsFile`) stay on Engine, not deprecated.
+   * See doc/php-evolutions-en.md, "External commands over gRPC".
+   */
   rpc GetProcessStats(google.protobuf.Empty)
       returns (com.centreon.common.pb_process_stat) {}
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
@@ -53,82 +65,178 @@ service Engine {
   rpc GetServiceDependenciesCount(google.protobuf.Empty)
       returns (GenericValue) {}
   rpc GetHostDependenciesCount(google.protobuf.Empty) returns (GenericValue) {}
-  rpc ProcessServiceCheckResult(Check) returns (CommandSuccess) {}
-  rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {}
+  rpc ProcessServiceCheckResult(Check) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc ProcessHostCheckResult(Check) returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc NewThresholdsFile(ThresholdsFile) returns (CommandSuccess) {}
-  rpc AddHostComment(EngineComment) returns (CommandSuccess) {}
-  rpc AddServiceComment(EngineComment) returns (CommandSuccess) {}
-  rpc DeleteComment(GenericValue) returns (CommandSuccess) {}
-  rpc DeleteAllHostComments(NameOrIdIdentifier) returns (CommandSuccess) {}
-  rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {}
-  rpc RemoveHostAcknowledgement(NameOrIdIdentifier) returns (CommandSuccess) {}
+  rpc AddHostComment(EngineComment) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc AddServiceComment(EngineComment) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DeleteComment(GenericValue) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DeleteAllHostComments(NameOrIdIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc RemoveHostAcknowledgement(NameOrIdIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc RemoveServiceAcknowledgement(ServiceIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
   }
   rpc AcknowledgementHostProblem(EngineAcknowledgement)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc AcknowledgementServiceProblem(EngineAcknowledgement)
-      returns (CommandSuccess) {}
-  rpc DeleteDowntime(GenericValue) returns (CommandSuccess) {}
-  rpc DeleteHostDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
-  rpc DeleteServiceDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DeleteDowntime(GenericValue) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DeleteHostDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DeleteServiceDowntimeFull(DowntimeCriterias) returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc DeleteDowntimeByHostName(DowntimeHostIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc DeleteDowntimeByHostGroupName(DowntimeHostGroupIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc DeleteDowntimeByStartTimeComment(DowntimeStartTimeIdentifier)
-      returns (CommandSuccess) {}
-  rpc DelayHostNotification(HostDelayIdentifier) returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DelayHostNotification(HostDelayIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc DelayServiceNotification(ServiceDelayIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ScheduleHostDowntime(ScheduleDowntimeIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ScheduleServiceDowntime(ScheduleDowntimeIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ScheduleHostServicesDowntime(ScheduleDowntimeIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ScheduleHostGroupHostsDowntime(ScheduleDowntimeIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ScheduleHostGroupServicesDowntime(ScheduleDowntimeIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ScheduleServiceGroupHostsDowntime(ScheduleDowntimeIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ScheduleServiceGroupServicesDowntime(ScheduleDowntimeIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ScheduleAndPropagateHostDowntime(ScheduleDowntimeIdentifier)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ScheduleAndPropagateTriggeredHostDowntime(ScheduleDowntimeIdentifier)
-      returns (CommandSuccess) {}
-  rpc ScheduleHostCheck(HostCheckIdentifier) returns (CommandSuccess) {}
-  rpc ScheduleHostServiceCheck(HostCheckIdentifier) returns (CommandSuccess) {}
-  rpc ScheduleServiceCheck(ServiceCheckIdentifier) returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc ScheduleHostCheck(HostCheckIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc ScheduleHostServiceCheck(HostCheckIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc ScheduleServiceCheck(ServiceCheckIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc SignalProcess(EngineSignalProcess) returns (CommandSuccess) {}
-  rpc ChangeHostObjectIntVar(ChangeObjectInt) returns (CommandSuccess) {}
-  rpc ChangeServiceObjectIntVar(ChangeObjectInt) returns (CommandSuccess) {}
+  rpc ChangeHostObjectIntVar(ChangeObjectInt) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc ChangeServiceObjectIntVar(ChangeObjectInt) returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ChangeContactObjectIntVar(ChangeContactObjectInt)
-      returns (CommandSuccess) {}
-  rpc ChangeHostObjectCharVar(ChangeObjectChar) returns (CommandSuccess) {}
-  rpc ChangeServiceObjectCharVar(ChangeObjectChar) returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc ChangeHostObjectCharVar(ChangeObjectChar) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc ChangeServiceObjectCharVar(ChangeObjectChar) returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ChangeContactObjectCharVar(ChangeContactObjectChar)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ChangeHostObjectCustomVar(ChangeObjectCustomVar)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ChangeServiceObjectCustomVar(ChangeObjectCustomVar)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ShutdownProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
   rpc EnableHostAndChildNotifications(NameOrIdIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
   }
   rpc DisableHostAndChildNotifications(NameOrIdIdentifier)
-      returns (CommandSuccess) {}
-  rpc DisableHostNotifications(NameOrIdIdentifier) returns (CommandSuccess) {}
-  rpc EnableHostNotifications(NameOrIdIdentifier) returns (CommandSuccess) {}
-  rpc DisableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
-  rpc EnableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
-  rpc DisableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
-  rpc EnableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DisableHostNotifications(NameOrIdIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc EnableHostNotifications(NameOrIdIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DisableNotifications(google.protobuf.Empty) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc EnableNotifications(google.protobuf.Empty) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc DisableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
+  rpc EnableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {
+    option deprecated = true;
+  }
   rpc ChangeAnomalyDetectionSensitivity(ChangeServiceNumber)
-      returns (CommandSuccess) {}
+      returns (CommandSuccess) {
+    option deprecated = true;
+  }
 
   rpc GetLogInfo(google.protobuf.Empty) returns (LogInfo) {}
   /**
