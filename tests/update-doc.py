@@ -211,11 +211,29 @@ dico = parse_dir('.')
 # Start_Stop_Engine_Broker_${id} become Start_Stop_Engine_Broker_1/2, etc.
 #
 # Lazy behaviour, like test-progress.py: the dry-run result is cached in
-# DRYRUN_CACHE and reused as-is if it already exists. Pass -f/--force to
-# regenerate it, or pass an explicit output.xml path as a positional argument to
+# DRYRUN_CACHE and reused if it already exists and is newer than the generated
+# gRPC Python stubs (resources/**/*_pb2*.py). Pass -f/--force to regenerate it, or pass an explicit output.xml path as a positional argument to
 # use that file instead. On any failure we degrade gracefully and keep the
 # literal (templated) names.
 DRYRUN_CACHE = '/tmp/dryrun-update-doc.xml'
+
+
+def dryrun_cache_stale(path):
+    """Return True when a generated gRPC Python stub (resources/**/*_pb2*.py,
+    produced by init-proto.sh) is newer than the dry-run cache. Robot imports
+    those stubs while dry-running, so an older cache may have been built
+    with a failing import and miss whole suites."""
+    try:
+        cache_mtime = os.path.getmtime(path)
+    except OSError:
+        return True
+    for root, _dirs, files in os.walk('resources'):
+        for f in files:
+            if '_pb2' in f and f.endswith('.py'):
+                if os.path.getmtime(os.path.join(root, f)) > cache_mtime:
+                    return True
+    return False
+
 
 _force = False
 _explicit = None
@@ -231,6 +249,11 @@ if _explicit:
         print(f"Warning: dry-run file '{_explicit}' not found.")
 else:
     _dryrun_xml = DRYRUN_CACHE
+    if not _force and os.path.exists(_dryrun_xml) and \
+            dryrun_cache_stale(_dryrun_xml):
+        print(f"Dry-run cache '{_dryrun_xml}' is older than the generated "
+              f"Python stubs in resources/, regenerating it.")
+        _force = True
     if _force or not os.path.exists(_dryrun_xml) or \
             os.path.getsize(_dryrun_xml) == 0:
         if not generate_dryrun_xml(_dryrun_xml):
