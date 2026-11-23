@@ -1,0 +1,6 @@
+{
+    "filter_rules": [
+        "OS-Linux-SNMP-change-vars"
+    ],
+    "force_rule": 1
+}
