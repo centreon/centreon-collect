@@ -6263,9 +6263,12 @@ requête (`PollerIdentifier`, obligatoire : pas de diffusion implicite d'un
 `RESTART_PROGRAM`). Les groupes ne sont plus émis par PHP et les downtimes /
 commentaires désignés par identifiant restent `UNIMPLEMENTED`. En
 `notification_mode = broker`, les commandes que Broker possède
-(acquittements, downtimes, commentaires, bascules de notification) sont refusées
-`FAILED_PRECONDITION` avec le nom de la RPC typée à utiliser : routées au poller, elles
-seraient silencieusement ignorées par Broker.
+(acquittements, downtimes, commentaires, bascules de notification) sont **exécutées par
+Broker lui-même** : `legacy_commands` convertit les arguments positionnels en requête
+typée et la méthode RPC existante est appelée comme une méthode ordinaire, aucune logique
+métier dupliquée (`broker_impl::_execute_native_command`). Routées au poller, elles
+seraient silencieusement ignorées par Broker. Seules les suppressions de downtime par
+critères, sans RPC typée, restent `UNIMPLEMENTED`.
 
 > Pour le passage des commandes externes à gRPC côté PHP et la règle de routage
 > Engine/Broker selon `notification_mode`, voir

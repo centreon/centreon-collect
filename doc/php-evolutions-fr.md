@@ -324,8 +324,8 @@ l'exécution reste asynchrone, comme avec le tube, mais les refus sont synchrone
 | `INVALID_ARGUMENT`    | commande inconnue ou vide, préfixe d'horodatage malformé, nom d'hôte, de service ou de contact manquant, `poller` absent pour une commande globale ou de processus |
 | `NOT_FOUND`           | hôte, service ou poller inconnu du cache Broker                                              |
 | `UNAVAILABLE`         | le poller visé n'est pas connecté (aucun poller connecté pour une commande de contact)       |
-| `UNIMPLEMENTED`       | commande de groupe, ou downtime / commentaire désigné par identifiant                        |
-| `FAILED_PRECONDITION` | en `notification_mode = broker`, commande que Broker possède : le message nomme la RPC typée à appeler (`AcknowledgeServiceProblem`, `ScheduleDowntime`, `SetHostNotifications`…) |
+| `UNIMPLEMENTED`       | commande de groupe ; hors mode broker, downtime / commentaire désigné par identifiant ; en mode broker, suppression de downtime par critères (`DEL_*_DOWNTIME_FULL`, `DEL_DOWNTIME_BY_*`) |
+| erreur de la RPC typée | en `notification_mode = broker`, commande que Broker possède (acquittement, downtime, commentaire, bascule de notification) : Broker l'exécute lui-même via la RPC typée équivalente et renvoie son statut ; un argument manquant ou non numérique donne `INVALID_ARGUMENT` en nommant le champ |
 
 Routage par cible :
 
@@ -334,6 +334,17 @@ Routage par cible :
 | hôte, service            | le poller qui supervise l'hôte                                     |
 | contact, contactgroup    | tous les pollers connectés (chacun a sa copie des contacts)        |
 | globale, processus       | le poller nommé dans `poller`                                      |
+| native en mode `broker`  | Broker lui-même, via la RPC typée (`ACKNOWLEDGE_SVC_PROBLEM` → `AcknowledgeServiceProblem`, `SCHEDULE_HOST_DOWNTIME` → `ScheduleDowntime`, `DISABLE_HOST_NOTIFICATIONS` → `SetHostNotifications`…) |
+
+**PHP n'a donc plus à connaître `notification_mode`** pour les commandes externes : la
+même ligne legacy est acceptée dans tous les modes, et Broker choisit entre le poller et
+lui-même. Les RPC typées restent l'API structurée, seule à rendre un identifiant
+(`downtime_id`, `internal_id` de commentaire). Deux commandes legacy valent plusieurs
+appels typés et sont éclatées par Broker : `SCHEDULE_HOST_SVC_DOWNTIME` (un downtime par
+service de l'hôte) et `SCHEDULE_AND_PROPAGATE(_TRIGGERED)_HOST_DOWNTIME` (l'hôte et ses
+descendants, déclenchés par le downtime de tête dans la forme `TRIGGERED`).
+`ENABLE/DISABLE_HOST_SVC_NOTIFICATIONS` ne touche que les services, comme chez Engine, et non
+le scope `HOST_AND_SERVICES` qui inclut l'hôte.
 
 **Les identifiants priment sur les noms.** Broker joint à la ligne les `host_id` /
 `service_id` qu'il a résolus, et le poller réécrit le nom d'hôte et la description du
