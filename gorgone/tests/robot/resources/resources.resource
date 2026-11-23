@@ -159,6 +159,7 @@ Setup Gorgone Config
     ...    -e 's/@POLLERID@/2/g'
     ...    -e 's/@RETRY_DELAY_MIN@/5/g'
     ...    -e 's/@RETRY_DELAY_MAX@/20/g'
+    ...    -e 's/@PROXY_PING@/60/g'
     ...    -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g'
     ...    /etc/centreon-gorgone/${gorgone_name}/config.d/*.yaml
 
