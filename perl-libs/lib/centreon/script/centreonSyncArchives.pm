@@ -59,6 +59,9 @@ sub run {
                                         port => $self->{centreon_config}->{db_port},
                                         user => $self->{centreon_config}->{db_user},
                                         password => $self->{centreon_config}->{db_passwd},
+                                        ssl => $self->{centreon_config}->{db_ssl},
+                                        ssl_ca_file => $self->{centreon_config}->{db_ssl_ca},
+                                        ssl_verify => $self->{centreon_config}->{db_ssl_verify},
                                         force => 0,
                                         logger => $self->{logger});
     my ($status, $sth) = $cdb->query("SELECT nagios_server.id, nagios_server.ns_ip_address, nagios_server.ssh_port, cfg_nagios.log_file FROM nagios_server, cfg_nagios

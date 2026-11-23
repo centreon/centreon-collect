@@ -60,6 +60,9 @@ sub run {
                                         port => $self->{centreon_config}->{db_port},
                                         user => $self->{centreon_config}->{db_user},
                                         password => $self->{centreon_config}->{db_passwd},
+                                        ssl => $self->{centreon_config}->{db_ssl},
+                                        ssl_ca_file => $self->{centreon_config}->{db_ssl_ca},
+                                        ssl_verify => $self->{centreon_config}->{db_ssl_verify},
                                         force => 0,
                                         logger => $self->{logger});
     my ($status, $sth) = $cdb->query("SELECT `value` FROM `options` WHERE `key` LIKE 'nagios_path_plugins' LIMIT 1");

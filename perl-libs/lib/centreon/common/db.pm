@@ -48,7 +48,10 @@ sub new {
        password => undef,
        port => 3306,
        force => 0,
-       type => "mysql"
+       type => "mysql",
+       ssl => 0,
+       ssl_ca_file => undef,
+       ssl_verify => 1
       );
     my $self = {%defaults, %options};
     $self->{type} = 'mysql' if (!defined($self->{type}));
@@ -194,11 +197,21 @@ sub connect {
                 { "RaiseError" => 0, "PrintError" => 0, "AutoCommit" => 1, %{$connect_options} }
             );
         } else {
+            # mysql_ssl_optional=1 is required alongside mysql_ssl=1: DBD::mysql
+            # otherwise sets MYSQL_OPT_SSL_ENFORCE, which libmariadb rejects with
+            # "Enforcing SSL encryption is not supported".
+            my $ssl_dsn = "";
+            if ($self->{type} eq 'mysql' && $self->{ssl}) {
+                $ssl_dsn = ";mysql_ssl=1;mysql_ssl_optional=1";
+                $ssl_dsn .= ";mysql_ssl_ca_file=".$self->{ssl_ca_file} if (defined($self->{ssl_ca_file}) && $self->{ssl_ca_file} ne "");
+                $ssl_dsn .= ";mysql_ssl_verify_server_cert=".(!defined($self->{ssl_verify}) || $self->{ssl_verify} ? 1 : 0);
+            }
             $self->{instance} = DBI->connect(
-                "DBI:".$self->{type} 
+                "DBI:".$self->{type}
                     .":".$self->{db}
                     .":".$self->{host}
-                    .":".$self->{port},
+                    .":".$self->{port}
+                    .$ssl_dsn,
                 $self->{user},
                 $self->{password},
                 { "RaiseError" => 0, "PrintError" => 0, "AutoCommit" => 1, %{$connect_options} }
