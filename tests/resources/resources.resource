@@ -211,7 +211,7 @@ Ctn Kindly Stop Broker
                         # We have to check if central RRD logs contain errors about data sent in the past.
                         ${rrdLog_exists}    Run Keyword And Return Status    File Should Exist    ${rrdLog}
                         IF    ${rrdLog_exists}
-                            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+                            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file    regexp=True
                             IF    len("""${result}""") > 0
                                 Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
                                 Ctn Save Logs
@@ -232,7 +232,7 @@ Ctn Kindly Stop Broker
             # stopped before it applied its configuration)
             ${centralLog_exists}    Run Keyword And Return Status    File Should Exist    ${centralLog}
             IF    ${centralLog_exists}
-                ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+                ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0    regexp=True
                 IF    len("""${result}""") > 0
                     Log To Console    The central logs contain errors about metrics with negative IDs.
                     Ctn Save Logs

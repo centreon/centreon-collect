@@ -623,7 +623,7 @@ CBABOODEACTIVATEDSVC
 
     # And only that one: a cache that answered for every service would have
     # taken the KPI of service_302 with it.
-    ${dropped}    Grep File    ${centralLog}    linked to a deactivated service
+    ${dropped}    Grep File    ${centralLog}    linked to a deactivated service    regexp=True
     ${count}    Get Line Count    ${dropped}
     Should Be Equal As Integers    ${count}    ${1}    ${count} KPIs were dropped instead of the one of service_303
 

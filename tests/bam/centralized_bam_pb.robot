@@ -1331,7 +1331,7 @@ CBA_IMPACT_IMPACT
         # The BAM endpoint is updated in place on reload (no destroy/recreate), so
         # the BA state persists in memory and is not restored from cache. Wait for
         # BAM to reprocess the reload before querying the BA again.
-        ${content}    Create List    BAM: loading cache
+        VAR    @{content}    BAM: loading cache
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    Broker did not reprocess BAM after the reload.
 
@@ -1354,18 +1354,18 @@ CBA_DISABLED
     ${start}    Get Current Date
     Ctn Start Broker    newGeneration=True
 
-    ${content}    Create List    bam configuration loaded
+    VAR    @{content}    bam configuration loaded
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling 'bam configuration loaded' should be available.
 
     ${res}    Grep File
     ...    ${centralLog}
-    ...    could not insert relation of BA to timeperiod
+    ...    could not insert relation of BA to timeperiod    regexp=True
     Should Be Empty    ${res}    A mod_bam_reporting_relations_ba_timeperiods error had been found in log
 
     ${res}    Grep File
     ...    ${centralLog}
-    ...    The configured write filters for the endpoint 'centreon-bam-reporting' are too restrictive and will be ignored
+    ...    The configured write filters for the endpoint 'centreon-bam-reporting' are too restrictive and will be ignored    regexp=True
     Should Be Empty    ${res}    A filter error of centreon-bam-reporting had been found in log
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
@@ -1417,6 +1417,13 @@ CBA_SERVICE_PNAME_AFTER_RELOAD
 
 *** Keywords ***
 Ctn BAM Setup
+    [Documentation]    Test setup of the suite. It stops any Broker and Engine left
+    ...    by a previous test, then empties the BAM reporting tables (kpi,
+    ...    timeperiods, BA/timeperiod relations and BA events) so that every test
+    ...    starts from a clean reporting history. The BA events auto-increment is
+    ...    reset to 1 so that the event identifiers expected by the tests are
+    ...    stable. Foreign key checks are disabled during the deletions and
+    ...    restored afterwards.
     Ctn Stop Processes
     Connect To Database    pymysql    ${DBName}    ${DBUserRoot}    ${DBPassRoot}    ${DBHost}    ${DBPort}
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=0
@@ -1429,6 +1436,18 @@ Ctn BAM Setup
     Disconnect From Database
 
 Ctn BAM Init
+    [Documentation]    Prepares a fresh BAM test environment before Broker and Engine
+    ...    are started, in centralized configuration mode. It clears the forced check
+    ...    states, the retention files and the BAM tables, then writes a complete
+    ...    configuration: one centralized Engine poller, the Broker module, central
+    ...    and RRD instances, and the BAM module on the central Broker. The central
+    ...    Broker logs bam and config at trace level and sql at debug level, since
+    ...    the sql trace level writes very long lines that slow down the log searches
+    ...    of the teardown. The services from service_300 to service_309 are made
+    ...    passive so that their active checks cannot alter the BA states during the
+    ...    tests. The Engine configuration is finally cloned into the database, the
+    ...    BAM configuration is added to Engine and Broker is notified of the new
+    ...    Engine configuration.
     Ctn Clear Commands Status
     Ctn Clear Retention
     Ctn Clear Db Conf    mod_bam
@@ -1437,7 +1456,7 @@ Ctn BAM Init
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    bam    trace
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    config    trace
     Ctn Broker Config Source Log    central    1
     Ctn Add Bam Config To Broker    central
