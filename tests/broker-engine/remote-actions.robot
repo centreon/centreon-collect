@@ -85,8 +85,8 @@ BERA4
     ...    (remote_actions_insecure off), when the web posts a command, then the engine executes it.
     [Tags]    broker    engine    remote_actions    tls
     Ctn Config Remote Actions    ${True}    ${False}
-    Ctn Create Key And Certificate    localhost    ${EtcRoot}/centreon-broker/ra-central.key
-    ...    ${EtcRoot}/centreon-broker/ra-central.crt    ${True}
+    Ctn Create Self Signed Server Certificate    localhost    ${EtcRoot}/centreon-broker/ra-central.key
+    ...    ${EtcRoot}/centreon-broker/ra-central.crt
     Ctn Config Remote Actions Tls    ${EtcRoot}/centreon-broker/ra-central.crt
     ...    ${EtcRoot}/centreon-broker/ra-central.key    ${EtcRoot}/centreon-broker/ra-central.crt
     ${start}    Ctn Get Round Current Date
@@ -106,10 +106,10 @@ BERA5
     ...    does not connect and the web gets NOT_CONNECTED for it (remote_actions_insecure off).
     [Tags]    broker    engine    remote_actions    tls
     Ctn Config Remote Actions    ${True}    ${False}
-    Ctn Create Key And Certificate    localhost    ${EtcRoot}/centreon-broker/ra-central.key
-    ...    ${EtcRoot}/centreon-broker/ra-central.crt    ${True}
-    Ctn Create Key And Certificate    localhost    ${EtcRoot}/centreon-broker/ra-rogue.key
-    ...    ${EtcRoot}/centreon-broker/ra-rogue.crt    ${True}
+    Ctn Create Self Signed Server Certificate    localhost    ${EtcRoot}/centreon-broker/ra-central.key
+    ...    ${EtcRoot}/centreon-broker/ra-central.crt
+    Ctn Create Self Signed Server Certificate    localhost    ${EtcRoot}/centreon-broker/ra-rogue.key
+    ...    ${EtcRoot}/centreon-broker/ra-rogue.crt
     Ctn Config Remote Actions Tls    ${EtcRoot}/centreon-broker/ra-rogue.crt
     ...    ${EtcRoot}/centreon-broker/ra-rogue.key    ${EtcRoot}/centreon-broker/ra-central.crt
     ${start}    Ctn Get Round Current Date

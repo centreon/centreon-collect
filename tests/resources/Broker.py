@@ -3735,3 +3735,24 @@ def ctn_config_remote_actions_tls(central_cert: str, central_key: str, poller_ca
 
     _apply_conf("central", central)
     _apply_conf("module0", poller)
+
+
+def ctn_create_self_signed_server_certificate(host: str, key: str, cert: str):
+    """
+    Create a self-signed server certificate with CN and SAN set to host (and
+    IP 127.0.0.1), usable as its own CA by a gRPC client.
+
+    Args:
+        host (str): Name written in CN and SAN.
+        key (str): Path of the private key to write.
+        cert (str): Path of the certificate to write.
+    """
+    os.makedirs(os.path.dirname(key), mode=0o777, exist_ok=True)
+    os.makedirs(os.path.dirname(cert), mode=0o777, exist_ok=True)
+    out = getoutput(
+        f"openssl req -new -newkey rsa:2048 -days 1 -nodes -x509 -keyout {key} -out {cert} "
+        f"-subj '/CN={host}' -addext 'subjectAltName=DNS:{host},IP:127.0.0.1' 2>&1")
+    if not os.path.exists(cert):
+        logger.console(f"certificate creation failed: {out}")
+    os.chmod(key, 0o644)
+    os.chmod(cert, 0o644)
