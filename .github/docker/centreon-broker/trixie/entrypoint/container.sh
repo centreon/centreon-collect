@@ -22,6 +22,9 @@ if [ -n "$APP_SECRET" ] && [ -n "$SALT" ]; then
     echo "Engine secrets written to $ENGINE_CONTEXT"
 fi
 
+# Central PKI for the BBDO gRPC TLS input: generated once, then kept.
+/usr/local/lib/centreon-broker/tls-self-ca.sh
+
 # Find the config path in "$@": refuse to start on the untouched package
 # default (no SQL/storage output, would run but persist nothing), else tail
 # its log file.

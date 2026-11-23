@@ -33,7 +33,10 @@
 #include <absl/strings/match.h>
 #include <absl/strings/str_split.h>
 #include <algorithm>
+#include <openssl/evp.h>
 #include <csignal>
+#include <fstream>
+#include <sstream>
 #include <unistd.h>
 #include <nlohmann/json.hpp>
 
@@ -154,6 +157,7 @@ class api : public std::enable_shared_from_this<api> {
     std::string token;
     std::string public_cert;
     std::string private_key;
+    std::string ca_certificate = "/etc/centreon-broker/certs/ca.crt";
     uint64_t max_body_size = 64u << 20;
   };
 
@@ -220,6 +224,7 @@ class api : public std::enable_shared_from_this<api> {
   void _post_deployment(const json& body, answer_function&& answer);
   json _deployment_json(const deployment& d) const;
   json _pollers_json() const;
+  bool _ca_json(json& out) const;
   void _on_result(uint64_t poller_id, const RemoteResult& r);
   void _on_disconnect(uint64_t poller_id);
   void _start_housekeeping();
@@ -410,6 +415,17 @@ void api::handle(const std::shared_ptr<http::request_type>& request,
 
     if (request->method() == bh::verb::get && target == "/v1/pollers") {
       answer(_response(bh::status::ok, _pollers_json()));
+      return;
+    }
+
+    if (request->method() == bh::verb::get && target == "/v1/ca") {
+      json ca;
+      if (_ca_json(ca))
+        answer(_response(bh::status::ok, ca));
+      else
+        answer(_error(bh::status::not_found, "CA_UNAVAILABLE",
+                      fmt::format("no CA certificate in '{}'",
+                                  _conf.ca_certificate)));
       return;
     }
 
@@ -772,6 +788,45 @@ json api::_deployment_json(const deployment& d) const {
               {"plugins_missing", d.plugins_missing}};
 }
 
+/**
+ * @brief GET /v1/ca: the first certificate of the CA file (public material
+ * only) and the SHA-256 of its DER encoding, as lowercase hex.
+ *
+ * @return false if the file is unreadable or holds no certificate.
+ */
+bool api::_ca_json(json& out) const {
+  constexpr std::string_view begin = "-----BEGIN CERTIFICATE-----";
+  constexpr std::string_view end = "-----END CERTIFICATE-----";
+  std::ifstream f(_conf.ca_certificate);
+  if (!f)
+    return false;
+  std::stringstream ss;
+  ss << f.rdbuf();
+  const std::string content = ss.str();
+  size_t b = content.find(begin);
+  if (b == std::string::npos)
+    return false;
+  size_t e = content.find(end, b + begin.size());
+  if (e == std::string::npos)
+    return false;
+  std::string body;
+  for (size_t i = b + begin.size(); i < e; ++i)
+    if (!absl::ascii_isspace(static_cast<unsigned char>(content[i])))
+      body.push_back(content[i]);
+  std::string der;
+  if (!absl::Base64Unescape(body, &der) || der.empty())
+    return false;
+  unsigned char hash[EVP_MAX_MD_SIZE];
+  unsigned int size = 0;
+  if (!EVP_Digest(der.data(), der.size(), hash, &size, EVP_sha256(), nullptr))
+    return false;
+  out = json{{"pem", content.substr(b, e + end.size() - b) + "\n"},
+             {"fingerprint_sha256",
+              absl::BytesToHexString(std::string_view(
+                  reinterpret_cast<const char*>(hash), size))}};
+  return true;
+}
+
 json api::_pollers_json() const {
   json pollers = json::array();
   auto channels = bbdo::remote_registry::instance().list();
@@ -987,6 +1042,8 @@ bool remote_api::load(const std::map<std::string, std::string>& params) {
       throw std::invalid_argument("remote_api: a token is mandatory");
     c.public_cert = get("public_cert");
     c.private_key = get("private_key");
+    if (!get("ca_certificate").empty())
+      c.ca_certificate = get("ca_certificate");
     if (!get("max_body_size").empty() &&
         !absl::SimpleAtoi(get("max_body_size"), &c.max_body_size))
       throw std::invalid_argument("remote_api: invalid max_body_size");

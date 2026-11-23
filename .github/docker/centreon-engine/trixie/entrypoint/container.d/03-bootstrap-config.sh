@@ -12,7 +12,9 @@
 #
 # Env: CENTRAL_BROKER_HOST, CENTRAL_BROKER_PORT (5669), POLLER_NAME, POLLER_ID,
 # POLLER_UID, BROKER_CA_CERT (/etc/centreon-broker/certs/ca.crt),
-# BROKER_TLS_HOSTNAME (default CENTRAL_BROKER_HOST).
+# BROKER_TLS_HOSTNAME (default CENTRAL_BROKER_HOST), BROKER_CA_PEM (CA content,
+# written to BROKER_CA_CERT if absent), BROKER_CA_FINGERPRINT (SHA-256 of the
+# CA DER, fail closed on mismatch).
 
 ENGINE_DIR="/etc/centreon-engine"
 BROKER_DIR="/etc/centreon-broker"
@@ -35,6 +37,35 @@ BROKER_TLS_HOSTNAME="${BROKER_TLS_HOSTNAME:-$CENTRAL_BROKER_HOST}"
 MODULE_CFG="$BROKER_DIR/${POLLER_NAME}-module.json"
 MODULES_DIR="/usr/lib64/centreon-engine"
 [ -d "$MODULES_DIR" ] || MODULES_DIR="/usr/lib/centreon-engine"
+
+# CA handed out by the poller creation API (contracts.md §8.3): written only
+# if no CA file exists (an operator file wins).
+if [ -n "${BROKER_CA_PEM:-}" ]; then
+    if [ ! -f "$BROKER_CA_CERT" ]; then
+        mkdir -p "$(dirname "$BROKER_CA_CERT")"
+        printf '%s\n' "$BROKER_CA_PEM" > "$BROKER_CA_CERT"
+        chmod 0644 "$BROKER_CA_CERT"
+        echo "bootstrap: CA written to $BROKER_CA_CERT from BROKER_CA_PEM"
+    elif [ "$(cat "$BROKER_CA_CERT")" != "$(printf '%s' "$BROKER_CA_PEM")" ]; then
+        echo "bootstrap: WARNING: $BROKER_CA_CERT exists and differs from" \
+             "BROKER_CA_PEM, keeping the file"
+    fi
+fi
+
+# Optional pin of the CA actually used: SHA-256 of the DER of its first
+# certificate. Fail closed on mismatch.
+if [ -n "${BROKER_CA_FINGERPRINT:-}" ]; then
+    want=$(printf '%s' "$BROKER_CA_FINGERPRINT" | tr -d ': ' | tr 'A-F' 'a-f')
+    got=$(awk '/-----BEGIN CERTIFICATE-----/{p=1;next} /-----END CERTIFICATE-----/{if(p)exit} p' \
+              "$BROKER_CA_CERT" 2>/dev/null | tr -d ' \r\n' | base64 -d 2>/dev/null \
+          | sha256sum | cut -d' ' -f1)
+    if [ ! -r "$BROKER_CA_CERT" ] || [ "$got" != "$want" ]; then
+        echo "bootstrap: ERROR: CA fingerprint mismatch for $BROKER_CA_CERT" \
+             "(expected $want, got ${got:-none}), refusing to start" >&2
+        exit 1
+    fi
+    echo "bootstrap: CA fingerprint verified ($want)"
+fi
 
 if [ ! -r "$BROKER_CA_CERT" ]; then
     echo "bootstrap: WARNING: CA certificate $BROKER_CA_CERT not readable," \

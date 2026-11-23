@@ -95,13 +95,15 @@ apt-get install -y --no-install-recommends \
     libssh2-1t64 \
     libcurl4t64 \
     zlib1g \
-    ca-certificates
+    ca-certificates \
+    openssl
 rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/* /var/cache/apt/* /var/log/*
 EOF
 
 # Create directory structure
 RUN bash -e <<EOF
 mkdir -p /etc/centreon-broker \
+         /etc/centreon-broker/certs \
          /var/lib/centreon-broker \
          /var/log/centreon-broker \
          /usr/share/centreon/lib/centreon-broker \
@@ -117,6 +119,9 @@ chmod 775 /etc/centreon-broker \
           /var/log/centreon-broker \
           /usr/share/centreon-broker \
           /usr/share/centreon-broker/lua
+# Self-generated PKI (tls-self-ca.sh): keys 0600, directory readable by the
+# central engine that mounts the same volume to read ca.crt.
+chmod 0755 /etc/centreon-broker/certs
 chmod 0755 /var/spool/centreon
 chmod 0755 /var/lib/centreon-engine
 chmod 0755 /var/lib/centreon-gorgone

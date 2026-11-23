@@ -3608,7 +3608,7 @@ def ctn_broker_get_bbdo_version():
             return "2.0.0"
 
 
-def ctn_broker_config_remote_api(name: str, port: int = 8099, token: str = "robot-token"):
+def ctn_broker_config_remote_api(name: str, port: int = 8099, token: str = "robot-token", ca_certificate: str = ""):
     """
     Enable the remote API (downstream commands and configuration, gorgone-less
     PoC) on a broker instance, listening on 127.0.0.1.
@@ -3617,13 +3617,33 @@ def ctn_broker_config_remote_api(name: str, port: int = 8099, token: str = "robo
         name (str): Which broker instance: central, rrd or module%d.
         port (int): Listening port.
         token (str): Bearer token.
+        ca_certificate (str): CA file served by GET /v1/ca (default path if empty).
 
     *Example:*
 
     | Ctn Broker Config Remote Api | central | 8099 | robot-token |
     """
-    ctn_broker_config_add_item(name, "remote_api", {
-        "listen_address": "127.0.0.1", "port": str(port), "token": token})
+    conf = {"listen_address": "127.0.0.1", "port": str(port), "token": token}
+    if ca_certificate:
+        conf["ca_certificate"] = ca_certificate
+    ctn_broker_config_add_item(name, "remote_api", conf)
+
+
+def ctn_certificate_fingerprint_sha256(cert: str):
+    """
+    SHA-256 of the DER encoding of the first certificate of a PEM file, as
+    lowercase hex (the fingerprint of cbd GET /v1/ca).
+
+    Args:
+        cert (str): Path of the PEM file.
+    """
+    import hashlib
+    import ssl
+    with open(cert) as f:
+        pem = f.read()
+    end = "-----END CERTIFICATE-----"
+    first = pem[pem.index("-----BEGIN CERTIFICATE-----"):pem.index(end) + len(end)]
+    return hashlib.sha256(ssl.PEM_cert_to_DER_cert(first)).hexdigest()
 
 
 def ctn_remote_api_request(method: str, path: str, body=None, token: str = "robot-token", port: int = 8099, timeout: int = 40):

@@ -124,6 +124,31 @@ BERA5
     Should Be Equal As Integers    ${code}    200
     Should Be Equal As Strings    ${answer}[items][0][status]    NOT_CONNECTED
 
+BERA6
+    [Documentation]    Given the central remote API, when the web asks GET /v1/ca, then it gets 404 CA_UNAVAILABLE
+    ...    while the CA file is missing, then the CA PEM and the SHA-256 of its DER once the file exists.
+    [Tags]    broker    remote_actions    tls
+    Ctn Config Remote Actions    ${True}
+    Remove File    ${EtcRoot}/centreon-broker/ra-ca.crt
+    Ctn Broker Config Remote Api    central    ca_certificate=${EtcRoot}/centreon-broker/ra-ca.crt
+    Ctn Start Broker
+    FOR    ${i}    IN RANGE    30
+        ${code}    ${answer}    Ctn Remote Api Request    GET    /v1/ca
+        IF    ${code} != 0    BREAK
+        Sleep    1s
+    END
+    Should Be Equal As Integers    ${code}    404
+    Should Be Equal As Strings    ${answer}[status]    CA_UNAVAILABLE
+
+    Ctn Create Self Signed Server Certificate    localhost    ${EtcRoot}/centreon-broker/ra-ca.key
+    ...    ${EtcRoot}/centreon-broker/ra-ca.crt
+    ${code}    ${answer}    Ctn Remote Api Request    GET    /v1/ca
+    Should Be Equal As Integers    ${code}    200
+    ${expected}    Ctn Certificate Fingerprint Sha256    ${EtcRoot}/centreon-broker/ra-ca.crt
+    Should Be Equal As Strings    ${answer}[fingerprint_sha256]    ${expected}
+    Should Start With    ${answer}[pem]    -----BEGIN CERTIFICATE-----
+    Should Not Contain    ${answer}[pem]    PRIVATE KEY
+
 
 *** Keywords ***
 Ctn Config Remote Actions
