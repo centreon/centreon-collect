@@ -18,6 +18,8 @@
  */
 
 #include "com/centreon/broker/broker_impl.hh"
+#include <csignal>
+#include <unistd.h>
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/support/status.h>
 
@@ -450,5 +452,30 @@ grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
     peer->mutable_connected_since()->set_seconds(p.connected_since);
     peer->set_type(p.peer_type);
   }
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Send cbd the same signal main.cc's asio signal_set already handles
+ * (RELOAD -> SIGHUP, config reload in place; SHUTDOWN -> SIGTERM, clean
+ * stop), so this RPC behaves exactly like sending that real OS signal
+ * instead of duplicating the reload/shutdown logic here.
+ *
+ * @param context gRPC context
+ * @param request BrokerSignalProcess, the signal to send.
+ * @param response unused
+ *
+ * @return Status::OK
+ */
+grpc::Status broker_impl::SignalProcess(grpc::ServerContext* context
+                                        [[maybe_unused]],
+                                        const BrokerSignalProcess* request,
+                                        ::google::protobuf::Empty* response
+                                        [[maybe_unused]]) {
+  int signo = request->process() == BrokerSignalProcess::SHUTDOWN
+                  ? SIGTERM
+                  : SIGHUP;
+  if (kill(getpid(), signo) != 0)
+    return grpc::Status(grpc::StatusCode::INTERNAL, "failed to signal cbd");
   return grpc::Status::OK;
 }
