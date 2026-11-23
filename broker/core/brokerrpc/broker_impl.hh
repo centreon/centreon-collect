@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2024 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -191,6 +191,22 @@ class broker_impl final : public Broker::Service {
   grpc::Status DeleteDowntime(grpc::ServerContext* context,
                               const GenericNameOrIndex* request,
                               ::google::protobuf::Empty* response) override;
+  grpc::Status AcknowledgeHostProblem(
+      grpc::ServerContext* context,
+      const AcknowledgementRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status AcknowledgeServiceProblem(
+      grpc::ServerContext* context,
+      const AcknowledgementRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status RemoveHostAcknowledgement(
+      grpc::ServerContext* context,
+      const HostIdentifier* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status RemoveServiceAcknowledgement(
+      grpc::ServerContext* context,
+      const ServiceIdentifier* request,
+      ::google::protobuf::Empty* response) override;
   grpc::Status CheckPollerConfig(grpc::ServerContext* context,
                                  const CheckPollerConfigRequest* request,
                                  CheckPollerConfigResponse* response) override;

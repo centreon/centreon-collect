@@ -411,7 +411,8 @@ TEST_F(BrokerNotificationCallbacksTest, ContactsReferenceCountedPerPoller) {
   merge_shared(1);
   merge_shared(2);
 
-  /* Poller 1 leaves: the shared contact/group is still referenced by poller 2. */
+  /* Poller 1 leaves: the shared contact/group is still referenced by poller 2.
+   */
   _cache->remove_instance(1);
   EXPECT_TRUE(_cache->contact_config("shared").has_value());
   EXPECT_FALSE(_cache->contactgroup_members("grp").empty());
@@ -474,7 +475,8 @@ TEST_F(BrokerNotificationCallbacksTest, ResourceContactsResolvedFromState) {
 
   _cache->merge(st);
 
-  /* Host: direct John_Doe + group members {Jane_Doe, John_Doe}, deduplicated. */
+  /* Host: direct John_Doe + group members {Jane_Doe, John_Doe}, deduplicated.
+   */
   EXPECT_EQ(_cache->notification_contact_names(1, 0),
             (absl::flat_hash_set<std::string>{"Jane_Doe", "John_Doe"}));
 
@@ -597,7 +599,8 @@ TEST_F(BrokerNotificationCallbacksTest, EscalationServiceSelection) {
   const std::time_t now = std::time(nullptr);
 
   /* Notif 2, CRITICAL: only the first escalation is in range. */
-  auto r2 = _cache->notification_escalation(1, 5, Service::CRITICAL, 2, "", now);
+  auto r2 =
+      _cache->notification_escalation(1, 5, Service::CRITICAL, 2, "", now);
   EXPECT_TRUE(r2.escalated);
   EXPECT_EQ(r2.notification_interval, 10u);
   EXPECT_EQ(r2.contact_names,
@@ -605,7 +608,8 @@ TEST_F(BrokerNotificationCallbacksTest, EscalationServiceSelection) {
 
   /* Notif 3, CRITICAL: both escalations viable -> union of contacts and the
    * smallest interval (7). */
-  auto r3 = _cache->notification_escalation(1, 5, Service::CRITICAL, 3, "", now);
+  auto r3 =
+      _cache->notification_escalation(1, 5, Service::CRITICAL, 3, "", now);
   EXPECT_TRUE(r3.escalated);
   EXPECT_EQ(r3.notification_interval, 7u);
   EXPECT_EQ(r3.contact_names,
@@ -749,10 +753,10 @@ TEST_F(BrokerNotificationDeliverTest, DispatchesNotificationExecute) {
 TEST_F(BrokerNotificationDeliverTest, ContactFilteredOutNotDispatched) {
   merge_service_with_contact(_cache, /*enabled=*/false);
 
-  notifications::delivery_result res = _cb->deliver(
-      1, 5, notifications::cat_acknowledgement,
-      notifications::reason_acknowledgement, 1, 1, "admin", "msg",
-      notifications::notification_option_none);
+  notifications::delivery_result res =
+      _cb->deliver(1, 5, notifications::cat_acknowledgement,
+                   notifications::reason_acknowledgement, 1, 1, "admin", "msg",
+                   notifications::notification_option_none);
 
   EXPECT_TRUE(res.notified_contacts.empty());
   EXPECT_FALSE(pop_one(7));
@@ -763,10 +767,9 @@ TEST_F(BrokerNotificationDeliverTest, ContactFilteredOutNotDispatched) {
  * event is published and no contact is reported as notified.
  */
 TEST_F(BrokerNotificationDeliverTest, UnknownHostDropped) {
-  notifications::delivery_result res =
-      _cb->deliver(999, 0, notifications::cat_normal, notifications::reason_normal,
-                   1, 1, "admin", "msg",
-                   notifications::notification_option_none);
+  notifications::delivery_result res = _cb->deliver(
+      999, 0, notifications::cat_normal, notifications::reason_normal, 1, 1,
+      "admin", "msg", notifications::notification_option_none);
 
   EXPECT_TRUE(res.notified_contacts.empty());
   /* Nothing was queued for any poller (the resource has no supervisor). */
@@ -784,7 +787,8 @@ TEST_F(BrokerNotificationDeliverTest, EscalationContactsTakeOver) {
   cfg::State st;
   st.set_poller_id(7);
   /* A direct contact on the service and a distinct escalation contact. Both
-   * accept acknowledgement notifications (permissive category, as elsewhere). */
+   * accept acknowledgement notifications (permissive category, as elsewhere).
+   */
   auto* c1 = st.mutable_contacts()->Add();
   c1->set_contact_name("direct");
   c1->set_service_notifications_enabled(true);
@@ -827,10 +831,10 @@ TEST_F(BrokerNotificationDeliverTest, EscalationContactsTakeOver) {
   _cache->publish(svc);
 
   /* Notification number 3 >= first_notification 2: the escalation is viable. */
-  notifications::delivery_result res = _cb->deliver(
-      1, 5, notifications::cat_acknowledgement,
-      notifications::reason_acknowledgement, 42, 3, "admin", "msg",
-      notifications::notification_option_none);
+  notifications::delivery_result res =
+      _cb->deliver(1, 5, notifications::cat_acknowledgement,
+                   notifications::reason_acknowledgement, 42, 3, "admin", "msg",
+                   notifications::notification_option_none);
 
   EXPECT_TRUE(res.escalated);
   /* Only the escalation contact, not the resource's direct contact. */
@@ -843,4 +847,99 @@ TEST_F(BrokerNotificationDeliverTest, EscalationContactsTakeOver) {
   EXPECT_TRUE(n.escalated());
   ASSERT_EQ(n.contacts_size(), 1);
   EXPECT_EQ(n.contacts(0), "escal");
+}
+
+/**
+ * @brief notification_mode=broker: Broker owns the acknowledgements. A status
+ * coming from Engine (which always reports NONE in that mode) must not clear
+ * the acknowledgement type set by Broker on the cached service, and get_state()
+ * must report the resource as acknowledged.
+ */
+TEST_F(BrokerNotificationDeliverTest, EngineStatusKeepsBrokerAcknowledgement) {
+  merge_service_with_contact(_cache, true);
+
+  auto closed = _cache->set_acknowledgement_type(1, 5, AckType::STICKY);
+  ASSERT_EQ(closed, nullptr);
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(),
+            AckType::STICKY);
+  ASSERT_TRUE(_cb->get_state(1, 5).acknowledged);
+
+  auto status = std::make_shared<neb::pb_service_status>();
+  auto& o = status->mut_obj();
+  o.set_host_id(1);
+  o.set_service_id(5);
+  o.set_state(ServiceStatus::CRITICAL);
+  o.set_state_type(ServiceStatus::HARD);
+  o.set_acknowledgement_type(AckType::NONE);
+  _cache->update_service(status);
+
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(),
+            AckType::STICKY);
+  ASSERT_TRUE(_cb->get_state(1, 5).acknowledged);
+  ASSERT_EQ(_cache->service(1, 5)->obj().state(), Service::CRITICAL);
+}
+
+/**
+ * @brief set_acknowledgement_type(NONE) applies the closing rule with the
+ * given state: an explicit removal while the problem persists closes the
+ * acknowledgement (deletion_time set, returned for publication), a recovery
+ * only drops it from the cache, like Engine mode.
+ */
+TEST_F(BrokerNotificationDeliverTest, AcknowledgementClosingRule) {
+  merge_service_with_contact(_cache, true);
+
+  auto make_ack = [] {
+    auto ack = std::make_shared<neb::pb_acknowledgement>();
+    auto& a = ack->mut_obj();
+    a.set_host_id(1);
+    a.set_service_id(5);
+    a.set_sticky(true);
+    a.set_state(2);
+    a.set_entry_time(1000);
+    a.set_comment_id(42);
+    return ack;
+  };
+
+  /* Explicit removal: closed and returned. */
+  _cache->update_acknowledgement(make_ack());
+  _cache->set_acknowledgement_type(1, 5, AckType::STICKY);
+  ASSERT_NE(_cache->acknowledgement(1, 5), nullptr);
+  auto closed = _cache->set_acknowledgement_type(1, 5, AckType::NONE, 2);
+  ASSERT_NE(closed, nullptr);
+  ASSERT_NE(closed->obj().deletion_time(), 0u);
+  ASSERT_EQ(closed->obj().comment_id(), 42u);
+  ASSERT_EQ(_cache->acknowledgement(1, 5), nullptr);
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(), AckType::NONE);
+
+  /* Recovery: dropped from the cache, nothing to publish. */
+  _cache->update_acknowledgement(make_ack());
+  _cache->set_acknowledgement_type(1, 5, AckType::STICKY);
+  closed = _cache->set_acknowledgement_type(1, 5, AckType::NONE, 0);
+  ASSERT_EQ(closed, nullptr);
+  ASSERT_EQ(_cache->acknowledgement(1, 5), nullptr);
+  ASSERT_FALSE(_cb->get_state(1, 5).acknowledged);
+}
+
+/**
+ * @brief After a restart the cached resources are rebuilt with type NONE while
+ * the acknowledgements survive: reinject_pending_acknowledgements() restores
+ * the flag on them (broker mode only).
+ */
+TEST_F(BrokerNotificationDeliverTest, ReinjectPendingAcknowledgements) {
+  merge_service_with_contact(_cache, true);
+
+  auto ack = std::make_shared<neb::pb_acknowledgement>();
+  auto& a = ack->mut_obj();
+  a.set_host_id(1);
+  a.set_service_id(5);
+  a.set_sticky(false);
+  a.set_state(2);
+  a.set_entry_time(1000);
+  _cache->update_acknowledgement(ack);
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(), AckType::NONE);
+
+  _cache->reinject_pending_acknowledgements();
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(),
+            AckType::NORMAL);
+  ASSERT_TRUE(_cb->get_state(1, 5).acknowledged);
 }

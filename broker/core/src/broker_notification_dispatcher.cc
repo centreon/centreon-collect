@@ -19,6 +19,8 @@
 
 #include "com/centreon/broker/broker_notification_dispatcher.hh"
 
+#include "com/centreon/broker/broker_acknowledgement_manager.hh"
+
 #include "com/centreon/broker/neb/internal.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/notifications/notification_manager.hh"
@@ -51,6 +53,9 @@ void broker_notification_dispatcher::on_events(
       case neb::pb_service_status::static_type(): {
         const ServiceStatus& s =
             std::static_pointer_cast<neb::pb_service_status>(e)->obj();
+        if (broker_acknowledgement_manager::is_loaded())
+          broker_acknowledgement_manager::instance().clear_on_state_change(
+              s.host_id(), s.service_id(), s.state());
         if (s.state_type() != ServiceStatus::HARD)
           break;
         notifications::reason_type reason = s.state() == ServiceStatus::OK
@@ -62,6 +67,9 @@ void broker_notification_dispatcher::on_events(
       case neb::pb_host_status::static_type(): {
         const HostStatus& h =
             std::static_pointer_cast<neb::pb_host_status>(e)->obj();
+        if (broker_acknowledgement_manager::is_loaded())
+          broker_acknowledgement_manager::instance().clear_on_state_change(
+              h.host_id(), 0, h.state());
         if (h.state_type() != HostStatus::HARD)
           break;
         notifications::reason_type reason = h.state() == HostStatus::UP
