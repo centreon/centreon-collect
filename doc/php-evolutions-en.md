@@ -253,6 +253,12 @@ flowchart TD
   scope })` and `SetServiceNotifications(ServiceNotificationsRequest { service,
   enabled })`. The switch wins over the configured value and survives Broker and
   Engine restarts, like a retained `MODATTR` on the Engine side.
+* **Notifier settings**: `SET_*_NOTIFICATION_NUMBER` → `SetHostNotificationNumber` /
+  `SetServiceNotificationNumber`, `SEND_CUSTOM_*_NOTIFICATION` →
+  `SendCustomHostNotification` / `SendCustomServiceNotification` (option bits 1/2/4
+  become three booleans `broadcast`, `forced`, `increment`). These calls are applied
+  asynchronously, like the pipe. `DELAY_*_NOTIFICATION` has no counterpart: the command
+  has no effect on the decision, neither on Engine nor on Broker.
 * **All other commands** (check results, global or per-contact notification
   toggles, object variable changes, forced checks…) always go to **Engine**.
 
