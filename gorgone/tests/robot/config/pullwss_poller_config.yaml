@@ -10,3 +10,5 @@ gorgone:
       token: "secret_token"
       address: 127.0.0.1
       ping: 1
+      retry_delay_min: @RETRY_DELAY_MIN@
+      retry_delay_max: @RETRY_DELAY_MAX@

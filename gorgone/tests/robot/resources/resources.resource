@@ -157,6 +157,8 @@ Setup Gorgone Config
     ...    -e 's/@DBUSER@/${DBUSER}/g'
     ...    -e 's/@PULLWSS_PORT@/${Ccom_port}/g'
     ...    -e 's/@POLLERID@/2/g'
+    ...    -e 's/@RETRY_DELAY_MIN@/5/g'
+    ...    -e 's/@RETRY_DELAY_MAX@/20/g'
     ...    -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g'
     ...    /etc/centreon-gorgone/${gorgone_name}/config.d/*.yaml
 
