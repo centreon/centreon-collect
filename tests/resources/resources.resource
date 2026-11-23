@@ -718,6 +718,12 @@ Ctn Wait For Engine To Be Ready
         ...    ${pipe_ready}
         ...    The engine external command pipe config${i}/rw/centengine.cmd should be a FIFO open for reading.
     END
+    # In broker external command mode, Broker resolves the commands from its
+    # cache: wait for the pollers' initial dump to be there (no-op otherwise).
+    ${cache_ready}    Ctn Wait For Broker Cache Knows Engine    ${nbEngine}
+    Should Be True
+    ...    ${cache_ready}
+    ...    The Broker cache should know the hosts and services of the Engine configurations.
 
 Ctn Push Configuration Per Poller And Wait
     [Documentation]    Announce the configuration of each poller with its own

@@ -3625,6 +3625,97 @@ def ctn_send_external_command(*commands, config: int = 0, port: int = 51001):
                 f.write(line + "\n")
 
 
+def _engine_cfg_object_ids(config: int):
+    """
+    Read the host ids and the (host_id, service_id) pairs defined in the
+    legacy configuration files of an Engine config index.
+
+    Args:
+        config (int): The Engine config index.
+
+    Returns:
+        A tuple (set of host ids, set of (host_id, service_id) pairs); both are
+        empty when the files do not exist.
+    """
+    block_re = re.compile(r"define\s+(host|service)\s*\{(.*?)\}", re.S)
+    hosts = {}
+    services = []
+    for name in ("hosts.cfg", "services.cfg"):
+        path = f"{ETC_ROOT}/centreon-engine/config{config}/{name}"
+        if not exists(path):
+            continue
+        with open(path) as f:
+            content = f.read()
+        for kind, body in block_re.findall(content):
+            fields = {}
+            for line in body.splitlines():
+                parts = line.split(None, 1)
+                if len(parts) == 2:
+                    fields[parts[0]] = parts[1].strip()
+            if kind == "host" and "_HOST_ID" in fields:
+                hosts[fields.get("host_name")] = int(fields["_HOST_ID"])
+            elif kind == "service" and "_SERVICE_ID" in fields:
+                services.append(
+                    (fields.get("host_name"), int(fields["_SERVICE_ID"])))
+    pairs = {(hosts[h], s) for h, s in services if h in hosts}
+    return set(hosts.values()), pairs
+
+
+def ctn_wait_for_broker_cache_knows_engine(nb_engine: int = 1, port: int = 51001, timeout: int = 60, always: bool = False):
+    """
+    In broker external command mode (see `Ctn Set External Command Mode`),
+    wait until the Broker cache knows every host and service of the Engine
+    legacy configurations. Broker resolves a command from its cache: a command
+    sent before the poller's initial dump reached it is answered NOT_FOUND,
+    whereas the command pipe just waits for Engine. Does nothing in pipe mode,
+    unless always is set (a test calling Broker's RPC directly).
+
+    Args:
+        nb_engine (int): The number of Engine config indexes to check.
+        port (int): The Broker gRPC port (default 51001).
+        timeout (int): The timeout in seconds (default 60).
+        always (bool): Wait whatever the external command mode (default False).
+
+    Returns:
+        True when the cache knows them all (or in pipe mode), False otherwise.
+
+    *Example:*
+
+    | ${result} | Ctn Wait For Broker Cache Knows Engine | ${1} |
+    """
+    if not always and _external_command_mode() != "broker":
+        return True
+    host_ids = set()
+    pairs = set()
+    for i in range(int(nb_engine)):
+        h, p = _engine_cfg_object_ids(i)
+        host_ids |= h
+        pairs |= p
+    if not host_ids and not pairs:
+        return True
+    limit = time.time() + int(timeout)
+    missing_hosts = host_ids
+    missing_pairs = pairs
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        while time.time() < limit:
+            try:
+                known_hosts = set(stub.GetHostIds(
+                    empty_pb2.Empty(), timeout=5).ids)
+                known_pairs = {(p.host_id, p.service_id) for p in stub.GetServiceIds(
+                    empty_pb2.Empty(), timeout=5).pairs}
+                missing_hosts = host_ids - known_hosts
+                missing_pairs = pairs - known_pairs
+                if not missing_hosts and not missing_pairs:
+                    return True
+            except grpc.RpcError as e:
+                logger.console(f"Broker cache not readable yet ({e.code()})")
+            time.sleep(0.5)
+    logger.console(
+        f"Broker cache still misses {len(missing_hosts)} hosts and {len(missing_pairs)} services")
+    return False
+
+
 def _config_index_of_pipe(pipe: str) -> int:
     """Return the Engine config index designated by a command file path."""
     m = re.search(r"/config(\d+)/", pipe)

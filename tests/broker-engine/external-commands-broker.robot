@@ -95,6 +95,8 @@ BEEXTBRK2
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    ${cache_ready}    Ctn Wait For Broker Cache Knows Engine    ${1}    always=True
+    Should Be True    ${cache_ready}    The Broker cache should know the hosts and services of the poller.
     ${content}    Create List    BBDO: all engine peers have acknowledged their configuration
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    The poller did not acknowledge its configuration
