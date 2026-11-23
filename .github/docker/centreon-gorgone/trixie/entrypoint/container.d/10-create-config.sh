@@ -129,6 +129,20 @@ for central_config_subnet in $GORGONE_HTTPSERVER_ALLOWED_SUBNETS; do
     central_config_allowed_subnets_yaml="${central_config_allowed_subnets_yaml}
           - ${central_config_subnet}"
 done
+
+# HTTP Basic auth on the 8085 API: the web now writes file content through it
+# (SENDCFGFILE/.../centreon/legacycmd/command), so the IP allowlist alone is no
+# longer enough. core::httpserver only supports Basic (gorgone::modules::core::
+# httpserver::class.pm authentication()/hooks.pm register()) — no bearer-token
+# mode on this module (that exists only on the separate proxy::httpserver used
+# for pullwss, module above on port 8087). Required, fail-fast like CENTREON_API_*.
+set +x
+GORGONE_API_USERNAME="${GORGONE_API_USERNAME:?ERROR: GORGONE_API_USERNAME must be set for central mode (web -> gorgone API auth)}"
+GORGONE_API_PASSWORD="${GORGONE_API_PASSWORD:?ERROR: GORGONE_API_PASSWORD must be set for central mode (web -> gorgone API auth)}"
+if [ "$central_config_debug_was_on" = "1" ]; then
+    set -x
+fi
+
 cat > "$CONFIGD/40-gorgoned.yaml" <<EOF
 name: 40-gorgoned.yaml
 gorgone:
@@ -145,7 +159,9 @@ gorgone:
       port: "8085"
       ssl: false
       auth:
-        enabled: false
+        enabled: true
+        user: "$GORGONE_API_USERNAME"
+        password: "$GORGONE_API_PASSWORD"
       allowed_hosts:
         enabled: true
         subnets:${central_config_allowed_subnets_yaml}
