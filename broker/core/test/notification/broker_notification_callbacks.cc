@@ -1168,6 +1168,55 @@ TEST_F(BrokerNotificationDeliverTest, ContactgroupToggleAndContactPeriod) {
 }
 
 /**
+ * @brief notification_mode=broker: the program-wide switch of a poller set
+ * through the Broker API drives get_config() and wins over the configuration
+ * resent by merge() or changed by a DiffState.
+ */
+TEST_F(BrokerNotificationDeliverTest, PollerOverrideSurvivesMerge) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(7);
+  st.set_poller_name("poller_7");
+  st.set_enable_notifications(true);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  h->set_notifications_enabled(true);
+  _cache->merge(st);
+  ASSERT_TRUE(_cache->notifications_enabled(7));
+  ASSERT_TRUE(_cb->get_config(1, 0).enabled);
+  ASSERT_EQ(_cache->instance_id("poller_7"), std::optional<uint64_t>{7});
+  EXPECT_FALSE(_cache->instance_id("nobody").has_value());
+
+  ASSERT_TRUE(
+      cache::notification_toggles::set_poller_notifications(*_cache, 7, false));
+  EXPECT_FALSE(_cache->notifications_enabled(7));
+  /* The resource switch is untouched, the poller one blocks. */
+  EXPECT_TRUE(_cache->host(1)->obj().notify());
+  EXPECT_FALSE(_cb->get_config(1, 0).enabled);
+
+  /* The configuration is resent with enable_notifications=1: override wins. */
+  _cache->merge(st);
+  EXPECT_FALSE(_cache->notifications_enabled(7));
+
+  /* A DiffState toggling the flag does not win either. */
+  cfg::DiffState diff;
+  diff.set_poller_id(7);
+  diff.set_enable_notifications(true);
+  _cache->apply(diff);
+  EXPECT_FALSE(_cache->notifications_enabled(7));
+
+  /* Switched back on through the API. */
+  ASSERT_TRUE(
+      cache::notification_toggles::set_poller_notifications(*_cache, 7, true));
+  EXPECT_TRUE(_cb->get_config(1, 0).enabled);
+
+  /* Unknown poller. */
+  EXPECT_FALSE(
+      cache::notification_toggles::set_poller_notifications(*_cache, 99, true));
+}
+
+/**
  * @brief The host topology index is fed by the configuration parents (merge)
  * and by pb_host_parent events, and replaced on a new configuration.
  */

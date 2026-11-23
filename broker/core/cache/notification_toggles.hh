@@ -77,6 +77,10 @@ bool set_contact_notification_period(broker_cache& cache,
                                      notifier n,
                                      const std::string& period);
 
+bool set_poller_notifications(broker_cache& cache,
+                              uint64_t poller_id,
+                              bool enabled);
+
 }  // namespace notification_toggles
 }  // namespace com::centreon::broker::cache
 

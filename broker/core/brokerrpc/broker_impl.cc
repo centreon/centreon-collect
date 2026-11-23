@@ -26,7 +26,6 @@
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 
-#include "broker/core/cache/notification_toggles.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
 #include "com/centreon/broker/broker_acknowledgement_manager.hh"
@@ -71,6 +70,27 @@ class capturing_sink
   }
   void flush_() override {}
 };
+
+/**
+ * @brief Guard of the Broker-owned features (downtimes, comments,
+ * acknowledgements, notification switches...), available only in
+ * notification_mode = broker.
+ *
+ * @param loaded  Whether the manager owning the feature is loaded.
+ * @param feature The feature name for the error message ("Downtime"...).
+ *
+ * @return The UNAVAILABLE status to return when @p loaded is false,
+ * std::nullopt otherwise.
+ */
+std::optional<grpc::Status> unavailable_unless(bool loaded,
+                                               std::string_view feature) {
+  if (loaded)
+    return std::nullopt;
+  return grpc::Status(
+      grpc::StatusCode::UNAVAILABLE,
+      fmt::format("{} management is not enabled (notification_mode != broker)",
+                  feature));
+}
 
 /**
  * @brief Resolve a host from a HostIdentifier (name or id) in the Broker
@@ -152,8 +172,7 @@ std::shared_ptr<neb::pb_service> resolve_service(const ServiceIdentifier& id,
 
 }  // namespace
 
-broker_impl::broker_impl()
-    : _logger{log_v2::instance().get(log_v2::CORE)} {}
+broker_impl::broker_impl() : _logger{log_v2::instance().get(log_v2::CORE)} {}
 
 /**
  * @brief Return the Broker's version.
@@ -1399,10 +1418,8 @@ grpc::Status broker_impl::ScheduleDowntime(
     grpc::ServerContext* context [[maybe_unused]],
     const ScheduleDowntimeRequest* request,
     ScheduleDowntimeResponse* response) {
-  if (!downtime_manager::is_loaded())
-    return grpc::Status(
-        grpc::StatusCode::UNAVAILABLE,
-        "Downtime management is not enabled (notification_mode != broker)");
+  if (auto err = unavailable_unless(downtime_manager::is_loaded(), "Downtime"))
+    return *err;
 
   // Resolve host identifier
   auto& cache = config::applier::state::instance().cache();
@@ -1499,10 +1516,8 @@ grpc::Status broker_impl::DeleteDowntime(grpc::ServerContext* context
                                          const DowntimeIdentifier* request,
                                          ::google::protobuf::Empty* response
                                          [[maybe_unused]]) {
-  if (!downtime_manager::is_loaded())
-    return grpc::Status(
-        grpc::StatusCode::UNAVAILABLE,
-        "Downtime management is not enabled (notification_mode != broker)");
+  if (auto err = unavailable_unless(downtime_manager::is_loaded(), "Downtime"))
+    return *err;
 
   if (request->downtime_id() == 0)
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
@@ -1526,10 +1541,10 @@ grpc::Status broker_impl::AddHostComment(grpc::ServerContext* context
                                          [[maybe_unused]],
                                          const HostCommentRequest* request,
                                          AddCommentResponse* response) {
-  if (!com::centreon::common::notifications::notification_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Comment management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
   grpc::Status status;
   auto h = resolve_host(request->host(), &status);
   if (!h)
@@ -1551,10 +1566,10 @@ grpc::Status broker_impl::AddServiceComment(
     grpc::ServerContext* context [[maybe_unused]],
     const ServiceCommentRequest* request,
     AddCommentResponse* response) {
-  if (!com::centreon::common::notifications::notification_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Comment management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
   grpc::Status status;
   auto s = resolve_service(request->service(), &status);
   if (!s)
@@ -1579,10 +1594,10 @@ grpc::Status broker_impl::DeleteComment(grpc::ServerContext* context
                                         const CommentIdentifier* request,
                                         ::google::protobuf::Empty* response
                                         [[maybe_unused]]) {
-  if (!com::centreon::common::notifications::notification_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Comment management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
   if (request->internal_id() == 0)
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                         "internal_id must be set");
@@ -1603,10 +1618,10 @@ grpc::Status broker_impl::DeleteAllHostComments(
     grpc::ServerContext* context [[maybe_unused]],
     const HostIdentifier* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  if (!com::centreon::common::notifications::notification_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Comment management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
   grpc::Status status;
   auto h = resolve_host(*request, &status);
   if (!h)
@@ -1623,10 +1638,10 @@ grpc::Status broker_impl::DeleteAllServiceComments(
     grpc::ServerContext* context [[maybe_unused]],
     const ServiceIdentifier* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  if (!com::centreon::common::notifications::notification_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Comment management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
   grpc::Status status;
   auto s = resolve_service(*request, &status);
   if (!s)
@@ -1646,10 +1661,9 @@ grpc::Status broker_impl::AcknowledgeHostProblem(
     grpc::ServerContext* context [[maybe_unused]],
     const AcknowledgementRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  if (!broker_acknowledgement_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Acknowledgement management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(broker_acknowledgement_manager::is_loaded(),
+                                    "Acknowledgement"))
+    return *err;
   auto& cache = config::applier::state::instance().cache();
   auto h = cache.host(request->host_name());
   if (!h)
@@ -1674,10 +1688,9 @@ grpc::Status broker_impl::AcknowledgeServiceProblem(
     grpc::ServerContext* context [[maybe_unused]],
     const AcknowledgementRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  if (!broker_acknowledgement_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Acknowledgement management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(broker_acknowledgement_manager::is_loaded(),
+                                    "Acknowledgement"))
+    return *err;
   auto& cache = config::applier::state::instance().cache();
   auto s = cache.service(request->host_name(), request->service_desc());
   if (!s)
@@ -1703,10 +1716,9 @@ grpc::Status broker_impl::RemoveHostAcknowledgement(
     grpc::ServerContext* context [[maybe_unused]],
     const HostIdentifier* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  if (!broker_acknowledgement_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Acknowledgement management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(broker_acknowledgement_manager::is_loaded(),
+                                    "Acknowledgement"))
+    return *err;
   grpc::Status status;
   auto h = resolve_host(*request, &status);
   if (!h)
@@ -1726,10 +1738,9 @@ grpc::Status broker_impl::RemoveServiceAcknowledgement(
     grpc::ServerContext* context [[maybe_unused]],
     const ServiceIdentifier* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  if (!broker_acknowledgement_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Acknowledgement management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(broker_acknowledgement_manager::is_loaded(),
+                                    "Acknowledgement"))
+    return *err;
   grpc::Status status;
   auto s = resolve_service(*request, &status);
   if (!s)
@@ -1750,10 +1761,10 @@ grpc::Status broker_impl::SetHostNotifications(
     grpc::ServerContext* context [[maybe_unused]],
     const HostNotificationsRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  if (!com::centreon::common::notifications::notification_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Notification management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
   grpc::Status status;
   auto h = resolve_host(request->host(), &status);
   if (!h)
@@ -1794,10 +1805,10 @@ grpc::Status broker_impl::SetServiceNotifications(
     grpc::ServerContext* context [[maybe_unused]],
     const ServiceNotificationsRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
-  if (!com::centreon::common::notifications::notification_manager::is_loaded())
-    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                        "Notification management is not enabled "
-                        "(notification_mode != broker)");
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
   grpc::Status status;
   auto s = resolve_service(request->service(), &status);
   if (!s)
@@ -1812,23 +1823,13 @@ grpc::Status broker_impl::SetServiceNotifications(
 }
 
 /**
- * @brief The notification dispatcher of the Broker (notification_mode =
- * broker), or an UNAVAILABLE status when Broker does not own the decision.
- *
- * @param status Set when nullptr is returned.
- *
- * @return The dispatcher, or nullptr.
+ * @brief The notification dispatcher of the Broker, nullptr when Broker does
+ * not own the notification decision (notification_mode != broker).
  */
-static broker_notification_dispatcher* _notification_dispatcher(
-    grpc::Status* status) {
-  auto* d = static_cast<config::applier::broker_state&>(
-                config::applier::state::instance())
-                .notification_dispatcher();
-  if (!d)
-    *status = grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                           "Notification management is not enabled "
-                           "(notification_mode != broker)");
-  return d;
+static broker_notification_dispatcher* _notification_dispatcher() {
+  return static_cast<config::applier::broker_state&>(
+             config::applier::state::instance())
+      .notification_dispatcher();
 }
 
 /**
@@ -1854,10 +1855,10 @@ grpc::Status broker_impl::SetHostNotificationNumber(
     grpc::ServerContext* context [[maybe_unused]],
     const HostNotificationNumberRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
+  auto* d = _notification_dispatcher();
+  if (auto err = unavailable_unless(d != nullptr, "Notification"))
+    return *err;
   grpc::Status status;
-  auto* d = _notification_dispatcher(&status);
-  if (!d)
-    return status;
   auto h = resolve_host(request->host(), &status);
   if (!h)
     return status;
@@ -1873,10 +1874,10 @@ grpc::Status broker_impl::SetServiceNotificationNumber(
     grpc::ServerContext* context [[maybe_unused]],
     const ServiceNotificationNumberRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
+  auto* d = _notification_dispatcher();
+  if (auto err = unavailable_unless(d != nullptr, "Notification"))
+    return *err;
   grpc::Status status;
-  auto* d = _notification_dispatcher(&status);
-  if (!d)
-    return status;
   auto s = resolve_service(request->service(), &status);
   if (!s)
     return status;
@@ -1892,10 +1893,10 @@ grpc::Status broker_impl::SendCustomHostNotification(
     grpc::ServerContext* context [[maybe_unused]],
     const HostCustomNotificationRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
+  auto* d = _notification_dispatcher();
+  if (auto err = unavailable_unless(d != nullptr, "Notification"))
+    return *err;
   grpc::Status status;
-  auto* d = _notification_dispatcher(&status);
-  if (!d)
-    return status;
   auto h = resolve_host(request->host(), &status);
   if (!h)
     return status;
@@ -1915,10 +1916,10 @@ grpc::Status broker_impl::SendCustomServiceNotification(
     grpc::ServerContext* context [[maybe_unused]],
     const ServiceCustomNotificationRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
+  auto* d = _notification_dispatcher();
+  if (auto err = unavailable_unless(d != nullptr, "Notification"))
+    return *err;
   grpc::Status status;
-  auto* d = _notification_dispatcher(&status);
-  if (!d)
-    return status;
   auto s = resolve_service(request->service(), &status);
   if (!s)
     return status;
@@ -1928,25 +1929,6 @@ grpc::Status broker_impl::SendCustomServiceNotification(
                  _custom_options(request->broadcast(), request->forced(),
                                  request->increment()));
   return grpc::Status::OK;
-}
-
-/**
- * @brief The Broker cache when Broker owns the notification decision
- * (notification_mode = broker), or an UNAVAILABLE status.
- *
- * @param status Set when nullptr is returned.
- *
- * @return The cache, or nullptr.
- */
-static cache::broker_cache* _notification_cache(grpc::Status* status) {
-  if (!com::centreon::common::notifications::notification_manager::
-          is_loaded()) {
-    *status = grpc::Status(grpc::StatusCode::UNAVAILABLE,
-                           "Notification management is not enabled "
-                           "(notification_mode != broker)");
-    return nullptr;
-  }
-  return &config::applier::state::instance().cache();
 }
 
 /**
@@ -1983,16 +1965,18 @@ grpc::Status broker_impl::SetHostNotificationPeriod(
     grpc::ServerContext* context [[maybe_unused]],
     const HostNotificationPeriodRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
   grpc::Status status;
-  auto* bc = _notification_cache(&status);
-  if (!bc)
-    return status;
+  auto& bc = config::applier::state::instance().cache();
   auto h = resolve_host(request->host(), &status);
   if (!h)
     return status;
-  if (!_check_timeperiod(*bc, request->timeperiod(), &status))
+  if (!_check_timeperiod(bc, request->timeperiod(), &status))
     return status;
-  bc->set_notification_period(h->obj().host_id(), 0, request->timeperiod());
+  bc.set_notification_period(h->obj().host_id(), 0, request->timeperiod());
   _logger->info("notification period of host {} set to '{}'",
                 h->obj().host_id(), request->timeperiod());
   return grpc::Status::OK;
@@ -2006,17 +1990,19 @@ grpc::Status broker_impl::SetServiceNotificationPeriod(
     grpc::ServerContext* context [[maybe_unused]],
     const ServiceNotificationPeriodRequest* request,
     ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
   grpc::Status status;
-  auto* bc = _notification_cache(&status);
-  if (!bc)
-    return status;
+  auto& bc = config::applier::state::instance().cache();
   auto s = resolve_service(request->service(), &status);
   if (!s)
     return status;
-  if (!_check_timeperiod(*bc, request->timeperiod(), &status))
+  if (!_check_timeperiod(bc, request->timeperiod(), &status))
     return status;
-  bc->set_notification_period(s->obj().host_id(), s->obj().service_id(),
-                              request->timeperiod());
+  bc.set_notification_period(s->obj().host_id(), s->obj().service_id(),
+                             request->timeperiod());
   _logger->info("notification period of service ({}, {}) set to '{}'",
                 s->obj().host_id(), s->obj().service_id(),
                 request->timeperiod());
@@ -2029,16 +2015,17 @@ grpc::Status broker_impl::SetServiceNotificationPeriod(
 grpc::Status broker_impl::_set_contact_notifications(
     const ContactNotificationsRequest& request,
     cache::notification_toggles::notifier n) const {
-  grpc::Status status;
-  auto* bc = _notification_cache(&status);
-  if (!bc)
-    return status;
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  auto& bc = config::applier::state::instance().cache();
   const std::string& name = request.contact().name();
   if (name.empty())
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                         "contact name must be set");
   if (!cache::notification_toggles::set_contact_notifications(
-          *bc, name, n, request.enabled()))
+          bc, name, n, request.enabled()))
     return grpc::Status(grpc::StatusCode::NOT_FOUND,
                         fmt::format("unknown contact '{}'", name));
   _logger->info(
@@ -2078,16 +2065,17 @@ grpc::Status broker_impl::SetContactServiceNotifications(
 grpc::Status broker_impl::_set_contactgroup_notifications(
     const ContactgroupNotificationsRequest& request,
     cache::notification_toggles::notifier n) const {
-  grpc::Status status;
-  auto* bc = _notification_cache(&status);
-  if (!bc)
-    return status;
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  auto& bc = config::applier::state::instance().cache();
   const std::string& name = request.contactgroup().name();
   if (name.empty())
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                         "contactgroup name must be set");
   auto count = cache::notification_toggles::set_contactgroup_notifications(
-      *bc, name, n, request.enabled());
+      bc, name, n, request.enabled());
   if (!count)
     return grpc::Status(grpc::StatusCode::NOT_FOUND,
                         fmt::format("unknown contactgroup '{}'", name));
@@ -2128,18 +2116,20 @@ grpc::Status broker_impl::SetContactgroupServiceNotifications(
 grpc::Status broker_impl::_set_contact_notification_period(
     const ContactNotificationPeriodRequest& request,
     cache::notification_toggles::notifier n) const {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
   grpc::Status status;
-  auto* bc = _notification_cache(&status);
-  if (!bc)
-    return status;
+  auto& bc = config::applier::state::instance().cache();
   const std::string& name = request.contact().name();
   if (name.empty())
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                         "contact name must be set");
-  if (!_check_timeperiod(*bc, request.timeperiod(), &status))
+  if (!_check_timeperiod(bc, request.timeperiod(), &status))
     return status;
   if (!cache::notification_toggles::set_contact_notification_period(
-          *bc, name, n, request.timeperiod()))
+          bc, name, n, request.timeperiod()))
     return grpc::Status(grpc::StatusCode::NOT_FOUND,
                         fmt::format("unknown contact '{}'", name));
   _logger->info(
@@ -2171,6 +2161,46 @@ grpc::Status broker_impl::SetContactServiceNotificationPeriod(
     ::google::protobuf::Empty* response [[maybe_unused]]) {
   return _set_contact_notification_period(
       *request, cache::notification_toggles::notifier::service);
+}
+
+/**
+ * @brief Enable or disable the notifications of a whole poller
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetPollerNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const PollerNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  auto& bc = config::applier::state::instance().cache();
+  uint64_t poller_id;
+  switch (request->poller().poller_case()) {
+    case PollerIdentifier::kPollerId:
+      poller_id = request->poller().poller_id();
+      break;
+    case PollerIdentifier::kPollerName: {
+      auto id = bc.instance_id(request->poller().poller_name());
+      if (!id)
+        return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                            fmt::format("unknown poller '{}'",
+                                        request->poller().poller_name()));
+      poller_id = *id;
+      break;
+    }
+    default:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "poller_id or poller_name must be set");
+  }
+  if (!cache::notification_toggles::set_poller_notifications(
+          bc, poller_id, request->enabled()))
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown poller {}", poller_id));
+  _logger->info("notifications {} on poller {}",
+                request->enabled() ? "enabled" : "disabled", poller_id);
+  return grpc::Status::OK;
 }
 
 /**

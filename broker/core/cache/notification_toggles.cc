@@ -19,7 +19,6 @@
 
 #include "broker/core/cache/notification_toggles.hh"
 
-
 #include "broker/core/cache/broker_cache.hh"
 
 namespace com::centreon::broker::cache::notification_toggles {
@@ -210,6 +209,22 @@ bool set_contact_notification_period(broker_cache& cache,
                                      const std::string& period) {
   return cache.set_contact_notification_period(name, to_notifier_type(n),
                                                period);
+}
+
+/**
+ * @brief Enable or disable the notifications of a whole poller
+ * (ENABLE/DISABLE_NOTIFICATIONS on that poller's Engine).
+ *
+ * @param cache     The Broker cache.
+ * @param poller_id The poller id.
+ * @param enabled   The new switch value.
+ *
+ * @return False when the poller is unknown to the cache.
+ */
+bool set_poller_notifications(broker_cache& cache,
+                              uint64_t poller_id,
+                              bool enabled) {
+  return cache.set_poller_notifications(poller_id, enabled);
 }
 
 }  // namespace com::centreon::broker::cache::notification_toggles
