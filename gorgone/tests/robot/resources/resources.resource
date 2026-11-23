@@ -162,6 +162,7 @@ Setup Gorgone Config
     ...    -e 's/@PROXY_PING@/60/g'
     ...    -e 's/@HTTPSERVER_CHECK_INTERVAL@/30/g'
     ...    -e 's/@HTTPSERVER_CHECK_TIMEOUT@/60/g'
+    ...    -e 's/@HTTPSERVER_TOKEN_CHECK_INTERVAL@/60/g'
     ...    -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g'
     ...    /etc/centreon-gorgone/${gorgone_name}/config.d/*.yaml
 
