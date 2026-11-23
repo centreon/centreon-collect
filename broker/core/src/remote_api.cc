@@ -25,6 +25,7 @@
 #include "com/centreon/common/http/http_server.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
 #include <absl/strings/ascii.h>
@@ -40,6 +41,10 @@ using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 namespace http = com::centreon::common::http;
 using json = nlohmann::json;
+
+/* Defined in main.cc, loaded from engine-context.json (as db_password). */
+extern std::shared_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
 
 namespace {
 
@@ -965,9 +970,14 @@ bool remote_api::load(const std::map<std::string, std::string>& params) {
       c.port = port;
     }
     c.token = get("token");
-    if (absl::StartsWith(c.token, "encrypt::"))
-      throw std::invalid_argument(
-          "remote_api: encrypted token is not supported in the PoC");
+    if (absl::StartsWith(c.token, "encrypt::")) {
+      if (!credentials_decrypt)
+        throw std::invalid_argument(
+            "remote_api: encrypted token but no decryption key "
+            "(engine-context.json)");
+      c.token =
+          credentials_decrypt->decrypt(std::string_view(c.token).substr(9));
+    }
     if (c.token.empty())
       throw std::invalid_argument("remote_api: a token is mandatory");
     c.public_cert = get("public_cert");
