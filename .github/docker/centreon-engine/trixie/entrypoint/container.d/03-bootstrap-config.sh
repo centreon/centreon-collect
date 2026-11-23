@@ -19,11 +19,20 @@
 ENGINE_DIR="/etc/centreon-engine"
 BROKER_DIR="/etc/centreon-broker"
 CFG="$ENGINE_DIR/centengine.cfg"
+DEFAULTS="/usr/share/centreon-engine/defaults.sha256"
+
+# A package-default file (seeded into an empty volume by Docker copy-up)
+# counts as absent.
+is_set() {
+    [ -f "$1" ] || return 1
+    sum=$(sha256sum "$1" | cut -d' ' -f1)
+    ! grep -q "^$sum " "$DEFAULTS" 2>/dev/null
+}
 
 if [ -z "${POLLER_UID:-}" ]; then
     return 0 2>/dev/null || exit 0
 fi
-if [ -f "$CFG" ]; then
+if is_set "$CFG"; then
     echo "bootstrap: $CFG exists, keeping the delivered configuration"
     return 0 2>/dev/null || exit 0
 fi
@@ -118,7 +127,7 @@ retention_update_interval=60
 interval_length=60
 EOF
 
-if [ ! -f "$MODULE_CFG" ]; then
+if ! is_set "$MODULE_CFG"; then
     cat > "$MODULE_CFG" <<EOF
 {
   "centreonBroker": {
