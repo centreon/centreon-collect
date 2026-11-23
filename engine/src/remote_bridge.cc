@@ -18,6 +18,11 @@
 
 #include "com/centreon/engine/remote_bridge.hh"
 
+/* engine_impl.hh, included by command_manager.hh, needs host and service
+ * declared first. */
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/service.hh"
+
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/globals.hh"
