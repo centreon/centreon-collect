@@ -5821,6 +5821,32 @@ both kinds.
 We create entry points for all Engine external commands on Broker.
 And Broker, internally, sends the request to the concerned poller.
 
+The entry point is the generic `ExecuteExternalCommand(ExternalCommandRequest
+{ command })` RPC of `brokerrpc`: it receives the legacy line exactly as PHP already
+produces it for the command pipe. Broker reads only the command name and the host
+name (first argument), resolves the owning poller in its cache and pushes the whole
+line, prefixed with the timestamp, in the `pb_external_command` BBDO event on that
+poller's downward channel (the same one as `pb_notification_execute`, drained by the
+poller stream's `read()`, i.e. under 100 ms). On the poller, `cbmod` hands it to the
+pipe parser (`commands::processing::execute`): thread-safe commands
+(`PROCESS_*_CHECK_RESULT`) run at once on the receiving thread, as the pipe reader
+does, the others wait for the next event loop iteration. None of Engine's command
+handlers is modified.
+
+The routing table (`common/external_commands`) classifies each command by target:
+process, global, host, service, hostgroup, servicegroup, contact, contactgroup,
+downtime, comment. An Engine unit test checks it lists exactly the parser's commands.
+Host and service go to the poller owning the host, with the `host_id` / `service_id`
+resolved in the cache: Engine rewrites the names from the ids before parsing
+(`processing::resolve_ids`), so the line may carry stale or empty names. Contact and
+contactgroup are broadcast to every connected poller (each has its copy). Global and
+process go to the poller named in the request (`PollerIdentifier`, mandatory: no
+implicit broadcast of a `RESTART_PROGRAM`). Groups are no longer emitted by PHP, and
+downtimes / comments designated by id stay `UNIMPLEMENTED`. In
+`notification_mode = broker`, the commands Broker owns (acknowledgements, downtimes,
+comments, notification switches) are refused `FAILED_PRECONDITION` with the name of
+the typed RPC to use: routed to the poller, they would be silently ignored by Broker.
+
 > For the PHP side of moving external commands to gRPC and the Engine/Broker routing
 > rule based on `notification_mode`, see
 > [PHP evolutions — External commands over gRPC](./php-evolutions-en.md#evolution-2--external-commands-over-grpc).

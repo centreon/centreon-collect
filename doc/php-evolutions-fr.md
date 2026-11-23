@@ -276,18 +276,81 @@ flowchart TD
 * **Bascule globale d'un poller** : `ENABLE/DISABLE_NOTIFICATIONS` (adressée à un poller) →
   `SetPollerNotifications(PollerNotificationsRequest { poller { poller_id | poller_name },
   enabled })` de **Broker** en mode `broker`. Le périmètre reste le poller, comme en legacy ;
-  pour toute la plateforme, boucler sur les pollers. ⚠️ `instances.notifications` en base
-  reflète encore le drapeau d'Engine, pas la bascule Broker (trou documenté, fermé par le
-  routage des commandes externes vers Engine).
+  pour toute la plateforme, boucler sur les pollers. Broker relaie aussi la bascule au
+  poller (ligne `ENABLE/DISABLE_NOTIFICATIONS` sur le canal descendant) pour que son
+  drapeau, et donc `instances.notifications` en base, suivent.
 * **Réglages du notifier** : `SET_*_NOTIFICATION_NUMBER` → `SetHostNotificationNumber` /
   `SetServiceNotificationNumber`, `SEND_CUSTOM_*_NOTIFICATION` →
   `SendCustomHostNotification` / `SendCustomServiceNotification` (les options 1/2/4
   deviennent trois booléens `broadcast`, `forced`, `increment`). Ces appels sont
   appliqués de façon asynchrone, comme le tube. `DELAY_*_NOTIFICATION` n'a pas de
   pendant : la commande n'a aucun effet sur la décision, ni chez Engine ni chez Broker.
-* **Toutes les autres commandes** (résultats de contrôle, bascules globales ou par
-  contact, changements de variables d'objet, contrôles forcés…) vont toujours vers
-  **Engine**.
+* **Toutes les autres commandes par hôte ou service** (résultats de contrôle,
+  contrôles forcés, bascules de checks / event handlers / flapping, changements de
+  variables d'objet…) passent par le **passe-plat générique de Broker**
+  `ExecuteExternalCommand` (ci-dessous), qui les remet au poller propriétaire. Les
+  RPC de commande d'Engine restent utilisables mais sont **dépréciées pour PHP** :
+  en HA, PHP ne sait plus quel poller supervise une ressource.
+* **Commandes globales et de processus** (`ENABLE_EVENT_HANDLERS`, `START_EXECUTING_*`,
+  `RESTART_PROGRAM`…) passent aussi par `ExecuteExternalCommand`, avec le poller visé
+  dans la requête (`poller { poller_id | poller_name }`) : sur le tube, c'était le
+  tube qui désignait le poller, ici il faut le dire. Le périmètre reste un programme
+  Engine ; pour toute la plateforme, PHP boucle sur les pollers.
+* **Commandes de contact et contactgroup** hors mode `broker` : `ExecuteExternalCommand`
+  les diffuse à tous les pollers connectés, chacun ayant sa copie des contacts.
+* **Commandes de groupe** (`*_HOSTGROUP_*`, `*_SERVICEGROUP_*`) : Centreon ne permet plus
+  d'action par groupe, PHP ne les émet plus ; Broker les refuse `UNIMPLEMENTED`.
+
+## Passe-plat générique : `ExecuteExternalCommand`
+
+```protobuf
+message ExternalCommandRequest {
+  string command = 1;          // "SCHEDULE_FORCED_SVC_CHECK;host_1;service_1;0"
+  PollerIdentifier poller = 2; // requis pour une commande globale ou de processus
+}
+rpc ExecuteExternalCommand(ExternalCommandRequest) returns (google.protobuf.Empty) {}
+```
+
+PHP envoie **la ligne legacy telle qu'il la produit déjà** pour le tube de commandes,
+avec ou sans le préfixe `[timestamp] ` (Broker l'ajoute s'il manque). Broker ne lit
+que le nom de la commande et, pour une commande d'hôte ou de service, le nom d'hôte
+(premier argument) et la description du service (deuxième), résout le poller dans
+son cache et livre la ligne au poller, qui l'exécute exactement comme si elle venait
+de son tube. L'appel répond dès que la commande est en file pour le poller ;
+l'exécution reste asynchrone, comme avec le tube, mais les refus sont synchrones :
+
+| Statut gRPC           | Cas                                                                                          |
+|-----------------------|----------------------------------------------------------------------------------------------|
+| `INVALID_ARGUMENT`    | commande inconnue ou vide, préfixe d'horodatage malformé, nom d'hôte, de service ou de contact manquant, `poller` absent pour une commande globale ou de processus |
+| `NOT_FOUND`           | hôte, service ou poller inconnu du cache Broker                                              |
+| `UNAVAILABLE`         | le poller visé n'est pas connecté (aucun poller connecté pour une commande de contact)       |
+| `UNIMPLEMENTED`       | commande de groupe, ou downtime / commentaire désigné par identifiant                        |
+| `FAILED_PRECONDITION` | en `notification_mode = broker`, commande que Broker possède : le message nomme la RPC typée à appeler (`AcknowledgeServiceProblem`, `ScheduleDowntime`, `SetHostNotifications`…) |
+
+Routage par cible :
+
+| Cible                    | Destination                                                        |
+|--------------------------|--------------------------------------------------------------------|
+| hôte, service            | le poller qui supervise l'hôte                                     |
+| contact, contactgroup    | tous les pollers connectés (chacun a sa copie des contacts)        |
+| globale, processus       | le poller nommé dans `poller`                                      |
+
+**Les identifiants priment sur les noms.** Broker joint à la ligne les `host_id` /
+`service_id` qu'il a résolus, et le poller réécrit le nom d'hôte et la description du
+service à partir de ces identifiants avant de parser. Un renommage entre l'export de
+la configuration et la commande n'est donc plus perdu. La ligne de PHP continue de
+porter les noms, c'est ce que le parseur attend ; c'est Broker qui, pour les commandes
+qu'il fabrique lui-même, peut les laisser vides.
+
+Les résultats passifs (`PROCESS_HOST_CHECK_RESULT`, `PROCESS_SERVICE_CHECK_RESULT`)
+sont exécutés par le poller dès réception, sans attendre sa boucle d'événements,
+comme avec le tube. Exemple en Python :
+
+```python
+req = broker_pb2.ExternalCommandRequest(
+    command="PROCESS_SERVICE_CHECK_RESULT;host_1;service_1;2;disk full")
+stub.ExecuteExternalCommand(req)
+```
 
 ## Exemple des downtimes
 
@@ -376,9 +439,12 @@ En mode historique (`notification_mode = engine`), PHP continue d'appeler les
 | Suppression de downtime          | `DeleteDowntime`, `DeleteHostDowntimeFull`, `DeleteServiceDowntimeFull`, `DeleteDowntimeByHostName`, `DeleteDowntimeByHostGroupName`, `DeleteDowntimeByStartTimeComment`                                                                                                                                               | `DeleteDowntime`                    |
 | Acquittements                    | `AcknowledgementHostProblem`, `AcknowledgementServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement`                                                                                                                                                                                             | `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` (quand `notification_mode = broker`) |
 | Commentaires                     | `AddHostComment`, `AddServiceComment`, `DeleteComment`, `DeleteAllHostComments`, `DeleteAllServiceComments`                                                                                                                                                                                                            | mêmes noms côté Broker (`HostCommentRequest` / `ServiceCommentRequest` / `CommentIdentifier`), quand `notification_mode = broker` |
-| Contrôles                        | `ProcessHostCheckResult`, `ProcessServiceCheckResult`, `ScheduleHostCheck`, `ScheduleServiceCheck`, `ScheduleHostServiceCheck`                                                                                                                                                                                         | —                                   |
+| Contrôles                        | `ProcessHostCheckResult`, `ProcessServiceCheckResult`, `ScheduleHostCheck`, `ScheduleServiceCheck`, `ScheduleHostServiceCheck` (dépréciées pour PHP)                                                                                                                                                                  | `ExecuteExternalCommand` (ligne legacy, routée au poller propriétaire) |
 | Notifications / bascules         | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, …                                                                                                                                                                                                                                 | `SetHostNotifications` (scopes HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN, BEYOND_HOST), `SetServiceNotifications`, `SetContact{Host,Service}Notifications`, `SetContactgroup{Host,Service}Notifications`, `SetContact{Host,Service}NotificationPeriod`, `Set{Host,Service}NotificationPeriod`, `SetPollerNotifications` — quand `notification_mode = broker`, pour les bascules par hôte/service/contact/contactgroup et les timeperiods de notification ; les autres restent sur Engine |
-| Changements de variables d'objet | `ChangeHostObjectIntVar`, `ChangeServiceObjectCustomVar`, …                                                                                                                                                                                                                                                            | —                                   |
+| Changements de variables d'objet | `ChangeHostObjectIntVar`, `ChangeServiceObjectCustomVar`, … (dépréciées pour PHP)                                                                                                                                                                                                                                      | `ExecuteExternalCommand` (`CHANGE_*` par hôte ou service) |
+| Globales, processus              | `EnableEventHandlers`, `RestartProgram`, … (dépréciées pour PHP)                                                                                                                                                                                                                                                       | `ExecuteExternalCommand` avec `poller` |
+| Contacts hors mode broker        | `EnableContactHostNotifications`, `ChangeContactCustomVar`, …                                                                                                                                                                                                                                                          | `ExecuteExternalCommand` (diffusée à tous les pollers) |
+| Groupes                          | `EnableHostgroupHostChecks`, …                                                                                                                                                                                                                                                                                         | — (plus émises par PHP ; `UNIMPLEMENTED`) |
 
 > La liste des familles de downtime/acquittement qui migreront progressivement vers
 > Broker est suivie dans

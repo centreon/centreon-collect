@@ -6239,6 +6239,34 @@ leur sens par exemple pour accéder aux logs.
 On crée les points d'entrée pour toutes les commandes externes Engine sur Broker.
 Et Broker, en interne, envoie la demande au poller concerné.
 
+Le point d'entrée est la RPC générique `ExecuteExternalCommand(ExternalCommandRequest
+{ command })` de `brokerrpc` : elle reçoit la ligne legacy telle que PHP la produit
+déjà pour le tube de commandes. Broker n'en lit que le nom de la commande et le nom
+d'hôte (premier argument), résout le poller propriétaire dans son cache et pousse la
+ligne complète, préfixée de l'horodatage, dans l'événement BBDO `pb_external_command`
+sur le canal descendant de ce poller (le même que `pb_notification_execute`, vidé par
+le `read()` du flux du poller, soit moins de 100 ms). Côté poller, `cbmod` la remet au
+parseur du tube (`commands::processing::execute`) : les commandes thread-safe
+(`PROCESS_*_CHECK_RESULT`) sont exécutées immédiatement sur le thread de réception,
+comme le fait le lecteur du tube, les autres attendent l'itération suivante de la
+boucle d'événements. Aucun des handlers de commande d'Engine n'est modifié.
+
+La table de routage (`common/external_commands`) classe chaque commande par cible :
+processus, globale, hôte, service, hostgroup, servicegroup, contact, contactgroup,
+downtime, commentaire. Un test unitaire d'Engine vérifie qu'elle liste exactement les
+commandes du parseur. Hôte et service vont au poller propriétaire de l'hôte, avec les
+`host_id` / `service_id` résolus dans le cache : Engine réécrit les noms à partir des
+identifiants avant de parser (`processing::resolve_ids`), la ligne peut donc porter
+des noms périmés ou vides. Contact et contactgroup sont diffusés à tous les pollers
+connectés (chacun a sa copie). Globale et processus vont au poller nommé dans la
+requête (`PollerIdentifier`, obligatoire : pas de diffusion implicite d'un
+`RESTART_PROGRAM`). Les groupes ne sont plus émis par PHP et les downtimes /
+commentaires désignés par identifiant restent `UNIMPLEMENTED`. En
+`notification_mode = broker`, les commandes que Broker possède
+(acquittements, downtimes, commentaires, bascules de notification) sont refusées
+`FAILED_PRECONDITION` avec le nom de la RPC typée à utiliser : routées au poller, elles
+seraient silencieusement ignorées par Broker.
+
 > Pour le passage des commandes externes à gRPC côté PHP et la règle de routage
 > Engine/Broker selon `notification_mode`, voir
 > [Évolutions PHP — Commandes externes via gRPC](./php-evolutions-fr.md#évolution-2--commandes-externes-via-grpc).
