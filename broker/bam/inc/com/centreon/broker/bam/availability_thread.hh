@@ -24,6 +24,7 @@
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
+#include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/timestamp.hh"
 
 namespace com::centreon::broker {
@@ -59,10 +60,11 @@ class availability_thread final {
  private:
   void _delete_all_availabilities();
   void _build_availabilities(time_t midnight);
-  void _build_daily_availabilities(int thread_id,
-                                   time_t day_start,
-                                   time_t day_end);
-  void _write_availability(int thread_id,
+  void _build_availabilities_chunk(int thread_id,
+                                   time_t chunk_start,
+                                   time_t chunk_end,
+                                   database::bulk_or_multi& insert);
+  void _write_availability(database::bulk_or_multi& insert,
                            availability_builder const& builder,
                            uint32_t ba_id,
                            time_t day_start,

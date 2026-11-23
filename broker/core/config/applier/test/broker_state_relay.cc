@@ -87,24 +87,24 @@ TEST_F(BrokerStateForeignTest, SkipsWorkFilesAndFiltersOnSelf) {
   write_state("diff-5.prot", "host_of_5", "svc_of_5");
 
   auto foreign = state.load_foreign_objects();
-  foreign.objects.self = 1;
+  foreign.set_to_exclude(1);
 
-  EXPECT_EQ(foreign.objects.poller_of_host("host_of_3"), 3u);
-  EXPECT_EQ(foreign.objects.poller_of_host("host_of_1"), 0u);
-  EXPECT_EQ(foreign.objects.poller_of_host("host_of_4"), 0u);
-  EXPECT_EQ(foreign.objects.poller_of_host("host_of_5"), 0u);
-  EXPECT_EQ(foreign.objects.hosts.size(), 2u);
+  EXPECT_EQ(foreign.poller_of_host("host_of_3"), 3u);
+  EXPECT_EQ(foreign.poller_of_host("host_of_1"), 0u);
+  EXPECT_EQ(foreign.poller_of_host("host_of_4"), 0u);
+  EXPECT_EQ(foreign.poller_of_host("host_of_5"), 0u);
+  EXPECT_EQ(foreign.host_count(), 2u);
 
-  /* Same load, next poller of the batch: only `self` moves. */
-  foreign.objects.self = 3;
-  EXPECT_EQ(foreign.objects.poller_of_host("host_of_1"), 1u);
-  EXPECT_EQ(foreign.objects.poller_of_host("host_of_3"), 0u);
+  /* Same load, next poller of the batch: only the exclusion moves. */
+  foreign.set_to_exclude(3);
+  EXPECT_EQ(foreign.poller_of_host("host_of_1"), 1u);
+  EXPECT_EQ(foreign.poller_of_host("host_of_3"), 0u);
 }
 
 /* Services are indexed by {host name, service description}. Reading them after
  * load_foreign_objects() has returned also proves the borrowed strings survive
- * the return: the messages live behind unique_ptr, so moving the result never
- * moves them. */
+ * the return: the names are owned by a deque, whose elements never move -- not
+ * when it grows, and not when the whole structure is moved out. */
 TEST_F(BrokerStateForeignTest, IndexesServicesByHostAndDescription) {
   broker_state state(_logger);
   state.set_pollers_config_dir(_dir);
@@ -112,12 +112,12 @@ TEST_F(BrokerStateForeignTest, IndexesServicesByHostAndDescription) {
   write_state("7.prot", "host_of_7", "svc_of_7");
 
   auto foreign = state.load_foreign_objects();
-  foreign.objects.self = 2;
+  foreign.set_to_exclude(2);
 
-  EXPECT_EQ(foreign.objects.poller_of_service("host_of_7", "svc_of_7"), 7u);
-  EXPECT_EQ(foreign.objects.poller_of_service("host_of_7", "ghost"), 0u);
-  EXPECT_EQ(foreign.objects.poller_of_service("host_of_2", "svc_of_2"), 0u);
-  EXPECT_EQ(foreign.objects.services.size(), 2u);
+  EXPECT_EQ(foreign.poller_of_service("host_of_7", "svc_of_7"), 7u);
+  EXPECT_EQ(foreign.poller_of_service("host_of_7", "ghost"), 0u);
+  EXPECT_EQ(foreign.poller_of_service("host_of_2", "svc_of_2"), 0u);
+  EXPECT_EQ(foreign.service_count(), 2u);
 }
 
 /* No pollers configuration directory (a relay, or a fresh central) yields an
@@ -127,9 +127,8 @@ TEST_F(BrokerStateForeignTest, EmptyWithoutPollersConfigDir) {
 
   auto foreign = state.load_foreign_objects();
 
-  EXPECT_TRUE(foreign.objects.hosts.empty());
-  EXPECT_TRUE(foreign.objects.services.empty());
-  EXPECT_TRUE(foreign.states.empty());
+  EXPECT_TRUE(foreign.empty());
+  EXPECT_EQ(foreign.name_count(), 0u);
 }
 
 /* An unreadable configuration costs the precision of the diagnostics about that
@@ -147,8 +146,9 @@ TEST_F(BrokerStateForeignTest, SkipsUnreadableConfiguration) {
 
   auto foreign = state.load_foreign_objects();
 
-  EXPECT_EQ(foreign.objects.poller_of_host("host_of_8"), 8u);
-  EXPECT_EQ(foreign.states.size(), 1u);
+  EXPECT_EQ(foreign.poller_of_host("host_of_8"), 8u);
+  /* Only poller 8 contributed names: its host and its service description. */
+  EXPECT_EQ(foreign.name_count(), 2u);
 }
 
 /* is_relay() returns true when pollers_config_dir is not set (default). */

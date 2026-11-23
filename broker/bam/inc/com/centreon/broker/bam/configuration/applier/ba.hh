@@ -51,34 +51,34 @@ class ba {
   };
   std::map<uint32_t, applied> _applied;
 
-  std::shared_ptr<neb::host> _ba_host(uint32_t host_id);
-  std::shared_ptr<neb::pb_host> _ba_pb_host(uint32_t host_id);
+  std::shared_ptr<neb::host> _ba_host(uint64_t host_id);
+  std::shared_ptr<neb::pb_host> _ba_pb_host(uint64_t host_id);
   std::shared_ptr<neb::service> _ba_service(uint32_t ba_id,
-                                            uint32_t host_id,
-                                            uint32_t service_id,
+                                            uint64_t host_id,
+                                            uint64_t service_id,
                                             bool in_downtime = false);
   std::shared_ptr<neb::pb_service> _ba_pb_service(uint32_t ba_id,
-                                                  uint32_t host_id,
+                                                  uint64_t host_id,
                                                   const std::string& ba_name,
                                                   const std::string& host_name,
-                                                  uint32_t service_id,
+                                                  uint64_t service_id,
                                                   uint32_t icon_id = 0,
                                                   const std::string& icon_image = "",
                                                   const std::string& icon_image_alt = "",
                                                   bool in_downtime = false);
-  void _internal_copy(ba const& other);
   std::shared_ptr<bam::ba> _new_ba(configuration::ba const& cfg,
                                    service_book& book);
 
  public:
   ba(const std::shared_ptr<spdlog::logger>& logger);
-  ba(const ba& other);
-  ~ba();
-  ba& operator=(ba const& other);
+  ba(const ba&) = delete;
+  ~ba() noexcept = default;
+  ba& operator=(const ba&) = delete;
   void apply(configuration::state::bas const& my_bas, service_book& book);
   std::shared_ptr<bam::ba> find_ba(uint32_t id) const;
   void visit(io::stream* visitor, bool seed_service_status);
   void apply_inherited_downtime(const pb_inherited_downtime& dwn);
+  void restore_inherited_downtimes();
 };
 }  // namespace bam::configuration::applier
 

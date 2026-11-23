@@ -609,7 +609,7 @@ TEST_F(Pb_Resolve, HostdependencyNotificationMasterHostOnAnotherPoller) {
   add_hostdependency(s, "host_1", "host_on_poller_3");
 
   foreign_objects elsewhere;
-  elsewhere.hosts.emplace("host_on_poller_3", 3);
+  elsewhere.add_host("host_on_poller_3", 3);
 
   state_helper hlp(&s);
   error_cnt err;
@@ -633,7 +633,7 @@ TEST_F(Pb_Resolve, HostdependencyExecutionMasterHostOnAnotherPoller) {
   hd->set_dependency_type(DependencyKind::execution_dependency);
 
   foreign_objects elsewhere;
-  elsewhere.hosts.emplace("host_on_poller_3", 3);
+  elsewhere.add_host("host_on_poller_3", 3);
 
   state_helper hlp(&s);
   error_cnt err;
@@ -676,7 +676,7 @@ TEST_F(Pb_Resolve, ServicedependencyMasterServiceOnAnotherPoller) {
   add_servicedependency(s, "host_1", "svc_1", "host_on_poller_3", "svc_9");
 
   foreign_objects elsewhere;
-  elsewhere.services[{"host_on_poller_3", "svc_9"}] = 3;
+  elsewhere.add_service("host_on_poller_3", "svc_9", 3);
 
   state_helper hlp(&s);
   error_cnt err;

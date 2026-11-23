@@ -139,13 +139,6 @@ io::endpoint* factory::new_endpoint(
       get_string_param(cfg, "status_naming", "centreon.statuses.$INDEXID$"));
   std::string escape_string(get_string_param(cfg, "escape_string", "_"));
 
-  /* Sections of the broker cache read by this output. */
-  if (config::applier::state::loaded())  // false only happens in UTs
-    config::applier::state::instance().cache().enable_section(
-      cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
-      cache::broker_cache::CACHE_INSTANCES |
-      cache::broker_cache::CACHE_METRIC_MAPPINGS |
-      cache::broker_cache::CACHE_GROUPS | cache::broker_cache::CACHE_TAGS);
 
   // Connector.
   std::unique_ptr<graphite::connector> c(new graphite::connector);

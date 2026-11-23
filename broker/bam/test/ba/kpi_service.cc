@@ -17,12 +17,9 @@
  */
 
 #include "com/centreon/broker/bam/kpi_service.hh"
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <optional>
 #include <regex>
-#include "bbdo/bam/state.hh"
-#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/bam/ba_best.hh"
 #include "com/centreon/broker/bam/ba_impact.hh"
@@ -81,7 +78,6 @@ TEST_F(BamBA, KpiServiceRecompute) {
 
   kpi->set_impact_critical(100.0);
   kpi->set_state_hard(bam::state_ok);
-  kpi->set_state_soft(kpi->get_state_hard());
   test_ba->add_impact(kpi);
   kpi->add_parent(test_ba);
 
@@ -139,7 +135,6 @@ TEST_F(BamBA, KpiServiceImpactState) {
     s->set_impact_warning(10);
     s->set_impact_critical(20);
     s->set_state_hard(bam::state_ok);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -188,7 +183,6 @@ TEST_F(BamBA, KpiServiceImpactState) {
       }
 
       short val = *it;
-      ASSERT_EQ(test_ba->get_state_soft(), val);
       ASSERT_EQ(test_ba->get_state_hard(), val);
       ++it;
     }
@@ -260,7 +254,6 @@ TEST_F(BamBA, KpiServiceBestState) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_ok);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -284,7 +277,6 @@ TEST_F(BamBA, KpiServiceBestState) {
       kpis[j]->service_update(ss, _visitor.get());
 
       short val = *it;
-      ASSERT_EQ(test_ba->get_state_soft(), val);
       ASSERT_EQ(test_ba->get_state_hard(), val);
       ASSERT_EQ(test_ba->get_perfdata(), "");
       ++it;
@@ -320,7 +312,6 @@ TEST_F(BamBA, KpiServiceWorstState) {
     s->set_impact_warning(10);
     s->set_impact_critical(20);
     s->set_state_hard(bam::state_ok);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -344,7 +335,6 @@ TEST_F(BamBA, KpiServiceWorstState) {
       kpis[j]->service_update(ss, _visitor.get());
 
       short val = *it;
-      ASSERT_EQ(test_ba->get_state_soft(), val);
       ASSERT_EQ(test_ba->get_state_hard(), val);
       ++it;
     }
@@ -417,7 +407,6 @@ TEST_F(BamBA, KpiServiceRatioNum) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_ok);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(std::move(s));
@@ -440,7 +429,6 @@ TEST_F(BamBA, KpiServiceRatioNum) {
 
     short val = results.top();
     std::cout << "val = " << val << std::endl;
-    ASSERT_EQ(test_ba->get_state_soft(), val);
     ASSERT_EQ(test_ba->get_state_hard(), val);
     results.pop();
   }
@@ -474,7 +462,6 @@ TEST_F(BamBA, KpiServiceRatioPercent) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_ok);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -496,7 +483,6 @@ TEST_F(BamBA, KpiServiceRatioPercent) {
     kpis[j]->service_update(ss, _visitor.get());
 
     short val = results.top();
-    ASSERT_EQ(test_ba->get_state_soft(), val);
     ASSERT_EQ(test_ba->get_state_hard(), val);
     results.pop();
   }
@@ -516,7 +502,6 @@ TEST_F(BamBA, KpiServiceDtInheritAllCritical) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -564,7 +549,6 @@ TEST_F(BamBA, KpiServiceDtInheritAllCriticalPb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -648,7 +632,6 @@ TEST_F(BamBA, KpiServiceDtCancelledWithoutEndTime) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -718,7 +701,6 @@ TEST_F(BamBA, KpiServiceDtCancelledWithoutEndTimePb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -790,7 +772,6 @@ TEST_F(BamBA, KpiServiceDtEndsWithoutDeletionTime) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -857,7 +838,6 @@ TEST_F(BamBA, KpiServiceDtEndsWithoutDeletionTimePb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -928,7 +908,6 @@ TEST_F(BamBA, KpiServiceDtInheritOneOK) {
       s->set_state_hard(bam::state_ok);
     else
       s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -984,7 +963,6 @@ TEST_F(BamBA, KpiServiceDtInheritOneOKPb) {
       s->set_state_hard(bam::state_ok);
     else
       s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1039,7 +1017,6 @@ TEST_F(BamBA, KpiServiceIgnoreDt) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1087,7 +1064,6 @@ TEST_F(BamBA, KpiServiceIgnoreDtPb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1138,7 +1114,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpi) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1186,7 +1161,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiPb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1245,7 +1219,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiImpact) {
       s->set_state_hard(bam::state_ok);
     else
       s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     s->set_impact_critical(25);
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -1300,7 +1273,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiImpactPb) {
       s->set_state_hard(bam::state_ok);
     else
       s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     s->set_impact_critical(25);
     test_ba->add_impact(s);
     s->add_parent(test_ba);
@@ -1364,7 +1336,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiBest) {
         s->set_state_hard(bam::state_critical);
         break;
     }
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1421,7 +1392,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiBestPb) {
         s->set_state_hard(bam::state_critical);
         break;
     }
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1482,7 +1452,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiWorst) {
         s->set_state_hard(bam::state_ok);
         break;
     }
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1539,7 +1508,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiWorstPb) {
         s->set_state_hard(bam::state_ok);
         break;
     }
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1590,7 +1558,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiRatio) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1638,7 +1605,6 @@ TEST_F(BamBA, KpiServiceDtIgnoreKpiRatioPb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1690,7 +1656,6 @@ TEST_F(BamBA, KpiServiceDt) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -1853,7 +1818,6 @@ TEST_F(BamBA, KpiServiceDtPb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -2019,7 +1983,6 @@ TEST_F(BamBA, KpiServiceDtInherited_set) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -2078,7 +2041,6 @@ TEST_F(BamBA, KpiServiceDtInherited_setPb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -2139,7 +2101,6 @@ TEST_F(BamBA, KpiServiceDtInherited_unset) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -2185,7 +2146,6 @@ TEST_F(BamBA, KpiServiceDtInherited_unsetPb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -2232,7 +2192,6 @@ TEST_F(BamBA, KpiServiceAcknowledgement) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(s);
@@ -2280,7 +2239,6 @@ TEST_F(BamBA, KpiServiceAcknowledgementPb) {
     auto s = std::make_shared<bam::kpi_service>(
         i + 1, 1, i + 1, 1, fmt::format("service {}", i), _logger);
     s->set_state_hard(bam::state_critical);
-    s->set_state_soft(s->get_state_hard());
     test_ba->add_impact(s);
     s->add_parent(test_ba);
     kpis.push_back(std::move(s));
@@ -2333,7 +2291,6 @@ TEST_F(BamBA, DtAddResentOnEngineRestart) {
   auto kpi = std::make_shared<bam::kpi_service>(1, 1, 1, 1, "service 1", _logger);
   kpi->set_impact_critical(100);
   kpi->set_state_hard(bam::state_critical);
-  kpi->set_state_soft(kpi->get_state_hard());
   test_ba->add_impact(kpi);
   kpi->add_parent(test_ba);
 
@@ -2395,7 +2352,6 @@ TEST_F(BamBA, DtAddResentOnEngineRestartPb) {
   auto kpi = std::make_shared<bam::kpi_service>(1, 1, 1, 1, "service 1", _logger);
   kpi->set_impact_critical(100);
   kpi->set_state_hard(bam::state_critical);
-  kpi->set_state_soft(kpi->get_state_hard());
   test_ba->add_impact(kpi);
   kpi->add_parent(test_ba);
 
@@ -2458,24 +2414,29 @@ TEST_F(BamBA, DtAddResentAfterBrokerRestartPb) {
   test_ba->set_level_warning(50);
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
+  time_t now(time(nullptr));
+
+  /* What the DB gives back after the Broker restart: the BA is critical and in
+   * downtime. */
+  bam::pb_ba_event ba_ev;
+  ba_ev.mut_obj().set_ba_id(1);
+  ba_ev.mut_obj().set_start_time(now - 100);
+  ba_ev.mut_obj().set_status(com::centreon::broker::State::CRITICAL);
+  ba_ev.mut_obj().set_in_downtime(true);
+  test_ba->set_initial_event(ba_ev);
+
   auto kpi =
       std::make_shared<bam::kpi_service>(1, 1, 1, 1, "service 1", _logger);
   kpi->set_impact_critical(100);
   kpi->set_state_hard(bam::state_critical);
-  kpi->set_state_soft(kpi->get_state_hard());
   /* Restored by the kpi applier after the Broker restart. */
   kpi->set_downtimed(true);
   test_ba->add_impact(kpi);
   kpi->add_parent(test_ba);
 
-  time_t now(time(nullptr));
-
-  auto ss{std::make_shared<neb::service_status>()};
-  ss->host_id = 1;
-  ss->service_id = 1;
-  ss->last_check = now;
-  ss->last_hard_state = 2;
-  kpi->service_update(ss, _visitor.get());
+  /* The inherited downtime is not persisted: the applier rebuilds it at the
+   * first apply (applier::ba::restore_inherited_downtimes()). */
+  test_ba->restore_inherited_downtime();
   ASSERT_TRUE(test_ba->in_downtime()) << "precondition: BA must be in downtime";
 
   size_t events_before = _visitor->queue().size();
@@ -2531,4 +2492,206 @@ TEST_F(BamBA, DtAddResentAfterBrokerRestartPb) {
 
   EXPECT_FALSE(kpi->in_downtime());
   EXPECT_FALSE(test_ba->in_downtime());
+}
+
+/**
+ * A service status that leaves the KPI unchanged must not produce a KpiStatus:
+ * it used to, once per check result, and each one became an identical UPDATE
+ * of mod_bam_kpi in the monitoring stream.
+ */
+TEST_F(BamBA, KpiServiceUnchangedStatusEmitsNothing) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_impact>(1, 1, 1, true, _logger)};
+  test_ba->set_level_critical(0);
+  test_ba->set_level_warning(25);
+
+  auto kpi =
+      std::make_shared<bam::kpi_service>(1, 1, 1, 1, "host_1/serv_1", _logger);
+  kpi->set_impact_critical(100.0);
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+
+  time_t now = time(nullptr);
+  auto ss = std::make_shared<neb::pb_service_status>();
+  auto& o = ss->mut_obj();
+  o.set_host_id(1);
+  o.set_service_id(1);
+  o.set_last_check(now);
+  o.set_last_hard_state(ServiceStatus_State_CRITICAL);
+  o.set_state(ServiceStatus_State_CRITICAL);
+  o.set_state_type(ServiceStatus_StateType_HARD);
+
+  /* First status: the KPI goes CRITICAL, an event is opened and a status is
+   * emitted. */
+  kpi->service_update(ss, _visitor.get());
+  ASSERT_EQ(_visitor->kpi_status_count(), 1u);
+  ASSERT_EQ(_visitor->queue().size(), 2u);  // kpi event + ba event
+  _visitor->clear();
+
+  /* Same state again, only the check time moves: nothing to say. */
+  for (int i = 1; i <= 5; ++i) {
+    o.set_last_check(now + i);
+    kpi->service_update(ss, _visitor.get());
+  }
+  ASSERT_EQ(_visitor->kpi_status_count(), 0u);
+  ASSERT_TRUE(_visitor->queue().empty());
+
+  /* Back to OK: a status is emitted again, the event is closed and a new one
+   * opened. */
+  o.set_last_check(now + 6);
+  o.set_last_hard_state(ServiceStatus_State_OK);
+  o.set_state(ServiceStatus_State_OK);
+  kpi->service_update(ss, _visitor.get());
+  ASSERT_EQ(_visitor->kpi_status_count(), 1u);
+  ASSERT_EQ(test_ba->get_state_hard(), bam::state_ok);
+}
+
+/**
+ * After a restart, the DB says the BA is in downtime and its KPI is in
+ * downtime too, but the inherited downtime object is not persisted. Without
+ * restoring it, the end of the KPI downtime can never lift the BA downtime
+ * (this is what BECBAMIDTU2 and BEBAMIDT2 caught).
+ */
+TEST_F(BamBA, KpiServiceDtInheritedRestoredAfterRestart) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_worst>(1, 1, 1, true, _logger)};
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+
+  time_t now = time(nullptr);
+  /* What the DB gives back at startup: BA critical and in downtime... */
+  bam::pb_ba_event ba_ev;
+  ba_ev.mut_obj().set_ba_id(1);
+  ba_ev.mut_obj().set_start_time(now - 100);
+  ba_ev.mut_obj().set_status(com::centreon::broker::State::CRITICAL);
+  ba_ev.mut_obj().set_in_downtime(true);
+  test_ba->set_initial_event(ba_ev);
+
+  /* ... and its only KPI critical, in downtime. */
+  auto kpi =
+      std::make_shared<bam::kpi_service>(1, 1, 1, 1, "host_1/serv_1", _logger);
+  kpi->set_state_hard(bam::state_critical);
+  kpi->set_downtimed(true);
+  KpiEvent kpi_ev;
+  kpi_ev.set_kpi_id(1);
+  kpi_ev.set_ba_id(1);
+  kpi_ev.set_start_time(now - 100);
+  kpi_ev.set_end_time(-1);
+  kpi_ev.set_status(com::centreon::broker::State::CRITICAL);
+  kpi_ev.set_in_downtime(true);
+  kpi->set_initial_event(kpi_ev);
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+  ASSERT_TRUE(test_ba->in_downtime());
+
+  test_ba->restore_inherited_downtime();
+  _visitor->clear();
+
+  /* The downtime on the KPI service ends. */
+  auto dt = std::make_shared<neb::pb_downtime>();
+  auto& d = dt->mut_obj();
+  d.set_id(1);
+  d.set_host_id(1);
+  d.set_service_id(1);
+  d.set_started(true);
+  d.set_cancelled(true);
+  d.set_actual_start_time(now - 100);
+  d.set_actual_end_time(now);
+  kpi->service_update(dt, _visitor.get());
+
+  ASSERT_FALSE(kpi->in_downtime());
+  ASSERT_FALSE(test_ba->in_downtime());
+  /* And the removal of the inherited downtime was published. */
+  bool removal_seen = false;
+  for (const auto& e : _visitor->queue()) {
+    if (e.typ == test_visitor::test_event::idt && e.ba_id == 1 &&
+        !e.in_downtime)
+      removal_seen = true;
+  }
+  ASSERT_TRUE(removal_seen);
+}
+
+/**
+ * After a restart, the DB says the BA is in downtime, but its KPI is not any
+ * more: it left downtime while cbd was down. restore_inherited_downtime()
+ * cannot help -- not every KPI is in downtime -- and the downtime BAM had put
+ * on the virtual service would stay for ever. The downtime itself says it is
+ * BAM's, by its author and comment: replayed on the virtual service, it is
+ * adopted and, the KPI being out of downtime, lifted at once.
+ */
+TEST_F(BamBA, KpiServiceDtInheritedAdoptedAndLifted) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_worst>(1, 1, 1, true, _logger)};
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+
+  time_t now = time(nullptr);
+  bam::pb_ba_event ba_ev;
+  ba_ev.mut_obj().set_ba_id(1);
+  ba_ev.mut_obj().set_start_time(now - 100);
+  ba_ev.mut_obj().set_status(com::centreon::broker::State::CRITICAL);
+  ba_ev.mut_obj().set_in_downtime(true);
+  test_ba->set_initial_event(ba_ev);
+
+  /* The KPI: critical, and NOT in downtime any more. */
+  auto kpi =
+      std::make_shared<bam::kpi_service>(1, 1, 2, 5, "host_2/serv_5", _logger);
+  kpi->set_state_hard(bam::state_critical);
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+  ASSERT_TRUE(test_ba->in_downtime());
+  ASSERT_FALSE(test_ba->has_inherited_downtime());
+
+  /* Engine replays the downtime BAM set on the virtual service (1, 1). */
+  auto dt = std::make_shared<neb::pb_downtime>();
+  auto& d = dt->mut_obj();
+  d.set_id(7);
+  d.set_host_id(1);
+  d.set_service_id(1);
+  d.set_started(true);
+  d.set_actual_start_time(now - 90);
+  d.set_actual_end_time(0);
+  d.set_author(bam::inherited_downtime_author);
+  d.set_comment_data(bam::inherited_downtime_comment);
+  test_ba->service_update(dt, _visitor.get());
+
+  EXPECT_FALSE(test_ba->in_downtime());
+  bool removal_seen = false;
+  for (const auto& e : _visitor->queue())
+    if (e.typ == test_visitor::test_event::idt && e.ba_id == 1 &&
+        !e.in_downtime)
+      removal_seen = true;
+  EXPECT_TRUE(removal_seen);
+}
+
+/**
+ * Same restart, but the downtime on the virtual service was set by a user: it
+ * is not BAM's to lift. The BA stays in downtime and nothing is published.
+ */
+TEST_F(BamBA, KpiServiceManualDowntimeIsNotAdopted) {
+  std::shared_ptr<bam::ba> test_ba{
+      std::make_shared<bam::ba_worst>(1, 1, 1, true, _logger)};
+  test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
+  auto kpi =
+      std::make_shared<bam::kpi_service>(1, 1, 2, 5, "host_2/serv_5", _logger);
+  kpi->set_state_hard(bam::state_critical);
+  test_ba->add_impact(kpi);
+  kpi->add_parent(test_ba);
+
+  time_t now = time(nullptr);
+  auto dt = std::make_shared<neb::pb_downtime>();
+  auto& d = dt->mut_obj();
+  d.set_id(8);
+  d.set_host_id(1);
+  d.set_service_id(1);
+  d.set_started(true);
+  d.set_actual_start_time(now - 90);
+  d.set_actual_end_time(0);
+  d.set_author("admin");
+  d.set_comment_data("Maintenance");
+  _visitor->clear();
+  test_ba->service_update(dt, _visitor.get());
+
+  EXPECT_TRUE(test_ba->in_downtime());
+  EXPECT_FALSE(test_ba->has_inherited_downtime());
+  for (const auto& e : _visitor->queue())
+    EXPECT_NE(e.typ, test_visitor::test_event::idt);
 }

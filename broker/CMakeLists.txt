@@ -527,6 +527,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/compression/stream/read.cc
     ${TEST_DIR}/compression/stream/write.cc
     ${TEST_DIR}/compression/zlib/zlib.cc
+    ${TEST_DIR}/config/broker_state.cc
     ${TEST_DIR}/config/init.cc
     ${TEST_DIR}/config/parser.cc
     ${TEST_DIR}/file/disk_accessor.cc
@@ -560,7 +561,6 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
   add_subdirectory(test)
 endif()
 
-option(WITH_BENCHMARKS "Build Google Benchmark executables" OFF)
 if(WITH_BENCHMARKS)
   find_package(benchmark REQUIRED)
   add_subdirectory(test/google-benchmark)

@@ -24,7 +24,6 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/unified_sql/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
 namespace asio = boost::asio;
@@ -196,8 +195,6 @@ stream::stream(const database_config& dbcfg,
            "VALUES(value)",
            _logger_sql),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
-  config::applier::state::instance().cache().enable_section(
-      cache::broker_cache::CACHE_ALL);
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream class instanciation");
 
   // dedicated connections for data_bin and logs?
@@ -1048,7 +1045,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         database::mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
-          if (!config::applier::state::instance().has_connection_from_poller(
+          if (!config::applier::state::instance().is_poller_connected(
                   res.value_as_u64(0))) {
             SPDLOG_LOGGER_WARN(
                 _logger_sql,
@@ -1088,7 +1085,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         database::mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
-          if (!config::applier::state::instance().has_connection_from_poller(
+          if (!config::applier::state::instance().is_poller_connected(
                   poller.obj().idx())) {
             SPDLOG_LOGGER_WARN(
                 _logger_sql,
@@ -1134,9 +1131,14 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
  * @param ids The list of instance IDs to clear from the cache.
  */
 void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
-  auto& cache = config::applier::state::instance().cache();
-  for (uint64_t instance_id : ids)
+  auto& state = config::applier::state::instance();
+  auto& cache = state.cache();
+  for (uint64_t instance_id : ids) {
     cache.remove_instance(instance_id);
+    /* And the configuration files kept for it: otherwise the next startup
+     * would load them back into the cache we just cleaned. */
+    state.remove_poller_config(instance_id);
+  }
 
   // auto host_ids = cache.host_ids();
   // for (uint64_t host_id : host_ids) {
@@ -1292,67 +1294,67 @@ void stream::_init_statements() {
 
   const std::string hscr_query(
       "UPDATE hosts SET "
-      "checked=?,"                   // 0: has_been_checked
-      "check_type=?,"                // 1: check_type
-      "state=?,"                     // 2: current_state
-      "state_type=?,"                // 3: state_type
-      "last_state_change=?,"         // 4: last_state_change
-      "last_hard_state=?,"           // 5: last_hard_state
-      "last_hard_state_change=?,"    // 6: last_hard_state_change
-      "last_time_up=?,"              // 7: last_time_up
-      "last_time_down=?,"            // 8: last_time_down
-      "last_time_unreachable=?,"     // 9: last_time_unreachable
-      "output=?,"                    // 10: output + '\n' + long_output
-      "perfdata=?,"                  // 11: perf_data
-      "flapping=?,"                  // 12: is_flapping
-      "percent_state_change=?,"      // 13: percent_state_change
-      "latency=?,"                   // 14: latency
-      "execution_time=?,"            // 15: execution_time
-      "last_check=?,"                // 16: last_check
-      "next_check=?,"                // 17: next_check
-      "should_be_scheduled=?,"       // 18: should_be_scheduled
-      "check_attempt=?,"             // 19: current_check_attempt
-      "notification_number=?,"       // 20: notification_number
-      "no_more_notifications=?,"     // 21: no_more_notifications
-      "last_notification=?,"         // 22: last_notification
-      "next_host_notification=?,"    // 23: next_notification
-      "acknowledged=?,"              // 24: acknowledgement_type != NONE
-      "acknowledgement_type=?,"      // 25: acknowledgement_type
+      "checked=?,"                 // 0: has_been_checked
+      "check_type=?,"              // 1: check_type
+      "state=?,"                   // 2: current_state
+      "state_type=?,"              // 3: state_type
+      "last_state_change=?,"       // 4: last_state_change
+      "last_hard_state=?,"         // 5: last_hard_state
+      "last_hard_state_change=?,"  // 6: last_hard_state_change
+      "last_time_up=?,"            // 7: last_time_up
+      "last_time_down=?,"          // 8: last_time_down
+      "last_time_unreachable=?,"   // 9: last_time_unreachable
+      "output=?,"                  // 10: output + '\n' + long_output
+      "perfdata=?,"                // 11: perf_data
+      "flapping=?,"                // 12: is_flapping
+      "percent_state_change=?,"    // 13: percent_state_change
+      "latency=?,"                 // 14: latency
+      "execution_time=?,"          // 15: execution_time
+      "last_check=?,"              // 16: last_check
+      "next_check=?,"              // 17: next_check
+      "should_be_scheduled=?,"     // 18: should_be_scheduled
+      "check_attempt=?,"           // 19: current_check_attempt
+      "notification_number=?,"     // 20: notification_number
+      "no_more_notifications=?,"   // 21: no_more_notifications
+      "last_notification=?,"       // 22: last_notification
+      "next_host_notification=?,"  // 23: next_notification
+      "acknowledged=?,"            // 24: acknowledgement_type != NONE
+      "acknowledgement_type=?,"    // 25: acknowledgement_type
       // 26: downtime_depth. COALESCE so a NULL bind (Broker owns downtimes)
       // keeps the depth already set by Broker instead of overwriting it.
       "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "
-      "WHERE host_id=?"              // 27: host_id
+      "WHERE host_id=?"  // 27: host_id
   );
 
   const std::string sscr_query(
       "UPDATE services SET "
-      "checked=?,"                          // 0: has_been_checked
-      "check_type=?,"                       // 1: check_type
-      "state=?,"                            // 2: current_state
-      "state_type=?,"                       // 3: state_type
-      "last_state_change=?,"                // 4: last_state_change
-      "last_hard_state=?,"                  // 5: last_hard_state
-      "last_hard_state_change=?,"           // 6: last_hard_state_change
-      "last_time_ok=?,"                     // 7: last_time_ok
-      "last_time_warning=?,"                // 8: last_time_warning
-      "last_time_critical=?,"               // 9: last_time_critical
-      "last_time_unknown=?,"                // 10: last_time_unknown
-      "output=?,"                           // 11: output + '\n' + long_output
-      "perfdata=?,"                         // 12: perf_data
-      "flapping=?,"                         // 13: is_flapping
-      "percent_state_change=?,"             // 14: percent_state_change
-      "latency=?,"                          // 15: latency
-      "execution_time=?,"                   // 16: execution_time
-      "last_check=?,"                       // 17: last_check
-      "next_check=?,"                       // 18: next_check
-      "should_be_scheduled=?,"              // 19: should_be_scheduled
-      "check_attempt=?,"                    // 20: current_check_attempt
-      "notification_number=?,"              // 21: notification_number
-      "no_more_notifications=?,"            // 22: no_more_notifications
-      "last_notification=?,"                // 23: last_notification
-      "next_notification=?,"                // 24: next_notification
-      "acknowledged=?,"                     // 25: acknowledgement_type != NONE
-      "acknowledgement_type=?,"             // 26: acknowledgement_type
+      "checked=?,"                 // 0: has_been_checked
+      "check_type=?,"              // 1: check_type
+      "state=?,"                   // 2: current_state
+      "state_type=?,"              // 3: state_type
+      "last_state_change=?,"       // 4: last_state_change
+      "last_hard_state=?,"         // 5: last_hard_state
+      "last_hard_state_change=?,"  // 6: last_hard_state_change
+      "last_time_ok=?,"            // 7: last_time_ok
+      "last_time_warning=?,"       // 8: last_time_warning
+      "last_time_critical=?,"      // 9: last_time_critical
+      "last_time_unknown=?,"       // 10: last_time_unknown
+      "output=?,"                  // 11: output + '\n' + long_output
+      "perfdata=?,"                // 12: perf_data
+      "flapping=?,"                // 13: is_flapping
+      "percent_state_change=?,"    // 14: percent_state_change
+      "latency=?,"                 // 15: latency
+      "execution_time=?,"          // 16: execution_time
+      "last_check=?,"              // 17: last_check
+      "next_check=?,"              // 18: next_check
+      "should_be_scheduled=?,"     // 19: should_be_scheduled
+      "check_attempt=?,"           // 20: current_check_attempt
+      "notification_number=?,"     // 21: notification_number
+      "no_more_notifications=?,"   // 22: no_more_notifications
+      "last_notification=?,"       // 23: last_notification
+      "next_notification=?,"       // 24: next_notification
+      "acknowledged=?,"            // 25: acknowledgement_type != NONE
+      "acknowledgement_type=?,"    // 26: acknowledgement_type
       // 27: downtime_depth. COALESCE so a NULL bind (Broker owns downtimes)
       // keeps the depth already set by Broker instead of overwriting it.
       "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "
@@ -1360,9 +1362,9 @@ void stream::_init_statements() {
 
   const std::string hscr_resources_query(
       "UPDATE resources SET "
-      "status=?,"                     // 0: current_state
-      "status_ordered=?,"             // 1: obtained from current_state
-      "last_status_change=?,"         // 2: last_state_change
+      "status=?,"              // 0: current_state
+      "status_ordered=?,"      // 1: obtained from current_state
+      "last_status_change=?,"  // 2: last_state_change
       // 3: downtime_depth() > 0. COALESCE so a NULL bind (Broker owns
       // downtimes) keeps the in_downtime flag set by Broker.
       "in_downtime=COALESCE(?,in_downtime),"
@@ -1379,9 +1381,9 @@ void stream::_init_statements() {
 
   const std::string sscr_resources_query(
       "UPDATE resources SET "
-      "status=?,"                     // 0: current_state
-      "status_ordered=?,"             // 1: obtained from current_state
-      "last_status_change=?,"         // 2: last_state_change
+      "status=?,"              // 0: current_state
+      "status_ordered=?,"      // 1: obtained from current_state
+      "last_status_change=?,"  // 2: last_state_change
       // 3: downtime_depth() > 0. COALESCE so a NULL bind (Broker owns
       // downtimes) keeps the in_downtime flag set by Broker.
       "in_downtime=COALESCE(?,in_downtime),"
@@ -1400,15 +1402,13 @@ void stream::_init_statements() {
       auto hu = std::make_unique<database::mysql_bulk_stmt>(hscr_query);
       _mysql.prepare_statement(*hu);
       _hscr_bind = std::make_unique<bulk_bind>(
-          _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *hu, _logger_sql);
+          dt_queue_timer_duration, _max_pending_queries, *hu, _logger_sql);
       _hscr_update = std::move(hu);
 
       auto su = std::make_unique<database::mysql_bulk_stmt>(sscr_query);
       _mysql.prepare_statement(*su);
       _sscr_bind = std::make_unique<bulk_bind>(
-          _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *su, _logger_sql);
+          dt_queue_timer_duration, _max_pending_queries, *su, _logger_sql);
       _sscr_update = std::move(su);
     } else {
       _hscr_update = std::make_unique<database::mysql_stmt>(hscr_query);
@@ -1424,16 +1424,14 @@ void stream::_init_statements() {
           std::make_unique<database::mysql_bulk_stmt>(hscr_resources_query);
       _mysql.prepare_statement(*hu);
       _hscr_resources_bind = std::make_unique<bulk_bind>(
-          _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *hu, _logger_sql);
+          dt_queue_timer_duration, _max_pending_queries, *hu, _logger_sql);
       _hscr_resources_update = std::move(hu);
 
       auto su =
           std::make_unique<database::mysql_bulk_stmt>(sscr_resources_query);
       _mysql.prepare_statement(*su);
       _sscr_resources_bind = std::make_unique<bulk_bind>(
-          _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *su, _logger_sql);
+          dt_queue_timer_duration, _max_pending_queries, *su, _logger_sql);
       _sscr_resources_update = std::move(su);
     } else {
       _hscr_resources_update =
@@ -1525,15 +1523,6 @@ mysql& stream::get_mysql() {
 
 bool stream::supports_bulk_prepared_statements() const {
   return _bulk_prepared_statement;
-}
-
-absl::flat_hash_map<std::string, uint64_t>& stream::host_name_id_cache() {
-  return _host_name_id_cache;
-}
-
-absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
-stream::service_description_id_cache() {
-  return _service_description_id_cache;
 }
 
 // boost::bimap<uint32_t, std::string>& stream::servicegroups_cache() {

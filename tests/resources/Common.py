@@ -3281,16 +3281,137 @@ def ctn_check_state_configurations_are_equal(file1, file2):
     return compare_dicts(dico1, dico2)
 
 
-def ctn_notify_broker_of_engine_config_change(idx: int):
+def ctn_is_broker_running():
+    """Tell whether a cbd is running, whatever its role.
+
+    Returns:
+        True if at least one cbd process is alive.
+    """
+    for proc in psutil.process_iter():
+        try:
+            if proc.name() == "cbd":
+                return True
+        except psutil.Error:
+            # The process died while we were walking the list; it is not the
+            # one we are looking for anyway.
+            continue
+    return False
+
+
+def ctn_wait_for_pending_poller_batch(timeout: int = 30):
+    """Wait for a pending `pollers.lck` to have been consumed by Broker.
+
+    There is one `pollers.lck` for the whole platform, and Broker both reads it
+    at the start of a cycle and removes it at the end. Writing a new one in
+    between is how an announcement gets lost: the removal that closes the
+    running cycle takes the new file away with it, and nothing is left to say
+    the export was ever announced.
+
+    So the file disappearing is what says the previous announcement has been
+    taken over, and waiting for it is what PHP does before announcing another
+    batch -- see _remove_poller_batch() in broker_state.cc. The tests announce
+    the same way.
+
+    Nothing consumes the file while no Broker runs, so waiting for it to
+    disappear can then only end on the timeout. That case is told apart and
+    answered at once: many tests announce a configuration before starting
+    Broker, and each of those waits cost the whole timeout for an answer known
+    beforehand.
+
+    Args:
+        timeout (int): How long to wait, in seconds.
+
+    Returns:
+        True if there is no pending announcement left, False otherwise -- which
+        is the ordinary answer when Broker is not running, since nothing
+        consumes the file then.
+    """
+    batch_file = Path(f"{VAR_ROOT}/lib/centreon/config/pollers.lck")
+    if not batch_file.exists():
+        return True
+    if not ctn_is_broker_running():
+        return False
+    limit = time.time() + int(timeout)
+    while batch_file.exists():
+        if time.time() >= limit:
+            return False
+        time.sleep(0.2)
+    return True
+
+
+def ctn_announce_pollers_batch(poller_ids):
+    """Announce a whole export with a single `pollers.lck` naming every poller.
+
+    The file is written atomically -- a temporary, then a rename -- so Broker
+    only ever sees a complete announcement (IN_MOVED_TO), never a half-written
+    one.
+
+    A pending announcement is waited for first, as PHP does. When it is still
+    there afterwards -- Broker down, so nothing consumes it -- the ids are
+    merged into it instead of replacing it, so that an export announced while
+    Broker was stopped is not silently dropped by the next one.
+
+    Args:
+        poller_ids (list): The poller IDs of the export (from 1).
+    """
+    batch_file = Path(f"{VAR_ROOT}/lib/centreon/config/pollers.lck")
+    ids = set(int(i) for i in poller_ids)
+    if not ctn_wait_for_pending_poller_batch():
+        logger.console(
+            "A pollers.lck is still pending: merging the new ids into it")
+        try:
+            ids |= set(int(line) for line in
+                       batch_file.read_text().split() if line)
+        except (OSError, ValueError):
+            # Consumed while we were reading it: ours is then the only
+            # announcement, which is what we were waiting for anyway.
+            pass
+    body = "".join(f"{i}\n" for i in sorted(ids))
+    tmp = batch_file.with_suffix(".lck.tmp")
+    tmp.write_text(body)
+    tmp.replace(batch_file)
+
+
+def ctn_notify_broker_of_engine_config_change(*idx):
     """
     Notify the broker of a change in the engine configuration.
 
+    Announces the whole export at once through `pollers.lck`, which is the shape
+    PHP uses: Broker is told where the export ends instead of having to guess it
+    from a burst of individual files. The historical `<ID>.lck` shape stays
+    supported and is exercised by the tests that take lck_mode=per_poller.
+
+    Several indexes may be passed, and they must be when they belong to the same
+    export: one call naming them all is a single batch, where a call per index
+    would be as many batches -- and each would race the previous one's removal.
+
     Args:
-        idx (int): The index of the configuration to notify.
+        *idx (int): The indexes of the configurations to notify (from 0).
+    """
+    poller_ids = [int(i) + 1 for i in idx]
+    logger.console(
+        "Notify broker of engine config change for poller(s) "
+        f"{', '.join(str(i) for i in poller_ids)}")
+    ctn_announce_pollers_batch(poller_ids)
+
+
+def ctn_notify_broker_of_engine_config_change_per_poller(idx: int):
+    """
+    Notify the broker of a change in the engine configuration, the historical
+    way: one `<ID>.lck` for the poller, which leaves Broker to guess where the
+    export ends.
+
+    Kept for the tests that must keep covering that shape, still supported for
+    backward compatibility. Everything else goes through
+    ctn_notify_broker_of_engine_config_change().
+
+    Args:
+        idx (int): The index of the configuration to notify (from 0).
     """
     logger.console(
-        f"Notify broker of engine config change for poller {idx + 1}")
-    lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
+        f"Notify broker of engine config change for poller {int(idx) + 1} "
+        "through its own lck file")
+    lck_file = f"{VAR_ROOT}/lib/centreon/config/{int(idx) + 1}.lck"
     Path(lck_file).touch()
 
 
@@ -3514,6 +3635,21 @@ def ctn_clear_prot_files(broker_only: bool = False):
             continue
         file.unlink()
 
+def ctn_clear_lck_files():
+    """Remove the <ID>.lck files PHP leaves in the cache configuration directory.
+
+    The counterpart of ctn_clear_prot_files(), and needed with it to leave Broker
+    with nothing at all: a .lck is enough for a cycle to rebuild new-<ID>.prot
+    from the PHP cache, so removing only the .prot files does not make Broker
+    blind -- it makes it slow.
+    """
+    directory = Path(f"{VAR_ROOT}/lib/centreon/config")
+    if not directory.is_dir():
+        return
+    for file in directory.glob('*.lck'):
+        file.unlink()
+
+
 def ctn_check_resource_ids(typ: str, logfile: str):
     """
     Check if resource ids are correct in the log file compared to the database.
@@ -3660,3 +3796,76 @@ def ctn_engine_stderr_tail(idx: int, nb_lines: int = 20):
         return f"<{stderr} is empty>"
     return "".join(lines[-nb_lines:])
 
+
+
+def ctn_count_in_log(log: str, date, content: str):
+    """Count the lines of a log file containing a string, from a date onwards.
+
+    Counting from a date rather than over the whole file is what lets a test
+    assert on one phase of its scenario without having to subtract a count taken
+    earlier -- a subtraction that only holds if nothing slipped in between.
+
+    Lines whose timestamp cannot be parsed are not counted: a line that cannot be
+    placed in time cannot be said to belong to the window.
+
+    Args:
+        log (str): The log file.
+        date: The date to count from, as a timestamp or an iso string. 0 counts
+        the whole file.
+        content (str): The string to look for.
+
+    Returns:
+        int: how many lines match, 0 if the file does not exist yet.
+    """
+    limit = ctn_get_date(str(date))
+    count = 0
+    try:
+        with open(log, "r") as f:
+            for line in f:
+                if content not in line:
+                    continue
+                d = ctn_extract_date_from_log(line)
+                if d is not None and d >= limit:
+                    count += 1
+    except IOError:
+        return 0
+    return count
+
+
+def ctn_wait_for_stable_count_in_log(log: str, date, content: str,
+                                     timeout: int = 60, quiet: int = 3):
+    """Wait until the number of lines containing <content>, from <date> onwards,
+    stops growing, and return it.
+
+    Meant to replace a fixed Sleep before or after measuring something in a log.
+    A Sleep is a bet on how fast the machine is -- too short and the measure is
+    taken while work is still going on, too long and every run pays for it. This
+    waits for the thing itself to settle instead, so it is both quicker on an
+    idle machine and safe on a loaded CI.
+
+    Args:
+        log (str): The log file.
+        date: The date to count from, as a timestamp or an iso string.
+        content (str): The string to count.
+        timeout (int, optional): Give up growing after this many seconds and
+        return what we have. Defaults to 60.
+        quiet (int, optional): How many seconds without a new line are needed to
+        call the count settled. Defaults to 3.
+
+    Returns:
+        int: the settled count.
+    """
+    limit = time.time() + timeout
+    count = ctn_count_in_log(log, date, content)
+    last_change = time.time()
+    while time.time() < limit:
+        time.sleep(1)
+        current = ctn_count_in_log(log, date, content)
+        if current != count:
+            count = current
+            last_change = time.time()
+        elif time.time() - last_change >= quiet:
+            return count
+    logger.console(
+        f"Count of '{content}' in {log} still moving after {timeout}s: {count}")
+    return count

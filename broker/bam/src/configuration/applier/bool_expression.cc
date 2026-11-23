@@ -115,7 +115,6 @@ void applier::bool_expression::apply(
       content.cfg = it->second;
       content.obj = new_bool_exp;
       content.svc = b.get_services();
-      content.call = b.get_calls();
       // Resolve boolean service.
       for (std::list<bool_service::ptr>::const_iterator
                it2 = content.svc.begin(),
@@ -130,8 +129,6 @@ void applier::bool_expression::apply(
           it->first, e.what());
     }
   }
-
-  _resolve_expression_calls();
 }
 
 /**
@@ -146,38 +143,4 @@ std::shared_ptr<bam::bool_expression> applier::bool_expression::find_boolexp(
   std::map<uint32_t, applied>::iterator it(_applied.find(id));
   return ((it != _applied.end()) ? it->second.obj
                                  : std::shared_ptr<bam::bool_expression>());
-}
-
-/**
- *  Resolve the cross
- */
-void applier::bool_expression::_resolve_expression_calls() {
-  absl::flat_hash_map<std::string, uint32_t> _name_to_ids;
-  for (std::map<uint32_t, applied>::const_iterator it = _applied.begin(),
-                                                   end = _applied.end();
-       it != end; ++it)
-    _name_to_ids[it->second.cfg.get_name()] = it->first;
-
-  for (std::map<uint32_t, applied>::iterator it = _applied.begin(), tmp = it,
-                                             end = _applied.end();
-       it != end; it = tmp) {
-    ++tmp;
-    for (std::list<std::shared_ptr<bam::bool_call> >::iterator
-             call_it = it->second.call.begin(),
-             call_end = it->second.call.end();
-         call_it != call_end; ++call_it) {
-      absl::flat_hash_map<std::string, uint32_t>::const_iterator found =
-          _name_to_ids.find((*call_it)->get_name());
-      if (found == _name_to_ids.end()) {
-        _logger->error(
-            "BAM: could not resolve the external boolean called '{}' for "
-            "expression '{}'",
-            (*call_it)->get_name(), it->second.cfg.get_name());
-        break;
-      } else {
-        (*call_it)->set_expression(
-            _applied[found->second].obj->get_expression());
-      }
-    }
-  }
 }

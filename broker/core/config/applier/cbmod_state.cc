@@ -117,12 +117,13 @@ bool cbmod_state::broker_peer_supports_extended_negotiation() const {
 }
 
 /**
- * @brief Check if a poller is currently connected.
+ * @brief Check if a poller has a live link to this instance. Inside cbmod
+ * there is no poller connected to us: we are the poller.
  *
  * @param poller_id The poller to check.
  */
-bool cbmod_state::has_connection_from_poller(uint64_t poller_id
-                                             [[maybe_unused]]) const {
+bool cbmod_state::is_poller_connected(uint64_t poller_id
+                                      [[maybe_unused]]) const {
   return false;
 }
 
@@ -193,10 +194,9 @@ void cbmod_state::set_diff_state_applied(bool done) {
  */
 void cbmod_state::push_notification_execute(
     const std::shared_ptr<io::data>& ne) {
-  auto evt =
-      std::static_pointer_cast<com::centreon::broker::bbdo::pb_notification_execute>(
-          ne);
-  absl::MutexLock lck(&_pending_notifications_m);
+  auto evt = std::static_pointer_cast<
+      com::centreon::broker::bbdo::pb_notification_execute>(ne);
+  absl::MutexLock lck(_pending_notifications_m);
   _pending_notifications.push_back(evt->obj());
 }
 
@@ -208,7 +208,7 @@ void cbmod_state::push_notification_execute(
  * @return The pending notifications, in arrival order.
  */
 std::vector<NotificationExecute> cbmod_state::drain_notification_executes() {
-  absl::MutexLock lck(&_pending_notifications_m);
+  absl::MutexLock lck(_pending_notifications_m);
   std::vector<NotificationExecute> retval;
   retval.reserve(_pending_notifications.size());
   for (auto& ne : _pending_notifications)

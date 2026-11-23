@@ -53,8 +53,7 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
                        "BBDO: sending DiffState to poller {} (unknown={})",
                        poller_id, obj.unknown());
     _write(pb_conf);
-    _state.set_available_conf_sent_to_engine_peer(
-        static_cast<uint32_t>(poller_id));
+    _state.set_poller_conf_sent(static_cast<uint32_t>(poller_id));
   } else {
     _logger->error("BBDO: failed to open diff file '{}' for poller {}",
                    diff_name.string(), poller_id);
@@ -176,7 +175,7 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       // Central: handle the ack (direct connection or forwarded by a relay).
       const uint64_t engine_id = obj.poller_id();
       _state.set_poller_engine_conf(engine_id, obj.config_version());
-      _state.acknowledge_engine_peer(engine_id);
+      _state.set_poller_conf_acknowledged(engine_id);
       SPDLOG_LOGGER_INFO(
           _logger,
           "BBDO: received diff state ack from poller {} with version '{}'",
@@ -188,12 +187,27 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       _logger->debug("bbdo::basic_stream removing {}", name.string());
       std::error_code ec;
       std::filesystem::rename(new_name, name, ec);
-      if (ec && ec != std::errc::no_such_file_or_directory)
-        _logger->error("Unable to rename the file from '{}' to '{}'",
-                       new_name.string(), name.string());
+      if (ec) {
+        if (ec != std::errc::no_such_file_or_directory)
+          _logger->error("Unable to rename the file from '{}' to '{}'",
+                         new_name.string(), name.string());
+      } else {
+        /* A new configuration just became this poller's reference, so the
+         * cache follows -- and it follows the *difference*, which is the only
+         * form that says what the export removed. Only on a successful rename:
+         * without a `new-<ID>.prot` there was nothing new to acknowledge.
+         *
+         * Before the global diff is published a few lines below, so whoever
+         * handles it finds the cache already up to date. And done here rather
+         * than by publishing a pb_engine_state: that event is handled by
+         * unified_sql's _process_engine_state, which calls process_state() and
+         * would rewrite the whole configuration to the database on every single
+         * export. */
+        _state.apply_poller_diff_in_cache(engine_id);
+      }
 
       // All the peer pollers have their configuration acknowledged.
-      if (_state.all_engine_peers_acknowledged()) {
+      if (_state.try_close_conf_round()) {
         SPDLOG_LOGGER_INFO(
             _logger,
             "BBDO: all engine peers have acknowledged their configuration");
@@ -272,8 +286,8 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
                          "{} (version '{}')",
                          engine_id, version);
 
-      _state.register_engine_peer_via_relay(engine_id, engine_name, poller_id(),
-                                            version);
+      _state.register_poller_via_relay(engine_id, engine_name, poller_id(),
+                                       version);
 
       using response_t = config::applier::broker_state::relay_config_response;
       switch (_state.prepare_relay_config_response(engine_id, version)) {
@@ -303,8 +317,7 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
           auto diff_state = std::make_shared<pb_diff_state>();
           diff_state->mut_obj().set_poller_id(static_cast<uint32_t>(engine_id));
           _write(diff_state);
-          _state.set_available_conf_sent_to_engine_peer(
-              static_cast<uint32_t>(engine_id));
+          _state.set_poller_conf_sent(static_cast<uint32_t>(engine_id));
           break;
         }
       }
@@ -335,7 +348,7 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   bool retval = stream::read(d, deadline);
 
   if (peer_type() == common::ENGINE &&
-      _state.engine_peer_needs_update(poller_id())) {
+      _state.poller_needs_update(poller_id())) {
     _logger->debug(
         "BBDO: We should send the Engine configuration to the poller {}",
         poller_id());
@@ -380,7 +393,7 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       // Central: for each engine peer behind this relay that has a pending PHP
       // config update, push the DiffState to the relay.
       for (uint64_t engine_id :
-           _state.engine_peers_via_relay_needing_update(poller_id())) {
+           _state.pollers_via_relay_needing_update(poller_id())) {
         _send_diff_state_for_poller(engine_id);
       }
     }

@@ -32,8 +32,8 @@ namespace com::centreon::broker::bam {
  *  value.
  */
 class bool_service : public bool_value, public service_listener {
-  const uint32_t _host_id;
-  const uint32_t _service_id;
+  const uint64_t _host_id;
+  const uint64_t _service_id;
   short _state_hard;
   bool _state_known;
   bool _in_downtime;
@@ -41,14 +41,14 @@ class bool_service : public bool_value, public service_listener {
  public:
   typedef std::shared_ptr<bool_service> ptr;
 
-  bool_service(uint32_t host_id,
-               uint32_t service_id,
+  bool_service(uint64_t host_id,
+               uint64_t service_id,
                const std::shared_ptr<spdlog::logger>& logger);
   ~bool_service() noexcept = default;
   bool_service(const bool_service&) = delete;
   bool_service& operator=(const bool_service&) = delete;
-  uint32_t get_host_id() const;
-  uint32_t get_service_id() const;
+  uint64_t get_host_id() const;
+  uint64_t get_service_id() const;
   void service_update(const service_state& s) override;
   void service_update(const std::shared_ptr<neb::pb_service>& status,
                       io::stream* visitor = nullptr) override;

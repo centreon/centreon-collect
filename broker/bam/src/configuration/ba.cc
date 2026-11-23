@@ -56,11 +56,14 @@ ba::ba(uint32_t id,
       _icon_image_alt(icon_image_alt) {}
 
 /**
- *  Equality comparison operator.
+ *  Equality comparison operator: same *configuration*.
+ *
+ *  The opened event, read from the DB to seed the BA when it is created, is
+ *  not compared: see configuration::kpi::operator==.
  *
  *  @param[in] right Object to compare to.
  *
- *  @return True if this object and right are totally equal.
+ *  @return True if this object and right describe the same BA.
  */
 bool ba::operator==(const ba& right) const {
   return _id == right._id && _host_id == right._host_id &&
@@ -69,8 +72,8 @@ bool ba::operator==(const ba& right) const {
          _state_source == right._state_source &&
          std::abs(_warning_level - right._warning_level) < eps &&
          std::abs(_critical_level - right._critical_level) < eps &&
-         _event == right._event && _dt_behaviour == right._dt_behaviour &&
-         _icon_id == right._icon_id && _icon_image == right._icon_image &&
+         _dt_behaviour == right._dt_behaviour && _icon_id == right._icon_id &&
+         _icon_image == right._icon_image &&
          _icon_image_alt == right._icon_image_alt;
 }
 
@@ -99,7 +102,7 @@ uint32_t ba::get_id() const {
  *
  *  @return BA host ID.
  */
-uint32_t ba::get_host_id() const {
+uint64_t ba::get_host_id() const {
   return _host_id;
 }
 
@@ -108,7 +111,7 @@ uint32_t ba::get_host_id() const {
  *
  *  @return  An integer representing the value of this id.
  */
-uint32_t ba::get_service_id() const {
+uint64_t ba::get_service_id() const {
   return _service_id;
 }
 
@@ -171,7 +174,7 @@ ba::downtime_behaviour ba::get_downtime_behaviour() const {
  *
  *  @param[in] service_id  Set the service id.
  */
-void ba::set_host_id(uint32_t host_id) {
+void ba::set_host_id(uint64_t host_id) {
   _host_id = host_id;
 }
 
@@ -180,7 +183,7 @@ void ba::set_host_id(uint32_t host_id) {
  *
  *  @param[in] service_id  Set the service id.
  */
-void ba::set_service_id(uint32_t service_id) {
+void ba::set_service_id(uint64_t service_id) {
   _service_id = service_id;
 }
 

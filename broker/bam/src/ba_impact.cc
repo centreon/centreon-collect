@@ -46,8 +46,8 @@ constexpr double eps = 0.000001;
  *  @param[in] logger The logger to use in this BA.
  */
 ba_impact::ba_impact(uint32_t id,
-                     uint32_t host_id,
-                     uint32_t service_id,
+                     uint64_t host_id,
+                     uint64_t service_id,
                      bool generate_virtual_status,
                      const std::shared_ptr<spdlog::logger>& logger)
     : ba(id,
@@ -78,26 +78,6 @@ state ba_impact::get_state_hard() const {
 }
 
 /**
- *  Get BA soft state.
- *
- *  @return BA soft state.
- */
-state ba_impact::get_state_soft() const {
-  bam::state state;
-
-  if (!_valid)
-    state = state_unknown;
-  else if (_level_soft <= _level_critical)
-    state = state_critical;
-  else if (_level_soft <= _level_warning)
-    state = state_warning;
-  else
-    state = state_ok;
-
-  return state;
-}
-
-/**
  *  Apply some impact.
  *
  *  @param[in] impact Impact information.
@@ -107,23 +87,19 @@ void ba_impact::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
   // Adjust values.
   _acknowledgement_count += impact.hard_impact.get_acknowledgement();
   _downtime_hard += impact.hard_impact.get_downtime();
-  _downtime_soft += impact.soft_impact.get_downtime();
 
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
   _level_hard -= impact.hard_impact.get_nominal();
-  _level_soft -= impact.soft_impact.get_nominal();
 }
 
 bool ba_impact::_apply_changes(kpi* child,
                                const impact_values& new_hard_impact,
-                               const impact_values& new_soft_impact,
                                bool in_downtime) {
   int32_t previous_level = _level_hard;
   auto it = _impacts.find(child);
   _unapply_impact(child, it->second);
   it->second.hard_impact = new_hard_impact;
-  it->second.soft_impact = new_soft_impact;
   it->second.in_downtime = in_downtime;
   _apply_impact(child, it->second);
   return previous_level != _level_hard;
@@ -144,11 +120,9 @@ void ba_impact::_unapply_impact(kpi* kpi_ptr [[maybe_unused]],
   // Adjust values.
   _acknowledgement_count -= impact.hard_impact.get_acknowledgement();
   _downtime_hard -= impact.hard_impact.get_downtime();
-  _downtime_soft -= impact.soft_impact.get_downtime();
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
   _level_hard += impact.hard_impact.get_nominal();
-  _level_soft += impact.soft_impact.get_nominal();
 }
 
 /**
@@ -157,6 +131,10 @@ void ba_impact::_unapply_impact(kpi* kpi_ptr [[maybe_unused]],
  *  @return Service output.
  */
 std::string ba_impact::get_output() const {
+  if (!_valid)
+    return _invalid_reason.empty()
+               ? std::string("Status is UNKNOWN - invalid BA")
+               : _invalid_reason;
   auto impacting_kpis = [this]() {
     std::list<std::string> lst;
     for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it) {
@@ -239,9 +217,7 @@ std::string ba_impact::get_perfdata() const {
 void ba_impact::_recompute() {
   _acknowledgement_count = 0.0;
   _downtime_hard = 0.0;
-  _downtime_soft = 0.0;
   _level_hard = 100.0;
-  _level_soft = 100.0;
   for (std::unordered_map<kpi*, impact_info>::iterator it = _impacts.begin(),
                                                        end = _impacts.end();
        it != end; ++it)

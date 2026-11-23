@@ -20,6 +20,7 @@
 #include "com/centreon/common/fmt_protobuf.hh"
 
 #include "broker/core/config/applier/state.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
@@ -52,8 +53,8 @@ static bool time_is_undefined(uint64_t t) {
  *  @param[in] logger The logger used in this ba.
  */
 ba::ba(uint32_t id,
-       uint32_t host_id,
-       uint32_t service_id,
+       uint64_t host_id,
+       uint64_t service_id,
        configuration::ba::state_source source,
        bool generate_virtual_status,
        const std::shared_ptr<spdlog::logger>& logger)
@@ -79,7 +80,6 @@ void ba::add_impact(std::shared_ptr<kpi> const& impact) {
     impact_info& ii = _impacts[impact.get()];
     ii.kpi_ptr = impact;
     impact->impact_hard(ii.hard_impact);
-    impact->impact_soft(ii.soft_impact);
     ii.in_downtime = impact->in_downtime();
     _apply_impact(impact.get(), ii);
     timestamp last_state_change(impact->get_last_state_change());
@@ -111,7 +111,7 @@ uint32_t ba::get_id() const {
  *
  *  @return  An integer representing the value of this id.
  */
-uint32_t ba::get_host_id() const {
+uint64_t ba::get_host_id() const {
   return _host_id;
 }
 
@@ -120,7 +120,7 @@ uint32_t ba::get_host_id() const {
  *
  *  @return  An integer representing the value of this id.
  */
-uint32_t ba::get_service_id() const {
+uint64_t ba::get_service_id() const {
   return _service_id;
 }
 
@@ -220,12 +220,15 @@ void ba::set_name(std::string const& name) {
 /**
  *  @brief Set whether or not BA is valid.
  *
- *  An invalid BA will return an UNKNOWN state.
+ *  An invalid BA is UNKNOWN whatever its type computes, and its output says
+ *  why: a KPI whose target does not exist, a BA that is its own ancestor.
  *
- *  @param[in] valid  Whether or not BA is valid.
+ *  @param[in] valid   Whether or not BA is valid.
+ *  @param[in] reason  Why it is not, ignored when it is.
  */
-void ba::set_valid(bool valid) {
+void ba::set_valid(bool valid, const std::string& reason) {
   _valid = valid;
+  _invalid_reason = valid ? std::string() : reason;
 }
 
 /**
@@ -331,6 +334,9 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
 
       notify_parents_of_change(visitor);
     }
+    if (in_downtime && dt->author == inherited_downtime_author &&
+        dt->comment == inherited_downtime_comment)
+      adopt_inherited_downtime(visitor);
   } else
     SPDLOG_LOGGER_DEBUG(
         _logger,
@@ -377,6 +383,9 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
 
     notify_parents_of_change(visitor);
   }
+  if (in_downtime && downtime.author() == inherited_downtime_author &&
+      downtime.comment_data() == inherited_downtime_comment)
+    adopt_inherited_downtime(visitor);
 }
 
 /**
@@ -401,6 +410,74 @@ void ba::set_inherited_downtime(const inherited_downtime& dwn) {
   _inherited_downtime->mut_obj().set_in_downtime(dwn.in_downtime);
   if (_inherited_downtime->obj().in_downtime())
     _in_downtime = true;
+}
+
+/**
+ *  Rebuild the inherited downtime of this BA after a restart.
+ *
+ *  The inherited downtime is not persisted: neither in the DB (mod_bam only
+ *  says the BA is in downtime, not why) nor in the BAM cache. Until 2026-09
+ *  it was rebuilt by accident: the KPI soft state was never initialised from
+ *  the configuration, so restoring the cache always looked like a change,
+ *  which notified the BA, which recomputed its inherited downtime with a null
+ *  visitor. With the soft state gone, the rebuild has to be asked for.
+ *
+ *  Only the silent side of that recomputation is reproduced: when the DB says
+ *  the BA is in downtime and every impacting KPI is still in downtime, the
+ *  in-memory object is recreated so that the day the KPIs leave downtime, the
+ *  removal is emitted. Nothing is published here: the downtime already exists
+ *  on the virtual service, publishing it again would duplicate it.
+ */
+void ba::restore_inherited_downtime() {
+  if (_dt_behaviour != configuration::ba::dt_inherit || _inherited_downtime ||
+      !_in_downtime || _impacts.empty() || get_state_hard() == state_ok)
+    return;
+  for (const auto& [k, info] : _impacts) {
+    if (!k->ok_state() && !k->in_downtime())
+      return;
+  }
+  SPDLOG_LOGGER_DEBUG(_logger,
+                      "BAM: BA {} was in downtime with every KPI in downtime: "
+                      "its inherited downtime is restored",
+                      _id);
+  _inherited_downtime = std::make_unique<pb_inherited_downtime>();
+  _inherited_downtime->mut_obj().set_ba_id(_id);
+  _inherited_downtime->mut_obj().set_in_downtime(true);
+}
+
+/**
+ *  Take an inherited downtime found on the virtual service as this BA's own.
+ *
+ *  The inherited downtime is not persisted, see restore_inherited_downtime().
+ *  That restoration only covers the BA whose KPIs are all still in downtime;
+ *  when they left downtime while cbd was down, nothing in memory says the
+ *  downtime on the virtual service is BAM's, and nothing ever removes it. The
+ *  downtime itself says so, by its author and comment: whoever sees it active
+ *  on the service -- Engine replaying its downtimes at connection, or the
+ *  Broker downtime_manager asked at startup -- calls this. The object is
+ *  recreated, then the usual computation runs: if the KPIs no longer justify
+ *  the downtime, its removal is published right away.
+ *
+ *  @param[out] visitor  Where the removal goes, if there is one.
+ */
+void ba::adopt_inherited_downtime(io::stream* visitor) {
+  if (_dt_behaviour != configuration::ba::dt_inherit)
+    return;
+  if (!_inherited_downtime) {
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "BAM: BA {} finds its inherited downtime on its "
+                        "virtual service and takes it back",
+                        _id);
+    _inherited_downtime = std::make_unique<pb_inherited_downtime>();
+    _inherited_downtime->mut_obj().set_ba_id(_id);
+    _inherited_downtime->mut_obj().set_in_downtime(true);
+  }
+  const bool before = _in_downtime;
+  _compute_inherited_downtime(visitor);
+  if (before != _in_downtime) {
+    visit(visitor);
+    notify_parents_of_change(visitor);
+  }
 }
 
 /**
@@ -597,10 +674,8 @@ void ba::update_from(computable* child, io::stream* visitor) {
   _logger->trace("ba::update_from (BA {})", _id);
   // Get impact.
   impact_values new_hard_impact;
-  impact_values new_soft_impact;
   kpi* kpi_child = static_cast<kpi*>(child);
   kpi_child->impact_hard(new_hard_impact);
-  kpi_child->impact_soft(new_soft_impact);
   bool kpi_in_downtime(kpi_child->in_downtime());
   bool previous_in_downtime = _in_downtime;
 
@@ -619,8 +694,7 @@ void ba::update_from(computable* child, io::stream* visitor) {
   // Apply new data.
   SPDLOG_LOGGER_TRACE(_logger, "BAM: BA {} updated from KPI {}", _id,
                       kpi_child->get_id());
-  bool changed = _apply_changes(kpi_child, new_hard_impact, new_soft_impact,
-                                kpi_in_downtime);
+  bool changed = _apply_changes(kpi_child, new_hard_impact, kpi_in_downtime);
   SPDLOG_LOGGER_TRACE(_logger, "BA {} has changed: {}", _id, changed);
 
   // Check for inherited downtimes.

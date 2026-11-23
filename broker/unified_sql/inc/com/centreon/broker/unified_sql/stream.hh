@@ -24,7 +24,6 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
@@ -158,19 +157,6 @@ class stream : public io::stream {
   enum stream_type { sql, unified_sql };
 
  private:
-  enum special_conn {
-    custom_variable,
-    downtime,
-    host_group,
-    host_parent,
-    log,
-    service_group,
-    severity,
-    tag,
-    comment
-  };
-
-
   struct index_info {
     uint64_t index_id;
     std::string host_name;
@@ -179,7 +165,6 @@ class stream : public io::stream {
     bool special;
     bool locked;
   };
-
   static const std::array<std::string, 5> metric_type_name;
 
   struct metric_info {
@@ -359,26 +344,6 @@ class stream : public io::stream {
   std::unique_ptr<database::mysql_stmt_base> _sscr_update;
   std::unique_ptr<bulk_bind> _sscr_bind;
 
-  /* Statement and binding to enable hosts in the hosts table. One value is
-   * set at index 0 that is the host ID. */
-  std::unique_ptr<database::mysql_stmt_base> _eh_update;
-  std::unique_ptr<bulk_bind> _eh_bind;
-
-  /* Statement and binding to enable hosts in the resources table. One value
-   * is set at index 0 that is the host ID. */
-  std::unique_ptr<database::mysql_stmt_base> _ehr_update;
-  std::unique_ptr<bulk_bind> _ehr_bind;
-
-  /* Statement and binding to enable services in the services table. One value
-   * is set at index 0 that is the service ID. */
-  std::unique_ptr<database::mysql_stmt_base> _es_update;
-  std::unique_ptr<bulk_bind> _es_bind;
-
-  /* Statement and binding to enable services in the resources table. One value
-   * is set at index 0 that is the service ID. */
-  std::unique_ptr<database::mysql_stmt_base> _esr_update;
-  std::unique_ptr<bulk_bind> _esr_bind;
-
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _tag_insert_update;
@@ -414,10 +379,6 @@ class stream : public io::stream {
 
   /* FIXME DBO: We already need the global cache. It isn't already there, so
    * we introduce a minimal set of it there. */
-  absl::flat_hash_map<std::string, uint64_t> _host_name_id_cache;
-  absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>
-      _service_description_id_cache;
-  absl::flat_hash_map<std::string, uint32_t> _instance_name_id_cache;
 
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint64_t id, bool responsive);
@@ -566,12 +527,9 @@ class stream : public io::stream {
     return _resources_cache;
   }
 
-  std::unordered_map<uint64_t, uint64_t>& hosts_instances_cache() {
-    return _cache_host_instance;
-  }
-  absl::flat_hash_map<std::string, uint64_t>& host_name_id_cache();
-  absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
-  service_description_id_cache();
+  // std::unordered_map<uint64_t, uint64_t>& hosts_instances_cache() {
+  //   return _cache_host_instance;
+  // }
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker

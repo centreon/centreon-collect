@@ -25,7 +25,7 @@
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <chrono>
+// #include <chrono>
 #include <filesystem>
 #include <optional>
 
@@ -813,6 +813,17 @@ class broker_cache {
   broker_cache& operator=(const broker_cache&) = delete;
   ~broker_cache() noexcept;
 
+  /**
+   * @brief Render a mask of cache_section as the names of the sections it
+   * holds, for a log a human reads.
+   *
+   * @param sections The mask.
+   *
+   * @return "all", "none", or the section names separated by commas, followed
+   *         by any unknown bits as hexadecimal.
+   */
+  static std::string sections_to_string(uint32_t sections);
+
   void enable_section(uint32_t sections) noexcept {
     /* Notification data is meaningless without the instances/hosts/services it
      * refers to, so requesting it pulls those sections in as well. */
@@ -842,8 +853,8 @@ class broker_cache {
    * _process_engine_state — in centralized mode). */
   void reinject_pending_downtimes() ABSL_LOCKS_EXCLUDED(_mutex);
   /* Store the per-resource notification states to persist on the next cache
-   * save. Called by broker_state at shutdown, before the notification_manager is
-   * unloaded. */
+   * save. Called by broker_state at shutdown, before the notification_manager
+   * is unloaded. */
   void set_notification_states(
       std::vector<BrokerCache::NotificationState> states)
       ABSL_LOCKS_EXCLUDED(_mutex);
@@ -937,12 +948,17 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host> host(uint64_t host_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
+  uint64_t host_id(std::string_view host_name) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<uint64_t> host_ids() const ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_service> service(const std::string& hostname,
                                            const std::string& description) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_service> service(uint64_t host_id,
                                            uint64_t service_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::pair<uint64_t, uint64_t> service_key(std::string_view host_name,
+                                            std::string_view description) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<storage::pb_index_mapping> get_index_mapping(
       uint64_t host_id,

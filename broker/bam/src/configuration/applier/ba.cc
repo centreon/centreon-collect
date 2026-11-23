@@ -43,33 +43,6 @@ applier::ba::ba(const std::shared_ptr<spdlog::logger>& logger)
     : _logger{logger} {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-applier::ba::ba(applier::ba const& other) {
-  _internal_copy(other);
-}
-
-/**
- *  Destructor.
- */
-applier::ba::~ba() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-applier::ba& applier::ba::operator=(applier::ba const& other) {
-  if (this != &other)
-    _internal_copy(other);
-  return *this;
-}
-
-/**
  *  Apply configuration.
  *
  *  @param[in] my_bas  BAs to apply.
@@ -236,7 +209,7 @@ void applier::ba::visit(io::stream* visitor, bool seed_service_status) {
  *
  *  @return Virtual BA host.
  */
-std::shared_ptr<neb::host> applier::ba::_ba_host(uint32_t host_id) {
+std::shared_ptr<neb::host> applier::ba::_ba_host(uint64_t host_id) {
   std::shared_ptr<neb::host> h(new neb::host);
   h->poller_id =
       com::centreon::broker::config::applier::state::instance().poller_id();
@@ -253,7 +226,7 @@ std::shared_ptr<neb::host> applier::ba::_ba_host(uint32_t host_id) {
  *
  *  @return Virtual BA host.
  */
-std::shared_ptr<neb::pb_host> applier::ba::_ba_pb_host(uint32_t host_id) {
+std::shared_ptr<neb::pb_host> applier::ba::_ba_pb_host(uint64_t host_id) {
   auto h = std::make_shared<neb::pb_host>();
   auto& o = h->mut_obj();
   o.set_instance_id(
@@ -275,8 +248,8 @@ std::shared_ptr<neb::pb_host> applier::ba::_ba_pb_host(uint32_t host_id) {
  *  @return Virtual BA service.
  */
 std::shared_ptr<neb::service> applier::ba::_ba_service(uint32_t ba_id,
-                                                       uint32_t host_id,
-                                                       uint32_t service_id,
+                                                       uint64_t host_id,
+                                                       uint64_t service_id,
                                                        bool in_downtime) {
   _logger->trace("_ba_service ba {}, service {}:{} with downtime {}", ba_id,
                  host_id, service_id, in_downtime);
@@ -301,10 +274,10 @@ std::shared_ptr<neb::service> applier::ba::_ba_service(uint32_t ba_id,
  */
 std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
     uint32_t ba_id,
-    uint32_t host_id,
+    uint64_t host_id,
     const std::string& ba_name,
     const std::string& host_name,
-    uint32_t service_id,
+    uint64_t service_id,
     uint32_t icon_id,
     const std::string& icon_image,
     const std::string& icon_image_alt,
@@ -331,15 +304,6 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
   o.set_icon_image(icon_image);
   o.set_icon_image_alt(icon_image_alt);
   return s;
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] other  Object to copy.
- */
-void applier::ba::_internal_copy(applier::ba const& other) {
-  _applied = other._applied;
 }
 
 /**
@@ -420,4 +384,14 @@ void applier::ba::apply_inherited_downtime(const pb_inherited_downtime& dwn) {
                       dwn.obj().in_downtime());
     multiplexing::publisher().write(s);
   }
+}
+
+/**
+ *  Rebuild the inherited downtimes of the applied BAs after a restart.
+ *
+ *  See bam::ba::restore_inherited_downtime().
+ */
+void applier::ba::restore_inherited_downtimes() {
+  for (auto& [id, a] : _applied)
+    a.obj->restore_inherited_downtime();
 }

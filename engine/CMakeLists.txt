@@ -568,7 +568,7 @@ if(NOT ONLY_ROBOT_CMA)
 endif()
 
 # Benchmarks.
-if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
+if(WITH_BENCHMARKS AND WITH_TESTING AND NOT ONLY_ROBOT_CMA)
   add_subdirectory(benchmark)
 endif()
 
