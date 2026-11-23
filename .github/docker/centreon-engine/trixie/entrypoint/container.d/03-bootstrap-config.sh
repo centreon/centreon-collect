@@ -82,7 +82,7 @@ broker_module_cfg_file=$MODULE_CFG
 rpc_listen_address=127.0.0.1
 log_external_commands=1
 retain_state_information=1
-state_retention_file=/var/log/centreon-engine/retention.dat
+state_retention_file=/var/lib/centreon-engine/retention.dat
 retention_update_interval=60
 interval_length=60
 EOF
