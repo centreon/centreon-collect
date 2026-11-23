@@ -1467,9 +1467,11 @@ BA_DEACTIVATED_SERVICE
     ...    AND    Ctn Reactivate Service 303
 
 BAM_RELOAD_ON_CBD_RELOAD
-    [Documentation]    Given broker with bam configured
-    ...    we should find bam restart after broker reload
-
+    [Documentation]    Scenario: A Broker reload makes BAM read its configuration again
+    ...    Given Broker with BAM configured
+    ...    When Broker is reloaded
+    ...    Then the BAM endpoint is kept, not created again
+    ...    And BAM reads its configuration from the database again
     [Tags]    broker    downtime    engine    bam    MON-191611
     Ctn BAM Init
 
@@ -1486,13 +1488,19 @@ BAM_RELOAD_ON_CBD_RELOAD
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd start.
 
-    Sleep     2s
+    Sleep    2s
 
     ${start}    Ctn Get Round Current Date
     Ctn Reload Broker
-    
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd reload.
+
+    # The configuration of BAM lives in the database: an unchanged endpoint is
+    # kept and updated, and its update reads that configuration again.
+    ${loaded}    Create List    bam configuration loaded.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${loaded}    60
+    Should Be True    ${result}    BAM did not read its configuration again after cbd reload.
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    5
+    Should Not Be True    ${result}    The BAM endpoint was created again by cbd reload.
 
 BAM_CORRUPTED_REPORTING_BA_EVENTS
     [Documentation]    Given broker with bam configured
