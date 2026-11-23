@@ -126,6 +126,7 @@ sub event {
         next if (!defined($message));
 
         $self->{logger}->writeLogDebug("[$self->{module_id}]$self->{container} Event: $message");
+        my $handled = 0;
         if ($message =~ /^\[(.*?)\]/) {
             if ((my $method = $self->can('action_' . lc($1)))) {
                 $message =~ /^\[(.*?)\]\s+\[(.*?)\]\s+\[.*?\]\s+(.*)$/m;
@@ -134,9 +135,22 @@ sub event {
                 next if ($rv);
 
                 $method->($self, token => $token, data => $data);
+                $handled = 1;
             }
         }
+        # this message doesn't match any action_<name> method: it may still be one this
+        # module processes through its own dispatch loop (its read_message()/event() call
+        # and that loop both drain the same internal socket, so a message still in flight
+        # when send_internal_action() triggers this event() can land here instead of there).
+        # Give the module a chance to handle it instead of dropping it.
+        $self->unhandled_event(message => $message) if (!$handled);
     }
+}
+
+# Default: nothing else to do with a message no action_<name> method claimed. A module
+# whose own read loop can race this event() call on the same internal socket overrides
+# this to hand the message to that loop instead of letting it disappear.
+sub unhandled_event {
 }
 
 sub get_core_config {
