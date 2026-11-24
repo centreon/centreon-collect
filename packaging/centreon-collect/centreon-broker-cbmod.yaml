@@ -8,6 +8,7 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
+  Centreon Broker module for Centreon Engine (cbmod).
   The Centreon Broker daemon can aggregate the outputs of multiple cbmod and store
   events in a DB from a single point.
   Commit: @COMMIT_HASH@
