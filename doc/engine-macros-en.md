@@ -6,6 +6,7 @@
   * [2. Context setup by the caller](#2-context-setup-by-the-caller)
   * [3. Evaluating a macro](#3-evaluating-a-macro)
     * [Syntax, case by case](#syntax-case-by-case)
+    * [Unresolved macros, `{{$X$}}` and recursion](#unresolved-macros-x-and-recursion)
   * [4. Values, caches and recomputations](#4-values-caches-and-recomputations)
     * [The scope of a contact for the `$TOTAL*$` macros](#the-scope-of-a-contact-for-the-total-macros)
     * ["Unhandled" problems and broker mode](#unhandled-problems-and-broker-mode)
@@ -82,8 +83,9 @@ they are already cached.
 ## 3. Evaluating a macro
 
 `macros::process_macros()` (`macros/process.cc`) walks the line: `$$` gives a
-`$`, a last `$` or a `$` without its closing `$` is dropped, and each `$…$` is
-given to `macros::value()` (`macros/resolve.cc`). The name is split
+`$`, a `$` without its closing `$` is kept as is, and each `$…$` or `{{$…$}}`
+is given to `macros::value()` (`macros/resolve.cc`); what becomes of a macro
+that cannot be resolved is described below. The name is split
 on `:` into at most three parts, `NAME:arg1:arg2`:
 
 - without argument, the macro is about the **context** object;
@@ -108,7 +110,7 @@ about, hence how to find the object.
 flowchart TD
     A["process_macros(line)"] --> B{"token $…$"}
     B -->|"$$"| B1["literal « $ »"]
-    B -->|"$NAME:arg1:arg2$"| C["value()<br/>split on « : »"]
+    B -->|"$NAME:arg1:arg2$<br/>or {{$NAME:arg1:arg2$}}"| C["value()<br/>split on « : »"]
 
     C --> D{"find_descriptor(NAME)<br/>is NAME in the<br/>descriptors table?"}
     D -->|"yes: macro of the table"| E["table_value()<br/>by the family of the descriptor"]
@@ -118,7 +120,7 @@ flowchart TD
     F -->|"CONTACTADDRESSn"| R1
     F -->|"_HOST… _SERVICE… _CONTACT…"| R1
     F -->|"user macro<br/>($USERn$, $NAME$…)"| F5["users() of the configuration<br/>(resource file)"]
-    F -->|otherwise| F6["unknown macro: empty value"]
+    F -->|otherwise| F6["unknown macro:<br/>unresolved"]
 
     E -->|"host, service, contact,<br/>groups"| R1{"resolve()<br/>arguments"}
     E -->|"date/time"| P3["current time, or<br/>$ISVALIDTIME:tp:t$ / $NEXTVALIDTIME:tp:t$"]
@@ -154,8 +156,8 @@ author and the comment of the notifications.
 
 The configuration forbids empty names, so an empty argument never designates
 a named object: it means "the context object", or it is an error. An error
-gives an empty value, and its cause is logged at `debug` level on the
-`macros` logger.
+leaves the macro **unresolved** (see below), and its cause is logged at
+`debug` level on the `macros` logger.
 
 In the tables, `X` stands for the name of the macro (`HOSTNAME`,
 `CONTACTEMAIL`…). For example, `$HOSTNAME:hg_web:,$` gives the name of each
@@ -195,10 +197,51 @@ notification): the arguments are ignored, except for
 timestamp (the current time by default).
 
 **`$ARGn$` and user macros** (`$USERn$`, `$CENTREONPLUGINS$`…): they take
-no argument; with arguments, their value is empty.
+no argument; with arguments, they are not resolved. A `$ARGn$` without an
+n-th argument, or a `$USERn$` (n ≥ 1) that the resource file does not define,
+is resolved to an empty string; `$ARG0$` and `$USER0$` do not exist.
 
 In a group form, the members come in no particular order, and the empty
 values are skipped.
+
+### Unresolved macros, `{{$X$}}` and recursion
+
+A macro is **unresolved** when `value()` cannot give it a value
+(`std::nullopt`): unknown name, missing named object, form in error,
+`$ARG0$`… This is not an empty value: an undefined `$USERn$` is resolved to
+`""`.
+
+What becomes of each writing in the line:
+
+- `$$` gives a `$`;
+- a `$` without its closing `$` is kept as is, at the end of the line or
+  elsewhere;
+- `$X$` gives the value of `X`. If `X` is not resolved, `$X$` disappears from
+  the line, except in the value of a custom variable, where it is kept as is:
+  a value may hold `$` for itself, as in `name in ('MSSQL$SIG','MSSQL$RH')`;
+- `{{$X$}}` gives the value of `X`, or nothing if `X` is not resolved,
+  wherever it is. Without its closing `$}}`, the rest of the line is kept as
+  is. This is the writing to use in a custom variable when an unknown macro
+  must disappear.
+
+For example, if `X` does not exist, `toto$X$toto` gives `totototo` in a
+command line, and stays `toto$X$toto` in the value of a custom variable.
+
+**Custom variables holding macros.** The value of a custom variable
+(`$_HOSTFOO$`, `$_SERVICEFOO$`, `$_CONTACTFOO$`), in all its forms (context
+object, named object, group), is itself evaluated when it holds a `$`, in the
+context of the caller and not in the one of the named object: if `_HOSTFOO` of
+`h2` is `$HOSTNAME$`, `$_HOSTFOO:h2$` gives the name of the context host. This evaluation is limited to two levels
+(`MAX_CUSTOM_MACRO_RECURSION_DEPTH`, counted by `custom_macro_depth` in the
+context): if `_HOSTTOP` is `$_HOSTMID$`, `_HOSTMID` is `$_HOSTDEEP$` and
+`_HOSTDEEP` is `$HOSTNAME$`, then `$_HOSTMID$` gives the host name, but
+`$_HOSTTOP$` gives `$HOSTNAME$`. Since the `$ARGn$` arguments are evaluated
+by `set_arguments()`, a custom variable given as an argument follows the same
+rules.
+
+These rules are those of `develop` (#3396, #3408, #3429), with two intended
+differences: an undefined `$USERn$` is empty whatever `n`, and the recursion
+also applies to the on-demand forms (`$_SERVICEFOO:host:desc$`).
 
 ## 4. Values, caches and recomputations
 
@@ -301,7 +344,18 @@ MACROS_GOLDEN_UPDATE=1 tests/ut_engine --gtest_filter='MacroGolden.*'
 A change of `golden.txt` must always be justified in the commit message: it
 is a behavior change users can see.
 
-The other macros tests are in `engine/tests/macros/pbmacro*.cc` (`Macro.*`).
+The golden also holds custom variables holding macros (`_REC1`, `_REC2`,
+`_REC3`, `_QUOTED`, `_UNKNOWN` on the hosts, `_REC` on the services) and
+`{{$…$}}` lines.
+
+The other macros tests are in `engine/tests/macros/pbmacro*.cc` (`Macro.*`),
+in particular:
+
+- `pbmacro_custom_recursive.cc` (`MacroCustomRecursive.*`): the recursion of
+  the custom variables, its limit, the unresolved macros and `{{$X$}}`;
+- `pbmacro_global_context.cc` (`GlobalMacrosContext.*`): a check after a
+  notification or a CMA result, and a reload removing the object of a
+  previous evaluation, read nothing stale.
 
 ## 7. Measures
 
@@ -319,8 +373,11 @@ taskset -c 2 build/engine/benchmark/macros_bench --benchmark_repetitions=3 \
 
 Two series are given:
 
-- **before**: the code before the rework (commit `6fb3d8b20a`);
-- **after**: the reworked code (commit `bc95675116`).
+- **before**: the code before the rework (commit `6fb3d8b20a` of
+  `dt-broker`);
+- **after**: the reworked code (commit `bc95675116` of `dt-broker`), without
+  the recursion of the custom variables nor `{{$X$}}`, which came later from
+  `develop`.
 
 This is not an ABBA comparison, since the binary of before no longer exists:
 a 5 to 6 % gap is not significant. To compare a new implementation, run the

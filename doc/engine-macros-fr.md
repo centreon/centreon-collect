@@ -6,6 +6,7 @@
   * [2. Préparation du contexte par l'appelant](#2-préparation-du-contexte-par-lappelant)
   * [3. Évaluation d'une macro](#3-évaluation-dune-macro)
     * [Syntaxe, cas par cas](#syntaxe-cas-par-cas)
+    * [Macros non résolues, `{{$X$}}` et récursion](#macros-non-résolues-x-et-récursion)
   * [4. Valeurs, caches et recalculs](#4-valeurs-caches-et-recalculs)
     * [Le périmètre d'un contact pour les `$TOTAL*$`](#le-périmètre-dun-contact-pour-les-total)
     * [Problèmes « non traités » et mode broker](#problèmes--non-traités--et-mode-broker)
@@ -85,8 +86,9 @@ déjà en cache.
 ## 3. Évaluation d'une macro
 
 `macros::process_macros()` (`macros/process.cc`) parcourt la ligne : `$$`
-donne un `$`, un `$` final ou sans `$` fermant disparaît, et chaque `$…$` est
-passé à `macros::value()` (`macros/resolve.cc`). Le nom est
+donne un `$`, un `$` sans `$` fermant est gardé tel quel, et chaque `$…$` ou
+`{{$…$}}` est passé à `macros::value()` (`macros/resolve.cc`) ; ce que devient
+une macro qui ne peut pas être résolue est décrit plus bas. Le nom est
 découpé sur `:` en trois parties au plus, `NOM:arg1:arg2` :
 
 - sans argument, la macro porte sur l'objet du **contexte** ;
@@ -112,7 +114,7 @@ porte la macro, donc comment trouver l'objet.
 flowchart TD
     A["process_macros(ligne)"] --> B{"jeton $…$"}
     B -->|"$$"| B1["« $ » littéral"]
-    B -->|"$NOM:arg1:arg2$"| C["value()<br/>découpage sur « : »"]
+    B -->|"$NOM:arg1:arg2$<br/>ou {{$NOM:arg1:arg2$}}"| C["value()<br/>découpage sur « : »"]
 
     C --> D{"find_descriptor(NOM)<br/>NOM est-il dans la table<br/>des descripteurs ?"}
     D -->|"oui : macro de la table"| E["table_value()<br/>selon la famille du descripteur"]
@@ -122,7 +124,7 @@ flowchart TD
     F -->|"CONTACTADDRESSn"| R1
     F -->|"_HOST… _SERVICE… _CONTACT…"| R1
     F -->|"macro utilisateur<br/>($USERn$, $NOM$…)"| F5["users() de la configuration<br/>(fichier de ressources)"]
-    F -->|sinon| F6["macro inconnue : valeur vide"]
+    F -->|sinon| F6["macro inconnue :<br/>non résolue"]
 
     E -->|"hôte, service, contact,<br/>groupes"| R1{"resolve()<br/>arguments"}
     E -->|"date/heure"| P3["heure courante, ou<br/>$ISVALIDTIME:tp:t$ / $NEXTVALIDTIME:tp:t$"]
@@ -158,8 +160,8 @@ l'auteur et le commentaire des notifications.
 
 La configuration interdit les noms vides : un argument vide ne désigne donc
 jamais un objet nommé. Il veut dire « l'objet du contexte », ou bien c'est
-une erreur. Une erreur donne une valeur vide, et sa cause est journalisée en
-`debug` sur le logger `macros`.
+une erreur. Une erreur rend la macro **non résolue** (voir plus bas), et sa
+cause est journalisée en `debug` sur le logger `macros`.
 
 Dans les tableaux, `X` désigne le nom de la macro (`HOSTNAME`,
 `CONTACTEMAIL`…). Par exemple, `$HOSTNAME:hg_web:,$` donne le nom de chaque
@@ -199,10 +201,55 @@ les arguments sont ignorés, sauf pour `$ISVALIDTIME:période[:t]$` et
 défaut).
 
 **`$ARGn$` et macros utilisateur** (`$USERn$`, `$CENTREONPLUGINS$`…) : elles
-ne prennent pas d'argument ; avec des arguments, leur valeur est vide.
+ne prennent pas d'argument ; avec des arguments, elles ne sont pas résolues.
+Un `$ARGn$` sans n-ième argument, ou un `$USERn$` (n ≥ 1) que le fichier de
+ressources ne définit pas, est résolu et vaut une chaîne vide ; `$ARG0$` et
+`$USER0$` n'existent pas.
 
 Dans une forme de groupe, les membres arrivent dans un ordre quelconque, et
 les valeurs vides sont sautées.
+
+### Macros non résolues, `{{$X$}}` et récursion
+
+Une macro est **non résolue** quand `value()` ne peut pas lui donner de
+valeur (`std::nullopt`) : nom inconnu, objet nommé absent, forme en erreur,
+`$ARG0$`… Ce n'est pas une valeur vide : un `$USERn$` non défini est résolu
+et vaut `""`.
+
+Ce que devient chaque écriture dans la ligne :
+
+- `$$` donne un `$` ;
+- un `$` sans `$` fermant est gardé tel quel, à la fin de la ligne comme
+  ailleurs ;
+- `$X$` donne la valeur de `X`. Si `X` n'est pas résolue, `$X$` disparaît de
+  la ligne, sauf dans la valeur d'une variable custom, où il est gardé tel
+  quel : une valeur peut contenir des `$` pour elle-même, comme
+  `name in ('MSSQL$SIG','MSSQL$RH')` ;
+- `{{$X$}}` donne la valeur de `X`, ou rien si `X` n'est pas résolue, où
+  qu'il soit. Sans `$}}` fermant, le reste de la ligne est gardé tel quel.
+  C'est l'écriture à utiliser dans une variable custom quand une macro
+  inconnue doit disparaître.
+
+Par exemple, si `X` n'existe pas, `toto$X$toto` donne `totototo` dans une
+ligne de commande, et reste `toto$X$toto` dans la valeur d'une variable
+custom.
+
+**Variables custom qui contiennent des macros.** La valeur d'une variable
+custom (`$_HOSTFOO$`, `$_SERVICEFOO$`, `$_CONTACTFOO$`), sous toutes ses
+formes (objet du contexte, objet nommé, groupe), est elle-même évaluée quand
+elle contient un `$`, dans le contexte de l'appelant et non dans celui de
+l'objet nommé : si `_HOSTFOO` de `h2` vaut `$HOSTNAME$`, `$_HOSTFOO:h2$` donne
+le nom de l'hôte du contexte. Cette évaluation est limitée à deux niveaux
+(`MAX_CUSTOM_MACRO_RECURSION_DEPTH`, compté par `custom_macro_depth` dans le
+contexte) : si `_HOSTTOP` vaut `$_HOSTMID$`,
+`_HOSTMID` vaut `$_HOSTDEEP$` et `_HOSTDEEP` vaut `$HOSTNAME$`, alors
+`$_HOSTMID$` donne le nom de l'hôte, mais `$_HOSTTOP$` donne `$HOSTNAME$`.
+Les arguments `$ARGn$` étant évalués par `set_arguments()`, une variable
+custom passée en argument suit les mêmes règles.
+
+Ces règles sont celles de `develop` (#3396, #3408, #3429), avec deux écarts
+voulus : un `$USERn$` non défini est vide quel que soit `n`, et la récursion
+s'applique aussi aux formes à la demande (`$_SERVICEFOO:hôte:desc$`).
 
 ## 4. Valeurs, caches et recalculs
 
@@ -307,8 +354,18 @@ MACROS_GOLDEN_UPDATE=1 tests/ut_engine --gtest_filter='MacroGolden.*'
 Une modification de `golden.txt` doit toujours être justifiée dans le message
 de commit : c'est un changement de comportement visible des utilisateurs.
 
+Le golden contient aussi des variables custom qui contiennent des macros
+(`_REC1`, `_REC2`, `_REC3`, `_QUOTED`, `_UNKNOWN` sur les hôtes, `_REC` sur les
+services) et des lignes `{{$…$}}`.
+
 Les autres tests des macros sont dans `engine/tests/macros/pbmacro*.cc`
-(`Macro.*`).
+(`Macro.*`), en particulier :
+
+- `pbmacro_custom_recursive.cc` (`MacroCustomRecursive.*`) : la récursion
+  des variables custom, sa limite, les macros non résolues et `{{$X$}}` ;
+- `pbmacro_global_context.cc` (`GlobalMacrosContext.*`) : un check après une
+  notification ou un résultat CMA, et un rechargement qui supprime l'objet
+  d'une évaluation précédente, ne lisent rien de périmé.
 
 ## 7. Mesures
 
@@ -326,8 +383,10 @@ taskset -c 2 build/engine/benchmark/macros_bench --benchmark_repetitions=3 \
 
 Deux séries sont données :
 
-- **avant** : le code d'avant la refonte (commit `6fb3d8b20a`) ;
-- **après** : le code refondu (commit `bc95675116`).
+- **avant** : le code d'avant la refonte (commit `6fb3d8b20a` de
+  `dt-broker`) ;
+- **après** : le code refondu (commit `bc95675116` de `dt-broker`), sans la
+  récursion des variables custom ni `{{$X$}}`, venues ensuite de `develop`.
 
 Ce n'est pas une comparaison ABBA, car le binaire d'avant n'existe plus : un
 écart de 5 à 6 % n'est pas significatif. Pour comparer une nouvelle
