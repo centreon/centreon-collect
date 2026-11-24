@@ -12,7 +12,10 @@ Usage:
 
 With -p/--progress the script keeps running while the robot run is alive,
 refreshing the display every few seconds (like `watch`) and drawing a progress
-bar across the terminal width. It exits as soon as the run finishes.
+bar across the terminal width. It exits as soon as the run finishes. The "Test"
+line also tells how long the current test has been running, against the mean
+duration of the tests already finished, with a small bar that turns orange when
+the test runs longer than the mean.
 
 When no test name is given, the script reads the running run's output.xml (which
 robot fills incrementally) and uses the last <test> tag it finds — i.e. the test
@@ -37,6 +40,7 @@ Run it inside the podman container (where robot is available):
 """
 
 import argparse
+import datetime
 import glob
 import hashlib
 import os
@@ -129,6 +133,21 @@ TEST_TAG_RE = re.compile(rb'<test\b[^>]*\bname="([^"]*)"')
 # </test>), which is what we key on.
 STATUS_TAG_RE = re.compile(rb'<status\b[^>]*\bstatus="([A-Z ]+)"')
 
+# Matches a whole <status …> tag, to read its timing attributes.
+STATUS_FULL_RE = re.compile(rb'<status\b[^>]*>')
+
+# Timing attributes of a <status> tag. Robot 7 writes start="<ISO date>" and
+# elapsed="<seconds>"; Robot 6 wrote starttime="YYYYMMDD HH:MM:SS.mmm" and
+# endtime="…" instead.
+STATUS_START_RE = re.compile(rb'\bstart(?:time)?="([^"]+)"')
+STATUS_ELAPSED_RE = re.compile(rb'\belapsed="([0-9.]+)"')
+STATUS_END_RE = re.compile(rb'\bendtime="([^"]+)"')
+
+# Width of the small bar drawn on the "Test" line, in terminal columns.
+TEST_BAR_WIDTH = 20
+# Narrowest bar kept before dropping it when the terminal is too narrow.
+MIN_TEST_BAR_WIDTH = 5
+
 
 def output_xml_path(run_args, pid):
     """Locate the output.xml of the running robot run.
@@ -172,6 +191,49 @@ def output_xml_path(run_args, pid):
     return output
 
 
+def parse_robot_time(raw):
+    """Convert a time written by robot in output.xml into a Unix timestamp.
+
+    Args:
+        raw: The attribute value, as bytes: an ISO date (Robot 7) or
+            'YYYYMMDD HH:MM:SS.mmm' (Robot 6). Both are local times of the
+            machine running robot.
+
+    Returns:
+        The timestamp in seconds, or None if the value cannot be parsed.
+    """
+    text = raw.decode(errors="replace")
+    for parse in (datetime.datetime.fromisoformat,
+                  lambda t: datetime.datetime.strptime(t,
+                                                       "%Y%m%d %H:%M:%S.%f")):
+        try:
+            return parse(text).timestamp()
+        except ValueError:
+            continue
+    return None
+
+
+def status_duration(tag):
+    """Return the duration carried by a <status …> tag.
+
+    Args:
+        tag: The whole <status …> tag, as bytes.
+
+    Returns:
+        The duration in seconds, or None if the tag carries no timing.
+    """
+    m = STATUS_ELAPSED_RE.search(tag)
+    if m:
+        return float(m.group(1))
+    start, end = STATUS_START_RE.search(tag), STATUS_END_RE.search(tag)
+    if start and end:
+        t0 = parse_robot_time(start.group(1))
+        t1 = parse_robot_time(end.group(1))
+        if t0 is not None and t1 is not None:
+            return t1 - t0
+    return None
+
+
 def last_test_in_output(path):
     """Return the name of the last <test> tag in a (possibly partial) output.xml.
 
@@ -205,6 +267,10 @@ class TailTestScanner:
     one). The buffer only ever holds the bytes of the test currently running, so
     it stays small. The still-open <test> tag left in the buffer gives the test
     in progress.
+
+    It also times the tests: each finished block gives the test's own duration
+    (its last <status>), and the open block gives the start of the test in
+    progress — the start of its first finished keyword, usually the test setup.
     """
 
     _CLOSE = b"</test>"
@@ -220,6 +286,34 @@ class TailTestScanner:
         self._buf = b""
         self._last = None
         self._results = {}          # test name -> status word (PASS/FAIL/…)
+        self._durations = {}        # test name -> its duration in seconds
+        self._running = None        # name of the test still open, if any
+        self._running_start = None  # its start, as a Unix timestamp
+        self._first_seen = None     # when this script first saw it open
+
+    def running_test(self):
+        """Tell which test is running and since when.
+
+        Returns:
+            A tuple (name, seconds): the test still open in output.xml and how
+            long it has been running, or (None, None) between two tests. Until
+            one of its keywords has finished, the start is the moment this
+            script first saw the test, i.e. it is at most one refresh late.
+        """
+        start = self._running_start or self._first_seen
+        if self._running is None or start is None:
+            return None, None
+        return self._running, max(0.0, time.time() - start)
+
+    def mean_duration(self):
+        """Return the mean duration of the finished tests.
+
+        Returns:
+            The mean in seconds, or None while no test has finished.
+        """
+        if not self._durations:
+            return None
+        return sum(self._durations.values()) / len(self._durations)
 
     def scan(self):
         """Scan the bytes appended to the file since the previous call.
@@ -234,6 +328,8 @@ class TailTestScanner:
                 # File truncated/replaced (new run?): rescan from the start.
                 self._offset, self._buf = 0, b""
                 self._last, self._results = None, {}
+                self._durations = {}
+                self._running = self._running_start = self._first_seen = None
             with open(self._path, "rb") as f:
                 f.seek(self._offset)
                 data = f.read()
@@ -256,11 +352,31 @@ class TailTestScanner:
                 name = names[-1].decode()
                 statuses = STATUS_TAG_RE.findall(block)
                 self._results[name] = statuses[-1].decode() if statuses else ""
+                tags = STATUS_FULL_RE.findall(block)
+                duration = status_duration(tags[-1]) if tags else None
+                if duration is not None:
+                    self._durations[name] = duration
                 self._last = name
         # The test still open (no </test> yet) is the one in progress.
-        open_names = TEST_TAG_RE.findall(self._buf)
-        if open_names:
-            self._last = open_names[-1].decode()
+        open_tags = list(TEST_TAG_RE.finditer(self._buf))
+        if open_tags:
+            last_open = open_tags[-1]
+            name = last_open.group(1).decode()
+            self._last = name
+            if name != self._running:
+                self._running = name
+                self._running_start = None
+                self._first_seen = time.time()
+            if self._running_start is None:
+                # Only the statuses after the <test> tag belong to this test
+                # (the buffer may still hold the end of a suite setup).
+                status = STATUS_FULL_RE.search(self._buf, last_open.end())
+                start = STATUS_START_RE.search(status.group(0)) if status \
+                    else None
+                if start:
+                    self._running_start = parse_robot_time(start.group(1))
+        else:
+            self._running = None
         return self._last, self._results
 
 
@@ -394,8 +510,83 @@ def format_command(run_args, width=0):
     return cmd
 
 
+def test_timing_str(running, mean, colour, bar_width=TEST_BAR_WIDTH,
+                    show_mean=True):
+    """Render how long the current test has run, against the mean test duration.
+
+    E.g. '1m23s / ~2m10s  [████████████░░░░░░░░]  64 %'. Past the mean, the bar
+    stays full, turns orange and shows the overrun ('+35 %'), so a slow or stuck
+    test stands out.
+
+    Args:
+        running: Seconds the current test has been running.
+        mean: Mean duration of the finished tests in seconds, or None while no
+            test has finished (only the running time is then shown).
+        colour: Use ANSI colors.
+        bar_width: Number of cells of the bar; 0 drops the bar and its
+            percentage.
+        show_mean: Also print the mean duration ('/ ~2m10s').
+
+    Returns:
+        The text to append to the "Test" line.
+    """
+    text = fmt_duration(running)
+    if not mean:
+        return text
+    if show_mean:
+        text = f"{text} / ~{fmt_duration(mean)}"
+    if bar_width <= 0:
+        return text
+    ratio = running / mean
+    filled = min(bar_width, round(bar_width * ratio))
+    if ratio <= 1:
+        label = f"{ratio * 100:3.0f} %"
+    else:
+        label = f"+{(ratio - 1) * 100:.0f} %"
+    bar = "█" * filled
+    empty = "░" * (bar_width - filled)
+    if colour:
+        fill = "\033[1;32m" if ratio <= 1 else "\033[1;38;5;208m"
+        bar = f"{fill}{bar}\033[0m"
+        empty = f"\033[2m{empty}\033[0m"
+        label = f"{fill}{label}\033[0m"
+    return f"{text}  [{bar}{empty}] {label}"
+
+
+def fitted_test_timing(prefix_len, running, mean, colour, width):
+    """Render the timing of the current test so that the line fits the terminal.
+
+    When the line is too long, the mean is dropped first, then the bar shrinks
+    down to MIN_TEST_BAR_WIDTH cells, and only then disappears (the bar tells
+    more than the mean), so the "Test" line never wraps.
+
+    Args:
+        prefix_len: Visible length of the "Test" line before the timing.
+        running: Seconds the current test has been running.
+        mean: Mean duration of the finished tests, or None.
+        colour: Use ANSI colors.
+        width: Terminal width; 0 means no limit.
+
+    Returns:
+        The text to append to the "Test" line (possibly empty).
+    """
+    if not width:
+        return test_timing_str(running, mean, colour)
+    # Keep the last column free: some terminals wrap a line that fills it.
+    room = width - 1 - prefix_len
+    candidates = [(TEST_BAR_WIDTH, True)]
+    candidates += [(w, False)
+                   for w in range(TEST_BAR_WIDTH, MIN_TEST_BAR_WIDTH - 1, -1)]
+    candidates += [(0, True), (0, False)]
+    for bar_width, show_mean in candidates:
+        plain = test_timing_str(running, mean, False, bar_width, show_mean)
+        if len(plain) <= room:
+            return test_timing_str(running, mean, colour, bar_width, show_mean)
+    return ""
+
+
 def status_lines(test_name, idx, total, elapsed, colour, finished_count=None,
-                 run_args=None, width=0):
+                 run_args=None, width=0, test_timing=None):
     """Build the status report for a test as a list of printable lines.
 
     Args:
@@ -415,6 +606,10 @@ def status_lines(test_name, idx, total, elapsed, colour, finished_count=None,
             default selection instead.
         width: Terminal width the command line is truncated to; 0 disables
             truncation.
+        test_timing: A tuple (running, mean): seconds the reported test has
+            been running and the mean duration of the finished tests (None if
+            none finished yet). None when the test is not running, e.g. in the
+            one-shot mode.
 
     Returns:
         A tuple (lines, pct): the report as a list of printable lines, and
@@ -452,8 +647,17 @@ def status_lines(test_name, idx, total, elapsed, colour, finished_count=None,
     if colour:
         command = f"\033[2m{command}\033[0m"          # dim: context, not data
 
+    test_line = f"Test        : {name}  ({fraction})"
+    if test_timing is not None:
+        running, mean = test_timing
+        prefix_len = len(f"Test        : {test_name}  (#{position}/{total})  ")
+        timing_str = fitted_test_timing(prefix_len, running, mean, colour,
+                                        width)
+        if timing_str:
+            test_line += "  " + timing_str
+
     lines = [f"{label}{command}",
-             f"Test        : {name}  ({fraction})",
+             test_line,
              f"Remaining   : {remaining}  (current test included)",
              f"Progress    : {percent} %"]
 
@@ -473,8 +677,9 @@ def status_lines(test_name, idx, total, elapsed, colour, finished_count=None,
 def progress_bar(pct, width, colour, failed_idx=frozenset(), total=0):
     """Render a progress bar, e.g. [██▉█░░░]  42.0 %.
 
-    The filled part is green, except the columns mapping to a failed test, which
-    are red — so a failure shows up as a red slice at its position in the run.
+    The filled part is green, except the columns of a failed test's slice, which
+    are red — so a failure shows up as a red slice at its position in the run,
+    and red is never overwritten by the green of a neighbouring test.
 
     Args:
         pct: Progress percentage (0-100).
@@ -494,8 +699,16 @@ def progress_bar(pct, width, colour, failed_idx=frozenset(), total=0):
     if not colour:
         return f"[{'█' * filled}{'░' * (bar_width - filled)}]{label}"
 
-    # Column a failed test lands on (same proportional mapping as `filled`).
-    failed_cols = {j * bar_width // total for j in failed_idx} if total else set()
+    # Each test owns the columns [j*W/total, (j+1)*W/total) (same proportional
+    # mapping as `filled`); a failed test turns all of them red. With more tests
+    # than columns a slice can be empty, so it keeps at least the column it lands
+    # on. A column shared with a failed test stays red whatever its neighbours.
+    failed_cols = set()
+    if total:
+        for j in failed_idx:
+            first = j * bar_width // total
+            last = max(first + 1, (j + 1) * bar_width // total)
+            failed_cols.update(range(first, last))
     green, red, dim, reset = "\033[1;32m", "\033[1;31m", "\033[2m", "\033[0m"
     # Emit the filled part as color runs so a red slice stands out without one
     # escape per cell.
@@ -568,9 +781,13 @@ def progress_loop(tests, run_args, pid):
                 pct = 0.0
             else:
                 finished_count = sum(1 for n in results if n in index)
+                running_name, running = scanner.running_test()
+                test_timing = None
+                if not finished and running_name == current:
+                    test_timing = (running, scanner.mean_duration())
                 body, pct = status_lines(current, index[current], total,
                                          elapsed, colour, finished_count,
-                                         run_args, width)
+                                         run_args, width, test_timing)
             if failed_idx:
                 # Failed test names, in run order (their position in the run).
                 failed_names = sorted(
