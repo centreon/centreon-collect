@@ -173,6 +173,10 @@ void execute_broker_notification(
     /* This poller does not supervise the resource: not for us. */
     return;
 
+  /* Broker attributed this id: the resource keeps it for the macros read
+   * later, outside of this notification. */
+  n->set_current_notification_id(notification_id);
+
   absl::flat_hash_set<std::shared_ptr<contact>> to_notify;
   for (const std::string& name : contacts) {
     auto it = contact::contacts.find(name);
