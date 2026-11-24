@@ -4108,6 +4108,9 @@ std::string host::get_check_command_line(nagios_macros* macros) {
   auto cmd = get_check_command_ptr();
   if (cmd) {
     grab_host_macros_r(macros, this);
+    // Called for its side effect: it splits check_command() ("name!arg1!...")
+    // on '!' and fills the $ARGn$ macros (macros->argv) that process_cmd()
+    // substitutes below. The raw command line written to tmp is not needed.
     std::string tmp;
     get_raw_command_line_r(macros, cmd, check_command().c_str(), tmp, 0);
     return cmd->process_cmd(macros);
