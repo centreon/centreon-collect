@@ -21,7 +21,6 @@
  */
 
 #include "com/centreon/engine/events/loop.hh"
-#include <future>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/commands/commands.hh"
@@ -109,10 +108,8 @@ loop::loop() : _need_reload(false), _reload_running(false) {}
  * @brief Reload the configuration and apply its difference with the current
  * one.
  *
- * @param reloading A boolean to know if the configuration is currently
- * reloading.
  */
-static void apply_conf(std::atomic<bool>* reloading) {
+static void apply_conf() {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
   try {
@@ -137,7 +134,6 @@ static void apply_conf(std::atomic<bool>* reloading) {
   } catch (std::exception const& e) {
     config_logger->error("Error: {}", e.what());
   }
-  *reloading = false;
   process_logger->info("Reload configuration finished.");
 }
 
@@ -145,11 +141,8 @@ static void apply_conf(std::atomic<bool>* reloading) {
  * @brief Apply a diff configuration.
  *
  * @param diff_conf The new diff configuration.
- * @param reloading A boolean to know if the configuration is currently
- * reloading.
  */
-static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
-                       std::atomic<bool>* reloading) {
+static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload differential configuration.");
   try {
@@ -176,7 +169,6 @@ static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
   } catch (const std::exception& e) {
     config_logger->error("Error: {}", e.what());
   }
-  *reloading = false;
   process_logger->info(
       "Reload differential configuration finished. new engine version '{}'",
       pb_indexed_config.state().config_version());
@@ -186,7 +178,6 @@ static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
  *  Slot to dispatch Centreon Engine events.
  */
 void loop::_dispatching() {
-  std::atomic<bool> reloading{false};
   for (;;) {
     // See if we should exit or restart (a signal was encountered).
     if (sigshutdown)
@@ -205,49 +196,33 @@ void loop::_dispatching() {
     }
 
     std::unique_ptr<configuration::DiffState> diff_conf = cbm->diff_state();
-    // Start reload configuration.
     if (_need_reload || diff_conf) {
-      if (!reloading) {
-        reloading = true;
-        if (_need_reload) {
-          process_logger->info("Need reload.");
-          process_logger->info("Reloading...");
-          auto future [[maybe_unused]] =
-              std::async(std::launch::async, apply_conf, &reloading);
+      if (_need_reload) {
+        process_logger->info("Need reload.");
+        process_logger->info("Reloading...");
+        apply_conf();
+      } else if (diff_conf->unknown()) {
+        /* Broker sends an empty diff state to ask Engine to send its
+         * current configuration. */
+        auto current_state = std::make_unique<configuration::State>();
+        configuration::applier::state::instance().get_current_state(
+            *current_state);
+        if (current_state->poller_id() == 0) {
+          /* state.prot does not exist yet (engine has not applied any
+           * configuration). We cannot respond to broker's request. The
+           * normal configuration flow (via .lck files) will eventually
+           * provide the configuration to broker. */
+          process_logger->warn(
+              "Broker requested current configuration but no state.prot "
+              "is available yet. Waiting for the normal flow.");
         } else {
-          if (diff_conf->unknown()) {
-            /* Broker sends an empty diff state to ask Engine to send its
-             * current configuration. */
-            auto current_state = std::make_unique<configuration::State>();
-            configuration::applier::state::instance().get_current_state(
-                *current_state);
-            if (current_state->poller_id() == 0) {
-              /* state.prot does not exist yet (engine has not applied any
-               * configuration). We cannot respond to broker's request. The
-               * normal configuration flow (via .lck files) will eventually
-               * provide the configuration to broker. */
-              process_logger->warn(
-                  "Broker requested current configuration but no state.prot "
-                  "is available yet. Waiting for the normal flow.");
-            } else {
-              process_logger->info(
-                  "Sending current configuration to Broker...");
-              cbm->send_engine_conf(std::move(current_state));
-            }
-            /* Reset reloading: unlike apply_diff (which is async and resets
-             * it at the end), sending the current conf is synchronous and we
-             * must allow future diffs to be processed. */
-            reloading = false;
-          } else {
-            process_logger->info("New differential configuration to load.");
-            process_logger->info("Reloading from Broker...");
-            auto future [[maybe_unused]] =
-                std::async(std::launch::async, apply_diff, std::move(diff_conf),
-                           &reloading);
-          }
+          process_logger->info("Sending current configuration to Broker...");
+          cbm->send_engine_conf(std::move(current_state));
         }
       } else {
-        process_logger->info("Already reloading...");
+        process_logger->info("New differential configuration to load.");
+        process_logger->info("Reloading from Broker...");
+        apply_diff(std::move(diff_conf));
       }
       _need_reload = false;
     }
