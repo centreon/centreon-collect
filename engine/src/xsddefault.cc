@@ -33,6 +33,7 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/notifications/notification_manager.hh"
 #include "engine/macros/macro_context.hh"
 
 using namespace com::centreon;
@@ -230,7 +231,8 @@ int xsddefault_save_status_data() {
       << next_problem_id
       << "\n"
          "\tnext_notification_id="
-      << next_notification_id
+      << com::centreon::common::notifications::notification_manager::instance()
+             .get_next_notification_id()
       << "\n"
          "\ttotal_external_command_buffer_slots="
       << external_command_buffer_slots

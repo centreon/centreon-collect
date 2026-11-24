@@ -97,6 +97,19 @@ uint64_t notification_manager::get_next_notification_id() const noexcept {
   return _next_notification_id;
 }
 
+/**
+ * @brief Move the id generator to the value saved in the retention. It never
+ * goes back: the ids already given out (a restored current_id, see restore()
+ * and set_current_notification_id()) must stay unique, and a retention file
+ * written before 2026-10 holds a value that no notification ever moved.
+ *
+ * @param id The next notification id read from the retention.
+ */
+void notification_manager::set_next_notification_id(uint64_t id) noexcept {
+  if (id > _next_notification_id)
+    _next_notification_id = id;
+}
+
 notification_category notification_manager::get_category(reason_type type) {
   if (type == reason_custom)
     return cat_custom;
@@ -722,6 +735,9 @@ void notification_manager::set_current_notification_id(uint64_t host_id,
                                                        uint64_t service_id,
                                                        uint64_t id) {
   _state(host_id, service_id).current_id = id;
+  /* Keep the id generator ahead of an id restored from the retention. */
+  if (id >= _next_notification_id)
+    _next_notification_id = id + 1;
 }
 
 std::time_t notification_manager::last_notification(uint64_t host_id,

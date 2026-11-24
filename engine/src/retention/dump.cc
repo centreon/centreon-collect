@@ -27,6 +27,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -446,7 +447,8 @@ std::ostream& dump::program(std::ostream& os) {
      << next_event_id
      << "\n"
         "next_notification_id="
-     << next_notification_id
+     << notifications::notification_manager::instance()
+            .get_next_notification_id()
      << "\n"
         "next_problem_id="
      << next_problem_id

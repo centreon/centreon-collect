@@ -156,6 +156,7 @@ class notification_manager {
 
   uint64_t next_notification_id() noexcept;
   uint64_t get_next_notification_id() const noexcept;
+  void set_next_notification_id(uint64_t id) noexcept;
 
   static notification_category get_category(reason_type type);
   bool is_notification_viable(uint64_t host_id,
