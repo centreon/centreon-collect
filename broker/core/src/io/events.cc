@@ -236,6 +236,8 @@ events::events() : _logger{log_v2::instance().get(log_v2::CONFIG)} {
   register_event(bbdo::pb_notification_execute::static_type(),
                  "NotificationExecute",
                  &bbdo::pb_notification_execute::operations);
+  register_event(bbdo::pb_external_command::static_type(), "ExternalCommand",
+                 &bbdo::pb_external_command::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,

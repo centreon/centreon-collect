@@ -63,6 +63,15 @@ class stream : public basic_stream {
 
   std::string _get_extension_names(bool mandatory) const;
 
+ protected:
+  /**
+   * @brief Wether the peer supports the extended negotiation.
+   *
+   * @return true if the peer supports the extended negotiation, false
+   * otherwise.
+   */
+  bool extended_negotiation() const { return _extended_negotiation; }
+
  public:
   enum negotiation_type { negotiate_first = 1, negotiate_second, negotiated };
 

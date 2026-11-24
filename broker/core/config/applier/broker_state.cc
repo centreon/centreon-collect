@@ -26,9 +26,9 @@
 #include <boost/asio/post.hpp>
 
 #include "bbdo/bbdo.pb.h"
-#include "bbdo/neb.pb.h"
-#include "com/centreon/broker/broker_downtime_callbacks.hh"
 #include "broker/core/config/applier/broker_notification_callbacks.hh"
+#include "com/centreon/broker/broker_acknowledgement_manager.hh"
+#include "com/centreon/broker/broker_downtime_callbacks.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file_system.hh"
@@ -152,6 +152,7 @@ broker_state::~broker_state() {
     config::applier::state::instance().cache().set_notification_states(
         std::move(states));
   }
+  broker_acknowledgement_manager::unload();
   com::centreon::common::downtimes::downtime_manager::unload();
   com::centreon::common::notifications::notification_manager::unload();
 }
@@ -199,23 +200,35 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
 
     /* Register the notification trigger as an event_sink on the multiplexing
      * engine: it drives the notification_manager on each host/service status
-     * batch. */
-    _notification_dispatcher =
-        std::make_unique<broker_notification_dispatcher>();
+     * batch, on its own strand — the manager is not thread-safe, every other
+     * caller posts its work on that strand too. */
+    _notification_dispatcher = std::make_unique<broker_notification_dispatcher>(
+        com::centreon::common::pool::instance().io_context());
     multiplexing::engine::instance_ptr()->set_notification_sink(
         _notification_dispatcher.get());
+
+    /* Broker is also the acknowledgement authority: Engine is never told about
+     * acknowledgements, Broker stores, exports and clears them itself. Loaded
+     * after the dispatcher it posts its notifications to. */
+    broker_acknowledgement_manager::load(*_notification_dispatcher);
+    logger->info(
+        "notification_mode=broker: acknowledgement management enabled, "
+        "acknowledgement manager loaded");
   }
 
   state::apply(s, run_mux);
 
   /* The persisted active downtimes are re-injected from
-   * _maybe_release_barrier() once the startup readiness barrier releases (i.e.
+   * _on_barrier_released() once the startup readiness barrier releases (i.e.
    * after every output stream has emitted its startup definitions and the
    * engine has flushed them). Doing it here, before the barrier, would let a
    * stale BA service definition clobber the re-injected inherited-downtime
-   * depth. In centralized mode the resources are not known yet and the
-   * re-injection is a no-op anyway (done later from _process_engine_state after
-   * merge). */
+   * depth. In centralized mode the stored .prot files are merged into the
+   * cache before the endpoints are created, so at the barrier the resources of
+   * every poller are known, connected or not, and the re-injection covers them
+   * all. Only a poller whose configuration was lost and rebuilt from Engine is
+   * still unknown then; its entries stay pending and are re-injected from
+   * _process_engine_state after the merge. */
 
   /* Outside the centralized configuration, the cache file is the only way to
    * get the pollers configuration back after a crash: it is saved
@@ -225,14 +238,37 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
 }
 
 /**
- * @brief Resolve the directories holding the stored poller configurations.
+ * @brief Resolve the directory holding the stored poller configurations.
  *
- * Invoked from apply(), after the cache directory is known and before the
- * endpoints are applied -- and the order is not free. Applying the endpoints is
- * what declares the cache sections and then fills the global cache from these
- * very directories; resolving them afterwards, as this used to do, meant the
- * fill ran against an empty path, found nothing, and consumed its call_once.
- * The cache then stayed empty for the life of the process.
+ * Invoked from apply() once the cache directory is known and *before the
+ * global cache is constructed*: the cache reads supports_centralized_conf() in
+ * its constructor to decide whether the heavy sections of its on-disk file are
+ * to be loaded (legacy) or rebuilt from the stored configurations
+ * (centralized), and this directory is what that answer is made of. Resolved
+ * later, as it used to be, the cache took the legacy branch in both modes.
+ *
+ * @param s The configuration being applied.
+ */
+void broker_state::_resolve_pollers_config_dir(
+    const com::centreon::broker::config::state& s) {
+  if (s.get_bbdo_version().major_v < 3)
+    return;
+
+  if (!s.cache_config_dir().empty() && _pollers_config_dir.empty()) {
+    set_pollers_config_dir(std::filesystem::path(cache_dir()) /
+                           "pollers-configuration/");
+    load_topology_cache();
+  } else
+    set_pollers_config_dir(s.pollers_config_dir());
+}
+
+/**
+ * @brief Start watching the configuration cache directory PHP writes to.
+ *
+ * Invoked from apply(), after the modules are loaded and before the endpoints
+ * are applied -- and the order is not free. Applying the endpoints is what
+ * fills the global cache from the stored configurations; a watcher started
+ * later could hand a poller a configuration before the cache knows it.
  *
  * @param s The configuration being applied.
  */
@@ -240,15 +276,6 @@ void broker_state::_configure_cache_directories(
     const com::centreon::broker::config::state& s) {
   if (s.get_bbdo_version().major_v < 3)
     return;
-
-  /* The cache directory is set first, so that the watcher is started and the
-   * topology cache can be loaded. */
-  if (!s.cache_config_dir().empty() && _pollers_config_dir.empty()) {
-    set_pollers_config_dir(std::filesystem::path(cache_dir()) /
-                           "pollers-configuration/");
-    load_topology_cache();
-  } else
-    set_pollers_config_dir(s.pollers_config_dir());
 
   // Configuration cache directory (for broker, from php).
   set_cache_config_dir(s.cache_config_dir());
@@ -258,14 +285,23 @@ void broker_state::_configure_cache_directories(
  * @brief Invoked by the base startup readiness barrier right after the
  * multiplexing engine is started. Re-inject the persisted active downtimes so
  * they are ordered after the startup definitions the engine just flushed (e.g.
- * the BA virtual service definitions). No-op in centralized mode (resources not
- * known yet; re-injected later from _process_engine_state after merge).
+ * the BA virtual service definitions). In centralized mode the cache already
+ * holds every stored poller configuration at this point, so the re-injection
+ * also covers the pollers that are not connected; only the entries of a poller
+ * whose configuration had to be rebuilt from Engine stay pending, and
+ * _process_engine_state re-injects them after the merge.
  */
 void broker_state::_on_barrier_released() {
   if (_notification_mode == notification_mode_broker) {
     cache().reinject_pending_downtimes();
     cache().reinject_pending_notification_states();
+    cache().reinject_pending_acknowledgements();
+    cache().reinject_pending_notification_overrides();
   }
+  /* After the re-injections: whoever waits for the cache (BAM seeds its KPI
+   * states from it) must find the downtime depths and acknowledgement flags
+   * already restored on the entries. */
+  cache().set_ready();
 }
 
 /**
@@ -939,6 +975,42 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
  */
 std::string broker_state::poller_timezone(uint64_t poller_id) const {
   return _peers.poller_timezone(poller_id);
+}
+
+/**
+ * @brief The configuration version an Engine peer told us it runs (see
+ * peer_registry::poller_engine_conf()).
+ *
+ * @param poller_id The poller.
+ *
+ * @return Its configuration version, empty if the poller is unknown.
+ */
+std::string broker_state::poller_engine_conf(uint64_t poller_id) const {
+  return _peers.poller_engine_conf(poller_id);
+}
+
+/**
+ * @brief Whether the poller is still owed the runtime snapshot of its
+ * resources (see peer_registry::runtime_state_owed()).
+ *
+ * @param poller_id The poller.
+ *
+ * @return true if the snapshot is still owed.
+ */
+bool broker_state::runtime_state_owed(uint64_t poller_id) const {
+  return _peers.runtime_state_owed(poller_id);
+}
+
+/**
+ * @brief Record whether the poller is owed the runtime snapshot (see
+ * peer_registry::set_runtime_state_owed()).
+ *
+ * @param poller_id The poller.
+ * @param owed true when its configuration was rebuilt, false once the snapshot
+ * was sent.
+ */
+void broker_state::set_runtime_state_owed(uint64_t poller_id, bool owed) {
+  _peers.set_runtime_state_owed(poller_id, owed);
 }
 
 /**
@@ -1847,6 +1919,9 @@ bool broker_state::_prepare_diff_for_poller(
     diff_state = std::make_unique<engine::configuration::DiffState>();
     diff_state->set_allocated_state(state.release());
   }
+  /* The diff names the poller it is for: whoever sends it reads it there,
+   * and the embedded full state is not always present to say so. */
+  diff_state->set_poller_id(static_cast<uint32_t>(poller_id));
   std::filesystem::path diff_prot_conf =
       pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
   std::ofstream df(diff_prot_conf);
@@ -1990,39 +2065,38 @@ broker_state::pop_pending_diff_state_acks() {
 }
 
 /**
- * @brief Queue a pb_notification_execute for delivery to the poller supervising
- * the resource (notification_mode=broker). Called from the notification
- * dispatcher on the multiplexing thread; the event is drained later by that
- * poller's ENGINE-connected stream in read().
+ * @brief Queue an event for delivery to a poller: a pb_notification_execute
+ * from the notification dispatcher (notification_mode=broker) or a
+ * pb_external_command from the ExecuteExternalCommand RPC. Called from any
+ * thread; the event is drained later by that poller's ENGINE-connected stream
+ * in read(), which runs within 100 ms of the push (feeder polling period).
  *
- * @param poller_id The id of the poller that must run the notification.
- * @param evt The pb_notification_execute event to deliver.
+ * @param poller_id The id of the poller the event is addressed to.
+ * @param evt The event to deliver.
  */
-void broker_state::push_pending_notification_execute(
-    uint64_t poller_id,
-    std::shared_ptr<io::data> evt) {
-  absl::WriterMutexLock lck(_pending_notif_m);
-  _pending_notification_executes[poller_id].push_back(std::move(evt));
+void broker_state::push_pending_for_poller(uint64_t poller_id,
+                                           std::shared_ptr<io::data> evt) {
+  absl::WriterMutexLock lck(_pending_for_pollers_m);
+  _pending_for_pollers[poller_id].push_back(std::move(evt));
 }
 
 /**
- * @brief Drain and return the notification executes queued for a poller
- * (notification_mode=broker). Called from that poller's ENGINE-connected
- * stream read().
+ * @brief Drain and return the events queued for a poller. Called from that
+ * poller's ENGINE-connected stream read().
  *
  * @param poller_id The id of the poller whose queue must be drained.
  *
  * @return The queued events in arrival order, or an empty vector if the poller
  * has nothing pending.
  */
-std::vector<std::shared_ptr<io::data>>
-broker_state::pop_pending_notification_executes(uint64_t poller_id) {
-  absl::WriterMutexLock lck(_pending_notif_m);
-  auto it = _pending_notification_executes.find(poller_id);
-  if (it == _pending_notification_executes.end())
+std::vector<std::shared_ptr<io::data>> broker_state::pop_pending_for_poller(
+    uint64_t poller_id) {
+  absl::WriterMutexLock lck(_pending_for_pollers_m);
+  auto it = _pending_for_pollers.find(poller_id);
+  if (it == _pending_for_pollers.end())
     return {};
   auto result = std::move(it->second);
-  _pending_notification_executes.erase(it);
+  _pending_for_pollers.erase(it);
   return result;
 }
 

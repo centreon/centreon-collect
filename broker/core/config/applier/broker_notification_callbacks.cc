@@ -412,7 +412,7 @@ notifications::delivery_result broker_notification_callbacks::deliver(
    * central does not feed its multiplexing back to pollers). */
   static_cast<config::applier::broker_state&>(
       config::applier::state::instance())
-      .push_pending_notification_execute(poller_id, evt);
+      .push_pending_for_poller(poller_id, evt);
 
   SPDLOG_LOGGER_INFO(
       _logger,

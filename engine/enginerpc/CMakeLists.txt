@@ -67,9 +67,10 @@ set_target_properties(cerpc PROPERTIES
 add_library(
   enginerpc STATIC
   # Sources.
-  engine_impl.cc enginerpc.cc
+  rpc_deprecation_interceptor.cc engine_impl.cc enginerpc.cc
   # Headers.
-  "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
+  "${INC_DIR}/rpc_deprecation_interceptor.hh" "${INC_DIR}/engine_impl.hh"
+  "${INC_DIR}/enginerpc.hh")
 
 add_dependencies(enginerpc centreon_common process_stat cerpc pb_neb_lib
                  pb_storage_lib pb_open_telemetry_lib target_state_proto)

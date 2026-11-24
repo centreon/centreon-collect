@@ -189,7 +189,18 @@ void failover::_run() {
     }
   };
 
+  /* Release the startup readiness barrier once the first open() attempt is
+   * over, successful or not (one-shot; no-op unless broker_state armed it). A
+   * failed attempt must release it before the retry delay below: otherwise a
+   * peer not yet listening (e.g. the rrd broker started after the central one)
+   * delays the start of the multiplexing engine by that delay. */
+  auto notify_barrier = [&]() {
+    if (!_barrier_notified.exchange(true) && config::applier::state::loaded())
+      config::applier::state::instance().notify_output_ready(_name);
+  };
+
   auto on_exception_handler = [&]() {
+    notify_barrier();
     if (_stream) {
       uint32_t nb_acked = 0;
       try {
@@ -238,10 +249,8 @@ void failover::_run() {
         set_last_connection_success(timestamp::now());
       }
       /* First successful open(): the output stream has loaded its state. Signal
-       * the startup readiness barrier (one-shot; no-op unless broker_state armed
-       * it). */
-      if (!_barrier_notified.exchange(true) && config::applier::state::loaded())
-        config::applier::state::instance().notify_output_ready(_name);
+       * the startup readiness barrier. */
+      notify_barrier();
       _update_status("");
       _update = true;
 
@@ -458,6 +467,7 @@ void failover::_run() {
     catch (const exceptions::config& e) {
       SPDLOG_LOGGER_CRITICAL(_logger, "failover: configuration error: {}",
                              e.what());
+      notify_barrier();
       break;
     } catch (const exceptions::connection_closed&) {
       SPDLOG_LOGGER_INFO(_logger, "failover {}: connection closed", _name);
@@ -479,9 +489,8 @@ void failover::_run() {
 
     /* If open() failed on the first attempt (never reached the success path
      * above), still release the startup barrier so a down output (DB/peer) does
-     * not block Broker startup (one-shot). */
-    if (!_barrier_notified.exchange(true) && config::applier::state::loaded())
-      config::applier::state::instance().notify_output_ready(_name);
+     * not block Broker startup. */
+    notify_barrier();
 
     // Clear stream.
     {

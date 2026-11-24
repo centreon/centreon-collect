@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/unified_sql/factory.hh"
 
+#include "broker/core/config/applier/state.hh"
+
 #include "com/centreon/broker/unified_sql/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -186,8 +188,34 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
+  /* Reference of the global cache, in centralized configuration only: the
+   * output whose database holds the runtime state of the resources. Every
+   * unified_sql output is one unless its configuration says "reference":
+   * false, and the first to declare itself wins -- declared here, where the
+   * endpoints are created one after the other in configuration order. */
+  bool is_reference = false;
+  auto& state = config::applier::state::instance();
+  if (state.supports_centralized_conf()) {
+    bool wanted = true;
+    if (auto it = cfg.params.find("reference"); it != cfg.params.end()) {
+      bool value;
+      if (absl::SimpleAtob(it->second, &value))
+        wanted = value;
+      else
+        logger->error(
+            "factory: cannot parse the 'reference' boolean '{}': the output "
+            "is taken as a reference",
+            it->second);
+    }
+    /* This output asks to be the reference, but if a previous output already
+     * declared itself as such, this one will not be: that is why the verdict
+     * comes back from declare_reference(). */
+    if (wanted)
+      is_reference = state.cache().declare_reference(cfg.name);
+  }
+
   // Connector.
-  auto c = std::make_unique<unified_sql::connector>();
+  auto c = std::make_unique<unified_sql::connector>(cfg.name, is_reference);
   c->connect_to(dbcfg, rrd_length, interval_length, loop_timeout,
                 instance_timeout, store_in_data_bin, store_in_resources,
                 store_in_hosts_services, max_perfdata);

@@ -1312,7 +1312,7 @@ BA_IMPACT_IMPACT
         # The BAM endpoint is updated in place on reload (no destroy/recreate), so
         # the BA state persists in memory and is not restored from cache. Wait for
         # BAM to reprocess the reload before querying the BA again.
-        ${content}    Create List    BAM: loading cache
+        VAR    @{content}    BAM: loading cache
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    Broker did not reprocess BAM after the reload.
 
@@ -1333,18 +1333,18 @@ BA_DISABLED
     ${start}    Get Current Date
     Ctn Start Broker
 
-    ${content}    Create List    bam configuration loaded
+    VAR    @{content}    bam configuration loaded
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling 'bam configuration loaded' should be available.
 
     ${res}    Grep File
     ...    ${centralLog}
-    ...    could not insert relation of BA to timeperiod
+    ...    could not insert relation of BA to timeperiod    regexp=True
     Should Be Empty    ${res}    A mod_bam_reporting_relations_ba_timeperiods error had been found in log
 
     ${res}    Grep File
     ...    ${centralLog}
-    ...    The configured write filters for the endpoint 'centreon-bam-reporting' are too restrictive and will be ignored
+    ...    The configured write filters for the endpoint 'centreon-bam-reporting' are too restrictive and will be ignored    regexp=True
     Should Be Empty    ${res}    A filter error of centreon-bam-reporting had been found in log
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
@@ -1442,11 +1442,11 @@ BA_DEACTIVATED_SERVICE
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}
 
-    ${content}    Create List    loading mapping hosts <-> services.
+    VAR    @{content}    loading mapping hosts <-> services.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    BAM did not build its own host/service mapping
 
-    ${content}    Create List    linked to a deactivated service
+    VAR    @{content}    linked to a deactivated service
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    The KPI of the deactivated service_303 was not dropped
 
@@ -1568,7 +1568,7 @@ BAM_CIRCULAR
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}
 
-    ${content}    Create List    Circular definition detected. BA test includes itself as a KPI.
+    VAR    @{content}    Circular definition detected. BA test includes itself as a KPI.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    The circular definition of BA test was not reported
 
@@ -1626,14 +1626,14 @@ BA_RELOAD_KEEPS_KPI
 
     ${start}    Ctn Get Round Current Date
     Ctn Reload Broker
-    ${content}    Create List    bam configuration loaded.
+    VAR    @{content}    bam configuration loaded.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    BAM did not reload its configuration
 
-    ${content}    Create List    BAM: removing KPI
+    VAR    @{content}    BAM: removing KPI
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    5
     Should Not Be True    ${result}    The reload removed a KPI whose configuration did not change
-    ${content}    Create List    BAM: creating new KPI
+    VAR    @{content}    BAM: creating new KPI
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    5
     Should Not Be True    ${result}    The reload created a KPI again although its configuration did not change
 
@@ -1653,6 +1653,67 @@ BA_RELOAD_KEEPS_KPI
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
+BAM_KPI_STATE_SEEDED_FROM_GLOBAL_CACHE
+    [Documentation]    Scenario: after a Broker restart, BAM seeds the state of its KPI services from the Broker global cache
+    ...    Given a BA of type "worst" on two services, in legacy configuration with BBDO 3
+    ...    And one of its services is CRITICAL, so the BA is CRITICAL
+    ...    When Engine is stopped, then Broker is stopped and BAM's own cache file is deleted
+    ...    And Broker is started again, Engine still stopped so that no service definition is replayed
+    ...    Then once the global cache is ready, BAM seeds its KPI services from it
+    ...    And the BA is still CRITICAL
+    [Tags]    broker    engine    bam    cache    MON-187019
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    seeded    worst    ${svc}
+    Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${result}    Ctn Check Ba Status With Timeout    seeded    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA seeded should be OK
+
+    Ctn Process Service Result Hard    host_16    service_303    2    output critical for 303
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_303    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) should be CRITICAL
+    ${result}    Ctn Check Ba Status With Timeout    seeded    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA seeded should be CRITICAL
+
+    # Engine first, so that nothing replays the service definitions to BAM
+    # after the restart; then Broker, whose global cache file keeps the service
+    # states. BAM's own cache file is removed: the global cache is the only
+    # source left.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    Remove File    ${VarRoot}/lib/centreon-broker/central-broker-master.cache.centreon-bam-monitoring
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Broker
+
+    ${content}    Create List    service state(s) seeded from the global cache
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    BAM should seed its KPI services from the global cache once it is ready
+    ${content}    Create List    BAM: 0 service state(s) seeded
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    5
+    Should Not Be True    ${result}    At least one service should have been seeded
+
+    ${result}    Ctn Check Ba Status With Timeout    seeded    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA seeded should still be CRITICAL after the restart
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+    Ctn Process Service Result Hard    host_16    service_303    0    output ok for 303
+    ${result}    Ctn Check Ba Status With Timeout    seeded    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA seeded should be OK again
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
 *** Keywords ***
 Ctn Reactivate Service 303
     [Documentation]    Undo what BA_DEACTIVATED_SERVICE did to the shared platform.
@@ -1662,6 +1723,13 @@ Ctn Reactivate Service 303
     Ctn Clear Broker Cache
 
 Ctn BAM Setup
+    [Documentation]    Test setup of the suite. It stops any Broker and Engine left
+    ...    by a previous test, then empties the BAM reporting tables (kpi,
+    ...    timeperiods, BA/timeperiod relations and BA events) so that every test
+    ...    starts from a clean reporting history. The BA events auto-increment is
+    ...    reset to 1 so that the event identifiers expected by the tests are
+    ...    stable. Foreign key checks are disabled during the deletions and
+    ...    restored afterwards.
     Ctn Stop Processes
     Connect To Database    pymysql    ${DBName}    ${DBUserRoot}    ${DBPassRoot}    ${DBHost}    ${DBPort}
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=0
@@ -1674,6 +1742,17 @@ Ctn BAM Setup
     Disconnect From Database
 
 Ctn BAM Init
+    [Documentation]    Prepares a fresh BAM test environment before Broker and Engine
+    ...    are started. It clears the forced check states, the retention files and
+    ...    the BAM tables, then writes a complete configuration: one Engine poller
+    ...    with BBDO 3, the Broker module, central and RRD instances, and the BAM
+    ...    module on the central Broker. The central Broker logs bam and config at
+    ...    trace level and sql at debug level, since the sql trace level writes very
+    ...    long lines that slow down the log searches of the teardown. The services
+    ...    from service_300 to service_309 are made passive so that their active
+    ...    checks cannot alter the BA states during the tests. The Engine
+    ...    configuration is finally cloned into the database and the BAM
+    ...    configuration is added to both Engine and Broker.
     Ctn Clear Commands Status
     Ctn Clear Retention
     Ctn Clear Db Conf    mod_bam
@@ -1681,7 +1760,7 @@ Ctn BAM Init
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    bam    trace
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    config    trace
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}

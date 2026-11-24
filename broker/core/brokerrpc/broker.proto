@@ -1,3 +1,20 @@
+/**
+ * Copyright 2020-2026 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
@@ -209,7 +226,8 @@ service Broker {
    * @return An AcknowledgementList with one Acknowledgement entry per cached
    * acknowledgement (host acknowledgements have service_id 0).
    */
-  rpc GetAcknowledgements(google.protobuf.Empty) returns (AcknowledgementList) {}
+  rpc GetAcknowledgements(google.protobuf.Empty) returns (AcknowledgementList) {
+  }
 
   /**
    * @brief Schedule a host or service downtime (notification_mode = broker).
@@ -223,9 +241,204 @@ service Broker {
       returns (ScheduleDowntimeResponse) {}
 
   /**
-   * @brief Delete (cancel) a previously scheduled downtime.
+   * @brief Delete (cancel) a previously scheduled downtime, by its id.
    */
-  rpc DeleteDowntime(GenericNameOrIndex) returns (google.protobuf.Empty) {}
+  rpc DeleteDowntime(DowntimeIdentifier) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Add a user comment on a host (notification_mode = broker).
+   */
+  rpc AddHostComment(HostCommentRequest) returns (AddCommentResponse) {}
+
+  /**
+   * @brief Add a user comment on a service (notification_mode = broker).
+   */
+  rpc AddServiceComment(ServiceCommentRequest) returns (AddCommentResponse) {}
+
+  /**
+   * @brief Delete a comment by its internal_id (notification_mode = broker).
+   * Only comments minted by Broker can be deleted this way: an id minted by a
+   * poller is refused with FAILED_PRECONDITION.
+   */
+  rpc DeleteComment(CommentIdentifier) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Delete every comment of a host (notification_mode = broker).
+   */
+  rpc DeleteAllHostComments(HostIdentifier) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Delete every comment of a service (notification_mode = broker).
+   */
+  rpc DeleteAllServiceComments(ServiceIdentifier)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Enable or disable the notifications of a host
+   * (notification_mode = broker), optionally propagated to its services
+   * and/or its child hosts. The switch wins over the configured value and
+   * survives Broker and Engine restarts.
+   */
+  rpc SetHostNotifications(HostNotificationsRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Enable or disable the notifications of a service
+   * (notification_mode = broker).
+   */
+  rpc SetServiceNotifications(ServiceNotificationsRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Set the notification number of a host (notification_mode = broker).
+   * Applied asynchronously, serialized with the notification decisions.
+   */
+  rpc SetHostNotificationNumber(HostNotificationNumberRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Set the notification number of a service
+   * (notification_mode = broker).
+   */
+  rpc SetServiceNotificationNumber(ServiceNotificationNumberRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Send a custom notification on a host (notification_mode = broker).
+   * The decision (contacts, escalations, forced bypass) is Broker's, the
+   * execution the poller's.
+   */
+  rpc SendCustomHostNotification(HostCustomNotificationRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Send a custom notification on a service
+   * (notification_mode = broker).
+   */
+  rpc SendCustomServiceNotification(ServiceCustomNotificationRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Change the notification timeperiod of a host (notification_mode =
+   * broker). The timeperiod must be known to Broker (NOT_FOUND otherwise). The
+   * value wins over the configured one and survives restarts.
+   */
+  rpc SetHostNotificationPeriod(HostNotificationPeriodRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Change the notification timeperiod of a service (notification_mode =
+   * broker).
+   */
+  rpc SetServiceNotificationPeriod(ServiceNotificationPeriodRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Enable or disable the host notifications of a contact
+   * (notification_mode = broker). The switch wins over the configured value and
+   * survives restarts.
+   */
+  rpc SetContactHostNotifications(ContactNotificationsRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Enable or disable the service notifications of a contact
+   * (notification_mode = broker).
+   */
+  rpc SetContactServiceNotifications(ContactNotificationsRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Enable or disable the host notifications of every contact of a
+   * contactgroup (notification_mode = broker).
+   * Each member gets its own switch, the group holds none.
+   */
+  rpc SetContactgroupHostNotifications(ContactgroupNotificationsRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Enable or disable the service notifications of every contact of a
+   * contactgroup (notification_mode = broker).
+   */
+  rpc SetContactgroupServiceNotifications(ContactgroupNotificationsRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Change the host notification timeperiod of a contact
+   * (notification_mode = broker).
+   * The timeperiod must be known to Broker (NOT_FOUND otherwise).
+   */
+  rpc SetContactHostNotificationPeriod(ContactNotificationPeriodRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Change the service notification timeperiod of a contact
+   * (notification_mode = broker).
+   */
+  rpc SetContactServiceNotificationPeriod(ContactNotificationPeriodRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Enable or disable the notifications of a whole poller
+   * (notification_mode = broker).
+   * The switch wins over the poller's enable_notifications configuration and
+   * survives restarts.
+   */
+  rpc SetPollerNotifications(PollerNotificationsRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Acknowledge a host problem (notification_mode = broker).
+   *
+   * Only available when notification_mode = broker; the host must be in a
+   * problem state.
+   */
+  rpc AcknowledgeHostProblem(AcknowledgementRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Acknowledge a service problem (notification_mode = broker).
+   *
+   * Only available when notification_mode = broker; the service must be in a
+   * problem state.
+   */
+  rpc AcknowledgeServiceProblem(AcknowledgementRequest)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Remove a host acknowledgement (notification_mode = broker).
+   */
+  rpc RemoveHostAcknowledgement(HostIdentifier)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Remove a service acknowledgement (notification_mode = broker).
+   */
+  rpc RemoveServiceAcknowledgement(ServiceIdentifier)
+      returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Execute a legacy Engine external command through Broker, which
+   * routes it to the poller supervising the targeted resource. The command is
+   * the line PHP already produces for the Engine command pipe, without the
+   * leading "[timestamp] " (accepted if present).
+   *
+   * Broker resolves the poller(s) and forwards the line; the poller parses and
+   * executes it exactly as if it had come from its command pipe. A host or
+   * service command goes to the poller supervising the host (first argument),
+   * with the resolved ids so the poller does not depend on the names; a
+   * contact or contactgroup command goes to every connected poller (each has
+   * its copy of the contacts); a global or process command goes to the poller
+   * named in the request. Errors are reported synchronously: INVALID_ARGUMENT
+   * (malformed or unknown command, missing argument or poller), NOT_FOUND
+   * (unknown host, service or poller), UNAVAILABLE (poller not connected),
+   * UNIMPLEMENTED (group command, or downtime / comment designated by id),
+   * FAILED_PRECONDITION (command that Broker owns in notification_mode =
+   * broker: the message names the gRPC method to use instead). The execution
+   * itself stays asynchronous.
+   */
+  rpc ExecuteExternalCommand(ExternalCommandRequest)
+      returns (google.protobuf.Empty) {}
 
   /**
    * @brief Validate an Engine poller configuration directory without applying
@@ -239,8 +452,7 @@ service Broker {
 
   /**
    * @brief Evaluate the notification dependencies of a host or service, as the
-   * Broker sees them in its cache (counterpart of Engine's
-   * host/service::authorized_by_dependencies for dependency::notification).
+   * Broker sees them in its cache.
    *
    * @param ServiceIdentifier The dependent resource, by name or by ID. Leave
    * the service oneof unset for a host-level check.
@@ -294,7 +506,8 @@ message Peer {
   string engine_conf = 6;
   string available_conf = 7;
   /* Local timezone (IANA name) advertised by the poller machine in its Welcome
-   * message. Only meaningful for ENGINE peers; empty when the peer sent none. */
+   * message. Only meaningful for ENGINE peers; empty when the peer sent none.
+   */
   string timezone = 8;
 }
 
@@ -347,6 +560,20 @@ message GenericSize {
   uint32 size = 1;
 }
 
+message AcknowledgementRequest {
+  string host_name = 1;
+  string service_desc = 2;
+  string ack_author = 3;
+  string ack_data = 4;
+  enum Type {
+    NORMAL = 0;
+    STICKY = 1;
+  }
+  Type type = 5;
+  bool notify = 6;
+  bool persistent = 7;
+}
+
 // 1 => access by name
 // 2 => access by index
 // not set => all elems
@@ -355,6 +582,146 @@ message GenericNameOrIndex {
     string str = 1;
     uint64 idx = 2;
   }
+}
+
+message HostIdentifier {
+  oneof host {
+    string host_name = 1;
+    uint64 host_id = 2;
+  }
+}
+
+message DowntimeIdentifier {
+  uint64 downtime_id = 1;
+}
+
+message CommentIdentifier {
+  uint64 internal_id = 1;
+}
+
+/* User comment on a host; same content as Engine's EngineComment, the resource
+ * being identified by name or id like everywhere else in this API. */
+message HostCommentRequest {
+  HostIdentifier host = 1;
+  string user = 2;
+  string comment_data = 3;
+  bool persistent = 4;
+  uint32 entry_time = 5;  // 0: now
+}
+
+message ServiceCommentRequest {
+  ServiceIdentifier service = 1;
+  string user = 2;
+  string comment_data = 3;
+  bool persistent = 4;
+  uint32 entry_time = 5;  // 0: now
+}
+
+message AddCommentResponse {
+  uint64 internal_id = 1;
+}
+
+message HostNotificationsRequest {
+  enum Scope {
+    HOST = 0;               // the host only
+    HOST_AND_SERVICES = 1;  // the host and all its services
+    HOST_AND_CHILDREN = 2;  // the host and its child hosts, recursively
+                            // (no service)
+    BEYOND_HOST = 3;        // the child hosts, recursively, with their
+                            // services; the host itself is left untouched
+  }
+  HostIdentifier host = 1;
+  bool enabled = 2;
+  Scope scope = 3;
+}
+
+message ServiceNotificationsRequest {
+  ServiceIdentifier service = 1;
+  bool enabled = 2;
+}
+
+message HostNotificationNumberRequest {
+  HostIdentifier host = 1;
+  uint32 number = 2;
+}
+
+message ServiceNotificationNumberRequest {
+  ServiceIdentifier service = 1;
+  uint32 number = 2;
+}
+
+/* Custom notification; the three flags are Engine's option bits (1, 2, 4). */
+message HostCustomNotificationRequest {
+  HostIdentifier host = 1;
+  string author = 2;
+  string comment = 3;
+  bool broadcast = 4;  // notify every contact, escalations ignored
+  bool forced = 5;     // bypass the enabled switches and periods
+  bool increment = 6;  // count it in the notification number
+}
+
+message ServiceCustomNotificationRequest {
+  ServiceIdentifier service = 1;
+  string author = 2;
+  string comment = 3;
+  bool broadcast = 4;
+  bool forced = 5;
+  bool increment = 6;
+}
+
+message HostNotificationPeriodRequest {
+  HostIdentifier host = 1;
+  string timeperiod = 2;  // name of a timeperiod known to Broker
+}
+
+message ServiceNotificationPeriodRequest {
+  ServiceIdentifier service = 1;
+  string timeperiod = 2;
+}
+
+/* Contacts and contactgroups have no id in the configuration: name only. */
+message ContactIdentifier {
+  string name = 1;
+}
+
+message ContactgroupIdentifier {
+  string name = 1;
+}
+
+message PollerIdentifier {
+  oneof poller {
+    uint64 poller_id = 1;
+    string poller_name = 2;
+  }
+}
+
+message ExternalCommandRequest {
+  /* The legacy line, "[timestamp] " prefix optional. */
+  string command = 1;
+  /* Required for a global or process command (the legacy pipe designated the
+   * poller, here the request must): the Engine it applies to. Ignored for a
+   * host, service, contact or contactgroup command. */
+  PollerIdentifier poller = 2;
+}
+
+message PollerNotificationsRequest {
+  PollerIdentifier poller = 1;
+  bool enabled = 2;
+}
+
+message ContactNotificationsRequest {
+  ContactIdentifier contact = 1;
+  bool enabled = 2;
+}
+
+message ContactgroupNotificationsRequest {
+  ContactgroupIdentifier contactgroup = 1;
+  bool enabled = 2;
+}
+
+message ContactNotificationPeriodRequest {
+  ContactIdentifier contact = 1;
+  string timeperiod = 2;
 }
 
 message ServiceIdentifier {

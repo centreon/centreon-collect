@@ -345,6 +345,21 @@ peer_registry::locked_engine_peer peer_registry::lock_engine_peer(
  * @return The poller machine's timezone (IANA name), or an empty string when
  * the poller is unknown or sent no timezone.
  */
+/**
+ * @brief The configuration version an Engine peer told us it runs.
+ *
+ * @param poller_id The poller.
+ *
+ * @return Its configuration version, empty if the poller is unknown.
+ */
+std::string peer_registry::poller_engine_conf(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(_connected_peers_m);
+  auto found = _engine_peers.find(poller_id);
+  if (found == _engine_peers.end())
+    return {};
+  return found->second.engine_conf;
+}
+
 std::string peer_registry::poller_timezone(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(_connected_peers_m);
   auto found = _engine_peers.find(poller_id);
@@ -403,6 +418,35 @@ bool peer_registry::_peer_needs_update(const engine_peer& peer) {
  *
  * @param poller_id The poller ID.
  */
+/**
+ * @brief Whether the poller is still owed the runtime snapshot of its
+ * resources (see engine_peer::runtime_state_owed).
+ *
+ * @param poller_id The poller.
+ *
+ * @return true if the snapshot is still owed, false if it was sent or if the
+ * poller is unknown.
+ */
+bool peer_registry::runtime_state_owed(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  auto found = _engine_peers.find(poller_id);
+  return found != _engine_peers.end() && found->second.runtime_state_owed;
+}
+
+/**
+ * @brief Record whether the poller is owed the runtime snapshot: true when
+ * its configuration was rebuilt, false once the snapshot was sent.
+ *
+ * @param poller_id The poller.
+ * @param owed The new value.
+ */
+void peer_registry::set_runtime_state_owed(uint64_t poller_id, bool owed) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto found = _engine_peers.find(poller_id);
+  if (found != _engine_peers.end())
+    found->second.runtime_state_owed = owed;
+}
+
 bool peer_registry::poller_needs_update(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(_connected_peers_m);
   _logger->trace("poller_needs_update called for poller id {}", poller_id);

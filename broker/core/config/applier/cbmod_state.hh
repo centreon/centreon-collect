@@ -19,6 +19,8 @@
 #ifndef CCB_CONFIG_APPLIER_CBMOD_STATE_HH
 #define CCB_CONFIG_APPLIER_CBMOD_STATE_HH
 #include <deque>
+#include <functional>
+#include <optional>
 
 #include "bbdo/bbdo.pb.h"
 #include "broker/core/config/applier/state.hh"
@@ -65,6 +67,16 @@ class cbmod_state : public state {
   std::deque<NotificationExecute> _pending_notifications
       ABSL_GUARDED_BY(_pending_notifications_m);
   mutable absl::Mutex _pending_notifications_m;
+  /* External commands routed by Broker (pb_external_command). Same model as
+   * the Engine command pipe: the handler Engine installs resolves the legacy
+   * line from the ids and runs it at once when it is thread-safe (passive
+   * check results); otherwise it returns the resolved line, which waits here
+   * for the Engine event loop. */
+  std::deque<std::string> _pending_external_commands
+      ABSL_GUARDED_BY(_pending_external_commands_m);
+  mutable absl::Mutex _pending_external_commands_m;
+  std::function<std::optional<std::string>(const ExternalCommand&)>
+      _external_command_handler;
 
  public:
   cbmod_state(const std::string& engine_conf_version,
@@ -93,6 +105,13 @@ class cbmod_state : public state {
       ABSL_LOCKS_EXCLUDED(_pending_notifications_m);
   std::vector<NotificationExecute> drain_notification_executes()
       ABSL_LOCKS_EXCLUDED(_pending_notifications_m);
+  void set_external_command_handler(
+      std::function<std::optional<std::string>(const ExternalCommand&)>
+          handler);
+  void push_external_command(const std::shared_ptr<io::data>& cmd)
+      ABSL_LOCKS_EXCLUDED(_pending_external_commands_m);
+  std::vector<std::string> drain_external_commands()
+      ABSL_LOCKS_EXCLUDED(_pending_external_commands_m);
   void set_broker_handles_notifications(bool on) {
     _broker_handles_notifications.store(on);
   }

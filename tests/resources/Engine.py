@@ -38,6 +38,8 @@ from pathlib import Path
 
 import Common
 import db_conf
+import broker_pb2
+import broker_pb2_grpc
 import engine_pb2
 import engine_pb2_grpc
 import grpc
@@ -3021,10 +3023,7 @@ def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, chec
             stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_NORMAL_SVC_CHECK_INTERVAL;{hst};{svc};{check_interval}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_NORMAL_SVC_CHECK_INTERVAL;{hst};{svc};{check_interval}")
 
 
 def ctn_change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
@@ -3042,10 +3041,7 @@ def ctn_change_normal_host_check_interval(use_grpc: int, hst: str, check_interva
             stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_NORMAL_HOST_CHECK_INTERVAL;{hst};{check_interval}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_NORMAL_HOST_CHECK_INTERVAL;{hst};{check_interval}")
 
 
 def ctn_change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
@@ -3064,10 +3060,7 @@ def ctn_change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry
             stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_RETRY_SVC_CHECK_INTERVAL;{hst};{svc};{retry_interval}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_RETRY_SVC_CHECK_INTERVAL;{hst};{svc};{retry_interval}")
 
 
 def ctn_change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
@@ -3085,10 +3078,7 @@ def ctn_change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval
             stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{hst};{retry_interval}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_RETRY_HOST_CHECK_INTERVAL;{hst};{retry_interval}")
 
 
 def ctn_change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
@@ -3107,10 +3097,7 @@ def ctn_change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_che
             stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{hst};{svc};{max_check_attempts}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_MAX_SVC_CHECK_ATTEMPTS;{hst};{svc};{max_check_attempts}")
 
 
 def ctn_change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
@@ -3128,10 +3115,7 @@ def ctn_change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attemp
             stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_MAX_HOST_CHECK_ATTEMPTS;{hst};{max_check_attempts}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_MAX_HOST_CHECK_ATTEMPTS;{hst};{max_check_attempts}")
 
 
 def ctn_change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
@@ -3149,10 +3133,7 @@ def ctn_change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: 
             stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
                 host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_HOST_CHECK_TIMEPERIOD;{hst};{check_timeperiod}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_HOST_CHECK_TIMEPERIOD;{hst};{check_timeperiod}")
 
 
 def ctn_change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
@@ -3170,10 +3151,7 @@ def ctn_change_host_notification_timeperiod(use_grpc: int, hst: str, notificatio
             stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
                 host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{hst};{notification_timeperiod}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{hst};{notification_timeperiod}")
 
 
 def ctn_change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
@@ -3192,10 +3170,7 @@ def ctn_change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_tim
             stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
                 host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_SVC_CHECK_TIMEPERIOD;{hst};{svc};{check_timeperiod}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_SVC_CHECK_TIMEPERIOD;{hst};{svc};{check_timeperiod}")
 
 
 def ctn_change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
@@ -3214,10 +3189,7 @@ def ctn_change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, no
             stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
                 host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{hst};{svc};{notification_timeperiod}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{hst};{svc};{notification_timeperiod}")
 
 
 def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
@@ -3234,10 +3206,7 @@ def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
             stub.DisableHostAndChildNotifications(
                 engine_pb2.NameOrIdIdentifier(name=hst), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{hst}")
 
 
 def ctn_enable_host_and_child_notifications(use_grpc: int, hst: str):
@@ -3254,10 +3223,7 @@ def ctn_enable_host_and_child_notifications(use_grpc: int, hst: str):
             stub.EnableHostAndChildNotifications(
                 engine_pb2.NameOrIdIdentifier(name=hst), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{hst}")
 
 
 def ctn_disable_host_check(use_grpc: int, hst: str):
@@ -3269,10 +3235,7 @@ def ctn_disable_host_check(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_HOST_CHECK;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_HOST_CHECK;{hst}")
 
 
 def ctn_enable_host_check(use_grpc: int, hst: str):
@@ -3284,10 +3247,7 @@ def ctn_enable_host_check(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_HOST_CHECK;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_HOST_CHECK;{hst}")
 
 
 def ctn_disable_host_event_handler(use_grpc: int, hst: str):
@@ -3299,10 +3259,7 @@ def ctn_disable_host_event_handler(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_HOST_EVENT_HANDLER;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_HOST_EVENT_HANDLER;{hst}")
 
 
 def ctn_enable_host_event_handler(use_grpc: int, hst: str):
@@ -3314,10 +3271,7 @@ def ctn_enable_host_event_handler(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_HOST_EVENT_HANDLER;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_HOST_EVENT_HANDLER;{hst}")
 
 
 def ctn_disable_host_flap_detection(use_grpc: int, hst: str):
@@ -3329,10 +3283,7 @@ def ctn_disable_host_flap_detection(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_HOST_FLAP_DETECTION;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_HOST_FLAP_DETECTION;{hst}")
 
 
 def ctn_enable_host_flap_detection(use_grpc: int, hst: str):
@@ -3344,10 +3295,7 @@ def ctn_enable_host_flap_detection(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_HOST_FLAP_DETECTION;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_HOST_FLAP_DETECTION;{hst}")
 
 
 def ctn_disable_service_flap_detection(use_grpc: int, hst: str, svc: str):
@@ -3360,10 +3308,7 @@ def ctn_disable_service_flap_detection(use_grpc: int, hst: str, svc: str):
         svc (str): description of the concerned service.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_SVC_FLAP_DETECTION;{hst};{svc}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_SVC_FLAP_DETECTION;{hst};{svc}")
 
 
 def ctn_enable_service_flap_detection(use_grpc: int, hst: str, svc: str):
@@ -3376,10 +3321,7 @@ def ctn_enable_service_flap_detection(use_grpc: int, hst: str, svc: str):
         svc (str): description of the concerned service.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_SVC_FLAP_DETECTION;{hst};{svc}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_SVC_FLAP_DETECTION;{hst};{svc}")
 
 
 def ctn_disable_flap_detection():
@@ -3387,10 +3329,7 @@ def ctn_disable_flap_detection():
     Disable the flap detection on a program wide basis. Unlike the per object
     commands, this one walks every host and every service of the poller.
     """
-    now = int(time.time())
-    cmd = f"[{now}] DISABLE_FLAP_DETECTION\n"
-    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-        f.write(cmd)
+    ctn_send_external_command(f"DISABLE_FLAP_DETECTION")
 
 
 def ctn_enable_flap_detection():
@@ -3398,10 +3337,7 @@ def ctn_enable_flap_detection():
     Enable the flap detection on a program wide basis. Unlike the per object
     commands, this one walks every host and every service of the poller.
     """
-    now = int(time.time())
-    cmd = f"[{now}] ENABLE_FLAP_DETECTION\n"
-    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-        f.write(cmd)
+    ctn_send_external_command(f"ENABLE_FLAP_DETECTION")
 
 
 def ctn_disable_host_notifications(use_grpc: int, hst: str):
@@ -3418,10 +3354,7 @@ def ctn_disable_host_notifications(use_grpc: int, hst: str):
             stub.DisableHostNotifications(
                 engine_pb2.NameOrIdIdentifier(name=hst), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_HOST_NOTIFICATIONS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_HOST_NOTIFICATIONS;{hst}")
 
 
 def ctn_enable_host_notifications(use_grpc: int, hst: str):
@@ -3438,10 +3371,7 @@ def ctn_enable_host_notifications(use_grpc: int, hst: str):
             stub.EnableHostNotifications(
                 engine_pb2.NameOrIdIdentifier(name=hst), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_HOST_NOTIFICATIONS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_HOST_NOTIFICATIONS;{hst}")
 
 
 def ctn_update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: float):
@@ -3460,10 +3390,7 @@ def ctn_update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: 
             stub.ChangeAnomalyDetectionSensitivity(engine_pb2.ChangeServiceNumber(serv=engine_pb2.ServiceIdentifier(
                 names=engine_pb2.PairNamesIdentifier(host_name=hst, service_name=serv)), dval=sensitivity), timeout=GRPC_TIMEOUT)
     else:
-        now = int(time.time())
-        cmd = f"[{now}] CHANGE_ANOMALYDETECTION_SENSITIVITY;{hst};{serv};{sensitivity}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"CHANGE_ANOMALYDETECTION_SENSITIVITY;{hst};{serv};{sensitivity}")
 
 
 def ctn_disable_host_svc_checks(use_grpc: int, hst: str):
@@ -3475,10 +3402,7 @@ def ctn_disable_host_svc_checks(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_HOST_SVC_CHECKS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_HOST_SVC_CHECKS;{hst}")
 
 
 def ctn_enable_host_svc_checks(use_grpc: int, hst: str):
@@ -3490,10 +3414,7 @@ def ctn_enable_host_svc_checks(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_HOST_SVC_CHECKS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_HOST_SVC_CHECKS;{hst}")
 
 
 def ctn_disable_host_svc_notifications(use_grpc: int, hst: str):
@@ -3505,10 +3426,7 @@ def ctn_disable_host_svc_notifications(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_HOST_SVC_NOTIFICATIONS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_HOST_SVC_NOTIFICATIONS;{hst}")
 
 
 def ctn_enable_host_svc_notifications(use_grpc: int, hst: str):
@@ -3520,10 +3438,7 @@ def ctn_enable_host_svc_notifications(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_HOST_SVC_NOTIFICATIONS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_HOST_SVC_NOTIFICATIONS;{hst}")
 
 
 def ctn_disable_passive_host_checks(use_grpc: int, hst: str):
@@ -3535,10 +3450,7 @@ def ctn_disable_passive_host_checks(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_PASSIVE_HOST_CHECKS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_PASSIVE_HOST_CHECKS;{hst}")
 
 
 def ctn_enable_passive_host_checks(use_grpc: int, hst: str):
@@ -3550,10 +3462,7 @@ def ctn_enable_passive_host_checks(use_grpc: int, hst: str):
         hst (str): host name of the concerned host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_PASSIVE_HOST_CHECKS;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_PASSIVE_HOST_CHECKS;{hst}")
 
 
 def ctn_disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
@@ -3566,10 +3475,7 @@ def ctn_disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
         svc (str): service description of the concerned service.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] DISABLE_PASSIVE_SVC_CHECKS;{hst};{svc}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"DISABLE_PASSIVE_SVC_CHECKS;{hst};{svc}")
 
 
 def ctn_enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
@@ -3582,10 +3488,7 @@ def ctn_enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
         svc (str): service description of the service.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] ENABLE_PASSIVE_SVC_CHECKS;{hst};{svc}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"ENABLE_PASSIVE_SVC_CHECKS;{hst};{svc}")
 
 
 def ctn_start_obsessing_over_host(use_grpc: int, hst: str):
@@ -3597,10 +3500,7 @@ def ctn_start_obsessing_over_host(use_grpc: int, hst: str):
         hst (str): host name of the host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] START_OBSESSING_OVER_HOST;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"START_OBSESSING_OVER_HOST;{hst}")
 
 
 def ctn_stop_obsessing_over_host(use_grpc: int, hst: str):
@@ -3612,10 +3512,7 @@ def ctn_stop_obsessing_over_host(use_grpc: int, hst: str):
         hst (str): host name of the host.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] STOP_OBSESSING_OVER_HOST;{hst}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"STOP_OBSESSING_OVER_HOST;{hst}")
 
 
 def ctn_start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
@@ -3628,10 +3525,7 @@ def ctn_start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
         svc (str): service description of the service.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] START_OBSESSING_OVER_SVC;{hst};{svc}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"START_OBSESSING_OVER_SVC;{hst};{svc}")
 
 
 def ctn_stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
@@ -3644,18 +3538,193 @@ def ctn_stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
         svc (str): service description of the service.
     """
     if use_grpc == 0:
-        now = int(time.time())
-        cmd = f"[{now}] STOP_OBSESSING_OVER_SVC;{hst};{svc}\n"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(f"STOP_OBSESSING_OVER_SVC;{hst};{svc}")
+
+
+def _external_command_mode():
+    """
+    Return how the legacy external command lines must be delivered: "pipe"
+    (written to the Engine command file, the default) or "broker" (sent to the
+    Broker gRPC ExecuteExternalCommand endpoint that routes them to the poller).
+    Driven by the Robot variable ${EXTCMD_MODE}.
+    """
+    try:
+        mode = BuiltIn().get_variable_value("${EXTCMD_MODE}", "pipe")
+    except RobotNotRunningError:
+        mode = "pipe"
+    return str(mode).lower()
+
+
+def ctn_set_external_command_mode(mode: str):
+    """
+    Choose, for the current test, how the legacy external command keywords
+    deliver their lines: "pipe" writes them to the Engine command file,
+    "broker" sends them to the Broker gRPC ExecuteExternalCommand endpoint,
+    which routes them to the poller supervising the object (the poller of the
+    config index is used for global commands). This is the lck_mode-like switch
+    of the external commands: a templated test can run in both modes.
+
+    Args:
+        mode (str): "pipe" or "broker".
+
+    *Example:*
+
+    | Ctn Set External Command Mode    broker |
+    """
+    mode = str(mode).lower()
+    if mode not in ("pipe", "broker"):
+        raise ValueError(
+            f"unknown external command mode '{mode}', expected 'pipe' or 'broker'")
+    BuiltIn().set_test_variable("${EXTCMD_MODE}", mode)
+
+
+def ctn_send_external_command(*commands, config: int = 0, port: int = 51001):
+    """
+    Send one or several legacy external command lines to a poller, either
+    through its command file or through Broker (see
+    `Ctn Set External Command Mode`). The "[timestamp] " prefix is added when
+    missing. In broker mode, config N designates poller N+1 for the global
+    commands, Broker resolves the poller itself for the others.
+
+    Args:
+        commands (str): The legacy lines, e.g. "DISABLE_HOST_CHECK;host_1".
+        config (int): The Engine config index (default 0).
+        port (int): The Broker gRPC port (default 51001), broker mode only.
+
+    *Example:*
+
+    | Ctn Send External Command    ENABLE_FLAP_DETECTION    config=1 |
+    """
+    now = int(time.time())
+    lines = [c.rstrip("\n") for c in commands]
+    lines = [c if c.startswith("[") else f"[{now}] {c}" for c in lines]
+    config = int(config)
+    if _external_command_mode() == "broker":
+        # The command pipe blocks until Engine reads it; Broker instead answers
+        # UNAVAILABLE while the poller is not connected (typically right after a
+        # Broker restart). Retry that case for a while to keep the pipe semantics.
+        limit = time.time() + 60
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            for line in lines:
+                req = broker_pb2.ExternalCommandRequest(command=line)
+                req.poller.poller_id = config + 1
+                while True:
+                    try:
+                        stub.ExecuteExternalCommand(req, timeout=GRPC_TIMEOUT)
+                        break
+                    except grpc.RpcError as e:
+                        if e.code() != grpc.StatusCode.UNAVAILABLE or time.time() >= limit:
+                            raise
+                        logger.console(
+                            f"Broker cannot deliver '{line}' yet ({e.details()}), retrying")
+                        time.sleep(1)
+    else:
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config{config}/rw/centengine.cmd", "w") as f:
+            for line in lines:
+                f.write(line + "\n")
+
+
+def _engine_cfg_object_ids(config: int):
+    """
+    Read the host ids and the (host_id, service_id) pairs defined in the
+    legacy configuration files of an Engine config index.
+
+    Args:
+        config (int): The Engine config index.
+
+    Returns:
+        A tuple (set of host ids, set of (host_id, service_id) pairs); both are
+        empty when the files do not exist.
+    """
+    block_re = re.compile(r"define\s+(host|service)\s*\{(.*?)\}", re.S)
+    hosts = {}
+    services = []
+    for name in ("hosts.cfg", "services.cfg"):
+        path = f"{ETC_ROOT}/centreon-engine/config{config}/{name}"
+        if not exists(path):
+            continue
+        with open(path) as f:
+            content = f.read()
+        for kind, body in block_re.findall(content):
+            fields = {}
+            for line in body.splitlines():
+                parts = line.split(None, 1)
+                if len(parts) == 2:
+                    fields[parts[0]] = parts[1].strip()
+            if kind == "host" and "_HOST_ID" in fields:
+                hosts[fields.get("host_name")] = int(fields["_HOST_ID"])
+            elif kind == "service" and "_SERVICE_ID" in fields:
+                services.append(
+                    (fields.get("host_name"), int(fields["_SERVICE_ID"])))
+    pairs = {(hosts[h], s) for h, s in services if h in hosts}
+    return set(hosts.values()), pairs
+
+
+def ctn_wait_for_broker_cache_knows_engine(nb_engine: int = 1, port: int = 51001, timeout: int = 60, always: bool = False):
+    """
+    In broker external command mode (see `Ctn Set External Command Mode`),
+    wait until the Broker cache knows every host and service of the Engine
+    legacy configurations. Broker resolves a command from its cache: a command
+    sent before the poller's initial dump reached it is answered NOT_FOUND,
+    whereas the command pipe just waits for Engine. Does nothing in pipe mode,
+    unless always is set (a test calling Broker's RPC directly).
+
+    Args:
+        nb_engine (int): The number of Engine config indexes to check.
+        port (int): The Broker gRPC port (default 51001).
+        timeout (int): The timeout in seconds (default 60).
+        always (bool): Wait whatever the external command mode (default False).
+
+    Returns:
+        True when the cache knows them all (or in pipe mode), False otherwise.
+
+    *Example:*
+
+    | ${result} | Ctn Wait For Broker Cache Knows Engine | ${1} |
+    """
+    if not always and _external_command_mode() != "broker":
+        return True
+    host_ids = set()
+    pairs = set()
+    for i in range(int(nb_engine)):
+        h, p = _engine_cfg_object_ids(i)
+        host_ids |= h
+        pairs |= p
+    if not host_ids and not pairs:
+        return True
+    limit = time.time() + int(timeout)
+    missing_hosts = host_ids
+    missing_pairs = pairs
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        while time.time() < limit:
+            try:
+                known_hosts = set(stub.GetHostIds(
+                    empty_pb2.Empty(), timeout=5).ids)
+                known_pairs = {(p.host_id, p.service_id) for p in stub.GetServiceIds(
+                    empty_pb2.Empty(), timeout=5).pairs}
+                missing_hosts = host_ids - known_hosts
+                missing_pairs = pairs - known_pairs
+                if not missing_hosts and not missing_pairs:
+                    return True
+            except grpc.RpcError as e:
+                logger.console(f"Broker cache not readable yet ({e.code()})")
+            time.sleep(0.5)
+    logger.console(
+        f"Broker cache still misses {len(missing_hosts)} hosts and {len(missing_pairs)} services")
+    return False
+
+
+def _config_index_of_pipe(pipe: str) -> int:
+    """Return the Engine config index designated by a command file path."""
+    m = re.search(r"/config(\d+)/", pipe)
+    return int(m.group(1)) if m else 0
 
 
 def ctn_external_command(func):
     def wrapper(*args):
-        now = int(time.time())
-        cmd = f"[{now}] {func(*args)}"
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(cmd)
+        ctn_send_external_command(func(*args))
 
     return wrapper
 
@@ -3720,11 +3789,10 @@ def ctn_schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
         duration (int): Expected duration of the downtime in seconds.
     """
     now = int(time.time())
-    cmd1 = f"[{now}] SCHEDULE_HOST_DOWNTIME;{hst};{now};{now + duration};1;0;;admin;Downtime set by admin\n"
-    cmd2 = f"[{now}] SCHEDULE_HOST_SVC_DOWNTIME;{hst};{now};{now + duration};1;0;;admin;Downtime set by admin\n"
-    with open(f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w") as f:
-        f.write(cmd1)
-        f.write(cmd2)
+    ctn_send_external_command(
+        f"SCHEDULE_HOST_DOWNTIME;{hst};{now};{now + duration};1;0;;admin;Downtime set by admin",
+        f"SCHEDULE_HOST_SVC_DOWNTIME;{hst};{now};{now + duration};1;0;;admin;Downtime set by admin",
+        config=poller)
 
 
 def ctn_schedule_host_downtime(poller: int, hst: str, duration: int, author: str = "admin", comment: str = "Downtime set by admin"):
@@ -3737,13 +3805,10 @@ def ctn_schedule_host_downtime(poller: int, hst: str, duration: int, author: str
         duration (int): Expected duration of the downtime in seconds.
     """
     now = int(time.time())
-    end = now + duration
-    cmd1 = f"[{now}] SCHEDULE_HOST_DOWNTIME;{hst};{now};{end};1;0;{duration};{author};{comment}\n"
-    cmd2 = f"[{now}] SCHEDULE_HOST_SVC_DOWNTIME;{hst};{now};{end};1;0;{duration};{author};{comment}\n"
-    with open(
-            f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w") as f:
-        f.write(cmd1)
-        f.write(cmd2)
+    ctn_send_external_command(
+        f"SCHEDULE_HOST_DOWNTIME;{hst};{now};{now + duration};1;0;{duration};{author};{comment}",
+        f"SCHEDULE_HOST_SVC_DOWNTIME;{hst};{now};{now + duration};1;0;{duration};{author};{comment}",
+        config=poller)
 
 
 def ctn_delete_host_downtimes(poller: int, hst: str):
@@ -3754,11 +3819,7 @@ def ctn_delete_host_downtimes(poller: int, hst: str):
         poller (int): Poller ID.
         hst (str): host name of the host.
     """
-    now = int(time.time())
-    cmd = f"[{now}] DEL_HOST_DOWNTIME_FULL;{hst};;;;;;;;\n"
-    with open(
-            f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w") as f:
-        f.write(cmd)
+    ctn_send_external_command(f"DEL_HOST_DOWNTIME_FULL;{hst};;;;;;;;", config=poller)
 
 
 def ctn_delete_service_downtime_full(poller: int, hst: str, svc: str):
@@ -3770,11 +3831,7 @@ def ctn_delete_service_downtime_full(poller: int, hst: str, svc: str):
         hst (str): host name of the service.
         svc (str):  service description of the service.
     """
-    now = int(time.time())
-    cmd = f"[{now}] DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;\n"
-    with open(
-            f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w") as f:
-        f.write(cmd)
+    ctn_send_external_command(f"DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;", config=poller)
 
 
 def ctn_schedule_forced_service_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
@@ -3787,9 +3844,8 @@ def ctn_schedule_forced_service_check(host: str, svc: str, pipe: str = f"{VAR_RO
         pipe (str, optional): The command file. Defaults to "{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd".
     """
     now = int(time.time())
-    with open(pipe, "w") as f:
-        cmd = f"[{now}] SCHEDULE_FORCED_SVC_CHECK;{host};{svc};{now}\n"
-        f.write(cmd)
+    ctn_send_external_command(f"SCHEDULE_FORCED_SVC_CHECK;{host};{svc};{now}",
+                              config=_config_index_of_pipe(pipe))
 
 
 def ctn_schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
@@ -3801,9 +3857,8 @@ def ctn_schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centr
         pipe (str, optional): The command file to use. Defaults to "{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd".
     """
     now = int(time.time())
-    cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
-    with open(pipe, "w") as f:
-        f.write(cmd)
+    ctn_send_external_command(f"SCHEDULE_FORCED_HOST_CHECK;{host};{now}",
+                              config=_config_index_of_pipe(pipe))
 
 
 def ctn_create_severities_file(poller: int, nb: int, offset: int = 1,
@@ -4687,15 +4742,12 @@ def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str
                     host_name=hst, svc_desc=svc, check_time=ts, output=output, code=state), timeout=GRPC_TIMEOUT)
 
     else:
-        now = int(time.time())
-        with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
-            if nb_check == 1:
-                cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
-                f.write(cmd)
-            else:
-                for i in range(nb_check):
-                    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
-                    f.write(cmd)
+        if nb_check == 1:
+            cmds = [f"PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}"]
+        else:
+            cmds = [f"PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}"
+                    for i in range(nb_check)]
+        ctn_send_external_command(*cmds, config=int(config[6:]))
 
 
 @ctn_external_command

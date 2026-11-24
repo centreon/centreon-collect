@@ -212,6 +212,10 @@ class stream : public io::stream {
    * statement: this one caps what a single output is allowed to produce. */
   uint32_t _max_perfdata = 0u;
   uint32_t _max_perfdata_queries = 0u;
+  /* Whether this output is the reference of the global cache (centralized
+   * configuration only): the one that overlays the runtime state of the
+   * resources, read from its database, onto the cache at startup. */
+  bool _is_reference = false;
   uint32_t _max_metrics_queries = 0u;
   uint32_t _max_cv_queries = 0u;
   uint32_t _max_log_queries = 0u;
@@ -469,6 +473,16 @@ class stream : public io::stream {
   void _load_deleted_instances();
   void _init_statements();
   void _load_caches();
+  void _restore_runtime_in_cache();
+  void _restore_runtime_from_resources(size_t& hosts_read,
+                                       size_t& hosts_restored,
+                                       size_t& services_read,
+                                       size_t& services_restored);
+  void _restore_runtime_from_hosts_services(size_t& hosts_read,
+                                            size_t& hosts_restored,
+                                            size_t& services_read,
+                                            size_t& services_restored);
+  void _restore_overrides_from_hosts_services();
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();
@@ -493,7 +507,8 @@ class stream : public io::stream {
          bool store_in_data_bin,
          bool store_in_resources,
          bool store_in_hosts_services,
-         uint32_t max_perfdata = 0);
+         uint32_t max_perfdata = 0,
+         bool is_reference = false);
   stream() = delete;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

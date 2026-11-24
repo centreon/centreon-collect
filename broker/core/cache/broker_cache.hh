@@ -19,14 +19,16 @@
 #define CCB_CACHE_BROKER_CACHE_HH
 #include <absl/base/thread_annotations.h>
 #include <absl/container/btree_set.h>
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <atomic>
 #include <absl/container/node_hash_map.h>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
-// #include <chrono>
 #include <filesystem>
+#include <functional>
 #include <optional>
 
 #include "com/centreon/broker/bam/internal.hh"
@@ -34,7 +36,6 @@
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 #include "common/notifications/escalation.hh"
-#include "common/notifications/notification_types.hh"
 #include "common/timeperiods/timeperiod.hh"
 
 namespace com::centreon::engine::configuration {
@@ -490,6 +491,24 @@ class broker_cache {
    * stored on it: the contactgroup->contacts resolution is done lazily at
    * notification time. */
   using contact = com::centreon::common::notifications::contact;
+  using notifier_type = com::centreon::common::notifications::notifier_type;
+
+  /* notification_mode=broker: what the Broker API set on a host or service and
+   * that wins over the configured value until set again (Engine's MODATTR_*
+   * kept in retention). Each field is independent: unset means "not
+   * overridden, the configuration applies". */
+  struct resource_notification_override {
+    std::optional<bool> notify;
+    std::optional<std::string> notification_period;
+  };
+
+  /* notification_mode=broker: the same for a contact (known by name). */
+  struct contact_notification_override {
+    std::optional<bool> host_notifications_enabled;
+    std::optional<bool> service_notifications_enabled;
+    std::optional<std::string> host_notification_period;
+    std::optional<std::string> service_notification_period;
+  };
 
   /* Cache view of a contactgroup: its name and the names of its member
    * contacts. The Engine flattens nested contactgroups (contactgroup_members)
@@ -566,8 +585,31 @@ class broker_cache {
    */
   std::filesystem::path _cache_file;
   std::atomic<uint32_t> _enabled_sections{CACHE_NONE};
+  /* Whether this Broker runs the centralized configuration (the stored poller
+   * configurations are the source of the heavy sections) or the legacy one
+   * (the on-disk cache file is). Read once at construction: the destructor
+   * cannot ask the applier state any more, its derived part is gone by then. */
+  bool _centralized = false;
 
   mutable absl::Mutex _mutex;
+  /* Configuration-change listeners, under their own mutex so that they can be
+   * invoked after _mutex is released. */
+  absl::Mutex _config_listeners_m;
+  std::vector<std::pair<uint64_t, std::function<void()>>> _config_listeners
+      ABSL_GUARDED_BY(_config_listeners_m);
+  uint64_t _next_config_listener_id ABSL_GUARDED_BY(_config_listeners_m){1};
+  mutable absl::Mutex _ready_m;
+  bool _ready ABSL_GUARDED_BY(_ready_m) = false;
+  mutable absl::Mutex _reference_m;
+  std::string _reference_endpoint ABSL_GUARDED_BY(_reference_m);
+  std::vector<std::function<void()>> _ready_listeners ABSL_GUARDED_BY(_ready_m);
+  void _merge_locked(const com::centreon::engine::configuration::State& state)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _apply_locked(
+      const com::centreon::engine::configuration::DiffState& diff)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _notify_configuration_changed()
+      ABSL_LOCKS_EXCLUDED(_mutex, _config_listeners_m);
   absl::flat_hash_map<uint64_t, instance_info> _instances
       ABSL_GUARDED_BY(_mutex);
   /* host_id => OTel service identity (section CACHE_OTEL). */
@@ -685,6 +727,35 @@ class broker_cache {
                       std::shared_ptr<neb::pb_acknowledgement>>
       _acknowledgements ABSL_GUARDED_BY(_mutex);
 
+  /* notification_mode=broker: notifications-enabled switches and notification
+   * timeperiods set through the Broker API, keyed by (host_id, service_id) —
+   * service_id 0 for a host. A set field wins over the configured value until
+   * the API sets it again. Persisted in the cache file. */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      resource_notification_override>
+      _notification_overrides ABSL_GUARDED_BY(_mutex);
+
+  /* notification_mode=broker: the same for contacts, keyed by contact name.
+   * Re-applied by _insert_contact() each time a poller configuration
+   * (re)defines the contact. Persisted in the cache file. */
+  absl::flat_hash_map<std::string, contact_notification_override>
+      _contact_notification_overrides ABSL_GUARDED_BY(_mutex);
+
+  /* notification_mode=broker: the program-wide notifications switch of a
+   * poller set through the Broker API, keyed by poller id. Re-applied on
+   * instance_info each time a configuration (re)defines the poller.
+   * Persisted in the cache file. */
+  absl::flat_hash_map<uint64_t, bool> _poller_notification_overrides
+      ABSL_GUARDED_BY(_mutex);
+
+  /* Host topology: parent -> children and child -> parents, fed by the
+   * configuration (Host.parents) in centralized mode and by pb_host_parent
+   * events otherwise. Used to propagate the notification switches. */
+  absl::flat_hash_map<uint64_t, absl::flat_hash_set<uint64_t>> _host_children
+      ABSL_GUARDED_BY(_mutex);
+  absl::flat_hash_map<uint64_t, absl::flat_hash_set<uint64_t>> _host_parents
+      ABSL_GUARDED_BY(_mutex);
+
   /* Active (started) downtimes to persist with the cache (set by broker_state
    * just before the downtime_manager is unloaded). */
   std::vector<Downtime> _active_downtimes_to_save ABSL_GUARDED_BY(_mutex);
@@ -715,6 +786,12 @@ class broker_cache {
                   const com::centreon::engine::configuration::Host& cfg,
                   uint64_t poller_id_hint = 0)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  static void _keep_host_runtime(Host* dst, const Host& src) {
+    copy_host_runtime(dst, src);
+  }
+  static void _keep_service_runtime(Service* dst, const Service& src) {
+    copy_service_runtime(dst, src);
+  }
   template <typename ConfigType>
   void _fill_service_common(Service* obj, const ConfigType& cfg);
   void _fill_service(Service* service,
@@ -737,6 +814,46 @@ class broker_cache {
       uint64_t service_id,
       AckType ack_type,
       uint16_t state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  template <typename T, typename Index, typename Iterator>
+  std::optional<AckType> _restore_acknowledgement_type(Index& index,
+                                                       Iterator it,
+                                                       uint64_t host_id,
+                                                       uint64_t service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  static void _publish_ack_type(uint64_t host_id,
+                                uint64_t service_id,
+                                AckType type);
+  template <typename T, typename Index, typename Iterator>
+  std::optional<resource_notification_override> _restore_notification_override(
+      Index& index,
+      Iterator it,
+      uint64_t host_id,
+      uint64_t service_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  static void _publish_notification_override(
+      uint64_t host_id,
+      uint64_t service_id,
+      const resource_notification_override& o);
+  template <typename T, typename Index>
+  bool _set_notification_override(Index& index,
+                                  const typename Index::key_type& key,
+                                  uint64_t host_id,
+                                  uint64_t service_id,
+                                  const resource_notification_override& o)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  bool _set_notification_override(uint64_t host_id,
+                                  uint64_t service_id,
+                                  const resource_notification_override& o)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void _apply_contact_override(contact& entry) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  void _apply_poller_override(uint64_t poller_id, instance_info& info) const
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  bool _set_contact_override(const std::string& name,
+                             const contact_notification_override& o)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void _set_host_parents(uint64_t child_id,
+                         absl::flat_hash_set<uint64_t>&& parents)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _insert_host_notif_dep(
       const com::centreon::engine::configuration::Hostdependency& dep,
       uint64_t poller_id) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
@@ -837,8 +954,50 @@ class broker_cache {
   void start_periodic_save();
   void merge(const com::centreon::engine::configuration::State& state)
       ABSL_LOCKS_EXCLUDED(_mutex);
-  /* Store the started downtimes to persist on the next cache save. Called by
-   * broker_state at shutdown, before the downtime_manager is unloaded. */
+  /* Configuration-change listeners: a callback registered here is invoked,
+   * outside the cache lock, at the end of every merge() and apply(), i.e.
+   * whenever the configuration the cache describes changed. A module whose own
+   * configuration refers to hosts/services (BAM) uses it to reload itself once
+   * the cache knows the new objects. The callback must be cheap and must not
+   * call back into the cache synchronously from a thread that holds it.
+   * Returns a subscription id, to hand back to unsubscribe. */
+  uint64_t subscribe_configuration_changed(std::function<void()> cb)
+      ABSL_LOCKS_EXCLUDED(_config_listeners_m);
+  void unsubscribe_configuration_changed(uint64_t id)
+      ABSL_LOCKS_EXCLUDED(_config_listeners_m);
+  void on_ready(std::function<void()> cb) ABSL_LOCKS_EXCLUDED(_ready_m);
+  void set_ready() ABSL_LOCKS_EXCLUDED(_ready_m);
+  bool is_ready() const ABSL_LOCKS_EXCLUDED(_ready_m);
+  bool declare_reference(const std::string& endpoint_name)
+      ABSL_LOCKS_EXCLUDED(_reference_m);
+  void release_reference(const std::string& endpoint_name)
+      ABSL_LOCKS_EXCLUDED(_reference_m);
+  std::optional<std::string> reference_endpoint() const
+      ABSL_LOCKS_EXCLUDED(_reference_m);
+  static void copy_host_runtime(Host* dst, const Host& src);
+  static void copy_service_runtime(Service* dst, const Service& src);
+  static void copy_host_overrides(Host* dst, const Host& src);
+  static void copy_service_overrides(Service* dst, const Service& src);
+  bool restore_host_overrides(uint64_t host_id,
+                              const std::function<void(Host&)>& set)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool restore_service_overrides(uint64_t host_id,
+                                 uint64_t service_id,
+                                 const std::function<void(Service&)>& set)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void fill_runtime_state(
+      uint64_t poller_id,
+      com::centreon::engine::configuration::RuntimeState* out) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool restore_host_runtime(uint64_t host_id,
+                            time_t last_check,
+                            const std::function<void(Host&)>& set)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool restore_service_runtime(uint64_t host_id,
+                               uint64_t service_id,
+                               time_t last_check,
+                               const std::function<void(Service&)>& set)
+      ABSL_LOCKS_EXCLUDED(_mutex);
   void set_active_downtimes(std::vector<Downtime> downtimes)
       ABSL_LOCKS_EXCLUDED(_mutex);
   /* Return the next internal_id for a Broker-originated downtime comment and
@@ -846,27 +1005,16 @@ class broker_cache {
   uint64_t next_downtime_comment_id() noexcept {
     return _next_downtime_comment_id.fetch_add(1, std::memory_order_relaxed);
   }
-  /* Re-inject into the downtime_manager every pending active downtime whose
-   * host/service is now known to the cache, restoring its scheduled depth.
-   * Idempotent; drains _pending_active_downtimes as resources become known
-   * (called after _load_cache in legacy mode and after merge() — via
-   * _process_engine_state — in centralized mode). */
   void reinject_pending_downtimes() ABSL_LOCKS_EXCLUDED(_mutex);
-  /* Store the per-resource notification states to persist on the next cache
-   * save. Called by broker_state at shutdown, before the notification_manager
-   * is unloaded. */
   void set_notification_states(
       std::vector<BrokerCache::NotificationState> states)
       ABSL_LOCKS_EXCLUDED(_mutex);
-  /* Re-inject the pending notification states into the notification_manager,
-   * restoring the notification chain (number, timings, notified contacts) after
-   * a restart. Drains _pending_notification_states; a no-op if the manager is
-   * not loaded (notification_mode != broker). */
   void reinject_pending_notification_states() ABSL_LOCKS_EXCLUDED(_mutex);
   void apply(const com::centreon::engine::configuration::DiffState& diff)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_instance(const std::shared_ptr<neb::pb_instance>& instance)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  bool has_instance(uint64_t instance_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   void update_hostgroup(const std::shared_ptr<neb::pb_host_group>& group)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_servicegroup(const std::shared_ptr<neb::pb_service_group>& group)
@@ -880,6 +1028,11 @@ class broker_cache {
   void update_metric_mapping(
       const std::shared_ptr<storage::pb_metric_mapping>& mm)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  /* First internal_id of the comments Broker mints (downtime, acknowledgement
+   * and user comments): the range is partitioned away from the per-poller ids
+   * Engine mints, so an id in it identifies its row platform-wide. */
+  static constexpr uint64_t comment_id_base = _downtime_comment_id_base;
+
   void update_host(const std::shared_ptr<neb::pb_host>& host)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_host(const std::shared_ptr<neb::pb_host_status>& status)
@@ -1072,6 +1225,56 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_acknowledgement(
       const std::shared_ptr<neb::pb_acknowledgement>& ack)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::shared_ptr<neb::pb_acknowledgement> acknowledgement(
+      uint64_t host_id,
+      uint64_t service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::shared_ptr<neb::pb_acknowledgement> set_acknowledgement_type(
+      uint64_t host_id,
+      uint64_t service_id,
+      AckType type,
+      std::optional<uint16_t> state = std::nullopt) ABSL_LOCKS_EXCLUDED(_mutex);
+  void reinject_pending_acknowledgements() ABSL_LOCKS_EXCLUDED(_mutex);
+
+  /* notification_mode=broker: notifications-enabled switch and notification
+   * timeperiod of a resource (service_id 0 for a host). Return false when the
+   * resource is unknown to the cache. */
+  bool set_notify(uint64_t host_id, uint64_t service_id, bool notify)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool set_notification_period(uint64_t host_id,
+                               uint64_t service_id,
+                               const std::string& period)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void reinject_pending_notification_overrides() ABSL_LOCKS_EXCLUDED(_mutex);
+
+  /* notification_mode=broker: notifications-enabled switch and notification
+   * timeperiod of a contact, for its host or its service notifications. Return
+   * false when the contact is unknown to the cache. */
+  bool set_contact_notifications(const std::string& name,
+                                 notifier_type type,
+                                 bool enabled) ABSL_LOCKS_EXCLUDED(_mutex);
+  bool set_contact_notification_period(const std::string& name,
+                                       notifier_type type,
+                                       const std::string& period)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool has_contactgroup(const std::string& name) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+
+  /* notification_mode=broker: program-wide notifications switch of a poller
+   * (ENABLE/DISABLE_NOTIFICATIONS counterpart). Returns false when the poller
+   * is unknown to the cache. */
+  bool set_poller_notifications(uint64_t poller_id, bool enabled)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  /* The id of the poller of that name, or std::nullopt when unknown. */
+  std::optional<uint64_t> instance_id(const std::string& name) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool has_timeperiod(const std::string& name) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+
+  /* Host topology. */
+  void update_host_parent(const std::shared_ptr<neb::pb_host_parent>& hp)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> children_of(uint64_t host_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
 };
 }  // namespace cache

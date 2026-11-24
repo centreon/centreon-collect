@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2024 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,11 @@
 #define CENTREON_BROKER_CORE_SRC_BROKERIMPL_HH_
 
 #include <grpcpp/server_context.h>
+#include <spdlog/logger.h>
 #include "bbdo/events.hh"
 #include "broker/broker.grpc.pb.h"
 #include "broker/broker.pb.h"
+#include "broker/core/cache/notification_toggles.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "neb.pb.h"
 
@@ -47,6 +49,28 @@ using pb_ba_info =
 }
 
 class broker_impl final : public Broker::Service {
+  /* Broker's CORE logger, resolved once at construction. */
+  std::shared_ptr<spdlog::logger> _logger;
+
+  grpc::Status _execute_native_command(std::string_view name,
+                                       std::string_view args,
+                                       std::string_view broker_rpc,
+                                       const ExternalCommandRequest& request);
+  grpc::Status _schedule_downtime_cascade(ScheduleDowntimeRequest req,
+                                          bool services,
+                                          bool children,
+                                          bool triggered);
+
+  grpc::Status _set_contact_notifications(
+      const ContactNotificationsRequest& request,
+      cache::notification_toggles::notifier n) const;
+  grpc::Status _set_contactgroup_notifications(
+      const ContactgroupNotificationsRequest& request,
+      cache::notification_toggles::notifier n) const;
+  grpc::Status _set_contact_notification_period(
+      const ContactNotificationPeriodRequest& request,
+      cache::notification_toggles::notifier n) const;
+
   grpc::Status GetVersion(grpc::ServerContext* context,
                           const ::google::protobuf::Empty* /*request*/,
                           Version* response) override;
@@ -189,8 +213,105 @@ class broker_impl final : public Broker::Service {
                                 const ScheduleDowntimeRequest* request,
                                 ScheduleDowntimeResponse* response) override;
   grpc::Status DeleteDowntime(grpc::ServerContext* context,
-                              const GenericNameOrIndex* request,
+                              const DowntimeIdentifier* request,
                               ::google::protobuf::Empty* response) override;
+  grpc::Status AddHostComment(grpc::ServerContext* context,
+                              const HostCommentRequest* request,
+                              AddCommentResponse* response) override;
+  grpc::Status AddServiceComment(grpc::ServerContext* context,
+                                 const ServiceCommentRequest* request,
+                                 AddCommentResponse* response) override;
+  grpc::Status DeleteComment(grpc::ServerContext* context,
+                             const CommentIdentifier* request,
+                             ::google::protobuf::Empty* response) override;
+  grpc::Status DeleteAllHostComments(
+      grpc::ServerContext* context,
+      const HostIdentifier* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status DeleteAllServiceComments(
+      grpc::ServerContext* context,
+      const ServiceIdentifier* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetHostNotifications(
+      grpc::ServerContext* context,
+      const HostNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetServiceNotifications(
+      grpc::ServerContext* context,
+      const ServiceNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetHostNotificationNumber(
+      grpc::ServerContext* context,
+      const HostNotificationNumberRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetServiceNotificationNumber(
+      grpc::ServerContext* context,
+      const ServiceNotificationNumberRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SendCustomHostNotification(
+      grpc::ServerContext* context,
+      const HostCustomNotificationRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SendCustomServiceNotification(
+      grpc::ServerContext* context,
+      const ServiceCustomNotificationRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetHostNotificationPeriod(
+      grpc::ServerContext* context,
+      const HostNotificationPeriodRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetServiceNotificationPeriod(
+      grpc::ServerContext* context,
+      const ServiceNotificationPeriodRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactHostNotifications(
+      grpc::ServerContext* context,
+      const ContactNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactServiceNotifications(
+      grpc::ServerContext* context,
+      const ContactNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactgroupHostNotifications(
+      grpc::ServerContext* context,
+      const ContactgroupNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactgroupServiceNotifications(
+      grpc::ServerContext* context,
+      const ContactgroupNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactHostNotificationPeriod(
+      grpc::ServerContext* context,
+      const ContactNotificationPeriodRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetContactServiceNotificationPeriod(
+      grpc::ServerContext* context,
+      const ContactNotificationPeriodRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status SetPollerNotifications(
+      grpc::ServerContext* context,
+      const PollerNotificationsRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status ExecuteExternalCommand(
+      grpc::ServerContext* context,
+      const ExternalCommandRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status AcknowledgeHostProblem(
+      grpc::ServerContext* context,
+      const AcknowledgementRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status AcknowledgeServiceProblem(
+      grpc::ServerContext* context,
+      const AcknowledgementRequest* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status RemoveHostAcknowledgement(
+      grpc::ServerContext* context,
+      const HostIdentifier* request,
+      ::google::protobuf::Empty* response) override;
+  grpc::Status RemoveServiceAcknowledgement(
+      grpc::ServerContext* context,
+      const ServiceIdentifier* request,
+      ::google::protobuf::Empty* response) override;
   grpc::Status CheckPollerConfig(grpc::ServerContext* context,
                                  const CheckPollerConfigRequest* request,
                                  CheckPollerConfigResponse* response) override;

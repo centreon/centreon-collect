@@ -623,7 +623,7 @@ CBABOODEACTIVATEDSVC
 
     # And only that one: a cache that answered for every service would have
     # taken the KPI of service_302 with it.
-    ${dropped}    Grep File    ${centralLog}    linked to a deactivated service
+    ${dropped}    Grep File    ${centralLog}    linked to a deactivated service    regexp=True
     ${count}    Get Line Count    ${dropped}
     Should Be Equal As Integers    ${count}    ${1}    ${count} KPIs were dropped instead of the one of service_303
 
@@ -657,6 +657,13 @@ Ctn Reactivate Service 303
 Ctn BAM Init
     Ctn Clear Commands Status
     Ctn Clear Retention
+    Ctn Clear Prot Files
+    # The reference output overlays the resources state kept in the database
+    # onto the global cache at startup: a state left by a previous test would
+    # be believed. Start from a blank platform.
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
     Ctn Clear Db Conf    mod_bam
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module

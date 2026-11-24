@@ -344,8 +344,108 @@ def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int
     return False, None
 
 
+def _parse_search_date(date):
+    """Convert a date given to the log search keywords into a datetime.
+
+    Args:
+        date: a date string (iso format or timestamp) or a numeric timestamp.
+
+    Returns:
+        datetime: the date once converted.
+    """
+    try:
+        return parser.parse(date)
+    except (parser.ParserError, TypeError):
+        return datetime.fromtimestamp(date)
+
+
+def _log_offset_from(f, date, agent_format: bool = False):
+    """Find the byte offset of the first log line dated at or after date.
+
+    The file is opened in binary mode. A bisection is done on the byte offsets
+    of the file: at each step the reader seeks to the middle, skips the partial
+    line and parses the date of the following line. Lines without a date
+    (continuations of multi-line messages) are skipped forward. Nothing is
+    loaded in memory besides the lines read during the bisection, so the cost
+    is O(log(size)) reads whatever the size of the log.
+
+    Args:
+        f: a file object opened in binary mode.
+        date: a datetime.
+        agent_format: True when the log comes from the agent.
+
+    Returns:
+        int: the byte offset of the first line to scan. Lines before it are
+        older than date, lines from it may be older by at most one bisection
+        step, which is harmless for a search.
+    """
+    f.seek(0, os.SEEK_END)
+    size = f.tell()
+    lo = 0
+    hi = size
+    while lo < hi:
+        mid = (lo + hi) // 2
+        f.seek(mid)
+        if mid > 0:
+            f.readline()
+        line_start = f.tell()
+        line_date = None
+        while line_start < hi:
+            line = f.readline()
+            if not line:
+                break
+            line_date = ctn_extract_date_from_log(
+                line.decode("utf-8", errors="replace"), agent_format)
+            if line_date is not None:
+                break
+            line_start = f.tell()
+        if line_date is None or line_start >= hi:
+            # No dated line between mid and hi: the answer is before mid.
+            hi = mid
+        elif line_date < date:
+            lo = f.tell()
+        else:
+            hi = line_start
+    return lo
+
+
+def ctn_lines_from(log: str, date, agent_format: bool = False):
+    """Yield the lines of a log file from the given date.
+
+    The lines are yielded as str, newline included, in file order, starting
+    at the first line dated at or after date (see _log_offset_from). The file
+    is read in streaming, it is never loaded in memory as a whole.
+
+    Args:
+        log (str): the log file.
+        date: a date as a string (iso or timestamp) or a numeric timestamp.
+        agent_format: True when the log comes from the agent.
+
+    Raises:
+        IOError: when the file cannot be opened.
+    """
+    my_date = _parse_search_date(date)
+    with open(log, "rb") as f:
+        f.seek(_log_offset_from(f, my_date, agent_format))
+        # The bisection may stop a few lines early: skip the dated lines that
+        # are still older than my_date, so the first line yielded is really
+        # at or after the date.
+        started = False
+        for raw in f:
+            line = raw.decode("utf-8", errors="replace")
+            if not started:
+                line_date = ctn_extract_date_from_log(line, agent_format)
+                if line_date is None or line_date < my_date:
+                    continue
+                started = True
+            yield line
+
+
 def ctn_find_in_log(log: str, date, content, **kwargs):
     """Find content in log file from the given date
+
+    The log is read in streaming from the first line dated at or after date,
+    so the cost does not depend on what was written before that date.
 
     Args:
         log (str): The log file
@@ -368,45 +468,43 @@ def ctn_find_in_log(log: str, date, content, **kwargs):
     if 'one_of' in kwargs:
         one_of = bool(kwargs['one_of'])
 
+    if regex:
+        patterns = [(c, re.compile(c).search) for c in content]
+    else:
+        patterns = [(c, lambda line, c=c: c in line) for c in content]
+
     res = []
 
     try:
-        with open(log, "r") as f:
-            lines = f.readlines()
-        idx = ctn_find_line_from(lines, date, agent_format)
-
         if one_of:
-            found = False
-            for i in range(idx, len(lines)):
-                line = lines[i]
-                for c in content:
-                    if regex:
-                        match = re.search(c, line)
-                    else:
-                        match = c in line
-                    if match:
+            for i, line in enumerate(ctn_lines_from(log, date, agent_format)):
+                for c, match in patterns:
+                    if match(line):
                         if verbose:
-                            logger.console(f"\"{c}\" found at line {i} from {idx}")
-                        found = True
+                            logger.console(
+                                f"\"{c}\" found at line {i} from {date}")
                         res.append(line)
                         return True, res
-        else:
-            for c in content:
-                found = False
-                for i in range(idx, len(lines)):
-                    line = lines[i]
-                    if regex:
-                        match = re.search(c, line)
-                    else:
-                        match = c in line
-                    if match:
-                        if verbose:
-                            logger.console(f"\"{c}\" found at line {i} from {idx}")
-                        found = True
-                        res.append(line)
-                        break
-                if not found:
-                    return False, c
+            return False, content[0]
+
+        # Every pattern must be found, each one from the date, whatever the
+        # order in which they appear in the log.
+        found = [None] * len(patterns)
+        remaining = len(patterns)
+        for i, line in enumerate(ctn_lines_from(log, date, agent_format)):
+            for k, (c, match) in enumerate(patterns):
+                if found[k] is None and match(line):
+                    if verbose:
+                        logger.console(
+                            f"\"{c}\" found at line {i} from {date}")
+                    found[k] = line
+                    remaining -= 1
+            if remaining == 0:
+                break
+        for k, (c, _) in enumerate(patterns):
+            if found[k] is None:
+                return False, c
+            res.append(found[k])
 
         return True, res
     except IOError:
@@ -632,16 +730,12 @@ def ctn_engine_log_table_duplicate(result: list):
 
 def ctn_check_engine_logs_are_duplicated(log: str, date):
     try:
-        with open(log, "r") as f:
-            lines = f.readlines()
-
-        idx = ctn_find_line_from(lines, date)
         logs_old = []
         logs_new = []
         old_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] ([^\[].*)")
         new_log = re.compile(
             r"\[[^\]]*\] \[[^\]]*\] \[.*\] \[[0-9]+\] (.*)")
-        for line in lines[idx:]:
+        for line in ctn_lines_from(log, date):
             mo = old_log.match(line)
             mn = new_log.match(line)
             if mo is not None:
@@ -671,60 +765,14 @@ def ctn_check_engine_logs_are_duplicated(log: str, date):
         return False
 
 
-def ctn_find_line_from(lines, date, agent_format: bool = False):
-    try:
-        my_date = parser.parse(date)
-    except (parser.ParserError, TypeError):
-        my_date = datetime.fromtimestamp(date)
-
-    # Let's find my_date
-    start = 0
-    end = len(lines) - 1
-    idx = start
-    while end > start:
-        idx = (start + end) // 2
-        idx_d = ctn_extract_date_from_log(lines[idx], agent_format)
-        while idx_d is None:
-            logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
-                start, idx, end, lines[idx]))
-            idx -= 1
-            if idx >= 0:
-                idx_d = ctn_extract_date_from_log(lines[idx], agent_format)
-            else:
-                logger.console("We are at the first line and no date found")
-                return 0
-        if my_date <= idx_d and end != idx:
-            end = idx
-        elif my_date > idx_d and start != idx:
-            start = idx
-        else:
-            break
-
-    # The dichotomy may stop on a line older than my_date (typically the last
-    # one when no line has been written since my_date). Skip those lines, so
-    # that an old line cannot match a pattern searched from my_date.
-    while idx < len(lines):
-        idx_d = ctn_extract_date_from_log(lines[idx], agent_format)
-        if idx_d is not None and idx_d >= my_date:
-            break
-        idx += 1
-    return idx
-
-
 def ctn_check_reschedule(log: str, date, content: str, retry: bool):
     try:
-        with open(log, "r") as f:
-            lines = f.readlines()
-
-        idx = ctn_find_line_from(lines, date)
-
         r = re.compile(r".* last check at (.*) and next check at (.*)$")
         target = 60 if retry else 300
-        for i in range(idx, len(lines)):
-            line = lines[i]
+        for i, line in enumerate(ctn_lines_from(log, date)):
             if content in line:
                 logger.console(
-                    "\"{}\" found at line {} from {}".format(content, i, idx))
+                    "\"{}\" found at line {} from {}".format(content, i, date))
                 m = r.match(line)
                 if m:
                     delta = int(datetime.strptime(m[2], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
@@ -1481,6 +1529,45 @@ def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
 #    return False
 
 
+def ctn_get_downtime_id(hostname: str, service_desc: str, timeout: int = 30):
+    """
+    Return the internal_id (the downtime manager's id) of the active downtime
+    of a service, polling the downtimes table until it appears.
+
+    Args:
+        hostname (str): Host name of the service.
+        service_desc (str): Service description.
+        timeout (int): How long to wait, in seconds.
+
+    Returns:
+        The internal_id, or 0 if none within the timeout.
+
+    *Example:*
+
+    | ${dt_id}    Ctn Get Downtime Id    host_1    service_1 |
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT d.internal_id FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id "
+                    "INNER JOIN services s ON d.service_id=s.service_id AND d.host_id=s.host_id "
+                    f"WHERE d.deletion_time IS NULL AND s.description='{service_desc}' AND h.name='{hostname}' "
+                    "ORDER BY d.internal_id DESC LIMIT 1")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['internal_id'] is not None:
+                    return int(result[0]['internal_id'])
+        time.sleep(1)
+    return 0
+
+
 def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1871,8 +1958,7 @@ def ctn_delete_service_downtime(hst: str, svc: str):
 
     if did != 0:
         logger.console(f"delete downtime internal_id={did}")
-        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
-            f.write(f"[{now}] DEL_SVC_DOWNTIME;{did}\n")
+        Engine.ctn_send_external_command(f"DEL_SVC_DOWNTIME;{did}")
 
 
 def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
@@ -3519,15 +3605,10 @@ def ctn_check_severity_ids(logfile: str, start):
 
     Returns: True if severity ids are correct, False otherwise.
     """
-    with open(logfile, "r") as f:
-        lines = f.readlines()
-
-    idx = ctn_find_line_from(lines, start)
-
     r = re.compile(
         r".*Severity with id (\d+) and type (\d+) has severity_id (\d+)")
     from_logs = {}
-    for line in lines[idx:]:
+    for line in ctn_lines_from(logfile, start):
         m = r.match(line)
         if m:
             id = int(m.group(1))
@@ -3578,15 +3659,10 @@ def ctn_check_tag_ids(logfile: str, start):
 
     Returns: True if tag ids are correct, False otherwise.
     """
-    with open(logfile, "r") as f:
-        lines = f.readlines()
-
-    idx = ctn_find_line_from(lines, start)
-
     r = re.compile(
         r".*Tag with id (\d+) and type (\d+) has tag_id (\d+)")
     from_logs = {}
-    for line in lines[idx:]:
+    for line in ctn_lines_from(logfile, start):
         m = r.match(line)
         if m:
             id = int(m.group(1))

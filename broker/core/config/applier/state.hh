@@ -101,6 +101,13 @@ class state {
    * consumes it and leaves the cache empty for good. */
   virtual void _configure_cache_directories(
       const com::centreon::broker::config::state& s [[maybe_unused]]) {}
+  /* Hook invoked by apply() before the global cache is constructed: the cache
+   * decides at construction whether it runs in centralized mode (it then
+   * neither loads nor saves the heavy sections, rebuilt from the stored poller
+   * configurations), and that verdict comes from the pollers configuration
+   * directory being resolved. The base has none to resolve. */
+  virtual void _resolve_pollers_config_dir(
+      const com::centreon::broker::config::state& s [[maybe_unused]]) {}
 
  public:
   /* Hook invoked by the endpoint applier once every endpoint of the

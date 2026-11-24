@@ -211,7 +211,7 @@ Ctn Kindly Stop Broker
                         # We have to check if central RRD logs contain errors about data sent in the past.
                         ${rrdLog_exists}    Run Keyword And Return Status    File Should Exist    ${rrdLog}
                         IF    ${rrdLog_exists}
-                            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+                            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file    regexp=True
                             IF    len("""${result}""") > 0
                                 Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
                                 Ctn Save Logs
@@ -232,7 +232,7 @@ Ctn Kindly Stop Broker
             # stopped before it applied its configuration)
             ${centralLog_exists}    Run Keyword And Return Status    File Should Exist    ${centralLog}
             IF    ${centralLog_exists}
-                ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+                ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0    regexp=True
                 IF    len("""${result}""") > 0
                     Log To Console    The central logs contain errors about metrics with negative IDs.
                     Ctn Save Logs
@@ -654,6 +654,27 @@ Ctn Process Host Result Hard
     END
 
 
+Ctn Wait For Broker Multiplexing Started
+    [Documentation]    Wait until the central Broker has started its multiplexing
+    ...    engine: before, its startup readiness barrier holds the events, so the
+    ...    Broker cache knows neither the hosts nor the poller configurations and
+    ...    the Broker gRPC commands working on them fail.
+    [Arguments]    ${start}    ${timeout}=${60}
+    ${content}    Create List    multiplexing: engine started
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
+    Should Be True    ${result}    The central Broker did not start its multiplexing engine in time
+
+Ctn Wait For Broker Cache Poller Diff
+    [Documentation]    Centralized configuration: wait until the Broker cache has
+    ...    applied the configuration of the given poller (its contacts,
+    ...    contactgroups, hosts...). The diff goes through the multiplexing
+    ...    engine, so it can be applied a little after it is started. Needs the
+    ...    central cache logger at debug level.
+    [Arguments]    ${start}    ${poller_id}=${1}    ${timeout}=${60}
+    ${content}    Create List    Applying configuration diff for poller id ${poller_id} and name
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
+    Should Be True    ${result}    The Broker cache did not apply the configuration of poller ${poller_id} in time
+
 Ctn Wait For Engine To Be Ready
     [Arguments]    ${start}    ${nbEngine}=1
     FOR    ${i}    IN RANGE    ${nbEngine}
@@ -697,6 +718,12 @@ Ctn Wait For Engine To Be Ready
         ...    ${pipe_ready}
         ...    The engine external command pipe config${i}/rw/centengine.cmd should be a FIFO open for reading.
     END
+    # In broker external command mode, Broker resolves the commands from its
+    # cache: wait for the pollers' initial dump to be there (no-op otherwise).
+    ${cache_ready}    Ctn Wait For Broker Cache Knows Engine    ${nbEngine}
+    Should Be True
+    ...    ${cache_ready}
+    ...    The Broker cache should know the hosts and services of the Engine configurations.
 
 Ctn Push Configuration Per Poller And Wait
     [Documentation]    Announce the configuration of each poller with its own

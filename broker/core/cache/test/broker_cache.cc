@@ -1657,3 +1657,451 @@ TEST_F(BrokerCacheTest, AdaptiveServiceStatusFlapping) {
   _cache->publish(stop);
   ASSERT_FALSE(_cache->service(1u, 1u)->obj().flapping());
 }
+
+/**
+ * @brief A configuration that rebuilds an existing host/service (merge() of a
+ * full State, apply() of a diff) keeps the runtime state of the entry it
+ * replaces: check results, acknowledgement, downtime depth. The configuration
+ * fields, on the other hand, follow the new configuration.
+ */
+TEST_F(BrokerCacheTest, ConfigRebuildKeepsRuntimeState) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  auto make_state = [](const std::string& alias) {
+    cfg::State state;
+    state.set_poller_id(1);
+    auto* h = state.mutable_hosts()->Add();
+    h->set_host_id(1);
+    h->set_host_name("host_1");
+    h->set_alias(alias);
+    auto* s = state.mutable_services()->Add();
+    s->set_host_id(1);
+    s->set_service_id(10);
+    s->set_host_name("host_1");
+    s->set_service_description("service_10");
+    return state;
+  };
+  _cache->merge(make_state("first"));
+
+  /* Runtime state written by the poller and by the Broker-owned managers. */
+  auto hs = std::make_shared<neb::pb_host_status>();
+  hs->mut_obj().set_host_id(1);
+  hs->mut_obj().set_checked(true);
+  hs->mut_obj().set_state(HostStatus_State_DOWN);
+  hs->mut_obj().set_state_type(HostStatus_StateType_HARD);
+  hs->mut_obj().set_last_check(1000);
+  hs->mut_obj().set_output("host is down");
+  hs->mut_obj().set_check_attempt(3);
+  hs->mut_obj().set_scheduled_downtime_depth(1);
+  _cache->publish(hs);
+  auto ss = std::make_shared<neb::pb_service_status>();
+  ss->mut_obj().set_host_id(1);
+  ss->mut_obj().set_service_id(10);
+  ss->mut_obj().set_checked(true);
+  ss->mut_obj().set_state(ServiceStatus_State_CRITICAL);
+  ss->mut_obj().set_state_type(ServiceStatus_StateType_HARD);
+  ss->mut_obj().set_last_check(2000);
+  ss->mut_obj().set_output("service is critical");
+  ss->mut_obj().set_perfdata("rta=1ms");
+  ss->mut_obj().set_acknowledgement_type(AckType::NORMAL);
+  _cache->publish(ss);
+
+  auto check = [this](const char* step, const std::string& alias) {
+    auto h = _cache->host(1u);
+    ASSERT_TRUE(h) << step;
+    EXPECT_EQ(h->obj().alias(), alias) << step;
+    EXPECT_TRUE(h->obj().checked()) << step;
+    EXPECT_EQ(h->obj().state(), Host_State_DOWN) << step;
+    EXPECT_EQ(h->obj().state_type(), Host_StateType_HARD) << step;
+    EXPECT_EQ(h->obj().last_check(), 1000) << step;
+    EXPECT_EQ(h->obj().output(), "host is down") << step;
+    EXPECT_EQ(h->obj().check_attempt(), 3) << step;
+    EXPECT_EQ(h->obj().scheduled_downtime_depth(), 1) << step;
+    auto s = _cache->service(1u, 10u);
+    ASSERT_TRUE(s) << step;
+    EXPECT_TRUE(s->obj().checked()) << step;
+    EXPECT_EQ(s->obj().state(), Service_State_CRITICAL) << step;
+    EXPECT_EQ(s->obj().last_check(), 2000) << step;
+    EXPECT_EQ(s->obj().output(), "service is critical") << step;
+    EXPECT_EQ(s->obj().perfdata(), "rta=1ms") << step;
+    EXPECT_EQ(s->obj().acknowledgement_type(), AckType::NORMAL) << step;
+  };
+  check("after status", "first");
+
+  /* A full merge of the same poller: the alias follows, the runtime stays. */
+  _cache->merge(make_state("second"));
+  check("after merge", "second");
+
+  /* A diff modifying both: same expectation. */
+  cfg::DiffState diff;
+  diff.set_poller_id(1);
+  auto* mh = diff.mutable_hosts()->mutable_modified()->Add();
+  mh->set_host_id(1);
+  mh->set_poller_id(1);
+  mh->set_host_name("host_1");
+  mh->set_alias("third");
+  auto* ms = diff.mutable_services()->mutable_modified()->Add();
+  ms->set_host_id(1);
+  ms->set_service_id(10);
+  ms->set_host_name("host_1");
+  ms->set_service_description("service_10");
+  _cache->apply(diff);
+  check("after apply", "third");
+}
+
+/**
+ * @brief A configuration-change listener is called after every merge() and
+ * apply(), outside the cache lock (the callback may read the cache), and no
+ * longer once unsubscribed.
+ */
+TEST_F(BrokerCacheTest, ConfigurationChangedListener) {
+  namespace cfg = com::centreon::engine::configuration;
+
+  int calls = 0;
+  size_t hosts_seen = 0;
+  uint64_t id = _cache->subscribe_configuration_changed([&] {
+    ++calls;
+    /* Reading the cache from the callback must not deadlock. */
+    hosts_seen = _cache->host_ids().size();
+  });
+
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  _cache->merge(st);
+  EXPECT_EQ(calls, 1);
+  EXPECT_EQ(hosts_seen, 1u);
+
+  cfg::DiffState diff;
+  diff.set_poller_id(1);
+  auto* ah = diff.mutable_hosts()->mutable_added()->Add();
+  ah->set_host_id(2);
+  ah->set_poller_id(1);
+  ah->set_host_name("host_2");
+  _cache->apply(diff);
+  EXPECT_EQ(calls, 2);
+  EXPECT_EQ(hosts_seen, 2u);
+
+  _cache->unsubscribe_configuration_changed(id);
+  _cache->merge(st);
+  EXPECT_EQ(calls, 2);
+}
+
+/**
+ * @brief on_ready() queues a callback until set_ready(), which runs the queued
+ * callbacks once; a callback registered afterwards runs immediately, and a
+ * second set_ready() is a no-op.
+ */
+TEST_F(BrokerCacheTest, OnReady) {
+  int before = 0;
+  int after = 0;
+  EXPECT_FALSE(_cache->is_ready());
+  _cache->on_ready([&] { ++before; });
+  EXPECT_EQ(before, 0);
+  _cache->set_ready();
+  EXPECT_TRUE(_cache->is_ready());
+  EXPECT_EQ(before, 1);
+  _cache->on_ready([&] { ++after; });
+  EXPECT_EQ(after, 1);
+  _cache->set_ready();
+  EXPECT_EQ(before, 1);
+  EXPECT_EQ(after, 1);
+}
+
+/**
+ * @brief The reference of the cache is the first output to declare itself;
+ * a second declaration is refused and names nobody else; releasing the role
+ * lets the next declaration win; releasing from a non-reference is a no-op.
+ */
+TEST_F(BrokerCacheTest, ReferenceArbitration) {
+  EXPECT_FALSE(_cache->reference_endpoint().has_value());
+  EXPECT_TRUE(_cache->declare_reference("sql-1"));
+  EXPECT_FALSE(_cache->declare_reference("sql-2"));
+  EXPECT_TRUE(_cache->declare_reference("sql-1"));
+  EXPECT_EQ(_cache->reference_endpoint().value_or(""), "sql-1");
+  _cache->release_reference("sql-2");
+  EXPECT_EQ(_cache->reference_endpoint().value_or(""), "sql-1");
+  _cache->release_reference("sql-1");
+  EXPECT_FALSE(_cache->reference_endpoint().has_value());
+  EXPECT_TRUE(_cache->declare_reference("sql-2"));
+}
+
+/**
+ * @brief restore_*_runtime() hands the entry to the setter when the row is
+ * fresher than what the cache holds, and never for an unknown resource, a
+ * never-checked row, or a row older than the entry's own check.
+ */
+TEST_F(BrokerCacheTest, RestoreRuntime) {
+  publish_hosts(1, 1);
+  publish_services(1, 1, 1);
+
+  auto down_from_db = [](Host& h) {
+    h.set_checked(true);
+    h.set_state(Host_State_DOWN);
+    h.set_last_hard_state(Host_State_DOWN);
+    h.set_last_check(1000);
+    h.set_output("from db");
+    h.set_scheduled_downtime_depth(2);
+  };
+  EXPECT_TRUE(_cache->restore_host_runtime(1, 1000, down_from_db));
+  auto h = _cache->host(1u);
+  ASSERT_TRUE(h);
+  EXPECT_EQ(h->obj().state(), Host_State_DOWN);
+  EXPECT_EQ(h->obj().last_check(), 1000);
+  EXPECT_EQ(h->obj().output(), "from db");
+  EXPECT_EQ(h->obj().scheduled_downtime_depth(), 2);
+  EXPECT_EQ(h->obj().name(), "host_1") << "configuration fields are untouched";
+
+  /* An older row does not win over the state the cache holds. */
+  int calls = 0;
+  auto count = [&calls](Host&) { ++calls; };
+  EXPECT_FALSE(_cache->restore_host_runtime(1, 500, count));
+  /* A never-checked row, or an unknown host, changes nothing. */
+  EXPECT_FALSE(_cache->restore_host_runtime(1, 0, count));
+  EXPECT_FALSE(_cache->restore_host_runtime(42, 5000, count));
+  EXPECT_EQ(calls, 0);
+  EXPECT_EQ(_cache->host(1u)->obj().state(), Host_State_DOWN);
+
+  EXPECT_TRUE(_cache->restore_service_runtime(1, 1, 2000, [](Service& s) {
+    s.set_checked(true);
+    s.set_state(Service_State_CRITICAL);
+    s.set_last_check(2000);
+    s.set_output("crit");
+  }));
+  auto s = _cache->service(1u, 1u);
+  ASSERT_TRUE(s);
+  EXPECT_EQ(s->obj().state(), Service_State_CRITICAL);
+  EXPECT_EQ(s->obj().output(), "crit");
+  EXPECT_EQ(s->obj().description(), "service_1");
+}
+
+/**
+ * @brief fill_runtime_state() describes the checked hosts and services of
+ * the poller only, leaves out a never-checked resource and another poller's,
+ * and copies the perfdata only for a service an anomalydetection depends on.
+ */
+TEST_F(BrokerCacheTest, FillRuntimeState) {
+  namespace cfg = com::centreon::engine::configuration;
+  publish_hosts(1, 2, 1);
+  publish_hosts(3, 3, 2);
+  publish_services(1, 2, 1);
+
+  /* An anomalydetection on host 1 depending on service (1, 1). */
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* ad = st.mutable_anomalydetections()->Add();
+  ad->set_host_id(1);
+  ad->set_service_id(100);
+  ad->set_host_name("host_1");
+  ad->set_service_description("ad_100");
+  ad->set_dependent_service_id(1);
+  _cache->merge(st);
+
+  auto hs = std::make_shared<neb::pb_host_status>();
+  hs->mut_obj().set_host_id(1);
+  hs->mut_obj().set_checked(true);
+  hs->mut_obj().set_state(HostStatus_State_DOWN);
+  hs->mut_obj().set_last_check(1000);
+  hs->mut_obj().set_output("host down");
+  _cache->publish(hs);
+  for (uint64_t svc : {1u, 2u}) {
+    auto ss = std::make_shared<neb::pb_service_status>();
+    ss->mut_obj().set_host_id(1);
+    ss->mut_obj().set_service_id(svc);
+    ss->mut_obj().set_checked(true);
+    ss->mut_obj().set_state(ServiceStatus_State_CRITICAL);
+    ss->mut_obj().set_state_type(ServiceStatus_StateType_HARD);
+    ss->mut_obj().set_last_check(2000);
+    ss->mut_obj().set_perfdata("rta=1ms");
+    _cache->publish(ss);
+  }
+
+  cfg::RuntimeState out;
+  _cache->fill_runtime_state(1, &out);
+  ASSERT_EQ(out.hosts_size(), 1) << "host 2 was never checked, host 3 is poller 2's";
+  EXPECT_EQ(out.hosts(0).host_id(), 1u);
+  EXPECT_EQ(out.hosts(0).state(), cfg::state_down);
+  ASSERT_EQ(out.services_size(), 2);
+  for (const auto& s : out.services()) {
+    EXPECT_EQ(s.state(), cfg::state_critical);
+    EXPECT_EQ(s.state_type(), cfg::HARD);
+    if (s.service_id() == 1)
+      EXPECT_EQ(s.perfdata(), "rta=1ms") << "an anomalydetection depends on it";
+    else
+      EXPECT_TRUE(s.perfdata().empty()) << "nobody reads it on the Engine side";
+  }
+
+  cfg::RuntimeState other;
+  _cache->fill_runtime_state(2, &other);
+  EXPECT_EQ(other.hosts_size(), 0) << "host 3 was never checked";
+  EXPECT_EQ(other.services_size(), 0);
+
+  /* DISABLE_HOST_CHECK on the never-checked host 2 and
+   * CHANGE_NORMAL_SVC_CHECK_INTERVAL on service (1, 2): an override puts a
+   * resource into the snapshot even without check state, and only the
+   * attributes under the mask are carried. */
+  auto ah = std::make_shared<neb::pb_adaptive_host>();
+  ah->mut_obj().set_host_id(2);
+  ah->mut_obj().set_active_checks(false);
+  _cache->publish(ah);
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(2);
+  as->mut_obj().set_check_interval(42);
+  _cache->publish(as);
+  out.Clear();
+  _cache->fill_runtime_state(1, &out);
+  ASSERT_EQ(out.hosts_size(), 2);
+  for (const auto& h : out.hosts()) {
+    if (h.host_id() == 2) {
+      EXPECT_FALSE(h.checked());
+      ASSERT_TRUE(h.has_overrides());
+      EXPECT_EQ(h.overrides().modified_attributes(),
+                static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+      EXPECT_FALSE(h.overrides().active_checks());
+    } else
+      EXPECT_FALSE(h.has_overrides());
+  }
+  ASSERT_EQ(out.services_size(), 2);
+  for (const auto& s : out.services()) {
+    if (s.service_id() == 2) {
+      EXPECT_TRUE(s.checked());
+      ASSERT_TRUE(s.has_overrides());
+      EXPECT_EQ(s.overrides().modified_attributes(),
+                static_cast<uint32_t>(MOD_NORMAL_CHECK_INTERVAL));
+      EXPECT_EQ(s.overrides().check_interval(), 42u);
+    } else
+      EXPECT_FALSE(s.has_overrides());
+  }
+}
+
+/**
+ * @brief The reference output restores the overrides of a row of the
+ * hosts/services tables onto a cache entry: the mask and the attributes it
+ * protects only, never over an entry already carrying a mask.
+ */
+TEST_F(BrokerCacheTest, OverridesRestoredFromReference) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(1);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  h->set_checks_active(true);
+  h->set_check_interval(5);
+  h->set_notifications_enabled(true);
+  auto* s = st.mutable_services()->Add();
+  s->set_host_id(1);
+  s->set_service_id(10);
+  s->set_host_name("host_1");
+  s->set_service_description("service_10");
+  s->set_notifications_enabled(true);
+  _cache->merge(st);
+
+  /* A row of the reference database: the mask protects active_checks and
+   * check_interval only, the other columns are noise and must be ignored. */
+  Host row;
+  row.set_modified_attributes(MOD_ACTIVE_CHECKS_ENABLED |
+                              MOD_NORMAL_CHECK_INTERVAL);
+  row.set_active_checks(false);
+  row.set_check_interval(42);
+  row.set_notify(false);
+  EXPECT_TRUE(_cache->restore_host_overrides(1u, [&row](Host& dst) {
+    cache::broker_cache::copy_host_overrides(&dst, row);
+  }));
+  const auto& host = _cache->host(1u)->obj();
+  EXPECT_FALSE(host.active_checks());
+  EXPECT_EQ(host.check_interval(), 42);
+  EXPECT_TRUE(host.notify());
+  EXPECT_EQ(host.modified_attributes(), row.modified_attributes());
+
+  /* The entry already carries an override: the database does not win. */
+  row.set_check_interval(43);
+  EXPECT_FALSE(_cache->restore_host_overrides(1u, [&row](Host& dst) {
+    cache::broker_cache::copy_host_overrides(&dst, row);
+  }));
+  EXPECT_EQ(_cache->host(1u)->obj().check_interval(), 42);
+
+  /* Unknown host: nothing to restore on. */
+  EXPECT_FALSE(_cache->restore_host_overrides(2u, [](Host&) {}));
+
+  Service srow;
+  srow.set_modified_attributes(MOD_NOTIFICATIONS_ENABLED);
+  srow.set_notify(false);
+  srow.set_check_interval(42);
+  EXPECT_TRUE(
+      _cache->restore_service_overrides(1u, 10u, [&srow](Service& dst) {
+        cache::broker_cache::copy_service_overrides(&dst, srow);
+      }));
+  const auto& svc = _cache->service(1u, 10u)->obj();
+  EXPECT_FALSE(svc.notify());
+  EXPECT_NE(svc.check_interval(), 42u);
+  EXPECT_EQ(svc.modified_attributes(),
+            static_cast<uint32_t>(MOD_NOTIFICATIONS_ENABLED));
+  EXPECT_FALSE(_cache->restore_service_overrides(1u, 11u, [](Service&) {}));
+}
+
+/**
+ * @brief An attribute toggled by an external command (adaptive event) gets
+ * its ModifiedAttribute bit and survives a configuration rebuild of the
+ * entry, while an attribute left alone follows the new configuration.
+ */
+TEST_F(BrokerCacheTest, AdaptiveOverrideSurvivesRebuild) {
+  namespace cfg = com::centreon::engine::configuration;
+  auto make_state = [](uint32_t check_interval) {
+    cfg::State st;
+    st.set_poller_id(1);
+    auto* h = st.mutable_hosts()->Add();
+    h->set_host_id(1);
+    h->set_host_name("host_1");
+    h->set_checks_active(true);
+    h->set_check_interval(check_interval);
+    auto* s = st.mutable_services()->Add();
+    s->set_host_id(1);
+    s->set_service_id(10);
+    s->set_host_name("host_1");
+    s->set_service_description("service_10");
+    s->set_checks_active(true);
+    s->set_check_interval(check_interval);
+    return st;
+  };
+  _cache->merge(make_state(5));
+  EXPECT_EQ(_cache->host(1u)->obj().modified_attributes(), 0u);
+
+  /* DISABLE_HOST_CHECK / DISABLE_SVC_CHECK: active_checks toggled. */
+  auto ah = std::make_shared<neb::pb_adaptive_host>();
+  ah->mut_obj().set_host_id(1);
+  ah->mut_obj().set_active_checks(false);
+  _cache->publish(ah);
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(10);
+  as->mut_obj().set_active_checks(false);
+  _cache->publish(as);
+  EXPECT_FALSE(_cache->host(1u)->obj().active_checks());
+  EXPECT_EQ(_cache->host(1u)->obj().modified_attributes(),
+            static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+  EXPECT_FALSE(_cache->service(1u, 10u)->obj().active_checks());
+  EXPECT_EQ(_cache->service(1u, 10u)->obj().modified_attributes(),
+            static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+
+  /* A new configuration: check_interval changes and follows it, the toggled
+   * active_checks keeps the override. */
+  _cache->merge(make_state(7));
+  EXPECT_EQ(_cache->host(1u)->obj().check_interval(), 7);
+  EXPECT_FALSE(_cache->host(1u)->obj().active_checks());
+  EXPECT_EQ(_cache->host(1u)->obj().modified_attributes(),
+            static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+  EXPECT_EQ(_cache->service(1u, 10u)->obj().check_interval(), 7);
+  EXPECT_FALSE(_cache->service(1u, 10u)->obj().active_checks());
+
+  /* ENABLE_HOST_CHECK: the override now says enabled; the bit stays, the
+   * attribute still follows the toggles, not the configuration. */
+  ah->mut_obj().set_active_checks(true);
+  _cache->publish(ah);
+  EXPECT_TRUE(_cache->host(1u)->obj().active_checks());
+  EXPECT_EQ(_cache->host(1u)->obj().modified_attributes(),
+            static_cast<uint32_t>(MOD_ACTIVE_CHECKS_ENABLED));
+}

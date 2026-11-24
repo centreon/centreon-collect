@@ -5339,9 +5339,10 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
     if (*it1 == "dependent_service_id" || *it1 == "host_name" ||
         *it1 == "icon_id" || *it1 == "instance_id" ||
         *it1 == "internal_id" || *it1 == "is_volatile" ||
-        *it1 == "long_output" || *it1 == "recovery_notification_delay" ||
-        *it1 == "severity_id" || *it1 == "tags" || *it1 == "timezone" ||
-        *it1 == "type" || *it1 == "command_line") {
+        *it1 == "long_output" || *it1 == "modified_attributes" ||
+        *it1 == "recovery_notification_delay" || *it1 == "severity_id" ||
+        *it1 == "tags" || *it1 == "timezone" || *it1 == "type" ||
+        *it1 == "command_line") {
       ++it1;
       continue;
     }
@@ -5430,7 +5431,8 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
 
   auto it = l1.begin();
   for (auto it1 = l2.begin(); it1 != l2.end();) {
-    if (*it1 == "icon_id" || *it1 == "recovery_notification_delay" ||
+    if (*it1 == "icon_id" || *it1 == "modified_attributes" ||
+        *it1 == "recovery_notification_delay" ||
         *it1 == "severity_id" || *it1 == "tags" || *it1 == "command_line") {
       ++it1;
       continue;

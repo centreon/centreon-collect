@@ -577,7 +577,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
 
     else:
         buf = config[name].format(broker_id, broker_name,
-                                    DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT)
+                                  DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT)
         conf = json.loads(buf)
         current_configs[key] = conf
 
@@ -652,7 +652,7 @@ def ctn_change_broker_tcp_input_to_grpc(name: str):
     _apply_conf(name, input_to_grpc)
 
 
-def ctn_broker_config_flush(is_broker: bool=True):
+def ctn_broker_config_flush(is_broker: bool = True):
     """
     Write the current configurations of broker instances to their configuration files.
 
@@ -1842,7 +1842,8 @@ def ctn_create_metric_retention_file(metric_id, *points: str):
     path = f"{VAR_ROOT}/lib/centreon/metrics/{metric_id}.prot"
     with open(path, 'wb') as f:
         f.write(batch.SerializeToString())
-    logger.console(f"Created metric retention file {path} with {len(points)} point(s)")
+    logger.console(
+        f"Created metric retention file {path} with {len(points)} point(s)")
 
 
 def ctn_create_status_retention_file(index_id, *points: str):
@@ -1869,7 +1870,8 @@ def ctn_create_status_retention_file(index_id, *points: str):
     path = f"{VAR_ROOT}/lib/centreon/status/{index_id}.prot"
     with open(path, 'wb') as f:
         f.write(batch.SerializeToString())
-    logger.console(f"Created status retention file {path} with {len(points)} point(s)")
+    logger.console(
+        f"Created status retention file {path} with {len(points)} point(s)")
 
 
 def ctn_delete_all_rrd_metrics():
@@ -1913,7 +1915,8 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
             if (line_search.match(line)):
                 return True
         time.sleep(5)
-    logger.console(f"Failed to find: {to_search} in rrd info for metric {metric_id}")
+    logger.console(
+        f"Failed to find: {to_search} in rrd info for metric {metric_id}")
     return False
 
 
@@ -2664,7 +2667,8 @@ def ctn_broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout
             opts.slowest_statements_count = stmt
             opts.slowest_queries_count = queries
             try:
-                stub.SetSqlManagerStats(opts, timeout=max(1, limit - time.time()))
+                stub.SetSqlManagerStats(
+                    opts, timeout=max(1, limit - time.time()))
                 break
             except Exception:
                 logger.console("gRPC server not ready")
@@ -2690,7 +2694,8 @@ def ctn_broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
             stub = broker_pb2_grpc.BrokerStub(channel)
             con = broker_pb2.SqlConnection()
             try:
-                res = stub.GetSqlManagerStats(con, timeout=max(1, limit - time.time()))
+                res = stub.GetSqlManagerStats(
+                    con, timeout=max(1, limit - time.time()))
                 logger.console(res)
                 res = MessageToJson(res)
                 logger.console(res)
@@ -2859,7 +2864,8 @@ def ctn_check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetSqlManagerStats(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetSqlManagerStats(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 if len(res.connections) < count:
                     continue
                 count = 0
@@ -2892,7 +2898,8 @@ def ctn_check_all_sql_connections_down_with_grpc(port, timeout=TIMEOUT):
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetSqlManagerStats(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetSqlManagerStats(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 for c in res.connections:
                     if c.up_since:
                         continue
@@ -3020,7 +3027,7 @@ def ctn_get_broker_topology(port: int = 51001, timeout: int = TIMEOUT):
 
 
 def ctn_check_broker_topology(relay_poller_id, engine_poller_ids,
-                               port: int = 51001, timeout: int = TIMEOUT):
+                              port: int = 51001, timeout: int = TIMEOUT):
     """
     Verify the topology returned by GetTopology: a relay with the given
     poller_id must appear in direct_brokers, with engine_poller_ids as its
@@ -3229,7 +3236,8 @@ def ctn_set_broker_log_level(port, log, level, timeout=TIMEOUT):
                 break
 
             try:
-                res = stub.SetLogLevel(ref, timeout=max(1, limit - time.time()))
+                res = stub.SetLogLevel(
+                    ref, timeout=max(1, limit - time.time()))
                 break
             except grpc.RpcError as rpc_error:
                 if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
@@ -3263,7 +3271,8 @@ def ctn_get_broker_process_stat(port, timeout=10):
             # same for engine and broker
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetProcessStats(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetProcessStats(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 return res
             except Exception:
                 logger.console("gRPC server not ready")
@@ -3497,7 +3506,8 @@ def ctn_aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
             te.salt = salt
             te.content = content
             try:
-                encoded = stub.Aes256Encrypt(te, timeout=max(1, limit - time.time()))
+                encoded = stub.Aes256Encrypt(
+                    te, timeout=max(1, limit - time.time()))
                 break
             except grpc.RpcError as rpc_error:
                 return rpc_error.details()
@@ -3531,7 +3541,8 @@ def ctn_aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
             te.salt = salt
             te.content = content
             try:
-                encoded = stub.Aes256Decrypt(te, timeout=max(1, limit - time.time()))
+                encoded = stub.Aes256Decrypt(
+                    te, timeout=max(1, limit - time.time()))
                 break
             except grpc.RpcError as rpc_error:
                 return rpc_error.details()
@@ -3649,7 +3660,8 @@ def ctn_get_peers(port, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetPeers(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetPeers(empty_pb2.Empty(),
+                                    timeout=max(1, limit - time.time()))
                 return MessageToDict(res)
             except Exception:
                 logger.console("gRPC server not ready")
@@ -3674,19 +3686,22 @@ def ctn_get_pollers(port, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetPollers(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetPollers(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 return MessageToDict(res)
             except Exception:
                 logger.console("gRPC server not ready")
 
 
-def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
+def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT, msg_type: int = 10):
     """
-    Check if a row exists in the logs table with msg_type=10 and ctime >= date.
+    Check if a row exists in the logs table with the given msg_type (10 for a
+    service acknowledgement, 11 for a host one) and ctime >= date.
 
     Args:
         date: The date to check.
         timeout: A timeout in seconds, 30s by default.
+        msg_type: The logs.msg_type to look for (default 10).
 
     Returns:
         True on success.
@@ -3703,7 +3718,7 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT * FROM logs WHERE msg_type=10 and ctime >= {date}")
+                    f"SELECT * FROM logs WHERE msg_type={msg_type} and ctime >= {date}")
                 result = cursor.fetchall()
                 logger.console(result)
                 if len(result) > 0 and len(result[0]) > 0:
@@ -3777,7 +3792,8 @@ def ctn_wait_for_broker_to_be_ready(port: int = 51001, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                stub.GetVersion(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                stub.GetVersion(empty_pb2.Empty(),
+                                timeout=max(1, limit - time.time()))
                 return True
             except Exception:
                 pass
@@ -3813,7 +3829,8 @@ def ctn_get_host_ids(port: int, expected_count=None, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetHostIds(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetHostIds(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 retval = list(res.ids)
                 if expected_count is None or len(retval) == expected_count:
                     return retval
@@ -3850,8 +3867,10 @@ def ctn_get_service_ids(port: int, expected_count=None, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetServiceIds(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
-                retval = [(pair.host_id, pair.service_id) for pair in res.pairs]
+                res = stub.GetServiceIds(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                retval = [(pair.host_id, pair.service_id)
+                          for pair in res.pairs]
                 if expected_count is None or len(retval) == expected_count:
                     return retval
             except Exception:
@@ -3874,14 +3893,16 @@ def ctn_get_service_descriptions(port: int, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetServiceIds(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetServiceIds(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 pairs = [(pair.host_id, pair.service_id) for pair in res.pairs]
                 result = {}
                 for host_id, service_id in pairs:
                     ref = broker_pb2.ServiceIdentifier()
                     ref.host_id = host_id
                     ref.service_id = service_id
-                    svc = stub.GetService(ref, timeout=max(1, limit - time.time()))
+                    svc = stub.GetService(
+                        ref, timeout=max(1, limit - time.time()))
                     result[(host_id, service_id)] = svc.description
                 return result
             except Exception:
@@ -3909,6 +3930,7 @@ def ctn_get_host_poller_id(port: int, host_id: int, timeout=TIMEOUT):
             except Exception:
                 logger.console("gRPC server not ready")
         time.sleep(1)
+
 
 def ctn_get_host_name(port: int, host_id: int, timeout=TIMEOUT):
     """
@@ -3949,7 +3971,8 @@ def ctn_get_hostgroup_ids(port: int, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetHostGroupIds(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetHostGroupIds(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 return list(res.ids)
             except Exception:
                 logger.console("gRPC server not ready")
@@ -4018,6 +4041,7 @@ def ctn_get_servicegroup(port: int, servicegroup_id: int, timeout=TIMEOUT):
         time.sleep(1)
     return None
 
+
 def ctn_get_hosts_by_tag(port: int, tag_name: str, tag_type: int,
                          timeout=TIMEOUT):
     """
@@ -4042,7 +4066,8 @@ def ctn_get_hosts_by_tag(port: int, tag_name: str, tag_type: int,
             ref.name = tag_name
             ref.type = tag_type
             try:
-                res = stub.GetHostsByTag(ref, timeout=max(1, limit - time.time()))
+                res = stub.GetHostsByTag(
+                    ref, timeout=max(1, limit - time.time()))
                 return list(res.hosts)
             except grpc.RpcError as e:
                 logger.console(f"gRPC error: {e}")
@@ -4076,7 +4101,8 @@ def ctn_get_services_by_tag(port: int, tag_name: str, tag_type: int,
             ref.name = tag_name
             ref.type = tag_type
             try:
-                res = stub.GetServicesByTag(ref, timeout=max(1, limit - time.time()))
+                res = stub.GetServicesByTag(
+                    ref, timeout=max(1, limit - time.time()))
                 return list(res.services)
             except grpc.RpcError as e:
                 logger.console(f"gRPC error: {e}")
@@ -4110,7 +4136,8 @@ def ctn_check_hosts_by_tag_count_with_timeout(
         if hosts is not None and len(hosts) == expected_count:
             return True
         time.sleep(1)
-    logger.console(f"Expected {expected_count} hosts with tag {tag_name} (type {tag_type}), but got {len(hosts) if hosts is not None else 'None'}")
+    logger.console(
+        f"Expected {expected_count} hosts with tag {tag_name} (type {tag_type}), but got {len(hosts) if hosts is not None else 'None'}")
     return False
 
 
@@ -4284,7 +4311,8 @@ def ctn_get_severities(port: int, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetSeverities(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetSeverities(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 return list(res.entries)
             except grpc.RpcError as e:
                 logger.console(f"gRPC error: {e}")
@@ -4382,7 +4410,8 @@ def ctn_get_tags(port: int, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetTags(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetTags(empty_pb2.Empty(),
+                                   timeout=max(1, limit - time.time()))
                 return list(res.entries)
             except grpc.RpcError as e:
                 logger.console(f"gRPC error: {e}")
@@ -4412,7 +4441,8 @@ def ctn_get_acknowledgements(port: int, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetAcknowledgements(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetAcknowledgements(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 return list(res.entries)
             except grpc.RpcError as e:
                 logger.console(f"gRPC error: {e}")
@@ -4440,7 +4470,8 @@ def ctn_check_acknowledgements_count_with_timeout(expected: int, port: int, time
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetAcknowledgements(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetAcknowledgements(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 if len(res.entries) == expected:
                     return True
             except grpc.RpcError as e:
@@ -4470,7 +4501,8 @@ def ctn_check_acknowledgement_in_cache_with_timeout(host_id: int, service_id: in
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
-                res = stub.GetAcknowledgements(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetAcknowledgements(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 for a in res.entries:
                     if a.host_id == host_id and a.service_id == service_id:
                         return True
@@ -4540,7 +4572,7 @@ def ctn_check_severities_empty_with_timeout(port: int, timeout=TIMEOUT):
 
 
 def ctn_check_severities_count_with_timeout(port: int, expected_count: int,
-                                             timeout=TIMEOUT):
+                                            timeout=TIMEOUT):
     """
     Poll the Broker cache until exactly expected_count severity entries are
     present, or timeout.
@@ -4640,7 +4672,7 @@ def ctn_clear_broker_cache():
 
 
 def ctn_broker_schedule_host_downtime(hostname: str, duration: int,
-                                       port: int = 51001) -> int:
+                                      port: int = 51001) -> int:
     """
     Schedule a host downtime via the Broker gRPC ScheduleDowntime endpoint.
     Requires notification_mode = broker in the Broker configuration.
@@ -4676,8 +4708,8 @@ def ctn_broker_schedule_host_downtime(hostname: str, duration: int,
 
 
 def ctn_broker_schedule_service_downtime(hostname: str, service_desc: str,
-                                          duration: int,
-                                          port: int = 51001) -> int:
+                                         duration: int,
+                                         port: int = 51001) -> int:
     """
     Schedule a service downtime via the Broker gRPC ScheduleDowntime endpoint.
     Requires notification_mode = broker in the Broker configuration.
@@ -4728,9 +4760,599 @@ def ctn_broker_delete_downtime(downtime_id: int, port: int = 51001):
     """
     with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
         stub = broker_pb2_grpc.BrokerStub(channel)
-        req = broker_pb2.GenericNameOrIndex()
-        req.idx = int(downtime_id)
+        req = broker_pb2.DowntimeIdentifier()
+        req.downtime_id = int(downtime_id)
         stub.DeleteDowntime(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_acknowledge_host_problem(hostname: str, sticky: bool = False,
+                                        notify: bool = False, persistent: bool = False,
+                                        author: str = "robot",
+                                        comment: str = "Robot test acknowledgement",
+                                        port: int = 51001):
+    """
+    Acknowledge a host problem via the Broker gRPC AcknowledgeHostProblem
+    endpoint (same contract as the Engine RPC). Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        sticky: True for a sticky acknowledgement.
+        notify: True to send an acknowledgement notification.
+        persistent: True to keep the comment after the acknowledgement is cleared.
+        author: The acknowledgement author.
+        comment: The acknowledgement comment.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Acknowledge Host Problem    host_1    sticky=${True} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.AcknowledgementRequest()
+        req.host_name = hostname
+        req.ack_author = author
+        req.ack_data = comment
+        req.type = broker_pb2.AcknowledgementRequest.STICKY if sticky else broker_pb2.AcknowledgementRequest.NORMAL
+        req.notify = bool(notify)
+        req.persistent = bool(persistent)
+        stub.AcknowledgeHostProblem(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_acknowledge_service_problem(hostname: str, service_desc: str,
+                                           sticky: bool = False, notify: bool = False,
+                                           persistent: bool = False,
+                                           author: str = "robot",
+                                           comment: str = "Robot test acknowledgement",
+                                           port: int = 51001):
+    """
+    Acknowledge a service problem via the Broker gRPC AcknowledgeServiceProblem
+    endpoint (same contract as the Engine RPC). Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        sticky: True for a sticky acknowledgement.
+        notify: True to send an acknowledgement notification.
+        persistent: True to keep the comment after the acknowledgement is cleared.
+        author: The acknowledgement author.
+        comment: The acknowledgement comment.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Acknowledge Service Problem    host_1    service_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.AcknowledgementRequest()
+        req.host_name = hostname
+        req.service_desc = service_desc
+        req.ack_author = author
+        req.ack_data = comment
+        req.type = broker_pb2.AcknowledgementRequest.STICKY if sticky else broker_pb2.AcknowledgementRequest.NORMAL
+        req.notify = bool(notify)
+        req.persistent = bool(persistent)
+        stub.AcknowledgeServiceProblem(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_remove_host_acknowledgement(hostname: str, port: int = 51001):
+    """
+    Remove a host acknowledgement via the Broker gRPC RemoveHostAcknowledgement
+    endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Remove Host Acknowledgement    host_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostIdentifier()
+        req.host_name = hostname
+        stub.RemoveHostAcknowledgement(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_remove_service_acknowledgement(hostname: str, service_desc: str,
+                                              port: int = 51001):
+    """
+    Remove a service acknowledgement via the Broker gRPC
+    RemoveServiceAcknowledgement endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Remove Service Acknowledgement    host_1    service_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceIdentifier()
+        req.host_name = hostname
+        req.description = service_desc
+        stub.RemoveServiceAcknowledgement(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_check_resource_acknowledged_with_timeout(hostname: str, service_desc: str,
+                                                 expected: bool, timeout: int = TIMEOUT):
+    """
+    Poll the resources table until the acknowledged flag of a host (empty
+    service_desc) or service matches the expected value.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description, or an empty string for a host.
+        expected: The expected acknowledged flag.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the flag matches within the timeout, False otherwise.
+
+    *Example:*
+
+    | ${result}    Ctn Check Resource Acknowledged With Timeout    host_1    service_1    ${True}    60 |
+    """
+    if service_desc:
+        query = ("SELECT r.acknowledged FROM resources r JOIN resources p ON r.parent_id=p.id "
+                 f"WHERE p.name='{hostname}' AND r.name='{service_desc}' AND p.parent_id=0")
+    else:
+        query = f"SELECT acknowledged FROM resources WHERE name='{hostname}' AND parent_id=0"
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['acknowledged'] is not None \
+                        and bool(result[0]['acknowledged']) == bool(expected):
+                    return True
+        time.sleep(1)
+    logger.console(
+        f"resources.acknowledged of ({hostname}, {service_desc}) is not {expected}")
+    return False
+
+
+def ctn_broker_add_host_comment(hostname: str, persistent: bool = False,
+                                user: str = "robot", comment: str = "Robot host comment",
+                                port: int = 51001) -> int:
+    """
+    Add a user comment on a host via the Broker gRPC AddHostComment endpoint.
+    Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        persistent: True to keep the comment across Engine restarts.
+        user: The comment author.
+        comment: The comment text.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The internal_id of the created comment.
+
+    *Example:*
+
+    | ${id}    Ctn Broker Add Host Comment    host_1    persistent=${True} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostCommentRequest()
+        req.host.host_name = hostname
+        req.user = user
+        req.comment_data = comment
+        req.persistent = bool(persistent)
+        return stub.AddHostComment(req, timeout=GRPC_TIMEOUT).internal_id
+
+
+def ctn_broker_add_service_comment(hostname: str, service_desc: str, persistent: bool = False,
+                                   user: str = "robot", comment: str = "Robot service comment",
+                                   port: int = 51001) -> int:
+    """
+    Add a user comment on a service via the Broker gRPC AddServiceComment
+    endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        persistent: True to keep the comment across Engine restarts.
+        user: The comment author.
+        comment: The comment text.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The internal_id of the created comment.
+
+    *Example:*
+
+    | ${id}    Ctn Broker Add Service Comment    host_1    service_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceCommentRequest()
+        req.service.host_name = hostname
+        req.service.description = service_desc
+        req.user = user
+        req.comment_data = comment
+        req.persistent = bool(persistent)
+        return stub.AddServiceComment(req, timeout=GRPC_TIMEOUT).internal_id
+
+
+def ctn_broker_delete_comment(internal_id: int, port: int = 51001) -> str:
+    """
+    Delete a comment by internal_id via the Broker gRPC DeleteComment endpoint.
+    Requires notification_mode = broker.
+
+    Args:
+        internal_id: The comment internal_id (as returned by Ctn Broker Add * Comment).
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        An empty string on success, the gRPC status code name otherwise
+        (e.g. FAILED_PRECONDITION for a comment not minted by Broker).
+
+    *Example:*
+
+    | ${err}    Ctn Broker Delete Comment    ${id} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.CommentIdentifier()
+        req.internal_id = int(internal_id)
+        try:
+            stub.DeleteComment(req, timeout=GRPC_TIMEOUT)
+        except grpc.RpcError as e:
+            logger.console(
+                f"DeleteComment({internal_id}) failed: {e.code().name}: {e.details()}")
+            return e.code().name
+        return ""
+
+
+def ctn_broker_delete_all_host_comments(hostname: str, port: int = 51001):
+    """
+    Delete every comment of a host via the Broker gRPC DeleteAllHostComments
+    endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Delete All Host Comments    host_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostIdentifier()
+        req.host_name = hostname
+        stub.DeleteAllHostComments(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_delete_all_service_comments(hostname: str, service_desc: str, port: int = 51001):
+    """
+    Delete every comment of a service via the Broker gRPC
+    DeleteAllServiceComments endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Delete All Service Comments    host_1    service_1 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceIdentifier()
+        req.host_name = hostname
+        req.description = service_desc
+        stub.DeleteAllServiceComments(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_set_host_notifications(hostname: str, enabled: bool, scope: str = "HOST",
+                                      port: int = 51001):
+    """
+    Enable or disable the notifications of a host via the Broker gRPC
+    SetHostNotifications endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        enabled: True to enable, False to disable.
+        scope: HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN or BEYOND_HOST.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Set Host Notifications    host_1    ${False}    HOST_AND_SERVICES |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostNotificationsRequest()
+        req.host.host_name = hostname
+        req.enabled = bool(enabled)
+        req.scope = broker_pb2.HostNotificationsRequest.Scope.Value(scope)
+        stub.SetHostNotifications(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_set_service_notifications(hostname: str, service_desc: str, enabled: bool,
+                                         port: int = 51001):
+    """
+    Enable or disable the notifications of a service via the Broker gRPC
+    SetServiceNotifications endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        enabled: True to enable, False to disable.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Set Service Notifications    host_1    service_1    ${False} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceNotificationsRequest()
+        req.service.host_name = hostname
+        req.service.description = service_desc
+        req.enabled = bool(enabled)
+        stub.SetServiceNotifications(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_check_resource_notifications_enabled_with_timeout(hostname: str, service_desc: str,
+                                                          expected: bool, timeout: int = TIMEOUT):
+    """
+    Poll the resources table until the notifications_enabled flag of a host
+    (empty service_desc) or service matches the expected value.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description, or an empty string for a host.
+        expected: The expected flag.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the flag matches within the timeout, False otherwise.
+
+    *Example:*
+
+    | ${result}    Ctn Check Resource Notifications Enabled With Timeout    host_1    service_1    ${False}    30 |
+    """
+    if service_desc:
+        query = ("SELECT r.notifications_enabled AS v FROM resources r JOIN resources p ON r.parent_id=p.id "
+                 f"WHERE p.name='{hostname}' AND r.name='{service_desc}' AND p.parent_id=0")
+    else:
+        query = f"SELECT notifications_enabled AS v FROM resources WHERE name='{hostname}' AND parent_id=0"
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['v'] is not None \
+                        and bool(result[0]['v']) == bool(expected):
+                    return True
+        time.sleep(1)
+    logger.console(
+        f"resources.notifications_enabled of ({hostname}, {service_desc}) is not {expected}")
+    return False
+
+
+def ctn_check_services_notify_count_with_timeout(hostname: str, notify: bool, expected: int,
+                                                 timeout: int = TIMEOUT):
+    """
+    Poll the services table until the number of services of a host whose
+    notify flag equals the given value reaches the expected count.
+
+    Args:
+        hostname: The host name.
+        notify: The notify flag value to count.
+        expected: The expected number of services.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the count is reached within the timeout, False otherwise.
+
+    *Example:*
+
+    | ${result}    Ctn Check Services Notify Count With Timeout    host_1    ${False}    20    30 |
+    """
+    query = ("SELECT COUNT(*) AS c FROM services s JOIN hosts h ON s.host_id=h.host_id "
+             f"WHERE h.name='{hostname}' AND s.notify={1 if notify else 0} AND s.enabled=1")
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0 and int(result[0]['c']) == int(expected):
+                    return True
+        time.sleep(1)
+    logger.console(
+        f"services of {hostname} with notify={notify}: expected {expected}")
+    return False
+
+
+def ctn_broker_set_host_notification_number(hostname: str, number: int, port: int = 51001):
+    """
+    Set the notification number of a host via the Broker gRPC
+    SetHostNotificationNumber endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        number: The new notification number.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Set Host Notification Number    host_1    3 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostNotificationNumberRequest()
+        req.host.host_name = hostname
+        req.number = int(number)
+        stub.SetHostNotificationNumber(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_set_service_notification_number(hostname: str, service_desc: str, number: int,
+                                               port: int = 51001):
+    """
+    Set the notification number of a service via the Broker gRPC
+    SetServiceNotificationNumber endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        number: The new notification number.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Set Service Notification Number    host_1    service_1    3 |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceNotificationNumberRequest()
+        req.service.host_name = hostname
+        req.service.description = service_desc
+        req.number = int(number)
+        stub.SetServiceNotificationNumber(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_send_custom_host_notification(hostname: str, author: str, comment: str,
+                                             broadcast: bool = False, forced: bool = False,
+                                             increment: bool = False, port: int = 51001):
+    """
+    Send a custom notification on a host via the Broker gRPC
+    SendCustomHostNotification endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        author: The notification author.
+        comment: The notification comment.
+        broadcast: Notify every contact, escalations ignored.
+        forced: Bypass the enabled switches and periods.
+        increment: Count it in the notification number.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Send Custom Host Notification    host_1    admin    a comment    forced=${True} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.HostCustomNotificationRequest()
+        req.host.host_name = hostname
+        req.author = author
+        req.comment = comment
+        req.broadcast = bool(broadcast)
+        req.forced = bool(forced)
+        req.increment = bool(increment)
+        stub.SendCustomHostNotification(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_broker_send_custom_service_notification(hostname: str, service_desc: str, author: str,
+                                                comment: str, broadcast: bool = False,
+                                                forced: bool = False, increment: bool = False,
+                                                port: int = 51001):
+    """
+    Send a custom notification on a service via the Broker gRPC
+    SendCustomServiceNotification endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        author: The notification author.
+        comment: The notification comment.
+        broadcast: Notify every contact, escalations ignored.
+        forced: Bypass the enabled switches and periods.
+        increment: Count it in the notification number.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Send Custom Service Notification    host_1    service_1    admin    a comment |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ServiceCustomNotificationRequest()
+        req.service.host_name = hostname
+        req.service.description = service_desc
+        req.author = author
+        req.comment = comment
+        req.broadcast = bool(broadcast)
+        req.forced = bool(forced)
+        req.increment = bool(increment)
+        stub.SendCustomServiceNotification(req, timeout=GRPC_TIMEOUT)
+
+
+def ctn_check_service_notification_number_with_timeout(hostname: str, service_desc: str,
+                                                       expected: int, timeout: int = TIMEOUT):
+    """
+    Poll the services table until notification_number of a service reaches the
+    expected value.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        expected: The expected notification number.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if reached within the timeout, False otherwise.
+
+    *Example:*
+
+    | ${result}    Ctn Check Service Notification Number With Timeout    host_1    service_1    3    30 |
+    """
+    query = ("SELECT s.notification_number AS n FROM services s JOIN hosts h ON s.host_id=h.host_id "
+             f"WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['n'] is not None and int(result[0]['n']) == int(expected):
+                    return True
+        time.sleep(1)
+    logger.console(
+        f"notification_number of ({hostname}, {service_desc}) is not {expected}")
+    return False
 
 
 def ctn_broker_check_poller_config(directory: str, port: int = 51001, timeout: int = TIMEOUT):
@@ -4756,7 +5378,8 @@ def ctn_broker_check_poller_config(directory: str, port: int = 51001, timeout: i
             req = broker_pb2.CheckPollerConfigRequest()
             req.directory = directory
             try:
-                res = stub.CheckPollerConfig(req, timeout=max(1, limit - time.time()))
+                res = stub.CheckPollerConfig(
+                    req, timeout=max(1, limit - time.time()))
             except Exception as e:
                 logger.console(f"gRPC server not ready: {e}")
                 continue
@@ -4814,7 +5437,8 @@ def ctn_broker_notification_authorized_by_dependencies(host, service=None, expec
                 else:
                     req.description = service
             try:
-                answer = stub.NotificationAuthorizedByDependencies(req, timeout=max(1, limit - time.time())).authorized
+                answer = stub.NotificationAuthorizedByDependencies(
+                    req, timeout=max(1, limit - time.time())).authorized
             except grpc.RpcError as e:
                 if e.code() == grpc.StatusCode.NOT_FOUND:
                     answer = "NOT_FOUND"
@@ -4824,3 +5448,336 @@ def ctn_broker_notification_authorized_by_dependencies(host, service=None, expec
         if expected is None or answer == expected:
             return answer
     return answer
+
+
+def _broker_notification_rpc(port: int, call):
+    """
+    Run a Broker gRPC notification call and return its error message, or an
+    empty string on success (the callers assert on it: the error paths of these
+    endpoints, unknown contact or timeperiod, are part of what the tests cover).
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        try:
+            call(stub)
+        except grpc.RpcError as e:
+            logger.console(f"Broker gRPC error: {e.code()} {e.details()}")
+            return e.details()
+    return ""
+
+
+def ctn_broker_set_host_notification_period(hostname: str, timeperiod: str, port: int = 51001):
+    """
+    Change the notification timeperiod of a host via the Broker gRPC
+    SetHostNotificationPeriod endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        timeperiod: The name of a timeperiod known to Broker.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Host Notification Period    host_1    workhours |
+    """
+    def call(stub):
+        req = broker_pb2.HostNotificationPeriodRequest()
+        req.host.host_name = hostname
+        req.timeperiod = timeperiod
+        stub.SetHostNotificationPeriod(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
+def ctn_broker_set_service_notification_period(hostname: str, service_desc: str, timeperiod: str,
+                                               port: int = 51001):
+    """
+    Change the notification timeperiod of a service via the Broker gRPC
+    SetServiceNotificationPeriod endpoint. Requires notification_mode = broker.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        timeperiod: The name of a timeperiod known to Broker.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Service Notification Period    host_1    service_1    none |
+    """
+    def call(stub):
+        req = broker_pb2.ServiceNotificationPeriodRequest()
+        req.service.host_name = hostname
+        req.service.description = service_desc
+        req.timeperiod = timeperiod
+        stub.SetServiceNotificationPeriod(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
+def ctn_broker_set_contact_host_notifications(contact: str, enabled: bool, port: int = 51001):
+    """
+    Enable or disable the host notifications of a contact via the Broker gRPC
+    SetContactHostNotifications endpoint. Requires notification_mode = broker.
+
+    Args:
+        contact: The contact name.
+        enabled: True to enable, False to disable.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Contact Host Notifications    John_Doe    ${False} |
+    """
+    def call(stub):
+        req = broker_pb2.ContactNotificationsRequest()
+        req.contact.name = contact
+        req.enabled = bool(enabled)
+        stub.SetContactHostNotifications(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
+def ctn_broker_set_contact_service_notifications(contact: str, enabled: bool, port: int = 51001):
+    """
+    Enable or disable the service notifications of a contact via the Broker
+    gRPC SetContactServiceNotifications endpoint. Requires
+    notification_mode = broker.
+
+    Args:
+        contact: The contact name.
+        enabled: True to enable, False to disable.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Contact Service Notifications    John_Doe    ${False} |
+    """
+    def call(stub):
+        req = broker_pb2.ContactNotificationsRequest()
+        req.contact.name = contact
+        req.enabled = bool(enabled)
+        stub.SetContactServiceNotifications(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
+def ctn_broker_set_contactgroup_host_notifications(contactgroup: str, enabled: bool,
+                                                   port: int = 51001):
+    """
+    Enable or disable the host notifications of every contact of a contactgroup
+    via the Broker gRPC SetContactgroupHostNotifications endpoint. Requires
+    notification_mode = broker.
+
+    Args:
+        contactgroup: The contactgroup name.
+        enabled: True to enable, False to disable.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Contactgroup Host Notifications    contactgroup_1    ${False} |
+    """
+    def call(stub):
+        req = broker_pb2.ContactgroupNotificationsRequest()
+        req.contactgroup.name = contactgroup
+        req.enabled = bool(enabled)
+        stub.SetContactgroupHostNotifications(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
+def ctn_broker_set_contactgroup_service_notifications(contactgroup: str, enabled: bool,
+                                                      port: int = 51001):
+    """
+    Enable or disable the service notifications of every contact of a
+    contactgroup via the Broker gRPC SetContactgroupServiceNotifications
+    endpoint. Requires notification_mode = broker.
+
+    Args:
+        contactgroup: The contactgroup name.
+        enabled: True to enable, False to disable.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Contactgroup Service Notifications    contactgroup_1    ${False} |
+    """
+    def call(stub):
+        req = broker_pb2.ContactgroupNotificationsRequest()
+        req.contactgroup.name = contactgroup
+        req.enabled = bool(enabled)
+        stub.SetContactgroupServiceNotifications(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
+def ctn_broker_set_contact_host_notification_period(contact: str, timeperiod: str,
+                                                    port: int = 51001):
+    """
+    Change the host notification timeperiod of a contact via the Broker gRPC
+    SetContactHostNotificationPeriod endpoint. Requires
+    notification_mode = broker.
+
+    Args:
+        contact: The contact name.
+        timeperiod: The name of a timeperiod known to Broker.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Contact Host Notification Period    John_Doe    none |
+    """
+    def call(stub):
+        req = broker_pb2.ContactNotificationPeriodRequest()
+        req.contact.name = contact
+        req.timeperiod = timeperiod
+        stub.SetContactHostNotificationPeriod(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
+def ctn_broker_set_contact_service_notification_period(contact: str, timeperiod: str,
+                                                       port: int = 51001):
+    """
+    Change the service notification timeperiod of a contact via the Broker
+    gRPC SetContactServiceNotificationPeriod endpoint. Requires
+    notification_mode = broker.
+
+    Args:
+        contact: The contact name.
+        timeperiod: The name of a timeperiod known to Broker.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Contact Service Notification Period    John_Doe    none |
+    """
+    def call(stub):
+        req = broker_pb2.ContactNotificationPeriodRequest()
+        req.contact.name = contact
+        req.timeperiod = timeperiod
+        stub.SetContactServiceNotificationPeriod(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
+def ctn_check_service_notification_period_with_timeout(hostname: str, service_desc: str,
+                                                       expected: str, timeout: int = TIMEOUT):
+    """
+    Poll the services table until the notification_period of a service matches
+    the expected timeperiod name.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        expected: The expected timeperiod name.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True on success, False on timeout.
+
+    *Example:*
+
+    | ${result}    Ctn Check Service Notification Period With Timeout    host_1    service_1    none    30 |
+    """
+    query = ("SELECT s.notification_period AS v FROM services s JOIN hosts h ON s.host_id=h.host_id "
+             f"WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['v'] == expected:
+                    return True
+        time.sleep(1)
+    return False
+
+
+def ctn_broker_execute_external_command(command: str, poller=None, port: int = 51001):
+    """
+    Send a legacy Engine external command line through the Broker gRPC
+    ExecuteExternalCommand endpoint. A host or service command is routed to
+    the poller supervising the host named as first argument, a contact or
+    contactgroup command is broadcast to every connected poller, a global or
+    process command goes to the poller given in `poller`. The poller parses
+    and executes the line as if it had come from its command pipe.
+
+    Args:
+        command: The legacy line, e.g. "SCHEDULE_FORCED_SVC_CHECK;host_1;service_1;0".
+            The "[timestamp] " prefix is optional.
+        poller: The poller id (digits) or name, required for a global or
+            process command, ignored otherwise.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Execute External Command    SCHEDULE_FORCED_SVC_CHECK;host_1;service_1;0 |
+    | ${err}    Ctn Broker Execute External Command    DISABLE_EVENT_HANDLERS    poller=2 |
+    """
+    def call(stub):
+        req = broker_pb2.ExternalCommandRequest()
+        req.command = command
+        if poller is not None:
+            if str(poller).isdigit():
+                req.poller.poller_id = int(poller)
+            else:
+                req.poller.poller_name = str(poller)
+        stub.ExecuteExternalCommand(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)
+
+
+def ctn_broker_set_poller_notifications(poller: str, enabled: bool, port: int = 51001):
+    """
+    Enable or disable the notifications of a whole poller via the Broker gRPC
+    SetPollerNotifications endpoint (Engine's ENABLE/DISABLE_NOTIFICATIONS on
+    that poller). Requires notification_mode = broker.
+
+    Args:
+        poller: The poller id (digits) or the poller name.
+        enabled: True to enable, False to disable.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The gRPC error message, or an empty string on success.
+
+    *Example:*
+
+    | ${err}    Ctn Broker Set Poller Notifications    1    ${False} |
+    """
+    def call(stub):
+        req = broker_pb2.PollerNotificationsRequest()
+        if str(poller).isdigit():
+            req.poller.poller_id = int(poller)
+        else:
+            req.poller.poller_name = str(poller)
+        req.enabled = bool(enabled)
+        stub.SetPollerNotifications(req, timeout=GRPC_TIMEOUT)
+    return _broker_notification_rpc(port, call)

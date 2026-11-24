@@ -18,23 +18,30 @@
  */
 
 #include "broker/core/brokerrpc/broker_impl.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/strip.h>
 #include <google/protobuf/util/time_util.h>
-#include <grpcpp/support/status.h>
 #include <spdlog/details/null_mutex.h>
 #include <spdlog/sinks/base_sink.h>
 #include <algorithm>
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
-#include "common/engine_conf/state_helper.hh"
 
-#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/bbdo/internal.hh"
+#include "broker/core/brokerrpc/legacy_commands.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
+#include "com/centreon/broker/broker_acknowledgement_manager.hh"
+#include "com/centreon/broker/broker_comments.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/process_stat.hh"
 #include "common/crypto/aes256.hh"
+#include "common/external_commands/command_table.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
@@ -69,9 +76,165 @@ class capturing_sink
   }
   void flush_() override {}
 };
+
+/**
+ * @brief Guard of the Broker-owned features (downtimes, comments,
+ * acknowledgements, notification switches...), available only in
+ * notification_mode = broker.
+ *
+ * @param loaded  Whether the manager owning the feature is loaded.
+ * @param feature The feature name for the error message ("Downtime"...).
+ *
+ * @return The UNAVAILABLE status to return when @p loaded is false,
+ * std::nullopt otherwise.
+ */
+std::optional<grpc::Status> unavailable_unless(bool loaded,
+                                               std::string_view feature) {
+  if (loaded)
+    return std::nullopt;
+  return grpc::Status(
+      grpc::StatusCode::UNAVAILABLE,
+      fmt::format("{} management is not enabled (notification_mode != broker)",
+                  feature));
+}
+
+/**
+ * @brief Resolve a host from a HostIdentifier (name or id) in the Broker
+ * cache. Shared by every RPC that designates a host this way.
+ *
+ * @param id     The identifier.
+ * @param status Set to the gRPC error when the host cannot be resolved.
+ *
+ * @return The cached host, or nullptr (status then tells why).
+ */
+std::shared_ptr<neb::pb_host> resolve_host(const HostIdentifier& id,
+                                           grpc::Status* status) {
+  auto& cache = config::applier::state::instance().cache();
+  std::shared_ptr<neb::pb_host> h;
+  switch (id.host_case()) {
+    case HostIdentifier::kHostName:
+      h = cache.host(id.host_name());
+      break;
+    case HostIdentifier::kHostId:
+      h = cache.host(id.host_id());
+      break;
+    default:
+      *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             "host_name or host_id must be set");
+      return nullptr;
+  }
+  if (!h)
+    *status = grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find host");
+  return h;
+}
+
+/**
+ * @brief Resolve a poller id from a PollerIdentifier (id or name) in the
+ * Broker cache. Shared by every RPC that designates a poller this way.
+ *
+ * @param id     The identifier.
+ * @param status Set to the gRPC error when the poller cannot be resolved.
+ *
+ * @return The poller id, or 0 (status then tells why).
+ */
+uint64_t resolve_poller(const PollerIdentifier& id, grpc::Status* status) {
+  switch (id.poller_case()) {
+    case PollerIdentifier::kPollerId:
+      return id.poller_id();
+    case PollerIdentifier::kPollerName: {
+      auto pid = config::applier::state::instance().cache().instance_id(
+          id.poller_name());
+      if (!pid) {
+        *status =
+            grpc::Status(grpc::StatusCode::NOT_FOUND,
+                         fmt::format("unknown poller '{}'", id.poller_name()));
+        return 0;
+      }
+      return *pid;
+    }
+    default:
+      *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             "poller_id or poller_name must be set");
+      return 0;
+  }
+}
+
+/**
+ * @brief Build a pb_external_command addressed to a poller.
+ *
+ * @param poller_id  The destination poller.
+ * @param line       The full legacy line, "[timestamp] NAME;args".
+ * @param host_id    The host the command targets, 0 if none.
+ * @param service_id The service the command targets, 0 if none.
+ *
+ * @return The event, ready for broker_state::push_pending_for_poller().
+ */
+std::shared_ptr<bbdo::pb_external_command> make_external_command(
+    uint64_t poller_id,
+    const std::string& line,
+    uint64_t host_id = 0,
+    uint64_t service_id = 0) {
+  auto evt = std::make_shared<bbdo::pb_external_command>();
+  evt->source_id = 0;
+  evt->destination_id = static_cast<uint32_t>(poller_id);
+  auto& obj = evt->mut_obj();
+  obj.set_command(line);
+  obj.set_host_id(host_id);
+  obj.set_service_id(service_id);
+  return evt;
+}
+
+/**
+ * @brief Resolve a service from a ServiceIdentifier (host by name or id,
+ * service by description or id) in the Broker cache.
+ *
+ * @param id     The identifier.
+ * @param status Set to the gRPC error when the service cannot be resolved.
+ *
+ * @return The cached service, or nullptr (status then tells why).
+ */
+std::shared_ptr<neb::pb_service> resolve_service(const ServiceIdentifier& id,
+                                                 grpc::Status* status) {
+  auto& cache = config::applier::state::instance().cache();
+  std::shared_ptr<neb::pb_host> h;
+  switch (id.host_case()) {
+    case ServiceIdentifier::kHostName:
+      h = cache.host(id.host_name());
+      break;
+    case ServiceIdentifier::kHostId:
+      h = cache.host(id.host_id());
+      break;
+    default:
+      *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             "host_name or host_id must be set");
+      return nullptr;
+  }
+  if (!h) {
+    *status = grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find host");
+    return nullptr;
+  }
+  std::shared_ptr<neb::pb_service> s;
+  switch (id.service_case()) {
+    case ServiceIdentifier::kDescription:
+      s = cache.service(h->obj().name(), id.description());
+      break;
+    case ServiceIdentifier::kServiceId:
+      s = cache.service(h->obj().host_id(), id.service_id());
+      break;
+    default:
+      *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                             "description or service_id must be set");
+      return nullptr;
+  }
+  if (!s)
+    *status =
+        grpc::Status(grpc::StatusCode::NOT_FOUND, "could not find service");
+  return s;
+}
+
 }  // namespace
 
-broker_impl::broker_impl() {}
+broker_impl::broker_impl() : _logger{log_v2::instance().get(log_v2::CORE)} {}
 
 /**
  * @brief Return the Broker's version.
@@ -476,7 +639,7 @@ grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
                                        [[maybe_unused]],
                                        const GenericNameOrIndex* request,
                                        ::google::protobuf::Empty*) {
-  log_v2::instance().get(log_v2::CORE)->info("Remove poller...");
+  _logger->info("Remove poller...");
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
   pblshr.write(e);
@@ -549,7 +712,7 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
   if (!logger) {
     std::string err_detail =
         fmt::format("The '{}' logger does not exist", logger_name);
-    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
+    SPDLOG_LOGGER_ERROR(_logger, err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
     SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
@@ -595,8 +758,7 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
     com::centreon::common::process_stat stat(getpid());
     stat.to_protobuff(*response);
   } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
-                        "fail to get process info: {}",
+    SPDLOG_LOGGER_ERROR(_logger, "fail to get process info: {}",
                         boost::diagnostic_information(e));
 
     return grpc::Status(grpc::StatusCode::INTERNAL,
@@ -851,56 +1013,11 @@ grpc::Status broker_impl::GetService(grpc::ServerContext* context
   if (!cache.section_enabled(cache::broker_cache::CACHE_SERVICES))
     return grpc::Status(grpc::StatusCode::UNAVAILABLE,
                         "Service cache is not enabled in this broker instance");
-  uint64_t host_id = std::numeric_limits<uint64_t>::max();
-  uint64_t service_id = std::numeric_limits<uint64_t>::max();
-  std::string hostname, description;
-  bool by_id = true;
-  switch (request->host_case()) {
-    case ServiceIdentifier::kHostName: {
-      hostname = request->host_name();
-      by_id = false;
-    } break;
-    case ServiceIdentifier::kHostId: {
-      host_id = request->host_id();
-    } break;
-    case ServiceIdentifier::HOST_NOT_SET:
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "Host must be specified by its ID or by its name");
-  }
-  switch (request->service_case()) {
-    case ServiceIdentifier::kDescription: {
-      description = request->description();
-      by_id = false;
-    } break;
-    case ServiceIdentifier::kServiceId: {
-      service_id = request->service_id();
-    } break;
-    case ServiceIdentifier::SERVICE_NOT_SET:
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "Service must be specified by its ID or by its name");
-  }
-
-  std::shared_ptr<neb::pb_service> service;
-  if (by_id) {
-    if (host_id == std::numeric_limits<uint64_t>::max() ||
-        service_id == std::numeric_limits<uint64_t>::max()) {
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "Both host_id and service_id must be set");
-    }
-    service = cache.service(host_id, service_id);
-  } else {
-    if (hostname.empty() || description.empty()) {
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                          "Both hostname and description must be set");
-    }
-    service = cache.service(hostname, description);
-  }
+  grpc::Status status;
+  auto service = resolve_service(*request, &status);
   if (!service)
-    return grpc::Status(
-        grpc::StatusCode::NOT_FOUND,
-        fmt::format("Service with id '{}:{}' not found", host_id, service_id));
-  else
-    response->CopyFrom(service->obj());
+    return status;
+  response->CopyFrom(service->obj());
   return grpc::Status::OK;
 }
 
@@ -1363,10 +1480,8 @@ grpc::Status broker_impl::ScheduleDowntime(
     grpc::ServerContext* context [[maybe_unused]],
     const ScheduleDowntimeRequest* request,
     ScheduleDowntimeResponse* response) {
-  if (!downtime_manager::is_loaded())
-    return grpc::Status(
-        grpc::StatusCode::UNAVAILABLE,
-        "Downtime management is not enabled (notification_mode != broker)");
+  if (auto err = unavailable_unless(downtime_manager::is_loaded(), "Downtime"))
+    return *err;
 
   // Resolve host identifier
   auto& cache = config::applier::state::instance().cache();
@@ -1413,11 +1528,14 @@ grpc::Status broker_impl::ScheduleDowntime(
                                ? downtime::host_downtime
                                : downtime::service_downtime;
 
+  const time_t entry_time = request->entry_time()
+                                ? static_cast<time_t>(request->entry_time())
+                                : time(nullptr);
   uint64_t new_id = 0;
   bool ok = downtime_manager::instance().schedule_downtime(
-      dt_type, resolved_host_id, resolved_service_id,
-      static_cast<time_t>(request->entry_time()), request->author(),
-      request->comment_data(), static_cast<time_t>(request->start_time()),
+      dt_type, resolved_host_id, resolved_service_id, entry_time,
+      request->author(), request->comment_data(),
+      static_cast<time_t>(request->start_time()),
       static_cast<time_t>(request->end_time()), request->fixed(),
       request->triggered_by(), request->duration(), &new_id);
 
@@ -1430,9 +1548,9 @@ grpc::Status broker_impl::ScheduleDowntime(
     for (uint64_t svc_id : cache.service_ids_for_host(resolved_host_id)) {
       uint64_t svc_downtime_id;
       downtime_manager::instance().schedule_downtime(
-          downtime::service_downtime, resolved_host_id, svc_id,
-          static_cast<time_t>(request->entry_time()), request->author(),
-          request->comment_data(), static_cast<time_t>(request->start_time()),
+          downtime::service_downtime, resolved_host_id, svc_id, entry_time,
+          request->author(), request->comment_data(),
+          static_cast<time_t>(request->start_time()),
           static_cast<time_t>(request->end_time()), request->fixed(), new_id,
           request->duration(), &svc_downtime_id);
     }
@@ -1460,23 +1578,1169 @@ grpc::Status broker_impl::ScheduleDowntime(
  */
 grpc::Status broker_impl::DeleteDowntime(grpc::ServerContext* context
                                          [[maybe_unused]],
-                                         const GenericNameOrIndex* request,
+                                         const DowntimeIdentifier* request,
                                          ::google::protobuf::Empty* response
                                          [[maybe_unused]]) {
-  if (!downtime_manager::is_loaded())
-    return grpc::Status(
-        grpc::StatusCode::UNAVAILABLE,
-        "Downtime management is not enabled (notification_mode != broker)");
+  if (auto err = unavailable_unless(downtime_manager::is_loaded(), "Downtime"))
+    return *err;
 
-  if (request->nameOrIndex_case() != GenericNameOrIndex::kIdx)
+  if (request->downtime_id() == 0)
     return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        "downtime ID must be provided as idx");
+                        "downtime_id must be set");
 
-  bool ok = downtime_manager::instance().unschedule_downtime(request->idx());
+  bool ok =
+      downtime_manager::instance().unschedule_downtime(request->downtime_id());
   if (!ok)
-    return grpc::Status(grpc::StatusCode::NOT_FOUND,
-                        fmt::format("downtime {} not found", request->idx()));
+    return grpc::Status(
+        grpc::StatusCode::NOT_FOUND,
+        fmt::format("downtime {} not found", request->downtime_id()));
 
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Add a user comment on a host (notification_mode = broker): publish a
+ * USER / EXTERNAL comment and return its internal_id.
+ */
+grpc::Status broker_impl::AddHostComment(grpc::ServerContext* context
+                                         [[maybe_unused]],
+                                         const HostCommentRequest* request,
+                                         AddCommentResponse* response) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
+  grpc::Status status;
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+  const time_t entry_time =
+      request->entry_time() ? request->entry_time() : time(nullptr);
+  response->set_internal_id(broker_comments::publish_comment(
+      h->obj().host_id(), 0, h->obj().instance_id(), Comment_EntryType_USER,
+      Comment_Src_EXTERNAL, request->user(), request->comment_data(),
+      request->persistent(), entry_time));
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Add a user comment on a service (notification_mode = broker): publish
+ * a USER / EXTERNAL comment and return its internal_id.
+ */
+grpc::Status broker_impl::AddServiceComment(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceCommentRequest* request,
+    AddCommentResponse* response) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
+  grpc::Status status;
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  auto h = config::applier::state::instance().cache().host(s->obj().host_id());
+  const time_t entry_time =
+      request->entry_time() ? request->entry_time() : time(nullptr);
+  response->set_internal_id(broker_comments::publish_comment(
+      s->obj().host_id(), s->obj().service_id(), h ? h->obj().instance_id() : 0,
+      Comment_EntryType_USER, Comment_Src_EXTERNAL, request->user(),
+      request->comment_data(), request->persistent(), entry_time));
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Delete a comment by internal_id (notification_mode = broker). Only
+ * ids minted by Broker are accepted: they identify their row platform-wide,
+ * whereas an id minted by a poller would need the poller to be unambiguous.
+ */
+grpc::Status broker_impl::DeleteComment(grpc::ServerContext* context
+                                        [[maybe_unused]],
+                                        const CommentIdentifier* request,
+                                        ::google::protobuf::Empty* response
+                                        [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
+  if (request->internal_id() == 0)
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "internal_id must be set");
+  if (!broker_comments::is_broker_comment_id(request->internal_id()))
+    return grpc::Status(
+        grpc::StatusCode::FAILED_PRECONDITION,
+        fmt::format("comment {} was not created by Broker: delete it "
+                    "through its poller",
+                    request->internal_id()));
+  broker_comments::publish_comment_deletion(request->internal_id(), 0);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Delete every comment of a host (notification_mode = broker).
+ */
+grpc::Status broker_impl::DeleteAllHostComments(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostIdentifier* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
+  grpc::Status status;
+  auto h = resolve_host(*request, &status);
+  if (!h)
+    return status;
+  broker_comments::publish_comments_deletion(h->obj().host_id(), 0,
+                                             h->obj().instance_id());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Delete every comment of a service (notification_mode = broker).
+ */
+grpc::Status broker_impl::DeleteAllServiceComments(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceIdentifier* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Comment"))
+    return *err;
+  grpc::Status status;
+  auto s = resolve_service(*request, &status);
+  if (!s)
+    return status;
+  auto h = config::applier::state::instance().cache().host(s->obj().host_id());
+  broker_comments::publish_comments_deletion(s->obj().host_id(),
+                                             s->obj().service_id(),
+                                             h ? h->obj().instance_id() : 0);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Acknowledge a host problem (notification_mode = broker). Same
+ * contract as the Engine RPC of the same name.
+ */
+grpc::Status broker_impl::AcknowledgeHostProblem(
+    grpc::ServerContext* context [[maybe_unused]],
+    const AcknowledgementRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(broker_acknowledgement_manager::is_loaded(),
+                                    "Acknowledgement"))
+    return *err;
+  auto& cache = config::applier::state::instance().cache();
+  auto h = cache.host(request->host_name());
+  if (!h)
+    return grpc::Status(
+        grpc::StatusCode::NOT_FOUND,
+        fmt::format("could not find host '{}'", request->host_name()));
+
+  std::string err = broker_acknowledgement_manager::instance().acknowledge(
+      h->obj().host_id(), 0, request->ack_author(), request->ack_data(),
+      request->type() == AcknowledgementRequest_Type_STICKY, request->notify(),
+      request->persistent());
+  if (!err.empty())
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, err);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Acknowledge a service problem (notification_mode = broker). Same
+ * contract as the Engine RPC of the same name.
+ */
+grpc::Status broker_impl::AcknowledgeServiceProblem(
+    grpc::ServerContext* context [[maybe_unused]],
+    const AcknowledgementRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(broker_acknowledgement_manager::is_loaded(),
+                                    "Acknowledgement"))
+    return *err;
+  auto& cache = config::applier::state::instance().cache();
+  auto s = cache.service(request->host_name(), request->service_desc());
+  if (!s)
+    return grpc::Status(
+        grpc::StatusCode::NOT_FOUND,
+        fmt::format("could not find service '{}' on host '{}'",
+                    request->service_desc(), request->host_name()));
+
+  std::string err = broker_acknowledgement_manager::instance().acknowledge(
+      s->obj().host_id(), s->obj().service_id(), request->ack_author(),
+      request->ack_data(),
+      request->type() == AcknowledgementRequest_Type_STICKY, request->notify(),
+      request->persistent());
+  if (!err.empty())
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, err);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Remove a host acknowledgement (notification_mode = broker).
+ */
+grpc::Status broker_impl::RemoveHostAcknowledgement(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostIdentifier* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(broker_acknowledgement_manager::is_loaded(),
+                                    "Acknowledgement"))
+    return *err;
+  grpc::Status status;
+  auto h = resolve_host(*request, &status);
+  if (!h)
+    return status;
+
+  std::string err =
+      broker_acknowledgement_manager::instance().remove(h->obj().host_id(), 0);
+  if (!err.empty())
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, err);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Remove a service acknowledgement (notification_mode = broker).
+ */
+grpc::Status broker_impl::RemoveServiceAcknowledgement(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceIdentifier* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(broker_acknowledgement_manager::is_loaded(),
+                                    "Acknowledgement"))
+    return *err;
+  grpc::Status status;
+  auto s = resolve_service(*request, &status);
+  if (!s)
+    return status;
+
+  std::string err = broker_acknowledgement_manager::instance().remove(
+      s->obj().host_id(), s->obj().service_id());
+  if (!err.empty())
+    return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, err);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Enable or disable the notifications of a host and, per scope, of its
+ * services and/or child hosts (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetHostNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  grpc::Status status;
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+
+  using cache::notification_toggles::scope;
+  scope sc;
+  switch (request->scope()) {
+    case HostNotificationsRequest::HOST:
+      sc = scope::host;
+      break;
+    case HostNotificationsRequest::HOST_AND_SERVICES:
+      sc = scope::host_and_services;
+      break;
+    case HostNotificationsRequest::HOST_AND_CHILDREN:
+      sc = scope::host_and_children;
+      break;
+    case HostNotificationsRequest::BEYOND_HOST:
+      sc = scope::beyond_host;
+      break;
+    default:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "unknown scope");
+  }
+  uint32_t count = cache::notification_toggles::set_host_notifications(
+      config::applier::state::instance().cache(), h->obj().host_id(),
+      request->enabled(), sc);
+  _logger->info("notifications {} on host {} (scope {}): {} resource(s)",
+                request->enabled() ? "enabled" : "disabled", h->obj().host_id(),
+                HostNotificationsRequest::Scope_Name(request->scope()), count);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Enable or disable the notifications of a service
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetServiceNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  grpc::Status status;
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  cache::notification_toggles::set_service_notifications(
+      config::applier::state::instance().cache(), s->obj().host_id(),
+      s->obj().service_id(), request->enabled());
+  _logger->info("notifications {} on service ({}, {})",
+                request->enabled() ? "enabled" : "disabled", s->obj().host_id(),
+                s->obj().service_id());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief The notification dispatcher of the Broker, nullptr when Broker does
+ * not own the notification decision (notification_mode != broker).
+ */
+static broker_notification_dispatcher* _notification_dispatcher() {
+  return static_cast<config::applier::broker_state&>(
+             config::applier::state::instance())
+      .notification_dispatcher();
+}
+
+/**
+ * @brief Combine the custom notification flags into the library options.
+ */
+static com::centreon::common::notifications::notification_option
+_custom_options(bool broadcast, bool forced, bool increment) {
+  namespace notif = com::centreon::common::notifications;
+  uint32_t o = notif::notification_option_none;
+  if (broadcast)
+    o |= notif::notification_option_broadcast;
+  if (forced)
+    o |= notif::notification_option_forced;
+  if (increment)
+    o |= notif::notification_option_increment;
+  return static_cast<notif::notification_option>(o);
+}
+
+/**
+ * @brief Set the notification number of a host (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetHostNotificationNumber(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostNotificationNumberRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  auto* d = _notification_dispatcher();
+  if (auto err = unavailable_unless(d != nullptr, "Notification"))
+    return *err;
+  grpc::Status status;
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+  d->post_set_notification_number(h->obj().host_id(), 0, request->number());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Set the notification number of a service (notification_mode =
+ * broker).
+ */
+grpc::Status broker_impl::SetServiceNotificationNumber(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceNotificationNumberRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  auto* d = _notification_dispatcher();
+  if (auto err = unavailable_unless(d != nullptr, "Notification"))
+    return *err;
+  grpc::Status status;
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  d->post_set_notification_number(s->obj().host_id(), s->obj().service_id(),
+                                  request->number());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Send a custom notification on a host (notification_mode = broker).
+ */
+grpc::Status broker_impl::SendCustomHostNotification(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostCustomNotificationRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  auto* d = _notification_dispatcher();
+  if (auto err = unavailable_unless(d != nullptr, "Notification"))
+    return *err;
+  grpc::Status status;
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+  d->post_notify(h->obj().host_id(), 0,
+                 com::centreon::common::notifications::reason_custom,
+                 request->author(), request->comment(),
+                 _custom_options(request->broadcast(), request->forced(),
+                                 request->increment()));
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Send a custom notification on a service (notification_mode =
+ * broker).
+ */
+grpc::Status broker_impl::SendCustomServiceNotification(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceCustomNotificationRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  auto* d = _notification_dispatcher();
+  if (auto err = unavailable_unless(d != nullptr, "Notification"))
+    return *err;
+  grpc::Status status;
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  d->post_notify(s->obj().host_id(), s->obj().service_id(),
+                 com::centreon::common::notifications::reason_custom,
+                 request->author(), request->comment(),
+                 _custom_options(request->broadcast(), request->forced(),
+                                 request->increment()));
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Check that a notification timeperiod named in a request is known to
+ * the Broker cache.
+ *
+ * @param cache  The Broker cache.
+ * @param name   The timeperiod name.
+ * @param status Set when false is returned.
+ *
+ * @return True when the timeperiod exists.
+ */
+static bool _check_timeperiod(const cache::broker_cache& bc,
+                              const std::string& name,
+                              grpc::Status* status) {
+  if (name.empty()) {
+    *status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                           "timeperiod must be set");
+    return false;
+  }
+  if (!bc.has_timeperiod(name)) {
+    *status = grpc::Status(grpc::StatusCode::NOT_FOUND,
+                           fmt::format("unknown timeperiod '{}'", name));
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @brief Change the notification timeperiod of a host
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetHostNotificationPeriod(
+    grpc::ServerContext* context [[maybe_unused]],
+    const HostNotificationPeriodRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  grpc::Status status;
+  auto& bc = config::applier::state::instance().cache();
+  auto h = resolve_host(request->host(), &status);
+  if (!h)
+    return status;
+  if (!_check_timeperiod(bc, request->timeperiod(), &status))
+    return status;
+  bc.set_notification_period(h->obj().host_id(), 0, request->timeperiod());
+  _logger->info("notification period of host {} set to '{}'",
+                h->obj().host_id(), request->timeperiod());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Change the notification timeperiod of a service
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetServiceNotificationPeriod(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ServiceNotificationPeriodRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  grpc::Status status;
+  auto& bc = config::applier::state::instance().cache();
+  auto s = resolve_service(request->service(), &status);
+  if (!s)
+    return status;
+  if (!_check_timeperiod(bc, request->timeperiod(), &status))
+    return status;
+  bc.set_notification_period(s->obj().host_id(), s->obj().service_id(),
+                             request->timeperiod());
+  _logger->info("notification period of service ({}, {}) set to '{}'",
+                s->obj().host_id(), s->obj().service_id(),
+                request->timeperiod());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Shared body of SetContact{Host,Service}Notifications.
+ */
+grpc::Status broker_impl::_set_contact_notifications(
+    const ContactNotificationsRequest& request,
+    cache::notification_toggles::notifier n) const {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  auto& bc = config::applier::state::instance().cache();
+  const std::string& name = request.contact().name();
+  if (name.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "contact name must be set");
+  if (!cache::notification_toggles::set_contact_notifications(
+          bc, name, n, request.enabled()))
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown contact '{}'", name));
+  _logger->info(
+      "{} notifications {} on contact '{}'",
+      n == cache::notification_toggles::notifier::host ? "host" : "service",
+      request.enabled() ? "enabled" : "disabled", name);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Enable or disable the host notifications of a contact
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactHostNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contact_notifications(
+      *request, cache::notification_toggles::notifier::host);
+}
+
+/**
+ * @brief Enable or disable the service notifications of a contact
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactServiceNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contact_notifications(
+      *request, cache::notification_toggles::notifier::service);
+}
+
+/**
+ * @brief Shared body of SetContactgroup{Host,Service}Notifications.
+ */
+grpc::Status broker_impl::_set_contactgroup_notifications(
+    const ContactgroupNotificationsRequest& request,
+    cache::notification_toggles::notifier n) const {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  auto& bc = config::applier::state::instance().cache();
+  const std::string& name = request.contactgroup().name();
+  if (name.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "contactgroup name must be set");
+  auto count = cache::notification_toggles::set_contactgroup_notifications(
+      bc, name, n, request.enabled());
+  if (!count)
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown contactgroup '{}'", name));
+  _logger->info(
+      "{} notifications {} on contactgroup '{}': {} contact(s)",
+      n == cache::notification_toggles::notifier::host ? "host" : "service",
+      request.enabled() ? "enabled" : "disabled", name, *count);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Enable or disable the host notifications of the contacts of a
+ * contactgroup (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactgroupHostNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactgroupNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contactgroup_notifications(
+      *request, cache::notification_toggles::notifier::host);
+}
+
+/**
+ * @brief Enable or disable the service notifications of the contacts of a
+ * contactgroup (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactgroupServiceNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactgroupNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contactgroup_notifications(
+      *request, cache::notification_toggles::notifier::service);
+}
+
+/**
+ * @brief Shared body of SetContact{Host,Service}NotificationPeriod.
+ */
+grpc::Status broker_impl::_set_contact_notification_period(
+    const ContactNotificationPeriodRequest& request,
+    cache::notification_toggles::notifier n) const {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  grpc::Status status;
+  auto& bc = config::applier::state::instance().cache();
+  const std::string& name = request.contact().name();
+  if (name.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "contact name must be set");
+  if (!_check_timeperiod(bc, request.timeperiod(), &status))
+    return status;
+  if (!cache::notification_toggles::set_contact_notification_period(
+          bc, name, n, request.timeperiod()))
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown contact '{}'", name));
+  _logger->info(
+      "{} notification period of contact '{}' set to '{}'",
+      n == cache::notification_toggles::notifier::host ? "host" : "service",
+      name, request.timeperiod());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Change the host notification timeperiod of a contact
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactHostNotificationPeriod(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactNotificationPeriodRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contact_notification_period(
+      *request, cache::notification_toggles::notifier::host);
+}
+
+/**
+ * @brief Change the service notification timeperiod of a contact
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetContactServiceNotificationPeriod(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ContactNotificationPeriodRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  return _set_contact_notification_period(
+      *request, cache::notification_toggles::notifier::service);
+}
+
+/**
+ * @brief Enable or disable the notifications of a whole poller
+ * (notification_mode = broker).
+ */
+grpc::Status broker_impl::SetPollerNotifications(
+    grpc::ServerContext* context [[maybe_unused]],
+    const PollerNotificationsRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  if (auto err = unavailable_unless(com::centreon::common::notifications::
+                                        notification_manager::is_loaded(),
+                                    "Notification"))
+    return *err;
+  auto& bc = config::applier::state::instance().cache();
+  grpc::Status status;
+  uint64_t poller_id = resolve_poller(request->poller(), &status);
+  if (!status.ok())
+    return status;
+  if (!cache::notification_toggles::set_poller_notifications(
+          bc, poller_id, request->enabled()))
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown poller {}", poller_id));
+  _logger->info("notifications {} on poller {}",
+                request->enabled() ? "enabled" : "disabled", poller_id);
+
+  /* Broker owns the decision, but the poller still exports its own
+   * enable_notifications flag (instances.notifications): make it follow the
+   * switch by handing it the legacy command, so the DB and the poller agree
+   * with Broker. Best effort: a disconnected poller gets the switch through
+   * its configuration at reconnection anyway. */
+  auto& state = static_cast<config::applier::broker_state&>(
+      config::applier::state::instance());
+  if (state.is_poller_connected(poller_id))
+    state.push_pending_for_poller(
+        poller_id, make_external_command(
+                       poller_id, fmt::format("[{}] {}", time(nullptr),
+                                              request->enabled()
+                                                  ? "ENABLE_NOTIFICATIONS"
+                                                  : "DISABLE_NOTIFICATIONS")));
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Route a legacy Engine external command to the poller(s) it applies
+ * to. Broker parses just enough of the line to find the command name and, for
+ * a host or service command, the host and service; the whole line, prefixed
+ * with the entry timestamp, is then handed to the poller through the downward
+ * BBDO channel (pb_external_command) and executed there by the same parser as
+ * the command pipe. A host or service command carries the ids Broker
+ * resolved, so the poller rewrites the names from them before parsing.
+ *
+ * Routing by target (common/external_commands):
+ *  - host, service: the poller supervising the host;
+ *  - contact, contactgroup: every connected poller (each has its copy);
+ *  - global, process: the poller named in the request (required);
+ *  - hostgroup, servicegroup (PHP no longer emits them), downtime and comment
+ *    designated by id: UNIMPLEMENTED.
+ * In notification_mode=broker the commands Broker owns (acknowledgements,
+ * downtimes, comments, notification switches) are refused with
+ * FAILED_PRECONDITION and the name of the gRPC method to use instead: routed
+ * to the poller they would be silently ignored by Broker.
+ *
+ * @param request The legacy command line, with or without "[timestamp] ", and
+ * the poller for a global or process command.
+ * @param response Unused.
+ *
+ * @return OK once the command is queued for the poller(s), the error otherwise.
+ */
+grpc::Status broker_impl::ExecuteExternalCommand(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ExternalCommandRequest* request,
+    ::google::protobuf::Empty* response [[maybe_unused]]) {
+  namespace ec = com::centreon::common::external_commands;
+  std::string_view line = absl::StripAsciiWhitespace(request->command());
+
+  /* Optional "[timestamp] " prefix, as on the command pipe. */
+  time_t entry_time = time(nullptr);
+  if (absl::ConsumePrefix(&line, "[")) {
+    size_t close = line.find(']');
+    uint64_t ts = 0;
+    if (close == std::string_view::npos ||
+        !absl::SimpleAtoi(absl::StripAsciiWhitespace(line.substr(0, close)),
+                          &ts))
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "malformed timestamp prefix, expected '[epoch] '");
+    entry_time = static_cast<time_t>(ts);
+    line.remove_prefix(close + 1);
+    line = absl::StripLeadingAsciiWhitespace(line);
+  }
+
+  std::vector<std::string_view> fields = absl::StrSplit(line, ';');
+  std::string_view name = fields[0];
+  if (name.empty())
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "empty external command");
+  auto info = ec::lookup(name);
+  if (!info)
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        fmt::format("unknown external command '{}'", name));
+
+  auto& state = static_cast<config::applier::broker_state&>(
+      config::applier::state::instance());
+  if (state.notifications_on_broker() && !info->broker_rpc.empty()) {
+    /* Broker owns this command: execute it here through the typed RPC it
+     * maps to, instead of handing it to a poller that no longer decides. */
+    size_t sep = line.find(';');
+    std::string_view args = sep == std::string_view::npos
+                                ? std::string_view()
+                                : line.substr(sep + 1);
+    grpc::Status st =
+        _execute_native_command(name, args, info->broker_rpc, *request);
+    if (st.ok())
+      _logger->info("external command {} executed by Broker as {}", name,
+                    info->broker_rpc);
+    return st;
+  }
+
+  const std::string full_line = fmt::format("[{}] {}", entry_time, line);
+  switch (info->kind) {
+    case ec::target::host:
+    case ec::target::service: {
+      if (fields.size() < 2 || fields[1].empty())
+        return grpc::Status(
+            grpc::StatusCode::INVALID_ARGUMENT,
+            fmt::format("{} expects a host name as first argument", name));
+      std::string host_name(fields[1]);
+      auto h = state.cache().host(host_name);
+      if (!h)
+        return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                            fmt::format("unknown host '{}'", host_name));
+      uint64_t poller_id = h->obj().instance_id();
+      uint64_t host_id = h->obj().host_id();
+      uint64_t service_id = 0;
+      if (info->kind == ec::target::service) {
+        if (fields.size() < 3 || fields[2].empty())
+          return grpc::Status(
+              grpc::StatusCode::INVALID_ARGUMENT,
+              fmt::format("{} expects a service description as second argument",
+                          name));
+        std::string description(fields[2]);
+        auto s = state.cache().service(host_name, description);
+        if (!s)
+          return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                              fmt::format("unknown service ('{}', '{}')",
+                                          host_name, description));
+        service_id = s->obj().service_id();
+      }
+      if (!state.is_poller_connected(poller_id))
+        return grpc::Status(
+            grpc::StatusCode::UNAVAILABLE,
+            fmt::format("poller {} supervising '{}' is not connected",
+                        poller_id, host_name));
+      state.push_pending_for_poller(
+          poller_id,
+          make_external_command(poller_id, full_line, host_id, service_id));
+      _logger->info("external command {} routed to poller {}", name, poller_id);
+      return grpc::Status::OK;
+    }
+    case ec::target::contact:
+    case ec::target::contactgroup: {
+      if (fields.size() < 2 || fields[1].empty())
+        return grpc::Status(
+            grpc::StatusCode::INVALID_ARGUMENT,
+            fmt::format("{} expects a {} name as first argument", name,
+                        ec::to_string(info->kind)));
+      /* Every poller holds its own copy of the contacts: broadcast. */
+      auto pollers = state.connected_pollers();
+      if (pollers.empty())
+        return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                            "no poller connected");
+      for (const auto& p : pollers)
+        state.push_pending_for_poller(
+            p.poller_id, make_external_command(p.poller_id, full_line));
+      _logger->info("external command {} broadcast to {} poller(s)", name,
+                    pollers.size());
+      return grpc::Status::OK;
+    }
+    case ec::target::global:
+    case ec::target::process: {
+      if (!request->has_poller())
+        return grpc::Status(
+            grpc::StatusCode::INVALID_ARGUMENT,
+            fmt::format("{} is a {} command: the request must name the poller",
+                        name, ec::to_string(info->kind)));
+      grpc::Status status;
+      uint64_t poller_id = resolve_poller(request->poller(), &status);
+      if (!status.ok())
+        return status;
+      if (!state.is_poller_connected(poller_id))
+        return grpc::Status(
+            grpc::StatusCode::UNAVAILABLE,
+            fmt::format("poller {} is not connected", poller_id));
+      state.push_pending_for_poller(
+          poller_id, make_external_command(poller_id, full_line));
+      _logger->info("external command {} routed to poller {}", name, poller_id);
+      return grpc::Status::OK;
+    }
+    case ec::target::hostgroup:
+    case ec::target::servicegroup:
+    case ec::target::downtime:
+    case ec::target::comment:
+      break;
+  }
+  return grpc::Status(grpc::StatusCode::UNIMPLEMENTED,
+                      fmt::format("{} targets a {}: not routed by Broker", name,
+                                  ec::to_string(info->kind)));
+}
+
+/**
+ * @brief Execute, on Broker itself, a legacy external command that Broker owns
+ * in notification_mode=broker (acknowledgements, downtimes, comments,
+ * notification switches). The positional arguments are converted into the
+ * typed request (legacy_commands) and the typed RPC method is invoked as a
+ * plain method: no business logic lives here.
+ *
+ * Divergences with the typed API, handled here:
+ *  - ENABLE/DISABLE_HOST_SVC_NOTIFICATIONS only touches the services on
+ *    Engine, whereas the HOST_AND_SERVICES scope also touches the host: the
+ *    services are toggled one by one;
+ *  - SCHEDULE_HOST_SVC_DOWNTIME and
+ * SCHEDULE_AND_PROPAGATE(_TRIGGERED)_HOST_DOWNTIME are one legacy line for
+ * several downtimes: cascaded through ScheduleDowntime, on the host's services
+ * or on its descendants. Commands without a typed counterpart (downtime
+ * deletion by criteria, group commands) are refused with UNIMPLEMENTED.
+ *
+ * @param name       The command name.
+ * @param args       What follows "NAME;" on the line.
+ * @param broker_rpc The typed RPC the table maps the command to (for logs).
+ * @param request    The gRPC request (for the poller of a global command).
+ *
+ * @return The status of the typed RPC, or the conversion error.
+ */
+grpc::Status broker_impl::_execute_native_command(
+    std::string_view name,
+    std::string_view args,
+    std::string_view broker_rpc,
+    const ExternalCommandRequest& request) {
+  namespace lc = legacy_commands;
+  ::google::protobuf::Empty empty;
+  const bool enable = absl::StartsWith(name, "ENABLE_");
+
+  if (name == "ACKNOWLEDGE_HOST_PROBLEM" || name == "ACKNOWLEDGE_SVC_PROBLEM") {
+    bool svc = name == "ACKNOWLEDGE_SVC_PROBLEM";
+    AcknowledgementRequest req;
+    if (auto st = lc::acknowledgement(args, svc, &req); !st.ok())
+      return st;
+    return svc ? AcknowledgeServiceProblem(nullptr, &req, &empty)
+               : AcknowledgeHostProblem(nullptr, &req, &empty);
+  }
+  if (name == "REMOVE_HOST_ACKNOWLEDGEMENT") {
+    HostIdentifier id;
+    if (auto st = lc::host_identifier(args, &id); !st.ok())
+      return st;
+    return RemoveHostAcknowledgement(nullptr, &id, &empty);
+  }
+  if (name == "REMOVE_SVC_ACKNOWLEDGEMENT") {
+    ServiceIdentifier id;
+    if (auto st = lc::service_identifier(args, &id); !st.ok())
+      return st;
+    return RemoveServiceAcknowledgement(nullptr, &id, &empty);
+  }
+  if (name == "ADD_HOST_COMMENT") {
+    HostCommentRequest req;
+    AddCommentResponse resp;
+    if (auto st = lc::host_comment(args, &req); !st.ok())
+      return st;
+    return AddHostComment(nullptr, &req, &resp);
+  }
+  if (name == "ADD_SVC_COMMENT") {
+    ServiceCommentRequest req;
+    AddCommentResponse resp;
+    if (auto st = lc::service_comment(args, &req); !st.ok())
+      return st;
+    return AddServiceComment(nullptr, &req, &resp);
+  }
+  if (name == "DEL_HOST_COMMENT" || name == "DEL_SVC_COMMENT") {
+    CommentIdentifier id;
+    if (auto st = lc::comment_identifier(args, &id); !st.ok())
+      return st;
+    return DeleteComment(nullptr, &id, &empty);
+  }
+  if (name == "DEL_ALL_HOST_COMMENTS") {
+    HostIdentifier id;
+    if (auto st = lc::host_identifier(args, &id); !st.ok())
+      return st;
+    return DeleteAllHostComments(nullptr, &id, &empty);
+  }
+  if (name == "DEL_ALL_SVC_COMMENTS") {
+    ServiceIdentifier id;
+    if (auto st = lc::service_identifier(args, &id); !st.ok())
+      return st;
+    return DeleteAllServiceComments(nullptr, &id, &empty);
+  }
+  if (name == "SCHEDULE_HOST_DOWNTIME" || name == "SCHEDULE_SVC_DOWNTIME") {
+    bool svc = name == "SCHEDULE_SVC_DOWNTIME";
+    ScheduleDowntimeRequest req;
+    ScheduleDowntimeResponse resp;
+    if (auto st = lc::schedule_downtime(args, svc, &req); !st.ok())
+      return st;
+    return ScheduleDowntime(nullptr, &req, &resp);
+  }
+  if (name == "SCHEDULE_HOST_SVC_DOWNTIME" ||
+      name == "SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME" ||
+      name == "SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME") {
+    ScheduleDowntimeRequest req;
+    if (auto st = lc::schedule_downtime(args, false, &req); !st.ok())
+      return st;
+    bool services = name == "SCHEDULE_HOST_SVC_DOWNTIME";
+    return _schedule_downtime_cascade(
+        std::move(req), services, !services,
+        name == "SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME");
+  }
+  if (name == "DEL_HOST_DOWNTIME" || name == "DEL_SVC_DOWNTIME") {
+    DowntimeIdentifier id;
+    if (auto st = lc::downtime_identifier(args, &id); !st.ok())
+      return st;
+    return DeleteDowntime(nullptr, &id, &empty);
+  }
+  if (name == "ENABLE_HOST_NOTIFICATIONS" ||
+      name == "DISABLE_HOST_NOTIFICATIONS" ||
+      name == "ENABLE_HOST_AND_CHILD_NOTIFICATIONS" ||
+      name == "DISABLE_HOST_AND_CHILD_NOTIFICATIONS" ||
+      name == "ENABLE_ALL_NOTIFICATIONS_BEYOND_HOST" ||
+      name == "DISABLE_ALL_NOTIFICATIONS_BEYOND_HOST") {
+    HostNotificationsRequest req;
+    if (auto st = lc::host_identifier(args, req.mutable_host()); !st.ok())
+      return st;
+    req.set_enabled(enable);
+    if (absl::StrContains(name, "AND_CHILD"))
+      req.set_scope(HostNotificationsRequest::HOST_AND_CHILDREN);
+    else if (absl::StrContains(name, "BEYOND_HOST"))
+      req.set_scope(HostNotificationsRequest::BEYOND_HOST);
+    else
+      req.set_scope(HostNotificationsRequest::HOST);
+    return SetHostNotifications(nullptr, &req, &empty);
+  }
+  if (name == "ENABLE_HOST_SVC_NOTIFICATIONS" ||
+      name == "DISABLE_HOST_SVC_NOTIFICATIONS") {
+    /* Services only, unlike the HOST_AND_SERVICES scope. */
+    HostIdentifier id;
+    if (auto st = lc::host_identifier(args, &id); !st.ok())
+      return st;
+    auto& bc = config::applier::state::instance().cache();
+    auto h = bc.host(id.host_name());
+    if (!h)
+      return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                          fmt::format("unknown host '{}'", id.host_name()));
+    for (uint64_t service_id : bc.service_ids_for_host(h->obj().host_id())) {
+      ServiceNotificationsRequest req;
+      req.mutable_service()->set_host_id(h->obj().host_id());
+      req.mutable_service()->set_service_id(service_id);
+      req.set_enabled(enable);
+      if (auto st = SetServiceNotifications(nullptr, &req, &empty); !st.ok())
+        return st;
+    }
+    return grpc::Status::OK;
+  }
+  if (name == "ENABLE_SVC_NOTIFICATIONS" ||
+      name == "DISABLE_SVC_NOTIFICATIONS") {
+    ServiceNotificationsRequest req;
+    if (auto st = lc::service_identifier(args, req.mutable_service()); !st.ok())
+      return st;
+    req.set_enabled(enable);
+    return SetServiceNotifications(nullptr, &req, &empty);
+  }
+  if (name == "SET_HOST_NOTIFICATION_NUMBER") {
+    HostNotificationNumberRequest req;
+    if (auto st = lc::host_notification_number(args, &req); !st.ok())
+      return st;
+    return SetHostNotificationNumber(nullptr, &req, &empty);
+  }
+  if (name == "SET_SVC_NOTIFICATION_NUMBER") {
+    ServiceNotificationNumberRequest req;
+    if (auto st = lc::service_notification_number(args, &req); !st.ok())
+      return st;
+    return SetServiceNotificationNumber(nullptr, &req, &empty);
+  }
+  if (name == "SEND_CUSTOM_HOST_NOTIFICATION") {
+    HostCustomNotificationRequest req;
+    if (auto st = lc::host_custom_notification(args, &req); !st.ok())
+      return st;
+    return SendCustomHostNotification(nullptr, &req, &empty);
+  }
+  if (name == "SEND_CUSTOM_SVC_NOTIFICATION") {
+    ServiceCustomNotificationRequest req;
+    if (auto st = lc::service_custom_notification(args, &req); !st.ok())
+      return st;
+    return SendCustomServiceNotification(nullptr, &req, &empty);
+  }
+  if (name == "CHANGE_HOST_NOTIFICATION_TIMEPERIOD") {
+    HostNotificationPeriodRequest req;
+    if (auto st = lc::host_notification_period(args, &req); !st.ok())
+      return st;
+    return SetHostNotificationPeriod(nullptr, &req, &empty);
+  }
+  if (name == "CHANGE_SVC_NOTIFICATION_TIMEPERIOD") {
+    ServiceNotificationPeriodRequest req;
+    if (auto st = lc::service_notification_period(args, &req); !st.ok())
+      return st;
+    return SetServiceNotificationPeriod(nullptr, &req, &empty);
+  }
+  if (name == "CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD" ||
+      name == "CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD") {
+    ContactNotificationPeriodRequest req;
+    if (auto st = lc::contact_notification_period(args, &req); !st.ok())
+      return st;
+    return absl::StrContains(name, "_HOST_")
+               ? SetContactHostNotificationPeriod(nullptr, &req, &empty)
+               : SetContactServiceNotificationPeriod(nullptr, &req, &empty);
+  }
+  if (name == "ENABLE_CONTACT_HOST_NOTIFICATIONS" ||
+      name == "DISABLE_CONTACT_HOST_NOTIFICATIONS" ||
+      name == "ENABLE_CONTACT_SVC_NOTIFICATIONS" ||
+      name == "DISABLE_CONTACT_SVC_NOTIFICATIONS") {
+    ContactNotificationsRequest req;
+    if (auto st = lc::contact_identifier(args, req.mutable_contact()); !st.ok())
+      return st;
+    req.set_enabled(enable);
+    return absl::StrContains(name, "_HOST_")
+               ? SetContactHostNotifications(nullptr, &req, &empty)
+               : SetContactServiceNotifications(nullptr, &req, &empty);
+  }
+  if (name == "ENABLE_CONTACTGROUP_HOST_NOTIFICATIONS" ||
+      name == "DISABLE_CONTACTGROUP_HOST_NOTIFICATIONS" ||
+      name == "ENABLE_CONTACTGROUP_SVC_NOTIFICATIONS" ||
+      name == "DISABLE_CONTACTGROUP_SVC_NOTIFICATIONS") {
+    ContactgroupNotificationsRequest req;
+    if (auto st = lc::contactgroup_identifier(args, req.mutable_contactgroup());
+        !st.ok())
+      return st;
+    req.set_enabled(enable);
+    return absl::StrContains(name, "_HOST_")
+               ? SetContactgroupHostNotifications(nullptr, &req, &empty)
+               : SetContactgroupServiceNotifications(nullptr, &req, &empty);
+  }
+  if (name == "ENABLE_NOTIFICATIONS" || name == "DISABLE_NOTIFICATIONS") {
+    if (!request.has_poller())
+      return grpc::Status(
+          grpc::StatusCode::INVALID_ARGUMENT,
+          fmt::format(
+              "{} is a global command: the request must name the poller",
+              name));
+    PollerNotificationsRequest req;
+    *req.mutable_poller() = request.poller();
+    req.set_enabled(enable);
+    return SetPollerNotifications(nullptr, &req, &empty);
+  }
+  /* Downtime deletion by criteria, group downtimes and group switches. */
+  return grpc::Status(
+      grpc::StatusCode::UNIMPLEMENTED,
+      fmt::format(
+          "{} is owned by Broker in notification_mode=broker but has no "
+          "exact {} counterpart: not executed",
+          name, broker_rpc));
+}
+
+/**
+ * @brief Schedule the downtimes one legacy line stands for: the host's
+ * services (SCHEDULE_HOST_SVC_DOWNTIME) or the host and its descendants
+ * (SCHEDULE_AND_PROPAGATE[_TRIGGERED]_HOST_DOWNTIME, the descendants
+ * triggered by the top downtime in the TRIGGERED form), as Engine does.
+ *
+ * @param req       The host form of the request, names resolved by the cache.
+ * @param services  Schedule the host's services (and not the host).
+ * @param children  Schedule the host and its descendants.
+ * @param triggered Descendants are triggered by the top downtime.
+ *
+ * @return OK, or the first error met.
+ */
+grpc::Status broker_impl::_schedule_downtime_cascade(
+    ScheduleDowntimeRequest req,
+    bool services,
+    bool children,
+    bool triggered) {
+  auto& bc = config::applier::state::instance().cache();
+  auto h = bc.host(req.host_name());
+  if (!h)
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("unknown host '{}'", req.host_name()));
+  uint64_t host_id = h->obj().host_id();
+  ScheduleDowntimeResponse resp;
+
+  if (services) {
+    for (uint64_t service_id : bc.service_ids_for_host(host_id)) {
+      ScheduleDowntimeRequest r = req;
+      r.set_type(ScheduleDowntimeRequest::SERVICE);
+      r.set_host_id(host_id);
+      r.set_service_id(service_id);
+      if (auto st = ScheduleDowntime(nullptr, &r, &resp); !st.ok())
+        return st;
+    }
+    return grpc::Status::OK;
+  }
+
+  if (auto st = ScheduleDowntime(nullptr, &req, &resp); !st.ok())
+    return st;
+  if (!children)
+    return grpc::Status::OK;
+  uint64_t trigger = triggered ? resp.downtime_id() : req.triggered_by();
+  absl::flat_hash_set<uint64_t> seen{host_id};
+  std::vector<uint64_t> todo = bc.children_of(host_id);
+  while (!todo.empty()) {
+    uint64_t child = todo.back();
+    todo.pop_back();
+    if (!seen.insert(child).second)
+      continue;
+    ScheduleDowntimeRequest r = req;
+    r.set_host_id(child);
+    r.set_triggered_by(trigger);
+    if (auto st = ScheduleDowntime(nullptr, &r, &resp); !st.ok())
+      return st;
+    for (uint64_t g : bc.children_of(child))
+      todo.push_back(g);
+  }
   return grpc::Status::OK;
 }
 
@@ -1579,8 +2843,7 @@ grpc::Status broker_impl::CheckPollerConfig(
   std::filesystem::remove(test, ec);
   if (ec)
     SPDLOG_LOGGER_ERROR(
-        log_v2::instance().get(log_v2::CORE),
-        "CheckPollerConfig: cannot remove the derived file '{}': {}",
+        _logger, "CheckPollerConfig: cannot remove the derived file '{}': {}",
         test.string(), ec.message());
 
   // Logged warnings/errors first (chronological), then the fatal exception.

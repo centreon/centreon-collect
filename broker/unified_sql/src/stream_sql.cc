@@ -21,6 +21,7 @@
 #include <rapidjson/writer.h>
 #include <boost/preprocessor/seq/for_each.hpp>
 #include "bbdo/storage/index_mapping.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -34,6 +35,7 @@
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -766,7 +768,11 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
         _comments->execute(_mysql, database::mysql_error::store_comment, 0);
     }
     std::string where;
-    if (cmmnt.internal_id() != 0)
+    if (cmmnt.internal_id() != 0 && cmmnt.instance_id() == 0)
+      /* A comment minted by Broker (partitioned, platform-wide id) deleted
+       * through the Broker API: the id alone identifies the row. */
+      where = fmt::format("internal_id={}", cmmnt.internal_id());
+    else if (cmmnt.internal_id() != 0)
       where = fmt::format("internal_id={} AND instance_id={}",
                           cmmnt.internal_id(), cmmnt.instance_id());
     else if (cmmnt.service_id() != 0)
@@ -2324,63 +2330,102 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
                        ah.host_id());
     return;
   }
-  if (_store_in_hosts_services) {
+  /* Whatever this output writes, the toggled attributes and their mask go
+   * to the hosts table: it is the only place that keeps them, and the
+   * reference output restores them from there at startup. */
+  {
     constexpr std::string_view buf("UPDATE hosts SET");
     std::string query{buf.data(), buf.size()};
-    if (ah.has_notify())
+    uint32_t mask = 0;
+    /* Same rule as the cache: notify and notification_period are check
+     * overrides only when Broker does not own the notifications. */
+    const bool broker_notifies =
+        com::centreon::common::notifications::notification_manager::is_loaded();
+    if (ah.has_notify()) {
       query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
-    if (ah.has_active_checks())
+      if (!broker_notifies)
+        mask |= MOD_NOTIFICATIONS_ENABLED;
+    }
+    if (ah.has_active_checks()) {
       query += fmt::format(" active_checks='{}',", ah.active_checks() ? 1 : 0);
+      mask |= MOD_ACTIVE_CHECKS_ENABLED;
+    }
     if (ah.has_should_be_scheduled())
       query += fmt::format(" should_be_scheduled='{}',",
                            ah.should_be_scheduled() ? 1 : 0);
-    if (ah.has_passive_checks())
+    if (ah.has_passive_checks()) {
       query +=
           fmt::format(" passive_checks='{}',", ah.passive_checks() ? 1 : 0);
-    if (ah.has_event_handler_enabled())
+      mask |= MOD_PASSIVE_CHECKS_ENABLED;
+    }
+    if (ah.has_event_handler_enabled()) {
       query += fmt::format(" event_handler_enabled='{}',",
                            ah.event_handler_enabled() ? 1 : 0);
-    if (ah.has_flap_detection())
+      mask |= MOD_EVENT_HANDLER_ENABLED;
+    }
+    if (ah.has_flap_detection()) {
       query +=
           fmt::format(" flap_detection='{}',", ah.flap_detection() ? 1 : 0);
-    if (ah.has_obsess_over_host())
+      mask |= MOD_FLAP_DETECTION_ENABLED;
+    }
+    if (ah.has_obsess_over_host()) {
       query +=
           fmt::format(" obsess_over_host='{}',", ah.obsess_over_host() ? 1 : 0);
-    if (ah.has_event_handler())
+      mask |= MOD_OBSESSIVE_HANDLER_ENABLED;
+    }
+    if (ah.has_event_handler()) {
       query += fmt::format(
           " event_handler='{}',",
           misc::string::escape(ah.event_handler(),
                                get_centreon_storage_hosts_col_size(
                                    centreon_storage_hosts_event_handler)));
-    if (ah.has_check_command())
+    }
+    if (ah.has_check_command()) {
       query += fmt::format(
           " check_command='{}',",
           misc::string::escape(ah.check_command(),
                                get_centreon_storage_hosts_col_size(
                                    centreon_storage_hosts_check_command)));
-    if (ah.has_check_interval())
+    }
+    if (ah.has_check_interval()) {
       query += fmt::format(" check_interval={},", ah.check_interval());
-    if (ah.has_retry_interval())
+      mask |= MOD_NORMAL_CHECK_INTERVAL;
+    }
+    if (ah.has_retry_interval()) {
       query += fmt::format(" retry_interval={},", ah.retry_interval());
-    if (ah.has_max_check_attempts())
+      mask |= MOD_RETRY_CHECK_INTERVAL;
+    }
+    if (ah.has_max_check_attempts()) {
       query += fmt::format(" max_check_attempts={},", ah.max_check_attempts());
-    if (ah.has_check_freshness())
+      mask |= MOD_MAX_CHECK_ATTEMPTS;
+    }
+    if (ah.has_check_freshness()) {
       query +=
           fmt::format(" check_freshness='{}',", ah.check_freshness() ? 1 : 0);
-    if (ah.has_check_period())
+      mask |= MOD_FRESHNESS_CHECKS_ENABLED;
+    }
+    if (ah.has_check_period()) {
       query += fmt::format(
           " check_period='{}',",
           misc::string::escape(ah.check_period(),
                                get_centreon_storage_hosts_col_size(
                                    centreon_storage_hosts_check_period)));
-    if (ah.has_notification_period())
+      mask |= MOD_CHECK_TIMEPERIOD;
+    }
+    if (ah.has_notification_period()) {
       query +=
           fmt::format(" notification_period='{}',",
                       misc::string::escape(
                           ah.notification_period(),
                           get_centreon_storage_services_col_size(
                               centreon_storage_services_notification_period)));
+      if (!broker_notifies)
+        mask |= MOD_NOTIFICATION_TIMEPERIOD;
+    }
 
+    if (mask)
+      query += fmt::format(
+          " modified_attributes=COALESCE(modified_attributes,0)|{},", mask);
     // If nothing was added to query, we can exit immediately.
     if (query.size() > buf.size()) {
       query.resize(query.size() - 1);
@@ -2431,6 +2476,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
    * touch them (bind NULL -> COALESCE keeps Broker's value). */
   const bool broker_owns_downtimes =
       com::centreon::common::downtimes::downtime_manager::is_loaded();
+  /* Same for the acknowledgements: in notification_mode=broker Engine always
+   * reports NONE, Broker's value must be kept (NULL -> COALESCE). */
+  const bool broker_owns_acks =
+      com::centreon::common::notifications::notification_manager::is_loaded();
 
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: pb host {} status check result output: "
@@ -2510,8 +2559,14 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                             mapping::entry::invalid_on_zero);
         b->set_value_as_i64(23, hscr.next_host_notification(),
                             mapping::entry::invalid_on_zero);
-        b->set_value_as_bool(24, hscr.acknowledgement_type() != AckType::NONE);
-        b->set_value_as_i32(25, hscr.acknowledgement_type());
+        if (broker_owns_acks) {
+          b->set_null_bool(24);
+          b->set_null_i32(25);
+        } else {
+          b->set_value_as_bool(24,
+                               hscr.acknowledgement_type() != AckType::NONE);
+          b->set_value_as_i32(25, hscr.acknowledgement_type());
+        }
         if (broker_owns_downtimes)
           b->set_null_i32(26);
         else
@@ -2564,9 +2619,14 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                                             mapping::entry::invalid_on_zero);
         _hscr_update->bind_value_as_i64_ext(23, hscr.next_host_notification(),
                                             mapping::entry::invalid_on_zero);
-        _hscr_update->bind_value_as_bool(
-            24, hscr.acknowledgement_type() != AckType::NONE);
-        _hscr_update->bind_value_as_i32(25, hscr.acknowledgement_type());
+        if (broker_owns_acks) {
+          _hscr_update->bind_null_bool(24);
+          _hscr_update->bind_null_i32(25);
+        } else {
+          _hscr_update->bind_value_as_bool(
+              24, hscr.acknowledgement_type() != AckType::NONE);
+          _hscr_update->bind_value_as_i32(25, hscr.acknowledgement_type());
+        }
         if (broker_owns_downtimes)
           _hscr_update->bind_null_i32(26);
         else
@@ -2593,7 +2653,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
           b->set_null_bool(3);
         else
           b->set_value_as_bool(3, hscr.scheduled_downtime_depth() > 0);
-        b->set_value_as_bool(4, hscr.acknowledgement_type() != AckType::NONE);
+        if (broker_owns_acks)
+          b->set_null_bool(4);
+        else
+          b->set_value_as_bool(4, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5, hscr.state_type() == HostStatus_StateType_HARD);
         b->set_value_as_u32(6, hscr.check_attempt());
         b->set_value_as_bool(7, hscr.perfdata() != "");
@@ -2618,8 +2681,11 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         else
           _hscr_resources_update->bind_value_as_bool(
               3, hscr.scheduled_downtime_depth() > 0);
-        _hscr_resources_update->bind_value_as_bool(
-            4, hscr.acknowledgement_type() != AckType::NONE);
+        if (broker_owns_acks)
+          _hscr_resources_update->bind_null_bool(4);
+        else
+          _hscr_resources_update->bind_value_as_bool(
+              4, hscr.acknowledgement_type() != AckType::NONE);
         _hscr_resources_update->bind_value_as_bool(
             5, hscr.state_type() == HostStatus_StateType_HARD);
         _hscr_resources_update->bind_value_as_u32(6, hscr.check_attempt());
@@ -3955,66 +4021,101 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
                        as.host_id(), as.service_id());
     return;
   }
-
-  if (_store_in_hosts_services) {
-    // first we check that this service is not yet in update bulk request
-
+  /* Same as for hosts: the toggled attributes and their mask always go to
+   * the services table, the reference output restores them from there. */
+  {
     constexpr std::string_view buf("UPDATE services SET");
     std::string query{buf.data(), buf.size()};
-    if (as.has_notify())
+    uint32_t mask = 0;
+    /* Same rule as the cache: notify and notification_period are check
+     * overrides only when Broker does not own the notifications. */
+    const bool broker_notifies =
+        com::centreon::common::notifications::notification_manager::is_loaded();
+    if (as.has_notify()) {
       query += fmt::format(" notify='{}',", as.notify() ? 1 : 0);
-    if (as.has_active_checks())
+      if (!broker_notifies)
+        mask |= MOD_NOTIFICATIONS_ENABLED;
+    }
+    if (as.has_active_checks()) {
       query += fmt::format(" active_checks='{}',", as.active_checks() ? 1 : 0);
+      mask |= MOD_ACTIVE_CHECKS_ENABLED;
+    }
     if (as.has_should_be_scheduled())
       query += fmt::format(" should_be_scheduled='{}',",
                            as.should_be_scheduled() ? 1 : 0);
-    if (as.has_passive_checks())
+    if (as.has_passive_checks()) {
       query +=
           fmt::format(" passive_checks='{}',", as.passive_checks() ? 1 : 0);
-    if (as.has_event_handler_enabled())
+      mask |= MOD_PASSIVE_CHECKS_ENABLED;
+    }
+    if (as.has_event_handler_enabled()) {
       query += fmt::format(" event_handler_enabled='{}',",
                            as.event_handler_enabled() ? 1 : 0);
-    if (as.has_flap_detection_enabled())
+      mask |= MOD_EVENT_HANDLER_ENABLED;
+    }
+    if (as.has_flap_detection_enabled()) {
       query += fmt::format(" flap_detection='{}',",
                            as.flap_detection_enabled() ? 1 : 0);
-    if (as.has_obsess_over_service())
+      mask |= MOD_FLAP_DETECTION_ENABLED;
+    }
+    if (as.has_obsess_over_service()) {
       query += fmt::format(" obsess_over_service='{}',",
                            as.obsess_over_service() ? 1 : 0);
-    if (as.has_event_handler())
+      mask |= MOD_OBSESSIVE_HANDLER_ENABLED;
+    }
+    if (as.has_event_handler()) {
       query += fmt::format(
           " event_handler='{}',",
           misc::string::escape(as.event_handler(),
                                get_centreon_storage_services_col_size(
                                    centreon_storage_services_event_handler)));
-    if (as.has_check_command())
+    }
+    if (as.has_check_command()) {
       query += fmt::format(
           " check_command='{}',",
           misc::string::escape(as.check_command(),
                                get_centreon_storage_services_col_size(
                                    centreon_storage_services_check_command)));
-    if (as.has_check_interval())
+    }
+    if (as.has_check_interval()) {
       query += fmt::format(" check_interval={},", as.check_interval());
-    if (as.has_retry_interval())
+      mask |= MOD_NORMAL_CHECK_INTERVAL;
+    }
+    if (as.has_retry_interval()) {
       query += fmt::format(" retry_interval={},", as.retry_interval());
-    if (as.has_max_check_attempts())
+      mask |= MOD_RETRY_CHECK_INTERVAL;
+    }
+    if (as.has_max_check_attempts()) {
       query += fmt::format(" max_check_attempts={},", as.max_check_attempts());
-    if (as.has_check_freshness())
+      mask |= MOD_MAX_CHECK_ATTEMPTS;
+    }
+    if (as.has_check_freshness()) {
       query +=
           fmt::format(" check_freshness='{}',", as.check_freshness() ? 1 : 0);
-    if (as.has_check_period())
+      mask |= MOD_FRESHNESS_CHECKS_ENABLED;
+    }
+    if (as.has_check_period()) {
       query += fmt::format(
           " check_period='{}',",
           misc::string::escape(as.check_period(),
                                get_centreon_storage_services_col_size(
                                    centreon_storage_services_check_period)));
-    if (as.has_notification_period())
+      mask |= MOD_CHECK_TIMEPERIOD;
+    }
+    if (as.has_notification_period()) {
       query +=
           fmt::format(" notification_period='{}',",
                       misc::string::escape(
                           as.notification_period(),
                           get_centreon_storage_services_col_size(
                               centreon_storage_services_notification_period)));
+      if (!broker_notifies)
+        mask |= MOD_NOTIFICATION_TIMEPERIOD;
+    }
 
+    if (mask)
+      query += fmt::format(
+          " modified_attributes=COALESCE(modified_attributes,0)|{},", mask);
     // If nothing was added to query, we can exit immediately.
     if (query.size() > buf.size()) {
       query.resize(query.size() - 1);
@@ -4272,6 +4373,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
    * value instead of overwriting it (which would race with Broker's update). */
   const bool broker_owns_downtimes =
       com::centreon::common::downtimes::downtime_manager::is_loaded();
+  /* Same for the acknowledgements: in notification_mode=broker Engine always
+   * reports NONE, Broker's value must be kept (NULL -> COALESCE). */
+  const bool broker_owns_acks =
+      com::centreon::common::notifications::notification_manager::is_loaded();
 
   SPDLOG_LOGGER_DEBUG(
       _logger_sql,
@@ -4351,8 +4456,14 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                             mapping::entry::invalid_on_zero);
         b->set_value_as_i64(24, sscr.next_notification(),
                             mapping::entry::invalid_on_zero);
-        b->set_value_as_bool(25, sscr.acknowledgement_type() != AckType::NONE);
-        b->set_value_as_i32(26, sscr.acknowledgement_type());
+        if (broker_owns_acks) {
+          b->set_null_bool(25);
+          b->set_null_i32(26);
+        } else {
+          b->set_value_as_bool(25,
+                               sscr.acknowledgement_type() != AckType::NONE);
+          b->set_value_as_i32(26, sscr.acknowledgement_type());
+        }
         _logger_sql->debug("service3 ({}, {}) scheduled_downtime_depth: {}",
                            sscr.host_id(), sscr.service_id(),
                            sscr.scheduled_downtime_depth());
@@ -4413,9 +4524,14 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                                             mapping::entry::invalid_on_zero);
         _sscr_update->bind_value_as_i64_ext(24, sscr.next_notification(),
                                             mapping::entry::invalid_on_zero);
-        _sscr_update->bind_value_as_bool(
-            25, sscr.acknowledgement_type() != AckType::NONE);
-        _sscr_update->bind_value_as_i32(26, sscr.acknowledgement_type());
+        if (broker_owns_acks) {
+          _sscr_update->bind_null_bool(25);
+          _sscr_update->bind_null_i32(26);
+        } else {
+          _sscr_update->bind_value_as_bool(
+              25, sscr.acknowledgement_type() != AckType::NONE);
+          _sscr_update->bind_value_as_i32(26, sscr.acknowledgement_type());
+        }
         if (broker_owns_downtimes)
           _sscr_update->bind_null_i32(27);
         else
@@ -4452,7 +4568,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           b->set_null_bool(3);
         else
           b->set_value_as_bool(3, sscr.scheduled_downtime_depth() > 0);
-        b->set_value_as_bool(4, sscr.acknowledgement_type() != AckType::NONE);
+        if (broker_owns_acks)
+          b->set_null_bool(4);
+        else
+          b->set_value_as_bool(4, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5,
                              sscr.state_type() == ServiceStatus_StateType_HARD);
         b->set_value_as_u32(6, sscr.check_attempt());
@@ -4487,8 +4606,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         else
           _sscr_resources_update->bind_value_as_bool(
               3, sscr.scheduled_downtime_depth() > 0);
-        _sscr_resources_update->bind_value_as_bool(
-            4, sscr.acknowledgement_type() != AckType::NONE);
+        if (broker_owns_acks)
+          _sscr_resources_update->bind_null_bool(4);
+        else
+          _sscr_resources_update->bind_value_as_bool(
+              4, sscr.acknowledgement_type() != AckType::NONE);
         _sscr_resources_update->bind_value_as_bool(
             5, sscr.state_type() == ServiceStatus_StateType_HARD);
         _sscr_resources_update->bind_value_as_u32(6, sscr.check_attempt());
@@ -5038,8 +5160,45 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
   /* The cache first, then the database. That order is not free to choose: the
    * database side resolves the members of groups and the parents of hosts by
    * name, and it asks the cache for them -- so the cache has to describe this
-   * configuration before it is applied, not after. */
-  cache.merge(state->obj());
+   * configuration before it is applied, not after.
+   *
+   * But the cache usually describes it already: every stored .prot file is
+   * merged at startup, whether its poller is connected or not, and a poller
+   * that connects afterwards brings nothing new to the cache. Merging again
+   * would only rebuild its entries from the configuration and drop the runtime
+   * state they carry (check results, adaptive changes). The merge is for the
+   * poller the cache does not know: its configuration was lost and has just
+   * been rebuilt from what Engine sent. The database side runs in both cases,
+   * since waking the poller's resources up is what this event is for. */
+  uint64_t poller_id = state->obj().poller_id();
+  /* The runtime snapshot owed to a poller whose configuration is rebuilt here
+   * is a Broker-only notion, hence the downcast behind its guard (same as BAM
+   * for set_instance_running). */
+  auto set_runtime_state_owed = [](uint64_t poller_id, bool owed) {
+    auto& applier_state = config::applier::state::instance();
+    if (applier_state.peer_type() == com::centreon::common::BROKER)
+      static_cast<config::applier::broker_state&>(applier_state)
+          .set_runtime_state_owed(poller_id, owed);
+  };
+  bool merged = false;
+  if (cache.has_instance(poller_id))
+    SPDLOG_LOGGER_INFO(_logger_sql,
+                       "unified_sql: poller {} is already known to the cache, "
+                       "its configuration is not merged again",
+                       poller_id);
+  else {
+    /* Not before the entries carry their runtime: as soon as the merge is
+     * done the cache knows the poller, and the stream serving it would send
+     * an empty snapshot if the flag were still up from the connection. */
+    set_runtime_state_owed(poller_id, false);
+    cache.merge(state->obj());
+    merged = true;
+    /* Its entries are fresh from the configuration: the reference output
+     * gives them back the runtime the database kept, as it did at startup for
+     * the pollers it knew then. */
+    if (_is_reference)
+      _restore_runtime_in_cache();
+  }
   database_configurator cfg(this, _logger_sql);
   cfg.process_state(state->obj());
   /* The cache knows this poller's hosts/services: re-inject any active
@@ -5049,6 +5208,14 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
   /* Same for the persisted notification runtime states (number, timings,
    * notified contacts), so the notification chain resumes after a restart. */
   cache.reinject_pending_notification_states();
+  /* And the acknowledgement flags of the persisted acknowledgements. */
+  cache.reinject_pending_acknowledgements();
+  /* And the notification switches toggled through the Broker API. */
+  cache.reinject_pending_notification_overrides();
+  /* The poller whose configuration was just rebuilt is owed its runtime
+   * snapshot: nothing could be sent to it at its connection. */
+  if (merged)
+    set_runtime_state_owed(poller_id, true);
 }
 
 /**

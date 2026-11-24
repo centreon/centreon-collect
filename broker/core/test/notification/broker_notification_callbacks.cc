@@ -24,7 +24,7 @@
 #include <algorithm>
 
 #include "broker/core/bbdo/internal.hh"
-#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/cache/notification_toggles.hh"
 #include "broker/core/config/applier/init.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/notifications/notification_manager.hh"
@@ -411,7 +411,8 @@ TEST_F(BrokerNotificationCallbacksTest, ContactsReferenceCountedPerPoller) {
   merge_shared(1);
   merge_shared(2);
 
-  /* Poller 1 leaves: the shared contact/group is still referenced by poller 2. */
+  /* Poller 1 leaves: the shared contact/group is still referenced by poller 2.
+   */
   _cache->remove_instance(1);
   EXPECT_TRUE(_cache->contact_config("shared").has_value());
   EXPECT_FALSE(_cache->contactgroup_members("grp").empty());
@@ -474,7 +475,8 @@ TEST_F(BrokerNotificationCallbacksTest, ResourceContactsResolvedFromState) {
 
   _cache->merge(st);
 
-  /* Host: direct John_Doe + group members {Jane_Doe, John_Doe}, deduplicated. */
+  /* Host: direct John_Doe + group members {Jane_Doe, John_Doe}, deduplicated.
+   */
   EXPECT_EQ(_cache->notification_contact_names(1, 0),
             (absl::flat_hash_set<std::string>{"Jane_Doe", "John_Doe"}));
 
@@ -597,7 +599,8 @@ TEST_F(BrokerNotificationCallbacksTest, EscalationServiceSelection) {
   const std::time_t now = std::time(nullptr);
 
   /* Notif 2, CRITICAL: only the first escalation is in range. */
-  auto r2 = _cache->notification_escalation(1, 5, Service::CRITICAL, 2, "", now);
+  auto r2 =
+      _cache->notification_escalation(1, 5, Service::CRITICAL, 2, "", now);
   EXPECT_TRUE(r2.escalated);
   EXPECT_EQ(r2.notification_interval, 10u);
   EXPECT_EQ(r2.contact_names,
@@ -605,7 +608,8 @@ TEST_F(BrokerNotificationCallbacksTest, EscalationServiceSelection) {
 
   /* Notif 3, CRITICAL: both escalations viable -> union of contacts and the
    * smallest interval (7). */
-  auto r3 = _cache->notification_escalation(1, 5, Service::CRITICAL, 3, "", now);
+  auto r3 =
+      _cache->notification_escalation(1, 5, Service::CRITICAL, 3, "", now);
   EXPECT_TRUE(r3.escalated);
   EXPECT_EQ(r3.notification_interval, 7u);
   EXPECT_EQ(r3.contact_names,
@@ -673,7 +677,7 @@ class BrokerNotificationDeliverTest : public ::testing::Test {
   /** @brief Pop the single notification execute queued for @p poller_id, or
    * nullptr when the poller's queue is empty. */
   std::shared_ptr<io::data> pop_one(uint64_t poller_id) {
-    auto pending = _state->pop_pending_notification_executes(poller_id);
+    auto pending = _state->pop_pending_for_poller(poller_id);
     if (pending.empty())
       return nullptr;
     return pending.front();
@@ -749,10 +753,10 @@ TEST_F(BrokerNotificationDeliverTest, DispatchesNotificationExecute) {
 TEST_F(BrokerNotificationDeliverTest, ContactFilteredOutNotDispatched) {
   merge_service_with_contact(_cache, /*enabled=*/false);
 
-  notifications::delivery_result res = _cb->deliver(
-      1, 5, notifications::cat_acknowledgement,
-      notifications::reason_acknowledgement, 1, 1, "admin", "msg",
-      notifications::notification_option_none);
+  notifications::delivery_result res =
+      _cb->deliver(1, 5, notifications::cat_acknowledgement,
+                   notifications::reason_acknowledgement, 1, 1, "admin", "msg",
+                   notifications::notification_option_none);
 
   EXPECT_TRUE(res.notified_contacts.empty());
   EXPECT_FALSE(pop_one(7));
@@ -763,10 +767,9 @@ TEST_F(BrokerNotificationDeliverTest, ContactFilteredOutNotDispatched) {
  * event is published and no contact is reported as notified.
  */
 TEST_F(BrokerNotificationDeliverTest, UnknownHostDropped) {
-  notifications::delivery_result res =
-      _cb->deliver(999, 0, notifications::cat_normal, notifications::reason_normal,
-                   1, 1, "admin", "msg",
-                   notifications::notification_option_none);
+  notifications::delivery_result res = _cb->deliver(
+      999, 0, notifications::cat_normal, notifications::reason_normal, 1, 1,
+      "admin", "msg", notifications::notification_option_none);
 
   EXPECT_TRUE(res.notified_contacts.empty());
   /* Nothing was queued for any poller (the resource has no supervisor). */
@@ -784,7 +787,8 @@ TEST_F(BrokerNotificationDeliverTest, EscalationContactsTakeOver) {
   cfg::State st;
   st.set_poller_id(7);
   /* A direct contact on the service and a distinct escalation contact. Both
-   * accept acknowledgement notifications (permissive category, as elsewhere). */
+   * accept acknowledgement notifications (permissive category, as elsewhere).
+   */
   auto* c1 = st.mutable_contacts()->Add();
   c1->set_contact_name("direct");
   c1->set_service_notifications_enabled(true);
@@ -827,10 +831,10 @@ TEST_F(BrokerNotificationDeliverTest, EscalationContactsTakeOver) {
   _cache->publish(svc);
 
   /* Notification number 3 >= first_notification 2: the escalation is viable. */
-  notifications::delivery_result res = _cb->deliver(
-      1, 5, notifications::cat_acknowledgement,
-      notifications::reason_acknowledgement, 42, 3, "admin", "msg",
-      notifications::notification_option_none);
+  notifications::delivery_result res =
+      _cb->deliver(1, 5, notifications::cat_acknowledgement,
+                   notifications::reason_acknowledgement, 42, 3, "admin", "msg",
+                   notifications::notification_option_none);
 
   EXPECT_TRUE(res.escalated);
   /* Only the escalation contact, not the resource's direct contact. */
@@ -843,4 +847,421 @@ TEST_F(BrokerNotificationDeliverTest, EscalationContactsTakeOver) {
   EXPECT_TRUE(n.escalated());
   ASSERT_EQ(n.contacts_size(), 1);
   EXPECT_EQ(n.contacts(0), "escal");
+}
+
+/**
+ * @brief notification_mode=broker: Broker owns the acknowledgements. A status
+ * coming from Engine (which always reports NONE in that mode) must not clear
+ * the acknowledgement type set by Broker on the cached service, and get_state()
+ * must report the resource as acknowledged.
+ */
+TEST_F(BrokerNotificationDeliverTest, EngineStatusKeepsBrokerAcknowledgement) {
+  merge_service_with_contact(_cache, true);
+
+  auto closed = _cache->set_acknowledgement_type(1, 5, AckType::STICKY);
+  ASSERT_EQ(closed, nullptr);
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(),
+            AckType::STICKY);
+  ASSERT_TRUE(_cb->get_state(1, 5).acknowledged);
+
+  auto status = std::make_shared<neb::pb_service_status>();
+  auto& o = status->mut_obj();
+  o.set_host_id(1);
+  o.set_service_id(5);
+  o.set_state(ServiceStatus::CRITICAL);
+  o.set_state_type(ServiceStatus::HARD);
+  o.set_acknowledgement_type(AckType::NONE);
+  _cache->update_service(status);
+
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(),
+            AckType::STICKY);
+  ASSERT_TRUE(_cb->get_state(1, 5).acknowledged);
+  ASSERT_EQ(_cache->service(1, 5)->obj().state(), Service::CRITICAL);
+}
+
+/**
+ * @brief set_acknowledgement_type(NONE) applies the closing rule with the
+ * given state: an explicit removal while the problem persists closes the
+ * acknowledgement (deletion_time set, returned for publication), a recovery
+ * only drops it from the cache, like Engine mode.
+ */
+TEST_F(BrokerNotificationDeliverTest, AcknowledgementClosingRule) {
+  merge_service_with_contact(_cache, true);
+
+  auto make_ack = [] {
+    auto ack = std::make_shared<neb::pb_acknowledgement>();
+    auto& a = ack->mut_obj();
+    a.set_host_id(1);
+    a.set_service_id(5);
+    a.set_sticky(true);
+    a.set_state(2);
+    a.set_entry_time(1000);
+    a.set_comment_id(42);
+    return ack;
+  };
+
+  /* Explicit removal: closed and returned. */
+  _cache->update_acknowledgement(make_ack());
+  _cache->set_acknowledgement_type(1, 5, AckType::STICKY);
+  ASSERT_NE(_cache->acknowledgement(1, 5), nullptr);
+  auto closed = _cache->set_acknowledgement_type(1, 5, AckType::NONE, 2);
+  ASSERT_NE(closed, nullptr);
+  ASSERT_NE(closed->obj().deletion_time(), 0u);
+  ASSERT_EQ(closed->obj().comment_id(), 42u);
+  ASSERT_EQ(_cache->acknowledgement(1, 5), nullptr);
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(), AckType::NONE);
+
+  /* Recovery: dropped from the cache, nothing to publish. */
+  _cache->update_acknowledgement(make_ack());
+  _cache->set_acknowledgement_type(1, 5, AckType::STICKY);
+  closed = _cache->set_acknowledgement_type(1, 5, AckType::NONE, 0);
+  ASSERT_EQ(closed, nullptr);
+  ASSERT_EQ(_cache->acknowledgement(1, 5), nullptr);
+  ASSERT_FALSE(_cb->get_state(1, 5).acknowledged);
+}
+
+/**
+ * @brief After a restart the cached resources are rebuilt with type NONE while
+ * the acknowledgements survive: reinject_pending_acknowledgements() restores
+ * the flag on them (broker mode only).
+ */
+TEST_F(BrokerNotificationDeliverTest, ReinjectPendingAcknowledgements) {
+  merge_service_with_contact(_cache, true);
+
+  auto ack = std::make_shared<neb::pb_acknowledgement>();
+  auto& a = ack->mut_obj();
+  a.set_host_id(1);
+  a.set_service_id(5);
+  a.set_sticky(false);
+  a.set_state(2);
+  a.set_entry_time(1000);
+  _cache->update_acknowledgement(ack);
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(), AckType::NONE);
+
+  _cache->reinject_pending_acknowledgements();
+  ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(),
+            AckType::NORMAL);
+  ASSERT_TRUE(_cb->get_state(1, 5).acknowledged);
+}
+
+/**
+ * @brief notification_mode=broker: set_notify() records the switch, the
+ * notification decision sees it (get_config), and a definition resent by
+ * Engine with the configured value does not override it.
+ */
+TEST_F(BrokerNotificationDeliverTest, NotifyOverrideSurvivesDefinition) {
+  merge_service_with_contact(_cache, true);
+  /* Configured value: enabled. */
+  ASSERT_TRUE(_cache->set_notify(1, 5, false));
+  ASSERT_FALSE(_cache->service(1, 5)->obj().notify());
+  ASSERT_FALSE(_cb->get_config(1, 5).enabled);
+
+  /* Engine resends the service definition with notify=true (configuration). */
+  auto svc = std::make_shared<neb::pb_service>();
+  auto& o = svc->mut_obj();
+  o.set_host_id(1);
+  o.set_service_id(5);
+  o.set_host_name("host_1");
+  o.set_description("service_1");
+  o.set_enabled(true);
+  o.set_notify(true);
+  _cache->update_service(svc);
+  ASSERT_FALSE(_cache->service(1, 5)->obj().notify());
+
+  /* An adaptive from Engine does not win either in broker mode. */
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(5);
+  as->mut_obj().set_notify(true);
+  _cache->update_service(as);
+  ASSERT_FALSE(_cache->service(1, 5)->obj().notify());
+
+  /* Unknown resource. */
+  ASSERT_FALSE(_cache->set_notify(1, 99, false));
+}
+
+/**
+ * @brief reinject_pending_notification_overrides() puts the persisted switch
+ * back on resources rebuilt with the configured value (merge, restart).
+ */
+TEST_F(BrokerNotificationDeliverTest, ReinjectNotificationOverrides) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(7);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  h->set_notifications_enabled(true);
+  _cache->merge(st);
+  ASSERT_TRUE(_cache->host(1)->obj().notify());
+
+  ASSERT_TRUE(_cache->set_notify(1, 0, false));
+  ASSERT_FALSE(_cache->host(1)->obj().notify());
+  /* A merge rebuilds the host from the configuration (notify seeded true). */
+  _cache->merge(st);
+  ASSERT_TRUE(_cache->host(1)->obj().notify());
+  _cache->reinject_pending_notification_overrides();
+  ASSERT_FALSE(_cache->host(1)->obj().notify());
+}
+
+/**
+ * @brief notification_mode=broker: the notification timeperiod set through the
+ * Broker API wins over the definitions and adaptives Engine sends, and is put
+ * back after a configuration merge.
+ */
+TEST_F(BrokerNotificationDeliverTest,
+       NotificationPeriodOverrideSurvivesDefinition) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(7);
+  auto* tp = st.mutable_timeperiods()->Add();
+  tp->set_timeperiod_name("workhours");
+  tp->set_alias("workhours");
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  auto* svc = st.mutable_services()->Add();
+  svc->set_host_id(1);
+  svc->set_service_id(5);
+  svc->set_host_name("host_1");
+  svc->set_service_description("service_1");
+  svc->set_notifications_enabled(true);
+  svc->set_notification_period("24x7");
+  _cache->merge(st);
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "24x7");
+  EXPECT_TRUE(_cache->has_timeperiod("workhours"));
+  EXPECT_FALSE(_cache->has_timeperiod("nowhere"));
+
+  ASSERT_TRUE(_cache->set_notification_period(1, 5, "workhours"));
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "workhours");
+  /* The notify switch is not an override of its own: untouched. */
+  ASSERT_TRUE(_cache->service(1, 5)->obj().notify());
+
+  /* Engine resends the definition with the configured period. */
+  auto def = std::make_shared<neb::pb_service>();
+  auto& o = def->mut_obj();
+  o.set_host_id(1);
+  o.set_service_id(5);
+  o.set_host_name("host_1");
+  o.set_description("service_1");
+  o.set_enabled(true);
+  o.set_notify(true);
+  o.set_notification_period("24x7");
+  _cache->update_service(def);
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "workhours");
+
+  /* An adaptive from Engine does not win either in broker mode. */
+  auto as = std::make_shared<neb::pb_adaptive_service>();
+  as->mut_obj().set_host_id(1);
+  as->mut_obj().set_service_id(5);
+  as->mut_obj().set_notification_period("24x7");
+  _cache->update_service(as);
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "workhours");
+
+  /* A merge rebuilds the service from the configuration, the reinjection puts
+   * the period back. */
+  _cache->merge(st);
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "24x7");
+  _cache->reinject_pending_notification_overrides();
+  ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "workhours");
+
+  /* Unknown resource. */
+  ASSERT_FALSE(_cache->set_notification_period(1, 99, "workhours"));
+}
+
+/**
+ * @brief notification_mode=broker: a contact switch set through the Broker API
+ * drives the contact selection of deliver() and survives a configuration
+ * merge that rebuilds the contact with the configured value.
+ */
+TEST_F(BrokerNotificationDeliverTest, ContactOverrideSurvivesMerge) {
+  using cache::notification_toggles::notifier;
+  merge_service_with_contact(_cache, /*enabled=*/true);
+  ASSERT_TRUE(
+      _cache->contact_config("John_Doe")->service_notifications_enabled);
+
+  ASSERT_TRUE(cache::notification_toggles::set_contact_notifications(
+      *_cache, "John_Doe", notifier::service, false));
+  auto c = _cache->contact_config("John_Doe");
+  ASSERT_TRUE(c.has_value());
+  EXPECT_FALSE(c->service_notifications_enabled);
+
+  /* Nobody left to notify: no dispatch. Acknowledgement category: not
+   * filtered by the contact's state options (empty in this fixture), only by
+   * its switch. */
+  notifications::delivery_result res =
+      _cb->deliver(1, 5, notifications::cat_acknowledgement,
+                   notifications::reason_acknowledgement, 1, 2, "admin", "ack",
+                   notifications::notification_option_none);
+  EXPECT_TRUE(res.notified_contacts.empty());
+  EXPECT_FALSE(pop_one(7));
+
+  /* The configuration re-enables the contact: the override wins. */
+  merge_service_with_contact(_cache, /*enabled=*/true);
+  EXPECT_FALSE(
+      _cache->contact_config("John_Doe")->service_notifications_enabled);
+
+  /* Switched back on through the API. */
+  ASSERT_TRUE(cache::notification_toggles::set_contact_notifications(
+      *_cache, "John_Doe", notifier::service, true));
+  res = _cb->deliver(1, 5, notifications::cat_acknowledgement,
+                     notifications::reason_acknowledgement, 1, 2, "admin",
+                     "ack", notifications::notification_option_none);
+  EXPECT_EQ(res.notified_contacts.count("John_Doe"), 1u);
+  EXPECT_TRUE(pop_one(7));
+
+  /* Unknown contact. */
+  EXPECT_FALSE(cache::notification_toggles::set_contact_notifications(
+      *_cache, "nobody", notifier::service, false));
+}
+
+/**
+ * @brief notification_mode=broker: a contactgroup switch fans out to its
+ * members (each gets its own override), and the contact notification
+ * timeperiods are overridable per side.
+ */
+TEST_F(BrokerNotificationDeliverTest, ContactgroupToggleAndContactPeriod) {
+  namespace cfg = com::centreon::engine::configuration;
+  using cache::notification_toggles::notifier;
+  cfg::State st;
+  st.set_poller_id(7);
+  for (const char* name : {"John_Doe", "Jane_Doe"}) {
+    auto* c = st.mutable_contacts()->Add();
+    c->set_contact_name(name);
+    c->set_host_notifications_enabled(true);
+    c->set_service_notifications_enabled(true);
+    c->set_host_notification_period("24x7");
+    c->set_service_notification_period("24x7");
+  }
+  auto* cg = st.mutable_contactgroups()->Add();
+  cg->set_contactgroup_name("admins");
+  cg->mutable_members()->add_data("John_Doe");
+  cg->mutable_members()->add_data("Jane_Doe");
+  _cache->merge(st);
+
+  auto count = cache::notification_toggles::set_contactgroup_notifications(
+      *_cache, "admins", notifier::host, false);
+  ASSERT_TRUE(count.has_value());
+  EXPECT_EQ(*count, 2u);
+  for (const char* name : {"John_Doe", "Jane_Doe"}) {
+    auto c = _cache->contact_config(name);
+    ASSERT_TRUE(c.has_value());
+    EXPECT_FALSE(c->host_notifications_enabled);
+    EXPECT_TRUE(c->service_notifications_enabled);
+  }
+  /* Unknown contactgroup. */
+  EXPECT_FALSE(cache::notification_toggles::set_contactgroup_notifications(
+                   *_cache, "nobody", notifier::host, false)
+                   .has_value());
+
+  /* Contact notification timeperiods, one side at a time. */
+  ASSERT_TRUE(cache::notification_toggles::set_contact_notification_period(
+      *_cache, "John_Doe", notifier::service, "workhours"));
+  auto john = _cache->contact_config("John_Doe");
+  EXPECT_EQ(john->service_notification_period, "workhours");
+  EXPECT_EQ(john->host_notification_period, "24x7");
+  /* Survives the configuration merge too. */
+  _cache->merge(st);
+  john = _cache->contact_config("John_Doe");
+  EXPECT_EQ(john->service_notification_period, "workhours");
+  EXPECT_FALSE(john->host_notifications_enabled);
+}
+
+/**
+ * @brief notification_mode=broker: the program-wide switch of a poller set
+ * through the Broker API drives get_config() and wins over the configuration
+ * resent by merge() or changed by a DiffState.
+ */
+TEST_F(BrokerNotificationDeliverTest, PollerOverrideSurvivesMerge) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(7);
+  st.set_poller_name("poller_7");
+  st.set_enable_notifications(true);
+  auto* h = st.mutable_hosts()->Add();
+  h->set_host_id(1);
+  h->set_host_name("host_1");
+  h->set_notifications_enabled(true);
+  _cache->merge(st);
+  ASSERT_TRUE(_cache->notifications_enabled(7));
+  ASSERT_TRUE(_cb->get_config(1, 0).enabled);
+  ASSERT_EQ(_cache->instance_id("poller_7"), std::optional<uint64_t>{7});
+  EXPECT_FALSE(_cache->instance_id("nobody").has_value());
+
+  ASSERT_TRUE(
+      cache::notification_toggles::set_poller_notifications(*_cache, 7, false));
+  EXPECT_FALSE(_cache->notifications_enabled(7));
+  /* The resource switch is untouched, the poller one blocks. */
+  EXPECT_TRUE(_cache->host(1)->obj().notify());
+  EXPECT_FALSE(_cb->get_config(1, 0).enabled);
+
+  /* The configuration is resent with enable_notifications=1: override wins. */
+  _cache->merge(st);
+  EXPECT_FALSE(_cache->notifications_enabled(7));
+
+  /* A DiffState toggling the flag does not win either. */
+  cfg::DiffState diff;
+  diff.set_poller_id(7);
+  diff.set_enable_notifications(true);
+  _cache->apply(diff);
+  EXPECT_FALSE(_cache->notifications_enabled(7));
+
+  /* Switched back on through the API. */
+  ASSERT_TRUE(
+      cache::notification_toggles::set_poller_notifications(*_cache, 7, true));
+  EXPECT_TRUE(_cb->get_config(1, 0).enabled);
+
+  /* Unknown poller. */
+  EXPECT_FALSE(
+      cache::notification_toggles::set_poller_notifications(*_cache, 99, true));
+}
+
+/**
+ * @brief The host topology index is fed by the configuration parents (merge)
+ * and by pb_host_parent events, and replaced on a new configuration.
+ */
+TEST_F(BrokerNotificationDeliverTest, HostChildrenIndex) {
+  namespace cfg = com::centreon::engine::configuration;
+  cfg::State st;
+  st.set_poller_id(7);
+  for (uint64_t id = 1; id <= 4; ++id) {
+    auto* h = st.mutable_hosts()->Add();
+    h->set_host_id(id);
+    h->set_host_name(fmt::format("host_{}", id));
+    if (id == 2 || id == 3)
+      h->mutable_parents()->add_data("host_1");
+    if (id == 4)
+      h->mutable_parents()->add_data("host_3");
+  }
+  _cache->merge(st);
+  auto c1 = _cache->children_of(1);
+  std::sort(c1.begin(), c1.end());
+  ASSERT_EQ(c1, (std::vector<uint64_t>{2, 3}));
+  ASSERT_EQ(_cache->children_of(3), (std::vector<uint64_t>{4}));
+  ASSERT_TRUE(_cache->children_of(2).empty());
+
+  /* host_4 moves under host_2: the old link is dropped. */
+  for (auto& h : *st.mutable_hosts())
+    if (h.host_id() == 4) {
+      h.mutable_parents()->clear_data();
+      h.mutable_parents()->add_data("host_2");
+    }
+  _cache->merge(st);
+  ASSERT_TRUE(_cache->children_of(3).empty());
+  ASSERT_EQ(_cache->children_of(2), (std::vector<uint64_t>{4}));
+
+  /* pb_host_parent events (non-centralized path). */
+  auto hp = std::make_shared<neb::pb_host_parent>();
+  hp->mut_obj().set_enabled(true);
+  hp->mut_obj().set_parent_id(1);
+  hp->mut_obj().set_child_id(4);
+  _cache->update_host_parent(hp);
+  c1 = _cache->children_of(1);
+  std::sort(c1.begin(), c1.end());
+  ASSERT_EQ(c1, (std::vector<uint64_t>{2, 3, 4}));
+  hp->mut_obj().set_enabled(false);
+  _cache->update_host_parent(hp);
+  c1 = _cache->children_of(1);
+  std::sort(c1.begin(), c1.end());
+  ASSERT_EQ(c1, (std::vector<uint64_t>{2, 3}));
 }

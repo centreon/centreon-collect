@@ -1,5 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
+...                 The BBDO3 tests send their legacy external commands through Broker
+...                 (Ctn Set External Command Mode broker), the BBDO2 ones through the command pipe.
 
 Resource    ../resources/import.resource
 
@@ -21,6 +23,7 @@ BEACK2
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
 
@@ -41,7 +44,7 @@ BEACK2
     ...    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
 
-    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${d}    Ctn Get Round Current Date
     Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Ctn Check Acknowledgement With Timeout
     ...    host_1    service_1
@@ -73,6 +76,7 @@ BEACK4
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
 
@@ -92,7 +96,7 @@ BEACK4
     ...    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
 
-    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${d}    Ctn Get Round Current Date
     Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Ctn Check Acknowledgement With Timeout
     ...    host_1    service_1    ${d}    2    600    HARD
@@ -121,6 +125,7 @@ BEACK6
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
 
@@ -137,7 +142,7 @@ BEACK6
     Ctn Process Service Result Hard    host_1    service_1    ${2}    (1;1) is critical
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
-    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${d}    Ctn Get Round Current Date
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
     ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
@@ -174,6 +179,7 @@ BEACK8
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    central    core    info
     Ctn Broker Config Log    central    sql    debug
@@ -235,6 +241,7 @@ BEACK9
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Broker Cache
 
@@ -283,6 +290,7 @@ BEACK10
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
+    Ctn Set External Command Mode    broker
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Broker Cache
 
@@ -348,7 +356,7 @@ BEACK_DT
     Should Be True    ${result}    Service (1;1) should be critical HARD
 
     # The service is acknowledged (sticky).
-    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${d}    Ctn Get Round Current Date
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
     ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon
+ * Copyright 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,38 @@ enum AckType {
   NONE = 0;
   NORMAL = 1;
   STICKY = 2;
+}
+
+/* The attributes of a host/service an external command may override, as bits
+ * of the `modified_attributes` mask. Same values as Engine's MODATTR_* (see
+ * engine/inc/com/centreon/engine/common.hh): a bit set says the attribute no
+ * longer follows the configuration but the last toggle, and survives a
+ * configuration reload -- the retention file used to carry that. Broker sets
+ * the bits from the adaptive events Engine sends, keeps the overridden
+ * attributes when a configuration rebuilds a cache entry, and hands them back
+ * to a poller with the runtime snapshot. */
+enum ModifiedAttribute {
+  MOD_NONE = 0;
+  MOD_NOTIFICATIONS_ENABLED = 1;
+  MOD_ACTIVE_CHECKS_ENABLED = 2;
+  MOD_PASSIVE_CHECKS_ENABLED = 4;
+  MOD_EVENT_HANDLER_ENABLED = 8;
+  MOD_FLAP_DETECTION_ENABLED = 16;
+  MOD_FAILURE_PREDICTION_ENABLED = 32;
+  MOD_PERFORMANCE_DATA_ENABLED = 64;
+  MOD_OBSESSIVE_HANDLER_ENABLED = 128;
+  /* Never set: the CHANGE_*_EVENT_HANDLER and CHANGE_*_CHECK_COMMAND
+   * external commands are disabled in Engine (security). Kept so the values
+   * stay those of Engine's MODATTR_*. */
+  MOD_EVENT_HANDLER_COMMAND = 256;
+  MOD_CHECK_COMMAND = 512;
+  MOD_NORMAL_CHECK_INTERVAL = 1024;
+  MOD_RETRY_CHECK_INTERVAL = 2048;
+  MOD_MAX_CHECK_ATTEMPTS = 4096;
+  MOD_FRESHNESS_CHECKS_ENABLED = 8192;
+  MOD_CHECK_TIMEPERIOD = 16384;
+  MOD_CUSTOM_VARIABLE = 32768;
+  MOD_NOTIFICATION_TIMEPERIOD = 65536;
 }
 
 /* io::neb, neb::de_pb_service, 5 */
@@ -168,6 +200,8 @@ message Service {
 
   /* Empty means "inherit the host timezone". */
   string timezone = 91;
+  /* ModifiedAttribute bits, see Host.modified_attributes. */
+  uint32 modified_attributes = 92;
 }
 
 /**
@@ -388,6 +422,9 @@ message Host {
   uint64 icon_id = 82;
   /* In interval_length units, like first_notification_delay. */
   uint32 recovery_notification_delay = 83;
+  /* ModifiedAttribute bits of the attributes an external command overrode.
+   * Never sent by Engine: Broker's cache maintains it. */
+  uint32 modified_attributes = 84;
 }
 
 /**
@@ -714,6 +751,10 @@ message Acknowledgement {
   uint64 deletion_time = 10;
   bool persistent_comment = 11;
   uint32 state = 12;
+  /* Internal id of the acknowledgement comment when Broker owns the
+   * acknowledgement (notification_mode=broker): needed to delete a
+   * non-persistent comment when the acknowledgement is cleared. */
+  uint64 comment_id = 13;
 }
 
 /* io::neb, neb::de_pb_host_group, 23 */
@@ -967,6 +1008,40 @@ message BrokerCache {
     repeated Event events = 8;
   }
   repeated NotificationState notification_states = 12;
+
+  /* notification_mode=broker: the notifications-enabled switches toggled
+   * through the Broker API. They win over the configured value (like Engine's
+   * MODATTR_NOTIFICATIONS_ENABLED kept in retention) and are re-applied on the
+   * definitions Engine or the configuration rebuild. */
+  message NotificationOverride {
+    uint64 host_id = 1;
+    uint64 service_id = 2;
+    optional bool notify = 3;
+    optional string notification_period = 4;
+  }
+  repeated NotificationOverride notification_overrides = 13;
+
+  /* notification_mode=broker: the contact switches and notification
+   * timeperiods set through the Broker API. A contact is known by name only;
+   * the override is re-applied each time the contact is (re)inserted from a
+   * poller configuration. */
+  message ContactNotificationOverride {
+    string contact_name = 1;
+    optional bool host_notifications_enabled = 2;
+    optional bool service_notifications_enabled = 3;
+    optional string host_notification_period = 4;
+    optional string service_notification_period = 5;
+  }
+  repeated ContactNotificationOverride contact_notification_overrides = 14;
+
+  /* notification_mode=broker: the program-wide notifications switch of a
+   * poller set through the Broker API. It wins over enable_notifications of the
+   * poller configuration. */
+  message PollerNotificationOverride {
+    uint64 poller_id = 1;
+    bool enabled = 2;
+  }
+  repeated PollerNotificationOverride poller_notification_overrides = 15;
 }
 
 /* Ignore */

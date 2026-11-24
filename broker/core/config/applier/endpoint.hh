@@ -79,6 +79,7 @@ class endpoint {
   endpoint(const endpoint&) = delete;
   void apply(std::list<config::endpoint> const& endpoints,
              const absl::btree_map<std::string, std::string>& global_params);
+  bool update_endpoint(const std::string& name);
   iterator endpoints_begin();
   iterator endpoints_end();
   std::timed_mutex& endpoints_mutex();

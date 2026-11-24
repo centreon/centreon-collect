@@ -19,9 +19,9 @@
 
 #include "com/centreon/broker/broker_downtime_callbacks.hh"
 
-#include <fmt/format.h>
 
 #include "broker/core/config/applier/state.hh"
+#include "com/centreon/broker/broker_comments.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "common/downtimes/downtime_manager.hh"
 
@@ -140,30 +140,13 @@ uint64_t broker_downtime_callbacks::create_downtime_comment(
     const std::string& author,
     const std::string& comment_data) {
   auto& cache = config::applier::state::instance().cache();
-  uint64_t internal_id = cache.next_downtime_comment_id();
   auto h = cache.host(host_id);
   uint32_t inst_id = (h && h->obj().instance_id() != 0)
                          ? h->obj().instance_id()
                          : cache.first_active_instance_id();
-
-  auto ev = std::make_shared<neb::pb_comment>();
-  auto& obj = ev->mut_obj();
-  obj.set_author(author);
-  obj.set_type(service_id == 0 ? Comment_Type_HOST : Comment_Type_SERVICE);
-  obj.set_data(comment_data);
-  obj.set_entry_time(time(nullptr));
-  obj.set_entry_type(Comment_EntryType_DOWNTIME);
-  obj.set_host_id(host_id);
-  obj.set_internal_id(internal_id);
-  obj.set_persistent(false);
-  if (inst_id != 0)
-    obj.set_instance_id(inst_id);
-  obj.set_service_id(service_id);
-  obj.set_source(Comment_Src_INTERNAL);
-
-  multiplexing::publisher pblshr;
-  pblshr.write(ev);
-  return internal_id;
+  return broker_comments::publish_comment(
+      host_id, service_id, inst_id, Comment_EntryType_DOWNTIME,
+      Comment_Src_INTERNAL, author, comment_data, false, time(nullptr));
 }
 
 /**
@@ -188,16 +171,7 @@ void broker_downtime_callbacks::delete_downtime_comment(
   uint32_t inst_id = (h && h->obj().instance_id() != 0)
                          ? h->obj().instance_id()
                          : cache.first_active_instance_id();
-
-  auto ev = std::make_shared<neb::pb_comment>();
-  auto& obj = ev->mut_obj();
-  obj.set_internal_id(comment_id);
-  if (inst_id != 0)
-    obj.set_instance_id(inst_id);
-  obj.set_deletion_time(time(nullptr));
-
-  multiplexing::publisher pblshr;
-  pblshr.write(ev);
+  broker_comments::publish_comment_deletion(comment_id, inst_id);
 }
 
 /* --- Anomaly detection lookup --- */

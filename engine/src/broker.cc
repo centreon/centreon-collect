@@ -467,14 +467,13 @@ static void forward_pb_host(int type,
                             int flags [[maybe_unused]],
                             uint64_t modified_attribute,
                             const engine::host* eh) {
-  if (cbm->centralized_conf())
-    return;
-
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb host {} event protobuf",
                       eh->host_id());
 
+  /* An adaptive change is sent in every mode: it is runtime, Broker and the
+   * database must see it. */
   if (type == NEBTYPE_ADAPTIVEHOST_UPDATE &&
       modified_attribute != MODATTR_ALL) {
     auto h = std::make_shared<neb::pb_adaptive_host>();
@@ -527,6 +526,8 @@ static void forward_pb_host(int type,
                           "callbacks: host '{}' has no ID (yet) defined",
                           (!eh->name().empty() ? eh->name() : "(unknown)"));
   } else {
+    if (cbm->centralized_conf())
+      return;
     auto h = std::make_shared<neb::pb_host>();
     auto& host = h->mut_obj();
 
@@ -931,9 +932,6 @@ static void forward_pb_service(int type,
                                int flags [[maybe_unused]],
                                uint64_t modified_attribute,
                                const engine::service* es) {
-  if (cbm->centralized_conf())
-    return;
-
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb service event protobuf");
 
@@ -1025,6 +1023,9 @@ static void forward_pb_service(int type,
           !es->get_hostname().empty() ? es->get_hostname() : "(unknown)",
           !es->description().empty() ? es->description() : "(unknown)");
   } else {
+    /* Adaptive change above is sent in every mode. */
+    if (cbm->centralized_conf())
+      return;
     auto s{std::make_shared<neb::pb_service>()};
     com::centreon::broker::Service& srv = s.get()->mut_obj();
 
@@ -3716,10 +3717,13 @@ void broker_log_data_legacy(std::string_view data, time_t entry_time) {
  *  @param[in] entry_time Entry time.
  */
 void broker_log_data(std::string_view data, time_t entry_time) {
-  // Config check.
-  if (!(pb_indexed_config.state().event_broker_options() &
+  /* cbm first: this sink runs on every log line of every thread, possibly
+   * before the configuration is loaded. Without cbm there is nobody to send
+   * to, and the configuration must not be read for nothing. */
+  if (!cbm ||
+      !(pb_indexed_config.state().event_broker_options() &
         BROKER_LOGGED_DATA) ||
-      !pb_indexed_config.state().log_v2_enabled() || !cbm)
+      !pb_indexed_config.state().log_v2_enabled())
     return;
 
   // Make callbacks.

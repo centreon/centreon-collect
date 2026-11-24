@@ -1,5 +1,5 @@
 #
-# Copyright 2009-2025 Centreon
+# Copyright 2009-2026 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -320,6 +320,8 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/time.cc
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/modules/handle.cc
+    ${SRC_DIR}/broker_acknowledgement_manager.cc
+    ${SRC_DIR}/broker_comments.cc
     ${SRC_DIR}/broker_notification_dispatcher.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
@@ -554,6 +556,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/processing/feeder.cc
     ${TEST_DIR}/time/timerange.cc
     ${TEST_DIR}/rpc/brokerrpc.cc
+    ${TEST_DIR}/rpc/legacy_commands.cc
     ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
     ${TEST_DIR}/exceptions.cc
     ${TEST_DIR}/io.cc

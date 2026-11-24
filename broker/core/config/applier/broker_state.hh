@@ -19,7 +19,6 @@
 #ifndef CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #define CCB_CONFIG_APPLIER_BROKER_STATE_HH
 #include <absl/base/call_once.h>
-#include <boost/asio/strand.hpp>
 
 #include "broker/core/config/applier/peer_registry.hh"
 #include "broker/core/config/applier/state.hh"
@@ -42,6 +41,11 @@ class broker_state : public state {
    * Engine at negotiation so it stops deciding notifications on its own. */
   bool notifications_on_broker() const {
     return _notification_mode == notification_mode_broker;
+  }
+  /* The notification trigger, nullptr in notification_mode=engine. Every
+   * out-of-band access to the notification_manager goes through it. */
+  broker_notification_dispatcher* notification_dispatcher() const {
+    return _notification_dispatcher.get();
   }
 
  private:
@@ -85,12 +89,14 @@ class broker_state : public state {
    * upstream central. */
   std::vector<std::shared_ptr<io::data>> _pending_diff_state_acks
       ABSL_GUARDED_BY(_connected_peers_m);
-  /* notification_mode=broker: pb_notification_execute events the notification
-   * dispatcher produced, queued per supervising poller. Drained by that
-   * poller's ENGINE-connected stream in read() and written down to it. */
+  /* Downward channel to the pollers: events addressed to one poller
+   * (pb_notification_execute from the notification dispatcher,
+   * pb_external_command from the ExecuteExternalCommand RPC), queued per
+   * poller. Drained by that poller's ENGINE-connected stream in read() and
+   * written down to it. */
   absl::flat_hash_map<uint64_t, std::vector<std::shared_ptr<io::data>>>
-      _pending_notification_executes ABSL_GUARDED_BY(_pending_notif_m);
-  mutable absl::Mutex _pending_notif_m;
+      _pending_for_pollers ABSL_GUARDED_BY(_pending_for_pollers_m);
+  mutable absl::Mutex _pending_for_pollers_m;
   /* Guards the forwarding queues above -- the peers have their own lock, in
    * the registry. */
   mutable absl::Mutex _connected_peers_m;
@@ -212,6 +218,9 @@ class broker_state : public state {
                 const std::string& timezone) override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::string poller_timezone(uint64_t poller_id) const override;
+  std::string poller_engine_conf(uint64_t poller_id) const;
+  bool runtime_state_owed(uint64_t poller_id) const;
+  void set_runtime_state_owed(uint64_t poller_id, bool owed);
   bool broker_knows_poller_conf(uint64_t poller_id) const override;
   void remove_peer(uint64_t poller_id,
                    const std::string& poller_name,
@@ -264,6 +273,8 @@ class broker_state : public state {
   void on_cache_sections_declared() override;
   void _configure_cache_directories(
       const com::centreon::broker::config::state& s) override;
+  void _resolve_pollers_config_dir(
+      const com::centreon::broker::config::state& s) override;
   void load_pollers_config_in_cache();
   void apply_poller_diff_in_cache(uint64_t poller_id);
   void remove_poller_config(uint64_t poller_id) override;
@@ -299,16 +310,15 @@ class broker_state : public state {
    * BROKER-connected stream's read() to forward them upstream. */
   std::vector<std::shared_ptr<io::data>> pop_pending_diff_state_acks()
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  /* notification_mode=broker: queue a pb_notification_execute for delivery to
-   * the poller supervising the resource. Called from the notification
-   * dispatcher (multiplexing thread). */
-  void push_pending_notification_execute(uint64_t poller_id,
-                                         std::shared_ptr<io::data> evt)
-      ABSL_LOCKS_EXCLUDED(_pending_notif_m);
-  /* notification_mode=broker: drain the notification executes queued for
-   * poller N. Called from that poller's ENGINE-connected stream read(). */
-  std::vector<std::shared_ptr<io::data>> pop_pending_notification_executes(
-      uint64_t poller_id) ABSL_LOCKS_EXCLUDED(_pending_notif_m);
+  /* Queue an event for delivery to poller N (notification execution, external
+   * command). Called from any thread. */
+  void push_pending_for_poller(uint64_t poller_id,
+                               std::shared_ptr<io::data> evt)
+      ABSL_LOCKS_EXCLUDED(_pending_for_pollers_m);
+  /* Drain the events queued for poller N. Called from that poller's
+   * ENGINE-connected stream read(). */
+  std::vector<std::shared_ptr<io::data>> pop_pending_for_poller(
+      uint64_t poller_id) ABSL_LOCKS_EXCLUDED(_pending_for_pollers_m);
 
   /* Central: returns the poller IDs of engine peers reachable via relay_id
    * that have a pending configuration update not yet sent. */

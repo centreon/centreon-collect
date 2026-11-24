@@ -32,6 +32,10 @@ class downtime;
 class service_status;
 }  // namespace neb
 
+namespace cache {
+class broker_cache;
+}
+
 namespace bam {
 // Forward declarations.
 class service_listener;
@@ -84,6 +88,7 @@ class service_book {
                             io::stream* visitor = nullptr);
   void save_to_cache(ServicesBookState* cache) const;
   void apply(const ServicesBookState& state);
+  size_t seed_from_cache(const cache::broker_cache& cache);
 };
 }  // namespace bam
 
