@@ -21,10 +21,7 @@
 #define CCE_MACROS_MACRO_CONTEXT_HH
 
 #include <array>
-#include <cstdint>
 #include <optional>
-#include <string>
-#include <string_view>
 
 #include "common/notifications/notification_types.hh"
 #include "engine/macros/defines.hh"
