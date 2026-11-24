@@ -5683,49 +5683,56 @@ is the initial `DiffState(add)` to the receiver or the return `DiffState(add)` t
 a bilateral exchange:
 
 ```protobuf
-message HostRuntimeState {
-  uint64 host_id                     = 1;
-  int32  current_status              = 2;  // UP/DOWN/UNREACHABLE
-  int32  state_type                  = 3;  // SOFT/HARD
-  int32  current_attempt             = 4;
-  string output                      = 5;
-  string perfdata                    = 6;
-  int64  last_check                  = 7;
-  int64  last_state_change           = 8;
-  bool   acknowledged                = 9;   // display hint; Engine decision-making only when notification_mode=engine
-  bool   in_downtime                 = 10;  // display hint; Engine decision-making only when notification_mode=engine
-  int64  last_notification           = 11;  // notification_mode=engine only
-  int32  current_notification_number = 12;  // notification_mode=engine only
+// common/engine_conf/state.proto — as implemented on 2026-10-02.
+enum RuntimeStateType { SOFT = 0; HARD = 1; }
+enum RuntimeCheckType { ACTIVE = 0; PASSIVE = 1; }
+enum RuntimeAckType { NONE = 0; NORMAL = 1; STICKY = 2; }
+
+message HostRuntime {
+  uint64     host_id = 1;
+  bool       checked = 2;
+  RuntimeCheckType  check_type = 3;
+  HostStatus state = 4;
+  RuntimeStateType  state_type = 5;
+  int64      last_state_change = 6;
+  HostStatus last_hard_state = 7;
+  int64      last_hard_state_change = 8;
+  int64      last_time_up = 9;
+  int64      last_time_down = 10;
+  int64      last_time_unreachable = 11;
+  string     output = 12;      // for the macros of a command run before the first check
+  string     perfdata = 13;    // filled only for the services an anomalydetection depends on
+  bool       flapping = 14;
+  double     percent_state_change = 15;
+  double     latency = 16;
+  double     execution_time = 17;
+  int64      last_check = 18;
+  int32      check_attempt = 19;
+  // notification_mode=engine only: when Broker owns acknowledgements,
+  // downtimes and notifications, it replays them itself and these fields
+  // are left at their defaults.
+  bool       acknowledged = 20;
+  RuntimeAckType    acknowledgement_type = 21;
+  int32      scheduled_downtime_depth = 22;
+  int32      notification_number = 23;
+  bool       no_more_notifications = 24;
+  int64      last_notification = 25;
+  int64      next_notification = 26;
 }
 
-message ServiceRuntimeState {
-  uint64 host_id                     = 1;
-  uint64 service_id                  = 2;
-  int32  current_status              = 3;
-  int32  state_type                  = 4;
-  int32  current_attempt             = 5;
-  string output                      = 6;
-  string perfdata                    = 7;
-  int64  last_check                  = 8;
-  int64  last_state_change           = 9;
-  bool   acknowledged                = 10;  // display hint; Engine decision-making only in distributed mode
-  bool   in_downtime                 = 11;  // display hint; Engine decision-making only in distributed mode
-  int64  last_notification           = 12;  // distributed mode only
-  int32  current_notification_number = 13;  // distributed mode only
+message ServiceRuntime {
+  // same fields, plus service_id = 2, long_output = 15 and
+  // last_time_ok/warning/critical/unknown = 10..13; numbered 1..29.
 }
 
 message RuntimeState {
-  repeated HostRuntimeState    hosts            = 1;
-  repeated ServiceRuntimeState services         = 2;
-  repeated Downtime            downtimes        = 3;  // notification_mode=engine only
-  repeated Acknowledgement     acknowledgements = 4;  // notification_mode=engine only
+  repeated HostRuntime    hosts    = 1;
+  repeated ServiceRuntime services = 2;
 }
 
-// Field added to DiffState — present in any add DiffState issued from a migration.
-// Broker embeds the cached state for each added host/service.
 message DiffState {
-  // ... existing fields (hosts, services, hostgroups, etc.) ...
-  optional RuntimeState runtime_state = N;
+  // ... existing fields ...
+  RuntimeState runtime_state = 148;  // set on every DiffState sent to a connecting poller
 }
 ```
 
