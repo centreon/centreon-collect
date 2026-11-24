@@ -1127,7 +1127,8 @@ int service::handle_async_check_result(
     set_is_being_freshened(false);
   }
 
-  if (queued_check_result.get_check_options() & CHECK_OPTION_CMA_RESULT) {
+  if ((queued_check_result.get_check_options() & CHECK_OPTION_CMA_RESULT) &&
+      get_check_command_ptr()) {
     // as check is passive and done by cma, we have to send command line to
     // broker
     macro_context macros;
@@ -3571,11 +3572,8 @@ void service::set_check_command_ptr(
  * @return std::string
  */
 std::string service::get_check_command_line(macro_context& macros) {
-  if (get_check_command_ptr()) {
-    macros.set_host(get_host_ptr().get());
-    macros.set_service(this);
-    macros.set_arguments(check_command(), 0);
-    return get_check_command_ptr()->process_cmd(macros);
-  } else
-    return "";
+  macros.set_host(get_host_ptr().get());
+  macros.set_service(this);
+  macros.set_arguments(check_command(), 0);
+  return get_check_command_ptr()->process_cmd(macros);
 }
