@@ -610,9 +610,11 @@ CBABOODEACTIVATEDSVC
     END
     Should Be True    ${gone}    The cache still holds service_303 after it was dropped from the export
 
-    # BAM reads its configuration once, at startup. Restarting Broker is what
-    # puts the two in the order production has them: the cache filled from the
-    # stored configuration, then BAM reading it.
+    # A reload of BAM compares the configuration of the KPIs, not whether their
+    # service is still activated: the KPI of service_303 is only dropped when BAM
+    # builds its configuration from scratch. Restarting Broker is what puts the
+    # two in the order production has them: the cache filled from the stored
+    # configuration, then BAM reading it.
     Ctn Kindly Stop Broker
     ${restart}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=True
@@ -622,10 +624,18 @@ CBABOODEACTIVATEDSVC
     Should Be True    ${result}    The KPI of the deactivated service_303 was not dropped
 
     # And only that one: a cache that answered for every service would have
-    # taken the KPI of service_302 with it.
-    ${dropped}    Grep File    ${centralLog}    linked to a deactivated service    regexp=True
-    ${count}    Get Line Count    ${dropped}
+    # taken the KPI of service_302 with it. BAM reads its configuration twice at
+    # startup, on opening and once the cache is ready, so the same KPI is
+    # reported dropped twice: what counts is how many distinct KPIs were.
+    ${dropped}    Grep File    ${centralLog}    ignoring kpi '\\d+' linked to a deactivated service    regexp=True
+    ${kpi_ids}    Get Regexp Matches    ${dropped}    ignoring kpi '(\\d+)'    1
+    ${kpi_ids}    Remove Duplicates    ${kpi_ids}
+    ${count}    Get Length    ${kpi_ids}
     Should Be Equal As Integers    ${count}    ${1}    ${count} KPIs were dropped instead of the one of service_303
+
+    ${content}    Create List    of service Service host_16/service_302 (16, 302) impacting BA
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    30
+    Should Be True    ${result}    The KPI of service_302 was not created after the restart
 
     Ctn Process Service Result Hard    host_16    service_302    0    output ok for service_302
     ${result}    Ctn Check Ba Status With Timeout    deactivated-ba    0    60

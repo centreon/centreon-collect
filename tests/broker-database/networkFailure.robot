@@ -6,6 +6,9 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Run Keywords    Ctn Stop Processes    AND    Ctn Clear Retention
+# The port 3306 must be reopened even if the test fails, otherwise all the
+# following suites lose the database.
+Test Teardown       Run Keywords    Ctn Reset Eth Connection    AND    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -173,7 +176,7 @@ NetworkDBFailU7
     Ctn Kindly Stop Broker
 
 NetworkDBFail8
-    [Documentation]    GIVEN Broker with unified_sql and 3 database connections
+    [Documentation]    GIVEN Broker with unified_sql, 3 database connections and a database read timeout of 5s
     ...    WHEN database network is blocked until failure detection
     ...    THEN Broker should log database errors
     ...    AND should recover and execute pending statements after network restoration
@@ -186,6 +189,7 @@ NetworkDBFail8
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    3
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_read_timeout    5
     Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
@@ -213,7 +217,7 @@ NetworkDBFail8
     Ctn Kindly Stop Broker
 
 NetworkDBFailU8
-    [Documentation]    GIVEN Broker is running with unified_sql, BBDO3 protocol and 3 database connections
+    [Documentation]    GIVEN Broker is running with unified_sql, BBDO3 protocol, 3 database connections and a database read timeout of 5s
     ...    AND Engine is connected to Broker
     ...    AND database queries are being executed successfully
     ...    WHEN the network connection on port 3306 is blocked indefinitely
@@ -230,6 +234,7 @@ NetworkDBFailU8
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    3
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_read_timeout    5
     Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
     Ctn Start Broker
