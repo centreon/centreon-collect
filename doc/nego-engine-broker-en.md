@@ -2346,7 +2346,7 @@ or there is no file at all on the very first start.
 
 | File | Written by | Content | After a crash |
 |---|---|---|---|
-| `<cache_dir>.cache` | `~broker_cache` (`_save_cache`, called from `~state`) | `BrokerCache` protobuf message (`bbdo/neb.proto`), detailed below | version from the last clean shutdown; started downtimes, acks and notification states are therefore stale |
+| `<cache_dir>.cache` | `~broker_cache` (`_save_cache`, called from `~state`) | `BrokerCache` protobuf message (`bbdo/neb.proto`), compressed with zstd by default, detailed below | version from the last clean shutdown; started downtimes, acks and notification states are therefore stale |
 | `<pollers_config_dir>/topology.cache` | `~broker_state` (`save_topology_cache`) | `poller_id → remote_id` pairs, see [Topology persistence](#topology-persistence) | missing or stale, not blocking: a mere hint |
 | `<cache_dir>.cache.centreon-bam-monitoring` | `~monitoring_stream` (`_write_cache`) | BA/KPI states, see [Starting up, in both regimes](#starting-up-in-both-regimes) | version from the last clean shutdown |
 
@@ -2387,6 +2387,38 @@ Section 15 too, in the `_resource_ids` table, apart from the host and service
 entries: a configuration rebuilding an entry or a database row restoring it
 leaves the identifiers alone, and read back they need no re-injection. A
 resource removed from the configuration takes its identifiers away.
+
+### Compression of the `.cache`
+
+The file is compressed with zstd (level 1) unless the `cache_compression`
+parameter of the `centreonBroker` section is `false`. It is `true` by default,
+so PHP does not need to generate it. The parameter is held by
+`config::applier::state`, the class that owns the cache, so it applies to cbd
+and to cbmod alike.
+
+A compressed file starts with a 6-byte header: the magic `\0CBC`, a format
+version (1) and an algorithm (1 = zstd), followed by a zstd frame carrying a
+checksum. A serialized protobuf message never starts with a null byte (field
+number 0 does not exist), so the header cannot be mistaken for the start of a
+plain file.
+
+`_load_cache()` reads the header, **whatever the parameter is**:
+
+* the header is there: the content is decompressed, then parsed;
+* it is not: the file is parsed as a plain `BrokerCache`, as written by the
+  previous versions or with `cache_compression: false`;
+* unknown version or algorithm, truncated or corrupted file: an error is
+  logged and the cache starts empty, as with a file that cannot be parsed.
+
+The parameter only decides how `_save_cache()` writes. A version older than this
+one cannot read a compressed file: it logs an error and starts with an empty
+cache. To go back to such a version without losing the cache, set
+`cache_compression` to `false` and restart Broker once beforehand.
+
+On the cache file of a legacy platform (849 kB), zstd 1 gives 57 kB in 0.6 ms
+(0.2 ms to decompress), where zlib 6 gives 75 kB in 5 ms. In centralized
+configuration the file only carries the state Broker owns and stays small.
+The library is the one of the system (`libzstd`), like `libcrypto` or `libz`.
 
 ### Re-injection at startup
 
