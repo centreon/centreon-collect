@@ -18,18 +18,27 @@
 
 #include "com/centreon/broker/unified_sql/connector.hh"
 
+#include "broker/core/config/applier/state.hh"
+
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
 /**
- *  Default constructor.
+ * @brief Constructor.
+ *
+ * @param endpoint_name The endpoint this connector serves (as in the Broker
+ * configuration), needed to release the reference role at destruction.
+ * @param is_reference Whether the cache accepted this output as its
+ * reference; handed to every stream open() creates.
  */
-connector::connector()
+connector::connector(const std::string& endpoint_name, bool is_reference)
     : io::endpoint(false,
                    stream::get_muxer_filter(),
-                   stream::get_forbidden_filter()) {}
+                   stream::get_forbidden_filter()),
+      _endpoint_name{endpoint_name},
+      _is_reference{is_reference} {}
 
 /**
  *  Set connection parameters.
@@ -70,5 +79,15 @@ std::shared_ptr<io::stream> connector::open() {
   return std::make_unique<stream>(
       _dbcfg, _rrd_len, _interval_length, _loop_timeout, _instance_timeout,
       _store_in_data_bin, _store_in_resources, _store_in_hosts_services,
-      _max_perfdata);
+      _max_perfdata, _is_reference);
+}
+
+/**
+ * @brief Destructor: a reference output going away releases the role, so
+ * that an output created by a later reload may take it.
+ */
+connector::~connector() noexcept {
+  if (_is_reference && config::applier::state::loaded())
+    config::applier::state::instance().cache().release_reference(
+        _endpoint_name);
 }

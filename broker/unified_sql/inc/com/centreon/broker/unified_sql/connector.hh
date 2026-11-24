@@ -41,10 +41,16 @@ class connector : public io::endpoint {
   bool _store_in_resources;
   bool _store_in_hosts_services;
   uint32_t _max_perfdata;
+  /* The endpoint this connector serves, and whether it is the reference of
+   * the global cache: declared by the factory before constructing the
+   * connector, handed to every stream open() creates, released at
+   * destruction. */
+  const std::string _endpoint_name;
+  const bool _is_reference;
 
  public:
-  connector();
-  ~connector() noexcept = default;
+  connector(const std::string& endpoint_name = "", bool is_reference = false);
+  ~connector() noexcept;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   bool operator==(const connector& other) = delete;
