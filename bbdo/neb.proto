@@ -58,6 +58,9 @@ enum ModifiedAttribute {
   MOD_FAILURE_PREDICTION_ENABLED = 32;
   MOD_PERFORMANCE_DATA_ENABLED = 64;
   MOD_OBSESSIVE_HANDLER_ENABLED = 128;
+  /* Never set: the CHANGE_*_EVENT_HANDLER and CHANGE_*_CHECK_COMMAND
+   * external commands are disabled in Engine (security). Kept so the values
+   * stay those of Engine's MODATTR_*. */
   MOD_EVENT_HANDLER_COMMAND = 256;
   MOD_CHECK_COMMAND = 512;
   MOD_NORMAL_CHECK_INTERVAL = 1024;
