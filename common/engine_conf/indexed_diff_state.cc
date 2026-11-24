@@ -26,6 +26,22 @@
 namespace com::centreon::engine::configuration {
 
 /**
+ * @brief Add the next difference of a poller whose previous ones are already
+ * indexed: it was computed from the configuration they led to, and what it
+ * says of a message replaces what they said.
+ *
+ * @param diff_state The difference. Drained on return.
+ * @param logger Logger for debug output.
+ */
+void indexed_diff_state::add_diff_state_from_same_poller(
+    configuration::DiffState& diff_state,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  _sequential = true;
+  add_diff_state(diff_state, logger);
+  _sequential = false;
+}
+
+/**
  * @brief Merge the content of the given diff state with this global diff
  * state.
  *

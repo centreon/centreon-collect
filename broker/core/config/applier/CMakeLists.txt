@@ -30,6 +30,8 @@ add_library(broker_applier_state STATIC
   modules.hh
   peer_registry.cc
   peer_registry.hh
+  poller_conf.cc
+  poller_conf.hh
   state.cc
   state.hh
 )
@@ -39,6 +41,8 @@ target_compile_definitions(broker_applier_state PRIVATE BROKER_COMPILATION)
 target_precompile_headers(broker_applier_state PRIVATE ../../precomp_inc/precomp.hh)
 
 set_target_properties(broker_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+target_link_libraries(broker_applier_state PRIVATE proto_file)
 
 add_dependencies(broker_applier_state process_stat)
 

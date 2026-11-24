@@ -140,11 +140,6 @@ class state {
                         bool extended_negotiation,
                         const std::string& engine_conf,
                         const std::string& timezone) = 0;
-  /* @brief Forget everything stored about a poller being removed from the
-   * platform. No-op outside a Broker: only there are poller configurations
-   * kept on disk. */
-  virtual void remove_poller_config(uint64_t poller_id [[maybe_unused]]) {}
-
   /* Whether Broker holds the content of the configuration this poller runs.
    * Says nothing about the poller having told us which version it runs. */
   virtual bool broker_knows_poller_conf(uint64_t poller_id

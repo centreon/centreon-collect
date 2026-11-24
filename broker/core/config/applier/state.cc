@@ -54,7 +54,7 @@ state::state(common::PeerType peer_type,
     : _peer_type{peer_type},
       _poller_id(0),
       _rpc_port(0),
-      _bbdo_version{2u, 0u, 0u},
+      _bbdo_version{BBDO_VERSION_MAJOR, BBDO_VERSION_MINOR, BBDO_VERSION_PATCH},
       _modules{logger},
       _center{std::make_shared<com::centreon::broker::stats::center>()},
       _logger{logger} {}

@@ -67,6 +67,7 @@ target_link_libraries(
   ${UNIFIED_SQL} PRIVATE
   bbdo_storage
   centreon_engine_conf
+  proto_file
   centreon_pb_bbdo
   fmt::fmt
   absl::any absl::log absl::base absl::bits)
