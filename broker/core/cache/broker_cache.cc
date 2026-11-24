@@ -480,6 +480,22 @@ void broker_cache::merge(
  */
 void broker_cache::_merge_locked(
     const com::centreon::engine::configuration::State& state) {
+  /* A full state: what the cache holds of this poller and the state no longer
+   * defines goes first. */
+  {
+    absl::flat_hash_set<uint64_t> kept_hosts;
+    for (const engine::configuration::Host& host : state.hosts())
+      kept_hosts.insert(host.host_id());
+    absl::flat_hash_set<std::pair<uint64_t, uint64_t>> kept_services;
+    for (const engine::configuration::Service& svc : state.services())
+      kept_services.emplace(svc.host_id(), svc.service_id());
+    for (const engine::configuration::Anomalydetection& ad :
+         state.anomalydetections())
+      kept_services.emplace(ad.host_id(), ad.service_id());
+    _remove_stale_entries_of_poller(state.poller_id(), kept_hosts,
+                                    kept_services);
+  }
+
   /* Work on instances */
   if (section_enabled(CACHE_INSTANCES))
     _instances.insert_or_assign(
@@ -650,14 +666,25 @@ void broker_cache::_merge_locked(
                                   state.poller_id());
     }
 
-    /* Work on anomaly detections */
-    _anomaly_detection_index.clear();
+    /* Work on anomaly detections. The index is not cleared: it also holds
+     * the anomaly detections of the other pollers. Those this poller no longer
+     * defines left it with _remove_stale_entries_of_poller(); one still defined
+     * leaves its previous entry here, its dependent service may have changed. */
     for (const engine::configuration::Anomalydetection& ad :
          state.anomalydetections()) {
       auto s = std::make_shared<neb::pb_service>();
       _fill_anomaly_detection(&s->mut_obj(), ad);
       auto [it, inserted] = index_svc.insert(s);
       if (!inserted) {
+        const auto& old_obj = (*it)->obj();
+        const auto old_key =
+            std::make_pair(old_obj.host_id(), old_obj.dependent_service_id());
+        if (auto old_set = _anomaly_detection_index.find(old_key);
+            old_set != _anomaly_detection_index.end()) {
+          old_set->second.erase(old_obj.service_id());
+          if (old_set->second.empty())
+            _anomaly_detection_index.erase(old_set);
+        }
         _keep_service_runtime(&s->mut_obj(), (*it)->obj());
         index_svc.replace(it, s);
       }
@@ -1069,6 +1096,115 @@ void broker_cache::_remove_poller_from_contacts(uint64_t poller_id) {
 }
 
 /**
+ * @brief The removals that bring the part of the cache owned by a poller down
+ * to a full configuration of this poller: its hosts, their services and
+ * anomaly detections that the full configuration does not define any more, and
+ * its contribution to every host group and service group.
+ *
+ * A full configuration only says what exists: applied as it is, it adds and
+ * replaces, and what the poller no longer defines would stay in the cache. The
+ * database does not keep it (unified_sql disables the poller's resources
+ * before adding them again, see clean_tables()); the cache must not either.
+ *
+ * What is kept is not removed then added again: a host or a service the full
+ * configuration still defines keeps its runtime state (acknowledgement,
+ * notification state, overrides). Group memberships are rebuilt instead, every
+ * group of the poller being given back with its members by the full
+ * configuration: removing the poller's contribution is the only way to forget
+ * the members that left. A group shared with another poller keeps that
+ * poller's members.
+ *
+ * Hosts are those whose instance is the poller; services are those of these
+ * hosts. A host moving to another poller in the same global diff appears in
+ * the kept hosts, so it is not removed.
+ *
+ * @param poller_id The poller whose full configuration is applied.
+ * @param kept_hosts The ids of the hosts the full configuration defines.
+ * @param kept_services The (host id, service id) of the services and anomaly
+ * detections it defines.
+ *
+ * @return A diff made of removals only, empty if nothing is stale.
+ */
+engine::configuration::DiffState broker_cache::_stale_entries_of_poller(
+    uint64_t poller_id,
+    const absl::flat_hash_set<uint64_t>& kept_hosts,
+    const absl::flat_hash_set<std::pair<uint64_t, uint64_t>>& kept_services)
+    const {
+  engine::configuration::DiffState stale;
+  stale.set_poller_id(poller_id);
+
+  /* Groups first, while the hosts they link are still known: the removal of a
+   * group only unlinks the members whose host belongs to the poller. */
+  if (section_enabled(CACHE_GROUPS)) {
+    for (const auto& [hg, pollers] : _hostgroups)
+      if (pollers.contains(poller_id)) {
+        auto* key = stale.mutable_hostgroups()->add_removed();
+        key->set_group_name(hg->obj().name());
+        key->set_poller_id(poller_id);
+      }
+    for (const auto& [sg, pollers] : _servicegroups)
+      if (pollers.contains(poller_id)) {
+        auto* key = stale.mutable_servicegroups()->add_removed();
+        key->set_group_name(sg->obj().name());
+        key->set_poller_id(poller_id);
+      }
+  }
+
+  auto [first, last] = _hosts.get<by_instance>().equal_range(poller_id);
+  for (; first != last; ++first) {
+    const uint64_t host_id = (*first)->obj().host_id();
+    if (section_enabled(CACHE_HOSTS) && !kept_hosts.contains(host_id))
+      stale.mutable_hosts()->add_removed(host_id);
+    if (section_enabled(CACHE_SERVICES)) {
+      const auto& services = _services.get<by_id>();
+      for (auto it = services.lower_bound(std::make_pair(host_id, 0ull));
+           it != services.end() && (*it)->obj().host_id() == host_id; ++it) {
+        const auto& svc = (*it)->obj();
+        if (kept_services.contains(
+                std::make_pair(svc.host_id(), svc.service_id())))
+          continue;
+        auto* key = svc.type() == ServiceType::ANOMALY_DETECTION
+                        ? stale.mutable_anomalydetections()->add_removed()
+                        : stale.mutable_services()->add_removed();
+        key->set_host_id(svc.host_id());
+        key->set_service_id(svc.service_id());
+      }
+    }
+  }
+  return stale;
+}
+
+/**
+ * @brief Remove from the cache what a poller no longer defines, before its full
+ * configuration is applied (see _stale_entries_of_poller()).
+ *
+ * @param poller_id The poller whose full configuration is applied.
+ * @param kept_hosts The ids of the hosts the full configuration defines.
+ * @param kept_services The (host id, service id) of the services and anomaly
+ * detections it defines.
+ */
+void broker_cache::_remove_stale_entries_of_poller(
+    uint64_t poller_id,
+    const absl::flat_hash_set<uint64_t>& kept_hosts,
+    const absl::flat_hash_set<std::pair<uint64_t, uint64_t>>& kept_services) {
+  const engine::configuration::DiffState stale =
+      _stale_entries_of_poller(poller_id, kept_hosts, kept_services);
+  if (stale.hosts().removed().empty() && stale.services().removed().empty() &&
+      stale.anomalydetections().removed().empty() &&
+      stale.hostgroups().removed().empty() &&
+      stale.servicegroups().removed().empty())
+    return;
+  _logger->debug(
+      "Full configuration of poller {}: {} host(s), {} service(s) and {} "
+      "anomaly detection(s) it no longer defines removed from the cache, its "
+      "contribution to {} host group(s) and {} service group(s) rebuilt",
+      poller_id, stale.hosts().removed_size(), stale.services().removed_size(),
+      stale.anomalydetections().removed_size(),
+      stale.hostgroups().removed_size(), stale.servicegroups().removed_size());
+  _apply_locked(stale);
+}
+
+/**
  * @brief Apply a configuration state difference into the cache. Used when some
  * new Engine configurations are pushed by a user (i.e. when a
  * `pb_global_diff_state` event is received).
@@ -1105,6 +1241,28 @@ void broker_cache::_apply_locked(
     const com::centreon::engine::configuration::DiffState& diff) {
   _logger->debug("Applying configuration diff for poller id {} and name '{}'",
                  diff.poller_id(), diff.poller_name());
+
+  /* The pollers sending their full configuration: what the cache holds of them
+   * and this configuration no longer defines goes first. Kept is what the whole
+   * diff defines, whatever the poller: a host moving from such a poller to
+   * another one in the same diff stays. */
+  if (!diff.full_conf_poller_id().empty()) {
+    absl::flat_hash_set<uint64_t> kept_hosts;
+    for (const auto* hosts : {&diff.hosts().added(), &diff.hosts().modified()})
+      for (const engine::configuration::Host& host : *hosts)
+        kept_hosts.insert(host.host_id());
+    absl::flat_hash_set<std::pair<uint64_t, uint64_t>> kept_services;
+    for (const auto* services :
+         {&diff.services().added(), &diff.services().modified()})
+      for (const engine::configuration::Service& svc : *services)
+        kept_services.emplace(svc.host_id(), svc.service_id());
+    for (const auto* ads : {&diff.anomalydetections().added(),
+                            &diff.anomalydetections().modified()})
+      for (const engine::configuration::Anomalydetection& ad : *ads)
+        kept_services.emplace(ad.host_id(), ad.service_id());
+    for (uint64_t poller_id : diff.full_conf_poller_id())
+      _remove_stale_entries_of_poller(poller_id, kept_hosts, kept_services);
+  }
 
   /* A diff may toggle the program-wide notification flags or interval_length
    * without resending the whole state, so keep the cached values in sync. */

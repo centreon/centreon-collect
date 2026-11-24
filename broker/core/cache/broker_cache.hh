@@ -608,6 +608,16 @@ class broker_cache {
   void _apply_locked(
       const com::centreon::engine::configuration::DiffState& diff)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  com::centreon::engine::configuration::DiffState _stale_entries_of_poller(
+      uint64_t poller_id,
+      const absl::flat_hash_set<uint64_t>& kept_hosts,
+      const absl::flat_hash_set<std::pair<uint64_t, uint64_t>>& kept_services)
+      const ABSL_SHARED_LOCKS_REQUIRED(_mutex);
+  void _remove_stale_entries_of_poller(
+      uint64_t poller_id,
+      const absl::flat_hash_set<uint64_t>& kept_hosts,
+      const absl::flat_hash_set<std::pair<uint64_t, uint64_t>>& kept_services)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _notify_configuration_changed()
       ABSL_LOCKS_EXCLUDED(_mutex, _config_listeners_m);
   absl::flat_hash_map<uint64_t, instance_info> _instances
