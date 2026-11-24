@@ -549,9 +549,13 @@ int32_t notification_manager::notify(uint64_t host_id,
       default:
         st.events[cat].reset();
     }
-    /* In case of an acknowledgement, we must keep the _notification_number
-     * otherwise the recovery notification won't be sent when needed. */
-    if (cat != cat_acknowledgement && cat != cat_downtime) {
+    /* The number is reset by a recovery. The other notifications keep it
+     * while a problem is ongoing, otherwise the recovery of this problem would
+     * not be sent (it requires a number). An acknowledgement and a downtime
+     * always keep it. */
+    if (cat == cat_recovery ||
+        (cat != cat_acknowledgement && cat != cat_downtime &&
+         !st.events[cat_normal])) {
       SPDLOG_LOGGER_TRACE(notifications_logger(),
                           "_notification_number notify: {} => 0",
                           notification_number(host_id, service_id));
