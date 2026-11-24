@@ -1,26 +1,27 @@
 /**
-* Copyright 2015-2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2015-2026 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/watchdog/instance.hh"
 
 #include <wait.h>
 
 #include <csignal>
+#include <thread>
 
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -77,6 +78,12 @@ static pid_t exec_process(char const** argv) {
   // I'm your father
   if (son_pid) {
   } else {
+    /* The watchdog blocks the signals it waits for with sigtimedwait(), the
+     * mask is inherited through execve(): cbd must get it empty, otherwise it
+     * could not be stopped by a SIGTERM. */
+    sigset_t empty;
+    sigemptyset(&empty);
+    sigprocmask(SIG_SETMASK, &empty, nullptr);
     int res = execve(argv[0], const_cast<char**>(argv), nullptr);
     exit(res);
   }
@@ -84,11 +91,34 @@ static pid_t exec_process(char const** argv) {
 }
 
 /**
- *  Restart an instance of cbd.
+ * @brief The process of this instance has stopped and has been reaped. It is
+ * restarted now, or later if it had been started too recently.
  */
-void instance::restart() {
+void instance::on_stopped() {
   _started = false;
-  start();
+  auto restart_time = _since_last_start + min_uptime;
+  if (std::chrono::steady_clock::now() >= restart_time)
+    start();
+  else {
+    logger->error(
+        "cbd instance '{}' stopped less than {}s after its start, it will be "
+        "restarted in a few seconds, you must look at its configuration",
+        _config.get_name(), min_uptime.count());
+    _restart_at = restart_time;
+  }
+}
+
+/**
+ * @brief Restart the process if its restart was delayed and the time has
+ * come.
+ *
+ * @param now The current time.
+ */
+void instance::restart_if_due(std::chrono::steady_clock::time_point now) {
+  if (_restart_at && now >= *_restart_at) {
+    _restart_at.reset();
+    start();
+  }
 }
 
 /**
@@ -97,7 +127,8 @@ void instance::restart() {
 void instance::start() {
   if (!_started && _config.should_run()) {
     _started = true;
-    _since_last_start = timestamp::now();
+    _since_last_start = std::chrono::steady_clock::now();
+    _restart_at.reset();
     logger->info("Starting progress '{}'", _config.get_name());
     char const* argv[]{_config.get_executable().c_str(),
                        _config.get_config_file().c_str(), nullptr};
@@ -129,7 +160,8 @@ void instance::stop() {
       logger->error("Could not send a kill signal to process '{}' (PID {}): {}",
                     _config.get_name(), _pid, strerror(errno));
     int status;
-    int timeout = 15;
+    /* 15s to stop, checked every 100ms. */
+    int timeout = 150;
     while ((res = waitpid(_pid, &status, WNOHANG)) == 0) {
       if (--timeout < 0) {
         logger->error(
@@ -146,7 +178,7 @@ void instance::stop() {
                        _pid);
         return;
       }
-      sleep(1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     if (res < 0)
       logger->error("Unable to stop '{}' (PID {}): {}", _config.get_name(),
