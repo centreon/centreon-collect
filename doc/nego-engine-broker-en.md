@@ -5012,8 +5012,20 @@ is. The reference flag and its arbitration only make sense in centralized mode.
 *Arbitration.* If several modules declare themselves as reference, the first declared wins:
 the declaration returns a boolean, the following ones get false, log a warning naming the
 elected one and load nothing. No blocking error: a wrong configuration must never prevent
-Broker from starting. Beware: `_endpoints` is a `btree_map` sorted by `endpoint::operator<`,
-so the configuration file order is not guaranteed as such, to be checked when coding.
+Broker from starting.
+
+*Done on 2026-10-01.* The `unified_sql` output carries a JSON key `reference`, **true by
+default**: a platform with a single `unified_sql` output has nothing to write, and PHP does
+not change. `"reference": false` opts an output out, e.g. a second `unified_sql` towards
+another database. The declaration is made in `factory::new_endpoint`, not when the stream
+opens: the endpoint applier creates the outputs one after the other, in configuration file
+order, on the main thread, so "first declared wins" is deterministic — the sorted `btree_map`
+of endpoints plays no part, it only matters after creation. On the cache side,
+`declare_reference(name)` returns the verdict, `release_reference(name)` is called by the
+connector destructor when a reload removes the output, and `reference_endpoint()` names the
+elected one. The verdict goes down from the connector to the stream, which logs it when it
+opens ("this output is / is not the reference of the global cache") and will use it for the
+overlay. Tests: `CBSS_REFERENCE`, `CBSS_REFERENCE_OPT_OUT`.
 
 *Database unreachable at first `open()`.* The barrier releases on timeout, poller statuses
 start arriving, and the overlay happens later, on the successful connection. It must then
