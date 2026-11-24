@@ -55,10 +55,29 @@ comes in two forms:
   The difference is the only form that says what an export removed, hence its
   use instead of a `pb_engine_state`.
 
+A full configuration only says what exists. Applied as it is, it would add and
+replace, and what the poller no longer defines would stay in the cache. Before
+applying it, the cache therefore removes what the poller owns in it and the
+configuration no longer defines (`_remove_stale_entries_of_poller()`): its
+hosts (those whose instance is the poller), the services and anomaly
+detections of these hosts, and its contribution to every host group and
+service group, which the full configuration gives back with its members. The
+members of a shared group coming from another poller stay. This holds for
+`merge()` and for a global diff carrying the full configuration of a poller
+(`full_conf_poller_id`), which happens when `Broker` had no `<ID>.prot` to
+compute a difference from. It is the cache counterpart of unified_sql's
+`clean_tables(full_configuration)`, which disables the poller's resources
+before adding them again. A kept host is not removed then put back: it keeps
+its runtime state. Neither is a host moving to another poller in the same
+global diff. Unit tests
+`BrokerCacheTest.FullConfigurationRemovesWhatThePollerNoLongerDefines` and
+`BrokerCacheTest.MergeRemovesWhatThePollerNoLongerDefines`.
+
 Both `merge()` and `apply()` recreate a host or service entry from the
-configuration (`_fill_host`). The check state it carried is lost at that
-moment, until the next status; see
-[What is not persisted](#what-is-not-persisted).
+configuration (`_fill_host`), but take its runtime state over
+(`_keep_host_runtime()`, `_keep_service_runtime()`): a host or a service the
+configuration defines again keeps its check state, its acknowledgement and its
+overrides (unit test `BrokerCacheTest.ConfigRebuildKeepsRuntimeState`).
 
 **2. Events, through the multiplexer.** After handing a batch to the muxers,
 the multiplexing engine calls `cache().publish(batch)`. The cache handles the
@@ -237,9 +256,8 @@ and `tags`.
 * **The check state of resources** (state, `state_type`, attempt,
   `last_check`, output, perfdata, flapping history…). The cache holds it in
   memory through `update_host(pb_host_status)`, but in centralized configuration
-  it is never written, and it is **lost on every `merge()`** since `_fill_host`
-  recreates the entry from the configuration. It only survives in the database
-  and in the poller's local `retention.dat`.
+  it is never written. Rebuilding the entry with `merge()` or `apply()` keeps it,
+  but a `Broker` restart loses it: it only survives in the database.
 * **Future downtimes**, whose window has not started: they are neither in the
   cache nor re-read from the database. After a Broker restart, only the
   `downtimes` table keeps track of them.
