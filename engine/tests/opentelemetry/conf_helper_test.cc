@@ -468,3 +468,297 @@ TEST_F(conf_helper_test, event_handlers_disabled_globally) {
   // the per host event handler is extracted regardless
   ASSERT_EQ(recorder.records[0].event_handler, "echo HSTEH");
 }
+
+/**
+ * @brief check that the state macros of kept_macros (HOSTSTATE, HOSTSTATETYPE,
+ * HOSTATTEMPT for hosts and SERVICESTATE, SERVICESTATETYPE, SERVICEATTEMPT for
+ * services) are not expanded by the engine but kept literal in the event
+ * handler command lines: the agent resolves them itself when it executes the
+ * event handler
+ */
+TEST_F(conf_helper_test, event_handler_state_macros_are_kept) {
+  pb_config.set_enable_event_handlers(true);
+  pb_config.set_global_host_event_handler("gehcmd");
+  pb_config.set_global_service_event_handler("gehsvc");
+
+  add_raw_command(
+      "gehcmd", "echo $HOSTSTATE$ $HOSTSTATETYPE$ $HOSTATTEMPT$");
+  add_raw_command("gehsvc",
+                  "echo $SERVICESTATE$ $SERVICESTATETYPE$ $SERVICEATTEMPT$");
+  add_raw_command("ehcmd", "echo $HOSTSTATE$-$HOSTATTEMPT$");
+  add_raw_command("ehsvc", "echo $SERVICESTATE$-$SERVICEATTEMPT$");
+
+  std::shared_ptr<host> hst = host::hosts["test_host"];
+  std::shared_ptr<service> svc = service::services_by_id[{1, 2}];
+  std::shared_ptr<service> svc2 = service::services_by_id[{1, 3}];
+  ASSERT_TRUE(hst);
+  ASSERT_TRUE(svc);
+  ASSERT_TRUE(svc2);
+
+  // if the engine expanded these macros, the following values would show up
+  // in the command lines, this is exactly what must not happen
+  hst->set_current_state(host::state_down);
+  hst->set_state_type(checkable::soft);
+  hst->set_current_attempt(2);
+  svc->set_current_state(service::state_warning);
+  svc->set_state_type(checkable::soft);
+  svc->set_current_attempt(1);
+
+  hst->set_event_handler("ehcmd");
+  hst->set_event_handler_enabled(true);
+  svc->set_event_handler("ehsvc");
+  svc->set_event_handler_enabled(true);
+  svc2->set_event_handler("ehsvc");
+  svc2->set_event_handler_enabled(false);
+
+  handler_recorder recorder;
+  whitelist_cache cache;
+
+  e_get_otel_commands_ret ret = get_otel_commands(
+      "test_host", std::move(recorder), cache, spdlog::default_logger());
+
+  ASSERT_EQ(ret, e_get_otel_commands_ret::success);
+  ASSERT_EQ(recorder.records.size(), 3U);
+
+  // host: the state macros are kept as is
+  ASSERT_EQ(recorder.records[0].global_event_handler,
+            "echo $HOSTSTATE$ $HOSTSTATETYPE$ $HOSTATTEMPT$");
+  ASSERT_EQ(recorder.records[0].event_handler,
+            "echo $HOSTSTATE$-$HOSTATTEMPT$");
+
+  // service: same for the service state macros
+  ASSERT_EQ(recorder.records[1].global_event_handler,
+            "echo $SERVICESTATE$ $SERVICESTATETYPE$ $SERVICEATTEMPT$");
+  ASSERT_EQ(recorder.records[1].event_handler,
+            "echo $SERVICESTATE$-$SERVICEATTEMPT$");
+
+  // service with disabled event handler: the state macros don't leak in
+  ASSERT_TRUE(recorder.records[2].event_handler.empty());
+}
+
+/**
+ * @brief check that an event handler naming an unknown command is reported
+ * empty while the check command is still given to the handler
+ */
+TEST_F(conf_helper_test, event_handler_unknown_command) {
+  std::shared_ptr<host> hst = host::hosts["test_host"];
+  std::shared_ptr<service> svc = service::services_by_id[{1, 2}];
+  ASSERT_TRUE(hst);
+  ASSERT_TRUE(svc);
+  hst->set_event_handler("no_such_command");
+  hst->set_event_handler_enabled(true);
+  svc->set_event_handler("no_such_command");
+  svc->set_event_handler_enabled(true);
+
+  handler_recorder recorder;
+  whitelist_cache cache;
+
+  e_get_otel_commands_ret ret = get_otel_commands(
+      "test_host", std::move(recorder), cache, spdlog::default_logger());
+
+  ASSERT_EQ(ret, e_get_otel_commands_ret::success);
+  ASSERT_EQ(recorder.records.size(), 3U);
+  ASSERT_TRUE(recorder.records[0].event_handler.empty());
+  ASSERT_EQ(recorder.records[0].cmd_line, "echo 0");
+  ASSERT_TRUE(recorder.records[1].event_handler.empty());
+  ASSERT_EQ(recorder.records[1].cmd_line, "echo 'output| metric=12;50;75'");
+}
+
+/**
+ * @brief check that a host event handler that is set but disabled is reported
+ * empty
+ */
+TEST_F(conf_helper_test, host_event_handler_disabled) {
+  add_raw_command("ehcmd", "echo HSTEH");
+
+  std::shared_ptr<host> hst = host::hosts["test_host"];
+  ASSERT_TRUE(hst);
+  hst->set_event_handler("ehcmd");
+  hst->set_event_handler_enabled(false);
+
+  handler_recorder recorder;
+  whitelist_cache cache;
+
+  get_otel_commands("test_host", std::move(recorder), cache,
+                    spdlog::default_logger());
+
+  ASSERT_EQ(recorder.records.size(), 3U);
+  ASSERT_TRUE(recorder.records[0].event_handler.empty());
+}
+
+/**
+ * @brief check that global event handlers are ignored when event handlers are
+ * disabled in the global configuration, even if they are set
+ */
+TEST_F(conf_helper_test, global_event_handlers_set_but_disabled) {
+  pb_config.set_enable_event_handlers(false);
+  pb_config.set_global_host_event_handler("gehcmd");
+  pb_config.set_global_service_event_handler("gehsvc");
+  add_raw_command("gehcmd", "echo GH");
+  add_raw_command("gehsvc", "echo GS");
+
+  handler_recorder recorder;
+  whitelist_cache cache;
+
+  get_otel_commands("test_host", std::move(recorder), cache,
+                    spdlog::default_logger());
+
+  ASSERT_EQ(recorder.records.size(), 3U);
+  for (const handler_recorder::record& rec : recorder.records) {
+    ASSERT_TRUE(rec.global_event_handler.empty()) << rec.cmd_name;
+  }
+}
+
+/**
+ * @brief check that the global host event handler is not given to the
+ * services when no global service event handler is configured
+ */
+TEST_F(conf_helper_test, global_host_event_handler_not_given_to_services) {
+  pb_config.set_enable_event_handlers(true);
+  pb_config.set_global_host_event_handler("gehcmd");
+  add_raw_command("gehcmd", "echo GH");
+
+  handler_recorder recorder;
+  whitelist_cache cache;
+
+  get_otel_commands("test_host", std::move(recorder), cache,
+                    spdlog::default_logger());
+
+  ASSERT_EQ(recorder.records.size(), 3U);
+  ASSERT_EQ(recorder.records[0].global_event_handler, "echo GH");
+  ASSERT_TRUE(recorder.records[1].global_event_handler.empty());
+  ASSERT_TRUE(recorder.records[2].global_event_handler.empty());
+}
+
+/**
+ * @brief check that the host event handler is not given to the services
+ * that have no event handler
+ */
+TEST_F(conf_helper_test, host_event_handler_not_given_to_services) {
+  add_raw_command("ehcmd", "echo HSTEH");
+
+  std::shared_ptr<host> hst = host::hosts["test_host"];
+  ASSERT_TRUE(hst);
+  hst->set_event_handler("ehcmd");
+  hst->set_event_handler_enabled(true);
+
+  handler_recorder recorder;
+  whitelist_cache cache;
+
+  get_otel_commands("test_host", std::move(recorder), cache,
+                    spdlog::default_logger());
+
+  ASSERT_EQ(recorder.records.size(), 3U);
+  ASSERT_EQ(recorder.records[0].event_handler, "echo HSTEH");
+  ASSERT_TRUE(recorder.records[1].event_handler.empty());
+  ASSERT_TRUE(recorder.records[2].event_handler.empty());
+}
+
+/**
+ * @brief check that an event handler rejected by the whitelist is reported
+ * empty, while the check command is still given to the handler
+ */
+TEST_F(conf_helper_test, event_handler_rejected_by_whitelist) {
+  pb_config.set_enable_event_handlers(true);
+  pb_config.set_global_service_event_handler("gehsvc");
+  add_raw_command("gehsvc", "echo GS");
+  add_raw_command("ehcmd", "echo HSTEH");
+
+  std::shared_ptr<host> hst = host::hosts["test_host"];
+  ASSERT_TRUE(hst);
+  hst->set_event_handler("ehcmd");
+  hst->set_event_handler_enabled(true);
+
+  handler_recorder recorder;
+  whitelist_cache cache;
+  cache.whitelist_instance_id =
+      configuration::whitelist::instance().instance_id();
+  cache.data.emplace("echo HSTEH", false);
+  cache.data.emplace("echo GS", false);
+
+  e_get_otel_commands_ret ret = get_otel_commands(
+      "test_host", std::move(recorder), cache, spdlog::default_logger());
+
+  ASSERT_EQ(ret, e_get_otel_commands_ret::success);
+  ASSERT_EQ(recorder.records.size(), 3U);
+  ASSERT_EQ(recorder.records[0].cmd_line, "echo 0");
+  ASSERT_TRUE(recorder.records[0].event_handler.empty());
+  ASSERT_TRUE(recorder.records[1].global_event_handler.empty());
+  ASSERT_TRUE(recorder.records[2].global_event_handler.empty());
+}
+
+/**
+ * @brief check that a service check command rejected by the whitelist is not
+ * given to the handler, while the other commands are
+ */
+TEST_F(conf_helper_test, service_check_rejected_by_whitelist) {
+  handler_recorder recorder;
+  whitelist_cache cache;
+  cache.whitelist_instance_id =
+      configuration::whitelist::instance().instance_id();
+  cache.data.emplace("echo 'output| metric=12;50;75'", false);
+
+  e_get_otel_commands_ret ret = get_otel_commands(
+      "test_host", std::move(recorder), cache, spdlog::default_logger());
+
+  ASSERT_EQ(ret, e_get_otel_commands_ret::success);
+  ASSERT_EQ(recorder.records.size(), 2U);
+  ASSERT_TRUE(recorder.records[0].service.empty());
+  ASSERT_EQ(recorder.records[1].service, "test_svc_2");
+}
+
+/**
+ * @brief check that the macros not kept for the agent (host name, service
+ * description) are expanded in the event handler command lines
+ */
+TEST_F(conf_helper_test, event_handler_other_macros_expanded) {
+  pb_config.set_enable_event_handlers(true);
+  pb_config.set_global_service_event_handler("gehsvc");
+  add_raw_command("gehsvc", "echo $HOSTNAME$ $SERVICEDESC$ $SERVICESTATE$");
+  add_raw_command("ehcmd", "echo $HOSTNAME$ $HOSTSTATE$");
+
+  std::shared_ptr<host> hst = host::hosts["test_host"];
+  ASSERT_TRUE(hst);
+  hst->set_event_handler("ehcmd");
+  hst->set_event_handler_enabled(true);
+
+  handler_recorder recorder;
+  whitelist_cache cache;
+
+  get_otel_commands("test_host", std::move(recorder), cache,
+                    spdlog::default_logger());
+
+  ASSERT_EQ(recorder.records.size(), 3U);
+  ASSERT_EQ(recorder.records[0].event_handler, "echo test_host $HOSTSTATE$");
+  ASSERT_EQ(recorder.records[1].global_event_handler,
+            "echo test_host test_svc $SERVICESTATE$");
+  ASSERT_EQ(recorder.records[2].global_event_handler,
+            "echo test_host test_svc_2 $SERVICESTATE$");
+}
+
+/**
+ * @brief check that the event handler command lines are recorded in the
+ * whitelist cache next to the check command lines
+ */
+TEST_F(conf_helper_test, whitelist_cache_contains_event_handlers) {
+  pb_config.set_enable_event_handlers(true);
+  pb_config.set_global_service_event_handler("gehsvc");
+  add_raw_command("gehsvc", "echo GS");
+  add_raw_command("ehcmd", "echo HSTEH");
+
+  std::shared_ptr<host> hst = host::hosts["test_host"];
+  ASSERT_TRUE(hst);
+  hst->set_event_handler("ehcmd");
+  hst->set_event_handler_enabled(true);
+
+  handler_recorder recorder;
+  whitelist_cache cache;
+
+  get_otel_commands("test_host", std::move(recorder), cache,
+                    spdlog::default_logger());
+
+  // 3 check commands + host event handler + global service event handler
+  ASSERT_EQ(cache.data.size(), 5U);
+  ASSERT_TRUE(cache.data.contains("echo HSTEH"));
+  ASSERT_TRUE(cache.data.contains("echo GS"));
+}

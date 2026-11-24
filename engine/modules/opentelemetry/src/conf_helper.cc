@@ -20,6 +20,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/grab_service.hh"
+#include "com/centreon/engine/macros/process.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 
@@ -94,7 +95,10 @@ static bool _fill_service_event_handler(
                         event_handler_command);
     return false;
   }
-  get_raw_command_line_r(macros, cmd->second.get(), "", cmdline, 0);
+  std::string raw_cmdline;
+  get_raw_command_line_r(macros, cmd->second.get(), "", raw_cmdline, 0);
+  process_macros_r(macros, raw_cmdline, cmdline,
+                   STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
   if (!allowed_by_white_list(cmdline, host ? host->name() : "",
                              whitelist_cache)) {
     SPDLOG_LOGGER_ERROR(
@@ -103,9 +107,9 @@ static bool _fill_service_event_handler(
         "security restrictions on the poller. A whitelist has "
         "been defined, and it does not include this command.",
         serv.name());
-    SPDLOG_LOGGER_DEBUG(logger,
-                        "service {}: command not allowed by whitelist {}",
-                        serv.name(), cmdline);
+    SPDLOG_LOGGER_DEBUG(
+        logger, "service {}: event handler {} not allowed by whitelist",
+        serv.name(), event_handler_command);
     cmdline.clear();
     return false;
   }
@@ -147,15 +151,19 @@ static bool _fill_host_event_handler(
                         event_handler_command);
     return false;
   }
-  get_raw_command_line_r(macros, cmd->second.get(), "", cmdline, 0);
+  std::string raw_cmdline;
+  get_raw_command_line_r(macros, cmd->second.get(), "", raw_cmdline, 0);
+  process_macros_r(macros, raw_cmdline, cmdline,
+                   STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
   if (!allowed_by_white_list(cmdline, host.name(), whitelist_cache)) {
     SPDLOG_LOGGER_ERROR(logger,
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "
                         "been defined, and it does not include this command.",
                         host.name());
-    SPDLOG_LOGGER_DEBUG(logger, "host {}: command not allowed by whitelist {}",
-                        host.name(), cmdline);
+    SPDLOG_LOGGER_DEBUG(logger,
+                        "host {}: event handler {} not allowed by whitelist",
+                        host.name(), event_handler_command);
     cmdline.clear();
     return false;
   }
@@ -264,6 +272,8 @@ e_get_otel_commands_ret get_otel_commands(
         _fill_service_event_handler(pb_config.global_service_event_handler(),
                                     macros, *serv, whitelist_cache, logger,
                                     global_event_handler);
+      } else {
+        global_event_handler.clear();
       }
 
       if (serv->event_handler_enabled() && !serv->event_handler().empty()) {
