@@ -565,9 +565,12 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
             conf["centreonBroker"]["poller_name"] = f"Poller{i}"
             conf["centreonBroker"]["poller_id"] = i + 1
             current_configs[f"module{i}"] = conf
-            if default_bbdo_version is not None:
-                ctn_broker_config_add_item(
-                    f"{name}{i}", "bbdo_version", default_bbdo_version)
+            # The version is always written: a missing bbdo_version must not
+            # depend on the default of the binaries.
+            ctn_broker_config_add_item(
+                f"{name}{i}", "bbdo_version",
+                default_bbdo_version if default_bbdo_version is not None
+                else "2.0.0")
             if default_transport == "grpc":
                 ctn_config_broker_bbdo_output(
                     f"{name}{i}", "bbdo_client", "5669", "grpc", "localhost")
@@ -586,6 +589,10 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
                 ctn_config_broker_sql_output(name, 'unified_sql')
             ctn_broker_config_add_item(
                 name, "bbdo_version", default_bbdo_version)
+        elif "bbdo_version" not in conf["centreonBroker"]:
+            # The version is always written: a missing bbdo_version must not
+            # depend on the default of the binaries.
+            conf["centreonBroker"]["bbdo_version"] = "2.0.0"
         if default_transport == "grpc":
             if name == "central" or name == "central_map":
                 ctn_config_broker_bbdo_input(
