@@ -1,8 +1,8 @@
-# Broker documentation {#mainpage}
+# Broker documentation {#broker_doc}
 
 ## Table of content
 
-- [Broker documentation {#mainpage}](#broker-documentation-mainpage)
+- [Broker documentation {#broker_doc}](#broker-documentation-broker_doc)
   - [Table of content](#table-of-content)
   - [BBDO events](#BbdoEvents)
   - [Multiplexing](#Multiplexing)
