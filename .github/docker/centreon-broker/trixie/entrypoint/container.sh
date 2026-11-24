@@ -25,6 +25,17 @@ fi
 # Central PKI for the BBDO gRPC TLS input: generated once, then kept.
 /usr/local/lib/centreon-broker/tls-self-ca.sh
 
+# First central config from env when none was delivered yet (gorgone-less
+# PoC): no-op without CENTREON_BROKER_API_TOKEN or with a delivered file.
+for arg in "$@"; do
+    case "$arg" in
+        *.json)
+            /usr/local/lib/centreon-broker/bootstrap-config.sh "$arg"
+            break
+            ;;
+    esac
+done
+
 # Find the config path in "$@": refuse to start on the untouched package
 # default (no SQL/storage output, would run but persist nothing), else tail
 # its log file.
