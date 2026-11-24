@@ -225,6 +225,12 @@ struct pending_reload {
 };
 std::unique_ptr<pending_reload> g_pending_reload ABSL_GUARDED_BY(g_deploy_m);
 
+/* A cbmod configuration was installed by a deployment without a reload
+ * (files first, action 'none', then a reload in a later deployment): the next
+ * reload must restart Engine instead. Cleared by the restart itself (process
+ * memory). */
+bool g_broker_restart_pending ABSL_GUARDED_BY(g_deploy_m) = false;
+
 fs::path engine_dir() {
   return fs::path(bridge::main_config_file()).parent_path();
 }
@@ -467,6 +473,18 @@ void handle_commit(const ConfigCommit& c,
                      "remote actions: deployment '{}': {} files installed, "
                      "action '{}', config version {}",
                      d->id, d->files.size(), c.action(), version);
+  if (c.action() == "reload" || c.action() == "restart") {
+    absl::MutexLock lck(&g_deploy_m);
+    broker_changed = broker_changed || g_broker_restart_pending;
+    g_broker_restart_pending = false;
+  } else if (broker_changed) {
+    absl::MutexLock lck(&g_deploy_m);
+    g_broker_restart_pending = true;
+    SPDLOG_LOGGER_INFO(logger(),
+                       "remote actions: deployment '{}': broker configuration "
+                       "changed, the next reload restarts Engine",
+                       d->id);
+  }
   if (c.action() == "reload" && broker_changed) {
     reply(channel, d->id, -1, REMOTE_APPLIED,
           "restart requested (broker configuration changed)", version);
