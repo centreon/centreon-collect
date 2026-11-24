@@ -490,7 +490,7 @@ unified_sql updates `hosts.notify`, `services.notify` and
 resent by Engine (restart), `merge()` of a centralized configuration, and the
 definitions written to the database. The override is re-applied when a definition is
 inserted (`_restore_notify_override`, copy-on-write) and by
-`reinject_pending_notification_overrides()` at the downtime/acknowledgement
+`reinject_pending()` at the downtime/acknowledgement
 re-injection points, republishing the adaptive event. Engine semantics: the toggled
 value wins over the configuration as long as it exists, like a retained
 `MODATTR_NOTIFICATIONS_ENABLED`; only a new toggle changes it. In broker mode the
@@ -560,7 +560,7 @@ the timeperiod does not exist; so is an unknown contact or contactgroup.
 fields per resource, `notify` and `notification_period`
 (`BrokerCache.NotificationOverride`, fields 3 and 4). Both follow the same path: value
 set on the cached object, re-applied when a definition is inserted
-(`_restore_notification_override`) and by `reinject_pending_notification_overrides()`,
+(`_restore_notification_override`) and by `reinject_pending()`,
 published through the adaptive event so unified_sql updates
 `hosts.notification_period` / `services.notification_period`. In broker mode the cache
 ignores the `notification_period` of an adaptive coming from Engine, like `notify`.

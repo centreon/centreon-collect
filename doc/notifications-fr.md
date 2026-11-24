@@ -497,7 +497,7 @@ unified_sql mette à jour `hosts.notify`, `services.notify` et
 définition renvoyée par Engine (redémarrage), `merge()` d'une configuration
 centralisée, et les définitions écrites en base. La surcouche est réappliquée à
 l'insertion d'une définition (`_restore_notify_override`, copie-sur-écriture) et par
-`reinject_pending_notification_overrides()` aux points de réinjection des downtimes
+`reinject_pending()` aux points de réinjection des downtimes
 et des acquittements, avec republication de l'adaptatif. Sémantique Engine : la
 valeur basculée l'emporte sur la configuration tant qu'elle existe, comme
 `MODATTR_NOTIFICATIONS_ENABLED` en rétention ; elle ne change que par une nouvelle
@@ -568,7 +568,7 @@ commande quand la timeperiod n'existe pas ; un contact ou contactgroup inconnu a
 champs optionnels par ressource, `notify` et `notification_period`
 (`BrokerCache.NotificationOverride`, champs 3 et 4). Les deux suivent le même chemin :
 valeur posée sur l'objet en cache, réappliquée à l'insertion d'une définition
-(`_restore_notification_override`) et par `reinject_pending_notification_overrides()`,
+(`_restore_notification_override`) et par `reinject_pending()`,
 publiée par l'adaptatif pour que unified_sql mette à jour
 `hosts.notification_period` / `services.notification_period`. En mode broker, la
 `notification_period` d'un adaptatif venant d'Engine est ignorée par le cache, comme

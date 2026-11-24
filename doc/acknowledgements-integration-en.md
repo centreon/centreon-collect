@@ -343,7 +343,7 @@ the acknowledgement manager.
 * **Broker restarts**: the acks are reloaded from `BrokerCache.acknowledgements` (comment_id
   included), but the cached hosts/services are rebuilt with type NONE, and Engine cannot restore it.
   Two mechanisms do: `broker_cache::_restore_acknowledgement_type()` when a `pb_host`/`pb_service`
-  definition is inserted (non-centralized BBDO3), and `reinject_pending_acknowledgements()` at the
+  definition is inserted (non-centralized BBDO3), and `reinject_pending()` at the
   two downtime re-injection points (startup barrier, `_process_engine_state` after the merge in
   centralized mode). Both republish an adaptive status, because the definitions that rebuilt the
   resources in the database wrote `acknowledged = 0`.

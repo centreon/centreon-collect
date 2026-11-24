@@ -349,7 +349,7 @@ endroit que le manager d'acquittement.
   compris), mais les hosts/services du cache sont reconstruits avec le type NONE, et Engine ne peut
   pas le rétablir. Deux mécanismes le restaurent : `broker_cache::_restore_acknowledgement_type()` à
   l'insertion d'une définition `pb_host`/`pb_service` (mode BBDO3 non centralisé), et
-  `reinject_pending_acknowledgements()` aux deux points de réinjection des downtimes (barrière de
+  `reinject_pending()` aux deux points de réinjection des downtimes (barrière de
   démarrage, `_process_engine_state` après merge en mode centralisé). Dans les deux cas un adaptive
   status est republié, car les définitions qui ont reconstruit les ressources en base ont écrit
   `acknowledged = 0`.

@@ -2130,13 +2130,13 @@ sequenceDiagram
     S-->>BS: return (_global_cache now assigned)
 
     alt notification_mode == broker (from _on_barrier_released(), once the barrier releases)
-        BS->>CACHE: reinject_pending_downtimes()
+        BS->>CACHE: reinject_pending()
         Note over CACHE: legacy mode: resources known → re-inject now<br/>centralized mode: resources unknown → no-op (deferred)
     end
 
     Note over ENG,CACHE: centralized mode: resources arrive later
     ENG->>CACHE: pb_engine_state → merge(State)
-    CACHE->>CACHE: reinject_pending_downtimes()
+    CACHE->>CACHE: reinject_pending()
     loop each pending downtime whose host/service now exists
         CACHE->>DM: reload_started_downtime(...) (keeps the saved id)
         DM->>DM: downtime::reload() (set in-effect, schedule end check only)
@@ -2180,7 +2180,7 @@ broker mode) — is therefore always ordered **after** them, and the restored
 `scheduled_downtime_depth` wins.
 
 `_on_barrier_released()` is the only barrier piece that is subclass-specific:
-`broker_state` overrides it to call `reinject_pending_downtimes()`; the base (and
+`broker_state` overrides it to call `reinject_pending()`; the base (and
 `cbmod_state`) leave it empty.
 
 ```mermaid
@@ -2199,7 +2199,7 @@ sequenceDiagram
     end
     Note over B: all expected ready, or 60 s timeout
     B->>ENG: start() (flush the buffered startup definitions)
-    B->>S: _on_barrier_released() (broker_state → reinject_pending_downtimes)
+    B->>S: _on_barrier_released() (broker_state → reinject_pending)
 ```
 
 #### Shutdown
@@ -2352,10 +2352,10 @@ or there is no file at all on the very first start.
 
 ### Content of the `.cache`
 
-The `BrokerCache` message has fourteen sections. Five are reserved for
+The `BrokerCache` message has fifteen sections. Five are reserved for
 *legacy* mode: in centralized configuration the cache is rebuilt from the
 pollers' `.prot` files, so they are neither written nor read. Two are declared
-but dead: severities and tags are never serialized, in any mode. The other seven
+but dead: severities and tags are never serialized, in any mode. The other eight
 are written and read back in both modes: they carry the state Broker owns and
 that no configuration could rebuild.
 
@@ -2375,6 +2375,7 @@ that no configuration could rebuild.
 | 12 | `notification_overrides` | both | `notify` and `notification_period` toggles set by external command on a host or service |
 | 13 | `contact_notification_overrides` | both | notification toggles and periods set on a contact |
 | 14 | `poller_notification_overrides` | both | global `ENABLE/DISABLE_NOTIFICATIONS` per poller |
+| 15 | `resource_ids` | both | event, problem and notification identifiers of the resources that have some, see `doc/engine-macros-en.md` |
 
 Sections 8 and 11 are not fed by the cache itself but handed over by
 `~broker_state`, just before the cache is destroyed: in-effect downtimes come
@@ -2382,6 +2383,10 @@ from `downtime_manager::get_scheduled_downtimes()` filtered on
 `is_in_effect()`, notification states from
 `notification_manager::snapshot_states()`, which keeps only non-empty chains.
 Sections 9, 10, 12, 13 and 14 live in the cache permanently.
+Section 15 too, in the `_resource_ids` table, apart from the host and service
+entries: a configuration rebuilding an entry or a database row restoring it
+leaves the identifiers alone, and read back they need no re-injection. A
+resource removed from the configuration takes its identifiers away.
 
 ### Re-injection at startup
 
@@ -2394,11 +2399,13 @@ the mode, and always **inside Broker**:
 * centralized configuration: unified_sql's `stream::_process_engine_state()`,
   after the `merge()` of the poller's configuration.
 
-In both cases the order is: downtimes (`reinject_pending_downtimes` →
+In both cases `broker_cache::reinject_pending()` runs, and each step is a no-op
+when its manager is not loaded. The order is: downtimes
+(`_reinject_pending_downtimes` →
 `downtime_manager::reload_started_downtime`, which keeps the id and
 `comment_id` then recomputes the depth), notification states
-(`reinject_pending_notification_states` → `notification_manager::restore()`),
-acknowledgements (`reinject_pending_acknowledgements`, which sets
+(`_reinject_pending_notification_states` → `notification_manager::restore()`),
+acknowledgements (`_reinject_pending_acknowledgements`, which sets
 `acknowledgement_type` back on the resource and publishes a
 `pb_adaptive_*_status` for the database), then notification overrides.
 
@@ -5875,11 +5882,18 @@ message HostRuntime {
   int64      last_notification = 24;
   int64      next_notification = 25;
   RuntimeOverrides  overrides = 26;  // see batch 4 above
+  // Identifiers of the $HOST*ID$ macros, see doc/engine-macros-en.md, in
+  // both notification modes.
+  uint64     current_event_id = 27;
+  uint64     last_event_id = 28;
+  uint64     current_problem_id = 29;
+  uint64     last_problem_id = 30;
+  uint64     current_notification_id = 31;
 }
 
 message ServiceRuntime {
   // same fields, plus service_id = 2 and last_time_ok/warning/critical/unknown
-  // = 10..13; numbered 1..28. Only the check output is sent, not the long
+  // = 10..13; numbered 1..33. Only the check output is sent, not the long
   // output, see below.
 }
 

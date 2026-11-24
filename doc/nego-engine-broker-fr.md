@@ -2436,13 +2436,13 @@ sequenceDiagram
     S-->>BS: retour (_global_cache désormais affecté)
 
     alt notification_mode == broker (depuis _on_barrier_released(), une fois la barrière levée)
-        BS->>CACHE: reinject_pending_downtimes()
+        BS->>CACHE: reinject_pending()
         Note over CACHE: mode legacy : ressources connues → réinjection immédiate<br/>mode centralisé : ressources inconnues → no-op (différé)
     end
 
     Note over ENG,CACHE: mode centralisé : les ressources arrivent plus tard
     ENG->>CACHE: pb_engine_state → merge(State)
-    CACHE->>CACHE: reinject_pending_downtimes()
+    CACHE->>CACHE: reinject_pending()
     loop chaque downtime en attente dont le host/service existe désormais
         CACHE->>DM: reload_started_downtime(...) (conserve l'id sauvegardé)
         DM->>DM: downtime::reload() (passe in-effect, planifie seulement le check de fin)
@@ -2489,7 +2489,7 @@ quand la configuration Engine arrive (mode centralisé), soit depuis
 
 `_on_barrier_released()` est la seule partie de la barrière spécifique à une
 sous-classe : `broker_state` la surcharge pour appeler
-`reinject_pending_downtimes()` ; la base (et `cbmod_state`) la laissent vide.
+`reinject_pending()` ; la base (et `cbmod_state`) la laissent vide.
 
 ```mermaid
 sequenceDiagram
@@ -2507,7 +2507,7 @@ sequenceDiagram
     end
     Note over B: tous les attendus prêts, ou timeout 60 s
     B->>ENG: start() (flushe les définitions de démarrage bufferisées)
-    B->>S: _on_barrier_released() (broker_state → reinject_pending_downtimes)
+    B->>S: _on_barrier_released() (broker_state → reinject_pending)
 ```
 
 #### Arrêt
@@ -2663,10 +2663,10 @@ fichier au premier démarrage.
 
 ### Contenu du `.cache`
 
-Le message `BrokerCache` a quatorze sections. Cinq sont réservées au mode
+Le message `BrokerCache` a quinze sections. Cinq sont réservées au mode
 *legacy* : en configuration centralisée le cache est reconstruit à partir des
 `.prot` des pollers, elles ne sont donc ni écrites ni lues. Deux sont déclarées
-mais mortes : sévérités et tags ne sont jamais sérialisés, dans aucun mode. Les sept autres
+mais mortes : sévérités et tags ne sont jamais sérialisés, dans aucun mode. Les huit autres
 sont écrites et relues dans les deux modes : elles portent l'état que Broker
 possède en propre et qu'aucune configuration ne saurait reconstruire.
 
@@ -2686,6 +2686,7 @@ possède en propre et qu'aucune configuration ne saurait reconstruire.
 | 12 | `notification_overrides` | les deux | bascules `notify` et `notification_period` posées par commande externe sur un host ou un service |
 | 13 | `contact_notification_overrides` | les deux | bascules et périodes de notification posées sur un contact |
 | 14 | `poller_notification_overrides` | les deux | `ENABLE/DISABLE_NOTIFICATIONS` global par poller |
+| 15 | `resource_ids` | les deux | identifiants d'événement, de problème et de notification des ressources qui en ont, voir `doc/engine-macros-fr.md` |
 
 Les sections 8 et 11 ne sont pas alimentées par le cache lui-même mais remises
 par `~broker_state`, juste avant la destruction du cache : les downtimes en
@@ -2693,6 +2694,11 @@ cours viennent de `downtime_manager::get_scheduled_downtimes()` filtrés sur
 `is_in_effect()`, les états de notification de
 `notification_manager::snapshot_states()`, qui ne garde que les chaînes non
 vides. Les sections 9, 10, 12, 13 et 14 vivent dans le cache en permanence.
+La section 15 aussi, dans la table `_resource_ids`, à part des entrées hôtes
+et services : une configuration qui reconstruit une entrée ou une ligne de base
+qui la restaure ne touche pas aux identifiants, et relus, ils n'ont pas besoin
+de réinjection. Une ressource retirée de la configuration emporte ses
+identifiants.
 
 ### Réinjection au démarrage
 
@@ -2705,11 +2711,13 @@ tard, à deux endroits selon le mode, et toujours **à l'intérieur de Broker** 
 * configuration centralisée : `stream::_process_engine_state()` d'unified_sql,
   après le `merge()` de la configuration du poller.
 
-Dans les deux cas, l'ordre est : downtimes (`reinject_pending_downtimes` →
+Dans les deux cas, `broker_cache::reinject_pending()` s'exécute, et chaque
+étape ne fait rien si son gestionnaire n'est pas chargé. L'ordre est : downtimes
+(`_reinject_pending_downtimes` →
 `downtime_manager::reload_started_downtime`, qui conserve id et `comment_id`
 puis recalcule la profondeur), états de notification
-(`reinject_pending_notification_states` → `notification_manager::restore()`),
-acquittements (`reinject_pending_acknowledgements`, qui remet
+(`_reinject_pending_notification_states` → `notification_manager::restore()`),
+acquittements (`_reinject_pending_acknowledgements`, qui remet
 `acknowledgement_type` sur la ressource et publie un `pb_adaptive_*_status`
 pour la base), puis overrides de notification.
 
@@ -6268,11 +6276,18 @@ message HostRuntime {
   int64      last_notification = 24;
   int64      next_notification = 25;
   RuntimeOverrides  overrides = 26;  // voir le lot 4 plus haut
+  // Identifiants des macros $HOST*ID$, voir doc/engine-macros-fr.md, dans
+  // les deux modes de notification.
+  uint64     current_event_id = 27;
+  uint64     last_event_id = 28;
+  uint64     current_problem_id = 29;
+  uint64     last_problem_id = 30;
+  uint64     current_notification_id = 31;
 }
 
 message ServiceRuntime {
   // mêmes champs, plus service_id = 2 et last_time_ok/warning/critical/unknown
-  // = 10..13 ; numérotés 1..28. Seule la sortie du check est envoyée, pas la
+  // = 10..13 ; numérotés 1..33. Seule la sortie du check est envoyée, pas la
   // sortie longue, voir ci-dessous.
 }
 
