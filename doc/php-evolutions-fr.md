@@ -1,5 +1,13 @@
 # Évolutions PHP
 
+* [Évolution 4 — Un poller arrêté garde ses liens dans la base de stockage](#évolution-4--un-poller-arrêté-garde-ses-liens-dans-la-base-de-stockage)
+  * [Ce qui change côté Broker](#ce-qui-change-côté-broker)
+  * [Pourquoi](#pourquoi)
+  * [La règle pour PHP](#la-règle-pour-php)
+  * [Requêtes à adapter](#requêtes-à-adapter)
+  * [Laissées en l'état](#laissées-en-létat)
+  * [Défauts trouvés au passage](#défauts-trouvés-au-passage)
+  * [Compatibilité](#compatibilité)
 <!-- TOC -->
 * [Évolutions PHP](#évolutions-php)
 * [Introduction](#introduction)
@@ -39,9 +47,9 @@
 
 Ce document rassemble les changements que l'**interface web PHP** (et, le cas
 échéant, Gorgone) doit apporter pour suivre les évolutions Engine/Broker décrites
-dans [Négociation entre Engine et Broker](./nego-engine-broker-fr.md).
+dans [Négociation entre Engine et Broker](./nego-engine-broker/README-fr.md).
 
-Il couvre deux évolutions indépendantes :
+Il couvre les évolutions suivantes :
 
 1. **De nouveaux paramètres de configuration** que PHP doit exposer dans les
    formulaires de configuration de Broker et d'Engine afin de pouvoir activer la
@@ -49,8 +57,10 @@ Il couvre deux évolutions indépendantes :
 2. **Des commandes externes envoyées via gRPC** à la place de l'ancien fichier de
    commandes, avec une règle de routage qui dépend de quel composant possède la
    donnée (Engine ou Broker).
+3. **Un lot de configuration explicite**, `pollers.lck`, qui annonce un export dans son ensemble.
+4. **Un poller arrêté garde ses liens dans la base de stockage** : les requêtes qui les lisent doivent écarter les hosts et services désactivés.
 
-Les deux évolutions sont orthogonales — on peut déployer l'une sans l'autre.
+Les deux premières évolutions sont orthogonales — on peut déployer l'une sans l'autre. La quatrième doit être livrée avec la version de Broker qui l'implémente.
 
 ---
 
@@ -192,7 +202,7 @@ Arborescence que PHP doit produire :
 | Lien module Engine ↔ Broker        | `broker_module_cfg_file` (Engine)                                                           | Engine                    | remplace l'ancienne ligne `broker_module`       |
 
 > Ces choix sont détaillés et motivés dans la section
-> [Vue d'ensemble : qui gère quoi](./nego-engine-broker-fr.md#vue-densemble--qui-gère-quoi-selon-la-configuration)
+> [Vue d'ensemble : qui gère quoi](./nego-engine-broker/01-negotiation-fr.md#vue-densemble--qui-gère-quoi-selon-la-configuration)
 > du document de négociation.
 
 ---
@@ -459,7 +469,7 @@ En mode historique (`notification_mode = engine`), PHP continue d'appeler les
 
 > La liste des familles de downtime/acquittement qui migreront progressivement vers
 > Broker est suivie dans
-> [Déplacement de l'envoi des commandes externes sur Broker](./nego-engine-broker-fr.md#déplacement-de-lenvoi-des-commandes-externes-sur-broker).
+> [Déplacement de l'envoi des commandes externes sur Broker](./nego-engine-broker/11-tickets-and-issues-fr.md#déplacement-de-lenvoi-des-commandes-externes-sur-broker).
 > Aujourd'hui `ScheduleDowntime` / `DeleteDowntime` et les quatre RPC d'acquittement
 > existent côté Broker : `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`
 > (requête `AcknowledgementRequest`, mêmes champs qu'`EngineAcknowledgement`),
@@ -662,3 +672,139 @@ un export. Le symptôme, s'il se produit, est un objet **désactivé en base alo
 qu'un poller le surveille toujours** — la désactivation demandée par le poller
 source s'applique quel que soit le poller qui le surveille désormais. Le remède
 est de réexporter les deux pollers ensemble.
+
+---
+
+# Évolution 4 — Un poller arrêté garde ses liens dans la base de stockage
+
+Les numéros de ligne ci-dessous se rapportent à centreon-web au commit `f9012b3083`.
+
+## Ce qui change côté Broker
+
+Quand un poller s'arrête, `unified_sql` nettoie ses lignes dans la base de stockage (`stream::clean_tables()`). Jusqu'ici, il faisait deux choses :
+
+* il **désactivait** les hosts, services et ressources du poller (`enabled=0`) ;
+* il **supprimait** ce qui leur est lié : les parents de hosts (`hosts_hosts_parents`), les appartenances aux groupes de hosts et de services (`hosts_hostgroups`, `services_servicegroups`), les tags (`resources_tags`) et les variables personnalisées (`customvariables`). Une minute plus tard, les groupes de hosts et de services restés sans membre étaient supprimés à leur tour (`hostgroups`, `servicegroups`).
+
+En configuration centralisée, Broker **ne supprime plus** ces liens à l'arrêt d'un poller : il se contente de désactiver ses hosts, services et ressources. Rien d'autre ne change : modules, downtimes et commentaires sont traités comme avant, et hors configuration centralisée les liens sont toujours supprimés.
+
+## Pourquoi
+
+En configuration centralisée, Broker envoie à la base la **différence** entre la configuration qu'il conserve pour le poller et la nouvelle. Une différence ne porte que ce qui a changé. Un lien supprimé à l'arrêt du poller n'était donc jamais réécrit à son redémarrage, sauf si l'objet concerné changeait justement : la base ne décrivait plus la configuration, et parents de hosts, appartenances aux groupes, tags et variables personnalisées étaient perdus jusqu'au prochain export qui les touchait.
+
+En gardant les liens, la base décrit en permanence la configuration du poller. Les objets du poller étant désactivés, **c'est aux lecteurs de les écarter** : une requête qui lit ces liens doit vérifier que le host, le service ou la ressource auquel ils appartiennent est actif.
+
+## La règle pour PHP
+
+Toute requête qui lit `hosts_hosts_parents`, `hosts_hostgroups`, `services_servicegroups`, `resources_tags`, la table `customvariables` de stockage, ou les tables `hostgroups` / `servicegroups` de stockage doit écarter les lignes des hosts (`hosts.enabled = 1`), services (`services.enabled = 1`) ou ressources (`resources.enabled = 1`) désactivés.
+
+La plupart des requêtes le font déjà, parce qu'elles joignent les hosts ou les services qu'elles affichent. Celles qui suivent ne le font pas.
+
+## Requêtes à adapter
+
+### Groupes de hosts et de services
+
+1. **Liste déroulante des groupes de hosts des pages de supervision historiques** — `www/include/monitoring/status/Common/commonJS.php:338`. La requête lit `hostgroups` et `hosts_hostgroups` sans joindre `hosts` : un groupe dont tous les membres sont sur un poller arrêté reste dans la liste. Ajouter `hosts h` au `FROM` et `AND h.host_id = hhg.host_id AND h.enabled = 1` au `WHERE`.
+2. **Liste déroulante des groupes de services des pages de supervision historiques** — `www/include/monitoring/status/Common/commonJS.php:425`. Même chose pour les groupes de services. Ajouter `services s` et `AND s.host_id = ssg.host_id AND s.service_id = ssg.service_id AND s.enabled = 1`.
+3. **Supervision > Services par groupe de services, grille** — `www/include/monitoring/status/ServicesServiceGroups/xml/serviceGridBySGXML.php:167` (pagination) et `:273` (données). `hosts` et `services` sont joints sans condition sur `enabled` : les services d'un poller arrêté sont listés sous leurs groupes. Ajouter `AND h.enabled = 1 AND s.enabled = 1` aux deux `WHERE`.
+4. **Supervision > Services par groupe de services, résumé** — `www/include/monitoring/status/ServicesServiceGroups/xml/serviceSummaryBySGXML.php:164` et `:330`. Même schéma, les services d'un poller arrêté sont comptés. Ajouter `h.enabled = 1` et `s.enabled = 1` aux deux requêtes.
+5. **Widget de supervision des groupes de hosts** — `www/widgets/hostgroup-monitoring/src/index.php:150` et `src/export.php:97`. La liste des groupes lit `hostgroups` seule : un groupe dont tous les membres sont désactivés s'affiche avec des compteurs à zéro (il disparaissait une minute après l'arrêt du poller). Ajouter, via `CentreonUtils::conditionBuilder()` :
+
+   ```sql
+   EXISTS (SELECT 1 FROM hosts_hostgroups hhg
+           INNER JOIN hosts h ON h.host_id = hhg.host_id AND h.enabled = 1
+           WHERE hhg.hostgroup_id = hostgroups.hostgroup_id)
+   ```
+
+6. **Widget de supervision des groupes de services** — `www/widgets/servicegroup-monitoring/src/index.php:121` et `src/export.php:76`. Même chose pour les groupes de services :
+
+   ```sql
+   EXISTS (SELECT 1 FROM services_servicegroups ssg
+           INNER JOIN services s ON s.host_id = ssg.host_id
+             AND s.service_id = ssg.service_id AND s.enabled = 1
+           WHERE ssg.servicegroup_id = servicegroups.servicegroup_id)
+   ```
+
+7. **API v2 `/monitoring/hostgroups`** — `src/Centreon/Infrastructure/Monitoring/MonitoringRepositoryRDB.php:541` (`findHostGroups`). Les hosts actifs ne sont vérifiés que si une recherche sur les hosts, services ou catégories est donnée (jointure optionnelle ligne 505). Sans elle, les groupes viennent directement de `hostgroups`. Ajouter une jointure après celle de la configuration (une jointure plutôt qu'un `WHERE`, le traducteur de requête ajoute le sien) :
+
+   ```sql
+   INNER JOIN (SELECT DISTINCT hhg0.hostgroup_id
+               FROM `:dbstg`.hosts_hostgroups hhg0
+               INNER JOIN `:dbstg`.hosts h0
+                 ON h0.host_id = hhg0.host_id AND h0.enabled = '1') ahg
+     ON ahg.hostgroup_id = hg.hostgroup_id
+   ```
+
+8. **API v2 `/monitoring/servicegroups`** — `MonitoringRepositoryRDB.php:1466` (`findServiceGroups`). Même chose pour les groupes de services (jointure optionnelle ligne 1422) :
+
+   ```sql
+   INNER JOIN (SELECT DISTINCT ssg0.servicegroup_id
+               FROM `:dbstg`.services_servicegroups ssg0
+               INNER JOIN `:dbstg`.services s0
+                 ON s0.host_id = ssg0.host_id AND s0.service_id = ssg0.service_id
+                 AND s0.enabled = '1') asg
+     ON asg.servicegroup_id = sg.servicegroup_id
+   ```
+
+9. **Downtime sur un groupe de services** — `www/include/monitoring/downtime/AddDowntime.php:436`. Les membres sont lus dans `services_servicegroups` seule : un downtime serait aussi envoyé pour les services désactivés d'un poller arrêté. Joindre `services` :
+
+   ```sql
+   SELECT ssg.host_id, ssg.service_id
+   FROM services_servicegroups ssg
+   INNER JOIN services s ON s.host_id = ssg.host_id
+     AND s.service_id = ssg.service_id AND s.enabled = 1
+   WHERE ssg.servicegroup_id = :sgId
+   ```
+
+10. **Page Graphiques, sélecteur de services** — `www/class/centreonPerformanceService.class.php:103` (condition sur le groupe de hosts ligne 77, sur le groupe de services ligne 88). Filtrer le sélecteur par groupe propose aussi les services d'un poller arrêté. Priorité basse : sans filtre de groupe, ce sélecteur ne vérifie pas non plus `enabled`. Ajouter `AND hg.host_id IN (SELECT host_id FROM hosts WHERE enabled = 1)` à la condition sur les groupes de hosts et `AND (sg.host_id, sg.service_id) IN (SELECT host_id, service_id FROM services WHERE enabled = 1)` à celle sur les groupes de services.
+
+### Parents de hosts
+
+11. **Supervision > Hosts, indicateur « parent »** — `www/include/monitoring/status/Hosts/xml/hostXML.php:165`. Le host listé est filtré (`h.enabled = 1`), mais pas ses enfants : un host dont tous les enfants sont sur un poller arrêté garde son indicateur de parent (`is_parent`) et sa place dans le regroupement par parent. Joindre le host enfant :
+
+    ```sql
+    LEFT JOIN (hosts_hosts_parents hph
+               INNER JOIN hosts hc ON hc.host_id = hph.child_id AND hc.enabled = 1)
+      ON hph.parent_id = h.host_id
+    ```
+
+### Catégories (`resources_tags`)
+
+12. **API `GET /monitoring/hosts/categories`** — `src/Core/HostCategory/Infrastructure/Repository/DbReadRealTimeHostCategoryRepository.php:73` (administrateur) et `:152` (ACL). `resources` est joint sans `enabled` : une catégorie de hosts utilisée seulement par un poller arrêté reste proposée dans les filtres. Ajouter `AND resources.enabled = 1`.
+13. **API `GET /monitoring/services/categories`** — `src/Core/ServiceCategory/Infrastructure/Repository/DbReadRealTimeServiceCategoryRepository.php:79` (administrateur) et `:175` (ACL). Même chose pour les catégories de services. Ajouter `AND resources.enabled = 1`, et `AND parent_resource.enabled = 1` sur la jointure `parent_resource` de la branche de recherche.
+
+### Variables personnalisées (criticité)
+
+14. **Supervision > Hosts, colonne criticité** — `www/include/monitoring/status/Hosts/xml/hostXML.php:260`. Les valeurs `CRITICALITY_ID` sont lues sans aucun filtre, et leur seule présence active la colonne de criticité : elle s'afficherait à cause des hosts d'un poller arrêté. Joindre `hosts` :
+
+    ```sql
+    SELECT cv.value, cv.host_id FROM customvariables cv
+    INNER JOIN hosts h ON h.host_id = cv.host_id AND h.enabled = 1
+    WHERE cv.name = 'CRITICALITY_ID' AND cv.service_id = 0
+    ```
+
+15. **Supervision > Services, colonne criticité** — `www/include/monitoring/status/Services/xml/serviceXML.php:336`. Même chose pour les services : joindre `services s ON s.host_id = cv.host_id AND s.service_id = cv.service_id AND s.enabled = 1`.
+
+### Open tickets : une décision à prendre
+
+16. **Fermeture automatique d'un ticket** — `centreon-open-tickets/www/modules/centreon-open-tickets/class/automatic.class.php:1092` (`getHostTicket`) et `:1124` (`getServiceTicket`). Le ticket est retrouvé par les variables personnalisées du host ou du service, sans vérifier `enabled`. Jusqu'ici, fermer le ticket d'un host ou d'un service d'un poller arrêté répondait « pas de ticket », puisque ses variables personnalisées avaient disparu. Désormais le ticket est trouvé, fermé, et les commandes externes qui remettent les macros à zéro sont envoyées au poller arrêté. **Le comportement attendu est à décider.** Pour garder le comportement actuel, ajouter `AND h.enabled = 1` (hosts) ou joindre `services` avec `s.enabled = 1` (services), ou vérifier `enabled` dans `getHostInformation()` (708) et `getServiceInformation()` (620).
+
+## Laissées en l'état
+
+* **Rapports de disponibilité par groupe de services** — `www/class/centreonACL.class.php:1733`. Ils s'appuient sur l'activation dans la configuration ; garder les services d'un poller arrêté est le comportement attendu d'un rapport.
+* **Vérification d'existence des filtres sauvegardés** — `src/Centreon/Infrastructure/Monitoring/HostGroup/HostGroupRepositoryRDB.php:107`/`:182`, `ServiceGroup/ServiceGroupRepositoryRDB.php:107`/`:182`. Un groupe qui existe toujours garde un critère sauvegardé valide, ce qui est mieux qu'avant.
+* **Détails d'un host ou d'un service** (`DbReadHostgroupRepository`, `DbReadServicegroupRepository`, `DbReadTagRepository::findAllByResourceAndTypeId`) : le host ou le service est d'abord chargé avec `enabled = 1`, un objet désactivé n'est pas trouvé.
+* **Resource Status**, les tableaux de bord et les autres widgets : déjà filtrés sur `enabled`.
+* Code mort : `www/class/centreonCriticality.class.php:174` et `:199` n'ont pas d'appelant ; la jointure sur `hosts_hosts_parents` de `www/api/class/centreon_realtime_hosts.class.php:259` ne sélectionne rien.
+
+## Défauts trouvés au passage
+
+Ils existent aujourd'hui, indépendamment de cette évolution, mais garder les lignes des pollers arrêtés rend les deux premiers plus visibles.
+
+* **Sévérité d'un service dans Resource Status** — `src/Core/Infrastructure/RealTime/Repository/Service/DbReadServiceRepository.php:165`. La variable `CRITICALITY_LEVEL` est jointe sur `service_id` et `name` seulement, sans `host_id`. Pour un service lié à plusieurs hosts, la sévérité est prise sur n'importe lequel d'entre eux. Ajouter `AND service_cvl.host_id = s.host_id`.
+* **Email des problèmes non traités, services** — `bin/email_status.pl:315` (jointure ligne 197). Même erreur : la jointure de `CRITICALITY_LEVEL` ne porte pas sur `services.host_id`, d'où des lignes dupliquées et une criticité possiblement fausse. Joindre sur `cvservice.host_id = services.host_id AND cvservice.service_id = services.service_id` et supprimer la jointure `hosts2`.
+* **Email des problèmes non traités, option `hostgroup`** — `bin/email_status.pl:241` et `:309`. La condition `hostgroups.enabled = '1'` porte sur une colonne que la table `hostgroups` de stockage n'a pas : avec cette option, la requête devrait échouer. La condition est à retirer.
+
+## Compatibilité
+
+Un Broker doté de cette évolution avec un PHP qui ne l'a pas montre les effets décrits plus haut dès qu'un poller s'arrête : groupes vides listés, catégories proposées, colonne de criticité affichée, services d'un poller arrêté dans les vues par groupe de services. Les deux doivent être livrés ensemble.
