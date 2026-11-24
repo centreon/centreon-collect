@@ -384,17 +384,24 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  * DiffState forwarded by the central.
  */
 void broker_stream::_serve_engine_peer() {
+  /* The runtime snapshot is owed to the poller from its connection on, and
+   * again once Broker rebuilt a configuration it had lost. It travels with
+   * the configuration diff when there is one, alone otherwise. */
   if (_state.poller_needs_update(poller_id())) {
     _logger->debug(
         "BBDO: We should send the Engine configuration to the poller {}",
         poller_id());
     _send_diff_state_for_poller(poller_id());
-    _runtime_state_sent = true;
-  } else if (!_runtime_state_sent && extended_negotiation() &&
-             _state.supports_centralized_conf() &&
-             _state.broker_knows_poller_conf(poller_id())) {
+    _state.set_runtime_state_owed(poller_id(), false);
+  } else if (_state.runtime_state_owed(poller_id()) &&
+             extended_negotiation() && _state.supports_centralized_conf() &&
+             _state.broker_knows_poller_conf(poller_id()) &&
+             _state.cache().has_instance(poller_id())) {
+    /* has_instance: a configuration just rebuilt from the poller reaches the
+     * cache later, through the reference output, which sets the flag again
+     * once there is something to describe. */
     _send_runtime_state_alone();
-    _runtime_state_sent = true;
+    _state.set_runtime_state_owed(poller_id(), false);
   }
 
   /* Downward channel: deliver the events queued for the poller this stream
