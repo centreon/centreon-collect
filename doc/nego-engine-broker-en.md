@@ -286,7 +286,9 @@ The `Broker` configuration file is given to `Engine` with the `-b` option, or wi
 
 The `-c` (extended configuration) and `-l` (log file) options are independent of this mechanism.
 
-`-p` enables the centralized configuration, provided that `cbmod` speaks BBDO 3 or higher (see [Overview: who handles what](#overview-who-handles-what-depending-on-configuration)). Without `-p`, `Engine` works as before: it reads its `centengine.cfg` and receives no configuration from `Broker`.
+`-p` enables the centralized configuration, which requires `cbmod` to speak BBDO 3 or higher (see [Overview: who handles what](#overview-who-handles-what-depending-on-configuration)). Without `-p`, `Engine` works as before: it reads its `centengine.cfg` and receives no configuration from `Broker`.
+
+**`-p` with BBDO 2 is refused.** With BBDO 2, the negotiation goes through a `version_response` and not a `Welcome`: `Broker` sends neither `DiffState` nor runtime state snapshot. `Engine`, however, decides on `-p` alone that it is centralized: it would read `state.prot` instead of its `centengine.cfg`, rename its `retention.dat` after reading it once, and only save its downtimes from then on. Each restart would then lose the check state, the acknowledgements and the notification state, with nothing to bring them back. `Engine` therefore checks the `bbdo_version` of the `cbmod` file given by `-b` before reading its retention and before writing `state.prot`: if it is lower than 3, it explains that `-p` requires BBDO 3 or higher and exits with a failure code, leaving `retention.dat` and the `-p` directory untouched. The robot test `ECRPROTOBBDO2` (`tests/engine/config-rejection.robot`) covers this case.
 
 When started with `-p`, `Engine` picks its initial configuration as follows:
 
@@ -299,7 +301,9 @@ In all three cases, the negotiation that follows brings `Engine` up to date: `Br
 ```mermaid
 flowchart TD
     A{"-p given?"} -- no --> L["Legacy: reads centengine.cfg,<br/>no configuration received from Broker"]
-    A -- yes --> B{"state.prot present<br/>in the -p directory?"}
+    A -- yes --> V{"bbdo_version of cbmod ≥ 3?"}
+    V -- no --> X["Error: -p requires BBDO 3,<br/>Engine exits"]
+    V -- yes --> B{"state.prot present<br/>in the -p directory?"}
     B -- yes --> S["Reads state.prot"]
     B -- no --> C{"centengine.cfg given?"}
     C -- yes --> P["Parses centengine.cfg<br/>(first centralized startup)"]
@@ -363,7 +367,7 @@ An example of `pollers_config_directory`:
 
 Two settings decide everything. The first one chooses who owns the `Engine` configuration: `Engine` itself (legacy) or `Broker` (centralized configuration). The second one, `notification_mode` in the `Broker` configuration, chooses who owns the notification decision and everything around it: downtimes, acknowledgements, comments and notification toggles. Downtimes are thus not a separate setting: they follow `notification_mode`, as acknowledgements and notifications do.
 
-Three combinations are supported, numbered ①, ② and ③ in the chart and the table below. The fourth one, `notification_mode = broker` in legacy, is accepted by the code but does not work: contacts and escalations only reach the `Broker` cache through the centralized configuration, and `Broker` would have nobody to notify.
+Three combinations are supported, numbered ①, ② and ③ in the chart and the table below. The fourth one, `notification_mode = broker` in legacy, is accepted by the code but does not work: contacts and escalations only reach the `Broker` cache through the centralized configuration, and `Broker` would have nobody to notify. Finally, `-p` with a `cbmod` in BBDO 2 is refused: `Engine` exits on an error (see [Engine startup parameters](#engine-startup-parameters)).
 
 ```mermaid
 flowchart TD
@@ -371,11 +375,13 @@ flowchart TD
     classDef broker fill:#4a90d9,color:#fff;
     classDef ko fill:#999,color:#fff,stroke-dasharray: 5 5;
 
-    Q1{"Engine started with -p<br/>AND BBDO ≥ 3?"}
+    Q1{"Engine started with -p?"}
     Q1 -- "no" --> QL{"Broker<br/>notification_mode?"}
     QL -- "engine (default)" --> C1["① Legacy<br/>Engine reads centengine.cfg and handles everything<br/>state kept in retention.dat"]:::engine
     QL -- "broker" --> KO["Not supported<br/>no contact in the Broker cache"]:::ko
-    Q1 -- "yes" --> Q2{"Broker Engine connects to:<br/>cache_config_directory set?"}
+    Q1 -- "yes" --> QB{"cbmod bbdo_version ≥ 3?"}
+    QB -- "no" --> REFUSED["Refused<br/>Engine exits on an error"]:::ko
+    QB -- "yes" --> Q2{"Broker Engine connects to:<br/>cache_config_directory set?"}
     Q2 -- "no" --> RELAY["Relay Broker<br/>forwards configuration requests<br/>to the central Broker"]:::broker
     RELAY --> Q3
     Q2 -- "yes" --> Q3{"Central Broker<br/>notification_mode?"}
