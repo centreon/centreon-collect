@@ -151,6 +151,7 @@ TEST_F(ApplierService, PbRenameServiceFromConfig) {
   svc_aply.add_object(svc);
 
   svc.set_service_description("test_description2");
+  svc.set_check_interval(7);
   svc_aply.modify_object(pb_indexed_config.mut_services().at({1, 3}).get(),
                          svc);
   configuration::error_cnt err;
@@ -168,6 +169,13 @@ TEST_F(ApplierService, PbRenameServiceFromConfig) {
   std::string s{engine::service::services[{"test_host", "test_description2"}]
                     ->description()};
   ASSERT_TRUE(s == "test_description2");
+
+  /* The configuration index, which state.prot is written from, holds the new
+   * definition, not only the new name. */
+  const configuration::Service& indexed =
+      *pb_indexed_config.services().at({1, 3});
+  EXPECT_EQ(indexed.service_description(), "test_description2");
+  EXPECT_EQ(indexed.check_interval(), 7u);
 }
 
 // Given service configuration with a host defined

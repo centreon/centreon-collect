@@ -236,7 +236,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
 
   s->set_hostname(new_host_name);
   s->set_description(new_description);
-  s->set_display_name(std::move(new_display_name));
+  s->set_display_name(new_display_name);
   s->set_check_command(new_obj.check_command());
   // resolve_pointers() only wires a check command: the previous one is
   // unwired here when the configuration has none anymore.
@@ -410,7 +410,6 @@ void applier::service::modify_object(configuration::Service* old_obj,
 
   if (tags_changed) {
     s->mut_tags().clear();
-    old_obj->mutable_tags()->CopyFrom(new_obj.tags());
     for (auto& t : new_obj.tags()) {
       tag_map::iterator it_tag =
           engine::tag::tags.find({t.first(), t.second()});
@@ -422,9 +421,14 @@ void applier::service::modify_object(configuration::Service* old_obj,
         s->mut_tags().emplace_front(it_tag->second);
     }
   }
-
-  // update the global service configuration
+  /* Last, once everything above has compared the two: the configuration
+   * index, which state.prot is written from, now holds the new definition,
+   * with the names converted as add_object() stores them. */
   old_obj->CopyFrom(new_obj);
+  old_obj->set_host_name(new_host_name);
+  old_obj->set_service_description(new_description);
+  if (new_obj.has_display_name())
+    old_obj->set_display_name(new_display_name);
 
   // Notify event broker.
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE, s.get(),

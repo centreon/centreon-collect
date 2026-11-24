@@ -120,7 +120,9 @@ TEST_F(ApplierPbHost, PbNewHostWithoutHostId) {
 // Given a host configuration
 // When we change the host name in the configuration
 // Then the applier modify_object changes the host name without changing
-// the host id.
+// the host id
+// And the configuration index, which state.prot is written from, holds the
+// new definition, the other changes included.
 TEST_F(ApplierPbHost, HostRenamed) {
   configuration::applier::host hst_aply;
   configuration::Host hst;
@@ -136,11 +138,18 @@ TEST_F(ApplierPbHost, HostRenamed) {
   ASSERT_TRUE(h1->name() == "test_host");
 
   hst.set_host_name("test_host1");
+  hst.set_address("127.0.0.2");
+  hst.set_check_interval(7);
   hst_aply.modify_object(pb_indexed_config.hosts().at(12).get(), hst);
   ASSERT_EQ(hm.size(), 1u);
   h1 = hm.begin()->second;
   ASSERT_TRUE(h1->name() == "test_host1");
   ASSERT_EQ(get_host_id(h1->name()), 12u);
+
+  const configuration::Host& indexed = *pb_indexed_config.hosts().at(12);
+  EXPECT_EQ(indexed.host_name(), "test_host1");
+  EXPECT_EQ(indexed.address(), "127.0.0.2");
+  EXPECT_EQ(indexed.check_interval(), 7u);
 }
 
 // Given a host with a custom variable sent to broker
