@@ -480,7 +480,11 @@ std::ostream& dump::program(std::ostream& os) {
  *  @return True on success, otherwise false.
  */
 bool dump::save(std::string const& path) {
-  if (!pb_indexed_config.state().retain_state_information())
+  /* In centralized configuration, Broker holds the runtime state and the
+   * retention file is no longer written: it is only read once, when a poller
+   * switches from the legacy configuration (see main.cc). */
+  if (!pb_indexed_config.state().retain_state_information() ||
+      !proto_conf.empty())
     return true;
 
   bool ret = false;
