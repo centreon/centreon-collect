@@ -141,6 +141,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     cache_dir = s.cache_directory();
 
   _cache_dir = cache_dir / s.broker_name();
+  _cache_compression = s.cache_compression();
 
   //  if (s.get_bbdo_version().major_v >= 3) {
   //    // Configuration cache directory (for broker, from php).
@@ -338,6 +339,25 @@ void state::clear_cache() {
  */
 const std::string& state::cache_dir() const noexcept {
   return _cache_dir;
+}
+
+/**
+ * @brief Set whether the cache file is compressed when it is saved. apply()
+ * sets it from the configuration; this setter is for the unit tests.
+ *
+ * @param compression true to compress it.
+ */
+void state::set_cache_compression(bool compression) noexcept {
+  _cache_compression = compression;
+}
+
+/**
+ * @brief Tell whether the cache file is compressed when it is saved.
+ *
+ * @return true if it is compressed (the default).
+ */
+bool state::cache_compression() const noexcept {
+  return _cache_compression;
 }
 
 /**

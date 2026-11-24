@@ -177,6 +177,7 @@ overrides:
       - centreon-protobuf-lib (= ${VERSION}-${RELEASE}${DIST})
       # cbmod.so (shipped here) refuses broker modules of another version.
       - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
+      - libzstd1
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-dev

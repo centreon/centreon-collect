@@ -203,6 +203,7 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     libcurl-devel
     tar
     zlib-devel
+    libzstd-devel
     libstdc++-static
   )
   if [[ "$maj" == 'centos8' ]] ; then
@@ -284,6 +285,7 @@ elif [ -r /etc/issue ] ; then
       rrdtool
       zip
       zlib1g-dev
+      libzstd-dev
     )
     apt update
     for i in "${pkgs[@]}"; do
@@ -314,6 +316,7 @@ elif [ -r /etc/issue ] ; then
       libssl-dev
       libssh2-1-dev
       zlib1g-dev
+      libzstd-dev
     )
     for i in "${pkgs[@]}"; do
       if ! is_installed "$i" ; then

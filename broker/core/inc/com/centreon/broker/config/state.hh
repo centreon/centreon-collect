@@ -42,6 +42,8 @@ class state {
   uint64_t _event_queues_total_size = 0u;
   bbdo::bbdo_version _bbdo_version;
   std::string _cache_directory;
+  /* Whether the cache file is compressed (zstd) when it is saved. */
+  bool _cache_compression = true;
   std::string _command_file;
   std::string _command_protocol;
   std::list<endpoint> _endpoints;
@@ -118,6 +120,8 @@ class state {
   bbdo::bbdo_version get_bbdo_version() const noexcept;
   void cache_directory(const std::string& dir);
   const std::string& cache_directory() const noexcept;
+  void set_cache_compression(bool compression) noexcept;
+  bool cache_compression() const noexcept;
   void command_file(const std::string& file);
   const std::string& command_file() const noexcept;
   void command_protocol(const std::string& prot);
