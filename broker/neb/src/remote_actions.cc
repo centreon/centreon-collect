@@ -556,9 +556,11 @@ void plugins_start(std::unique_ptr<plugins_install> p) {
                      sp->id, cmd, sp->plugins_json);
   plugins_reply(*sp, REMOTE_DELIVERED, "plugin install started");
   try {
+    auto args = std::make_shared<com::centreon::common::process_args>(
+        std::string_view(cmd), std::vector<std::string>{sp->plugins_json});
     auto proc = std::make_shared<com::centreon::common::process<true>>(
-        com::centreon::common::pool::io_context_ptr(), logger(),
-        std::string_view(cmd), true, false, {sp->plugins_json}, nullptr);
+        com::centreon::common::pool::io_context_ptr(), logger(), args, true,
+        false, nullptr);
     proc->start_process(
         [sp](const com::centreon::common::process<true>&, int exit_code,
              com::centreon::common::e_exit_status exit_status,
