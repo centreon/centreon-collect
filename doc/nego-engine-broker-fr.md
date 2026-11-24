@@ -5523,9 +5523,23 @@ seul. Le stream n'envoie d'ailleurs jamais un snapshot pour un poller que le cac
 encore : ce serait un snapshot vide. Test : `CERS2` (Broker redémarré sans son `1.prot`, Engine
 en marche : la configuration revient, l'état revient derrière).
 
-**Étape 3 — les overrides d'attributs modifiés.** La base a `modified_attributes` et les
-colonnes correspondantes ; le module référence les recharge par le même chemin que l'état de
-check, et le snapshot les redescend. La sensibilité des anomalydetection en fait partie.
+**Étape 3 — les overrides d'attributs modifiés.** La base a les colonnes des attributs, mais
+pas de masque : `modified_attributes` n'existe ni dans `neb.proto`, ni dans le cache, ni dans ce
+qu'unified_sql écrit. Il est donc à reconstituer : d'après les champs présents dans un événement
+adaptatif, qui ne porte que l'attribut modifié, et au démarrage par comparaison entre la base et
+la configuration. Le module référence recharge ensuite ces attributs par le même chemin que
+l'état de check, et le snapshot les redescend sous le masque. Les variables custom et la
+sensibilité des anomalydetection, que le cache ne connaît pas, restent hors périmètre.
+
+*Lot 1, fait le 2026-10-05 : les événements adaptatifs en centralisé.* Avant lui, Engine n'en
+émettait aucun dans ce mode : `forward_pb_host` et `forward_pb_service` commençaient par
+`if (cbm->centralized_conf()) return;`, placé avant la branche `NEBTYPE_ADAPTIVE*_UPDATE`. Le
+retour visait la définition complète, que Broker a déjà par le `.prot`, mais il emportait aussi
+`pb_adaptive_host` et `pb_adaptive_service` : un `DISABLE_HOST_CHECK` passé à un poller
+centralisé n'atteignait ni le cache, ni la base. Le retour est descendu dans la branche de la
+définition complète ; la branche adaptative part dans les deux modes. Test : `BEEXTBRK_ADAPTIVE`
+(`DISABLE/ENABLE_HOST_CHECK` et `_SVC_CHECK` envoyés à Broker, vérifiés dans `hosts`, `services`
+et `resources`).
 
 **Étape 4 — Engine.** En configuration centralisée, Engine cesse de lire `retention.dat` dès
 qu'un snapshot arrive, et continue de l'écrire en filet jusqu'à validation. Le scheduling et
