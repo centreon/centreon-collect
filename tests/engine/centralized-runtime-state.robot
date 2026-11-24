@@ -14,7 +14,7 @@ CERS1
     [Documentation]    Scenario: an Engine restarted without retention.dat gets its resources state back from Broker
     ...    Given Broker and Engine are started in centralized configuration, with passive services
     ...    And service_1 of host_1 is CRITICAL HARD
-    ...    When Engine is stopped, its retention.dat is deleted and Engine is started again
+    ...    When Engine is stopped, without writing any retention.dat, and started again
     ...    Then Broker, finding the poller up to date, sends it its runtime state alone
     ...    And Engine restores the state of its hosts and services from that snapshot
     ...    And service_1 gets back its check output, but not its long output
@@ -50,10 +50,12 @@ CERS1
     ${output}    Ctn Get Service Info Grpc    ${1}    ${1}
     Should Be Equal As Strings    ${output}[longPluginOutput]    long output of service_1    Engine should split the long output from the output
 
-    # Engine restarts with no retention file: the only state it can get back
-    # is the one Broker sends at its connection.
+    # Engine restarts with no retention file: in centralized configuration it
+    # does not write one, so the only state it can get back is the one Broker
+    # sends at its connection.
     Ctn Stop Engine
-    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ...    Engine should not write retention.dat in centralized configuration
     ${restart}    Ctn Get Round Current Date
     Ctn Start Engine    newGeneration=True
     Ctn Wait For Engine To Be Ready    ${restart}    ${1}
@@ -63,9 +65,9 @@ CERS1
     Should Be True    ${result}    Broker should send the runtime state to the poller it finds up to date
     # The retention phase runs before the log file is opened: its lines go to
     # the standard output of centengine.
-    ${content}    Create List    retention.dat is not read: the runtime state comes from Broker
+    ${content}    Create List    no retention file to read: the runtime state comes from Broker
     ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${restart}    ${content}    30
-    Should Be True    ${result}    Engine should say it does not read retention.dat in centralized configuration
+    Should Be True    ${result}    Engine should say it has no retention.dat to read in centralized configuration
     ${content}    Create List    Parsing of retention file failed
     ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${restart}    ${content}    5
     Should Not Be True    ${result}    Engine should not even try to read retention.dat
@@ -468,8 +470,109 @@ CERS7
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
 
+CERS8
+    [Documentation]    Scenario: a poller switching from the legacy configuration to the centralized one uses its retention.dat one last time
+    ...    Given Broker and Engine are started in legacy configuration, with passive services
+    ...    And service_1 of host_1 is in a downtime held by Engine
+    ...    And Engine is stopped, writing its retention.dat
+    ...    When the poller switches to the centralized configuration and Engine starts with its centengine.cfg, as the packaged service does
+    ...    Then Engine reads retention.dat once and renames it retention.dat.migrated
+    ...    And service_1 is still in downtime, which only retention.dat could tell
+    ...    And Engine ignores SAVE_STATE_INFORMATION and writes no retention.dat, even when stopped
+    ...    And at its next start, Engine has no retention file to read
+    [Tags]    engine    broker    centralized    retention    MON-187019
+    Ctn Config Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+
+    Ctn Clear Retention
+    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat.migrated
+    Ctn Clear Prot Files
+    Ctn Clear Db    downtimes
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # The downtime is held by Engine: notification_mode is not broker. It is
+    # fixed so that it starts at once (a flexible one waits for a problem).
+    ${now}    Evaluate    int(time.time())    modules=time
+    ${end}    Evaluate    ${now} + 3600
+    Ctn Send External Command    SCHEDULE_SVC_DOWNTIME;host_1;service_1;${now};${end};1;0;3600;admin;fixed downtime
+    Wait Until Keyword Succeeds    60s    2s    Service 1 Downtime Depth Should Be    ${1}
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    ${downtime}    Ctn Grep Retention    ${0}    servicedowntime
+    Should Not Be Empty    ${downtime}    The legacy Engine should have written its downtime in retention.dat
+
+    # The poller switches to the centralized configuration. Neither Engine
+    # (no state.prot) nor Broker knows its runtime state yet. On a real poller,
+    # the legacy centengine.cfg is still there; Ctn Config Centralized Engine
+    # wipes it, so it is kept aside and put back.
+    Remove Directory    ${VarRoot}/legacy-config0    recursive=True
+    Copy Directory    ${EtcRoot}/centreon-engine/config0    ${VarRoot}/legacy-config0
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Directory Should Not Exist    ${EtcRoot}/centreon-engine/config0
+    Copy Directory    ${VarRoot}/legacy-config0    ${EtcRoot}/centreon-engine/config0
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_config    info
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+    ${switch}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True    with_legacy_cfg=True
+    Ctn Wait For Engine To Be Ready    ${switch}    ${1}
+
+    # The retention phase runs before the log file is opened: its lines go to
+    # the standard output of centengine.
+    ${content}    Create List    read once and renamed to
+    ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${switch}    ${content}    30
+    Should Be True    ${result}    Engine should read retention.dat once and rename it
+    File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    File Should Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat.migrated
+    # The downtime must survive the first configuration Broker sends, applied
+    # over the one parsed from centengine.cfg.
+    ${content}    Create List    received diff state ack from poller 1
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${switch}    ${content}    60
+    Should Be True    ${result}    Broker should receive the acknowledgement of the first diff state
+    Service 1 Downtime Depth Should Be    ${1}
+
+    # In centralized configuration, Engine never writes retention.dat.
+    ${now}    Ctn Get Round Current Date
+    Ctn Send External Command    SAVE_STATE_INFORMATION
+    ${content}    Create List    SAVE_STATE_INFORMATION ignored
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${now}    ${content}    30
+    Should Be True    ${result}    Engine should ignore SAVE_STATE_INFORMATION in centralized configuration
+    File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    Ctn Stop Engine
+    File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ...    Engine should not write retention.dat when stopped in centralized configuration
+
+    # The renamed file is never read again.
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True    with_legacy_cfg=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    no retention file to read: the runtime state comes from Broker
+    ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${restart}    ${content}    30
+    Should Be True    ${result}    Engine should not read retention.dat.migrated again
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
 
 *** Keywords ***
+Service 1 Downtime Depth Should Be
+    [Documentation]    Fails unless the scheduled downtime depth of (host_1, service_1) in Engine is ${expected}.
+    [Arguments]    ${expected}
+    ${info}    Ctn Get Service Info Grpc    ${1}    ${1}
+    ${depth}    Evaluate    $info.get('scheduledDowntimeDepth', 0)
+    Should Be Equal As Integers    ${depth}    ${expected}
+
 Service 1 Notification Id Should Be Above
     [Documentation]    Fails unless the current notification id of (host_1, service_1) is greater than ${min}, returns it otherwise.
     [Arguments]    ${min}
