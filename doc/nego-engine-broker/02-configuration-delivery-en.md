@@ -11,6 +11,8 @@
   * [Delivery](#delivery)
   * [The configuration round](#the-configuration-round)
     * [An export arriving while a round is open](#an-export-arriving-while-a-round-is-open)
+    * [A round interrupted by a stop of `Broker`](#a-round-interrupted-by-a-stop-of-broker)
+    * [Known limitation: an object moved to an absent poller](#known-limitation-an-object-moved-to-an-absent-poller)
 * [Some more technical points](#some-more-technical-points)
   * [Watching the cache directory](#watching-the-cache-directory)
     * [The moving parts](#the-moving-parts)
@@ -189,7 +191,7 @@ Four rules hold this mechanism together:
 * **A round does not close while a poller is still owed its configuration.** The database would otherwise receive the export poller by poller, and an object moved between two pollers would be missing or duplicated for the duration of a round.
 * **"Owed its configuration" is tested with `available_conf != engine_conf`**, not with a non-empty `available_conf`: that field is never cleared, and every poller would look owed forever.
 * **Preparing a version already handed over does not take the poller out of the round.** PHP may announce the same export twice. Putting the poller back to `out` for the same version would lose its acknowledgement: `try_close_conf_round()` would no longer count it, and the round would never close. `_prepare_diff_for_poller()` therefore only touches `conf_round` when the version changes.
-* **A poller that is not connected is not part of the round.** Nothing is prepared for it, so it has nothing to wait for. A `1/1 acknowledged` on a platform with two stopped pollers is normal, the cycle summary line naming the missing ones. The same goes for an entry only known from `topology.cache` (see [A poller behind a relay behaves like a direct one](06-remote-servers-en.md#a-poller-behind-a-relay-behaves-like-a-direct-one)).
+* **A poller that is not connected is not part of the round.** Nothing is prepared for it, so it has nothing to wait for. An object moved to it is then seen as removed until it connects (see [Known limitation: an object moved to an absent poller](#known-limitation-an-object-moved-to-an-absent-poller)). A `1/1 acknowledged` on a platform with two stopped pollers is normal, the cycle summary line naming the missing ones. The same goes for an entry only known from `topology.cache` (see [A poller behind a relay behaves like a direct one](06-remote-servers-en.md#a-poller-behind-a-relay-behaves-like-a-direct-one)).
 
 #### An export arriving while a round is open
 
@@ -246,6 +248,23 @@ The acknowledged difference(s) of poller(s) 1 did not reach the database before 
 ```
 
 In the second case, if the expected poller never comes back, the differences wait for the next round to close, the one of a new export; `RemovePoller` removes its `new-X.prot`, but does not close the round by itself. The robot test `BECSS5` plays the first case: `Engine` frozen, the files renamed the way an acknowledgement does, and the database checked after `Broker` restarted, with no new export.
+
+#### Known limitation: an object moved to an absent poller
+
+The global diff reconciles a move only when both pollers involved are in the same round. A poller that is not connected is not part of it (see above), and a poller that disconnects in the middle of a round leaves it too: `poller_conf::on_disconnected()` resets it, and the round closes without it.
+
+Take pollers 1 and 2 connected, poller 3 stopped, and an export moving host H from poller 1 to poller 3:
+
+1. the cycle writes `new-1.prot`, `new-2.prot` and `new-3.prot`, but prepares a difference for 1 and 2 only;
+2. 1 and 2 acknowledge, the round closes: the global diff contains "H removed" and nothing else for H;
+3. `unified_sql` sets H, its services and their `resources` rows to `enabled = 0`; the cache removes H with the runtime state it carried (acknowledgement, notification states…); `Engine` 1 deletes it with its downtimes and comments;
+4. when poller 3 connects, it receives its difference, acknowledges, and a new round, for it alone, re-enables H under instance 3. H starts again without the state the cache lost.
+
+If poller 3 never comes back, H stays disabled. With the three pollers connected, the same export gives a move, without any disabling.
+
+On top of that, there is an asymmetry with loading: at `Broker` startup, an absent poller with a `new-X.prot` holds the round (see [A round interrupted by a stop of `Broker`](#a-round-interrupted-by-a-stop-of-broker)), whereas at runtime it does not enter it. The result of a same export thus also depends on whether `Broker` restarted in between.
+
+This limitation is known and accepted for now: the database stays consistent, and the defect only affects moves to an absent poller. The way to fix it would be to count an absent poller as acknowledged for the database: its difference, computable from `X.prot` and `new-X.prot`, would enter the global diff. One would then either make `new-X.prot` the `X.prot` right away and catch `Engine` up with a full configuration when it connects, or keep `new-X.prot` for `Engine` while noting that the database already received it; and decide what to do if the poller later refuses this configuration the database already shows. This touches the core of the round, and was not retained.
 
 Every operation on a poller's files happens under the same lock, `_conf_handover_m`: storing and preparing by the cycle, acknowledgement, preparing on connection, answering a relay, removing a poller, and closing a round found at startup. This lock covers neither reading nor validating the sources, which remain the costly part of the cycle.
 
