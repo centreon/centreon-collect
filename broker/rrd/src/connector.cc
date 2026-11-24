@@ -47,6 +47,7 @@ static constexpr multiplexing::muxer_filter _rrd_forbidden_filter =
 connector::connector()
     : io::endpoint(false, _rrd_stream_filter, _rrd_forbidden_filter),
       _cache_size(16),
+      _cached_host("localhost"),
       _cached_port(0),
       _ignore_update_errors(true),
       _write_metrics(true),
@@ -66,7 +67,7 @@ std::shared_ptr<io::stream> connector::open() {
   else if (_cached_port)
     retval.reset(new output<cached<asio::ip::tcp::socket>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,
-        _cached_port, _write_metrics, _write_status));
+        _cached_host, _cached_port, _write_metrics, _write_status));
   else
     retval.reset(new output<lib>(_metrics_path, _status_path, _cache_size,
                                  _ignore_update_errors, _write_metrics,
@@ -93,11 +94,13 @@ void connector::set_cached_local(std::string const& local_socket) {
 }
 
 /**
- *  Set the network connection port.
+ *  Set the network connection host and port.
  *
+ *  @param[in] host rrdcached host/address.
  *  @param[in] port rrdcached port.
  */
-void connector::set_cached_net(uint16_t port) noexcept {
+void connector::set_cached_net(std::string const& host, uint16_t port) {
+  _cached_host = host.empty() ? "localhost" : host;
   _cached_port = port;
 }
 
