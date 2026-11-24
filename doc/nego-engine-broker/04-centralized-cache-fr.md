@@ -204,6 +204,8 @@ ou `libz`.
 
 Le même paramètre décide de la compression des autres fichiers protobuf que cbd écrit, tous par `common::write_proto_file()` et avec le même en-tête : dans le répertoire des configurations des pollers, `<ID>.prot`, `new-<ID>.prot`, `next-<ID>.prot`, `new-diff-<ID>.prot`, `diff-<ID>.prot` et `topology.cache` (`broker_state`), et le cache des états BAM, `<cache_dir>.cache.<nom>`. Leur lecture passe par `common::read_proto_file()`, qui détecte l'en-tête de la même façon : on peut changer le paramètre d'un redémarrage à l'autre, les fichiers déjà écrits restent lisibles. PHP ne lit aucun de ces fichiers. Comme pour le `.cache`, une version de cbd antérieure à la compression ne sait pas les relire.
 
+Côté `Engine`, les fichiers écrits dans le répertoire donné par `-p` (`--proto-conf`), `state.prot` et `downtimes.prot`, suivent l'option de ligne de commande `--cache-compression=on|off`. Elle vaut `on` quand elle est absente ; un `--cache-compression` sans valeur vaut aussi `on`. Ce n'est pas un paramètre de `cbmod` : ces fichiers appartiennent à `Engine`, qui les écrit (`save_state_prot()`, `retention::downtimes_file::save()`) que `cbmod` soit chargé ou non. La lecture détecte l'en-tête de la même façon, et l'option peut changer d'un démarrage à l'autre. Donnée sans `-p`, elle n'a aucun effet et `Engine` journalise un avertissement. Une version d'`Engine` antérieure à la compression ne sait pas relire ces fichiers : pour y revenir, il faut auparavant redémarrer `Engine` une fois avec `--cache-compression=off` et lui faire réécrire ses fichiers. Le test robot `BECACHECMP4` couvre les deux modes et le passage de l'un à l'autre.
+
 ### Réinjection au démarrage
 
 `_load_cache()` s'exécute dans le constructeur du cache, avant que

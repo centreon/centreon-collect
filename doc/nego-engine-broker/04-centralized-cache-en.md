@@ -198,6 +198,8 @@ The library is the one of the system (`libzstd`), like `libcrypto` or `libz`.
 
 The same parameter decides whether the other protobuf files cbd writes are compressed, all through `common::write_proto_file()` and with the same header: in the directory of the poller configurations, `<ID>.prot`, `new-<ID>.prot`, `next-<ID>.prot`, `new-diff-<ID>.prot`, `diff-<ID>.prot` and `topology.cache` (`broker_state`), and the cache of the BAM states, `<cache_dir>.cache.<name>`. They are read through `common::read_proto_file()`, which detects the header the same way: the parameter can change from one restart to the next, the files already written stay readable. PHP reads none of these files. As with the `.cache`, a version of cbd older than the compression cannot read them back.
 
+On the `Engine` side, the files written in the directory given by `-p` (`--proto-conf`), `state.prot` and `downtimes.prot`, follow the command line option `--cache-compression=on|off`. It is `on` when absent; a `--cache-compression` without a value is `on` too. It is not a `cbmod` parameter: these files belong to `Engine`, which writes them (`save_state_prot()`, `retention::downtimes_file::save()`) whether `cbmod` is loaded or not. Reading detects the header the same way, and the option can change from one start to the next. Given without `-p`, it has no effect and `Engine` logs a warning. A version of `Engine` older than the compression cannot read these files back: to go back to it, first restart `Engine` once with `--cache-compression=off` and have it rewrite its files. The robot test `BECACHECMP4` covers both modes and the switch from one to the other.
+
 ### Re-injection at startup
 
 `_load_cache()` runs in the cache constructor, before `_global_cache` is
