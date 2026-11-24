@@ -25,7 +25,7 @@ add_library(broker_bbdo STATIC acceptor.cc connector.cc factory.cc internal.cc
 
 target_compile_definitions(broker_bbdo PRIVATE BROKER_COMPILATION)
 
-target_link_libraries(broker_bbdo PRIVATE centreon_engine_conf)
+target_link_libraries(broker_bbdo PRIVATE centreon_engine_conf proto_file)
 add_dependencies(broker_bbdo pb_bbdo_lib pb_extcmd_lib process_stat
                  pb_open_telemetry_lib pb_neb_lib pb_storage_lib
                  target_broker_message centreon_engine_conf)

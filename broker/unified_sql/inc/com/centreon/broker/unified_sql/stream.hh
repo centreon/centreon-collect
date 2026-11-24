@@ -485,13 +485,15 @@ class stream : public io::stream {
   void _restore_runtime_complement_from_hosts_services();
   void _restore_overrides_from_hosts_services();
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
+  void _remove_poller_links(uint64_t instance_id);
+  void _forget_poller_hosts(uint64_t instance_id);
+  void _wake_up_poller_resources(uint64_t poller_id);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();
   void _prepare_sg_insupdate_statement();
   void _prepare_pb_sg_insupdate_statement();
   void _finish_actions();
   void _update_metrics() ABSL_LOCKS_EXCLUDED(_metrics_m);
-  void _clear_instances_cache(const std::list<uint64_t>& ids);
   bool _host_instance_known(uint64_t host_id) const;
 
   void _start_loop_timer() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_timer_m);
@@ -514,7 +516,9 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   ~stream() noexcept ABSL_LOCKS_EXCLUDED(_barrier_timer_m);
-  void clean_tables(uint64_t instance_id);
+  /* Why the tables of a poller are cleaned, which decides what is removed. */
+  enum class clean_reason { poller_stopped, full_configuration };
+  void clean_tables(uint64_t instance_id, clean_reason reason);
 
   static const multiplexing::muxer_filter& get_muxer_filter();
   static const multiplexing::muxer_filter& get_forbidden_filter();

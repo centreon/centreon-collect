@@ -22,6 +22,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/config.hh"
+#include "com/centreon/engine/configuration/applier/runtime_state.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/notifier.hh"
@@ -79,7 +80,11 @@ void applier::service::add_object(const configuration::Service& obj) {
   conf_svc->CopyFrom(obj);
   conf_svc->set_host_name(host_name);
   conf_svc->set_service_description(service_description);
-  conf_svc->set_display_name(display_name);
+  /* display_name is optional (develop #2842): set only when the configuration
+   * has one, or the configuration Engine keeps and writes to state.prot would
+   * hold an empty display_name the configuration it received does not. */
+  if (obj.has_display_name())
+    conf_svc->set_display_name(display_name);
 
   // Create service.
   engine::service* svc{add_service(
@@ -204,6 +209,11 @@ void applier::service::modify_object(configuration::Service* old_obj,
         "Could not modify non-existing service object '{}' of host '{}'",
         service_description, host_name);
   std::shared_ptr<engine::service> s = it_obj->second;
+  /* What external commands overrode comes back on top of the configuration
+   * below: an overridden attribute follows the last command, not the
+   * configuration, as the retention made it and as the Broker cache does. */
+  const configuration::RuntimeOverrides overrides =
+      runtime_state::capture_overrides(*s);
 
   /* Converted once, like in add_object: the comparison, the service::services
    * key and the runtime object must all hold the very same strings. Otherwise a
@@ -226,7 +236,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
 
   s->set_hostname(new_host_name);
   s->set_description(new_description);
-  s->set_display_name(std::move(new_display_name));
+  s->set_display_name(new_display_name);
   s->set_check_command(new_obj.check_command());
   // resolve_pointers() only wires a check command: the previous one is
   // unwired here when the configuration has none anymore.
@@ -321,6 +331,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
                                  pb_indexed_config.state().interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
   s->set_icon_id(new_obj.icon_id());
+  runtime_state::apply_overrides(overrides, *s);
 
   // Contacts.
   if (!MessageDifferencer::Equals(new_obj.contacts(), old_obj->contacts())) {
@@ -399,7 +410,6 @@ void applier::service::modify_object(configuration::Service* old_obj,
 
   if (tags_changed) {
     s->mut_tags().clear();
-    old_obj->mutable_tags()->CopyFrom(new_obj.tags());
     for (auto& t : new_obj.tags()) {
       tag_map::iterator it_tag =
           engine::tag::tags.find({t.first(), t.second()});
@@ -411,9 +421,14 @@ void applier::service::modify_object(configuration::Service* old_obj,
         s->mut_tags().emplace_front(it_tag->second);
     }
   }
-
-  // update the global service configuration
+  /* Last, once everything above has compared the two: the configuration
+   * index, which state.prot is written from, now holds the new definition,
+   * with the names converted as add_object() stores them. */
   old_obj->CopyFrom(new_obj);
+  old_obj->set_host_name(new_host_name);
+  old_obj->set_service_description(new_description);
+  if (new_obj.has_display_name())
+    old_obj->set_display_name(new_display_name);
 
   // Notify event broker.
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE, s.get(),

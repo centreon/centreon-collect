@@ -1,12 +1,12 @@
 *** Settings ***
-Documentation       Broker validates a centralized poller configuration at ingestion and refuses to push an invalid one, even when CheckPollerConfig was not called.
+Documentation     Broker validates a centralized poller configuration at ingestion and refuses to push an invalid one, even when CheckPollerConfig was not called.
 
-Resource            ../resources/import.resource
+Resource          ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Clean Before Test
-Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=True
+Suite Setup       Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup        Ctn Clean Before Test
+Test Teardown     Ctn Stop Engine Broker And Save Logs    only_central=True
 
 
 *** Test Cases ***
@@ -404,3 +404,127 @@ BECFGVAL9_${lck_mode}
     Examples:    lck_mode    --
     ...    batch
     ...    per_poller
+
+BECFGVAL10
+    [Documentation]    Scenario: Engine says so when it cannot apply the configuration it was sent
+    ...    Given one poller running the configuration Broker pushed to it
+    ...    When its hosts are given a tag that is not defined and the configuration is announced
+    ...    Then Broker validates and sends the configuration, tags not being its business
+    ...    And Engine cannot apply it, restores its previous configuration and tells Broker why
+    ...    And Broker logs the failure and removes new-1.prot and new-diff-1.prot
+    ...    And the configuration is not sent again
+    ...    When the tag is removed and the configuration is announced again
+    ...    Then the poller acknowledges the new configuration
+    [Tags]    broker    engine    config    centralized
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    # Tag 99 is defined nowhere: Broker does not check host tags, Engine does.
+    Ctn Add Tags To All Hosts    ${0}    group_tags    99
+    ${start}    Ctn Get Round Current Date
+    Ctn Announce Poller Configurations    batch    ${0}
+
+    ${content}    Create List    Cannot apply new configuration: Could not find tag
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Engine did not fail to apply the configuration with an undefined tag
+
+    ${content}    Create List    Poller 1 could not apply the configuration
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker was not told that the poller could not apply its configuration
+
+    VAR    ${dir}    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    Wait Until Removed    ${dir}/new-1.prot    10s
+    Wait Until Removed    ${dir}/new-diff-1.prot    10s
+
+    # A configuration that failed would fail again: it must not be resent.
+    Sleep    5s
+    ${failures}    Grep File    ${centralLog}    Poller 1 could not apply the configuration
+    ${count}    Get Line Count    ${failures}
+    Should Be Equal As Integers    ${count}    1    The failed configuration was sent again
+
+    Ctn Remove Tags From Hosts    ${0}
+    ${start}    Ctn Get Round Current Date
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+BECFGVAL11
+    [Documentation]    Scenario: a poller that applied its configuration acknowledges it by announcing it at its connection
+    ...    Given one poller running the configuration Broker pushed to it
+    ...    And its Engine stopped
+    ...    When the address of host_1 changes and the configuration is announced
+    ...    Then Broker prepares new-1.prot and cannot send it
+    ...    When Engine is given that configuration as its state.prot, as if it had applied it and its acknowledgement had been lost
+    ...    And Engine is started again
+    ...    Then Broker takes the announcement of that version as its acknowledgement
+    ...    And new-1.prot becomes 1.prot
+    ...    And the new address of host_1 reaches the database
+    ...    And no configuration is sent to Engine, which runs it already
+    [Tags]    broker    engine    config    centralized
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    config    info
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    resources
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result
+    ...    SELECT count(*) FROM hosts WHERE name = 'host_1' AND address <> '1.2.3.4'    ==    ${1}
+    ...    retry_timeout=60s    retry_pause=2s
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Stop Engine
+    ${content}    Create List    with id 1 disconnected
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker did not see the poller leave
+
+    # The export is made while the poller is away: Broker can only prepare it.
+    Ctn Engine Config Set Host Value    ${0}    host_1    address    1.2.3.4
+    Ctn Announce Poller Configurations    batch    ${0}
+    VAR    ${dir}    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    Wait Until Created    ${dir}/new-1.prot    60s
+    Ctn Wait For Pending Poller Batch
+
+    # What a poller that applied the configuration and whose acknowledgement
+    # was lost looks like: Engine runs and announces the version of the
+    # state.prot it reads at startup, and Broker still has new-1.prot.
+    Copy File    ${dir}/new-1.prot    ${VarRoot}/lib/centreon-engine/config0/state.prot
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    ${content}    Create List    with id 1 already runs    its announcement counts as the acknowledgement
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not take the announcement of the prepared version as its acknowledgement
+
+    File Should Not Exist    ${dir}/new-1.prot
+    File Should Exist    ${dir}/1.prot
+    Check Query Result
+    ...    SELECT count(*) FROM hosts WHERE name = 'host_1' AND address = '1.2.3.4'    ==    ${1}
+    ...    retry_timeout=60s    retry_pause=2s
+
+    # Engine runs that version already: at most its runtime state is sent.
+    ${content}    Create List    sending DiffState to poller 1
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    5
+    Should Not Be True    ${result}    Broker sent a configuration to a poller that runs it already
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs

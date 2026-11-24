@@ -34,10 +34,10 @@ parser::parser() {}
 parser::~parser() noexcept {}
 
 /**
- *  Parse a XML buffer.
+ *  @brief Parse the JSON of the "stats" entry of the Broker configuration.
  *
- *  @param[out] entries Parsed entries.
- *  @param[in]  content XML content.
+ *  @param[out] cfg     The FIFO paths found, appended to it.
+ *  @param[in]  content The JSON of the entry.
  */
 void parser::parse(std::vector<std::string>& cfg, std::string const& content) {
   auto json_fifo = [&cfg](nlohmann::json const& js) -> void {

@@ -608,6 +608,16 @@ class broker_cache {
   void _apply_locked(
       const com::centreon::engine::configuration::DiffState& diff)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
+  com::centreon::engine::configuration::DiffState _stale_entries_of_poller(
+      uint64_t poller_id,
+      const absl::flat_hash_set<uint64_t>& kept_hosts,
+      const absl::flat_hash_set<std::pair<uint64_t, uint64_t>>& kept_services)
+      const ABSL_SHARED_LOCKS_REQUIRED(_mutex);
+  void _remove_stale_entries_of_poller(
+      uint64_t poller_id,
+      const absl::flat_hash_set<uint64_t>& kept_hosts,
+      const absl::flat_hash_set<std::pair<uint64_t, uint64_t>>& kept_services)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   void _notify_configuration_changed()
       ABSL_LOCKS_EXCLUDED(_mutex, _config_listeners_m);
   absl::flat_hash_map<uint64_t, instance_info> _instances
@@ -930,6 +940,16 @@ class broker_cache {
   void _reinject_pending_notification_states() ABSL_LOCKS_EXCLUDED(_mutex);
   void _reinject_pending_acknowledgements() ABSL_LOCKS_EXCLUDED(_mutex);
   void _reinject_pending_notification_overrides() ABSL_LOCKS_EXCLUDED(_mutex);
+  void _fill_host_runtime(
+      const Host& h,
+      bool broker_owns_notifications,
+      com::centreon::engine::configuration::RuntimeState* out) const
+      ABSL_SHARED_LOCKS_REQUIRED(_mutex);
+  void _fill_service_runtime(
+      const Service& s,
+      bool broker_owns_notifications,
+      com::centreon::engine::configuration::RuntimeState* out) const
+      ABSL_SHARED_LOCKS_REQUIRED(_mutex);
 
   /* Periodic save of the cache (cbd outside the centralized configuration):
    * every _save_interval, the cache is written if its configuration data
@@ -1004,6 +1024,10 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   void fill_runtime_state(
       uint64_t poller_id,
+      com::centreon::engine::configuration::RuntimeState* out) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void fill_added_runtime_state(
+      const com::centreon::engine::configuration::DiffState& diff,
       com::centreon::engine::configuration::RuntimeState* out) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool restore_host_runtime(uint64_t host_id,

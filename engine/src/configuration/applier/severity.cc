@@ -84,15 +84,12 @@ void applier::severity::modify_object(
   if (!MessageDifferencer::Equals(*to_modify, new_object)) {
     if (to_modify->severity_name() != new_object.severity_name()) {
       s->set_name(new_object.severity_name());
-      to_modify->set_severity_name(new_object.severity_name());
     }
     if (to_modify->level() != new_object.level()) {
       s->set_level(new_object.level());
-      to_modify->set_level(new_object.level());
     }
     if (to_modify->icon_id() != new_object.icon_id()) {
       s->set_icon_id(new_object.icon_id());
-      to_modify->set_icon_id(new_object.icon_id());
     }
 
     // Notify event broker.
@@ -100,6 +97,10 @@ void applier::severity::modify_object(
   } else
     config_logger->debug("Severity ({}, {}) did not change",
                          new_object.key().id(), new_object.key().type());
+
+  /* Last, once everything above has compared the two: the configuration
+   * index, which state.prot is written from, now holds the new definition. */
+  to_modify->CopyFrom(new_object);
 }
 
 /**

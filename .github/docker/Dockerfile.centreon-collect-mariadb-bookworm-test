@@ -101,9 +101,7 @@ python3 -m venv /.venv
 source /.venv/bin/activate
 
 echo "install robot and dependencies"
-#we fix 7.4.2 version due to a bug in 7.5 version of Grep File
-/.venv/bin/pip3 install -U robotframework==7.4.2 robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
-/.venv/bin/pip3 install grpcio grpcio_tools robotframework-requests PyJWT
+/.venv/bin/pip3 install -U -r /tmp/collect/tests/requirements.txt
 
 cd /tmp/collect
 

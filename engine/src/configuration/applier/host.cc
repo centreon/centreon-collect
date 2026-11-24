@@ -24,6 +24,7 @@
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/config.hh"
+#include "com/centreon/engine/configuration/applier/runtime_state.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/notifier.hh"
@@ -61,7 +62,11 @@ void applier::host::add_object(const configuration::Host& obj) {
   auto new_host_config = std::make_unique<Host>();
   new_host_config->CopyFrom(obj);
   new_host_config->set_host_name(host_name);
-  new_host_config->set_display_name(display_name);
+  /* display_name is optional (develop #2842): set only when the configuration
+   * has one, or the configuration Engine keeps and writes to state.prot would
+   * hold an empty display_name the configuration it received does not. */
+  if (obj.has_display_name())
+    new_host_config->set_display_name(display_name);
   pb_indexed_config.mut_hosts().emplace(obj.host_id(),
                                         std::move(new_host_config));
 
@@ -185,6 +190,11 @@ void applier::host::modify_object(configuration::Host* old_obj,
         "Could not modify non-existing host object '{}' (id {})",
         new_obj.host_name(), new_obj.host_id());
   std::shared_ptr<engine::host> h = it_obj->second;
+  /* What external commands overrode comes back on top of the configuration
+   * below: an overridden attribute follows the last command, not the
+   * configuration, as the retention made it and as the Broker cache does. */
+  const configuration::RuntimeOverrides overrides =
+      runtime_state::capture_overrides(*h);
 
   /* Converted once, like in add_object: the comparison, the host::hosts key and
    * the runtime object must all hold the very same string. Comparing the stored
@@ -201,7 +211,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
   }
 
   h->set_name(new_name);
-  h->set_display_name(std::move(new_display_name));
+  h->set_display_name(new_display_name);
   if (!new_obj.alias().empty())
     h->set_alias(new_obj.alias());
   else
@@ -296,6 +306,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
                                  pb_indexed_config.state().interval_length());
   h->set_recovery_notification_delay(new_obj.recovery_notification_delay());
   h->set_icon_id(new_obj.icon_id());
+  runtime_state::apply_overrides(overrides, *h);
 
   // Contacts.
   if (!MessageDifferencer::Equals(new_obj.contacts(), old_obj->contacts())) {
@@ -361,7 +372,6 @@ void applier::host::modify_object(configuration::Host* old_obj,
 
   if (tags_changed) {
     h->mut_tags().clear();
-    old_obj->mutable_tags()->CopyFrom(new_obj.tags());
     for (auto& t : new_obj.tags()) {
       tag_map::iterator it_tag =
           engine::tag::tags.find({t.first(), t.second()});
@@ -415,8 +425,14 @@ void applier::host::modify_object(configuration::Host* old_obj,
   } else
     h->set_severity(nullptr);
 
-  // update the global host configuration
+  /* Last, once everything above has compared the two: the configuration
+   * index, which state.prot is written from, now holds the new definition,
+   * with the names converted as add_object() stores them. */
   old_obj->CopyFrom(new_obj);
+  old_obj->set_host_name(new_name);
+  if (new_obj.has_display_name())
+    old_obj->set_display_name(new_display_name);
+
   // Notify event broker.
   broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE,
                             it_obj->second.get(), MODATTR_ALL);

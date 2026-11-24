@@ -67,7 +67,13 @@ message Stop {
 /* io::bbdo, bbdo::de_pb_diff_state_ack, 55 */
 message DiffStateAck {
   uint64 poller_id = 1;
+  /* The configuration version the poller runs now: the one it was sent, or the
+   * previous one when it could not apply it. */
   string config_version = 2;
+  /* When not empty, the version the poller was sent and could not apply. */
+  string failed_version = 3;
+  /* Why failed_version could not be applied. */
+  string error = 4;
 }
 
 /* Sent by a relay Broker to its upstream Broker to request the Engine

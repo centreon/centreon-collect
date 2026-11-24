@@ -20,8 +20,6 @@
 #ifndef CCE_MACROS_PROCESS_HH
 #define CCE_MACROS_PROCESS_HH
 
-#include <string>
-#include <string_view>
 #include <vector>
 
 #include "engine/macros/macro_context.hh"

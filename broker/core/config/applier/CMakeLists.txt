@@ -35,6 +35,8 @@ add_library(broker_applier_state STATIC
   modules.hh
   peer_registry.cc
   peer_registry.hh
+  poller_conf.cc
+  poller_conf.hh
   state.cc
   state.hh
 )
@@ -45,7 +47,7 @@ target_precompile_headers(broker_applier_state PRIVATE ../../precomp_inc/precomp
 
 set_target_properties(broker_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-target_link_libraries(broker_applier_state PRIVATE downtimes_lib)
+target_link_libraries(broker_applier_state PRIVATE proto_file downtimes_lib)
 
 # The precompiled header of Broker includes the headers generated from the bbdo,
 # broker and engine_conf protos: they must exist before any source is compiled.

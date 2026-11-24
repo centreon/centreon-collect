@@ -18,8 +18,9 @@
 #ifndef CCE_SERVICEESCALATION_HH
 #define CCE_SERVICEESCALATION_HH
 
+#include <absl/hash/hash.h>
+
 #include "com/centreon/engine/escalation.hh"
-#include "com/centreon/engine/hash.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -29,7 +30,7 @@ class serviceescalation;
 typedef std::unordered_multimap<
     std::pair<std::string, std::string>,
     std::shared_ptr<com::centreon::engine::serviceescalation>,
-    pair_hash>
+    absl::Hash<std::pair<std::string, std::string>>>
     serviceescalation_mmap;
 
 namespace com::centreon::engine {

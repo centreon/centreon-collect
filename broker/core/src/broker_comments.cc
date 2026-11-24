@@ -63,7 +63,7 @@ bool is_broker_comment_id(uint64_t internal_id) noexcept {
  */
 uint64_t publish_comment(uint64_t host_id,
                          uint64_t service_id,
-                         uint32_t instance_id,
+                         uint64_t instance_id,
                          Comment_EntryType entry_type,
                          Comment_Src source,
                          const std::string& author,
@@ -104,7 +104,7 @@ uint64_t publish_comment(uint64_t host_id,
  * @param instance_id The poller id the comment was created with, or 0 to match
  *                    by internal_id alone.
  */
-void publish_comment_deletion(uint64_t internal_id, uint32_t instance_id) {
+void publish_comment_deletion(uint64_t internal_id, uint64_t instance_id) {
   if (internal_id == 0)
     return;
   auto ev = std::make_shared<neb::pb_comment>();
@@ -131,7 +131,7 @@ void publish_comment_deletion(uint64_t internal_id, uint32_t instance_id) {
  */
 void publish_comments_deletion(uint64_t host_id,
                                uint64_t service_id,
-                               uint32_t instance_id) {
+                               uint64_t instance_id) {
   auto ev = std::make_shared<neb::pb_comment>();
   auto& obj = ev->mut_obj();
   obj.set_type(service_id == 0 ? Comment_Type_HOST : Comment_Type_SERVICE);

@@ -95,21 +95,18 @@ void applier::timeperiod::modify_object(
   if (to_modify->alias() != new_obj.alias()) {
     tp->set_alias(new_obj.alias().empty() ? new_obj.timeperiod_name()
                                           : new_obj.alias());
-    to_modify->set_alias(new_obj.alias());
   }
 
   // Time ranges modified ?
   if (!MessageDifferencer::Equals(to_modify->timeranges(),
                                   new_obj.timeranges())) {
     tp->set_days(new_obj.timeranges());
-    to_modify->mutable_timeranges()->CopyFrom(new_obj.timeranges());
   }
 
   // Exceptions modified ?
   if (!MessageDifferencer::Equals(to_modify->exceptions(),
                                   new_obj.exceptions())) {
     tp->set_exceptions(new_obj.exceptions());
-    to_modify->mutable_exceptions()->CopyFrom(new_obj.exceptions());
   }
 
   // Exclusions modified ?
@@ -118,8 +115,11 @@ void applier::timeperiod::modify_object(
     tp->get_exclusions().clear();
     // Create new exclusions.
     tp->set_exclusions(new_obj.exclude());
-    to_modify->mutable_exclude()->CopyFrom(new_obj.exclude());
   }
+
+  /* Last, once everything above has compared the two: the configuration
+   * index, which state.prot is written from, now holds the new definition. */
+  to_modify->CopyFrom(new_obj);
 }
 
 template <>

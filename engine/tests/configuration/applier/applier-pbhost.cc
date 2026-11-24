@@ -120,7 +120,9 @@ TEST_F(ApplierPbHost, PbNewHostWithoutHostId) {
 // Given a host configuration
 // When we change the host name in the configuration
 // Then the applier modify_object changes the host name without changing
-// the host id.
+// the host id
+// And the configuration index, which state.prot is written from, holds the
+// new definition, the other changes included.
 TEST_F(ApplierPbHost, HostRenamed) {
   configuration::applier::host hst_aply;
   configuration::Host hst;
@@ -136,11 +138,18 @@ TEST_F(ApplierPbHost, HostRenamed) {
   ASSERT_TRUE(h1->name() == "test_host");
 
   hst.set_host_name("test_host1");
+  hst.set_address("127.0.0.2");
+  hst.set_check_interval(7);
   hst_aply.modify_object(pb_indexed_config.hosts().at(12).get(), hst);
   ASSERT_EQ(hm.size(), 1u);
   h1 = hm.begin()->second;
   ASSERT_TRUE(h1->name() == "test_host1");
   ASSERT_EQ(get_host_id(h1->name()), 12u);
+
+  const configuration::Host& indexed = *pb_indexed_config.hosts().at(12);
+  EXPECT_EQ(indexed.host_name(), "test_host1");
+  EXPECT_EQ(indexed.address(), "127.0.0.2");
+  EXPECT_EQ(indexed.check_interval(), 7u);
 }
 
 // Given a host with a custom variable sent to broker
@@ -323,6 +332,28 @@ TEST_F(ApplierPbHost, RemovedCheckCommandAndEventHandlerAreUnwired) {
   ASSERT_FALSE(h->get_event_handler_ptr());
 }
 
+// Given a host configuration with no display_name
+// When the applier adds the host
+// Then the configuration Engine keeps has no display_name either (the field
+// is optional: an empty one would be written to state.prot).
+TEST_F(ApplierPbHost, NoDisplayNameKeptAbsent) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst_hlp.set_default_values();
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_aply.add_object(hst);
+  ASSERT_FALSE(pb_indexed_config.hosts().at(12)->has_display_name());
+
+  hst.set_host_id(13);
+  hst.set_host_name("test_host2");
+  hst.set_display_name("Test host");
+  hst_aply.add_object(hst);
+  ASSERT_EQ(pb_indexed_config.hosts().at(13)->display_name(), "Test host");
+}
+
 TEST_F(ApplierPbHost, PbHostRemoved) {
   configuration::applier::host hst_aply;
   configuration::Host hst;
@@ -404,4 +435,38 @@ TEST_F(ApplierPbHost, PbHostParentChildUnreachable) {
   child->second->run_sync_check_3x(&result, 0, 0, 0);
   ASSERT_EQ(child->second->get_current_state(),
             engine::host::state_unreachable);
+}
+
+// Given a host whose active checks were disabled by an external command (the
+// MODATTR_ACTIVE_CHECKS_ENABLED bit is set)
+// When its configuration is modified, with active checks enabled
+// Then modify_object applies the other attributes and keeps the checks
+// disabled, and unscheduled.
+TEST_F(ApplierPbHost, PbModifyKeepsOverrides) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst_hlp.set_default_values();
+  hst.set_host_name("test_host");
+  hst.set_alias("alias");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_checks_active(true);
+  hst_aply.add_object(hst);
+  std::shared_ptr<com::centreon::engine::host> h1 =
+      engine::host::hosts.begin()->second;
+  ASSERT_TRUE(h1->active_checks_enabled());
+
+  // What DISABLE_HOST_CHECK does.
+  h1->set_checks_enabled(false);
+  h1->set_should_be_scheduled(false);
+  h1->add_modified_attributes(MODATTR_ACTIVE_CHECKS_ENABLED);
+
+  hst.set_alias("alias2");
+  hst_aply.modify_object(pb_indexed_config.hosts().at(12).get(), hst);
+
+  ASSERT_EQ(h1->get_alias(), "alias2");
+  ASSERT_FALSE(h1->active_checks_enabled());
+  ASSERT_FALSE(h1->get_should_be_scheduled());
+  ASSERT_EQ(h1->get_modified_attributes(), MODATTR_ACTIVE_CHECKS_ENABLED);
 }

@@ -1,8 +1,10 @@
 *** Settings ***
-Documentation     Compression of the Broker cache file (cache_compression parameter).
-...               The cache file is compressed with zstd by default and read back from its
-...               header, whatever the parameter is: a plain file, as written by the previous
-...               versions, is still read.
+Documentation     Compression of the files Broker writes (cache_compression parameter): its
+...               cache file and the configuration files of the pollers. They are compressed
+...               with zstd by default and read back from their header, whatever the parameter
+...               is: a plain file, as written by the previous versions, is still read.
+...               Engine does the same with the files of its proto_conf directory (state.prot,
+...               downtimes.prot), following its --cache-compression option.
 
 Resource          ../resources/import.resource
 
@@ -79,6 +81,121 @@ BECACHECMP2
 
     Ctn Stop Engine
 
+BECACHECMP3
+    [Documentation]    Scenario: the poller configuration files of Broker follow cache_compression
+    ...    Given a centralized configuration with one poller
+    ...    And Broker configured with cache_compression set to false
+    ...    When the configuration is pushed and acknowledged
+    ...    Then 1.prot is a plain file
+    ...    When Broker is restarted with the default configuration, which compresses
+    ...    And a changed configuration is pushed
+    ...    Then the plain 1.prot is read to compute the difference, and the poller acknowledges it
+    ...    And 1.prot is now compressed with zstd
+    ...    And it holds the configuration the poller runs, as its state.prot does.
+    [Tags]    broker    engine    cache    config    centralized
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    cache_compression    ${False}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Logs
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    VAR    ${dir}    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    ${format}    Ctn Get Proto File Format    ${dir}/1.prot
+    Should Be Equal    ${format}    plain    1.prot should not be compressed
+
+    # Default configuration: compression enabled.
+    Ctn Kindly Stop Broker
+    Ctn Broker Config Remove Item    central    cache_compression
+    Ctn Start Broker    newGeneration=True
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    7
+    ${start}    Ctn Get Round Current Date
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    ${format}    Ctn Get Proto File Format    ${dir}/1.prot
+    Should Be Equal    ${format}    zstd    1.prot should be compressed by default
+    ${result}    Ctn Check State Configurations Are Equal
+    ...    ${dir}/1.prot
+    ...    ${VarRoot}/lib/centreon-engine/config0/state.prot
+    Should Be True    ${result}    1.prot should hold the configuration the poller runs
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BECACHECMP4
+    [Documentation]    Scenario: the files Engine writes in its proto_conf directory follow --cache-compression
+    ...    Given a centralized configuration with one poller
+    ...    And Engine started with --cache-compression=off
+    ...    When the configuration is pushed and acknowledged
+    ...    Then state.prot is a plain file
+    ...    When service_1 is put in a downtime held by Engine and the state is saved
+    ...    Then downtimes.prot is a plain file
+    ...    When Engine is restarted without the option, which compresses
+    ...    Then the plain downtimes.prot is read and service_1 is still in downtime
+    ...    And after a changed configuration is pushed and the state saved again
+    ...    Then state.prot and downtimes.prot are compressed with zstd
+    ...    And state.prot holds the configuration Broker stores for the poller.
+    [Tags]    broker    engine    cache    config    centralized    downtime
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Logs
+    VAR    ${lib}    ${VarRoot}/lib/centreon-engine/config0
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True    cache_compression=off
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    ${format}    Ctn Get Proto File Format    ${lib}/state.prot
+    Should Be Equal    ${format}    plain    state.prot should not be compressed with --cache-compression=off
+
+    # A fixed downtime, held by Engine, starts at once.
+    ${now}    Evaluate    int(time.time())    modules=time
+    ${end}    Evaluate    ${now} + 3600
+    Ctn Send External Command    SCHEDULE_SVC_DOWNTIME;host_1;service_1;${now};${end};1;0;3600;admin;fixed downtime
+    Wait Until Keyword Succeeds    60s    2s    Service 1 Downtime Depth Should Be    ${1}
+    Ctn Send External Command    SAVE_STATE_INFORMATION
+    Wait Until Created    ${lib}/downtimes.prot    30s
+    ${format}    Ctn Get Proto File Format    ${lib}/downtimes.prot
+    Should Be Equal    ${format}    plain    downtimes.prot should not be compressed with --cache-compression=off
+
+    # Default options: compression enabled.
+    Ctn Stop Engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Wait Until Keyword Succeeds    60s    2s    Service 1 Downtime Depth Should Be    ${1}
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    7
+    ${start}    Ctn Get Round Current Date
+    Ctn Push Configuration And Wait    ${start}    ${0}
+    ${format}    Ctn Get Proto File Format    ${lib}/state.prot
+    Should Be Equal    ${format}    zstd    state.prot should be compressed by default
+    ${result}    Ctn Check State Configurations Are Equal
+    ...    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot
+    ...    ${lib}/state.prot
+    Should Be True    ${result}    state.prot should hold the configuration Broker stores for the poller
+
+    Ctn Send External Command    SAVE_STATE_INFORMATION
+    Wait Until Keyword Succeeds    30s    1s    Proto File Format Should Be    ${lib}/downtimes.prot    zstd
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
 
 *** Keywords ***
 Ctn Config Acknowledged Host Platform
@@ -132,3 +249,16 @@ Ctn Wait For Broker Acknowledgement Manager
     ${content}    Create List    acknowledgement management enabled, acknowledgement manager loaded
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
     Should Be True    ${result}    Broker did not enable acknowledgement management (notification_mode=broker) in time
+
+Service 1 Downtime Depth Should Be
+    [Documentation]    Fails unless the scheduled downtime depth of (host_1, service_1) in Engine is ${expected}.
+    [Arguments]    ${expected}
+    ${info}    Ctn Get Service Info Grpc    ${1}    ${1}
+    ${depth}    Evaluate    $info.get('scheduledDowntimeDepth', 0)
+    Should Be Equal As Integers    ${depth}    ${expected}
+
+Proto File Format Should Be
+    [Documentation]    Fails unless the protobuf file ${path} is in the format ${expected} (zstd, plain or missing).
+    [Arguments]    ${path}    ${expected}
+    ${format}    Ctn Get Proto File Format    ${path}
+    Should Be Equal    ${format}    ${expected}

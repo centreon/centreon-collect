@@ -118,9 +118,6 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
         to_modify->contact_name());
   engine::contact* c = it_obj->second.get();
 
-  // Update the global configuration set.
-  to_modify->CopyFrom(new_object);
-
   // Modify contact.
   const std::string& tmp(new_object.alias().empty() ? new_object.contact_name()
                                                     : new_object.alias());
@@ -285,6 +282,12 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
         ++it;
     }
   }
+
+  /* Last, once everything above has compared the two: the configuration
+   * index, which state.prot is written from, now holds the new definition.
+   * Copied first, it made the notification commands always compare equal and
+   * left them unchanged on the contact. */
+  to_modify->CopyFrom(new_object);
 }
 
 /**

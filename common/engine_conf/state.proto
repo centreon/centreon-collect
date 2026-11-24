@@ -645,14 +645,14 @@ message Hostescalation {
 /* Ignore */
 message PairGroupPoller {
   string group_name = 1;
-  uint32 poller_id = 2;
+  uint64 poller_id = 2;
 }
 
 /* Ignore */
 message TagKeyWithPoller {
   uint64 id = 1;
   uint32 type = 2;
-  uint32 poller_id = 3;
+  uint64 poller_id = 3;
 }
 
 /* Ignore */
@@ -678,7 +678,7 @@ message Hostgroup {
   /* The Hostgroup message is the point of view of a Hostgroup from a Poller.
    * It doesn't represent the Hostgroup itself. So when we work with differences
    * of Hostgroups, we need to know on which Poller this difference is. */
-  uint32 poller_id = 9;
+  uint64 poller_id = 9;
 }
 
 /* Ignore */
@@ -829,7 +829,7 @@ message Servicegroup {
    * differences of Servicegroup, we need to know on which Poller this
    * difference is. In other words, If a message is the point of view of a
    * poller, it is worth to know which poller. */
-  uint32 poller_id = 10;
+  uint64 poller_id = 10;
 }
 
 /**
@@ -843,7 +843,7 @@ message Servicegroup {
 message SeverityKeyWithPoller {
   uint64 id = 1;
   uint32 type = 2;
-  uint32 poller_id = 3;
+  uint64 poller_id = 3;
 }
 
 /* Ignore */
@@ -864,7 +864,7 @@ message Severity {
   optional uint32 level = 3;
   optional uint64 icon_id = 4;
   optional string severity_name = 5;
-  uint32 poller_id = 6;
+  uint64 poller_id = 6;
 }
 
 /* Ignore */
@@ -888,7 +888,7 @@ message Tag {
   Object obj = 1;
   KeyType key = 2;  //  - Default value: 0, -1
   optional string tag_name = 3;
-  uint32 poller_id = 4;
+  uint64 poller_id = 4;
 }
 
 /* Ignore */
@@ -1267,4 +1267,10 @@ message DiffState {
    * with the same version, and leaves its configuration, scheduler and
    * modules alone. */
   bool runtime_only = 149;
+  /* Set by Broker on a differential (no `state`): the version of the
+   * configuration it starts from, the `<ID>.prot` Broker had acknowledged when
+   * it computed it. The cache and the database always apply the differential,
+   * since they hold that version. A poller running another one cannot: Broker
+   * then sends it the full configuration instead. */
+  optional string from_version = 150;
 }

@@ -86,12 +86,10 @@ void applier::contactgroup::modify_object(
   // Modify properties.
   if (it_obj->second->get_alias() != new_object.alias()) {
     it_obj->second->set_alias(new_object.alias());
-    to_modify->set_alias(new_object.alias());
   }
 
   if (!MessageDifferencer::Equals(new_object.members(), to_modify->members())) {
     // delete all old contact group members
-    to_modify->mutable_members()->CopyFrom(new_object.members());
     it_obj->second->clear_members();
     ++notifier::contacts_version;
 
@@ -108,6 +106,10 @@ void applier::contactgroup::modify_object(
   }
 
   // Notify event broker.
+  /* Last, once everything above has compared the two: the configuration
+   * index, which state.prot is written from, now holds the new definition. */
+  to_modify->CopyFrom(new_object);
+
   broker_group(NEBTYPE_CONTACTGROUP_UPDATE, it_obj->second.get());
 }
 

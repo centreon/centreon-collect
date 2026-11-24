@@ -25,8 +25,8 @@
 #include "com/centreon/broker/io/protobuf.hh"
 #include "common/engine_conf/state_helper.hh"
 
-#define BBDO_VERSION_MAJOR 2
-#define BBDO_VERSION_MINOR 0
+#define BBDO_VERSION_MAJOR 3
+#define BBDO_VERSION_MINOR 1
 #define BBDO_VERSION_PATCH 0
 constexpr uint32_t BBDO_HEADER_SIZE = 16u;
 

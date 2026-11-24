@@ -1,12 +1,12 @@
 *** Settings ***
-Documentation       Centreon Broker and Engine start/stop tests
+Documentation     Centreon Broker and Engine start/stop tests
 
-Resource            ../resources/import.resource
+Resource          ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup       Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup        Ctn Stop Processes
+Test Teardown     Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -157,6 +157,133 @@ BECSS4
 
     Ctn Kindly Stop Broker
     Ctn Stop Engine
+
+BECSS5
+    [Documentation]    Scenario: Broker stopped between an acknowledgement and the end of the round
+    ...    Given one poller running the configuration Broker pushed to it
+    ...    And Engine frozen, so that the next configuration it is sent stays in flight
+    ...    When a new version is exported, and sent to Engine
+    ...    And Broker is stopped
+    ...    And new-1.prot is renamed 1.prot and new-diff-1.prot diff-1.prot, as the acknowledgement does
+    ...    Then the database does not hold the change
+    ...    When Broker is started again, Engine still frozen and without any new export
+    ...    Then Broker finds diff-1.prot, closes the round and publishes the global diff
+    ...    And diff-1.prot is removed
+    ...    And the database holds the change.
+    [Tags]    broker    engine    config    centralized    start-stop
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Logs
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    VAR    ${dir}    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    VAR    ${query}
+    ...    SELECT s.check_interval FROM services s JOIN hosts h ON h.host_id = s.host_id WHERE h.name = 'host_1' AND s.description = 'service_1'
+
+    # Frozen, Engine receives the new version but cannot apply it: Broker has
+    # new-1.prot and new-diff-1.prot, and no acknowledgement comes.
+    Run Process    pkill    -STOP    centengine
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    7
+    ${start}    Ctn Get Round Current Date
+    Ctn Announce Poller Configurations    batch    ${0}
+    ${content}    Create List    sending DiffState to poller 1
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    The new version was not sent to the poller
+    File Should Exist    ${dir}/new-1.prot
+    File Should Exist    ${dir}/new-diff-1.prot
+
+    # What an acknowledgement followed by a stop of Broker before the end of
+    # the round leaves: 1.prot is the new version, its difference waits in
+    # diff-1.prot, the database has not received it.
+    Ctn Kindly Stop Broker
+    Move File    ${dir}/new-1.prot    ${dir}/1.prot
+    Move File    ${dir}/new-diff-1.prot    ${dir}/diff-1.prot
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${output}    Query    ${query}
+    Should Not Be Equal As Strings
+    ...    ${output}
+    ...    ((7.0,),)
+    ...    The database holds the change before the round is closed
+
+    # Engine stays frozen: nothing but the difference left behind can carry
+    # the change to the database.
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    ${content}    Create List
+    ...    did not reach the database before Broker stopped, and no configuration is left to deliver
+    ...    all engine peers have acknowledged their configuration
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not close at startup the round it had left open
+    Wait Until Removed    ${dir}/diff-1.prot    10s
+
+    FOR    ${i}    IN RANGE    30
+        ${output}    Query    ${query}
+        IF    "${output}" == "((7.0,),)"    BREAK
+        Sleep    1s
+    END
+    Disconnect From Database
+    Should Be Equal As Strings    ${output}    ((7.0,),)    The database did not receive the difference left behind
+    [Teardown]    Run Keywords
+    ...    Run Process    pkill    -CONT    centengine
+    ...    AND    Ctn Stop Engine Broker And Save Logs
+
+BECSS6
+    [Documentation]    Scenario: an Engine that lost its state.prot is sent the stored configuration again
+    ...    Given one poller running the configuration Broker pushed to it
+    ...    When Engine is stopped and its state.prot removed
+    ...    And Engine is started again, with no new export
+    ...    Then Engine announces no version, and Broker stores one for it with nothing newer
+    ...    And Broker sends it the stored configuration, whole
+    ...    And Engine acknowledges it and writes its state.prot again
+    ...    And no file was prepared for that in the pollers configuration directory.
+    [Tags]    broker    engine    config    centralized    start-stop
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Logs
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    VAR    ${dir}    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    VAR    ${state_prot}    ${VarRoot}/lib/centreon-engine/config0/state.prot
+    File Should Exist    ${dir}/1.prot
+    File Should Exist    ${state_prot}
+
+    Ctn Stop Engine
+    Remove File    ${state_prot}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+
+    ${content}    Create List
+    ...    it is owed the stored one, whole
+    ...    poller 1 does not run the stored configuration
+    ...    sending DiffState to poller 1
+    ...    received diff state ack from poller 1
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker did not send the stored configuration to the Engine that lost its state.prot
+    Wait Until Created    ${state_prot}    30s
+    File Should Exist    ${dir}/1.prot
+    File Should Not Exist    ${dir}/new-1.prot
+    File Should Not Exist    ${dir}/new-diff-1.prot
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BECSS_GRPC1
     [Documentation]     Scenario: Broker sends configuration to engine in new generation
@@ -409,7 +536,7 @@ BECSS_CRYPTED_GRPC1
         Should Be True    ${result}    Connection between Engine and Broker not established
 
         # On the first iteration an announcement is present, so Broker reads it
-        # and sends the configuration to Engine.  On subsequent iterations the
+        # and sends the configuration to Engine.    On subsequent iterations the
         # announcement is gone -- Broker consumed it as soon as it had prepared
         # the configuration -- and both sides already know it (Broker from its
         # .prot file, Engine from state.prot).
@@ -422,15 +549,40 @@ BECSS_CRYPTED_GRPC1
         END
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-        Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled=1    ==    ${50}    retry_timeout=30s    retry_pause=1s
-        Check Query Result    SELECT COUNT(*) FROM resources WHERE parent_id=0 AND poller_id=1 AND enabled=1    ==    ${50}    retry_timeout=30s    retry_pause=1s
-        Check Query Result    SELECT COUNT(*) FROM services s LEFT JOIN hosts h ON h.host_id=s.host_id AND s.enabled=1 WHERE h.instance_id=1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
-        Check Query Result    SELECT COUNT(*) FROM resources WHERE parent_id<>0 AND poller_id=1 AND enabled=1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+        Check Query Result
+        ...    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled=1
+        ...    ==
+        ...    ${50}
+        ...    retry_timeout=30s
+        ...    retry_pause=1s
+        Check Query Result
+        ...    SELECT COUNT(*) FROM resources WHERE parent_id=0 AND poller_id=1 AND enabled=1
+        ...    ==
+        ...    ${50}
+        ...    retry_timeout=30s
+        ...    retry_pause=1s
+        Check Query Result
+        ...    SELECT COUNT(*) FROM services s LEFT JOIN hosts h ON h.host_id=s.host_id AND s.enabled=1 WHERE h.instance_id=1
+        ...    ==
+        ...    ${1000}
+        ...    retry_timeout=30s
+        ...    retry_pause=1s
+        Check Query Result
+        ...    SELECT COUNT(*) FROM resources WHERE parent_id<>0 AND poller_id=1 AND enabled=1
+        ...    ==
+        ...    ${1000}
+        ...    retry_timeout=30s
+        ...    retry_pause=1s
         Disconnect From Database
 
         Ctn Stop Engine
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-        Check Query Result    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled>0    ==    ${0}    retry_timeout=30s    retry_pause=1s
+        Check Query Result
+        ...    SELECT COUNT(*) FROM hosts WHERE instance_id=1 AND enabled>0
+        ...    ==
+        ...    ${0}
+        ...    retry_timeout=30s
+        ...    retry_pause=1s
         Disconnect From Database
 
         Ctn Kindly Stop Broker
@@ -457,8 +609,8 @@ BECSS_CRYPTED_GRPC2
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
-	${result}    Ctn In Bbdo2
-	Should Not Be True    ${result}    We should be in BBDO3 in this test.
+        ${result}    Ctn In Bbdo2
+        Should Not Be True    ${result}    We should be in BBDO3 in this test.
         Sleep    2s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
@@ -486,8 +638,8 @@ BECSS_CRYPTED_REVERSED_GRPC1
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
-	${result}    Ctn In Bbdo2
-	Should Not Be True    ${result}    We should be in BBDO3 in this test.
+        ${result}    Ctn In Bbdo2
+        Should Not Be True    ${result}    We should be in BBDO3 in this test.
         ${result}    Ctn Check Connections
         Should Be True    ${result}    Connection between Engine and Broker not established
         Sleep    2s
@@ -519,8 +671,8 @@ BECSS_CRYPTED_REVERSED_GRPC2
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
-	${result}    Ctn In Bbdo2
-	Should Not Be True    ${result}    We should be in BBDO3 in this test.
+        ${result}    Ctn In Bbdo2
+        Should Not Be True    ${result}    We should be in BBDO3 in this test.
         Sleep    5s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
@@ -545,8 +697,8 @@ BECSS_CRYPTED_REVERSED_GRPC3
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
-	${result}    Ctn In Bbdo2
-	Should Not Be True    ${result}    We should be in BBDO3 in this test.
+        ${result}    Ctn In Bbdo2
+        Should Not Be True    ${result}    We should be in BBDO3 in this test.
         Sleep    5s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
@@ -623,7 +775,9 @@ BECSSBQ1
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
 
-    ${content}    Create List    stream got corrupted compressed data, skipping next byte    processing pb service status
+    ${content}    Create List
+    ...    stream got corrupted compressed data, skipping next byte
+    ...    processing pb service status
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should raise an error about the bad queue file and the process service events
 
@@ -650,7 +804,7 @@ Centralized_Start_Stop_Engine_Broker_${id}
     END
     ${start}    Get Current Date
     Ctn Start Broker    newGeneration=True
-    Ctn Start Engine	newGeneration=True
+    Ctn Start Engine    newGeneration=True
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
     ${content}    Create List    create feeder central-broker-master-input

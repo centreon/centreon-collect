@@ -173,9 +173,8 @@ void agent_service::init() {
 /**
  * @brief called by grpc layer on each incoming connection
  *
- * @param context
- * @return ::grpc::ServerBidiReactor<com::centreon::agent::MessageFromAgent,
- * com::centreon::agent::MessageToAgent>*
+ * @param context The gRPC context of the call.
+ * @return The reactor serving the new connection.
  */
 ::grpc::ServerBidiReactor<com::centreon::agent::MessageFromAgent,
                           com::centreon::agent::MessageToAgent>*

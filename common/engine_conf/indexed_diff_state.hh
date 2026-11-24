@@ -29,9 +29,21 @@ namespace com::centreon::engine::configuration {
  * The goal is if we have X new DiffStates for X different pollers, Broker
  * can have a single diff for all of them thanks to this class.
  *
+ * Two merges exist, which differ on a message both differences name:
+ *  - add_diff_state(): the union of the differences of several pollers, where
+ *    a message added by one and removed by another has moved, and is modified;
+ *  - add_diff_state_from_same_poller(): the next difference of the same poller,
+ * computed from the configuration the previous one led to. A message added then
+ *    removed never existed for whoever reads the result, and the latest
+ *    definition wins.
+ *
  * The indexed side is to improve performance during lookups.
  */
 class indexed_diff_state {
+  /* Whether the difference being added follows the ones already indexed
+   * (add_diff_state_from_same_poller()), or is merged with them as a union. */
+  bool _sequential = false;
+
   absl::flat_hash_map<std::string, std::unique_ptr<Timeperiod>>
       _added_timeperiods;
   absl::flat_hash_map<std::string, std::unique_ptr<Timeperiod>>
@@ -145,6 +157,84 @@ class indexed_diff_state {
   DiffState _scalar_diff;
 
   /**
+   * @brief Index a message a difference adds.
+   *
+   * Removed before: it has moved (union), or comes back (sequential): it is
+   * modified either way. Already added or modified: the latest definition wins
+   * in a sequence; in a union the first one stays.
+   */
+  template <typename Type, typename Key>
+  void _index_added(
+      std::unique_ptr<Type> obj,
+      const Key& key,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& added_map,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& modified_map,
+      absl::flat_hash_set<Key>& removed_set) {
+    if (removed_set.erase(key)) {
+      modified_map.insert_or_assign(key, std::move(obj));
+      return;
+    }
+    if (_sequential) {
+      if (auto it = modified_map.find(key); it != modified_map.end()) {
+        it->second = std::move(obj);
+        return;
+      }
+      added_map.insert_or_assign(key, std::move(obj));
+    } else
+      added_map.emplace(key, std::move(obj));
+  }
+
+  /**
+   * @brief Index a message a difference modifies.
+   *
+   * Added before in a sequence: it stays added, with its latest definition.
+   */
+  template <typename Type, typename Key>
+  void _index_modified(
+      std::unique_ptr<Type> obj,
+      const Key& key,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& added_map,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& modified_map,
+      absl::flat_hash_set<Key>& removed_set) {
+    removed_set.erase(key);
+    if (_sequential) {
+      if (auto it = added_map.find(key); it != added_map.end()) {
+        it->second = std::move(obj);
+        return;
+      }
+      modified_map.insert_or_assign(key, std::move(obj));
+    } else
+      modified_map.emplace(key, std::move(obj));
+  }
+
+  /**
+   * @brief Index a message a difference removes.
+   *
+   * Added before: it has moved (union) and is modified, or never existed
+   * (sequential) and vanishes. Modified before: another poller still wants it
+   * (union), or it is removed after all (sequential).
+   */
+  template <typename Type, typename Key>
+  void _index_removed(
+      const Key& key,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& added_map,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& modified_map,
+      absl::flat_hash_set<Key>& removed_set) {
+    if (auto it = added_map.find(key); it != added_map.end()) {
+      if (!_sequential)
+        modified_map.emplace(key, std::move(it->second));
+      added_map.erase(it);
+      return;
+    }
+    if (modified_map.contains(key)) {
+      if (!_sequential)
+        return;
+      modified_map.erase(key);
+    }
+    removed_set.emplace(key);
+  }
+
+  /**
    * @brief This function is used to add a diff message to the indexed
    * diff state.
    *
@@ -200,24 +290,15 @@ class indexed_diff_state {
       std::function<Key(const ProtoKey&)>&& convert_key) {
     while (diff->added_size() > 0) {
       auto obj = std::unique_ptr<Type>(diff->mutable_added()->ReleaseLast());
-      auto found = removed_set.find(key_builder(obj.get()));
-      if (found != removed_set.end()) {
-        /* We have an added message that is also removed, so it is moved. */
-        removed_set.erase(found);
-        modified_map.emplace(key_builder(obj.get()), std::move(obj));
-      } else {
-        added_map.emplace(key_builder(obj.get()), std::move(obj));
-      }
+      const Key key = key_builder(obj.get());
+      _index_added(std::move(obj), key, added_map, modified_map, removed_set);
     }
 
     while (diff->modified_size() > 0) {
       auto obj = std::unique_ptr<Type>(diff->mutable_modified()->ReleaseLast());
-      auto found = removed_set.find(key_builder(obj.get()));
-      if (found != removed_set.end()) {
-        /* We have an modified message that is also removed, so it is moved. */
-        removed_set.erase(found);
-      }
-      modified_map.emplace(key_builder(obj.get()), std::move(obj));
+      const Key key = key_builder(obj.get());
+      _index_modified(std::move(obj), key, added_map, modified_map,
+                      removed_set);
     }
 
     for (const ProtoKey& proto_key : diff->removed()) {
@@ -229,22 +310,7 @@ class indexed_diff_state {
           key = proto_key;
         }
       }
-      auto found1 = added_map.find(key);
-      if (found1 != added_map.end()) {
-        /* A poller wants to add this message but we want to remove it. So,
-         * this message should be modified, not added... */
-        modified_map.emplace(key, std::move(found1->second));
-        added_map.erase(found1);
-      } else {
-        auto found2 = modified_map.find(key);
-        if (found2 != modified_map.end()) {
-          /* Some pollers already want to modify this message, so we can't
-           * remove it. */
-        } else {
-          /* We can remove it, no body wants it. */
-          removed_set.emplace(key);
-        }
-      }
+      _index_removed(key, added_map, modified_map, removed_set);
     }
   }
 
@@ -271,14 +337,8 @@ class indexed_diff_state {
       std::function<Key(Type*)>&& key_builder) {
     while (container->size() > 0) {
       auto obj = std::unique_ptr<Type>(container->ReleaseLast());
-      auto found = removed_set.find(key_builder(obj.get()));
-      if (found != removed_set.end()) {
-        /* We have an added message that is also removed, so it is moved. */
-        removed_set.erase(found);
-        modified_map.emplace(key_builder(obj.get()), std::move(obj));
-      } else {
-        added_map.emplace(key_builder(obj.get()), std::move(obj));
-      }
+      const Key key = key_builder(obj.get());
+      _index_added(std::move(obj), key, added_map, modified_map, removed_set);
     }
   }
 
@@ -297,20 +357,17 @@ class indexed_diff_state {
       std::function<Key(Type*)>&& key_builder) {
     for (const auto& item : container) {
       auto obj = std::make_unique<Type>(item);
-      auto found = removed_set.find(key_builder(obj.get()));
-      if (found != removed_set.end()) {
-        /* We have an added message that is also removed, so it is moved. */
-        removed_set.erase(found);
-        modified_map.emplace(key_builder(obj.get()), std::move(obj));
-      } else {
-        added_map.emplace(key_builder(obj.get()), std::move(obj));
-      }
+      const Key key = key_builder(obj.get());
+      _index_added(std::move(obj), key, added_map, modified_map, removed_set);
     }
   }
 
  public:
   void add_diff_state(DiffState& state,
                       const std::shared_ptr<spdlog::logger>& logger);
+  void add_diff_state_from_same_poller(
+      DiffState& state,
+      const std::shared_ptr<spdlog::logger>& logger);
   void add_state(State& state, const std::shared_ptr<spdlog::logger>& logger);
   void add_state(const State& state,
                  const std::shared_ptr<spdlog::logger>& logger);

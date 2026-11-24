@@ -86,7 +86,6 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
 
   // Update the global configuration set.
   if (to_modify->tag_name() != new_object.tag_name()) {
-    to_modify->set_tag_name(new_object.tag_name());
     t->set_name(new_object.tag_name());
 
     // Notify event broker.
@@ -94,6 +93,10 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
   } else
     config_logger->debug("Tag ({},{}) did not change", new_object.key().id(),
                          new_object.key().type());
+
+  /* Last, once everything above has compared the two: the configuration
+   * index, which state.prot is written from, now holds the new definition. */
+  to_modify->CopyFrom(new_object);
 }
 
 /**

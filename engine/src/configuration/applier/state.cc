@@ -122,7 +122,7 @@ void save_state_prot() {
         pb_indexed_config.serialize_to_ostream(&os);
         return true;
       },
-      false, ec);
+      cache_compression, ec);
   if (ec)
     config_logger->error(
         "Cannot write '{}': {}. The next start will run the previous "
@@ -214,6 +214,13 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
     _processing_diff(diff_conf, err);
     save_state_prot();
   } catch (const std::exception& e) {
+    /* Broker waits for an acknowledgement: it gets one saying this version
+     * failed, and why. The version Engine runs is still the previous one, the
+     * restoration below puts it back. */
+    cbm->set_diff_state_failed(diff_conf.has_state()
+                                   ? diff_conf.state().config_version()
+                                   : diff_conf.config_version(),
+                               e.what());
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
     if (!has_already_been_loaded)

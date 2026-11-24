@@ -60,6 +60,9 @@ std::string config_file;
 /* Directory of the serialized protobuf Engine configuration, we consider we
  * are in new generation configuration if it is not empty */
 std::filesystem::path proto_conf;
+/* Whether the files written in proto_conf (state.prot, downtimes.prot) are
+ * compressed; set by --cache-compression, on by default. */
+bool cache_compression = true;
 std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 char* debug_file(NULL);
 char* global_host_event_handler(NULL);

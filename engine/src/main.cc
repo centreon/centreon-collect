@@ -350,6 +350,9 @@ int main(int argc, char* argv[]) {
        "Extended configuration file")
       ("proto-conf,p", po::value<std::string>()->value_name("proto_dir"),
        "Directory containing the protocol buffer configuration files")
+      ("cache-compression",
+       po::value<bool>()->value_name("on|off")->default_value(true)->implicit_value(true),
+       "Compress the files written in proto_dir (state.prot, downtimes.prot)")
       ("log-file,l", po::value<std::string>()->value_name("log-file"),
        "Full path to the log file name")
       ("config-file,f", po::value<std::string>()->value_name("cfg_file"),
@@ -411,6 +414,7 @@ int main(int argc, char* argv[]) {
         diagnose = true;
       if (vm.count("proto-conf"))
         proto_conf = vm["proto-conf"].as<std::string>();
+      cache_compression = vm["cache-compression"].as<bool>();
       if (vm.count("broker-config"))
         broker_config = vm["broker-config"].as<std::string>();
       if (vm.count("extended-config"))
@@ -693,6 +697,13 @@ int main(int argc, char* argv[]) {
           /* Now that the log file of the configuration is in use, the phases
            * measured before it was known can reach it. */
           flush_startup_phases();
+
+          /* --cache-compression only concerns the files written in the
+           * directory given by -p: without it, nothing follows the option. */
+          if (proto_conf.empty() && !vm["cache-compression"].defaulted())
+            config_logger->warn(
+                "--cache-compression has no effect without --proto-conf: no "
+                "state.prot nor downtimes.prot is written");
 
           neb_init_callback_list();
 

@@ -1211,6 +1211,201 @@ TEST_F(BrokerCacheTest, ServiceMovedBetweenPollers) {
   ASSERT_FALSE(_cache->service(1, 2));
 }
 
+namespace {
+namespace cfg = com::centreon::engine::configuration;
+
+/**
+ * @brief Add a host and its services to a configuration state.
+ *
+ * @param state The state to fill.
+ * @param host_id The id of the host, named host_<id>.
+ * @param service_ids The ids of its services, named service_<id>.
+ */
+void add_host_with_services(cfg::State& state,
+                            uint64_t host_id,
+                            std::initializer_list<uint64_t> service_ids) {
+  auto* h = state.add_hosts();
+  h->set_host_id(host_id);
+  h->set_host_name(fmt::format("host_{}", host_id));
+  h->set_poller_id(state.poller_id());
+  for (uint64_t service_id : service_ids) {
+    auto* s = state.add_services();
+    s->set_host_id(host_id);
+    s->set_service_id(service_id);
+    s->set_host_name(fmt::format("host_{}", host_id));
+    s->set_service_description(fmt::format("service_{}", service_id));
+  }
+}
+
+/**
+ * @brief Add an anomaly detection to a configuration state.
+ */
+void add_anomaly_detection(cfg::State& state,
+                           uint64_t host_id,
+                           uint64_t service_id,
+                           uint64_t dependent_service_id) {
+  auto* ad = state.add_anomalydetections();
+  ad->set_host_id(host_id);
+  ad->set_service_id(service_id);
+  ad->set_dependent_service_id(dependent_service_id);
+  ad->set_host_name(fmt::format("host_{}", host_id));
+  ad->set_service_description(fmt::format("ad_{}", service_id));
+}
+
+/**
+ * @brief Add a host group and a service group to a configuration state.
+ */
+void add_groups(cfg::State& state,
+                const std::string& hg_members,
+                const std::string& sg_members) {
+  auto* hg = state.add_hostgroups();
+  hg->set_hostgroup_id(19);
+  hg->set_hostgroup_name("hg");
+  hg->set_poller_id(state.poller_id());
+  cfg::fill_string_group(hg->mutable_members(), hg_members);
+  auto* sg = state.add_servicegroups();
+  sg->set_servicegroup_id(29);
+  sg->set_servicegroup_name("sg");
+  sg->set_poller_id(state.poller_id());
+  cfg::fill_pair_string_group(sg->mutable_members(), sg_members);
+}
+
+/**
+ * @brief Poller 1 with host_1 (service_10, ad_11 on service_10), host_2
+ * (service_20) and host_3 (service_30), all in hg and sg.
+ */
+cfg::State poller_1_before() {
+  cfg::State state;
+  state.set_poller_id(1);
+  add_host_with_services(state, 1, {10});
+  add_host_with_services(state, 2, {20});
+  add_host_with_services(state, 3, {30});
+  add_anomaly_detection(state, 1, 11, 10);
+  add_groups(state, "host_1,host_2,host_3",
+             "host_1,service_10,host_2,service_20,host_3,service_30");
+  return state;
+}
+
+/**
+ * @brief Poller 2 with host_4 (service_40, ad_41 on service_40), sharing hg
+ * and sg with poller 1.
+ */
+cfg::State poller_2() {
+  cfg::State state;
+  state.set_poller_id(2);
+  add_host_with_services(state, 4, {40});
+  add_anomaly_detection(state, 4, 41, 40);
+  add_groups(state, "host_4", "host_4,service_40");
+  return state;
+}
+
+/**
+ * @brief Make host_1 DOWN and service_10 CRITICAL in the cache, the runtime
+ * state a full configuration must not lose.
+ */
+void set_runtime_state(broker_cache& cache) {
+  auto hs = std::make_shared<neb::pb_host_status>();
+  hs->mut_obj().set_host_id(1);
+  hs->mut_obj().set_state(HostStatus_State_DOWN);
+  hs->mut_obj().set_output("host is down");
+  cache.publish(hs);
+  auto ss = std::make_shared<neb::pb_service_status>();
+  ss->mut_obj().set_host_id(1);
+  ss->mut_obj().set_service_id(10);
+  ss->mut_obj().set_state(ServiceStatus_State_CRITICAL);
+  ss->mut_obj().set_output("service is critical");
+  cache.publish(ss);
+}
+
+/**
+ * @brief What poller 1 must look like once its full configuration, without
+ * host_3, service_20 and ad_11, has been applied.
+ */
+void check_poller_1_after(const broker_cache& cache) {
+  EXPECT_THAT(cache.host_ids(), ::testing::ElementsAre(1u, 2u, 4u));
+  EXPECT_THAT(cache.service_ids(),
+              ::testing::UnorderedElementsAre(std::make_pair(1u, 10u),
+                                              std::make_pair(4u, 40u),
+                                              std::make_pair(4u, 41u)));
+  EXPECT_THAT(cache.find_anomaly_detection_ids_by_dependent_service(1, 10),
+              ::testing::IsEmpty());
+  EXPECT_THAT(cache.find_anomaly_detection_ids_by_dependent_service(4, 40),
+              ::testing::ElementsAre(41u));
+  /* host_2 left hg, host_3 left the configuration; poller 2 keeps host_4. */
+  EXPECT_THAT(cache.hostgroup_members(19),
+              ::testing::UnorderedElementsAre(1u, 4u));
+  EXPECT_THAT(cache.servicegroup_members(29),
+              ::testing::UnorderedElementsAre(std::make_pair(1u, 10u),
+                                              std::make_pair(4u, 40u)));
+  /* What is kept keeps its runtime state. */
+  auto h = cache.host(1u);
+  ASSERT_TRUE(h);
+  EXPECT_EQ(h->obj().state(), Host_State_DOWN);
+  EXPECT_EQ(h->obj().output(), "host is down");
+  auto s = cache.service(1u, 10u);
+  ASSERT_TRUE(s);
+  EXPECT_EQ(s->obj().state(), Service_State_CRITICAL);
+  EXPECT_EQ(s->obj().output(), "service is critical");
+}
+}  // namespace
+
+/**
+ * @brief A global diff carrying the full configuration of a poller (Broker had
+ * no <ID>.prot to compute a difference from) removes from the cache what this
+ * poller no longer defines: hosts, services, anomaly detections and group
+ * memberships. What it still defines keeps its runtime state, and the other
+ * pollers are not touched.
+ */
+TEST_F(BrokerCacheTest, FullConfigurationRemovesWhatThePollerNoLongerDefines) {
+  _cache->merge(poller_1_before());
+  _cache->merge(poller_2());
+  set_runtime_state(*_cache);
+  ASSERT_THAT(_cache->host_ids(), ::testing::ElementsAre(1u, 2u, 3u, 4u));
+
+  /* The full configuration of poller 1, as indexed_diff_state::add_state()
+   * puts it in the global diff: everything added, the poller named. */
+  cfg::DiffState diff;
+  diff.set_poller_id(1);
+  diff.add_full_conf_poller_id(1);
+  cfg::State after;
+  after.set_poller_id(1);
+  add_host_with_services(after, 1, {10});
+  add_host_with_services(after, 2, {});
+  add_groups(after, "host_1", "host_1,service_10");
+  for (const auto& h : after.hosts())
+    *diff.mutable_hosts()->add_added() = h;
+  for (const auto& s : after.services())
+    *diff.mutable_services()->add_added() = s;
+  for (const auto& hg : after.hostgroups())
+    *diff.mutable_hostgroups()->add_added() = hg;
+  for (const auto& sg : after.servicegroups())
+    *diff.mutable_servicegroups()->add_added() = sg;
+  _cache->apply(diff);
+
+  check_poller_1_after(*_cache);
+}
+
+/**
+ * @brief Same as FullConfigurationRemovesWhatThePollerNoLongerDefines, with a
+ * full state merged: what the poller no longer defines leaves the cache, the
+ * rest keeps its runtime state, and the anomaly detections of the other
+ * pollers stay indexed.
+ */
+TEST_F(BrokerCacheTest, MergeRemovesWhatThePollerNoLongerDefines) {
+  _cache->merge(poller_1_before());
+  _cache->merge(poller_2());
+  set_runtime_state(*_cache);
+
+  cfg::State after;
+  after.set_poller_id(1);
+  add_host_with_services(after, 1, {10});
+  add_host_with_services(after, 2, {});
+  add_groups(after, "host_1", "host_1,service_10");
+  _cache->merge(after);
+
+  check_poller_1_after(*_cache);
+}
+
 TEST_F(BrokerCacheTest, InstanceIntervalLength) {
   using namespace std::chrono_literals;
 
@@ -1890,9 +2085,13 @@ TEST_F(BrokerCacheTest, FillRuntimeState) {
   publish_hosts(3, 3, 2);
   publish_services(1, 2, 1);
 
-  /* An anomalydetection on host 1 depending on service (1, 1). */
+  /* An anomalydetection on host 1 depending on service (1, 1). merge() takes
+   * a full state: the hosts and services of poller 1 are in it, or it would
+   * remove them from the cache. */
   cfg::State st;
   st.set_poller_id(1);
+  add_host_with_services(st, 1, {1, 2});
+  add_host_with_services(st, 2, {});
   auto* ad = st.mutable_anomalydetections()->Add();
   ad->set_host_id(1);
   ad->set_service_id(100);
@@ -1981,6 +2180,75 @@ TEST_F(BrokerCacheTest, FillRuntimeState) {
     } else
       EXPECT_FALSE(s.has_overrides());
   }
+}
+
+/**
+ * Scenario: the runtime of the resources a diff adds to a running poller.
+ * Given host 1 and its services 1 and 2, checked, on poller 1
+ * And host 2, never checked, on poller 1
+ * When a diff for poller 2 adds host 1 with its services, host 2 and a service
+ * the cache does not know
+ * Then the snapshot describes host 1 and its two services, although the cache
+ * still attaches them to poller 1
+ * And neither host 2, which has nothing to carry, nor the unknown service
+ * When a diff adds nothing
+ * Then the snapshot is empty.
+ */
+TEST_F(BrokerCacheTest, FillAddedRuntimeState) {
+  namespace cfg = com::centreon::engine::configuration;
+  publish_hosts(1, 2, 1);
+  publish_services(1, 2, 1);
+
+  auto hs = std::make_shared<neb::pb_host_status>();
+  hs->mut_obj().set_host_id(1);
+  hs->mut_obj().set_checked(true);
+  hs->mut_obj().set_state(HostStatus_State_DOWN);
+  hs->mut_obj().set_last_check(1000);
+  hs->mut_obj().set_output("host down");
+  _cache->publish(hs);
+  for (uint64_t svc : {1u, 2u}) {
+    auto ss = std::make_shared<neb::pb_service_status>();
+    ss->mut_obj().set_host_id(1);
+    ss->mut_obj().set_service_id(svc);
+    ss->mut_obj().set_checked(true);
+    ss->mut_obj().set_state(ServiceStatus_State_CRITICAL);
+    ss->mut_obj().set_state_type(ServiceStatus_StateType_HARD);
+    ss->mut_obj().set_last_check(2000);
+    ss->mut_obj().set_output(fmt::format("service {} critical", svc));
+    _cache->publish(ss);
+  }
+
+  cfg::DiffState diff;
+  diff.set_poller_id(2);
+  for (uint64_t host_id : {1u, 2u})
+    diff.mutable_hosts()->add_added()->set_host_id(host_id);
+  for (uint64_t svc : {1u, 2u, 99u}) {
+    auto* s = diff.mutable_services()->add_added();
+    s->set_host_id(1);
+    s->set_service_id(svc);
+  }
+
+  cfg::RuntimeState out;
+  _cache->fill_added_runtime_state(diff, &out);
+  ASSERT_EQ(out.hosts_size(), 1) << "host 2 was never checked";
+  EXPECT_EQ(out.hosts(0).host_id(), 1u);
+  EXPECT_EQ(out.hosts(0).state(), cfg::state_down);
+  EXPECT_EQ(out.hosts(0).output(), "host down");
+  ASSERT_EQ(out.services_size(), 2) << "service 99 is not in the cache";
+  for (const auto& s : out.services()) {
+    EXPECT_EQ(s.host_id(), 1u);
+    EXPECT_EQ(s.state(), cfg::state_critical);
+    EXPECT_EQ(s.state_type(), cfg::HARD);
+    EXPECT_EQ(s.output(), fmt::format("service {} critical", s.service_id()));
+  }
+
+  cfg::DiffState nothing_added;
+  nothing_added.set_poller_id(1);
+  nothing_added.mutable_hosts()->add_removed(2);
+  cfg::RuntimeState empty;
+  _cache->fill_added_runtime_state(nothing_added, &empty);
+  EXPECT_EQ(empty.hosts_size(), 0);
+  EXPECT_EQ(empty.services_size(), 0);
 }
 
 /**
