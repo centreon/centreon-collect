@@ -2119,8 +2119,11 @@ def ctn_get_metrics_to_delete(count: int):
             result = cursor.fetchall()
             ids_db = [r['metric_id'] for r in result]
 
-    inter = list(set(ids) & set(ids_db))
-    return inter[:count]
+    # Broker logs the erased metrics in ascending order, the tests look for
+    # this list in its logs.
+    inter = list(set(ids) & set(ids_db))[:count]
+    inter.sort()
+    return inter
 
 
 def ctn_create_metrics(count: int):
