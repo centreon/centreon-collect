@@ -20,6 +20,7 @@
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
+#include "com/centreon/engine/configuration/applier/runtime_state.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/notifier.hh"
@@ -161,6 +162,11 @@ void applier::anomalydetection::modify_object(
         service_description, host_name);
   std::shared_ptr<engine::anomalydetection> s =
       std::static_pointer_cast<engine::anomalydetection>(it_obj->second);
+  /* What external commands overrode comes back on top of the configuration
+   * below: an overridden attribute follows the last command, not the
+   * configuration, as the retention made it and as the Broker cache does. */
+  const configuration::RuntimeOverrides overrides =
+      runtime_state::capture_overrides(*s);
 
   /* Converted once, like in applier::service::modify_object: the comparison,
    * the service::services key and the object must all hold the same strings. */
@@ -271,6 +277,7 @@ void applier::anomalydetection::modify_object(
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
                                  pb_indexed_config.state().interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
+  runtime_state::apply_overrides(overrides, *s);
 
   // Contacts.
   if (!MessageDifferencer::Equals(new_obj.contacts(), old_obj->contacts())) {

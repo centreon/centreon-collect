@@ -97,6 +97,51 @@ void apply_common(const Runtime& r, Message& obj, State state, State hard) {
     obj.set_current_notification_id(r.current_notification_id());
 }
 
+}  // namespace
+
+/**
+ * @brief The overrides an object carries, as the snapshot would describe
+ * them: its mask, and the value of every attribute whose bit is set. What
+ * modify_object() takes before applying a configuration, to put the
+ * overrides back on top of it: an attribute an external command changed
+ * follows that command, not the configuration, as the retention made it.
+ *
+ * @param obj The host or service.
+ *
+ * @return The overrides, with an empty mask when the object has none.
+ */
+configuration::RuntimeOverrides applier::runtime_state::capture_overrides(
+    const notifier& obj) {
+  configuration::RuntimeOverrides r;
+  const uint32_t mask = obj.get_modified_attributes();
+  r.set_modified_attributes(mask);
+  if (mask & MODATTR_NOTIFICATIONS_ENABLED)
+    r.set_notify(obj.get_notifications_enabled());
+  if (mask & MODATTR_ACTIVE_CHECKS_ENABLED)
+    r.set_active_checks(obj.active_checks_enabled());
+  if (mask & MODATTR_PASSIVE_CHECKS_ENABLED)
+    r.set_passive_checks(obj.passive_checks_enabled());
+  if (mask & MODATTR_EVENT_HANDLER_ENABLED)
+    r.set_event_handler_enabled(obj.event_handler_enabled());
+  if (mask & MODATTR_FLAP_DETECTION_ENABLED)
+    r.set_flap_detection(obj.flap_detection_enabled());
+  if (mask & MODATTR_OBSESSIVE_HANDLER_ENABLED)
+    r.set_obsess_over(obj.obsess_over());
+  if (mask & MODATTR_NORMAL_CHECK_INTERVAL)
+    r.set_check_interval(obj.check_interval());
+  if (mask & MODATTR_RETRY_CHECK_INTERVAL)
+    r.set_retry_interval(obj.retry_interval());
+  if (mask & MODATTR_MAX_CHECK_ATTEMPTS)
+    r.set_max_check_attempts(obj.max_check_attempts());
+  if (mask & MODATTR_FRESHNESS_CHECKS_ENABLED)
+    r.set_check_freshness(obj.check_freshness_enabled());
+  if (mask & MODATTR_CHECK_TIMEPERIOD)
+    r.set_check_period(obj.check_period());
+  if (mask & MODATTR_NOTIFICATION_TIMEPERIOD)
+    r.set_notification_period(obj.notification_period());
+  return r;
+}
+
 /**
  * @brief Apply the overrides of the snapshot: each attribute whose bit is set
  * in the mask, exactly as the retention applier did. An override naming a
@@ -104,16 +149,14 @@ void apply_common(const Runtime& r, Message& obj, State state, State hard) {
  * and the event handler are not overridable, the external commands changing
  * them being disabled in Engine.
  *
- * @tparam Message The Engine object type (host or service).
- *
  * @param r The overrides of the snapshot entry.
  * @param obj The host or service.
  *
  * @return The mask finally applied.
  */
-template <typename Message>
-uint32_t apply_overrides(const configuration::RuntimeOverrides& r,
-                         Message& obj) {
+uint32_t applier::runtime_state::apply_overrides(
+    const configuration::RuntimeOverrides& r,
+    notifier& obj) {
   uint32_t mask = r.modified_attributes();
   if (mask & MODATTR_NOTIFICATIONS_ENABLED)
     obj.set_notifications_enabled(r.notify());
@@ -138,8 +181,7 @@ uint32_t apply_overrides(const configuration::RuntimeOverrides& r,
     obj.set_max_attempts(r.max_check_attempts());
     /* A hard problem state fills the attempts, as the retention did. */
     if (obj.get_state_type() == notifier::hard &&
-        static_cast<int>(obj.get_current_state()) != 0 &&
-        obj.get_current_attempt() > 1)
+        obj.get_current_state_int() != 0 && obj.get_current_attempt() > 1)
       obj.set_current_attempt(obj.max_check_attempts());
   }
   if (mask & MODATTR_FRESHNESS_CHECKS_ENABLED)
@@ -163,8 +205,6 @@ uint32_t apply_overrides(const configuration::RuntimeOverrides& r,
   obj.set_modified_attributes(mask);
   return mask;
 }
-}  // namespace
-
 /**
  * @brief Apply the snapshot to the hosts and services it names.
  *
@@ -208,10 +248,9 @@ void applier::runtime_state::apply(const configuration::RuntimeState& rs) {
     }
     engine::service& s = *it->second;
     if (r.checked() && s.get_retain_status_information()) {
-      apply_common(r, s,
-                   static_cast<engine::service::service_state>(r.state()),
-                   static_cast<engine::service::service_state>(
-                       r.last_hard_state()));
+      apply_common(
+          r, s, static_cast<engine::service::service_state>(r.state()),
+          static_cast<engine::service::service_state>(r.last_hard_state()));
       s.set_last_time_ok(r.last_time_ok());
       s.set_last_time_warning(r.last_time_warning());
       s.set_last_time_critical(r.last_time_critical());
