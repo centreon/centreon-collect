@@ -27,11 +27,9 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/configuration/applier/macros.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
 #include "common/engine_conf/command_helper.hh"
 #include "helper.hh"
 
@@ -42,22 +40,20 @@ using namespace com::centreon::engine;
 static constexpr const char* env_script = "/tmp/pbmacro_global_context.sh";
 
 /**
- * @brief The engine shares one global macro context between its checks,
- * notifications and event handlers. A notification or a CMA service result
- * leaves a service in it. These tests check that this service never reaches
- * a following host check, and that a reload removing this service does not
- * leave a dangling pointer in the context (centengine crashed in
- * _build_environment_macros() on the next host check when
- * enable_environment_macros was set).
+ * @brief The former engine shared one global macro context between its
+ * checks, notifications and event handlers: a notification or a CMA service
+ * result left a service in it, which reached a following host check, and a
+ * reload removing this service left a dangling pointer in it (centengine
+ * crashed in _build_environment_macros() on the next host check when
+ * enable_environment_macros was set, develop #3928).
+ *
+ * Each user of the macros now has its own macro_context, so these cases are
+ * avoided by construction; the tests check that they stay so.
  */
 class GlobalMacrosContext : public TestEngine {
  public:
   void SetUp() override {
     _state_hlp = init_config_state();
-    // The engine creates it at startup. Created by the reload, its constructor
-    // would clear the macros and hide the bug.
-    configuration::applier::macros::instance();
-    init_macros();
     set_time(50000);
 
     std::ofstream script(env_script);
@@ -157,17 +153,6 @@ class GlobalMacrosContext : public TestEngine {
     _host = engine::host::hosts.begin()->second;
   }
 
-  /* Objects may have been destroyed by a reload, no pointer must remain. */
-  static void no_object_in_global_macros() {
-    nagios_macros* mac = get_global_macros();
-    ASSERT_EQ(mac->service_ptr, nullptr);
-    ASSERT_EQ(mac->servicegroup_ptr, nullptr);
-    ASSERT_EQ(mac->host_ptr, nullptr);
-    ASSERT_EQ(mac->hostgroup_ptr, nullptr);
-    ASSERT_EQ(mac->contact_ptr, nullptr);
-    ASSERT_EQ(mac->contactgroup_ptr, nullptr);
-  }
-
   /* Execute an active check of the host and return its output. */
   std::string run_host_check() {
     if (_host->run_async_check(CHECK_OPTION_FORCE_EXECUTION, 0.0, false, false,
@@ -198,24 +183,20 @@ TEST_F(GlobalMacrosContext, HostCheckAfterCmaServiceResult) {
 
 // Given a service that has just been notified
 // When a reload removes this service
-// Then the global macros do not reference any object anymore
-// And the next host check is executed without the service macros.
+// Then the next host check is executed without the service macros.
 TEST_F(GlobalMacrosContext, ReloadRemovingNotifiedService) {
   ASSERT_NO_FATAL_FAILURE(notify_service());
   ASSERT_NO_FATAL_FAILURE(reload_without_services());
-  ASSERT_NO_FATAL_FAILURE(no_object_in_global_macros());
 
   ASSERT_EQ(run_host_check(), "HOSTNAME=[test_host] SERVICEDESC=[]");
 }
 
 // Given a CMA service whose result has just been received
 // When a reload removes this service
-// Then the global macros do not reference any object anymore
-// And the next host check is executed without the service macros.
+// Then the next host check is executed without the service macros.
 TEST_F(GlobalMacrosContext, ReloadRemovingCmaService) {
   ASSERT_NO_FATAL_FAILURE(receive_cma_service_result());
   ASSERT_NO_FATAL_FAILURE(reload_without_services());
-  ASSERT_NO_FATAL_FAILURE(no_object_in_global_macros());
 
   ASSERT_EQ(run_host_check(), "HOSTNAME=[test_host] SERVICEDESC=[]");
 }
