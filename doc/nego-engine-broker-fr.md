@@ -3863,6 +3863,10 @@ struct engine_peer {
      * par le seul module BAM, qui s'appuie sur la lecture avant bascule pour
      * distinguer un vrai arrêt d'un running=false rejoué à la reconnexion. */
     bool        engine_running = false;
+    /* Si le poller doit encore recevoir le snapshot runtime de ses ressources
+     * (RuntimeState). Vrai par construction, remis à vrai quand Broker
+     * reconstruit une configuration perdue, faux une fois le snapshot envoyé. */
+    bool        runtime_state_owed = true;
     std::string timezone;            // nom IANA annoncé à la négociation
 };
 
@@ -3970,6 +3974,45 @@ s'arrêtent à `broker_state`, et BAM les atteint en descendant le type du state
 commentaire, parce qu'un module est chargé par configuration et qu'une
 configuration qui aurait chargé celui-ci hors de cbd doit perdre le reset de
 downtime, pas le processus.
+
+**Dû son snapshot** — `engine_peer::runtime_state_owed` dit si le poller doit
+encore recevoir le `RuntimeState` qui remplace `retention.dat`. Vrai par
+construction, faux une fois le snapshot parti, vrai à nouveau quand une
+configuration perdue a été reconstruite. Le registre est la seule source de
+vérité, le stream ne garde rien de son côté.
+
+```mermaid
+sequenceDiagram
+    participant E as Engine
+    participant S as broker_stream
+    participant R as peer_registry
+    participant C as cache global
+    participant U as unified_sql (référence)
+    E->>S: Welcome
+    S->>R: add_peer() → runtime_state_owed = true
+    loop à chaque read()
+        alt une configuration est due (poller_needs_update)
+            S->>E: DiffState(diff + runtime_state)
+            S->>R: runtime_state_owed = false
+        else à jour, conf connue et cache.has_instance(poller)
+            S->>E: DiffState(runtime_only, config_version connue, runtime_state)
+            S->>R: runtime_state_owed = false
+        else conf inconnue de Broker
+            Note over S,C: rien à décrire : le cache ne connaît pas le poller
+        end
+    end
+    opt Broker avait perdu le .prot du poller
+        S->>E: DiffState(unknown=true)
+        E->>S: sa configuration complète
+        S->>C: create_prot_file(), pb_engine_state vers unified_sql
+        U->>R: set_runtime_state_owed(poller, false)
+        U->>C: merge() puis restore du runtime depuis la base
+        U->>R: set_runtime_state_owed(poller, true)
+        S->>E: au read() suivant : DiffState(runtime_only, runtime_state)
+        S->>R: runtime_state_owed = false
+    end
+    E-->>S: DiffStateAck (version inchangée pour un runtime_only)
+```
 
 > **Pourquoi la scission compte.** Ces trois questions n'en faisaient qu'une,
 > `has_connection_from_poller()`, qui retournait le flag *running*. Le
@@ -5468,6 +5511,17 @@ seul, sans toucher à la configuration, à l'ordonnanceur, aux modules ni à `st
 posés que si Engine les possède. Test : `CERS1` (`engine/centralized-runtime-state.robot`) : Engine
 redémarré sans `retention.dat`, un résultat OK est logué comme un rétablissement depuis CRITICAL, ce
 qui prouve l'état restauré.
+
+*Le cas de la configuration inconnue, fait le même jour.* Quand Broker a perdu le `.prot` d'un
+poller, il n'a rien à lui envoyer à la connexion : le cache ne connaît pas ses ressources. Engine
+renvoie sa configuration, Broker la stocke, et c'est la sortie référence qui, dans
+`_process_engine_state`, fusionne les entrées du poller dans le cache **puis restaure aussitôt
+leur runtime depuis la base**, avant de remettre le drapeau par `set_runtime_state_owed(poller_id, true)` ; le drapeau est baissé juste avant la fusion, pour qu'aucun snapshot vide ne parte entre la fusion et la restauration.
+`broker_state` marque alors le poller comme devant recevoir son snapshot, drapeau
+`runtime_state_owed` du registre des pairs, et le stream qui le sert l'envoie au tour suivant,
+seul. Le stream n'envoie d'ailleurs jamais un snapshot pour un poller que le cache ne connaît pas
+encore : ce serait un snapshot vide. Test : `CERS2` (Broker redémarré sans son `1.prot`, Engine
+en marche : la configuration revient, l'état revient derrière).
 
 **Étape 3 — les overrides d'attributs modifiés.** La base a `modified_attributes` et les
 colonnes correspondantes ; le module référence les recharge par le même chemin que l'état de
