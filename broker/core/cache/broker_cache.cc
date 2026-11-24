@@ -361,7 +361,7 @@ void broker_cache::set_current_notification_id(uint64_t host_id,
                                                uint64_t id) {
   if (!id)
     return;
-  absl::WriterMutexLock l{&_mutex};
+  absl::WriterMutexLock l{_mutex};
   BrokerCache::ResourceIds& ids =
       _resource_ids[std::make_pair(host_id, service_id)];
   ids.set_host_id(host_id);
@@ -5099,10 +5099,11 @@ absl::flat_hash_set<std::string> broker_cache::notification_contact_names(
 /**
  * @brief Evaluate the notification dependencies of a resource.
  *
- * Broker counterpart of Engine's host/service::authorized_by_dependencies for
- * dependency::notification. Takes the read lock once and dispatches to the
- * recursive per-type helpers (which require the lock held: absl reader locks
- * are not reentrant, so the inherits_parent recursion must not re-lock).
+ * Broker counterpart of Engine's `authorized_by_dependencies()` of hosts and
+ * services, for notification dependencies. Takes the read lock once and
+ * dispatches to the recursive per-type helpers (which require the lock held:
+ * absl reader locks are not reentrant, so the inherits_parent recursion must
+ * not re-lock).
  *
  * @param host_id The host id.
  * @param service_id The service id; 0 designates a host.

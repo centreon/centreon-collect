@@ -279,7 +279,8 @@ std::string_view message_helper::validate_key(
  *
  * Configuration-level equivalent of Engine's `contains_illegal_object_chars()`:
  * it reads the blacklist from the State (`illegal_object_chars`) instead of the
- * Engine global, so it can be used by the `*_helper::resolve` validators.
+ * Engine global, so it can be used by the `resolve()` validators of the
+ * `*_helper` classes.
  *
  * @param name The object name to check.
  * @param illegal_chars The set of forbidden characters (State's
