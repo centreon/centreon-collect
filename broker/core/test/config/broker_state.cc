@@ -26,6 +26,8 @@
 #include <thread>
 
 #include "com/centreon/broker/file/disk_accessor.hh"
+#include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -61,6 +63,11 @@ class BrokerStateRound : public ::testing::Test {
     /* Never started: what a connection or the end of a round publishes waits
      * in its queue, and goes away with it. */
     multiplexing::engine::load();
+    /* A muxer needs the events registry, which needs the protocols. The test
+     * environment loads both, but a suite run before may have unloaded them
+     * (StatsTest does): load() keeps the ones already there. */
+    io::protocols::load();
+    io::events::load();
     _dir = std::filesystem::temp_directory_path() / "ut_broker_state_round";
     _cache_dir =
         std::filesystem::temp_directory_path() / "ut_broker_state_round_cache";
