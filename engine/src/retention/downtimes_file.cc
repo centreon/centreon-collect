@@ -18,10 +18,10 @@
  */
 
 #include "com/centreon/engine/retention/downtimes_file.hh"
-#include <fstream>
 #include "bbdo/neb.pb.h"
 #include "com/centreon/engine/globals.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "common/proto_file/proto_file.hh"
 
 namespace downtimes = com::centreon::common::downtimes;
 using com::centreon::broker::Downtime;
@@ -42,10 +42,9 @@ namespace {
 bool is_bam_downtime(const downtimes::downtime& dt) {
   if (dt.service_id() == 0)
     return false;
-  auto names =
-      downtimes::downtime_manager::instance()
-          .callbacks()
-          .get_host_and_service_names(dt.host_id(), dt.service_id());
+  auto names = downtimes::downtime_manager::instance()
+                   .callbacks()
+                   .get_host_and_service_names(dt.host_id(), dt.service_id());
   return names.first.compare(0, 12, "_Module_BAM_") == 0 &&
          names.second.compare(0, 3, "ba_") == 0;
 }
@@ -84,21 +83,11 @@ bool save(const std::filesystem::path& path) {
     d->set_duration(dt->get_duration());
   }
 
-  std::filesystem::path tmp(path);
-  tmp += ".tmp";
-  {
-    std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
-    if (!f.is_open() || !msg.SerializeToOstream(&f)) {
-      runtime_logger->error("Cannot write the downtimes file '{}'",
-                            tmp.string());
-      return false;
-    }
-  }
   std::error_code ec;
-  std::filesystem::rename(tmp, path, ec);
+  com::centreon::common::write_proto_file(path, msg, false, ec);
   if (ec) {
-    runtime_logger->error("Cannot rename the downtimes file '{}' to '{}': {}",
-                          tmp.string(), path.string(), ec.message());
+    runtime_logger->error("Cannot write the downtimes file '{}': {}",
+                          path.string(), ec.message());
     return false;
   }
   runtime_logger->debug("{} downtime(s) saved in '{}'", msg.downtimes_size(),
@@ -121,18 +110,15 @@ bool save(const std::filesystem::path& path) {
  * @return The number of downtimes recreated.
  */
 size_t restore(const std::filesystem::path& path) {
-  std::error_code ec;
-  if (!std::filesystem::exists(path, ec))
-    return 0;
-
   EngineDowntimes msg;
-  {
-    std::ifstream f(path, std::ios::binary);
-    if (!f.is_open() || !msg.ParseFromIstream(&f)) {
-      config_logger->error("Cannot read the downtimes file '{}'",
-                           path.string());
-      return 0;
-    }
+  std::error_code ec;
+  com::centreon::common::read_proto_file(path, msg, ec);
+  if (ec == std::errc::no_such_file_or_directory)
+    return 0;
+  if (ec) {
+    config_logger->error("Cannot read the downtimes file '{}': {}",
+                         path.string(), ec.message());
+    return 0;
   }
 
   auto& manager = downtimes::downtime_manager::instance();

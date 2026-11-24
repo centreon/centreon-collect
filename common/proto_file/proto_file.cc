@@ -22,8 +22,10 @@
 #include <atomic>
 #include <cerrno>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -153,6 +155,66 @@ std::string uncompress_content(std::string_view content, std::error_code& ec) {
   }
   return retval;
 }
+
+/**
+ * @brief Write a file whole or not at all: the content goes to a temporary file
+ * next to @p path, renamed over it once complete.
+ *
+ * A reader never sees a partial file, and a writer killed on the way leaves the
+ * previous one intact. The temporary name does not end like @p path, so no scan
+ * of the directory takes it for a file of the same kind. It is unique, as two
+ * writers of the same file are not always serialized by the same lock.
+ *
+ * The file is not synced before the rename: it survives the death of the
+ * process, not a power loss.
+ *
+ * @param path The file to write.
+ * @param write_content Writes the content to the stream it is given, and sets
+ * its error code argument when it fails for another reason than the stream.
+ * @param ec Cleared on success, set to the reason of the failure otherwise; the
+ * file is then left as it was.
+ */
+void write_atomically(
+    const std::filesystem::path& path,
+    const std::function<void(std::ofstream&, std::error_code&)>& write_content,
+    std::error_code& ec) {
+  static std::atomic<uint64_t> counter{0};
+  ec.clear();
+  std::filesystem::path tmp(path);
+  tmp += ".tmp" + std::to_string(counter++);
+  {
+    std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
+    if (!f) {
+      ec = last_system_error();
+      return;
+    }
+    write_content(f, ec);
+    f.close();
+    if (!ec && !f)
+      ec = last_system_error();
+  }
+  if (!ec)
+    std::filesystem::rename(tmp, path, ec);
+  if (ec) {
+    std::error_code ignored;
+    std::filesystem::remove(tmp, ignored);
+  }
+}
+
+/**
+ * @brief Compress a serialized message and write it to a stream.
+ *
+ * @param serialized The serialized message.
+ * @param f The stream to write to.
+ * @param ec Set on failure.
+ */
+void write_compressed(std::string_view serialized,
+                      std::ofstream& f,
+                      std::error_code& ec) {
+  const std::string content = compress_content(serialized, ec);
+  if (!ec && !f.write(content.data(), content.size()))
+    ec = last_system_error();
+}
 }  // namespace
 
 const std::error_category& proto_file_error_category() noexcept {
@@ -168,14 +230,7 @@ std::error_code make_error_code(proto_file_errc e) noexcept {
  * @brief Write a protobuf message to a file, whole or not at all.
  *
  * The message goes to a temporary file next to @p path, renamed over it once
- * complete: a reader never sees a partial file, and a writer killed on the way
- * leaves the previous one intact. The temporary name does not end like
- * @p path, so no scan of the directory takes it for a file of the same kind.
- * It is unique, as two writers of the same file are not always serialized by
- * the same lock.
- *
- * The file is not synced before the rename: it survives the death of the
- * process, not a power loss.
+ * complete: see write_atomically().
  *
  * @param path The file to write.
  * @param msg The message to store.
@@ -188,42 +243,68 @@ void write_proto_file(const std::filesystem::path& path,
                       const google::protobuf::Message& msg,
                       bool compress,
                       std::error_code& ec) noexcept {
-  static std::atomic<uint64_t> counter{0};
-  ec.clear();
   try {
-    std::filesystem::path tmp(path);
-    tmp += ".tmp" + std::to_string(counter++);
-    {
-      std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
-      if (!f) {
-        ec = last_system_error();
-        return;
-      }
-      if (compress) {
-        std::string serialized;
-        if (!msg.SerializeToString(&serialized))
-          ec = proto_file_errc::serialize_error;
-        else {
-          const std::string content = compress_content(serialized, ec);
-          if (!ec && !f.write(content.data(), content.size()))
-            ec = last_system_error();
-        }
-      } else if (!msg.SerializeToOstream(&f)) {
-        /* A failed stream says the disk refused; a sound stream says the
-         * message itself could not be serialized. */
-        ec = f ? make_error_code(proto_file_errc::serialize_error)
-               : last_system_error();
-      }
-      f.close();
-      if (!ec && !f)
-        ec = last_system_error();
-    }
-    if (!ec)
-      std::filesystem::rename(tmp, path, ec);
-    if (ec) {
-      std::error_code ignored;
-      std::filesystem::remove(tmp, ignored);
-    }
+    write_atomically(
+        path,
+        [&msg, compress](std::ofstream& f, std::error_code& err) {
+          if (compress) {
+            std::string serialized;
+            if (!msg.SerializeToString(&serialized))
+              err = proto_file_errc::serialize_error;
+            else
+              write_compressed(serialized, f, err);
+          } else if (!msg.SerializeToOstream(&f)) {
+            /* A failed stream says the disk refused; a sound stream says the
+             * message itself could not be serialized. */
+            err = f ? make_error_code(proto_file_errc::serialize_error)
+                    : last_system_error();
+          }
+        },
+        ec);
+  } catch (const std::bad_alloc&) {
+    ec = std::make_error_code(std::errc::not_enough_memory);
+  }
+}
+
+/**
+ * @brief Write to a file a protobuf message that is not held whole in memory,
+ * whole or not at all, as write_proto_file() does.
+ *
+ * The message is produced by @p serialize, which writes it to the stream it
+ * is given: straight to the temporary file without compression, to a buffer
+ * compressed afterwards otherwise. That is how Engine writes its indexed_state,
+ * whose objects are not in one State.
+ *
+ * @param path The file to write.
+ * @param serialize Writes the serialized message to the stream; returns false
+ * if the message could not be serialized. A failure of the stream itself is
+ * detected here, it does not need to report it.
+ * @param compress Whether to compress the message with zstd, behind a header
+ * that read_proto_file() recognizes.
+ * @param ec Cleared on success, set to the reason of the failure otherwise; the
+ * file is then left as it was.
+ */
+void write_proto_file_streamed(
+    const std::filesystem::path& path,
+    const std::function<bool(std::ostream&)>& serialize,
+    bool compress,
+    std::error_code& ec) noexcept {
+  try {
+    write_atomically(
+        path,
+        [&serialize, compress](std::ofstream& f, std::error_code& err) {
+          if (compress) {
+            std::ostringstream buffer;
+            if (!serialize(buffer) || !buffer)
+              err = proto_file_errc::serialize_error;
+            else
+              write_compressed(buffer.str(), f, err);
+          } else if (!serialize(f)) {
+            err = f ? make_error_code(proto_file_errc::serialize_error)
+                    : last_system_error();
+          }
+        },
+        ec);
   } catch (const std::bad_alloc&) {
     ec = std::make_error_code(std::errc::not_enough_memory);
   }

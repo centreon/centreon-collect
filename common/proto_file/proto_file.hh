@@ -21,6 +21,8 @@
 #include <google/protobuf/message.h>
 
 #include <filesystem>
+#include <functional>
+#include <ostream>
 #include <system_error>
 
 namespace com::centreon::common {
@@ -44,6 +46,11 @@ void write_proto_file(const std::filesystem::path& path,
                       const google::protobuf::Message& msg,
                       bool compress,
                       std::error_code& ec) noexcept;
+void write_proto_file_streamed(
+    const std::filesystem::path& path,
+    const std::function<bool(std::ostream&)>& serialize,
+    bool compress,
+    std::error_code& ec) noexcept;
 void read_proto_file(const std::filesystem::path& path,
                      google::protobuf::Message& msg,
                      std::error_code& ec) noexcept;

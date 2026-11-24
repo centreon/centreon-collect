@@ -511,6 +511,7 @@ target_link_libraries(
   centreon_engine_conf
   external_commands
   notifications
+  proto_file
   timeperiods
   fmt::fmt
   spdlog::spdlog
