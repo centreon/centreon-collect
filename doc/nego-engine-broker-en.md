@@ -5074,7 +5074,9 @@ overlay. Tests: `CBSS_REFERENCE`, `CBSS_REFERENCE_OPT_OUT`.
 first `open()` of its stream, before it reports ready to the barrier: whoever waits for the
 cache (BAM, through `on_ready`) finds the state in it. The source depends on what the output
 writes: the `resources` table when `store_in_resources`, the `hosts`/`services` tables
-otherwise, a path on its way out; never both. Each row is laid onto its entry by
+otherwise, a path on its way out. When the output writes both (the default for now), the
+`resources` pass is followed by a complement read from `hosts`/`services`
+(`_restore_runtime_complement_from_hosts_services`), see below. Each row is laid onto its entry by
 `broker_cache::restore_host_runtime` / `restore_service_runtime`, which take a function setting
 only the fields the source knows: the cache keeps the rule and the copy-on-write mechanics,
 unified_sql keeps the knowledge of the columns. The row of a resource the cache does not hold is
@@ -5099,6 +5101,18 @@ newline, is split back. `resources.status`, for its part, is never forced. Tests
 `CBA_KPI_RUNTIME_RESTORED_FROM_RESOURCES` and `CBA_KPI_RUNTIME_RESTORED_FROM_HOSTS_SERVICES` (Engine
 stopped, BAM cache file removed, cbd restarted: the restoration then BAM's seeding make the BA
 CRITICAL without a single status, from each of the two sources).
+
+*Done on 2026-10-26, the complement.* `store_in_resources` and `store_in_hosts_services` are both
+on for now; `hosts`/`services` will later give way to two tables holding only the data still
+used that `resources` lacks. Until then, when the output writes both, the fields `resources`
+ignores are taken from `hosts`/`services` after the `resources` pass: perfdata, long output,
+previous hard state and its date, `last_time_*`, latency, execution time, next check and, when
+Broker does not own them, the notification counters, the acknowledgement type (only if
+`resources` says acknowledged) and the downtime depth. The status, output and other fields from
+`resources` are not touched. The same "freshest wins" rule applies. The two tables are written
+from the same status but in separate batches with no transaction: after a crash, a resource may
+receive the complement of the previous check, which its next check fixes; no stricter check was
+judged worth it. When the new tables arrive, only this complement has to read them instead.
 
 *Database unreachable at first `open()`.* The barrier releases on timeout, poller statuses
 start arriving, and the overlay happens later, on the successful connection. It must then
