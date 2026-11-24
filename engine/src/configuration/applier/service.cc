@@ -80,7 +80,11 @@ void applier::service::add_object(const configuration::Service& obj) {
   conf_svc->CopyFrom(obj);
   conf_svc->set_host_name(host_name);
   conf_svc->set_service_description(service_description);
-  conf_svc->set_display_name(display_name);
+  /* display_name is optional (develop #2842): set only when the configuration
+   * has one, or the configuration Engine keeps and writes to state.prot would
+   * hold an empty display_name the configuration it received does not. */
+  if (obj.has_display_name())
+    conf_svc->set_display_name(display_name);
 
   // Create service.
   engine::service* svc{add_service(

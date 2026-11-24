@@ -323,6 +323,28 @@ TEST_F(ApplierPbHost, RemovedCheckCommandAndEventHandlerAreUnwired) {
   ASSERT_FALSE(h->get_event_handler_ptr());
 }
 
+// Given a host configuration with no display_name
+// When the applier adds the host
+// Then the configuration Engine keeps has no display_name either (the field
+// is optional: an empty one would be written to state.prot).
+TEST_F(ApplierPbHost, NoDisplayNameKeptAbsent) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst_hlp.set_default_values();
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_aply.add_object(hst);
+  ASSERT_FALSE(pb_indexed_config.hosts().at(12)->has_display_name());
+
+  hst.set_host_id(13);
+  hst.set_host_name("test_host2");
+  hst.set_display_name("Test host");
+  hst_aply.add_object(hst);
+  ASSERT_EQ(pb_indexed_config.hosts().at(13)->display_name(), "Test host");
+}
+
 TEST_F(ApplierPbHost, PbHostRemoved) {
   configuration::applier::host hst_aply;
   configuration::Host hst;

@@ -64,7 +64,11 @@ void applier::anomalydetection::add_object(
   auto conf_ad = std::make_unique<Anomalydetection>(obj);
   conf_ad->set_host_name(host_name);
   conf_ad->set_service_description(service_description);
-  conf_ad->set_display_name(display_name);
+  /* display_name is optional (develop #2842): set only when the configuration
+   * has one, or the configuration Engine keeps and writes to state.prot would
+   * hold an empty display_name the configuration it received does not. */
+  if (obj.has_display_name())
+    conf_ad->set_display_name(display_name);
   pb_indexed_config.mut_anomalydetections().emplace(
       std::make_pair(obj.host_id(), obj.service_id()), std::move(conf_ad));
 

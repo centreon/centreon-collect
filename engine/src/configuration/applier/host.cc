@@ -62,7 +62,11 @@ void applier::host::add_object(const configuration::Host& obj) {
   auto new_host_config = std::make_unique<Host>();
   new_host_config->CopyFrom(obj);
   new_host_config->set_host_name(host_name);
-  new_host_config->set_display_name(display_name);
+  /* display_name is optional (develop #2842): set only when the configuration
+   * has one, or the configuration Engine keeps and writes to state.prot would
+   * hold an empty display_name the configuration it received does not. */
+  if (obj.has_display_name())
+    new_host_config->set_display_name(display_name);
   pb_indexed_config.mut_hosts().emplace(obj.host_id(),
                                         std::move(new_host_config));
 
