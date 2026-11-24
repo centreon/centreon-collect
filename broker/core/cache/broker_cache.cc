@@ -5150,7 +5150,8 @@ broker_cache::escalation_result broker_cache::notification_escalation(
   escalation_result retval;
   const absl::TimeZone tz = common::timeperiods::string_to_timezone(timezone);
 
-  auto in_period = [&](const std::string& period) {
+  auto in_period = [&](const std::string& period)
+                       ABSL_SHARED_LOCKS_REQUIRED(_mutex) {
     if (period.empty())
       return true;
     auto tp = _timeperiods.find(period);
