@@ -273,9 +273,9 @@ flowchart TD
   `instances.notifications` in the database, follows.
 * **Notifier settings**: `SET_*_NOTIFICATION_NUMBER` → `SetHostNotificationNumber` /
   `SetServiceNotificationNumber`, `SEND_CUSTOM_*_NOTIFICATION` →
-  `SendCustomHostNotification` / `SendCustomServiceNotification` (option bits 1/2/4
-  become three booleans `broadcast`, `forced`, `increment`). These calls are applied
-  asynchronously, like the pipe. `DELAY_*_NOTIFICATION` has no counterpart: the command
+  `SendCustomHostNotification` / `SendCustomServiceNotification` (bit 2 becomes
+  the boolean `forced`; bits 1, `broadcast`, and 4, `increment`, are ignored).
+  These calls are applied asynchronously, like the pipe. `DELAY_*_NOTIFICATION` has no counterpart: the command
   has no effect on the decision, neither on Engine nor on Broker.
 * **All other per-host / per-service commands** (check results, forced checks,
   check / event handler / flapping switches, object variable changes…) go through

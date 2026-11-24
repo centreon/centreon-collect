@@ -42,13 +42,12 @@ Une notification a un **type** (`reason_type`), regroupé en **catégorie**
 
 La correspondance est faite par `notification_manager::get_category()`.
 
-Les **options** d'une notification (`notification_option`) sont
-`notification_option_forced`, `notification_option_broadcast` et
-`notification_option_increment`. Seule `forced` change la décision (voir la
-section 4). Les deux autres, héritées de Nagios, sont transmises jusqu'au
-poller mais ne sont plus lues par la décision : `broadcast` ne l'est que par
-`is_valid_escalation_for_notification()`, qu'on appelle toujours sans option,
-et `increment` nulle part.
+La seule **option** d'une notification (`notification_option`) est
+`notification_option_forced`, qui change la décision (voir la section 4).
+Les options `broadcast` et `increment` de Nagios n'existent plus : les bits 1
+et 4 des commandes externes `SEND_CUSTOM_*_NOTIFICATION` sont acceptés et
+ignorés. Une notification CUSTOM incrémente toujours le numéro (voir la
+section 3).
 
 **L'état de notification d'une ressource** est gardé par le
 `notification_manager`, indexé par `(host_id, service_id)` (`service_id == 0`
@@ -527,7 +526,7 @@ de commandes :
 | RPC Broker | Commande Engine | Effet |
 |---|---|---|
 | `SetHostNotificationNumber` / `SetServiceNotificationNumber(…, number)` | `SET_*_NOTIFICATION_NUMBER` | `notification_manager::set_notification_number` → le backend publie l'adaptive `notification_number` (base), état persisté par T9 |
-| `SendCustomHostNotification` / `SendCustomServiceNotification(…, author, comment, broadcast, forced, increment)` | `SEND_CUSTOM_*_NOTIFICATION` (options 1/2/4) | `notify(reason_custom, …)` ; `forced` court-circuite les interrupteurs, le poller exécute le type `CUSTOM` |
+| `SendCustomHostNotification` / `SendCustomServiceNotification(…, author, comment, forced)` | `SEND_CUSTOM_*_NOTIFICATION` (option 2, bits 1 et 4 ignorés) | `notify(reason_custom, …)` ; `forced` court-circuite les interrupteurs, le poller exécute le type `CUSTOM` |
 
 **`DELAY_*_NOTIFICATION` n'a pas de pendant Broker, volontairement** : ni la viabilité de la
 lib ni celle d'Engine ne lisent `next_notification` (l'intervalle se calcule depuis
