@@ -66,6 +66,9 @@ extern std::string config_file;
 /* Directory of the serialized protobuf Engine configuration, we consider we
  * are in new generation configuration if it is not empty */
 extern std::filesystem::path proto_conf;
+/* Whether the files written in proto_conf (state.prot, downtimes.prot) are
+ * compressed; set by --cache-compression, on by default. */
+extern bool cache_compression;
 extern std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 
 extern time_t last_command_check;

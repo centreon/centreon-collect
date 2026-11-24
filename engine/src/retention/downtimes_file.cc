@@ -84,7 +84,7 @@ bool save(const std::filesystem::path& path) {
   }
 
   std::error_code ec;
-  com::centreon::common::write_proto_file(path, msg, false, ec);
+  com::centreon::common::write_proto_file(path, msg, cache_compression, ec);
   if (ec) {
     runtime_logger->error("Cannot write the downtimes file '{}': {}",
                           path.string(), ec.message());
