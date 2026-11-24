@@ -12,7 +12,17 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      CENTREON_TECHNIQUE_PAT:
+        description: "Token reading the organization teams, only needed by the rebuild-release label"
+        required: false
     outputs:
+      rebuild_release:
+        description: "true when the run rebuilds an already released version (rebuild-release label)"
+        value: ${{ jobs.get-environment.outputs.rebuild_release }}
+      delivery_stability:
+        description: "stability the packages are delivered to: same as stability, or on a rebuild-release run stable (deliver-to-stable label) or none"
+        value: ${{ jobs.get-environment.outputs.delivery_stability }}
       latest_major_version:
         description: "latest major version"
         value: ${{ jobs.get-environment.outputs.latest_major_version }}
@@ -102,6 +112,8 @@ jobs:
   get-environment:
     runs-on: ubuntu-24.04
     outputs:
+      rebuild_release: ${{ steps.rebuild_release.outputs.rebuild_release }}
+      delivery_stability: ${{ steps.get_stability.outputs.delivery_stability }}
       latest_major_version: ${{ steps.latest_major_version.outputs.latest_major_version }}
       previous_release_bundle_tag: ${{ steps.get_previous_release_bundle_tag.outputs.previous_release_bundle_tag }}
       is_cloud: ${{ steps.detect_cloud_version.outputs.isCloud }}
@@ -173,6 +185,59 @@ jobs:
             core.setOutput('labels', labels);
 
             return hasSkipLabel;
+
+      # rebuild-release: package an already released version again, without tests.
+      # Reserved to the release-management team, on manual runs only.
+      - name: Check rebuild-release label
+        id: rebuild_release
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          LABELS: ${{ steps.has_skip_label.outputs.labels }}
+          ACTOR: ${{ github.triggering_actor }}
+          HAS_TEAM_TOKEN: ${{ secrets.CENTREON_TECHNIQUE_PAT != '' }}
+        with:
+          # the team token is only handed to manual runs
+          github-token: ${{ github.event_name == 'workflow_dispatch' && secrets.CENTREON_TECHNIQUE_PAT || github.token }}
+          script: |
+            const labels = JSON.parse(process.env.LABELS || '[]');
+            const isDispatch = context.eventName === 'workflow_dispatch';
+            const rebuildRelease = isDispatch && labels.includes('rebuild-release');
+            const deliverToStable = rebuildRelease && labels.includes('deliver-to-stable');
+
+            core.setOutput('rebuild_release', rebuildRelease);
+            core.setOutput('deliver_to_stable', deliverToStable);
+
+            if (!rebuildRelease) {
+              if (isDispatch && labels.includes('deliver-to-stable')) {
+                core.warning('Label deliver-to-stable is ignored without the rebuild-release label');
+              }
+              return;
+            }
+
+            const actor = process.env.ACTOR;
+            const team = 'release-management';
+            if (process.env.HAS_TEAM_TOKEN !== 'true') {
+              core.setFailed(`Cannot check that ${actor} belongs to ${team}: workflow ${context.workflow} does not support the rebuild-release label`);
+              return;
+            }
+
+            try {
+              const { data } = await github.rest.teams.getMembershipForUserInOrg({
+                org: context.repo.owner,
+                team_slug: team,
+                username: actor,
+              });
+              if (data.state !== 'active') {
+                core.setFailed(`${actor} membership of ${team} is ${data.state}: the rebuild-release label is refused`);
+                return;
+              }
+            } catch (e) {
+              const reason = e.status === 404 ? 'not a member' : `membership check failed (${e.status ?? 'unknown status'}: ${e.message})`;
+              core.setFailed(`The rebuild-release label is reserved to the ${team} team; ${actor}: ${reason}`);
+              return;
+            }
+
+            core.notice(`Release rebuild requested by ${actor}: packages are ${deliverToStable ? 'delivered to stable' : 'kept as run artifacts only'}`);
 
       - name: Checkout sources (current branch)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -374,6 +439,8 @@ jobs:
           TESTING_TAG: ${{ steps.parse_testing_tag.outputs.tag }}
           IS_PR: ${{ contains(fromJSON('["pull_request"]') , github.event_name) }}
           PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
+          REBUILD_RELEASE: ${{ steps.rebuild_release.outputs.rebuild_release }}
+          DELIVER_TO_STABLE: ${{ steps.rebuild_release.outputs.deliver_to_stable }}
         with:
           script: |
             const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;
@@ -423,12 +490,26 @@ jobs:
             } else if (eventName === 'push' && refType === 'tag') {
               console.log(`Push event on a tag detected.`);
               stability = isStableTag(ref) ? 'stable' : getStability(ref);
+            } else if (process.env.REBUILD_RELEASE === 'true') {
+              // a release is rebuilt as it was built: from its stable tag or a release/hotfix branch
+              stability = refType === 'tag' && isStableTag(ref) ? 'testing' : getStability(ref);
+              if (refType === 'tag' && !isStableTag(ref) || stability !== 'testing') {
+                core.setFailed(`The rebuild-release label needs a stable tag or a release/hotfix branch, got ${refType} ${ref}`);
+                return;
+              }
             } else {
               stability = getStability(ref);
             }
 
             console.log(`Final stability: ${stability}`);
             core.setOutput('stability', stability);
+
+            let deliveryStability = stability;
+            if (process.env.REBUILD_RELEASE === 'true') {
+              deliveryStability = process.env.DELIVER_TO_STABLE === 'true' ? 'stable' : 'none';
+            }
+            console.log(`Delivery stability: ${deliveryStability}`);
+            core.setOutput('delivery_stability', deliveryStability);
 
             let isTargetingFeatureBranch = false;
 
@@ -616,6 +697,7 @@ jobs:
           PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
           TESTING_TAG_SCOPE: ${{ steps.parse_testing_tag.outputs.scope }}
           TESTING_TAG_MAJOR: ${{ steps.parse_testing_tag.outputs.major }}
+          REBUILD_RELEASE: ${{ steps.rebuild_release.outputs.rebuild_release }}
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -662,9 +744,9 @@ jobs:
                 releaseScope = isCloudCandidate ? "cloud" : "onprem";
               }
             }
-            // handle if triggering event is a push_tag of a release
-            else if (eventName === "push" && ref.startsWith("refs/tags/")) {
-              console.log(`🏷️ Tag pushed: ${refName}`);
+            // handle if triggering event is a push_tag of a release, or the rebuild of a released tag
+            else if ((eventName === "push" || process.env.REBUILD_RELEASE === "true") && ref.startsWith("refs/tags/")) {
+              console.log(`🏷️ Tag: ${refName}`);
               // Extract scope (cloud on onprem) from tag description
               // Format expected: "release-cloud-20270800-27.08 or release-onprem-20270800-24.10"
 
@@ -1008,6 +1090,8 @@ jobs:
           CMA_MAJOR_VERSION: ${{ steps.get_version.outputs.cma_major_version }}
           CMA_MINOR_VERSION: ${{ steps.get_version.outputs.cma_minor_version }}
           STABILITY: ${{ steps.get_stability.outputs.stability }}
+          REBUILD_RELEASE: ${{ steps.rebuild_release.outputs.rebuild_release }}
+          DELIVERY_STABILITY: ${{ steps.get_stability.outputs.delivery_stability }}
           RELEASE_TYPE: ${{ steps.get_release_type.outputs.release_type }}
           IS_TARGETING_FEATURE_BRANCH: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
           IS_NIGHTLY: ${{ steps.get_nightly_status.outputs.is_nightly }}
@@ -1036,6 +1120,8 @@ jobs:
               ['cma_major_version', process.env.CMA_MAJOR_VERSION],
               ['cma_minor_version', process.env.CMA_MINOR_VERSION],
               ['stability', process.env.STABILITY],
+              ['rebuild_release', process.env.REBUILD_RELEASE],
+              ['delivery_stability', process.env.DELIVERY_STABILITY],
               ['testing_tag', process.env.TESTING_TAG || '<em>not a testing bundle tag</em>'],
               ['testing_bundle_path', process.env.TESTING_BUNDLE_PATH || '<em>not a testing bundle tag</em>'],
               ['release_type', process.env.RELEASE_TYPE || '<em>not defined because this is not a release</em>'],

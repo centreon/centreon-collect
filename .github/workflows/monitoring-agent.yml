@@ -83,6 +83,8 @@ jobs:
       version_file: CMakeLists.txt
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
       labels: ${{ inputs.labels || '' }}
+    secrets:
+      CENTREON_TECHNIQUE_PAT: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   check-version-consistency:
     runs-on: ubuntu-24.04
@@ -435,7 +437,7 @@ jobs:
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: "OFF"
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
-      packages_in_artifact: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
+      packages_in_artifact: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') || needs.get-environment.outputs.rebuild_release == 'true' }}
       image: ${{ format('packaging-centreon-collect-vcpkg-{0}{1}', matrix.operating_system, matrix.arch == 'arm64' && '-arm64' || '') }}
       distrib: ${{ matrix.operating_system }}
       arch: ${{ matrix.arch }}
@@ -494,6 +496,7 @@ jobs:
     # condition has to be spelled out here or its cache restore fails the run.
     # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
+      needs.get-environment.outputs.delivery_stability != 'none' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       inputs.publish_cma_version == '' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
@@ -534,7 +537,8 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-environment.outputs.delivery_stability }}
+          rebuild_release: ${{ needs.get-environment.outputs.rebuild_release }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
@@ -546,6 +550,7 @@ jobs:
   deliver-deb-pulp:
     # nightly: deliver what was built even if other jobs failed; those jobs keep the run red
     if: |
+      needs.get-environment.outputs.delivery_stability != 'none' &&
       needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
@@ -596,7 +601,8 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-environment.outputs.delivery_stability }}
+          rebuild_release: ${{ needs.get-environment.outputs.rebuild_release }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           pulp_url: ${{ vars.PULP_API_URL }}
@@ -609,6 +615,7 @@ jobs:
   # Nightly: deliver the installer once built, even if other jobs failed; those jobs keep the run red.
   deliver-windows-pulp:
     if: |
+      needs.get-environment.outputs.rebuild_release != 'true' &&
       needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&

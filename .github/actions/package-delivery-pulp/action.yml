@@ -15,8 +15,12 @@ inputs:
     description: "The cached package key"
     required: true
   stability:
-    description: "The package stability (stable, testing, unstable)"
+    description: "The package stability (testing, unstable; stable only with rebuild_release)"
     required: true
+  rebuild_release:
+    description: "Rebuild of an already released version: allows delivering straight to stable, which refuses any version already published there"
+    required: false
+    default: "false"
   release_type:
     description: "Type of release (hotfix, release)"
     required: false
@@ -66,10 +70,16 @@ runs:
       env:
         STABILITY: ${{ inputs.stability }}
         DELIVERY_TYPE: ${{ inputs.delivery_type }}
+        REBUILD_RELEASE: ${{ inputs.rebuild_release }}
       run: |
         set -euo pipefail
 
-        if [[ "$DELIVERY_TYPE" != "feature" && "$STABILITY" != "testing" && "$STABILITY" != "unstable" ]]; then
+        if [[ "$REBUILD_RELEASE" == "true" ]]; then
+          if [[ "$STABILITY" != "stable" || "$DELIVERY_TYPE" == "feature" ]]; then
+            echo "::error::a release rebuild only delivers to stable (got stability '$STABILITY', delivery type '$DELIVERY_TYPE')"
+            exit 1
+          fi
+        elif [[ "$DELIVERY_TYPE" != "feature" && "$STABILITY" != "testing" && "$STABILITY" != "unstable" ]]; then
           echo "::error::stability must be one of: testing, unstable (got '$STABILITY')"
           exit 1
         fi
@@ -86,6 +96,16 @@ runs:
         is_cloud: ${{ inputs.is_cloud }}
         delivery_type: ${{ inputs.delivery_type }}
         repository_name: ${{ inputs.repository_name }}
+
+    # the legacy stable repositories are only fed by the promotion
+    - name: Refuse a rebuild into legacy stable repositories
+      if: inputs.rebuild_release == 'true' && steps.pulp-properties.outputs.stable_legacy_repository_name != ''
+      shell: bash
+      env:
+        STABLE_LEGACY_REPOSITORY_NAME: ${{ steps.pulp-properties.outputs.stable_legacy_repository_name }}
+      run: |
+        echo "::error::a release rebuild cannot deliver to $STABLE_LEGACY_REPOSITORY_NAME, deliver through testing and promote instead"
+        exit 1
 
     - name: Restore packages from cache
       if: steps.pulp-properties.outputs.skip_delivery == 'false'

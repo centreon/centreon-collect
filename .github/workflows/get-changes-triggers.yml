@@ -176,6 +176,11 @@ jobs:
                 triggerUnitTesting = false;
                 triggerE2eTesting = false;
               }
+              if (labels.includes('rebuild-release')) {
+                core.info('Label rebuild-release found: forcing all testing triggers to false');
+                triggerUnitTesting = false;
+                triggerE2eTesting = false;
+              }
             } catch (e) {
               core.warning(`Could not parse labels: ${e}`);
             }

@@ -44,6 +44,8 @@ jobs:
     with:
       version_file: .version.centreon-common
       labels: ${{ inputs.labels || '' }}
+    secrets:
+      CENTREON_TECHNIQUE_PAT: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   package:
     needs: [get-environment]
@@ -112,12 +114,13 @@ jobs:
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
           stability: ${{ needs.get-environment.outputs.stability }}
-          upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
+          upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') || needs.get-environment.outputs.rebuild_release == 'true' && 'true' || 'false' }}
 
   deliver-rpm-pulp:
     runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, package]
     if: |
+      needs.get-environment.outputs.delivery_stability != 'none' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
@@ -147,7 +150,8 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-environment.outputs.delivery_stability }}
+          rebuild_release: ${{ needs.get-environment.outputs.rebuild_release }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
@@ -160,6 +164,7 @@ jobs:
     runs-on: centreon-ubuntu-26.04-small
     needs: [get-environment, package]
     if: |
+      needs.get-environment.outputs.delivery_stability != 'none' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
@@ -189,7 +194,8 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: ${{ needs.get-environment.outputs.delivery_stability }}
+          rebuild_release: ${{ needs.get-environment.outputs.rebuild_release }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           pulp_url: ${{ vars.PULP_API_URL }}
