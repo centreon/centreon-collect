@@ -658,6 +658,12 @@ Ctn BAM Init
     Ctn Clear Commands Status
     Ctn Clear Retention
     Ctn Clear Prot Files
+    # The reference output overlays the resources state kept in the database
+    # onto the global cache at startup: a state left by a previous test would
+    # be believed. Start from a blank platform.
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
     Ctn Clear Db Conf    mod_bam
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    module
