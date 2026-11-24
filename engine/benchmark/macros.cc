@@ -183,6 +183,7 @@ void build_poller(configuration::state_helper& state_hlp) {
   for (int i = 0; i < p.hosts; ++i) {
     configuration::Host& h = hosts[i];
     configuration::host_helper h_hlp(&h);
+    h_hlp.set_default_values();
     h.set_host_name(host_name(i));
     h.set_host_id(i + 1);
     h.set_alias("Host " + std::to_string(i));
@@ -217,6 +218,7 @@ void build_poller(configuration::state_helper& state_hlp) {
     for (int j = 0; j < p.services_per_host; ++j) {
       configuration::Service& s = services[i * p.services_per_host + j];
       configuration::service_helper s_hlp(&s);
+      s_hlp.set_default_values();
       s.set_host_name(host_name(i));
       s.set_host_id(i + 1);
       s.set_service_description(service_desc(j));

@@ -154,7 +154,7 @@ static void _build_macrosx_environment(
      * cached. */
     if (desc.fam != com::centreon::engine::macros::family::summary ||
         !use_large_installation_tweaks || macros.summary) {
-      value = macros::table_value(macros, desc, "", "");
+      value = macros::table_value(macros, desc, "", "").value_or(std::string());
     }
     env.env_buffer.emplace_back(
         fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", desc.name, value));

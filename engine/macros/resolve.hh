@@ -20,18 +20,18 @@
 #ifndef CCE_MACROS_RESOLVE_HH
 #define CCE_MACROS_RESOLVE_HH
 
-#include "engine/macros/macro_context.hh"
 #include "engine/macros/descriptors.hh"
+#include "engine/macros/macro_context.hh"
 
 namespace com::centreon::engine::macros {
 
-std::string value(macro_context& mac,
-                  std::string_view macro_name,
-                  bool strip_illegal);
-std::string table_value(macro_context& mac,
-                        const descriptor& desc,
-                        std::string_view arg1,
-                        std::string_view arg2);
+std::optional<std::string> value(macro_context& mac,
+                                 std::string_view macro_name,
+                                 bool strip_illegal);
+std::optional<std::string> table_value(macro_context& mac,
+                                       const descriptor& desc,
+                                       std::string_view arg1,
+                                       std::string_view arg2);
 
 }  // namespace com::centreon::engine::macros
 

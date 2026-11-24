@@ -25,6 +25,9 @@
 
 // Length Limitations
 #define MAX_COMMAND_ARGUMENTS 32  // maximum number of $ARGx$ macros
+// How many custom macro values are expanded one in another: the value of
+// $_HOSTA$ may contain $_HOSTB$, whose value is expanded too, but not further.
+#define MAX_CUSTOM_MACRO_RECURSION_DEPTH 2
 
 // Macro Definitions
 #define MACRO_ENV_VAR_PREFIX "NAGIOS_"

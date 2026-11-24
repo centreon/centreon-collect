@@ -201,6 +201,14 @@ class MacroGolden : public TestEngine {
       h.set_notification_period("24x7");
       fill_string_group(h.mutable_contacts(), i == 0 ? "c1" : "c2");
       h_hlp.insert_customvariable("_FOO", "foo-" + name);
+      /* Custom macros whose values hold macros: expanded on two levels, an
+       * unresolved $X$ kept, {{$X$}} always replaced. */
+      h_hlp.insert_customvariable("_REC1", "$HOSTNAME$/$_HOSTFOO$");
+      h_hlp.insert_customvariable("_REC2", "<$_HOSTREC1$>");
+      h_hlp.insert_customvariable("_REC3", "[$_HOSTREC2$]");
+      h_hlp.insert_customvariable("_QUOTED",
+                                  "name in ('MSSQL$SIG','MSSQL$RH')");
+      h_hlp.insert_customvariable("_UNKNOWN", "a$NOPE$b{{$NOPE$}}c$ARG0$d$");
     }
     hosts[0].set_display_name("Host One");
     hosts[0].set_notes("notes of h1");
@@ -242,6 +250,7 @@ class MacroGolden : public TestEngine {
       s.set_notification_period("24x7");
       fill_string_group(s.mutable_contacts(), i < 2 ? "c1" : "c2");
       s_hlp.insert_customvariable("_BAR", absl::StrCat("bar-", hname, desc));
+      s_hlp.insert_customvariable("_REC", "$SERVICEDESC$@$_HOSTREC1$");
     }
     services[0].set_display_name("Service One");
     services[0].set_notes("notes of h1/s");
@@ -478,7 +487,19 @@ class MacroGolden : public TestEngine {
                            "$HOSTNAME $",
                            "$:h2$",
                            "$$$HOSTNAME$$$",
-                           "$ARG3$ $USER3$"};
+                           "$ARG3$ $USER3$",
+                           "{{$HOSTNAME$}}",
+                           "a{{$HOSTNAME$}}b{{$NOPE$}}c",
+                           "{{$HOSTNAME$",
+                           "{{$HOSTNAME$}",
+                           "$NOPE$",
+                           "$_HOSTREC1$",
+                           "$_HOSTREC2$",
+                           "$_HOSTREC3$",
+                           "$_HOSTQUOTED$",
+                           "$_HOSTUNKNOWN$",
+                           "$_SERVICEREC$",
+                           "{{$_HOSTREC1$}}"};
     for (const char* l : lines)
       for (ctx c : contexts)
         retval.push_back(_record(c, 0, l));

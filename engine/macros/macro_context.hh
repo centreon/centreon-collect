@@ -86,6 +86,11 @@ class macro_context {
   std::optional<std::array<uint32_t, MACRO_SUMMARY_COUNT>> summary;
   /* Cache of the $TOTALHOSTSERVICES*$ macros of host_ptr. */
   std::optional<std::array<uint32_t, MACRO_HOST_SERVICES_COUNT>> host_services;
+
+  /* How many custom macro values are being expanded one in another (see
+   * MAX_CUSTOM_MACRO_RECURSION_DEPTH). Above 0, a $X$ that cannot be resolved
+   * is kept as is: the value of a custom macro may hold a '$' for itself. */
+  int custom_macro_depth = 0;
 };
 
 }  // namespace com::centreon::engine
