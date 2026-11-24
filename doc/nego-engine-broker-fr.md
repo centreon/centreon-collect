@@ -5552,6 +5552,46 @@ est posé : un export de configuration reprend la main sur ce qui n'a pas été 
 bascule survit sur le reste, exactement ce que l'applier de rétention faisait avec son masque.
 Test unitaire : `AdaptiveOverrideSurvivesRebuild`.
 
+*Lot 3, fait le 2026-10-06 : le masque en base et sa restauration.* Les tables `hosts` et
+`services` ont depuis toujours une colonne `modified_attributes` que personne n'écrivait. Sur
+un événement adaptatif, unified_sql y pose maintenant le bit de chaque attribut présent, avec
+l'attribut lui-même, et ceci quel que soit le mode d'écriture de la sortie : `resources` n'a
+ni le masque ni la plupart des attributs, `hosts`/`services` sont donc la seule mémoire des
+overrides, même pour une sortie qui n'écrit que `resources`. Le masque ne fait que croître
+(`modified_attributes | bit`), comme chez Engine. La règle de `notify` et
+`notification_period` est celle du cache. Au démarrage, le module référence, après avoir
+reposé l'état de check depuis sa source, lit `hosts` et `services` `WHERE
+modified_attributes<>0` et reporte sur l'entrée du cache le masque et les attributs qu'il
+protège, par `copy_host_overrides` et `copy_service_overrides`, la part de `copy_*_runtime`
+qui ne concerne que les overrides. Un cache qui porte déjà un masque sur l'entrée n'est pas
+écrasé : vivant, il sait mieux que la base. Tests : `BEEXTBRK_ADAPTIVE` vérifie le bit en base
+après la bascule et après son retour, `BEEXTBRK_ADAPTIVE_RESTART` redémarre Broker et attend
+« overrides of 1 hosts and 1 services restored » ; unitaire `OverridesRestoredFromReference`.
+Le snapshot ne redescend pas encore ces overrides à Engine : c'est le lot 4.
+
+*Lot 4, fait le 2026-10-06 : les overrides dans le snapshot.* `HostRuntime` et
+`ServiceRuntime` gagnent un sous-message `RuntimeOverrides`, commun aux deux, qui porte
+`modified_attributes` et les attributs qu'il protège (`notify`, `active_checks`,
+`passive_checks`, `event_handler_enabled`, `flap_detection`, `obsess_over`, `check_interval`,
+`retry_interval`, `max_check_attempts`, `check_freshness`, `check_period`,
+`notification_period`). Sa présence dit tout : pas de sous-message, pas d'override. La
+commande de check et l'event handler n'en font pas partie : les commandes externes
+`CHANGE_*_CHECK_COMMAND` et `CHANGE_*_EVENT_HANDLER` sont désactivées dans Engine (« SECURITY
+PATCH » de `cmd_change_object_char_var`), leurs bits `MOD_CHECK_COMMAND` et
+`MOD_EVENT_HANDLER_COMMAND` ne sont donc jamais posés, ni par le cache, ni par unified_sql. `fill_runtime_state` ne remplit un attribut que si son bit est posé, et une
+ressource entre dans le snapshot dès qu'elle a un état de check **ou** un masque : un hôte
+basculé avant son premier check revient avec `checked=false` et ses overrides. Côté Engine,
+`applier::runtime_state::apply` n'applique l'état de check que si `checked` est vrai, puis les
+overrides sous masque comme l'applier de rétention : une période qui n'existe plus fait tomber
+son bit, `DISABLE_*_CHECK` retire aussi le
+`should_be_scheduled`, et `modified_attributes` est posé sur l'objet, ce que `GetHost` /
+`GetService` exposent. Le log de configuration dit « N resources with overridden attributes ».
+Test : `BEEXTBRK_ADAPTIVE_RESTART` redémarre Broker puis Engine sans `retention.dat`, et lit
+par gRPC que `host_1` et `service_1` ont toujours leurs checks actifs désactivés avec le bit 2,
+et que `host_1` garde sa période de check `workhours` avec le bit 16384.
+Unitaire : `FillRuntimeState`. Les variables custom et la sensibilité des anomalydetection
+restent hors périmètre.
+
 **Étape 4 — Engine.** En configuration centralisée, Engine cesse de lire `retention.dat` dès
 qu'un snapshot arrive, et continue de l'écrire en filet jusqu'à validation. Le scheduling et
 les flags du bloc program ne sont pas repris. Le sort des compteurs `next_*_id` reste à décider.
