@@ -178,8 +178,8 @@ class notifier : public checkable {
   void set_is_being_freshened(bool freshened) noexcept;
   std::list<escalation*>& get_escalations() noexcept;
   std::list<escalation*> const& get_escalations() const noexcept;
-  virtual bool is_valid_escalation_for_notification(escalation const* e,
-                                                    int options) const = 0;
+  virtual bool is_valid_escalation_for_notification(
+      escalation const* e) const = 0;
   void add_modified_attributes(uint32_t attr) noexcept;
   uint32_t get_modified_attributes() const noexcept;
   void set_modified_attributes(uint32_t modified_attributes) noexcept;

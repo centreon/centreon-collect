@@ -293,7 +293,7 @@ grpc::Status custom_tail(const fields& f, size_t i, Req* req) {
   uint32_t options = 0;
   if (auto s = integer(f, i, "options", &options); !s.ok())
     return s;
-  req->set_broadcast(options & 1);
+  /* Bit 1 (broadcast) has no effect and is ignored. */
   req->set_forced(options & 2);
   req->set_increment(options & 4);
   std::string v;
