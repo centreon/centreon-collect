@@ -26,6 +26,7 @@ class broker_stream : public stream {
 
  protected:
   void _send_diff_state_for_poller(uint64_t poller_id);
+  void _add_runtime_state(com::centreon::engine::configuration::DiffState& diff);
   void _handle_bbdo_event(const std::shared_ptr<io::data>& d) override;
 
  public:

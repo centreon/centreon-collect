@@ -40,6 +40,28 @@ uint32_t broker_stream::stop() {
  *
  * @param poller_id The ID of the poller for which to send the DiffState.
  */
+/**
+ * @brief Add the runtime snapshot of the poller's resources to a DiffState
+ * about to be sent to it: what replaces retention.dat at the poller's startup
+ * in centralized configuration. Engine applies it once the objects of the
+ * diff exist. Nothing is added when this Broker holds no poller configuration
+ * (relay) -- its cache knows no resource to describe.
+ *
+ * @param diff The DiffState, whose poller_id says which poller.
+ */
+void broker_stream::_add_runtime_state(
+    com::centreon::engine::configuration::DiffState& diff) {
+  if (!_state.supports_centralized_conf() || diff.unknown())
+    return;
+  _state.cache().fill_runtime_state(diff.poller_id(),
+                                    diff.mutable_runtime_state());
+  SPDLOG_LOGGER_INFO(_logger,
+                     "BBDO: runtime state of {} hosts and {} services added to "
+                     "the DiffState of poller {}",
+                     diff.runtime_state().hosts_size(),
+                     diff.runtime_state().services_size(), diff.poller_id());
+}
+
 void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
   auto pb_conf = std::make_shared<pb_diff_state>();
   auto& obj = pb_conf->mut_obj();
@@ -49,6 +71,7 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
   if (f) {
     obj.ParseFromIstream(&f);
     f.close();
+    _add_runtime_state(obj);
     SPDLOG_LOGGER_INFO(_logger,
                        "BBDO: sending DiffState to poller {} (unknown={})",
                        poller_id, obj.unknown());
@@ -316,6 +339,7 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
               engine_id);
           auto diff_state = std::make_shared<pb_diff_state>();
           diff_state->mut_obj().set_poller_id(static_cast<uint32_t>(engine_id));
+          _add_runtime_state(diff_state->mut_obj());
           _write(diff_state);
           _state.set_poller_conf_sent(static_cast<uint32_t>(engine_id));
           break;
