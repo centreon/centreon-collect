@@ -32,6 +32,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     engine_conf/expand_conf.cc
     engine_conf/resolve_conf.cc
     engine_conf/indexed_diff_state.cc
+    engine_conf/indexed_state.cc
     file_system_test.cc
     file_watcher_test.cc
     fork_test.cc

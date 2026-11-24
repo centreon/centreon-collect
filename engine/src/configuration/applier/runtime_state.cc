@@ -35,8 +35,9 @@ bool broker_owns_notifications() {
 
 /**
  * @brief The fields of the snapshot a host and a service share, set the same
- * way: the check result and, when Engine owns them, the acknowledgement, the
- * downtime depth and the notification counters.
+ * way: the check result and, when Engine owns them, the acknowledgement and
+ * the notification counters. The downtime depth is not in the snapshot: Engine
+ * derives it from the downtimes as they start.
  *
  * @tparam Runtime The snapshot entry type (HostRuntime or ServiceRuntime).
  * @tparam Message The Engine object type (host or service).
@@ -71,7 +72,6 @@ void apply_common(const Runtime& r, Message& obj, State state, State hard) {
   obj.set_current_attempt(r.check_attempt());
   if (!broker_owns_notifications()) {
     obj.set_acknowledgement(static_cast<AckType>(r.acknowledgement_type()));
-    obj.set_scheduled_downtime_depth(r.scheduled_downtime_depth());
     obj.set_notification_number(r.notification_number());
     obj.set_no_more_notifications(r.no_more_notifications());
     obj.set_last_notification(r.last_notification());

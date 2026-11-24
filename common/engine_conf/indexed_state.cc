@@ -17,7 +17,10 @@
  *
  */
 #include "common/engine_conf/indexed_state.hh"
+#include <google/protobuf/io/coded_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/util/message_differencer.h>
+#include <google/protobuf/wire_format_lite.h>
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/hostescalation_helper.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
@@ -729,12 +732,73 @@ void indexed_state::diff_with_new_config(
   SET_IF_CHANGED(config_version);
 }
 
-void indexed_state::serialize_to_ostream(std::ostream* os) {
-  std::unique_ptr<State> state(release());
-  if (state) {
-    state->SerializeToOstream(os);
-    set_state(std::move(state));
+namespace {
+/**
+ * @brief Write each object of an index as one more entry of the repeated
+ * field field_number of State.
+ *
+ * @param items The index whose objects are written.
+ * @param field_number The number of the repeated field in State.
+ * @param out The stream to write to.
+ */
+template <typename Index>
+void serialize_index(const Index& items,
+                     int field_number,
+                     google::protobuf::io::CodedOutputStream* out) {
+  using google::protobuf::internal::WireFormatLite;
+  for (const auto& [_, item] : items) {
+    /* WireFormatLite::WriteMessage() would write the cached size of the item,
+     * which is only known once ByteSizeLong() has been called: it would be 0
+     * for an item never serialized. */
+    WireFormatLite::WriteTag(field_number,
+                             WireFormatLite::WIRETYPE_LENGTH_DELIMITED, out);
+    out->WriteVarint32(static_cast<uint32_t>(item->ByteSizeLong()));
+    item->SerializeWithCachedSizes(out);
   }
+}
+}  // namespace
+
+/**
+ * @brief Serialize the State with all its indexed objects, as release() would
+ * give it, without touching the indexed_state.
+ *
+ * The indexed objects are not in the containers of _state, so _state is
+ * serialized first and each indexed object is then appended as an entry of its
+ * repeated field: protobuf concatenates the entries of a repeated field met
+ * several times, and the parsed State is the same.
+ *
+ * Nothing is moved: this object is shared by every thread of Engine (the
+ * broker log sink reads it on each log line), it must stay readable while the
+ * state is written to disk.
+ *
+ * @param os The stream to write to.
+ */
+void indexed_state::serialize_to_ostream(std::ostream* os) const {
+  if (!_state)
+    return;
+  google::protobuf::io::OstreamOutputStream zero_copy(os);
+  google::protobuf::io::CodedOutputStream out(&zero_copy);
+  _state->SerializeToCodedStream(&out);
+  serialize_index(_timeperiods, State::kTimeperiodsFieldNumber, &out);
+  serialize_index(_commands, State::kCommandsFieldNumber, &out);
+  serialize_index(_connectors, State::kConnectorsFieldNumber, &out);
+  serialize_index(_severities, State::kSeveritiesFieldNumber, &out);
+  serialize_index(_tags, State::kTagsFieldNumber, &out);
+  serialize_index(_contacts, State::kContactsFieldNumber, &out);
+  serialize_index(_contactgroups, State::kContactgroupsFieldNumber, &out);
+  serialize_index(_hosts, State::kHostsFieldNumber, &out);
+  serialize_index(_hostgroups, State::kHostgroupsFieldNumber, &out);
+  serialize_index(_services, State::kServicesFieldNumber, &out);
+  serialize_index(_anomalydetections, State::kAnomalydetectionsFieldNumber,
+                  &out);
+  serialize_index(_servicegroups, State::kServicegroupsFieldNumber, &out);
+  serialize_index(_hostdependencies, State::kHostdependenciesFieldNumber,
+                  &out);
+  serialize_index(_servicedependencies, State::kServicedependenciesFieldNumber,
+                  &out);
+  serialize_index(_hostescalations, State::kHostescalationsFieldNumber, &out);
+  serialize_index(_serviceescalations, State::kServiceescalationsFieldNumber,
+                  &out);
 }
 
 }  // namespace com::centreon::engine::configuration
