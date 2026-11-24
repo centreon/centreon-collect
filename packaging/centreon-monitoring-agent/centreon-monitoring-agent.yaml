@@ -69,6 +69,8 @@ scripts:
 
 rpm:
   summary: Centreon Collect Agent. It can be used to execute plugins remotely
+  scripts:
+    posttrans: ./scripts/centreon-monitoring-agent-posttrans.sh
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
