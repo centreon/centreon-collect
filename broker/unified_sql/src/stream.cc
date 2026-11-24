@@ -1673,10 +1673,35 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
           fmt::format("DELETE FROM resources WHERE poller_id={}", id),
           database::mysql_error::delete_poller, 0);
       _cache_deleted_instance_id.insert(id);
+      _forget_poller_hosts(id);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(
         _logger_sql, "Error encountered while removing a poller: {}", e.what());
+  }
+}
+
+/**
+ * @brief Forget the hosts of a removed poller in the caches of the stream:
+ * the poller of each host, and the command checksums of these hosts and of
+ * their services. Otherwise _host_instance_known() would still find these
+ * hosts, and their statuses, still queued on a poller, would be written
+ * instead of being thrown away.
+ *
+ * @param instance_id The removed poller.
+ */
+void stream::_forget_poller_hosts(uint64_t instance_id) {
+  for (auto it = _cache_host_instance.begin();
+       it != _cache_host_instance.end();) {
+    if (it->second == instance_id) {
+      const uint64_t host_id = it->first;
+      _cache_hst_cmd.erase(host_id);
+      absl::erase_if(_cache_svc_cmd, [host_id](const auto& svc) {
+        return svc.first.first == host_id;
+      });
+      it = _cache_host_instance.erase(it);
+    } else
+      ++it;
   }
 }
 
