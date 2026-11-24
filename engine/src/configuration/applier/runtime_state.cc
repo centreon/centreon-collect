@@ -58,8 +58,11 @@ void apply_common(const Runtime& r, Message& obj, State state, State hard) {
   obj.set_last_state_change(r.last_state_change());
   obj.set_last_hard_state(hard);
   obj.set_last_hard_state_change(r.last_hard_state_change());
-  /* The check output is not part of the snapshot: the macros reading it are
-   * to be reworked to do without. */
+  /* Only the output is carried, for the $HOSTOUTPUT$/$SERVICEOUTPUT$ macros
+   * of a command run before the first check; the long output is not. An empty
+   * one must not erase what a check may have set. */
+  if (!r.output().empty())
+    obj.set_plugin_output(r.output());
   /* Broker fills the perfdata only for the services an anomalydetection
    * depends on; an empty one must not erase what a check may have set. */
   if (!r.perfdata().empty())

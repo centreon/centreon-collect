@@ -2216,6 +2216,7 @@ void broker_cache::fill_runtime_state(
       r->set_last_time_up(h.last_time_up());
       r->set_last_time_down(h.last_time_down());
       r->set_last_time_unreachable(h.last_time_unreachable());
+      r->set_output(h.output());
       r->set_flapping(h.flapping());
       r->set_percent_state_change(h.percent_state_change());
       r->set_latency(h.latency());
@@ -2257,6 +2258,7 @@ void broker_cache::fill_runtime_state(
       r->set_last_time_warning(s.last_time_warning());
       r->set_last_time_critical(s.last_time_critical());
       r->set_last_time_unknown(s.last_time_unknown());
+      r->set_output(s.output());
       if (_anomaly_detection_index.contains(
               std::make_pair(s.host_id(), s.service_id())))
         r->set_perfdata(s.perfdata());
@@ -2295,7 +2297,7 @@ bool broker_cache::restore_host_overrides(
     const std::function<void(Host&)>& set) {
   if (!section_enabled(CACHE_HOSTS))
     return false;
-  absl::WriterMutexLock l{&_mutex};
+  absl::WriterMutexLock l{_mutex};
   auto& index = _hosts.get<by_id>();
   auto found = index.find(host_id);
   if (found == index.end() || (*found)->obj().modified_attributes() != 0)
@@ -2321,7 +2323,7 @@ bool broker_cache::restore_service_overrides(
     const std::function<void(Service&)>& set) {
   if (!section_enabled(CACHE_SERVICES))
     return false;
-  absl::WriterMutexLock l{&_mutex};
+  absl::WriterMutexLock l{_mutex};
   auto& index = _services.get<by_id>();
   auto found = index.find(std::make_pair(host_id, service_id));
   if (found == index.end() || (*found)->obj().modified_attributes() != 0)
