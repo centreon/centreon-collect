@@ -4259,11 +4259,7 @@ de maintenance.
 **En mode legacy**, Engine continue de gérer les downtimes, les acquittements et les
 notifications exactement comme il l'a toujours fait. Aucun changement.
 
-**En mode configuration centralisée** (BBDO3), le paramètre `notification_mode` dans la
-configuration de Broker contrôle qui gère les notifications, downtimes et acquittements.
-Broker active ou désactive sa gestion des downtimes en conséquence ; PHP s'adapte en envoyant
-les commandes soit à Broker (via `BrokerRpc`), soit à Engine (via le pipe de commandes).
-Engine n'est jamais informé de ce paramètre.
+**En mode configuration centralisée** (BBDO3), le paramètre `notification_mode` dans la configuration de `Broker` contrôle qui gère les notifications, downtimes et acquittements. `Broker` active ou désactive sa gestion des downtimes en conséquence ; PHP s'adapte en envoyant les commandes soit à `Broker` (via `BrokerRpc`), soit à `Engine` (via le pipe de commandes). `Engine` ne lit pas ce paramètre : il apprend à la négociation, par le champ `broker_handles_notifications` du `Welcome`, que `Broker` a la main, et cesse alors de décider seul (voir [Coupure de la décision côté Engine](#coupure-de-la-décision-côté-engine)).
 
 - `notification_mode = engine` **(défaut)** : Engine gère tout exactement comme en mode legacy.
   PHP continue d'envoyer les commandes de downtime et d'acquittement à Engine via le pipe de
