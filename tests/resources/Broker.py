@@ -5247,8 +5247,7 @@ def ctn_broker_set_service_notification_number(hostname: str, service_desc: str,
 
 
 def ctn_broker_send_custom_host_notification(hostname: str, author: str, comment: str,
-                                             forced: bool = False, increment: bool = False,
-                                             port: int = 51001):
+                                             forced: bool = False, port: int = 51001):
     """
     Send a custom notification on a host via the Broker gRPC
     SendCustomHostNotification endpoint. Requires notification_mode = broker.
@@ -5258,7 +5257,6 @@ def ctn_broker_send_custom_host_notification(hostname: str, author: str, comment
         author: The notification author.
         comment: The notification comment.
         forced: Bypass the enabled switches and periods.
-        increment: Count it in the notification number.
         port: The Broker gRPC port (default 51001).
 
     *Example:*
@@ -5272,13 +5270,12 @@ def ctn_broker_send_custom_host_notification(hostname: str, author: str, comment
         req.author = author
         req.comment = comment
         req.forced = bool(forced)
-        req.increment = bool(increment)
         stub.SendCustomHostNotification(req, timeout=GRPC_TIMEOUT)
 
 
 def ctn_broker_send_custom_service_notification(hostname: str, service_desc: str, author: str,
                                                 comment: str, forced: bool = False,
-                                                increment: bool = False, port: int = 51001):
+                                                port: int = 51001):
     """
     Send a custom notification on a service via the Broker gRPC
     SendCustomServiceNotification endpoint. Requires notification_mode = broker.
@@ -5289,7 +5286,6 @@ def ctn_broker_send_custom_service_notification(hostname: str, service_desc: str
         author: The notification author.
         comment: The notification comment.
         forced: Bypass the enabled switches and periods.
-        increment: Count it in the notification number.
         port: The Broker gRPC port (default 51001).
 
     *Example:*
@@ -5304,7 +5300,6 @@ def ctn_broker_send_custom_service_notification(hostname: str, service_desc: str
         req.author = author
         req.comment = comment
         req.forced = bool(forced)
-        req.increment = bool(increment)
         stub.SendCustomServiceNotification(req, timeout=GRPC_TIMEOUT)
 
 
