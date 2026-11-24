@@ -18,12 +18,12 @@
  */
 
 #include <gtest/gtest.h>
-#include "com/centreon/engine/globals.hh"
 
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
+#include "com/centreon/engine/servicegroup.hh"
 #include "common/engine_conf/message_helper.hh"
 #include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"

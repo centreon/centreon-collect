@@ -922,7 +922,7 @@ TEST_F(BrokerNotificationDeliverTest, AcknowledgementClosingRule) {
 
 /**
  * @brief After a restart the cached resources are rebuilt with type NONE while
- * the acknowledgements survive: reinject_pending_acknowledgements() restores
+ * the acknowledgements survive: reinject_pending() restores
  * the flag on them (broker mode only).
  */
 TEST_F(BrokerNotificationDeliverTest, ReinjectPendingAcknowledgements) {
@@ -938,7 +938,7 @@ TEST_F(BrokerNotificationDeliverTest, ReinjectPendingAcknowledgements) {
   _cache->update_acknowledgement(ack);
   ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(), AckType::NONE);
 
-  _cache->reinject_pending_acknowledgements();
+  _cache->reinject_pending();
   ASSERT_EQ(_cache->service(1, 5)->obj().acknowledgement_type(),
             AckType::NORMAL);
   ASSERT_TRUE(_cb->get_state(1, 5).acknowledged);
@@ -981,7 +981,7 @@ TEST_F(BrokerNotificationDeliverTest, NotifyOverrideSurvivesDefinition) {
 }
 
 /**
- * @brief reinject_pending_notification_overrides() puts the persisted switch
+ * @brief reinject_pending() puts the persisted switch
  * back on resources rebuilt with the configured value (merge, restart).
  */
 TEST_F(BrokerNotificationDeliverTest, ReinjectNotificationOverrides) {
@@ -1000,7 +1000,7 @@ TEST_F(BrokerNotificationDeliverTest, ReinjectNotificationOverrides) {
   /* A merge rebuilds the host from the configuration (notify seeded true). */
   _cache->merge(st);
   ASSERT_TRUE(_cache->host(1)->obj().notify());
-  _cache->reinject_pending_notification_overrides();
+  _cache->reinject_pending();
   ASSERT_FALSE(_cache->host(1)->obj().notify());
 }
 
@@ -1062,7 +1062,7 @@ TEST_F(BrokerNotificationDeliverTest,
    * the period back. */
   _cache->merge(st);
   ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "24x7");
-  _cache->reinject_pending_notification_overrides();
+  _cache->reinject_pending();
   ASSERT_EQ(_cache->service(1, 5)->obj().notification_period(), "workhours");
 
   /* Unknown resource. */

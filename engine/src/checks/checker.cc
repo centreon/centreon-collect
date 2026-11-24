@@ -25,11 +25,11 @@
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
+#include "engine/macros/macro_context.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::checks;
@@ -404,11 +404,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   timeval end_time{0, 0};
 
   // Get current host macros.
-  nagios_macros* macros(get_global_macros());
-  grab_host_macros_r(macros, hst);
-  std::string tmp;
-  get_raw_command_line_r(macros, hst->get_check_command_ptr(),
-                         hst->check_command().c_str(), tmp, 0);
+  macro_context macros;
+  macros.set_host(hst);
+  macros.set_arguments(hst->check_command(), 0);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -463,7 +461,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   } else {
     // Run command.
     try {
-      cmd->run(processed_cmd, *macros,
+      cmd->run(processed_cmd, macros,
                pb_indexed_config.state().host_check_timeout(), res);
     } catch (std::exception const& e) {
       run_failure("(Execute command failed)");
@@ -486,9 +484,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   memset(&end_cmd, 0, sizeof(end_time));
   end_cmd.tv_sec = res.end_time.to_seconds();
   end_cmd.tv_usec = res.end_time.to_useconds() - end_cmd.tv_sec * 1000000ull;
-
-  // Cleanup.
-  clear_volatile_macros_r(macros);
 
   // If the command timed out.
   uint32_t host_check_timeout = pb_indexed_config.state().host_check_timeout();

@@ -17,13 +17,14 @@
  *
  */
 #include <gtest/gtest.h>
-#include <com/centreon/engine/macros.hh>
+#include "engine/macros/macro_context.hh"
 
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
+#include "com/centreon/engine/host.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -73,6 +74,27 @@ TEST_F(ApplierPbCommand, PbNewCommandFromConfig) {
   ASSERT_EQ(found->second->get_name(), "cmd");
   ASSERT_EQ(found->second->get_command_line(), "echo 1");
 }
+
+// Given a command "cmd"
+// Then find_command() finds it from a specification "cmd!arg1!arg2", and
+// returns nullptr for an unknown name
+TEST_F(ApplierPbCommand, PbFindCommandFromSpecification) {
+  configuration::applier::command aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo $ARG1$");
+  aply.add_object(cmd);
+
+  commands::command* found = commands::command::find_command("cmd");
+  ASSERT_NE(found, nullptr);
+  ASSERT_EQ(found->get_name(), "cmd");
+  ASSERT_EQ(commands::command::find_command("cmd!a!b"), found);
+  ASSERT_EQ(commands::command::find_command("cmd!"), found);
+  ASSERT_EQ(commands::command::find_command("unknown!cmd"), nullptr);
+  ASSERT_EQ(commands::command::find_command(""), nullptr);
+}
+
 // Given a command applier
 // And a configuration command with a name, a command line and a connector
 // Then the applier add_object adds the command into the configuration set
@@ -96,7 +118,6 @@ TEST_F(ApplierPbCommand, PbNewCommandWithEmptyConnectorFromConfig) {
 // Then the applier add_object adds the command into the configuration set
 // but not in the commands map (the connector is not defined).
 TEST_F(ApplierPbCommand, PbNewCommandWithConnectorFromConfig) {
-  configuration::error_cnt err;
   configuration::applier::command aply;
   configuration::applier::connector cnn_aply;
   configuration::Command cmd;
@@ -124,7 +145,6 @@ TEST_F(ApplierPbCommand, PbNewCommandWithConnectorFromConfig) {
 // Then the applier add_object adds the command into the configuration set
 // but not in the commands map (the connector is not defined).
 TEST_F(ApplierPbCommand, PbNewCommandAndConnectorWithSameName) {
-  configuration::error_cnt err;
   configuration::applier::command aply;
   configuration::applier::connector cnn_aply;
   configuration::Command cmd;
@@ -278,8 +298,8 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
   // hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
-  nagios_macros* macros(get_global_macros());
-  grab_host_macros_r(macros, hst_found->second.get());
+  macro_context macros;
+  macros.set_host(hst_found->second.get());
   std::string processed_cmd(
       hst_found->second->get_check_command_ptr()->process_cmd(macros));
   ASSERT_EQ(processed_cmd,
@@ -346,8 +366,8 @@ TEST_F(ApplierPbCommand, PbComplexCommandWithContact) {
   // hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
-  nagios_macros* macros(get_global_macros());
-  grab_host_macros_r(macros, hst_found->second.get());
+  macro_context macros;
+  macros.set_host(hst_found->second.get());
   std::string processed_cmd(
       hst_found->second->get_check_command_ptr()->process_cmd(macros));
   ASSERT_EQ(processed_cmd,

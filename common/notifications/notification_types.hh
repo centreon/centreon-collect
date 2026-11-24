@@ -40,6 +40,7 @@ enum status_attribute {
   NEXT_CHECK = 1 << 3,
   SHOULD_BE_SCHEDULED = 1 << 4,
   STATUS_FLAPPING = 1 << 5,
+  STATUS_NOTIFICATION_ID = 1 << 6,
   STATUS_ALL = ~0u,
 };
 
@@ -92,9 +93,7 @@ enum reason_type {
 
 enum notification_option {
   notification_option_none = 0,
-  notification_option_broadcast = 1,
   notification_option_forced = 2,
-  notification_option_increment = 4,
 };
 
 /**

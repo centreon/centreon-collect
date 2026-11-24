@@ -20,7 +20,8 @@
 #ifndef CCE_COMPATIBILITY_MACROS_H
 #define CCE_COMPATIBILITY_MACROS_H
 
-#include "com/centreon/engine/macros.hh"
+#include "engine/macros/process.hh"
+#include "engine/macros/resolve.hh"
 #include "common.h"
 #include "config.h"
 #include "objects.h"

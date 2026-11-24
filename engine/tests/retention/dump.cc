@@ -21,6 +21,10 @@
 #include <gtest/gtest.h>
 
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/retention/applier/program.hh"
+#include "com/centreon/engine/retention/program.hh"
+#include "common/notifications/notification_manager.hh"
 #include "helper.hh"
 
 using namespace com::centreon::engine;
@@ -126,4 +130,45 @@ TEST_F(RetentionDumpTest, DumpService) {
   dump::services(oss);
   std::string str(oss.str());
   ASSERT_EQ(str, "");
+}
+
+/* The next notification id is the one of the notification manager: read from
+ * the retention, it is the one the next notification gets and the one dumped
+ * back. */
+TEST_F(RetentionDumpTest, NextNotificationIdFromRetention) {
+  auto& nm =
+      com::centreon::common::notifications::notification_manager::instance();
+  retention::program obj;
+  obj.set("next_notification_id", "42");
+  retention::applier::program app;
+  app.apply(pb_indexed_config.mut_state(), obj);
+  ASSERT_EQ(nm.get_next_notification_id(), 42u);
+
+  std::ostringstream oss;
+  dump::program(oss);
+  ASSERT_NE(oss.str().find("\nnext_notification_id=42\n"), std::string::npos);
+
+  ASSERT_EQ(nm.next_notification_id(), 42u);
+  ASSERT_EQ(nm.get_next_notification_id(), 43u);
+}
+
+/* A retention file written before the counter was saved holds a stale value:
+ * the generator never goes back. */
+TEST_F(RetentionDumpTest, NextNotificationIdNeverGoesBack) {
+  auto& nm =
+      com::centreon::common::notifications::notification_manager::instance();
+  nm.set_next_notification_id(42);
+  nm.set_next_notification_id(5);
+  ASSERT_EQ(nm.get_next_notification_id(), 42u);
+}
+
+/* The current notification id of a resource restored from the retention keeps
+ * the generator ahead of it. */
+TEST_F(RetentionDumpTest, NextNotificationIdAheadOfRestoredCurrentId) {
+  auto& nm =
+      com::centreon::common::notifications::notification_manager::instance();
+  nm.set_current_notification_id(1, 2, 100);
+  ASSERT_EQ(nm.get_next_notification_id(), 101u);
+  nm.set_current_notification_id(1, 3, 50);
+  ASSERT_EQ(nm.get_next_notification_id(), 101u);
 }

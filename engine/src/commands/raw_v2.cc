@@ -17,11 +17,13 @@
  */
 
 #include "com/centreon/engine/commands/raw_v2.hh"
-#include "com/centreon/common/process/process.hh"
 #include "com/centreon/engine/commands/environment.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "engine/macros/process.hh"
+#include "engine/macros/resolve.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 using namespace com::centreon::common;
@@ -66,11 +68,11 @@ raw_v2::~raw_v2() {
 }
 
 static void _build_argv_macro_environment(
-    nagios_macros const& macros,
+    const macro_context& macros,
     boost::process::v2::process_environment& env) {
   for (uint32_t i(0); i < MAX_COMMAND_ARGUMENTS; ++i) {
     env.env_buffer.emplace_back(
-        fmt::format(MACRO_ENV_VAR_PREFIX "ARG{}", i + 1), macros.argv[i]);
+        fmt::format(MACRO_ENV_VAR_PREFIX "ARG{}={}", i + 1, macros.argv[i]));
   }
 }
 
@@ -81,156 +83,81 @@ static void _build_argv_macro_environment(
  *  @param[out] env     The environment to fill.
  */
 static void _build_contact_address_environment(
-    nagios_macros const& macros,
+    const macro_context& macros,
     boost::process::v2::process_environment& env) {
   if (!macros.contact_ptr)
     return;
   std::vector<std::string> const& address(macros.contact_ptr->get_addresses());
   for (uint32_t i(0); i < address.size(); ++i) {
     env.env_buffer.emplace_back(
-        fmt::format(MACRO_ENV_VAR_PREFIX "CONTACTADDRESS{}", i), address[i]);
+        fmt::format(MACRO_ENV_VAR_PREFIX "CONTACTADDRESS{}={}", i, address[i]));
   }
 }
 
 /**
- *  Build custom contact macro environment variables.
+ *  Build the environment variables of custom variables.
  *
- *  @param[in,out] macros  The macros data struct.
- *  @param[out]    env     The environment to fill.
+ *  @param[in]  prefix The prefix of the macro names ("_HOST"...).
+ *  @param[in]  vars   The custom variables.
+ *  @param[out] env    The environment to fill.
  */
-static void _build_custom_contact_macro_environment(
-    nagios_macros& macros,
+static void _build_custom_macro_environment(
+    std::string_view prefix,
+    const map_customvar& vars,
     boost::process::v2::process_environment& env) {
-  // Build custom contact variable.
-  contact* cntct(macros.contact_ptr);
-  if (cntct) {
-    std::string name;
-    for (auto const& cv : cntct->get_custom_variables()) {
-      if (!cv.first.empty()) {
-        name = "_CONTACT";
-        name.append(cv.first);
-        macros.custom_contact_vars[name] = cv.second;
-      }
-    }
-  }
-  std::string key;
-  // Set custom contact variable into the environement
-  for (auto const& cv : macros.custom_contact_vars) {
-    if (!cv.first.empty()) {
-      std::string value(clean_macro_chars(
-          cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      key = MACRO_ENV_VAR_PREFIX;
-      key.append(cv.first);
-      env.env_buffer.emplace_back(key, value);
+  for (auto& [name, var] : vars) {
+    if (!name.empty()) {
+      std::string value(var.value());
+      macros::strip_illegal_macro_chars(value);
+      env.env_buffer.emplace_back(
+          fmt::format(MACRO_ENV_VAR_PREFIX "{}{}={}", prefix, name, value));
     }
   }
 }
 
 /**
- *  Build custom host macro environment variables.
+ *  Build custom contact, host and service macro environment variables.
  *
- *  @param[in,out] macros  The macros data struct.
- *  @param[out]    env     The environment to fill.
+ *  @param[in]  macros  The macros data struct.
+ *  @param[out] env     The environment to fill.
  */
-static void _build_custom_host_macro_environment(
-    nagios_macros& macros,
+static void _build_custom_macros_environment(
+    const macro_context& macros,
     boost::process::v2::process_environment& env) {
-  // Build custom host variable.
-  host* hst(macros.host_ptr);
-  if (hst) {
-    std::string name;
-    for (auto const& cv : hst->custom_variables) {
-      if (!cv.first.empty()) {
-        name = "_HOST";
-        name.append(cv.first);
-        macros.custom_host_vars[name] = cv.second;
-      }
-    }
-  }
-  std::string key;
-  // Set custom host variable into the environement
-  for (auto const& cv : macros.custom_host_vars) {
-    if (!cv.first.empty()) {
-      std::string value(clean_macro_chars(
-          cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      key = MACRO_ENV_VAR_PREFIX;
-      key.append(cv.first);
-      env.env_buffer.emplace_back(key, value);
-    }
-  }
-}
-
-/**
- *  Build custom service macro environment variables.
- *
- *  @param[in,out] macros  The macros data struct.
- *  @param[out]    env     The environment to fill.
- */
-static void _build_custom_service_macro_environment(
-    nagios_macros& macros,
-    boost::process::v2::process_environment& env) {
-  // Build custom service variable.
-  service* svc(macros.service_ptr);
-  if (svc) {
-    std::string name;
-    for (auto const& cv : svc->custom_variables) {
-      if (!cv.first.empty()) {
-        name = "_SERVICE";
-        name.append(cv.first);
-        macros.custom_service_vars[name] = cv.second;
-      }
-    }
-  }
-  std::string key;
-  // Set custom service variable into the environement
-  for (auto const& cv : macros.custom_service_vars) {
-    if (!cv.first.empty()) {
-      std::string value(clean_macro_chars(
-          cv.second.value(), STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS));
-      std::string key;
-      key = MACRO_ENV_VAR_PREFIX;
-      key.append(cv.first);
-      env.env_buffer.emplace_back(key, value);
-    }
-  }
+  if (macros.host_ptr)
+    _build_custom_macro_environment("_HOST", macros.host_ptr->custom_variables,
+                                    env);
+  if (macros.service_ptr)
+    _build_custom_macro_environment("_SERVICE",
+                                    macros.service_ptr->custom_variables, env);
+  if (macros.contact_ptr)
+    _build_custom_macro_environment(
+        "_CONTACT", macros.contact_ptr->get_custom_variables(), env);
 }
 
 /**
  *  Build macrox environment variables.
  *
- *  @param[in,out] macros  The macros data struct.
+ *  @param[in,out] macros  The macros data struct, where the summary macros
+ *                         are cached.
  *  @param[out]    env     The environment to fill.
  */
 static void _build_macrosx_environment(
-    nagios_macros& macros,
+    macro_context& macros,
     boost::process::v2::process_environment& env) {
   bool use_large_installation_tweaks =
       pb_indexed_config.state().use_large_installation_tweaks();
-  std::string key;
-  for (uint32_t i = 0; i < MACRO_X_COUNT; ++i) {
-    int release_memory(0);
-
-    // Need to grab macros?
-    if (macros.x[i].empty()) {
-      // Skip summary macro in lage instalation tweaks.
-      if (i < MACRO_TOTALHOSTSUP || i > MACRO_TOTALSERVICEPROBLEMSUNHANDLED ||
-          !use_large_installation_tweaks) {
-        grab_macrox_value_r(&macros, i, "", "", macros.x[i], &release_memory);
-      }
+  for (auto& desc : com::centreon::engine::macros::all_descriptors()) {
+    std::string value;
+    /* With the large installation tweaks, the summary macros are not
+     * computed for the environment: they are given only when already
+     * cached. */
+    if (desc.fam != com::centreon::engine::macros::family::summary ||
+        !use_large_installation_tweaks || macros.summary) {
+      value = macros::table_value(macros, desc, "", "").value_or(std::string());
     }
-
-    // Add into the environment.
-    if (!macro_x_names[i].empty()) {
-      std::string line;
-      key = MACRO_ENV_VAR_PREFIX;
-      key.append(macro_x_names[i]);
-      env.env_buffer.emplace_back(key, macros.x[i]);
-    }
-
-    // Release memory if necessary.
-    if (release_memory) {
-      macros.x[i] = "";
-    }
+    env.env_buffer.emplace_back(
+        fmt::format(MACRO_ENV_VAR_PREFIX "{}={}", desc.name, value));
   }
 }
 
@@ -242,16 +169,14 @@ static std::vector<std::pair<std::string, std::string>> _empty_args;
  *  @param[in,out] macros  The macros data struct.
  *  @param[out]    env     The environment to fill.
  */
-void _build_environment_macros(nagios_macros& macros,
+void _build_environment_macros(macro_context& macros,
                                boost::process::v2::process_environment& env) {
   bool enable_environment_macros =
       pb_indexed_config.state().enable_environment_macros();
   if (enable_environment_macros) {
     _build_macrosx_environment(macros, env);
     _build_argv_macro_environment(macros, env);
-    _build_custom_host_macro_environment(macros, env);
-    _build_custom_service_macro_environment(macros, env);
-    _build_custom_contact_macro_environment(macros, env);
+    _build_custom_macros_environment(macros, env);
     _build_contact_address_environment(macros, env);
     env.env = env.build_env(_empty_args);
   }
@@ -300,7 +225,7 @@ com::centreon::common::process_args::pointer raw_v2::_args_from_cmd_line(
  *  @return The command id.
  */
 uint64_t raw_v2::run(const std::string& processed_cmd,
-                     nagios_macros& macros,
+                     macro_context& macros,
                      uint32_t timeout,
                      const check_result::pointer& to_push_to_checker,
                      const notifier* caller) {
@@ -430,7 +355,7 @@ void raw_v2::_on_complete(const common::process<true>& proc,
  *  @param[out] res     The result of the command.
  */
 void raw_v2::run(const std::string& processed_cmd,
-                 nagios_macros& macros,
+                 macro_context& macros,
                  uint32_t timeout,
                  result& res) {
   SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::run: cmd='{}', timeout={}",

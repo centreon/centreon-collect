@@ -21,6 +21,8 @@
  */
 
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/enginerpc.hh"
 
 #include "com/centreon/engine/enginerpc.hh"
 #include "common/log_v2/log_v2.hh"
@@ -66,18 +68,11 @@ char* illegal_object_chars(NULL);
 char* illegal_output_chars(NULL);
 timeperiod_map timeperiods;
 char* log_file(NULL);
-std::string macro_user[MAX_USER_MACROS];   // $USERx$ macros
-std::string macro_x_names[MACRO_X_COUNT];  // The macro names
 char* ochp_command(NULL);
 char* ocsp_command(NULL);
 char* use_timezone(NULL);
 check_stats check_statistics[MAX_CHECK_STATS_TYPES];
 circular_buffer<std::string> external_command_buffer;
-com::centreon::engine::commands::command* global_host_event_handler_ptr(NULL);
-com::centreon::engine::commands::command* global_service_event_handler_ptr(
-    NULL);
-com::centreon::engine::commands::command* ochp_command_ptr(NULL);
-com::centreon::engine::commands::command* ocsp_command_ptr(NULL);
 int additional_freshness_latency(15);
 int sig_id(0);
 bool sighup{false};
@@ -121,7 +116,6 @@ unsigned long cached_host_check_horizon(15);
 unsigned long modified_host_process_attributes(MODATTR_NONE);
 unsigned long modified_service_process_attributes(MODATTR_NONE);
 uint64_t next_event_id(1);
-unsigned long next_notification_id(1);
 uint64_t next_problem_id(1);
 
 std::unique_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;

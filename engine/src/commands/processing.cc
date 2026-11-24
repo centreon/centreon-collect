@@ -24,7 +24,6 @@
 #include <absl/strings/str_split.h>
 #include <absl/strings/strip.h>
 
-#include <string_view>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/commands.hh"
@@ -1058,6 +1057,8 @@ void processing::_wrapper_read_state_information() {
 }
 
 void processing::_wrapper_save_state_information() {
+  /* In centralized configuration, this saves the downtimes file instead of
+   * retention.dat (see retention::dump::save()). */
   retention::dump::save(pb_indexed_config.state().state_retention_file());
 }
 

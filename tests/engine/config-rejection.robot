@@ -173,3 +173,91 @@ ESGRELOAD
     ${running}    Is Process Running    e0
     Should Be True    ${running}    centengine must keep running after a rejected reload
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Save Logs If Failed
+
+ECRPROTOBBDO2
+    [Documentation]    Scenario: centengine refuses to start in centralized configuration with BBDO 2
+    ...    Given an engine configuration with a retention.dat and no state.prot
+    ...    And a cbmod configuration with bbdo_version 2.0.0
+    ...    When centengine is started with -p
+    ...    Then it refuses to start: it explains that -p requires BBDO 3 and exits with a failure code
+    ...    And it has neither renamed retention.dat nor written state.prot
+    [Tags]    engine    config    centralized    retention    MON-187019
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    module
+    Ctn Broker Config Add Item    module0    bbdo_version    2.0.0
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    ${lib}    Set Variable    ${VarRoot}/lib/centreon-engine/config0
+    ${log}    Set Variable    ${ENGINE_LOG}/config0
+    ${retention}    Set Variable    ${log}/retention.dat
+    Create Directory    ${lib}
+    Create Directory    ${log}
+    Remove File    ${retention}.migrated
+    # Any content will do: Engine must stop before reading it.
+    Create File    ${retention}    info {\n}\n
+    Ctn Broker Config Flush    ${False}
+    # "Ctn Start Engine newGeneration=True" forces BBDO 3, hence the direct start.
+    Start Process    /usr/sbin/centengine    -p    ${lib}
+    ...    -b    ${EtcRoot}/centreon-broker/central-module0.json
+    ...    ${EtcRoot}/centreon-engine/config0/centengine.cfg
+    ...    alias=e0    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+    ${res}    Wait For Process    e0    timeout=30s
+    Should Not Be Equal    ${res}    ${None}    centengine must not run with -p and BBDO 2
+    Should Not Be Equal As Integers    ${res.rc}    ${0}    centengine must exit with a failure code
+    Should Contain    ${res.stdout}    requires BBDO 3 or higher
+    ...    centengine should explain that -p requires BBDO 3
+    File Should Exist    ${retention}    retention.dat must be left untouched
+    File Should Not Exist    ${retention}.migrated    retention.dat must not be migrated
+    File Should Not Exist    ${lib}/state.prot    no state.prot must be written
+
+ECRVERIFYBBDO2
+    [Documentation]    Scenario: the configuration check refuses -p with BBDO 2, as the startup does
+    ...    Given an engine configuration
+    ...    And a cbmod configuration with bbdo_version 2.0.0
+    ...    When centengine checks its configuration with -v and -p
+    ...    Then the check fails: it explains that -p requires BBDO 3 and exits with a failure code
+    [Tags]    engine    config    centralized    MON-187019
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    module
+    Ctn Broker Config Add Item    module0    bbdo_version    2.0.0
+    Ctn Clear Prot Files
+    ${lib}    Set Variable    ${VarRoot}/lib/centreon-engine/config0
+    Create Directory    ${lib}
+    Ctn Broker Config Flush    ${False}
+    # stdout goes to a file: a pipe would block centengine if it wrote too much.
+    ${res}    Run Process    /usr/sbin/centengine    -v    -p    ${lib}
+    ...    -b    ${EtcRoot}/centreon-broker/central-module0.json
+    ...    ${EtcRoot}/centreon-engine/config0/centengine.cfg
+    ...    timeout=60s    stdout=${lib}/verify-stdout.log
+    Should Not Be Equal As Integers    ${res.rc}    ${0}    the check must fail with -p and BBDO 2
+    Should Contain    ${res.stdout}    requires BBDO 3 or higher
+    ...    the check should explain that -p requires BBDO 3
+    File Should Not Exist    ${lib}/state.prot    no state.prot must be written
+
+ECRVERIFYSTATEPROT
+    [Documentation]    Scenario: checking a configuration does not replace the state.prot of the running Engine
+    ...    Given an engine configuration and an existing state.prot
+    ...    And a cbmod configuration with bbdo_version 3.0.0
+    ...    When centengine checks its centengine.cfg with -v and -p
+    ...    Then the check succeeds
+    ...    And state.prot is left untouched
+    [Tags]    engine    config    centralized    MON-187019
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    module
+    Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
+    Ctn Clear Prot Files
+    ${lib}    Set Variable    ${VarRoot}/lib/centreon-engine/config0
+    Create Directory    ${lib}
+    # The check only parses centengine.cfg: any content will do for state.prot.
+    Create File    ${lib}/state.prot    state.prot of the running Engine
+    Ctn Broker Config Flush    ${False}
+    # The check writes more than a pipe can hold: stdout goes to a file, or
+    # centengine blocks on its pipe until the timeout.
+    ${res}    Run Process    /usr/sbin/centengine    -v    -p    ${lib}
+    ...    -b    ${EtcRoot}/centreon-broker/central-module0.json
+    ...    ${EtcRoot}/centreon-engine/config0/centengine.cfg
+    ...    timeout=60s    stdout=${lib}/verify-stdout.log
+    Should Be Equal As Integers    ${res.rc}    ${0}    the check should succeed: ${res.stdout}
+    ${content}    Get File    ${lib}/state.prot
+    Should Be Equal    ${content}    state.prot of the running Engine
+    ...    state.prot must not be replaced by a configuration check

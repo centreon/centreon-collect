@@ -42,8 +42,10 @@
 #include "com/centreon/engine/commands/otel_interface.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
+#include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/string.hh"
 #include "common.h"
@@ -2701,6 +2703,9 @@ static void forward_pb_host_status(const host* hst,
       if (attributes & common::notifications::STATUS_FLAPPING) {
         host.set_flapping(hst->get_is_flapping());
       }
+      if (attributes & common::notifications::STATUS_NOTIFICATION_ID) {
+        host.set_current_notification_id(hst->get_current_notification_id());
+      }
       cbm->write(h);
     }
   } else {
@@ -2739,7 +2744,8 @@ static void forward_pb_host_status(const host* hst,
     if (!hst->get_plugin_output().empty())
       hscr.set_output(common::check_string_utf8(hst->get_plugin_output()));
     if (!hst->get_long_plugin_output().empty())
-      hscr.set_output(common::check_string_utf8(hst->get_long_plugin_output()));
+      hscr.set_long_output(
+          common::check_string_utf8(hst->get_long_plugin_output()));
 
     hscr.set_percent_state_change(hst->get_percent_state_change());
     if (!hst->get_perf_data().empty())
@@ -2750,6 +2756,11 @@ static void forward_pb_host_status(const host* hst,
             hst->has_been_checked() ? hst->get_state_type()
                                     : engine::notifier::hard));
     hscr.set_scheduled_downtime_depth(hst->get_scheduled_downtime_depth());
+    hscr.set_current_event_id(hst->get_current_event_id());
+    hscr.set_last_event_id(hst->get_last_event_id());
+    hscr.set_current_problem_id(hst->get_current_problem_id());
+    hscr.set_last_problem_id(hst->get_last_problem_id());
+    hscr.set_current_notification_id(hst->get_current_notification_id());
 
     // Send event(s).
     cbm->write(h);
@@ -4662,6 +4673,9 @@ static void forward_pb_service_status(const engine::service* svc,
       if (attributes & common::notifications::STATUS_FLAPPING) {
         asscr.set_flapping(svc->get_is_flapping());
       }
+      if (attributes & common::notifications::STATUS_NOTIFICATION_ID) {
+        asscr.set_current_notification_id(svc->get_current_notification_id());
+      }
       cbm->write(as);
     }
   } else {
@@ -4721,6 +4735,11 @@ static void forward_pb_service_status(const engine::service* svc,
         svc->has_been_checked() ? svc->get_state_type()
                                 : engine::notifier::hard));
     sscr.set_scheduled_downtime_depth(svc->get_scheduled_downtime_depth());
+    sscr.set_current_event_id(svc->get_current_event_id());
+    sscr.set_last_event_id(svc->get_last_event_id());
+    sscr.set_current_problem_id(svc->get_current_problem_id());
+    sscr.set_last_problem_id(svc->get_last_problem_id());
+    sscr.set_current_notification_id(svc->get_current_notification_id());
 
     // Send event(s).
     cbm->write(s);

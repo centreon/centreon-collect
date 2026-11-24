@@ -36,9 +36,8 @@
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
-#include "com/centreon/engine/configuration/applier/macros.hh"
-#include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/configuration/applier/runtime_state.hh"
+#include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
@@ -47,11 +46,13 @@
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/broker_sink.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
+#include "common/proto_file/proto_file.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -102,20 +103,52 @@ static void increase_fd_limit(uint32_t soft_fd_limit) {
   }
 }
 
+namespace {
+/**
+ * @brief Write the configuration Engine runs to state.prot, whole or not at
+ * all: an Engine killed during the write restarts on the previous one, not on
+ * a truncated file.
+ *
+ * A failure is only logged. The configuration is applied all the same, and the
+ * next start reads the previous state.prot: Engine then announces the previous
+ * version, and Broker sends the new one again.
+ */
+void save_state_prot() {
+  const auto path = proto_conf / "state.prot";
+  std::error_code ec;
+  com::centreon::common::write_proto_file_streamed(
+      path,
+      [](std::ostream& os) {
+        pb_indexed_config.serialize_to_ostream(&os);
+        return true;
+      },
+      false, ec);
+  if (ec)
+    config_logger->error(
+        "Cannot write '{}': {}. The next start will run the previous "
+        "configuration until Broker sends this one again",
+        path.string(), ec.message());
+}
+}  // namespace
+
 /**
  * @brief Get the current configuration state from the state.prot and fill the
  * given state object with it.
  *
  * @param state The state object to fill with the current configuration state.
+ * Left empty when state.prot cannot be read, so that its poller_id is 0: a
+ * partly read configuration sent to Broker would become the one it stores for
+ * this poller.
  */
 void applier::state::get_current_state(configuration::State& state) {
   if (!proto_conf.empty()) {
-    std::ifstream f(proto_conf / "state.prot", std::ios::binary);
-    if (f) {
-      state.ParseFromIstream(&f);
-    } else {
-      process_logger->error("Unable to open '{}/state.prot'",
-                            proto_conf.string());
+    const auto path = proto_conf / "state.prot";
+    std::error_code ec;
+    com::centreon::common::read_proto_file(path, state, ec);
+    if (ec) {
+      state.Clear();
+      process_logger->error("Unable to read '{}': {}", path.string(),
+                            ec.message());
     }
   }
 }
@@ -133,11 +166,10 @@ void applier::state::apply(configuration::State& new_cfg,
   try {
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
-    if (!proto_conf.empty()) {
-      std::ofstream f(proto_conf / "state.prot", std::ios::binary);
-      pb_indexed_config.serialize_to_ostream(&f);
-      f.close();
-    }
+    /* A configuration that is only verified (--verify-config) must not replace
+     * the state.prot of the Engine that runs with it. */
+    if (!proto_conf.empty() && !verify_config)
+      save_state_prot();
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -180,9 +212,7 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
   try {
     _processing_state = state_ready;
     _processing_diff(diff_conf, err);
-    std::ofstream f(proto_conf / "state.prot", std::ios::binary);
-    pb_indexed_config.serialize_to_ostream(&f);
-    f.close();
+    save_state_prot();
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -225,13 +255,13 @@ void applier::state::clear() {
   engine::serviceescalation::serviceescalations.clear();
   engine::host::hosts.clear();
   engine::host::hosts_by_id.clear();
+  ++notifier::contacts_version;
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
   ::timeperiods.clear();
   engine::comment::set_next_comment_id(1llu);
 
   applier::scheduler::instance().clear();
-  applier::macros::instance().clear();
   applier::globals::instance().clear();
   applier::logging::instance().clear();
 
@@ -260,30 +290,10 @@ applier::state::~state() noexcept {
   engine::serviceescalation::serviceescalations.clear();
   engine::host::hosts.clear();
   engine::host::hosts_by_id.clear();
+  ++notifier::contacts_version;
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
   engine::comment::set_next_comment_id(1llu);
-}
-
-/**
- *  Return the user macros.
- *
- *  @return  The user macros.
- */
-absl::flat_hash_map<std::string, std::string>& applier::state::user_macros() {
-  return _user_macros;
-}
-
-/**
- *  Find a user macro.
- *
- *  @param[in] key  The key.
- *
- *  @return  Iterator to user macros.
- */
-absl::flat_hash_map<std::string, std::string>::const_iterator
-applier::state::user_macros_find(const std::string_view& key) const {
-  return _user_macros.find(key);
 }
 
 /**
@@ -586,81 +596,28 @@ void applier::state::_apply(const configuration::State& new_cfg,
   if (verify_config) {
     events_logger->info("Checking global event handlers...");
   }
-  if (!pb_indexed_config.state().global_host_event_handler().empty()) {
-    // Check the event handler command.
-    std::string temp_command_name(
-        pb_indexed_config.state().global_host_event_handler().substr(
-            0,
-            pb_indexed_config.state().global_host_event_handler().find_first_of(
-                '!')));
-    command_map::iterator found{
-        commands::command::commands.find(temp_command_name)};
-    if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
-          "Error: Global host event handler command '{}' is not defined "
-          "anywhere!",
-          temp_command_name);
+  /* The command of a specification "name!args" must exist. It is looked up
+   * again when it is run. */
+  auto check_command = [&err](const std::string& spec, std::string_view what) {
+    if (!spec.empty() && !commands::command::find_command(spec)) {
+      config_logger->error("Error: {} '{}' is not defined anywhere!", what,
+                           spec.substr(0, spec.find('!')));
       ++err.config_errors;
-      global_host_event_handler_ptr = nullptr;
-    } else
-      global_host_event_handler_ptr = found->second.get();
-  }
-  if (!pb_indexed_config.state().global_service_event_handler().empty()) {
-    // Check the event handler command.
-    std::string temp_command_name(
-        pb_indexed_config.state().global_service_event_handler().substr(
-            0, pb_indexed_config.state()
-                   .global_service_event_handler()
-                   .find_first_of('!')));
-    command_map::iterator found{
-        commands::command::commands.find(temp_command_name)};
-    if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
-          "Error: Global service event handler command '{}' is not defined "
-          "anywhere!",
-          temp_command_name);
-      ++err.config_errors;
-      global_service_event_handler_ptr = nullptr;
-    } else
-      global_service_event_handler_ptr = found->second.get();
-  }
+    }
+  };
+  check_command(pb_indexed_config.state().global_host_event_handler(),
+                "Global host event handler command");
+  check_command(pb_indexed_config.state().global_service_event_handler(),
+                "Global service event handler command");
 
   // Check obsessive processor commands...
   if (verify_config) {
     events_logger->info("Checking obsessive compulsive processor commands...");
   }
-  if (!pb_indexed_config.state().ocsp_command().empty()) {
-    std::string temp_command_name(
-        pb_indexed_config.state().ocsp_command().substr(
-            0, pb_indexed_config.state().ocsp_command().find_first_of('!')));
-    command_map::iterator found{
-        commands::command::commands.find(temp_command_name)};
-    if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
-          "Error: Obsessive compulsive service processor command '{}' is not "
-          "defined anywhere!",
-          temp_command_name);
-      ++err.config_errors;
-      ocsp_command_ptr = nullptr;
-    } else
-      ocsp_command_ptr = found->second.get();
-  }
-  if (!pb_indexed_config.state().ochp_command().empty()) {
-    std::string temp_command_name(
-        pb_indexed_config.state().ochp_command().substr(
-            0, pb_indexed_config.state().ochp_command().find_first_of('!')));
-    command_map::iterator found{
-        commands::command::commands.find(temp_command_name)};
-    if (found == commands::command::commands.end() || !found->second) {
-      config_logger->error(
-          "Error: Obsessive compulsive host processor command '{}' is not "
-          "defined anywhere!",
-          temp_command_name);
-      ++err.config_errors;
-      ochp_command_ptr = nullptr;
-    } else
-      ochp_command_ptr = found->second.get();
-  }
+  check_command(pb_indexed_config.state().ocsp_command(),
+                "Obsessive compulsive service processor command");
+  check_command(pb_indexed_config.state().ochp_command(),
+                "Obsessive compulsive host processor command");
 }
 
 /**
@@ -1389,9 +1346,6 @@ void applier::state::_apply_diff_conf(
   // Apply globals configurations.
   applier::globals::instance().apply(pb_indexed_config.mut_state());
 
-  // Apply macros configurations.
-  applier::macros::instance().apply(pb_indexed_config.mut_state());
-
   // Timing.
   tv->at(2) = std::chrono::steady_clock::now();
 
@@ -1614,11 +1568,11 @@ void applier::state::_processing(configuration::State& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
   // Timing.
-  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{
-      {}, {}, {}, {}, {}, {}};
+  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{{}, {}, {},
+                                                                {}, {}, {}};
 
-  /* Read before the flag is set below: this function serves both the startup and
-   * a full reload at runtime, and the durations it prints must not claim to
+  /* Read before the flag is set below: this function serves both the startup
+   * and a full reload at runtime, and the durations it prints must not claim to
    * describe a startup when they describe a reload. */
   const bool starting = !has_already_been_loaded;
 
@@ -1690,9 +1644,9 @@ void applier::state::_processing(configuration::State& new_cfg,
     tv[3] = std::chrono::steady_clock::now();
 
     /* These three were measured and never printed. Same wording as the phases
-     * main.cc emits, so that one regular expression covers the whole startup and
-     * a slow start can be attributed to a phase instead of guessing. Each is
-     * emitted once, at info, on a path that runs once. */
+     * main.cc emits, so that one regular expression covers the whole startup
+     * and a slow start can be attributed to a phase instead of guessing. Each
+     * is emitted once, at info, on a path that runs once. */
     const char* what = starting ? "Startup timing" : "Reload timing";
     using std::chrono::duration_cast;
     using std::chrono::milliseconds;
@@ -1799,8 +1753,8 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     config_logger->info("Processing differential configuration.");
 
   // Timing.
-  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{
-      {}, {}, {}, {}, {}, {}};
+  absl::FixedArray<std::chrono::steady_clock::time_point, 6> tv{{}, {}, {},
+                                                                {}, {}, {}};
 
   // Call prelaunch broker event the first time to run applier state.
   if (!has_already_been_loaded)

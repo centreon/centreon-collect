@@ -30,11 +30,11 @@
 #include "common.hh"
 #include "common/notifications/notification_manager.hh"
 
-class nagios_macros;
 namespace com::centreon::engine {
 // Forward declarations
 class escalation;
 class contact;
+class macro_context;
 }  // namespace com::centreon::engine
 namespace com::centreon::common::timeperiods {
 class timeperiod;
@@ -133,8 +133,7 @@ class notifier : public checkable {
 
   void set_current_notification_id(uint64_t id) noexcept;
   uint64_t get_current_notification_id() const noexcept;
-  virtual void grab_macros_r(nagios_macros* mac) = 0;
-  virtual int notify_contact(nagios_macros* mac,
+  virtual int notify_contact(macro_context& mac,
                              contact* cntct,
                              common::notifications::reason_type type,
                              std::string const& not_author,
@@ -179,8 +178,8 @@ class notifier : public checkable {
   void set_is_being_freshened(bool freshened) noexcept;
   std::list<escalation*>& get_escalations() noexcept;
   std::list<escalation*> const& get_escalations() const noexcept;
-  virtual bool is_valid_escalation_for_notification(escalation const* e,
-                                                    int options) const = 0;
+  virtual bool is_valid_escalation_for_notification(
+      escalation const* e) const = 0;
   void add_modified_attributes(uint32_t attr) noexcept;
   uint32_t get_modified_attributes() const noexcept;
   void set_modified_attributes(uint32_t modified_attributes) noexcept;
@@ -220,6 +219,11 @@ class notifier : public checkable {
   contactgroup_map& get_contactgroups() noexcept;
   const contactgroup_map& get_contactgroups() const noexcept;
   void resolve_pointers();
+  /* Incremented each time the contacts of the notifiers may change: when a
+   * notifier is wired, leaves host::hosts or service::services, is destroyed,
+   * or when the members of a contactgroup change. contact keeps raw pointers
+   * on the notifiers and reads them only while this version is unchanged. */
+  static uint64_t contacts_version;
   std::array<common::notifications::notification*, 6>
   get_current_notifications() const;
   int get_pending_flex_downtime() const;
@@ -273,8 +277,5 @@ class notifier : public checkable {
 };
 
 }  // namespace com::centreon::engine
-
-bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
-                             com::centreon::engine::contact* cntct);
 
 #endif  // !CCE_NOTIFIER_HH

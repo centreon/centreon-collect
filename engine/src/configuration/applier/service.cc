@@ -24,6 +24,7 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/severity.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/severity_helper.hh"
@@ -82,11 +83,11 @@ void applier::service::add_object(const configuration::Service& obj) {
 
   // Create service.
   engine::service* svc{add_service(
-      obj.host_id(), obj.service_id(), host_name,
-      service_description, display_name, obj.check_period(),
-      obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
-      obj.notification_interval(), obj.first_notification_delay(),
-      obj.recovery_notification_delay(), obj.notification_period(),
+      obj.host_id(), obj.service_id(), host_name, service_description,
+      display_name, obj.check_period(), obj.max_check_attempts(),
+      obj.check_interval(), obj.retry_interval(), obj.notification_interval(),
+      obj.first_notification_delay(), obj.recovery_notification_delay(),
+      obj.notification_period(),
       static_cast<bool>(obj.notification_options() & action_svc_ok),
       static_cast<bool>(obj.notification_options() & action_svc_unknown),
       static_cast<bool>(obj.notification_options() & action_svc_warning),
@@ -227,6 +228,10 @@ void applier::service::modify_object(configuration::Service* old_obj,
   s->set_description(new_description);
   s->set_display_name(std::move(new_display_name));
   s->set_check_command(new_obj.check_command());
+  // resolve_pointers() only wires a check command: the previous one is
+  // unwired here when the configuration has none anymore.
+  if (new_obj.check_command().empty())
+    s->set_check_command_ptr(nullptr);
   s->set_event_handler(new_obj.event_handler());
   s->set_event_handler_enabled(new_obj.event_handler_enabled());
   s->set_check_interval(new_obj.check_interval());
@@ -474,6 +479,7 @@ void applier::service::remove_object(const std::pair<uint64_t, uint64_t>& key) {
     // Unregister service.
     engine::service::services.erase({host_name, service_description});
     engine::service::services_by_id.erase(it);
+    ++notifier::contacts_version;
   }
 
   // Remove service from the global configuration set.

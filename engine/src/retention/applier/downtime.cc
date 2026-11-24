@@ -17,6 +17,7 @@
  */
 #include "com/centreon/engine/retention/applier/downtime.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/host.hh"
 #include "common/downtimes/downtime_manager.hh"
 
 namespace downtimes = com::centreon::common::downtimes;
@@ -44,8 +45,8 @@ void applier::downtime::apply(list_downtime const& lst) {
     uint64_t service_id = 0;
 
     if (is_service) {
-      auto found_svc = service::services.find(
-          {dt->host_name(), dt->service_description()});
+      auto found_svc =
+          service::services.find({dt->host_name(), dt->service_description()});
       if (found_svc == service::services.end()) {
         downtimes_logger->error(
             "Cannot create service downtime on service ('{}', '{}') because "
@@ -57,9 +58,9 @@ void applier::downtime::apply(list_downtime const& lst) {
     }
 
     auto d = std::make_shared<downtimes::downtime>(
-        host_id, service_id, dt->entry_time(), dt->author(),
-        dt->comment_data(), dt->start_time(), dt->end_time(), dt->fixed(),
-        dt->triggered_by(), dt->duration(), dt->downtime_id(), downtimes_logger);
+        host_id, service_id, dt->entry_time(), dt->author(), dt->comment_data(),
+        dt->start_time(), dt->end_time(), dt->fixed(), dt->triggered_by(),
+        dt->duration(), dt->downtime_id(), downtimes_logger);
     downtimes::downtime_manager::instance().add_downtime(d);
     d->notify_broker_load();
     d->subscribe();

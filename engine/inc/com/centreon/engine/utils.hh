@@ -23,7 +23,11 @@
 #define CCE_UTILS_HH
 
 #include "com/centreon/common/perfdata.hh"
-#include "com/centreon/engine/macros/defines.hh"
+#include <string>
+
+namespace com::centreon::engine {
+class macro_context;
+}  // namespace com::centreon::engine
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,7 +36,7 @@ extern "C" {
 // Monitoring/Event Handler Functions
 
 // thread-safe version of the above
-int my_system_r(nagios_macros* mac,
+int my_system_r(com::centreon::engine::macro_context& mac,
                 std::string const& cmd,
                 int timeout,
                 bool* early_timeout,
@@ -43,13 +47,6 @@ int my_system_r(nagios_macros* mac,
 char const* my_ctime(time_t const* t);
 
 // Miscellaneous Functions
-
-// thread-safe version of get_raw_command_line_r()
-int get_raw_command_line_r(nagios_macros* mac,
-                           com::centreon::engine::commands::command* cmd_ptr,
-                           std::string const& cmd,
-                           std::string& full_command,
-                           int macro_options);
 
 // trap signals
 void setup_sighandler();
@@ -65,21 +62,11 @@ bool set_cloexec(int fd);
 // cleanup after ourselves (before quitting or restarting)
 void cleanup();
 // free memory allocated to all linked lists in memory
-void free_memory(nagios_macros* mac);
+void free_memory();
 
 #ifdef __cplusplus
 }
 #endif  // C++
-
-inline int get_raw_command_line_r(
-    nagios_macros* mac,
-    const std::shared_ptr<com::centreon::engine::commands::command> cmd_ptr,
-    std::string const& cmd,
-    std::string& full_command,
-    int macro_options) {
-  return get_raw_command_line_r(mac, cmd_ptr.get(), cmd, full_command,
-                                macro_options);
-}
 
 std::string get_stack_trace(int max_depth = 64);
 

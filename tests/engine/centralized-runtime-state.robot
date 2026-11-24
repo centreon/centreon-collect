@@ -14,9 +14,10 @@ CERS1
     [Documentation]    Scenario: an Engine restarted without retention.dat gets its resources state back from Broker
     ...    Given Broker and Engine are started in centralized configuration, with passive services
     ...    And service_1 of host_1 is CRITICAL HARD
-    ...    When Engine is stopped, its retention.dat is deleted and Engine is started again
+    ...    When Engine is stopped, without writing any retention.dat but only its downtimes file, and started again
     ...    Then Broker, finding the poller up to date, sends it its runtime state alone
     ...    And Engine restores the state of its hosts and services from that snapshot
+    ...    And service_1 gets back its check output, but not its long output
     ...    And an OK result on service_1 is logged as a recovery from CRITICAL, which only a restored state allows
     [Tags]    engine    broker    centralized    retention    MON-187019
     Ctn Config Centralized Engine    ${1}    ${5}    ${5}
@@ -41,14 +42,22 @@ CERS1
     Ctn Start Engine    newGeneration=True
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    # A long output after the escaped newline: the snapshot must carry the
+    # first line only.
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1\\nlong output of service_1
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    60    HARD
     Should Be True    ${result}    The service (host_1,service_1) should be CRITICAL HARD
+    ${output}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${output}[longPluginOutput]    long output of service_1    Engine should split the long output from the output
 
-    # Engine restarts with no retention file: the only state it can get back
-    # is the one Broker sends at its connection.
+    # Engine restarts with no retention file: in centralized configuration it
+    # does not write one, so the only state it can get back is the one Broker
+    # sends at its connection.
     Ctn Stop Engine
-    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ...    Engine should not write retention.dat in centralized configuration
+    File Should Exist    ${VarRoot}/lib/centreon-engine/config0/downtimes.prot
+    ...    Engine should save the downtimes it owns apart, in downtimes.prot
     ${restart}    Ctn Get Round Current Date
     Ctn Start Engine    newGeneration=True
     Ctn Wait For Engine To Be Ready    ${restart}    ${1}
@@ -58,9 +67,9 @@ CERS1
     Should Be True    ${result}    Broker should send the runtime state to the poller it finds up to date
     # The retention phase runs before the log file is opened: its lines go to
     # the standard output of centengine.
-    ${content}    Create List    retention.dat is not read: the runtime state comes from Broker
+    ${content}    Create List    no retention file to read: the runtime state comes from Broker
     ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${restart}    ${content}    30
-    Should Be True    ${result}    Engine should say it does not read retention.dat in centralized configuration
+    Should Be True    ${result}    Engine should say it has no retention.dat to read in centralized configuration
     ${content}    Create List    Parsing of retention file failed
     ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${restart}    ${content}    5
     Should Not Be True    ${result}    Engine should not even try to read retention.dat
@@ -70,6 +79,11 @@ CERS1
     ${content}    Create List    services restored from the Broker snapshot
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
     Should Be True    ${result}    Engine should restore its resources state from the Broker snapshot
+    # The output is in the snapshot so that $SERVICEOUTPUT$ is not empty
+    # before the next check; the long output is not.
+    ${output}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${output}[pluginOutput]    output critical for service_1    service_1 should get its check output back from the snapshot
+    Should Be Empty    ${output}[longPluginOutput]    the long output is not part of the snapshot
 
     # A recovery can only be logged from a restored CRITICAL: a fresh Engine
     # would see an OK result on a PENDING service and log nothing of the kind.
@@ -137,3 +151,503 @@ CERS2
     Should Be True    ${result}    Engine should apply the snapshot sent after the configuration was rebuilt
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CERS3
+    [Documentation]    Scenario: after a Broker restart, the runtime restored from the resources table is completed from the hosts and services tables
+    ...    Given Broker and Engine are started in centralized configuration, with passive services, Broker writing both the resources and the hosts/services tables
+    ...    And service_1 of host_1 is CRITICAL HARD
+    ...    When Engine is stopped, its retention.dat is deleted, Broker is stopped and both are started again
+    ...    Then unified_sql restores the runtime from the resources table, then completes it from the hosts/services tables
+    ...    And Engine gets back from the Broker snapshot the last time service_1 was CRITICAL, a date the resources table does not hold
+    [Tags]    engine    broker    centralized    retention    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    cache    info
+    Ctn Broker Config Log    central    sql    info
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    60    HARD
+    Should Be True    ${result}    The service (host_1,service_1) should be CRITICAL HARD
+    ${before}    Ctn Get Service Info Grpc    ${1}    ${1}
+
+    # Engine first, so that no status reaches Broker after it restarts: the
+    # database is then the only source of the runtime.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+
+    ${content}    Create List    restored into the global cache from the resources table
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    unified_sql should restore the runtime from the resources table
+    ${content}    Create List    completed in the global cache from the hosts/services tables
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    60
+    Should Be True    ${result}    unified_sql should complete the runtime from the hosts/services tables
+    ${content}    Create List    runtime of 0 hosts and 0 services completed
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${restart}    ${content}    5
+    Should Not Be True    ${result}    At least one resource should have been completed
+
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    services restored from the Broker snapshot
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
+    Should Be True    ${result}    Engine should restore its resources state from the Broker snapshot
+
+    # last_time_critical is not in the resources table: only the complement
+    # brings it back.
+    ${after}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${after}[lastTimeCritical]    ${before}[lastTimeCritical]    service_1 should get back the last time it was CRITICAL
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CERS4
+    [Documentation]    Scenario: an Engine restarted without retention.dat gets its event and problem ids back from Broker
+    ...    Given Broker and Engine are started in centralized configuration, with passive services
+    ...    And service_1 of host_1 is CRITICAL HARD, with an event id and a problem id
+    ...    When Engine is stopped, its retention.dat is deleted and Engine is started again
+    ...    Then service_1 gets back its event and problem ids from the Broker snapshot
+    ...    And the recovery of service_1 closes that same problem
+    ...    And a new problem on service_1 gets a new problem id, the counter having been moved past the restored ids
+    [Tags]    engine    broker    centralized    retention    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_config    info
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    cache    info
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    60    HARD
+    Should Be True    ${result}    The service (host_1,service_1) should be CRITICAL HARD
+    ${before}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Not Be Equal As Strings    ${before}[currentEventId]    0    service_1 should have an event id
+    Should Not Be Equal As Strings    ${before}[currentProblemId]    0    service_1 should have a problem id
+
+    Ctn Stop Engine
+    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    services restored from the Broker snapshot
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
+    Should Be True    ${result}    Engine should restore its resources state from the Broker snapshot
+
+    ${after}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${after}[currentEventId]    ${before}[currentEventId]    service_1 should get its event id back
+    Should Be Equal As Strings    ${after}[lastEventId]    ${before}[lastEventId]    service_1 should get its last event id back
+    Should Be Equal As Strings    ${after}[currentProblemId]    ${before}[currentProblemId]    service_1 should get its problem id back
+    Should Be Equal As Strings    ${after}[lastProblemId]    ${before}[lastProblemId]    service_1 should get its last problem id back
+
+    # The recovery closes the restored problem.
+    Ctn Process Service Result Hard    host_1    service_1    0    output ok for service_1
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    0    60    HARD
+    Should Be True    ${result}    The service (host_1,service_1) should be OK HARD
+    ${ok}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${ok}[currentProblemId]    0    service_1 has no problem anymore
+    Should Be Equal As Strings    ${ok}[lastProblemId]    ${before}[currentProblemId]    The recovery should close the restored problem
+
+    # A new problem gets an id the restored counter never gave.
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical again for service_1
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    60    HARD
+    Should Be True    ${result}    The service (host_1,service_1) should be CRITICAL HARD again
+    ${again}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be True    ${again}[currentProblemId] > ${before}[currentProblemId]    The new problem should get a new id
+    Should Be True    ${again}[currentEventId] > ${ok}[currentEventId]    The new event should get a new id
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CERS5
+    [Documentation]    Scenario: the event and problem ids survive a restart of both Broker and Engine
+    ...    Given Broker and Engine are started in centralized configuration, with passive services
+    ...    And service_1 of host_1 is CRITICAL HARD, with an event id and a problem id
+    ...    When Engine and Broker are stopped, retention.dat is deleted and both are started again
+    ...    Then Broker reads the ids of service_1 back from its cache file
+    ...    And Engine gets them from the Broker snapshot
+    [Tags]    engine    broker    centralized    retention    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    cache    info
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    2    60    HARD
+    Should Be True    ${result}    The service (host_1,service_1) should be CRITICAL HARD
+    ${before}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Not Be Equal As Strings    ${before}[currentProblemId]    0    service_1 should have a problem id
+
+    # Engine first, so that no status reaches Broker after it restarts: its
+    # cache file is then the only source of the ids.
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    services restored from the Broker snapshot
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
+    Should Be True    ${result}    Engine should restore its resources state from the Broker snapshot
+
+    ${after}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${after}[currentEventId]    ${before}[currentEventId]    service_1 should get its event id back
+    Should Be Equal As Strings    ${after}[currentProblemId]    ${before}[currentProblemId]    service_1 should get its problem id back
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CERS6
+    [Documentation]    Scenario: an Engine restarted without retention.dat gets its notification id back from Broker
+    ...    Given Broker and Engine are started in centralized configuration, notifications handled by Engine
+    ...    And service_1 of host_1 is CRITICAL HARD and notified
+    ...    And a custom notification is then sent for service_1, giving it a new notification id without any state change
+    ...    When Engine is stopped, its retention.dat is deleted and Engine is started again
+    ...    Then service_1 gets back the id of the custom notification from the Broker snapshot
+    ...    And a new custom notification gets a greater id, the generator having been moved past the restored one
+    [Tags]    engine    broker    centralized    retention    notification    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_config    info
+    Ctn Engine Config Set Value    ${0}    enable_notifications    ${1}    True
+    Ctn Engine Config Set Value    ${0}    log_notifications    ${1}    True
+    Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
+    Ctn Engine Config Add Command    ${0}    command_notif    /usr/bin/true
+    Ctn Engine Config Set Value In Services    ${0}    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    ${0}    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    ${0}    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    ${0}    service_1    notification_period    24x7
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    cache    info
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    service_1 should be notified when it becomes CRITICAL HARD
+    ${problem}    Wait Until Keyword Succeeds    30s    1s    Service 1 Notification Id Should Be Above    0
+
+    # No state change: only the adaptive status sent after the notification
+    # tells Broker about the new id.
+    Ctn Send External Command    SEND_CUSTOM_SVC_NOTIFICATION;host_1;service_1;2;admin;custom notification
+    ${custom}    Wait Until Keyword Succeeds    30s    1s    Service 1 Notification Id Should Be Above    ${problem}
+
+    Ctn Stop Engine
+    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    services restored from the Broker snapshot
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
+    Should Be True    ${result}    Engine should restore its resources state from the Broker snapshot
+
+    ${after}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${after}[currentNotificationId]    ${custom}    service_1 should get back the id of the custom notification
+
+    Ctn Send External Command    SEND_CUSTOM_SVC_NOTIFICATION;host_1;service_1;2;admin;custom notification after restart
+    Wait Until Keyword Succeeds    30s    1s    Service 1 Notification Id Should Be Above    ${custom}
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
+CERS7
+    [Documentation]    Scenario: in notification_mode=broker, Engine keeps the notification id Broker attributed and gets it back after a restart
+    ...    Given Broker and Engine are started in centralized configuration, notifications decided by Broker
+    ...    When service_1 of host_1 becomes CRITICAL HARD and Broker dispatches its notification to the poller
+    ...    Then Engine keeps the notification id Broker attributed on service_1, for the macros read later
+    ...    When Engine is stopped, its retention.dat is deleted and Engine is started again
+    ...    Then service_1 gets that notification id back from the Broker snapshot
+    [Tags]    engine    broker    centralized    retention    notification    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${1}    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    notification_mode    broker
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_config    info
+    Ctn Engine Config Set Value    ${0}    enable_notifications    ${1}    True
+    Ctn Engine Config Set Value    ${0}    log_notifications    ${1}    True
+    Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
+    Ctn Engine Config Add Command    ${0}    command_notif    /usr/bin/true
+    Ctn Engine Config Set Value In Services    ${0}    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    ${0}    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    ${0}    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    ${0}    service_1    notification_period    24x7
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    cache    info
+    Ctn Broker Config Log    central    notifications    info
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    # The contact must be in the Broker cache before the first decision.
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration/1.prot    timeout=30s
+
+    Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1
+    ${content}    Create List    dispatched notification execution for resource (1, 1)
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should dispatch the notification of service_1 to the poller
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The poller should run the notification Broker dispatched
+    ${notified}    Wait Until Keyword Succeeds    30s    1s    Service 1 Notification Id Should Be Above    0
+
+    Ctn Stop Engine
+    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    services restored from the Broker snapshot
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
+    Should Be True    ${result}    Engine should restore its resources state from the Broker snapshot
+
+    ${after}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be Equal As Strings    ${after}[currentNotificationId]    ${notified}    service_1 should get back the notification id Broker attributed
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CERS8
+    [Documentation]    Scenario: a poller switching from the legacy configuration to the centralized one uses its retention.dat one last time
+    ...    Given Broker and Engine are started in legacy configuration, with passive services
+    ...    And service_1 of host_1 is in a downtime held by Engine
+    ...    And Engine is stopped, writing its retention.dat
+    ...    When the poller switches to the centralized configuration and Engine starts with its centengine.cfg, as the packaged service does
+    ...    Then Engine reads retention.dat once and renames it retention.dat.migrated
+    ...    And service_1 is still in downtime, which only retention.dat could tell
+    ...    And SAVE_STATE_INFORMATION, as stopping Engine, saves the downtime in downtimes.prot but writes no retention.dat
+    ...    And at its next start, Engine has no retention file to read but gets the downtime of service_1 back from downtimes.prot
+    [Tags]    engine    broker    centralized    retention    MON-187019
+    Ctn Config Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+
+    Ctn Clear Retention
+    Remove File    ${VarRoot}/log/centreon-engine/config0/retention.dat.migrated
+    Ctn Clear Prot Files
+    Ctn Clear Db    downtimes
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # The downtime is held by Engine: notification_mode is not broker. It is
+    # fixed so that it starts at once (a flexible one waits for a problem).
+    ${now}    Evaluate    int(time.time())    modules=time
+    ${end}    Evaluate    ${now} + 3600
+    Ctn Send External Command    SCHEDULE_SVC_DOWNTIME;host_1;service_1;${now};${end};1;0;3600;admin;fixed downtime
+    Wait Until Keyword Succeeds    60s    2s    Service 1 Downtime Depth Should Be    ${1}
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+    ${downtime}    Ctn Grep Retention    ${0}    servicedowntime
+    Should Not Be Empty    ${downtime}    The legacy Engine should have written its downtime in retention.dat
+
+    # The poller switches to the centralized configuration. Neither Engine
+    # (no state.prot) nor Broker knows its runtime state yet. On a real poller,
+    # the legacy centengine.cfg is still there; Ctn Config Centralized Engine
+    # wipes it, so it is kept aside and put back.
+    Remove Directory    ${VarRoot}/legacy-config0    recursive=True
+    Copy Directory    ${EtcRoot}/centreon-engine/config0    ${VarRoot}/legacy-config0
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Directory Should Not Exist    ${EtcRoot}/centreon-engine/config0
+    Copy Directory    ${VarRoot}/legacy-config0    ${EtcRoot}/centreon-engine/config0
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_config    info
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+    ${switch}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True    with_legacy_cfg=True
+    Ctn Wait For Engine To Be Ready    ${switch}    ${1}
+
+    # The retention phase runs before the log file is opened: its lines go to
+    # the standard output of centengine.
+    ${content}    Create List    read once and renamed to
+    ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${switch}    ${content}    30
+    Should Be True    ${result}    Engine should read retention.dat once and rename it
+    File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    File Should Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat.migrated
+    # The downtime must survive the first configuration Broker sends, applied
+    # over the one parsed from centengine.cfg.
+    ${content}    Create List    received diff state ack from poller 1
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${switch}    ${content}    60
+    Should Be True    ${result}    Broker should receive the acknowledgement of the first diff state
+    Service 1 Downtime Depth Should Be    ${1}
+
+    # In centralized configuration, Engine never writes retention.dat: only
+    # the downtimes it owns are saved, in downtimes.prot.
+    File Should Not Exist    ${VarRoot}/lib/centreon-engine/config0/downtimes.prot
+    Ctn Send External Command    SAVE_STATE_INFORMATION
+    Wait Until Created    ${VarRoot}/lib/centreon-engine/config0/downtimes.prot    30s
+    File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    Ctn Stop Engine
+    File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/retention.dat
+    ...    Engine should not write retention.dat when stopped in centralized configuration
+
+    # The renamed file is never read again, the downtime comes from
+    # downtimes.prot.
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True    with_legacy_cfg=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    no retention file to read: the runtime state comes from Broker
+    ${result}    Ctn Find In Log With Timeout    ${VarRoot}/log/centreon-engine/config0/centengine-stdout.log    ${restart}    ${content}    30
+    Should Be True    ${result}    Engine should not read retention.dat.migrated again
+    ${content}    Create List    Startup: 1 downtime(s) restored from
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    30
+    Should Be True    ${result}    Engine should restore the downtime from downtimes.prot
+    Wait Until Keyword Succeeds    30s    2s    Service 1 Downtime Depth Should Be    ${1}
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+CERS9
+    [Documentation]    Scenario: in centralized configuration, the downtimes Engine owns survive its restarts
+    ...    Given Broker and Engine are started in centralized configuration, notification_mode being engine
+    ...    And service_1 of host_1 is in a fixed downtime held by Engine
+    ...    When Engine is stopped and started again, twice
+    ...    Then each time Engine restores the downtime from downtimes.prot
+    ...    And the downtime depth of service_1 is still 1, the depth being rebuilt and not counted twice
+    ...    And once the downtime is deleted, a restart restores no downtime anymore
+    [Tags]    engine    broker    centralized    retention    downtime    MON-187019
+    Ctn Config Centralized Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_config    info
+    Ctn Set Services Passive    ${0}    service_[0-9]+
+
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    Ctn Clear Db    downtimes
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Fixed, so that it starts at once (a flexible one waits for a problem).
+    ${now}    Evaluate    int(time.time())    modules=time
+    ${end}    Evaluate    ${now} + 3600
+    Ctn Send External Command    SCHEDULE_SVC_DOWNTIME;host_1;service_1;${now};${end};1;0;3600;admin;fixed downtime
+    Wait Until Keyword Succeeds    60s    2s    Service 1 Downtime Depth Should Be    ${1}
+
+    FOR    ${i}    IN RANGE    2
+        Ctn Stop Engine
+        File Should Exist    ${VarRoot}/lib/centreon-engine/config0/downtimes.prot
+        ...    Engine should save its downtimes in downtimes.prot when stopped
+        ${restart}    Ctn Get Round Current Date
+        Ctn Start Engine    newGeneration=True
+        Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+        ${content}    Create List    Startup: 1 downtime(s) restored from
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    30
+        Should Be True    ${result}    Engine should restore the downtime from downtimes.prot
+        # The snapshot Broker sends must not change the depth.
+        ${content}    Create List    services restored from the Broker snapshot
+        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    60
+        Should Be True    ${result}    Engine should apply the Broker snapshot
+        Wait Until Keyword Succeeds    30s    2s    Service 1 Downtime Depth Should Be    ${1}
+    END
+
+    # Once deleted, the downtime is not restored anymore.
+    Ctn Delete Service Downtime Full    ${0}    host_1    service_1
+    Wait Until Keyword Succeeds    60s    2s    Service 1 Downtime Depth Should Be    ${0}
+    Ctn Stop Engine
+    ${restart}    Ctn Get Round Current Date
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine To Be Ready    ${restart}    ${1}
+    ${content}    Create List    Startup: 0 downtime(s) restored from
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${restart}    ${content}    30
+    Should Be True    ${result}    Engine should restore no downtime once it is deleted
+    Service 1 Downtime Depth Should Be    ${0}
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
+*** Keywords ***
+Service 1 Downtime Depth Should Be
+    [Documentation]    Fails unless the scheduled downtime depth of (host_1, service_1) in Engine is ${expected}.
+    [Arguments]    ${expected}
+    ${info}    Ctn Get Service Info Grpc    ${1}    ${1}
+    ${depth}    Evaluate    $info.get('scheduledDowntimeDepth', 0)
+    Should Be Equal As Integers    ${depth}    ${expected}
+
+Service 1 Notification Id Should Be Above
+    [Documentation]    Fails unless the current notification id of (host_1, service_1) is greater than ${min}, returns it otherwise.
+    [Arguments]    ${min}
+    ${info}    Ctn Get Service Info Grpc    ${1}    ${1}
+    Should Be True    ${info}[currentNotificationId] > ${min}
+    RETURN    ${info}[currentNotificationId]

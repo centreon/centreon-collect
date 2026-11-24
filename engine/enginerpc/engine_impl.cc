@@ -18,7 +18,6 @@
 
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
-#include <future>
 
 #include <boost/asio.hpp>
 namespace asio = boost::asio;
@@ -39,6 +38,7 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/commands/processing.hh"
+#include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"
@@ -2649,8 +2649,8 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
       if (request->has_triggered_by() &&
           dt->get_triggered_by() != request->triggered_by().value())
         continue;
-      if (request->has_duration() &&
-          dt->get_duration() != request->duration().value())
+      if (request->has_duration() && static_cast<int64_t>(dt->get_duration()) !=
+                                         request->duration().value())
         continue;
       if (!(request->author().empty()) && dt->get_author() != request->author())
         continue;
@@ -2727,8 +2727,8 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
       if (request->has_triggered_by() &&
           dt->get_triggered_by() != request->triggered_by().value())
         continue;
-      if (request->has_duration() &&
-          dt->get_duration() != request->duration().value())
+      if (request->has_duration() && static_cast<int64_t>(dt->get_duration()) !=
+                                         request->duration().value())
         continue;
       if (!(request->author().empty()) && dt->get_author() != request->author())
         continue;
@@ -3294,8 +3294,8 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
           if (temp_host->check_period_ptr &&
               !temp_host->check_period_ptr->check_time_against_period(
                   preferred_time)) {
-            next_valid_time =
-                temp_host->check_period_ptr->get_next_valid_time(preferred_time);
+            next_valid_time = temp_host->check_period_ptr->get_next_valid_time(
+                preferred_time);
             temp_host->set_next_check(next_valid_time);
           } else
             temp_host->set_next_check(preferred_time);
@@ -3558,8 +3558,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD ||
         request->mode() ==
             ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD) {
-      auto found =
-          ::timeperiods.find(request->charval());
+      auto found = ::timeperiods.find(request->charval());
       if (found != ::timeperiods.end())
         temp_timeperiod = found->second.get();
       if (temp_timeperiod == nullptr) {
@@ -3584,7 +3583,6 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
       case ChangeObjectChar_Mode_CHANGE_GLOBAL_EVENT_HANDLER:
         pb_indexed_config.mut_state().set_global_host_event_handler(
             request->charval());
-        global_host_event_handler_ptr = cmd_found->second.get();
         attr = MODATTR_EVENT_HANDLER_COMMAND;
         /* set the modified host attribute */
         modified_host_process_attributes |= attr;
@@ -3674,8 +3672,7 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD ||
         request->mode() ==
             ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD) {
-      auto found =
-          ::timeperiods.find(request->charval());
+      auto found = ::timeperiods.find(request->charval());
       if (found != ::timeperiods.end())
         temp_timeperiod = found->second.get();
       if (temp_timeperiod == nullptr) {
@@ -3699,7 +3696,6 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_GLOBAL_EVENT_HANDLER) {
       pb_indexed_config.mut_state().set_global_service_event_handler(
           request->charval());
-      global_service_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
     } else if (request->mode() == ChangeObjectChar_Mode_CHANGE_EVENT_HANDLER) {
       temp_service->set_event_handler(request->charval());
@@ -3774,8 +3770,7 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
       return 1;
     }
 
-    auto found =
-        ::timeperiods.find(request->charval());
+    auto found = ::timeperiods.find(request->charval());
     if (found != ::timeperiods.end())
       temp_timeperiod = found->second.get();
     if (temp_timeperiod == nullptr) {

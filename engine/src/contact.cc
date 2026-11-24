@@ -19,10 +19,13 @@
 
 #include "com/centreon/engine/contact.hh"
 
+#include <cassert>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/notifications/notification_types.hh"
@@ -35,6 +38,31 @@ using namespace com::centreon::engine::string;
 namespace notifications = com::centreon::common::notifications;
 
 contact_map contact::contacts;
+
+namespace {
+/**
+ * @brief Tell whether a contact is a contact for a notifier, directly or by
+ * one of its contactgroups.
+ *
+ * @param n The notifier.
+ * @param cntct The contact.
+ *
+ * @return true if the notifier notifies the contact.
+ */
+bool is_contact_for_notifier(const notifier& n, const contact& cntct) {
+  for (const auto& [name, c] : n.contacts())
+    if (c.get() == &cntct)
+      return true;
+
+  for (const auto& [name, cg] : n.get_contactgroups()) {
+    assert(cg);
+    if (cg->get_members().contains(cntct.get_name()))
+      return true;
+  }
+
+  return false;
+}
+}  // namespace
 
 /**************************************
  *                                     *
@@ -816,6 +844,28 @@ timeperiod* contact::get_service_notification_period_ptr() const {
 
 void contact::set_service_notification_period_ptr(timeperiod* period) {
   _service_notification_period_ptr = period;
+}
+
+/**
+ * @brief Get the hosts and services this contact is a contact for, directly
+ * or by a contactgroup. They are computed again only when the contacts of a
+ * notifier may have changed.
+ *
+ * @return The hosts and services of the contact.
+ */
+const contact::notified_objects& contact::get_notified_objects() {
+  if (_notified_objects_version != notifier::contacts_version) {
+    _notified_objects.hosts.clear();
+    for (const auto& [name, hst] : host::hosts)
+      if (is_contact_for_notifier(*hst, *this))
+        _notified_objects.hosts.push_back(hst.get());
+    _notified_objects.services.clear();
+    for (const auto& [key, svc] : service::services)
+      if (is_contact_for_notifier(*svc, *this))
+        _notified_objects.services.push_back(svc.get());
+    _notified_objects_version = notifier::contacts_version;
+  }
+  return _notified_objects;
 }
 
 map_customvar const& contact::get_custom_variables() const {

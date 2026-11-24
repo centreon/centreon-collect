@@ -26,6 +26,7 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/severity.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/severity_helper.hh"
@@ -234,6 +235,10 @@ void applier::host::modify_object(configuration::Host* old_obj,
   h->set_notifications_enabled(
       static_cast<int>(new_obj.notifications_enabled()));
   h->set_check_command(new_obj.check_command());
+  // resolve_pointers() only wires a check command: the previous one is
+  // unwired here when the configuration has none anymore.
+  if (new_obj.check_command().empty())
+    h->set_check_command_ptr(nullptr);
   h->set_checks_enabled(static_cast<int>(new_obj.checks_active()));
   h->set_accept_passive_checks(static_cast<int>(new_obj.checks_passive()));
   h->set_event_handler(new_obj.event_handler());
@@ -467,6 +472,7 @@ void applier::host::remove_object(uint64_t host_id) {
     // Erase host object (will effectively delete the object).
     engine::host::hosts.erase(it->second->name());
     engine::host::hosts_by_id.erase(it);
+    ++notifier::contacts_version;
   }
 
   // Remove host from the global configuration set.

@@ -16,12 +16,11 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros/grab.hh"
+#include "engine/macros/process.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -29,6 +28,21 @@ using namespace com::centreon::engine;
 static std::atomic<uint64_t> _id{0};
 
 command_map commands::command::commands;
+
+/**
+ * @brief Find the command object of a command specification as configured,
+ * "name!arg1!arg2": only the name is looked up.
+ *
+ * @param spec The command specification.
+ *
+ * @return The command, nullptr if no command has this name.
+ */
+commands::command* commands::command::find_command(std::string_view spec) {
+  auto it = commands.find(spec.substr(0, spec.find('!')));
+  if (it == commands.end())
+    return nullptr;
+  return it->second.get();
+}
 
 /**
  *  Default constructor
@@ -145,10 +159,8 @@ void commands::command::set_listener(
  *
  *  @return The processed command line.
  */
-std::string commands::command::process_cmd(nagios_macros* macros) const {
-  std::string command_line;
-  process_macros_r(macros, this->get_command_line(), command_line, 0);
-  return command_line;
+std::string commands::command::process_cmd(macro_context& macros) const {
+  return macros::process_macros(macros, this->get_command_line(), 0);
 }
 
 /**

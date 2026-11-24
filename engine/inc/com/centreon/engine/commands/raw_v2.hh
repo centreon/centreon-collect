@@ -19,7 +19,6 @@
 #ifndef CCE_COMMANDS_RAW_V2_HH
 #define CCE_COMMANDS_RAW_V2_HH
 #include "com/centreon/common/process/process.hh"
-#include "com/centreon/common/process/process_args.hh"
 #include "com/centreon/engine/commands/command.hh"
 
 namespace com::centreon::engine {
@@ -107,12 +106,12 @@ class raw_v2 : public command {
   }
 
   uint64_t run(const std::string& process_cmd,
-               nagios_macros& macros,
+               macro_context& macros,
                uint32_t timeout,
                const check_result::pointer& to_push_to_checker,
                const notifier* caller = nullptr) override;
   void run(const std::string& process_cmd,
-           nagios_macros& macros,
+           macro_context& macros,
            uint32_t timeout,
            result& res) override;
 };

@@ -21,6 +21,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "common/timeperiods/timezone.hh"
 
@@ -335,7 +336,9 @@ void applier::scheduler::_apply_misc_event() {
           DEFAULT_ORPHAN_CHECK_INTERVAL);
   }
 
-  // Remove and add a retention data save event if needed.
+  /* Remove and add a retention data save event if needed. In centralized
+   * configuration, the event saves the downtimes file instead of retention.dat
+   * (see retention::dump::save()). */
   if ((!_evt_retention_save && _pb_config->retain_state_information()) ||
       (_evt_retention_save && !_pb_config->retain_state_information()) ||
       (_old_retention_update_interval !=

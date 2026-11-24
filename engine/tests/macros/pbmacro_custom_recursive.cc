@@ -21,17 +21,17 @@
 
 #include "../helper.hh"
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/process.hh"
 #include "common/engine_conf/command_helper.hh"
 #include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/service_helper.hh"
+#include "common/tests/timeperiods/utils.hh"
+#include "engine/macros/process.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -81,9 +81,7 @@ class MacroCustomRecursive : public TestEngine {
 
     _svc = service::services.find({"test_host", "test_svc"})->second;
 
-    init_macros();
-
-    //macros_logger->set_level(spdlog::level::trace);
+    // macros_logger->set_level(spdlog::level::trace);
   }
 
   void TearDown() override {
@@ -109,9 +107,10 @@ TEST_F(MacroCustomRecursive, HostCustomContainsHostStandard) {
   _host->custom_variables["MYVAR"] = customvariable("host is $HOSTNAME$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTMYVAR$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTMYVAR$", 0);
   ASSERT_EQ(out, "host is test_host");
 }
 
@@ -121,9 +120,10 @@ TEST_F(MacroCustomRecursive, HostCustomContainsHostCustom) {
   _host->custom_variables["OUTER"] = customvariable("got $_HOSTINNER$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTOUTER$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTOUTER$", 0);
   ASSERT_EQ(out, "got inner_value");
 }
 
@@ -133,9 +133,10 @@ TEST_F(MacroCustomRecursive, HostCustomContainsHostAddress) {
       customvariable("http://$HOSTADDRESS$/status");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTURL$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTURL$", 0);
   ASSERT_EQ(out, "http://10.0.0.1/status");
 }
 
@@ -144,9 +145,10 @@ TEST_F(MacroCustomRecursive, HostCustomNoRecursion) {
   _host->custom_variables["SIMPLE"] = customvariable("just_a_value");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTSIMPLE$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTSIMPLE$", 0);
   ASSERT_EQ(out, "just_a_value");
 }
 
@@ -160,10 +162,11 @@ TEST_F(MacroCustomRecursive, ServiceCustomFullExample) {
       customvariable("http://$HOSTADDRESS$:$_HOSTHTTPPORT$/$_SERVICEENDPOINT$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "$_SERVICECUSTOMURL$", out, 0);
+  out = macros::process_macros(*mac, "$_SERVICECUSTOMURL$", 0);
   ASSERT_EQ(out, "http://10.0.0.1:8080/api/status");
 }
 
@@ -174,10 +177,11 @@ TEST_F(MacroCustomRecursive, ServiceCustomFullExampleEndWithDollar) {
       "http://$HOSTADDRESS$:$_HOSTHTTPPORT$/$_SERVICEENDPOINT$/storage'^/$'");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "$_SERVICECUSTOMURL$", out, 0);
+  out = macros::process_macros(*mac, "$_SERVICECUSTOMURL$", 0);
   ASSERT_EQ(out, "http://10.0.0.1:8080/api/status/storage'^/$'");
 }
 
@@ -188,22 +192,23 @@ TEST_F(MacroCustomRecursive, ThreeDollarsWithCharsBetween) {
   _host->custom_variables["VAL"] = customvariable("$HOSTNAME$_$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTVAL$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTVAL$", 0);
   ASSERT_EQ(out, "test_host_$");
 }
 
 /* Unknown $-style tokens inside a custom macro value are NOT removed: they
  * are kept as-is for backward compatibility (e.g. SQL-like patterns). */
 TEST_F(MacroCustomRecursive, UnknownTokensBetweenDollarsArePreserved) {
-  _host->custom_variables["VAL"] =
-      customvariable("$UNKNOWN$_and_$MISSING$");
+  _host->custom_variables["VAL"] = customvariable("$UNKNOWN$_and_$MISSING$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTVAL$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTVAL$", 0);
   ASSERT_EQ(out, "$UNKNOWN$_and_$MISSING$");
 }
 
@@ -211,13 +216,13 @@ TEST_F(MacroCustomRecursive, UnknownTokensBetweenDollarsArePreserved) {
  * unknown token ($UNDEFINED$). The real macro is expanded; the unknown
  * token is kept as-is. */
 TEST_F(MacroCustomRecursive, HybridRealMacroAndUnknownTokenPreserved) {
-  _host->custom_variables["VAL"] =
-      customvariable("$HOSTNAME$_$UNDEFINED$");
+  _host->custom_variables["VAL"] = customvariable("$HOSTNAME$_$UNDEFINED$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTVAL$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTVAL$", 0);
   ASSERT_EQ(out, "test_host_$UNDEFINED$");
 }
 
@@ -226,10 +231,11 @@ TEST_F(MacroCustomRecursive, ServiceCustomContainsServiceStandard) {
   _svc->custom_variables["INFO"] = customvariable("svc=$SERVICEDESC$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "$_SERVICEINFO$", out, 0);
+  out = macros::process_macros(*mac, "$_SERVICEINFO$", 0);
   ASSERT_EQ(out, "svc=test_svc");
 }
 
@@ -238,10 +244,11 @@ TEST_F(MacroCustomRecursive, ServiceCustomContainsHostStandard) {
   _svc->custom_variables["HNAME"] = customvariable("host=$HOSTNAME$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "$_SERVICEHNAME$", out, 0);
+  out = macros::process_macros(*mac, "$_SERVICEHNAME$", 0);
   ASSERT_EQ(out, "host=test_host");
 }
 
@@ -252,29 +259,31 @@ TEST_F(MacroCustomRecursive, ServiceCustomContainsHostCustom) {
       customvariable("mysql://10.0.0.1:$_HOSTPORT$/db");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "$_SERVICEDSN$", out, 0);
+  out = macros::process_macros(*mac, "$_SERVICEDSN$", 0);
   ASSERT_EQ(out, "mysql://10.0.0.1:3306/db");
 }
 
 /* Service custom macro can resolve $USERn$ resource macros. */
 TEST_F(MacroCustomRecursive, ServiceCustomContainsUserMacro) {
-  extern std::string macro_user[MAX_USER_MACROS];
-  macro_user[0] = "/usr/lib/nagios/plugins";
+  auto& users = *pb_indexed_config.mut_state().mutable_users();
+  users["USER1"] = "/usr/lib/nagios/plugins";
 
   _svc->custom_variables["CHECK"] =
       customvariable("$USER1$/check_http -H $HOSTADDRESS$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "$_SERVICECHECK$", out, 0);
+  out = macros::process_macros(*mac, "$_SERVICECHECK$", 0);
   ASSERT_EQ(out, "/usr/lib/nagios/plugins/check_http -H 10.0.0.1");
 
-  macro_user[0].clear();
+  users.erase("USER1");
 }
 
 /***********************************************************************
@@ -289,10 +298,11 @@ TEST_F(MacroCustomRecursive, RecursionLimitedToDepth2) {
   _host->custom_variables["TOP"] = customvariable("$_HOSTMID$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
 
-  process_macros_r(mac, "$_HOSTTOP$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTTOP$", 0);
   ASSERT_EQ(out, "$HOSTNAME$");
 }
 
@@ -302,9 +312,10 @@ TEST_F(MacroCustomRecursive, TwoLevelChainResolvesCompletely) {
   _host->custom_variables["OUTER"] = customvariable("$_HOSTINNER$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTOUTER$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTOUTER$", 0);
   ASSERT_EQ(out, "test_host");
 }
 
@@ -316,10 +327,11 @@ TEST_F(MacroCustomRecursive, TwoLevelChainResolvesCompletely) {
  * an empty string. */
 TEST_F(MacroCustomRecursive, UnknownSimpleMacroAtTopLevelBecomesEmpty) {
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "A$UNKNOWNMACRO$B", out, 0);
+  out = macros::process_macros(*mac, "A$UNKNOWNMACRO$B", 0);
   ASSERT_EQ(out, "AB");
 }
 
@@ -331,10 +343,11 @@ TEST_F(MacroCustomRecursive, UnknownSimpleMacroInsideCustomValueIsKeptAsIs) {
       customvariable("name in ('MSSQL$SIG','MSSQL$RH')");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "$_SERVICEFILTER$", out, 0);
+  out = macros::process_macros(*mac, "$_SERVICEFILTER$", 0);
   ASSERT_EQ(out, "name in ('MSSQL$SIG','MSSQL$RH')");
 }
 
@@ -342,10 +355,11 @@ TEST_F(MacroCustomRecursive, UnknownSimpleMacroInsideCustomValueIsKeptAsIs) {
  * by an empty string. */
 TEST_F(MacroCustomRecursive, UnknownBraceMacroAtTopLevelBecomesEmpty) {
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "A{{$UNKNOWNMACRO$}}B", out, 0);
+  out = macros::process_macros(*mac, "A{{$UNKNOWNMACRO$}}B", 0);
   ASSERT_EQ(out, "AB");
 }
 
@@ -357,10 +371,11 @@ TEST_F(MacroCustomRecursive, UnknownBraceMacroInsideCustomValueBecomesEmpty) {
       customvariable("'perf-config=none{{$TITI$}}'");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->service_ptr = _svc.get();
-  process_macros_r(mac, "{{$_SERVICEEXTRAOPTIONS$}}", out, 0);
+  out = macros::process_macros(*mac, "{{$_SERVICEEXTRAOPTIONS$}}", 0);
   ASSERT_EQ(out, "'perf-config=none'");
 }
 
@@ -371,16 +386,18 @@ TEST_F(MacroCustomRecursive, UnknownBraceMacroInsideCustomValueBecomesEmpty) {
 /* ARG0 is invalid (ARG macros are 1-based) → ERROR at depth 0 → empty. */
 TEST_F(MacroCustomRecursive, Arg0InvalidAtTopLevelBecomesEmpty) {
   std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "A$ARG0$B", out, 0);
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
+  out = macros::process_macros(*mac, "A$ARG0$B", 0);
   ASSERT_EQ(out, "AB");
 }
 
 /* ARG5 is valid but not set → OK with empty value → empty. */
 TEST_F(MacroCustomRecursive, Arg5NotSetAtTopLevelBecomesEmpty) {
   std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "A$ARG5$B", out, 0);
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
+  out = macros::process_macros(*mac, "A$ARG5$B", 0);
   ASSERT_EQ(out, "AB");
 }
 
@@ -390,21 +407,24 @@ TEST_F(MacroCustomRecursive, Arg0InvalidInsideCustomValueOldStyleKeptAsIs) {
   _host->custom_variables["CMD"] = customvariable("check$ARG0$end");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTCMD$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTCMD$", 0);
   ASSERT_EQ(out, "check$ARG0$end");
 }
 
 /* ARG0 (ERROR) inside a custom macro value (new style) → empty even at
  * depth > 0. */
-TEST_F(MacroCustomRecursive, Arg0InvalidInsideCustomValueBraceStyleBecomesEmpty) {
+TEST_F(MacroCustomRecursive,
+       Arg0InvalidInsideCustomValueBraceStyleBecomesEmpty) {
   _host->custom_variables["CMD"] = customvariable("check{{$ARG0$}}end");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTCMD$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTCMD$", 0);
   ASSERT_EQ(out, "checkend");
 }
 
@@ -414,9 +434,10 @@ TEST_F(MacroCustomRecursive, Arg5NotSetInsideCustomValueBecomesEmpty) {
   _host->custom_variables["CMD"] = customvariable("check$ARG5$end");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTCMD$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTCMD$", 0);
   ASSERT_EQ(out, "checkend");
 }
 
@@ -427,30 +448,33 @@ TEST_F(MacroCustomRecursive, Arg5NotSetInsideCustomValueBecomesEmpty) {
 /* USER0 is invalid (USER macros are 1-based) → ERROR at depth 0 → empty. */
 TEST_F(MacroCustomRecursive, User0InvalidAtTopLevelBecomesEmpty) {
   std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "A$USER0$B", out, 0);
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
+  out = macros::process_macros(*mac, "A$USER0$B", 0);
   ASSERT_EQ(out, "AB");
 }
 
 /* USER1 and USER2 not set → OK with empty value → empty. */
 TEST_F(MacroCustomRecursive, User1AndUser2NotSetAtTopLevelBecomeEmpty) {
   std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "A$USER1$$USER2$B", out, 0);
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
+  out = macros::process_macros(*mac, "A$USER1$$USER2$B", 0);
   ASSERT_EQ(out, "AB");
 }
 
 /* USER1 set to a value is resolved correctly. */
 TEST_F(MacroCustomRecursive, User1SetIsResolved) {
-  extern std::string macro_user[MAX_USER_MACROS];
-  macro_user[0] = "/usr/lib/plugins";
+  auto& users = *pb_indexed_config.mut_state().mutable_users();
+  users["USER1"] = "/usr/lib/plugins";
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "$USER1$/check_foo", out, 0);
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
+  out = macros::process_macros(*mac, "$USER1$/check_foo", 0);
   ASSERT_EQ(out, "/usr/lib/plugins/check_foo");
 
-  macro_user[0].clear();
+  users.erase("USER1");
 }
 
 /* USER0 (ERROR) inside a custom macro value (old style) → kept as-is. */
@@ -458,9 +482,10 @@ TEST_F(MacroCustomRecursive, User0InvalidInsideCustomValueOldStyleKeptAsIs) {
   _host->custom_variables["VAL"] = customvariable("x$USER0$y");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTVAL$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTVAL$", 0);
   ASSERT_EQ(out, "x$USER0$y");
 }
 
@@ -470,9 +495,10 @@ TEST_F(MacroCustomRecursive, User1NotSetInsideCustomValueBecomesEmpty) {
   _host->custom_variables["VAL"] = customvariable("x$USER1$y");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTVAL$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTVAL$", 0);
   ASSERT_EQ(out, "xy");
 }
 
@@ -483,16 +509,19 @@ TEST_F(MacroCustomRecursive, User1NotSetInsideCustomValueBecomesEmpty) {
 /* CONTACTADDRESS0: index 0 subtracts to UINT_MAX → ERROR → empty at depth 0. */
 TEST_F(MacroCustomRecursive, ContactAddress0InvalidAtTopLevelBecomesEmpty) {
   std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "A$CONTACTADDRESS0$B", out, 0);
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
+  out = macros::process_macros(*mac, "A$CONTACTADDRESS0$B", 0);
   ASSERT_EQ(out, "AB");
 }
 
-/* CONTACTADDRESS1: valid index but no contact_ptr → ERROR → empty at depth 0. */
+/* CONTACTADDRESS1: valid index but no contact_ptr → ERROR → empty at depth 0.
+ */
 TEST_F(MacroCustomRecursive, ContactAddress1NoContactAtTopLevelBecomesEmpty) {
   std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "A$CONTACTADDRESS1$B", out, 0);
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
+  out = macros::process_macros(*mac, "A$CONTACTADDRESS1$B", 0);
   ASSERT_EQ(out, "AB");
 }
 
@@ -501,21 +530,24 @@ TEST_F(MacroCustomRecursive, ContactAddress1InsideCustomValueOldStyleKeptAsIs) {
   _host->custom_variables["INFO"] = customvariable("addr=$CONTACTADDRESS1$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTINFO$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTINFO$", 0);
   ASSERT_EQ(out, "addr=$CONTACTADDRESS1$");
 }
 
 /* CONTACTADDRESS1 (ERROR) inside a custom macro value (new style) → empty. */
 TEST_F(MacroCustomRecursive,
        ContactAddress1InsideCustomValueBraceStyleBecomesEmpty) {
-  _host->custom_variables["INFO"] = customvariable("addr={{$CONTACTADDRESS1$}}");
+  _host->custom_variables["INFO"] =
+      customvariable("addr={{$CONTACTADDRESS1$}}");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
-  process_macros_r(mac, "$_HOSTINFO$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTINFO$", 0);
   ASSERT_EQ(out, "addr=");
 }
 
@@ -525,11 +557,12 @@ TEST_F(MacroCustomRecursive,
 
 /* ARG1 set to a value is resolved at top level. */
 TEST_F(MacroCustomRecursive, Arg1SetAtTopLevelIsResolved) {
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->argv[0] = "myhost";
 
   std::string out;
-  process_macros_r(mac, "check -H $ARG1$", out, 0);
+  out = macros::process_macros(*mac, "check -H $ARG1$", 0);
   ASSERT_EQ(out, "check -H myhost");
 
   mac->argv[0].clear();
@@ -537,11 +570,12 @@ TEST_F(MacroCustomRecursive, Arg1SetAtTopLevelIsResolved) {
 
 /* ARG5 set to a value is resolved at top level. */
 TEST_F(MacroCustomRecursive, Arg5SetAtTopLevelIsResolved) {
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->argv[4] = "5000";
 
   std::string out;
-  process_macros_r(mac, "port=$ARG5$", out, 0);
+  out = macros::process_macros(*mac, "port=$ARG5$", 0);
   ASSERT_EQ(out, "port=5000");
 
   mac->argv[4].clear();
@@ -552,12 +586,13 @@ TEST_F(MacroCustomRecursive, Arg5SetAtTopLevelIsResolved) {
 TEST_F(MacroCustomRecursive, Arg1SetInsideCustomValueIsResolved) {
   _host->custom_variables["CMD"] = customvariable("check -H $ARG1$");
 
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->argv[0] = "myhost";
 
   std::string out;
-  process_macros_r(mac, "$_HOSTCMD$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTCMD$", 0);
   ASSERT_EQ(out, "check -H myhost");
 
   mac->argv[0].clear();
@@ -565,15 +600,16 @@ TEST_F(MacroCustomRecursive, Arg1SetInsideCustomValueIsResolved) {
 
 /* USER2 set to a value is resolved at top level. */
 TEST_F(MacroCustomRecursive, User2SetAtTopLevelIsResolved) {
-  extern std::string macro_user[MAX_USER_MACROS];
-  macro_user[1] = "secretpass";
+  auto& users = *pb_indexed_config.mut_state().mutable_users();
+  users["USER2"] = "secretpass";
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "pass=$USER2$", out, 0);
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
+  out = macros::process_macros(*mac, "pass=$USER2$", 0);
   ASSERT_EQ(out, "pass=secretpass");
 
-  macro_user[1].clear();
+  users.erase("USER2");
 }
 
 /* CONTACTADDRESS1 with a contact having address[0] set is resolved at top
@@ -586,9 +622,10 @@ TEST_F(MacroCustomRecursive, ContactAddress1WithContactAtTopLevelIsResolved) {
   engine::contact::contacts["test_contact"] = ctct;
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->contact_ptr = ctct.get();
-  process_macros_r(mac, "$CONTACTADDRESS1$", out, 0);
+  out = macros::process_macros(*mac, "$CONTACTADDRESS1$", 0);
   ASSERT_EQ(out, "192.168.1.1");
 }
 
@@ -604,9 +641,10 @@ TEST_F(MacroCustomRecursive,
   _host->custom_variables["INFO"] = customvariable("addr=$CONTACTADDRESS1$");
 
   std::string out;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac_ctx;
+  macro_context* mac = &mac_ctx;
   mac->host_ptr = _host.get();
   mac->contact_ptr = ctct.get();
-  process_macros_r(mac, "$_HOSTINFO$", out, 0);
+  out = macros::process_macros(*mac, "$_HOSTINFO$", 0);
   ASSERT_EQ(out, "addr=192.168.1.1");
 }

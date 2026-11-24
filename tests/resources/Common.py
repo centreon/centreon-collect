@@ -707,6 +707,9 @@ def ctn_clear_retention():
     getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.unprocessed*' -delete")
     getoutput(f"find {VAR_ROOT} -name 'retention.dat' -delete")
+    # The retention of the downtimes an Engine owns in centralized
+    # configuration.
+    getoutput(f"find {VAR_ROOT} -name 'downtimes.prot' -delete")
 
 
 def ctn_clear_cache():
@@ -976,6 +979,10 @@ def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_des
 
 def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
+    # Engine and Broker date acknowledgements with time(), whose coarse clock
+    # may still return the previous second a few ms after time.time() has
+    # moved on: one second of margin.
+    min_entry_time = int(entry_time) - 1
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -988,9 +995,9 @@ def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, ent
         with connection:
             with connection.cursor() as cursor:
                 logger.console(
-                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {min_entry_time} ORDER BY entry_time DESC")
                 cursor.execute(
-                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time} ORDER BY entry_time DESC")
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {min_entry_time} ORDER BY entry_time DESC")
                 result = cursor.fetchall()
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status) and result[0]['deletion_time'] is None:
                     logger.console(
@@ -3704,10 +3711,10 @@ def ctn_clear_prot_files(broker_only: bool = False):
     """
     Remove .prot files in /tmp directory.
     If broker_only is True, only remove broker prot files (i.e. files named
-    <ID>.prot), leaving Engine's state.prot files untouched.
+    <ID>.prot), leaving Engine's state.prot and downtimes.prot files untouched.
     """
     for file in Path('/tmp').rglob('*.prot'):
-        if broker_only and file.name == 'state.prot':
+        if broker_only and file.name in ('state.prot', 'downtimes.prot'):
             continue
         file.unlink()
 

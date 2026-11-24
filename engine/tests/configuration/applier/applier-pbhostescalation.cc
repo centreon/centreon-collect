@@ -21,6 +21,7 @@
 
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "helper.hh"
 

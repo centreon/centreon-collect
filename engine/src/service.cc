@@ -24,18 +24,20 @@
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
+#include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
 #include "common/timeperiods/timezone.hh"
+#include "engine/macros/process.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -1125,12 +1127,12 @@ int service::handle_async_check_result(
     set_is_being_freshened(false);
   }
 
-  if (queued_check_result.get_check_options() & CHECK_OPTION_CMA_RESULT) {
+  if ((queued_check_result.get_check_options() & CHECK_OPTION_CMA_RESULT) &&
+      get_check_command_ptr()) {
     // as check is passive and done by cma, we have to send command line to
     // broker
-    nagios_macros* macros(get_global_macros());
+    macro_context macros;
     std::string cmdline = get_check_command_line(macros);
-    clear_volatile_macros_r(macros);
     if (!cmdline.empty()) {
       broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, this,
                            checkable::check_passive, cmdline.c_str());
@@ -2152,7 +2154,7 @@ void service::check_for_flapping(bool update,
 
 /* handles changes in the state of a service */
 int service::handle_service_event() {
-  nagios_macros* mac(get_global_macros());
+  macro_context mac;
 
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_service_event()");
 
@@ -2169,11 +2171,8 @@ int service::handle_service_event() {
     return ERROR;
 
   /* update service macros */
-  auto hst = get_host_ptr();
-  if (hst) {
-    grab_host_macros_r(mac, hst.get());
-  }
-  grab_service_macros_r(mac, this);
+  mac.set_host(get_host_ptr().get());
+  mac.set_service(this);
 
   /* run the global service event handler */
   run_global_service_event_handler(mac, this);
@@ -2181,7 +2180,6 @@ int service::handle_service_event() {
   /* run the event handler command if there is one */
   if (!event_handler().empty())
     run_service_event_handler(mac, this);
-  clear_volatile_macros_r(mac);
 
   /* send data to event broker */
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, {});
@@ -2196,8 +2194,8 @@ int service::obsessive_compulsive_service_check_processor() {
   auto temp_host = get_host_ptr();
   bool early_timeout = false;
   double exectime = 0.0;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
-  nagios_macros* mac(get_global_macros());
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
+  macro_context mac;
 
   bool obsess_over_services;
   uint32_t ocsp_timeout;
@@ -2223,16 +2221,22 @@ int service::obsessive_compulsive_service_check_processor() {
     return ERROR;
 
   /* update service macros */
-  grab_host_macros_r(mac, temp_host.get());
-  grab_service_macros_r(mac, this);
+  mac.set_host(temp_host.get());
+  mac.set_service(this);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, ocsp_command_ptr, ocsp_command.c_str(),
-                         raw_command, macro_options);
-  if (raw_command.empty()) {
-    clear_volatile_macros_r(mac);
+  const commands::command* cmd = commands::command::find_command(ocsp_command);
+  if (!cmd) {
+    checks_logger->error(
+        "Error: Obsessive compulsive service processor command '{}' is not "
+        "defined",
+        ocsp_command);
     return ERROR;
   }
+  mac.set_arguments(ocsp_command, macro_options);
+  raw_command = cmd->get_command_line();
+  if (raw_command.empty())
+    return ERROR;
 
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Raw obsessive compulsive service processor "
@@ -2240,11 +2244,9 @@ int service::obsessive_compulsive_service_check_processor() {
                       raw_command);
 
   /* process any macros in the raw command line */
-  process_macros_r(mac, raw_command, processed_command, macro_options);
-  if (processed_command.empty()) {
-    clear_volatile_macros_r(mac);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
+  if (processed_command.empty())
     return ERROR;
-  }
 
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "Processed obsessive compulsive service "
@@ -2270,8 +2272,6 @@ int service::obsessive_compulsive_service_check_processor() {
         "it is not allowed by the whitelist",
         processed_command);
   }
-
-  clear_volatile_macros_r(mac);
 
   /* check to see if the command timed out */
   if (early_timeout)
@@ -2473,7 +2473,7 @@ int service::run_async_check_local(int check_options,
   set_latency(latency);
 
   // Get current host and service macros.
-  nagios_macros* macros(get_global_macros());
+  macro_context macros;
   std::string processed_cmd = svc->get_check_command_line(macros);
 
   // Time to start command.
@@ -2562,7 +2562,7 @@ int service::run_async_check_local(int check_options,
         // Run command.
         uint32_t service_check_timeout =
             pb_indexed_config.state().service_check_timeout();
-        uint64_t id = get_check_command_ptr()->run(processed_cmd, *macros,
+        uint64_t id = get_check_command_ptr()->run(processed_cmd, macros,
                                                    service_check_timeout,
                                                    check_result_info, this);
         SPDLOG_LOGGER_DEBUG(checks_logger,
@@ -2578,8 +2578,6 @@ int service::run_async_check_local(int check_options,
       }
     } while (retry);
   }
-  // Cleanup.
-  clear_volatile_macros_r(macros);
   return OK;
 }
 
@@ -2964,16 +2962,8 @@ bool service::verify_check_viability(int check_options,
   return perform_check;
 }
 
-void service::grab_macros_r(nagios_macros* mac) {
-  auto hst = get_host_ptr();
-  if (hst) {
-    grab_host_macros_r(mac, hst.get());
-  }
-  grab_service_macros_r(mac, this);
-}
-
 /* notify a specific contact about a service problem or recovery */
-int service::notify_contact(nagios_macros* mac,
+int service::notify_contact(macro_context& mac,
                             contact* cntct,
                             reason_type type,
                             const std::string& not_author,
@@ -2985,7 +2975,7 @@ int service::notify_contact(nagios_macros* mac,
   bool early_timeout = false;
   double exectime;
   struct timeval start_time, end_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   SPDLOG_LOGGER_TRACE(functions_logger, "notify_contact_of_service()");
   notifications_logger->debug("** Notifying contact '{}'", cntct->get_name());
@@ -2997,15 +2987,14 @@ int service::notify_contact(nagios_macros* mac,
   for (std::shared_ptr<commands::command> const& cmd :
        cntct->get_service_notification_commands()) {
     /* get the raw command line */
-    get_raw_command_line_r(mac, cmd, cmd->get_command_line().c_str(),
-                           raw_command, macro_options);
+    raw_command = cmd->get_command_line();
     if (raw_command.empty())
       continue;
 
     notifications_logger->debug("Raw notification command: {}", raw_command);
 
     /* process any macros contained in the argument */
-    process_macros_r(mac, raw_command, processed_command, macro_options);
+    processed_command = macros::process_macros(mac, raw_command, macro_options);
     if (processed_command.empty())
       continue;
 
@@ -3100,8 +3089,7 @@ void service::update_notification_flags() {
  * checks to see if a service escalation entry is a match for the current
  * service notification
  */
-bool service::is_valid_escalation_for_notification(escalation const* e,
-                                                   int options) const {
+bool service::is_valid_escalation_for_notification(escalation const* e) const {
   uint32_t notification_number;
   time_t current_time;
 
@@ -3123,11 +3111,6 @@ bool service::is_valid_escalation_for_notification(escalation const* e,
   /* find the service this escalation entry is associated with */
   if (e->notifier_ptr != this)
     return false;
-
-  /*** EXCEPTION ***/
-  /* broadcast options go to everyone, so this escalation is valid */
-  if (options & notification_option_broadcast)
-    return true;
 
   /* skip this escalation if it happens later */
   if (e->get_first_notification() > notification_number)
@@ -3582,17 +3565,9 @@ void service::set_check_command_ptr(
  *
  * @return std::string
  */
-std::string service::get_check_command_line(nagios_macros* macros) {
-  if (get_check_command_ptr()) {
-    auto host = get_host_ptr();
-    if (host) {
-      grab_host_macros_r(macros, host.get());
-    }
-    grab_service_macros_r(macros, this);
-    std::string tmp;
-    get_raw_command_line_r(macros, get_check_command_ptr(),
-                           check_command().c_str(), tmp, 0);
-    return get_check_command_ptr()->process_cmd(macros);
-  } else
-    return "";
+std::string service::get_check_command_line(macro_context& macros) {
+  macros.set_host(get_host_ptr().get());
+  macros.set_service(this);
+  macros.set_arguments(check_command(), 0);
+  return get_check_command_ptr()->process_cmd(macros);
 }

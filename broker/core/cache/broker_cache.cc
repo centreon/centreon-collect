@@ -15,6 +15,8 @@
  *
  * For more information : contact@centreon.com
  */
+#include <absl/strings/match.h>
+
 #include <boost/preprocessor/seq/for_each.hpp>
 
 #include <memory>
@@ -34,6 +36,7 @@
 #include "common/engine_conf/servicedependency_helper.hh"
 #include "common/engine_conf/serviceescalation_helper.hh"
 #include "common/notifications/notification_manager.hh"
+#include "common/proto_file/proto_file.hh"
 #include "common/timeperiods/timezone.hh"
 
 namespace com::centreon::broker::cache {
@@ -190,6 +193,18 @@ class mutable_entry {
   T* operator->() const { return _entry; }
 };
 
+/**
+ * @brief Whether a ResourceIds carries at least one id.
+ *
+ * @param r The ids of a resource.
+ *
+ * @return true if one of them is not 0.
+ */
+bool has_ids(const BrokerCache::ResourceIds& r) {
+  return r.current_event_id() || r.last_event_id() || r.current_problem_id() ||
+         r.last_problem_id() || r.current_notification_id();
+}
+
 }  // namespace
 
 /**
@@ -276,6 +291,82 @@ void broker_cache::_arm_periodic_save(
       ps->cache->_save_cache();
     _arm_periodic_save(ps);
   });
+}
+
+/**
+ * @brief Store the event, problem and notification ids a status carries. Each
+ * one is optional: a status that does not carry it (older poller, BBDO2
+ * conversion, BAM virtual service) keeps the stored value. The notification id
+ * is ignored when Broker owns the notifications (notification_mode=broker):
+ * Engine does not attribute any then, Broker stores its own through
+ * set_current_notification_id(). A resource left without any id is dropped
+ * from the table.
+ *
+ * @tparam Status HostStatus or ServiceStatus, which carry the five ids, or
+ * AdaptiveHostStatus or AdaptiveServiceStatus, which carry the notification
+ * id only.
+ *
+ * @param host_id The host.
+ * @param service_id The service, 0 for a host.
+ * @param status The status.
+ */
+template <typename Status>
+void broker_cache::_update_resource_ids(uint64_t host_id,
+                                        uint64_t service_id,
+                                        const Status& status) {
+  constexpr bool full = std::is_same_v<Status, HostStatus> ||
+                        std::is_same_v<Status, ServiceStatus>;
+  const bool notification =
+      status.has_current_notification_id() &&
+      !com::centreon::common::notifications::notification_manager::is_loaded();
+  bool others = false;
+  if constexpr (full)
+    others = status.has_current_event_id() || status.has_last_event_id() ||
+             status.has_current_problem_id() || status.has_last_problem_id();
+  if (!notification && !others)
+    return;
+
+  auto key = std::make_pair(host_id, service_id);
+  BrokerCache::ResourceIds& ids = _resource_ids[key];
+  ids.set_host_id(host_id);
+  ids.set_service_id(service_id);
+  if constexpr (full) {
+    if (status.has_current_event_id())
+      ids.set_current_event_id(status.current_event_id());
+    if (status.has_last_event_id())
+      ids.set_last_event_id(status.last_event_id());
+    if (status.has_current_problem_id())
+      ids.set_current_problem_id(status.current_problem_id());
+    if (status.has_last_problem_id())
+      ids.set_last_problem_id(status.last_problem_id());
+  }
+  if (notification)
+    ids.set_current_notification_id(status.current_notification_id());
+  if (!has_ids(ids))
+    _resource_ids.erase(key);
+}
+
+/**
+ * @brief notification_mode=broker: store the notification id Broker's
+ * notification_manager just attributed to a resource, so that the runtime
+ * snapshot gives it to Engine for its macros. The manager itself is not read
+ * from the snapshot: it has no lock of its own and lives on another thread.
+ *
+ * @param host_id The host.
+ * @param service_id The service, 0 for a host.
+ * @param id The notification id; 0 is ignored.
+ */
+void broker_cache::set_current_notification_id(uint64_t host_id,
+                                               uint64_t service_id,
+                                               uint64_t id) {
+  if (!id)
+    return;
+  absl::WriterMutexLock l{&_mutex};
+  BrokerCache::ResourceIds& ids =
+      _resource_ids[std::make_pair(host_id, service_id)];
+  ids.set_host_id(host_id);
+  ids.set_service_id(service_id);
+  ids.set_current_notification_id(id);
 }
 
 /**
@@ -1440,6 +1531,7 @@ void broker_cache::_apply_locked(
           removed_service_severity_ids.insert(severity_id);
         s_index.erase(svc_it);
       }
+      _resource_ids.erase(std::make_pair(key.host_id(), key.service_id()));
       if (section_enabled(CACHE_NOTIFICATIONS))
         _resource_contacts.erase(
             std::make_pair(key.host_id(), key.service_id()));
@@ -1503,6 +1595,7 @@ void broker_cache::_apply_locked(
           removed_service_severity_ids.insert(severity_id);
         s_index.erase(svc_it);
       }
+      _resource_ids.erase(std::make_pair(key.host_id(), key.service_id()));
     }
 
     /* Severities that are not used anymore by any service or anomaly
@@ -1635,6 +1728,7 @@ void broker_cache::_apply_locked(
 
         hosts_by_id.erase(host_it);
       }
+      _resource_ids.erase(std::make_pair(host_id, 0ull));
       if (section_enabled(CACHE_NOTIFICATIONS))
         _resource_contacts.erase(std::make_pair(host_id, 0));
     }
@@ -2182,6 +2276,23 @@ void fill_overrides(
   if (mask & MOD_NOTIFICATION_TIMEPERIOD)
     out->set_notification_period(src.notification_period());
 }
+
+/**
+ * @brief Fill the ids of a snapshot entry.
+ *
+ * @tparam Runtime The snapshot entry type (HostRuntime or ServiceRuntime).
+ *
+ * @param ids The ids of the resource.
+ * @param out The snapshot entry.
+ */
+template <typename Runtime>
+void fill_ids(const BrokerCache::ResourceIds& ids, Runtime* out) {
+  out->set_current_event_id(ids.current_event_id());
+  out->set_last_event_id(ids.last_event_id());
+  out->set_current_problem_id(ids.current_problem_id());
+  out->set_last_problem_id(ids.last_problem_id());
+  out->set_current_notification_id(ids.current_notification_id());
+}
 }  // namespace
 
 /**
@@ -2216,12 +2327,16 @@ void broker_cache::fill_runtime_state(
       r->set_last_time_up(h.last_time_up());
       r->set_last_time_down(h.last_time_down());
       r->set_last_time_unreachable(h.last_time_unreachable());
+      r->set_output(h.output());
       r->set_flapping(h.flapping());
       r->set_percent_state_change(h.percent_state_change());
       r->set_latency(h.latency());
       r->set_execution_time(h.execution_time());
       r->set_last_check(h.last_check());
       r->set_check_attempt(h.check_attempt());
+      auto ids = _resource_ids.find(std::make_pair(h.host_id(), 0ull));
+      if (ids != _resource_ids.end())
+        fill_ids(ids->second, r);
       if (!broker_owns_notifications) {
         r->set_acknowledged(h.acknowledged());
         r->set_acknowledgement_type(
@@ -2257,6 +2372,7 @@ void broker_cache::fill_runtime_state(
       r->set_last_time_warning(s.last_time_warning());
       r->set_last_time_critical(s.last_time_critical());
       r->set_last_time_unknown(s.last_time_unknown());
+      r->set_output(s.output());
       if (_anomaly_detection_index.contains(
               std::make_pair(s.host_id(), s.service_id())))
         r->set_perfdata(s.perfdata());
@@ -2266,6 +2382,10 @@ void broker_cache::fill_runtime_state(
       r->set_execution_time(s.execution_time());
       r->set_last_check(s.last_check());
       r->set_check_attempt(s.check_attempt());
+      auto ids =
+          _resource_ids.find(std::make_pair(s.host_id(), s.service_id()));
+      if (ids != _resource_ids.end())
+        fill_ids(ids->second, r);
       if (!broker_owns_notifications) {
         r->set_acknowledged(s.acknowledged());
         r->set_acknowledgement_type(
@@ -2295,7 +2415,7 @@ bool broker_cache::restore_host_overrides(
     const std::function<void(Host&)>& set) {
   if (!section_enabled(CACHE_HOSTS))
     return false;
-  absl::WriterMutexLock l{&_mutex};
+  absl::WriterMutexLock l{_mutex};
   auto& index = _hosts.get<by_id>();
   auto found = index.find(host_id);
   if (found == index.end() || (*found)->obj().modified_attributes() != 0)
@@ -2321,7 +2441,7 @@ bool broker_cache::restore_service_overrides(
     const std::function<void(Service&)>& set) {
   if (!section_enabled(CACHE_SERVICES))
     return false;
-  absl::WriterMutexLock l{&_mutex};
+  absl::WriterMutexLock l{_mutex};
   auto& index = _services.get<by_id>();
   auto found = index.find(std::make_pair(host_id, service_id));
   if (found == index.end() || (*found)->obj().modified_attributes() != 0)
@@ -2644,8 +2764,10 @@ void broker_cache::remove_instance(uint64_t instance_id) {
         index_svc.lower_bound(std::make_pair((*it)->obj().host_id(), 0));
     auto upper =
         index_svc.upper_bound(std::make_pair((*it)->obj().host_id() + 1, 0));
+    _resource_ids.erase(std::make_pair((*it)->obj().host_id(), 0ull));
     for (auto svc_it = lower; svc_it != upper; ++svc_it) {
       const auto& obj = (*svc_it)->obj();
+      _resource_ids.erase(std::make_pair(obj.host_id(), obj.service_id()));
       if (obj.type() == ServiceType::ANOMALY_DETECTION) {
         auto& ad_set = _anomaly_detection_index[std::make_pair(
             obj.host_id(), obj.dependent_service_id())];
@@ -3116,6 +3238,7 @@ void broker_cache::update_host(const std::shared_ptr<neb::pb_host>& host) {
       }
       /* Engine sends no custom variable deletion for a removed host. */
       _otel_services.erase(h.host_id());
+      _resource_ids.erase(std::make_pair(h.host_id(), 0ull));
     }
   }
   if (restored_notify)
@@ -3187,6 +3310,7 @@ void broker_cache::update_host(
        * overwrite it. */
       if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
         hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
+      _update_resource_ids(host_id, 0, hs);
       updated = true;
 
       entry.release();
@@ -3351,6 +3475,7 @@ void broker_cache::update_host(
         hst.set_notification_number(hs.notification_number());
       if (hs.has_flapping())
         hst.set_flapping(hs.flapping());
+      _update_resource_ids(hs.host_id(), 0, hs);
 
       entry.release();
 
@@ -3419,6 +3544,7 @@ void broker_cache::update_service(const std::shared_ptr<neb::pb_service>& svc) {
         }
         index.erase(it);
       }
+      _resource_ids.erase(std::make_pair(s.host_id(), s.service_id()));
     }
   }
   if (restored_notify)
@@ -3503,6 +3629,7 @@ void broker_cache::update_service(
      * Engine must not overwrite it. */
     if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
       svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+    _update_resource_ids(obj.host_id(), obj.service_id(), obj);
 
     entry.release();
 
@@ -3811,7 +3938,7 @@ bool broker_cache::set_notification_period(uint64_t host_id,
  * rebuilt them with the configured values. Each restored field is republished
  * so the database follows. No-op in notification_mode=engine.
  */
-void broker_cache::reinject_pending_notification_overrides() {
+void broker_cache::_reinject_pending_notification_overrides() {
   if (!com::centreon::common::notifications::notification_manager::is_loaded())
     return;
   std::vector<std::tuple<uint64_t, uint64_t, resource_notification_override>>
@@ -4110,7 +4237,7 @@ std::vector<uint64_t> broker_cache::children_of(uint64_t host_id) const {
  * restore the flag through its statuses. Called where the downtimes are
  * re-injected. No-op in notification_mode=engine.
  */
-void broker_cache::reinject_pending_acknowledgements() {
+void broker_cache::_reinject_pending_acknowledgements() {
   if (!com::centreon::common::notifications::notification_manager::is_loaded())
     return;
   /* (host_id, service_id, type) restored under the lock, published after. */
@@ -4377,6 +4504,7 @@ void broker_cache::update_service(
       svc.set_notification_number(obj.notification_number());
     if (obj.has_flapping())
       svc.set_flapping(obj.flapping());
+    _update_resource_ids(obj.host_id(), obj.service_id(), obj);
 
     entry.release();
 
@@ -5022,7 +5150,8 @@ broker_cache::escalation_result broker_cache::notification_escalation(
   escalation_result retval;
   const absl::TimeZone tz = common::timeperiods::string_to_timezone(timezone);
 
-  auto in_period = [&](const std::string& period) {
+  auto in_period = [&](const std::string& period)
+                       ABSL_SHARED_LOCKS_REQUIRED(_mutex) {
     if (period.empty())
       return true;
     auto tp = _timeperiods.find(period);
@@ -6089,17 +6218,20 @@ uint32_t broker_cache::severity(uint64_t host_id, uint64_t service_id) const {
 /**
  * @brief Load the cache from a file. This is used to persist the cache across
  * restarts of the broker. The cache is loaded from a binary file using
- * Protocol Buffers serialization.
+ * Protocol Buffers serialization, compressed or not: the header of the file
+ * tells, whatever the cache_compression setting is.
  */
 void broker_cache::_load_cache() {
   SPDLOG_LOGGER_INFO(_logger, "broker_cache: loading cache from '{}'",
                      _cache_file.string());
-  std::ifstream ifs{_cache_file, std::ios::binary};
-  if (ifs) {
-    BrokerCache to_load;
-    if (!to_load.ParseFromIstream(&ifs)) {
-      SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot parse cache file '{}'",
-                          _cache_file.string());
+  BrokerCache to_load;
+  std::error_code ec;
+  common::read_proto_file(_cache_file, to_load, ec);
+  if (ec != std::errc::no_such_file_or_directory) {
+    if (ec) {
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "broker_cache: cannot read cache file '{}': {}",
+                          _cache_file.string(), ec.message());
     } else {
       absl::WriterMutexLock lck{_mutex};
       /* The heavy cache sections are reloaded only in legacy mode; in
@@ -6197,6 +6329,9 @@ void broker_cache::_load_cache() {
       }
       _pending_notification_states.assign(to_load.notification_states().begin(),
                                           to_load.notification_states().end());
+      for (const auto& ids : to_load.resource_ids())
+        _resource_ids.insert_or_assign(
+            std::make_pair(ids.host_id(), ids.service_id()), ids);
       for (const auto& o : to_load.notification_overrides()) {
         resource_notification_override& ov =
             _notification_overrides[std::make_pair(o.host_id(),
@@ -6245,7 +6380,8 @@ void broker_cache::_load_cache() {
 /**
  * @brief Save the cache to a file. This is used to persist the cache across
  * restarts of the broker. The cache is saved in a binary format using
- * Protocol Buffers serialization.
+ * Protocol Buffers serialization, compressed with zstd unless cache_compression
+ * is disabled.
  */
 void broker_cache::_save_cache() {
   SPDLOG_LOGGER_INFO(_logger, "broker_cache: saving cache...");
@@ -6337,6 +6473,9 @@ void broker_cache::_save_cache() {
         }
       }
     }  // end of legacy-only heavy sections
+    /* The event, problem and notification ids of the resources. */
+    for (const auto& [key, ids] : _resource_ids)
+      to_save.add_resource_ids()->CopyFrom(ids);
     /* Active downtimes are persisted in both legacy and centralized mode so
      * they can be re-injected into the downtime_manager on the next start. */
     for (const auto& d : _active_downtimes_to_save)
@@ -6384,37 +6523,22 @@ void broker_cache::_save_cache() {
     }
   }
   const auto copied = std::chrono::steady_clock::now();
-  /* Saving the BrokerCache in a temporary file, then renamed: a crash during
-   * the write never leaves a truncated cache file. */
-  std::filesystem::path tmp{_cache_file};
-  tmp += ".tmp";
-  {
-    std::ofstream ofs{tmp, std::ios::binary | std::ios::trunc};
-    if (!ofs) {
-      SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot open cache file '{}'",
-                          tmp.string());
-      return;
-    }
-    if (!to_save.SerializeToOstream(&ofs) || !ofs.flush()) {
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "broker_cache: cannot serialize cache to file '{}'",
-                          tmp.string());
-      return;
-    }
-  }
+  /* Saving the BrokerCache, whole or not at all: a Broker killed while saving
+   * keeps the previous file. */
+  const bool compress = config::applier::state::instance().cache_compression();
   std::error_code ec;
-  std::filesystem::rename(tmp, _cache_file, ec);
+  common::write_proto_file(_cache_file, to_save, compress, ec);
   if (ec) {
     SPDLOG_LOGGER_ERROR(_logger,
-                        "broker_cache: cannot move cache file '{}' to '{}': {}",
-                        tmp.string(), _cache_file.string(), ec.message());
+                        "broker_cache: cannot save cache to file '{}': {}",
+                        _cache_file.string(), ec.message());
     return;
   }
   SPDLOG_LOGGER_INFO(
       _logger,
-      "broker_cache: cache saved to file '{}' in {} ms ({} ms under lock, {} "
+      "broker_cache: cache saved to file '{}'{} in {} ms ({} ms under lock, {} "
       "bytes)",
-      _cache_file.string(),
+      _cache_file.string(), compress ? " (compressed)" : "",
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - start)
           .count(),
@@ -6448,11 +6572,30 @@ void broker_cache::set_notification_states(
 }
 
 /**
+ * @brief Re-inject the state read back from the cache file into the managers
+ * of Broker, once the resources it concerns are known to the cache. Each step
+ * is a no-op when its manager is not loaded (notification_mode=engine) or
+ * when nothing is pending, and the whole is idempotent.
+ *
+ * Called when the startup barrier is released and after the merge() of a
+ * poller configuration rebuilt from Engine. The order matters: downtimes
+ * first (reload_started_downtime recomputes the depth), then the notification
+ * states (number, timings, notified contacts), the acknowledgement flags and
+ * the notification switches toggled through the Broker API.
+ */
+void broker_cache::reinject_pending() {
+  _reinject_pending_downtimes();
+  _reinject_pending_notification_states();
+  _reinject_pending_acknowledgements();
+  _reinject_pending_notification_overrides();
+}
+
+/**
  * @brief Re-inject the pending notification states into the
  * notification_manager so the notification chain (number, timings and the
  * contacts told about the ongoing problem) resumes after a restart.
  */
-void broker_cache::reinject_pending_notification_states() {
+void broker_cache::_reinject_pending_notification_states() {
   namespace notifications = com::centreon::common::notifications;
   if (!notifications::notification_manager::is_loaded())
     return;
@@ -6502,7 +6645,7 @@ void broker_cache::reinject_pending_notification_states() {
  * Idempotent and drains _pending_active_downtimes as resources become known
  * (immediately in legacy mode, later via merge() in centralized mode).
  */
-void broker_cache::reinject_pending_downtimes() {
+void broker_cache::_reinject_pending_downtimes() {
   if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
     return;
 

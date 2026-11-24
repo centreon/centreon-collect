@@ -141,6 +141,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     cache_dir = s.cache_directory();
 
   _cache_dir = cache_dir / s.broker_name();
+  _cache_compression = s.cache_compression();
 
   //  if (s.get_bbdo_version().major_v >= 3) {
   //    // Configuration cache directory (for broker, from php).
@@ -232,9 +233,10 @@ void state::_enable_multiplexing(bool run_mux) {
     _barrier_armed = true;
     /* Some outputs may already have registered before we armed: their failover
      * thread started during endpoint::apply(). */
-    release_now = std::all_of(
-        _barrier_expected.begin(), _barrier_expected.end(),
-        [this](const std::string& n) { return _barrier_ready.contains(n); });
+    auto is_ready = [this](const std::string& n) ABSL_EXCLUSIVE_LOCKS_REQUIRED(
+                        _barrier_m) { return _barrier_ready.contains(n); };
+    release_now = std::all_of(_barrier_expected.begin(),
+                              _barrier_expected.end(), is_ready);
     if (!release_now) {
       _barrier_timer = std::make_unique<boost::asio::steady_timer>(
           com::centreon::common::pool::instance().io_context());
@@ -264,10 +266,11 @@ void state::notify_output_ready(const std::string& endpoint_name) {
     if (_barrier_released)
       return;
     _barrier_ready.insert(endpoint_name);
+    auto is_ready = [this](const std::string& n) ABSL_EXCLUSIVE_LOCKS_REQUIRED(
+                        _barrier_m) { return _barrier_ready.contains(n); };
     if (_barrier_armed)
-      release = std::all_of(
-          _barrier_expected.begin(), _barrier_expected.end(),
-          [this](const std::string& n) { return _barrier_ready.contains(n); });
+      release = std::all_of(_barrier_expected.begin(), _barrier_expected.end(),
+                            is_ready);
   }
   if (release)
     _maybe_release_barrier(false);
@@ -338,6 +341,25 @@ void state::clear_cache() {
  */
 const std::string& state::cache_dir() const noexcept {
   return _cache_dir;
+}
+
+/**
+ * @brief Set whether the cache file is compressed when it is saved. apply()
+ * sets it from the configuration; this setter is for the unit tests.
+ *
+ * @param compression true to compress it.
+ */
+void state::set_cache_compression(bool compression) noexcept {
+  _cache_compression = compression;
+}
+
+/**
+ * @brief Tell whether the cache file is compressed when it is saved.
+ *
+ * @return true if it is compressed (the default).
+ */
+bool state::cache_compression() const noexcept {
+  return _cache_compression;
 }
 
 /**

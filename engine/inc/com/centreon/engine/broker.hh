@@ -29,6 +29,11 @@
 #include "com/centreon/engine/events/timed_event.hh"
 #include "neb.pb.h"
 
+namespace com::centreon::engine {
+class host;
+class service;
+}  // namespace com::centreon::engine
+
 /* Event broker options. */
 #define BROKER_NOTHING 0
 #define BROKER_PROGRAM_STATE (1 << 0)

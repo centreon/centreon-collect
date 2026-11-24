@@ -565,9 +565,12 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
             conf["centreonBroker"]["poller_name"] = f"Poller{i}"
             conf["centreonBroker"]["poller_id"] = i + 1
             current_configs[f"module{i}"] = conf
-            if default_bbdo_version is not None:
-                ctn_broker_config_add_item(
-                    f"{name}{i}", "bbdo_version", default_bbdo_version)
+            # The version is always written: a missing bbdo_version must not
+            # depend on the default of the binaries.
+            ctn_broker_config_add_item(
+                f"{name}{i}", "bbdo_version",
+                default_bbdo_version if default_bbdo_version is not None
+                else "2.0.0")
             if default_transport == "grpc":
                 ctn_config_broker_bbdo_output(
                     f"{name}{i}", "bbdo_client", "5669", "grpc", "localhost")
@@ -586,6 +589,10 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
                 ctn_config_broker_sql_output(name, 'unified_sql')
             ctn_broker_config_add_item(
                 name, "bbdo_version", default_bbdo_version)
+        elif "bbdo_version" not in conf["centreonBroker"]:
+            # The version is always written: a missing bbdo_version must not
+            # depend on the default of the binaries.
+            conf["centreonBroker"]["bbdo_version"] = "2.0.0"
         if default_transport == "grpc":
             if name == "central" or name == "central_map":
                 ctn_config_broker_bbdo_input(
@@ -4671,6 +4678,27 @@ def ctn_clear_broker_cache():
         os.remove(f)
 
 
+def ctn_get_broker_cache_file_format(name: str = "central-broker-master"):
+    """
+    Tell how a Broker cache file is written, from its header.
+
+    Args:
+        name: The Broker name, the cache file is <name>.cache.
+
+    Returns:
+        'zstd' if the file starts with the compressed cache header, 'plain' if it
+        is a plain BrokerCache message, 'missing' if there is no such file.
+    """
+    path = f"{VAR_ROOT}/lib/centreon-broker/{name}.cache"
+    if not os.path.exists(path):
+        return 'missing'
+    with open(path, "rb") as f:
+        header = f.read(6)
+    if header == b"\0CBC\x01\x01":
+        return 'zstd'
+    return 'plain'
+
+
 def ctn_broker_schedule_host_downtime(hostname: str, duration: int,
                                       port: int = 51001) -> int:
     """
@@ -5247,8 +5275,7 @@ def ctn_broker_set_service_notification_number(hostname: str, service_desc: str,
 
 
 def ctn_broker_send_custom_host_notification(hostname: str, author: str, comment: str,
-                                             broadcast: bool = False, forced: bool = False,
-                                             increment: bool = False, port: int = 51001):
+                                             forced: bool = False, port: int = 51001):
     """
     Send a custom notification on a host via the Broker gRPC
     SendCustomHostNotification endpoint. Requires notification_mode = broker.
@@ -5257,9 +5284,7 @@ def ctn_broker_send_custom_host_notification(hostname: str, author: str, comment
         hostname: The host name.
         author: The notification author.
         comment: The notification comment.
-        broadcast: Notify every contact, escalations ignored.
         forced: Bypass the enabled switches and periods.
-        increment: Count it in the notification number.
         port: The Broker gRPC port (default 51001).
 
     *Example:*
@@ -5272,15 +5297,12 @@ def ctn_broker_send_custom_host_notification(hostname: str, author: str, comment
         req.host.host_name = hostname
         req.author = author
         req.comment = comment
-        req.broadcast = bool(broadcast)
         req.forced = bool(forced)
-        req.increment = bool(increment)
         stub.SendCustomHostNotification(req, timeout=GRPC_TIMEOUT)
 
 
 def ctn_broker_send_custom_service_notification(hostname: str, service_desc: str, author: str,
-                                                comment: str, broadcast: bool = False,
-                                                forced: bool = False, increment: bool = False,
+                                                comment: str, forced: bool = False,
                                                 port: int = 51001):
     """
     Send a custom notification on a service via the Broker gRPC
@@ -5291,9 +5313,7 @@ def ctn_broker_send_custom_service_notification(hostname: str, service_desc: str
         service_desc: The service description.
         author: The notification author.
         comment: The notification comment.
-        broadcast: Notify every contact, escalations ignored.
         forced: Bypass the enabled switches and periods.
-        increment: Count it in the notification number.
         port: The Broker gRPC port (default 51001).
 
     *Example:*
@@ -5307,9 +5327,7 @@ def ctn_broker_send_custom_service_notification(hostname: str, service_desc: str
         req.service.description = service_desc
         req.author = author
         req.comment = comment
-        req.broadcast = bool(broadcast)
         req.forced = bool(forced)
-        req.increment = bool(increment)
         stub.SendCustomServiceNotification(req, timeout=GRPC_TIMEOUT)
 
 

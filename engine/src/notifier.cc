@@ -26,19 +26,22 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "common/notifications/contact_viability.hh"
 #include "common/notifications/escalation.hh"
 #include "common/timeperiods/timezone.hh"
+#include "engine/macros/macro_context.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration::applier;
 namespace notifications = com::centreon::common::notifications;
+
+uint64_t notifier::contacts_version = 1;
 
 notifier::notifier(notifications::notifier_type notifier_type,
                    uint64_t host_id,
@@ -139,6 +142,7 @@ notifier::notifier(notifications::notifier_type notifier_type,
 }
 
 notifier::~notifier() {
+  ++contacts_version;
   notifications::notification_manager::forget(_host_id, _service_id);
   checks::checker::forget(this);
 }
@@ -630,38 +634,6 @@ const contactgroup_map& notifier::get_contactgroups() const noexcept {
 }
 
 /**
- *  Tests whether a contact is a contact for a particular notifier.
- *
- *  @param[in] notif Target notifier.
- *  @param[in] cntct Target contact.
- *
- *  @return true or false.
- */
-bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
-                             contact* cntct) {
-  if (!notif || !cntct)
-    return false;
-
-  // Search all individual contacts of this host.
-  for (contact_map::const_iterator it = notif->contacts().begin(),
-                                   end = notif->contacts().end();
-       it != end; ++it)
-    if (it->second.get() == cntct)
-      return true;
-
-  for (contactgroup_map::const_iterator it = notif->get_contactgroups().begin(),
-                                        end = notif->get_contactgroups().end();
-       it != end; ++it) {
-    assert(it->second);
-    if (it->second->get_members().find(cntct->get_name()) ==
-        it->second->get_members().end())
-      return true;
-  }
-
-  return false;
-}
-
-/**
  * @brief Wire the runtime pointers of the notifier from its configuration
  * names.
  *
@@ -673,19 +645,26 @@ bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
  * cleared here and refilled by those appliers.
  */
 void notifier::resolve_pointers() {
+  ++contacts_version;
+
   // Refilled by {host,service}escalation resolution, which runs afterwards.
   _escalations.clear();
 
-  // Event handler command.
+  // Event handler command. Unwired when the configuration has none anymore,
+  // or the previous command would still be run after a reload.
+  commands::command* event_handler_cmd = nullptr;
   if (!event_handler().empty()) {
     size_t pos{event_handler().find_first_of('!')};
     std::string cmd_name{event_handler().substr(0, pos)};
     command_map::iterator cmd_found{commands::command::commands.find(cmd_name)};
     if (cmd_found != commands::command::commands.end() && cmd_found->second)
-      set_event_handler_ptr(cmd_found->second.get());
+      event_handler_cmd = cmd_found->second.get();
   }
+  set_event_handler_ptr(event_handler_cmd);
 
-  // Check command.
+  // Check command. An anomaly detection has none in its configuration and
+  // keeps the one it builds itself: the host and service appliers unwire it
+  // when the configuration has none anymore.
   if (!check_command().empty()) {
     size_t pos{check_command().find_first_of('!')};
     std::string cmd_name{check_command().substr(0, pos)};
@@ -784,8 +763,7 @@ time_t notifier::get_next_notification_time(time_t offset) {
       continue;
 
     /* skip this entry if it isn't appropriate */
-    if (!is_valid_escalation_for_notification(
-            e, notifications::notification_option_none))
+    if (!is_valid_escalation_for_notification(e))
       continue;
 
     SPDLOG_LOGGER_INFO(notifications_logger,

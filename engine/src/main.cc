@@ -45,12 +45,14 @@ namespace po = boost::program_options;
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 
+#include "com/centreon/broker/neb/cbmod_config.hh"
 #include "com/centreon/common/deferred_dlclose.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
@@ -64,7 +66,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
-#include "com/centreon/engine/macros/misc.hh"
+#include "com/centreon/engine/retention/downtimes_file.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
 #include "com/centreon/engine/retention/state.hh"
@@ -75,6 +77,7 @@ namespace po = boost::program_options;
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"
+#include "common/proto_file/proto_file.hh"
 
 using namespace com::centreon::engine;
 namespace crypto = com::centreon::common::crypto;
@@ -166,10 +169,11 @@ bool startup_log_ready = false;
  * @return end, so that phases can be chained without a second clock read.
  */
 startup_clock::time_point log_startup_phase(const char* phase,
-                                           startup_clock::time_point begin,
-                                           startup_clock::time_point end) {
+                                            startup_clock::time_point begin,
+                                            startup_clock::time_point end) {
   const int64_t ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - begin)
+          .count();
   config_logger->info("Startup timing: {} = {} ms", phase, ms);
   if (!startup_log_ready)
     pending_startup_phases.emplace_back(phase, ms);
@@ -190,6 +194,92 @@ void flush_startup_phases() {
   pending_startup_phases.clear();
 }
 
+/**
+ * @brief Read the retention file at startup.
+ *
+ * In legacy configuration, the file is read as it always was, a missing file
+ * being reported as an error.
+ *
+ * In centralized configuration, the runtime state of the resources comes from
+ * Broker in the DiffState it sends at connection (RuntimeState), and Engine no
+ * longer writes the retention file; the downtimes it owns, that Broker does not
+ * send back, are saved apart (see retention::downtimes_file). A file still
+ * there is then the one left by the legacy configuration of a poller that just
+ * switched to centralized: it is read once, so that what Broker cannot know yet
+ * (downtimes owned by Engine, notification state of Engine, anomalydetection
+ * sensitivities...) survives the switch, and renamed with the ".migrated"
+ * suffix, so that it is never read again. The RuntimeState received later is
+ * applied over it, Broker being fresher. The file is renamed even if its
+ * parsing failed, a corrupted file would otherwise be read again at each
+ * startup; it is kept for diagnosis.
+ *
+ * At this stage, config_logger only writes to the standard output.
+ *
+ * @param path The retention file.
+ * @param state The retention state to fill.
+ */
+void read_retention_file(const std::string& path, retention::state& state) {
+  const bool centralized = !proto_conf.empty();
+  if (centralized) {
+    std::error_code ec;
+    if (path.empty() || !std::filesystem::exists(path, ec)) {
+      config_logger->info(
+          "Startup: centralized configuration, no retention file to read: "
+          "the runtime state comes from Broker");
+      return;
+    }
+  }
+
+  retention::parser p;
+  try {
+    p.parse(path, state);
+  } catch (const std::exception& e) {
+    config_logger->error("{}", e.what());
+  }
+
+  if (centralized) {
+    std::string migrated = fmt::format("{}.migrated", path);
+    std::error_code ec;
+    std::filesystem::rename(path, migrated, ec);
+    if (ec)
+      config_logger->error(
+          "Startup: centralized configuration, cannot rename the retention "
+          "file '{}' to '{}': {}",
+          path, migrated, ec.message());
+    else
+      config_logger->info(
+          "Startup: centralized configuration, retention file '{}' read once "
+          "and renamed to '{}'",
+          path, migrated);
+  }
+}
+
+/**
+ * @brief Make sure the cbmod configuration allows the centralized
+ * configuration asked by -p.
+ *
+ * With BBDO 2, the negotiation goes through a version_response and not a
+ * Welcome: Broker never sends a DiffState nor the runtime state. Engine would
+ * however behave as centralized on -p alone: it would read state.prot instead
+ * of its centengine.cfg, rename retention.dat after reading it once and only
+ * save its downtimes, losing everything else at each restart. So it refuses to
+ * start, before touching the retention file or state.prot.
+ *
+ * @param broker_config The cbmod configuration file (-b).
+ *
+ * @throw engine_error if the BBDO version of cbmod is lower than 3.
+ */
+void check_bbdo_version_for_proto_conf(const std::string& broker_config) {
+  uint16_t major =
+      com::centreon::broker::neb::cbmod_config_bbdo_version(broker_config)
+          .major_v;
+  if (major < 3)
+    throw engine_error() << fmt::format(
+        "Cannot start: -p (centralized configuration) requires BBDO 3 or "
+        "higher, but '{}' sets BBDO {}",
+        broker_config, major);
+}
+
 }  // namespace
 
 /**
@@ -207,9 +297,6 @@ int main(int argc, char* argv[]) {
   OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, nullptr);
 
   GOOGLE_PROTOBUF_VERIFY_VERSION;
-  // Get global macros.
-  nagios_macros* mac(get_global_macros());
-
   // Load singletons and global variable.
   log_v2::load("centengine");
 
@@ -376,6 +463,9 @@ int main(int argc, char* argv[]) {
                                             startup_clock::now());
             if (broker_config.empty())
               broker_config = pb_cfg->broker_module_cfg_file();
+            /* Same check as on a real startup: -p with BBDO 2 is refused. */
+            if (!proto_conf.empty() && !broker_config.empty())
+              check_bbdo_version_for_proto_conf(broker_config);
             state_hlp.expand(err);
             phase_begin =
                 log_startup_phase("expand", phase_begin, startup_clock::now());
@@ -499,20 +589,30 @@ int main(int argc, char* argv[]) {
           bool proto_valid = false;
           if (!proto_conf.empty()) {
             std::filesystem::path proto_conf_file(proto_conf / "state.prot");
-            std::ifstream ifs(proto_conf_file);
-            if (ifs.good()) {
-              new_conf->ParseFromIstream(&ifs);
-              ifs.close();
+            std::error_code ec;
+            com::centreon::common::read_proto_file(proto_conf_file, *new_conf,
+                                                   ec);
+            if (ec && ec != std::errc::no_such_file_or_directory) {
+              /* Started as if there were none: Engine announces the
+               * configuration of its centengine.cfg, and Broker sends it the
+               * whole one it stores. A partly read State would instead run
+               * a configuration nobody pushed. */
+              config_logger->error(
+                  "Cannot read '{}': {}. Starting as if it did not exist",
+                  proto_conf_file.string(), ec.message());
+              new_conf->Clear();
+            }
+            if (!ec) {
               proto_valid = true;
-              /* Where the configuration came from matters as much as how long it
-               * took: reading a serialized State and parsing text files are two
-               * different pieces of work, and two runs that look alike may not
-               * have read the same thing at all. */
+              /* Where the configuration came from matters as much as how long
+               * it took: reading a serialized State and parsing text files are
+               * two different pieces of work, and two runs that look alike may
+               * not have read the same thing at all. */
               config_logger->info(
                   "Startup: configuration read from {} ({} bytes)",
                   proto_conf_file.string(), new_conf->ByteSizeLong());
               phase_begin = log_startup_phase("config-read", phase_begin,
-                                             startup_clock::now());
+                                              startup_clock::now());
             }
           }
           if (!proto_valid) {
@@ -553,6 +653,8 @@ int main(int argc, char* argv[]) {
                       << std::endl;
             exit(EXIT_FAILURE);
           }
+          if (!proto_conf.empty())
+            check_bbdo_version_for_proto_conf(broker_config);
           if (!port)
             port = generate_port();
 
@@ -570,29 +672,15 @@ int main(int argc, char* argv[]) {
           phase_begin = log_startup_phase("rpc-server", phase_begin,
                                           startup_clock::now());
 
-          /* Parse retention in legacy configuration only. In centralized
-           * configuration the runtime state of the resources comes from Broker
-           * in the DiffState it sends at connection (RuntimeState). */
           retention::state state;
-          if (proto_conf.empty()) {
-            retention::parser p;
-            try {
-              p.parse(new_conf->state_retention_file(), state);
-            } catch (const std::exception& e) {
-              config_logger->error("{}", e.what());
-            }
-          } else
-            config_logger->info(
-                "Startup: centralized configuration, retention.dat is not "
-                "read: the runtime state comes from Broker");
+          read_retention_file(new_conf->state_retention_file(), state);
           phase_begin =
               log_startup_phase("retention", phase_begin, startup_clock::now());
 
-          // Get program (re)start time and save as macro. Needs to be
+          // Get program (re)start time. Needs to be
           // done after we read config files, as user may have overridden
           // timezone offset.
           program_start = std::time(nullptr);
-          mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
 
           // Handle signals (interrupts).
           setup_sighandler();
@@ -627,6 +715,13 @@ int main(int argc, char* argv[]) {
           // Initialize status data.
           initialize_status_data();
 
+          /* In centralized configuration, the downtimes Engine owns are not
+           * in retention.dat any more: they come from the downtimes file,
+           * recreated here as the retention ones are, before the downtime
+           * data is initialized. */
+          if (!proto_conf.empty())
+            retention::downtimes_file::restore(proto_conf / "downtimes.prot");
+
           // Initialize scheduled downtime data.
           downtimes::downtime_manager::instance().initialize_downtime_data();
 
@@ -654,9 +749,8 @@ int main(int argc, char* argv[]) {
           // if neb has not started g_io_context we do it here
           com::centreon::common::pool::set_pool_size(1);
 
-          // Get event start time and save as macro.
+          // Get event start time.
           event_start = time(NULL);
-          mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
 
           /* Everything from the first configuration read to here, which is what
            * an operator waiting for the poller to come back actually feels. It

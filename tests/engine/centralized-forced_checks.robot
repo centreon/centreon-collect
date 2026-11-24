@@ -146,6 +146,7 @@ CEMACROS
     ...    \\d+
     ...    /bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$"
     Ctn Clear Retention
+    Ctn Clear Db    resources
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
@@ -190,6 +191,7 @@ CEMACROS_NOTIF
 
     Remove File    /tmp/notif_toto.txt
     Ctn Clear Retention
+    Ctn Clear Db    resources
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
@@ -232,6 +234,7 @@ CEMACROS_SEMICOLON
     ...    \\d+
     ...    /bin/echo "KEY2=$_HOSTKEY2$"
     Ctn Clear Retention
+    Ctn Clear Db    resources
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
@@ -266,6 +269,7 @@ CE_HOST_DOWN_DISABLE_SERVICE_CHECKS
     Ctn Broker Config Log    central    bbdo    info
 
     Ctn Clear Retention
+    Ctn Clear Db    resources
     ${start}    Ctn Get Round Current Date
 
     Ctn Start Engine    newGeneration=True
@@ -322,6 +326,7 @@ CE_HOST_UNREACHABLE_DISABLE_SERVICE_CHECKS
     Ctn Broker Config Log    central    bbdo    info
 
     Ctn Clear Retention
+    Ctn Clear Db    resources
     ${start}    Ctn Get Round Current Date
 
     Ctn Start Engine    newGeneration=True

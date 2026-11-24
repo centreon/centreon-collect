@@ -18,8 +18,6 @@
  */
 
 #include <cstring>
-#include "common/engine_conf/timeperiod_helper.hh"
-#include "common/timeperiods/timeperiod.hh"
 #include "helper.hh"
 
 #include <com/centreon/engine/configuration/applier/timeperiod.hh>
@@ -30,6 +28,7 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "common/tests/timeperiods/utils.hh"

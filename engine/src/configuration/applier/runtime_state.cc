@@ -35,9 +35,10 @@ bool broker_owns_notifications() {
 
 /**
  * @brief The fields of the snapshot a host and a service share, set the same
- * way: the check result and, when Engine owns them, the acknowledgement and
- * the notification counters. The downtime depth is not in the snapshot: Engine
- * derives it from the downtimes as they start.
+ * way: the check result, the event, problem and notification ids and, when
+ * Engine owns them, the acknowledgement and the notification counters. The
+ * downtime depth is not in the snapshot: Engine derives it from the downtimes
+ * as they start.
  *
  * @tparam Runtime The snapshot entry type (HostRuntime or ServiceRuntime).
  * @tparam Message The Engine object type (host or service).
@@ -58,8 +59,11 @@ void apply_common(const Runtime& r, Message& obj, State state, State hard) {
   obj.set_last_state_change(r.last_state_change());
   obj.set_last_hard_state(hard);
   obj.set_last_hard_state_change(r.last_hard_state_change());
-  /* The check output is not part of the snapshot: the macros reading it are
-   * to be reworked to do without. */
+  /* Only the output is carried, for the $HOSTOUTPUT$/$SERVICEOUTPUT$ macros
+   * of a command run before the first check; the long output is not. An empty
+   * one must not erase what a check may have set. */
+  if (!r.output().empty())
+    obj.set_plugin_output(r.output());
   /* Broker fills the perfdata only for the services an anomalydetection
    * depends on; an empty one must not erase what a check may have set. */
   if (!r.perfdata().empty())
@@ -70,6 +74,15 @@ void apply_common(const Runtime& r, Message& obj, State state, State hard) {
   obj.set_execution_time(r.execution_time());
   obj.set_last_check(r.last_check());
   obj.set_current_attempt(r.check_attempt());
+  obj.set_current_event_id(r.current_event_id());
+  obj.set_last_event_id(r.last_event_id());
+  obj.set_current_problem_id(r.current_problem_id());
+  obj.set_last_problem_id(r.last_problem_id());
+  /* The global counters must not give again an id restored here. */
+  next_event_id = std::max(
+      {next_event_id, r.current_event_id() + 1, r.last_event_id() + 1});
+  next_problem_id = std::max(
+      {next_problem_id, r.current_problem_id() + 1, r.last_problem_id() + 1});
   if (!broker_owns_notifications()) {
     obj.set_acknowledgement(static_cast<AckType>(r.acknowledgement_type()));
     obj.set_notification_number(r.notification_number());
@@ -77,6 +90,11 @@ void apply_common(const Runtime& r, Message& obj, State state, State hard) {
     obj.set_last_notification(r.last_notification());
     obj.set_next_notification(r.next_notification());
   }
+  /* In both modes: in broker mode, the id Broker attributed, for the macros.
+   * Also moves the notification id generator past it. 0 is skipped: there is
+   * nothing to restore and the manager would keep a state for nothing. */
+  if (r.current_notification_id())
+    obj.set_current_notification_id(r.current_notification_id());
 }
 
 /**
