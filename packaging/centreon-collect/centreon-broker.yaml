@@ -8,7 +8,7 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  Centreon Broker's default modules.
+  Centreon Broker's user and directories.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://www.centreon.com"
@@ -64,7 +64,7 @@ overrides:
       - centreon-broker-dev
 
 rpm:
-  summary: Centreon Broker's shared library.
+  summary: Centreon Broker's user and directories.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
