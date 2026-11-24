@@ -362,7 +362,7 @@ def ctn_create_key_and_certificate(host: str, key: str, cert: str, with_san: boo
     if len(key) > 0:
         if with_san:
             getoutput(
-                f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {key} -out {cert} -addext \"subjectAltName=DNS:{host},IP:127.0.0.1\"")
+                f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {key} -out {cert} -subj '/CN={host}' -addext \"subjectAltName=DNS:{host},IP:127.0.0.1\"")
         else:
             getoutput(
                 f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {key} -out {cert} -subj '/CN={host}'")
