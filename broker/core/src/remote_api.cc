@@ -191,6 +191,9 @@ class api : public std::enable_shared_from_this<api> {
     /* At least one "broker" file: the central cbd reloads itself when this
      * deployment targets its own poller. */
     bool broker_files = false;
+    /* The target engine runs next to this cbd: same poller id, or same
+     * poller name when the engine is identified by its uid. */
+    bool own_poller = false;
     time_t finished_at = 0;
   };
 
@@ -725,6 +728,10 @@ void api::_post_deployment(const json& body, answer_function&& answer) {
     d->status = st_peer_too_old;
     d->message = "poller does not accept remote actions";
   } else {
+    const auto& st = config::applier::state::instance();
+    d->own_poller = d->poller_id == st.poller_id() ||
+                    (!st.poller_name().empty() &&
+                     channel->info().poller_name == st.poller_name());
     bool ok = true;
     for (uint32_t idx = 0; ok && idx < files.size(); ++idx) {
       const file& fl = files[idx];
@@ -913,8 +920,7 @@ void api::_on_result(uint64_t poller_id, const RemoteResult& r) {
     d.finished_at = d.last_progress;
     if (status == st_applied && !d.config_version.empty())
       _config_versions[poller_id] = d.config_version;
-    if (status == st_applied && d.broker_files &&
-        poller_id == config::applier::state::instance().poller_id()) {
+    if (status == st_applied && d.broker_files && d.own_poller) {
       SPDLOG_LOGGER_INFO(_logger,
                          "remote api: deployment {} changed the configuration "
                          "of this broker, reloading it",
@@ -962,7 +968,8 @@ void api::_on_disconnect(uint64_t poller_id) {
       d.finished_at = now;
     }
   }
-  _config_versions.erase(poller_id);
+  /* The config version is kept: the delivered files stay on the poller disk
+   * and a restart deployment reconnects with them. */
 }
 
 void api::_start_housekeeping() {
