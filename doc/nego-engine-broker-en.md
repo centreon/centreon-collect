@@ -5027,6 +5027,36 @@ elected one. The verdict goes down from the connector to the stream, which logs 
 opens ("this output is / is not the reference of the global cache") and will use it for the
 overlay. Tests: `CBSS_REFERENCE`, `CBSS_REFERENCE_OPT_OUT`.
 
+*Done on 2026-10-02, the overlay.* The reference output does it in `_load_caches` (`_restore_runtime_in_cache`), i.e. at the
+first `open()` of its stream, before it reports ready to the barrier: whoever waits for the
+cache (BAM, through `on_ready`) finds the state in it. The source depends on what the output
+writes: the `resources` table when `store_in_resources`, the `hosts`/`services` tables
+otherwise, a path on its way out; never both. Each row is laid onto its entry by
+`broker_cache::restore_host_runtime` / `restore_service_runtime`, which take a function setting
+only the fields the source knows: the cache keeps the rule and the copy-on-write mechanics,
+unified_sql keeps the knowledge of the columns. The row of a resource the cache does not hold is
+skipped, the configuration of the entry is left alone, and "freshest wins" — a never-checked row
+lays nothing, an entry whose `last_check` is more recent than the row is not modified, which
+makes the restoration harmless on a reload where the cache is already alive. Written directly
+into the cache, not published: a published status would come back to this very stream and be
+written to the database again, one row per resource.
+
+The two sources do not say the same things. `resources` knows the status, whether it is
+confirmed (hard), the date of the last change, the attempt, the last check and its type, the
+output, the flapping, and two booleans, acknowledged and in downtime; it ignores the previous
+hard state, the `last_time_*`, the perfdata, the notification counters, the acknowledgement
+type and the downtime depth. The hard state is therefore set only when the status is confirmed,
+and the two booleans only when Broker does not own acknowledgements and downtimes: when it
+does, its own persisted state is re-injected right after, with the type and the depth.
+`hosts`/`services` know the whole runtime, and the list copied is the one `merge()`/`apply()`
+already keep from a replaced entry; the real state is read there through
+`COALESCE(real_state, state)`, since `state` is forced to UNREACHABLE/UNKNOWN while the poller
+is *outdated*, and the `output` column of the services, which joins output and long output on a
+newline, is split back. `resources.status`, for its part, is never forced. Tests:
+`CBA_KPI_RUNTIME_RESTORED_FROM_RESOURCES` and `CBA_KPI_RUNTIME_RESTORED_FROM_HOSTS_SERVICES` (Engine
+stopped, BAM cache file removed, cbd restarted: the restoration then BAM's seeding make the BA
+CRITICAL without a single status, from each of the two sources).
+
 *Database unreachable at first `open()`.* The barrier releases on timeout, poller statuses
 start arriving, and the overlay happens later, on the successful connection. It must then
 fill only the still-blank entries, or compare `last_check`, so as not to put an old state over

@@ -5399,6 +5399,35 @@ destructeur du connecteur quand un rechargement supprime la sortie, et
 logue à l'ouverture (« this output is / is not the reference of the global cache ») et s'en
 servira pour la superposition. Tests : `CBSS_REFERENCE`, `CBSS_REFERENCE_OPT_OUT`.
 
+*Fait le 2026-10-02, la superposition.* La sortie référence la fait dans `_load_caches` (`_restore_runtime_in_cache`), donc au
+premier `open()` de son stream, avant de se dire prête à la barrière : qui attend le cache (BAM,
+via `on_ready`) y trouve l'état. La source dépend de ce que la sortie écrit : la table
+`resources` si `store_in_resources`, sinon les tables `hosts`/`services`, chemin en voie de
+dépréciation ; jamais les deux. Chaque ligne est posée sur son entrée par
+`broker_cache::restore_host_runtime` / `restore_service_runtime`, qui reçoivent une fonction
+posant les seuls champs que la source connaît : le cache garde la règle et la mécanique de copie
+sur écriture, unified_sql garde la connaissance des colonnes. La ligne d'une ressource inconnue du
+cache est ignorée, la configuration de l'entrée n'est pas touchée, et « le plus frais gagne » —
+une ligne jamais contrôlée ne pose rien, une entrée dont le `last_check` est plus récent que la
+ligne n'est pas modifiée, ce qui rend la restauration inoffensive sur un rechargement où le cache
+est déjà vivant. Écriture directe dans le cache, pas de publication : un status publié reviendrait
+à ce même stream et serait réécrit en base, une ligne par ressource.
+
+Les deux sources ne disent pas la même chose. `resources` connaît le statut, s'il est confirmé
+(hard), la date du dernier changement, la tentative, le dernier contrôle et son type, la sortie,
+le flapping, et deux booléens, acquitté et en downtime ; elle ignore l'état hard précédent, les
+`last_time_*`, les perfdata, les compteurs de notification, le type d'acquittement et la
+profondeur de downtime. L'état hard n'est donc posé que si le statut est confirmé, et les deux
+booléens ne sont posés que si Broker ne possède pas acquittements et downtimes : quand il les
+possède, sa propre persistance les réinjecte juste après, avec le type et la profondeur.
+`hosts`/`services` connaissent tout le runtime, et la liste copiée est celle que
+`merge()`/`apply()` conservent déjà d'une entrée remplacée ; l'état réel y est lu par
+`COALESCE(real_state, state)`, puisque `state` est forcé à UNREACHABLE/UNKNOWN tant que le
+poller est *outdated*, et la colonne `output` des services, qui concatène sortie et sortie
+longue sur un saut de ligne, est rescindée. `resources.status`, lui, n'est jamais forcé. Tests : `CBA_KPI_RUNTIME_RESTORED_FROM_RESOURCES` et `CBA_KPI_RUNTIME_RESTORED_FROM_HOSTS_SERVICES`
+(Engine arrêté, fichier de cache BAM supprimé, redémarrage de cbd : la restauration puis
+l'amorçage de BAM rendent la BA CRITICAL sans aucun status, depuis chacune des deux sources).
+
 *Base injoignable au premier `open()`.* La barrière lâche au timeout, les status des pollers
 commencent à arriver, et la superposition se fait plus tard, à la connexion réussie. Elle ne
 doit alors remplir que les entrées encore vierges, ou comparer `last_check`, pour ne pas
