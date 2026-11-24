@@ -31,7 +31,8 @@
   * [What the announcement disappearing means](#what-the-announcement-disappearing-means)
   * [Backward compatibility](#backward-compatibility)
   * [Accepted limit](#accepted-limit)
-* [Evolution 4 — A stopped poller keeps its links in the storage database](#evolution-4--a-stopped-poller-keeps-its-links-in-the-storage-database)
+* [Evolution 4 — Groups, parents, tags and variables of a stopped poller: filter on `enabled`](#evolution-4--groups-parents-tags-and-variables-of-a-stopped-poller-filter-on-enabled)
+  * [In short](#in-short)
   * [What changes in Broker](#what-changes-in-broker)
   * [Why](#why)
   * [The rule for PHP](#the-rule-for-php)
@@ -57,7 +58,7 @@ It covers the following evolutions:
 2. **External commands sent over gRPC** instead of the legacy command file, with a
    routing rule that depends on which component owns the data (Engine or Broker).
 3. **An explicit configuration batch**, `pollers.lck`, announcing an export as a whole.
-4. **A stopped poller keeps its links in the storage database**: the queries reading them have to filter out disabled hosts and services.
+4. **A stopped poller keeps its links in the storage database** (group memberships, parents, tags, custom variables): the queries reading them have to join the hosts and services with `enabled = 1`.
 
 The first two evolutions are orthogonal — one can be rolled out without the other. The fourth one must be delivered with the Broker version that implements it.
 
@@ -662,7 +663,32 @@ together.
 
 ---
 
-# Evolution 4 — A stopped poller keeps its links in the storage database
+# Evolution 4 — Groups, parents, tags and variables of a stopped poller: filter on `enabled`
+
+## In short
+
+**Before.** When a poller stopped, Broker set its hosts, services and resources to `enabled = 0`, **and deleted their links**: host group and service group memberships, host parents, tags (categories) and custom variables. One minute later, it also deleted the groups left empty. A PHP query reading those links without checking `enabled` therefore saw nothing of the stopped poller, without knowing it.
+
+**Now**, in centralized configuration, Broker **keeps those links** and no longer deletes empty groups: it only sets `enabled = 0`. The database thus always describes the poller's configuration, which the update by differences requires (see [Why](#why)).
+
+**Impact on PHP.** Queries reading those links without joining the host or the service with `enabled = 1` now show the objects of a stopped poller:
+
+| Visible symptom | Queries |
+|---|---|
+| a host group or service group whose members are all on a stopped poller stays listed (drop-down lists, widgets, API v2) | 1, 2, 5 to 8 |
+| the services of a stopped poller appear in the views by service group, are counted, receive the downtime set on their group or are offered by the selector of the Graphs page | 3, 4, 9, 10 |
+| a host keeps its "parent" flag although all its children are on a stopped poller | 11 |
+| a category only used by a stopped poller is still offered in the filters | 12, 13 |
+| the criticality column is displayed because of the hosts or services of a stopped poller | 14, 15 |
+| open-tickets finds and closes the ticket of an object of a stopped poller: behaviour to decide | 16 |
+
+**To do.** Apply [the rule](#the-rule-for-php) to the 16 queries listed in [Queries to adapt](#queries-to-adapt), which gives for each one the file, the line and the fix. The other queries already filter, or do not have to ([Left as they are](#left-as-they-are)). This evolution must be delivered with the matching Broker version ([Compatibility](#compatibility)).
+
+**What does not change.**
+
+* Without centralized configuration, Broker still deletes the links when a poller stops.
+* A host or a service **removed from the configuration** is handled as before: it is set to `enabled = 0`, its parents and group memberships are deleted. Its tags and custom variables already stayed in the database: the rule covers this case too, which existed before this evolution.
+* Downtimes, comments and modules are handled as before.
 
 The line numbers below refer to centreon-web at commit `f9012b3083`.
 

@@ -40,6 +40,7 @@ The `Broker` configuration file is given to `Engine` with the `-b` option, or wi
 * `-b` gives the `Broker` configuration file of `cbmod` (see the previous section);
 * `-p` gives the working directory of the centralized configuration, in practice `/var/lib/centreon-engine`, the `HOME` of `Engine`. `Engine` is its only master: it writes `state.prot` there, the serialized copy of the configuration it has just applied, at each application, full or differential. The file name is set by `Engine`, only the directory is configurable;
 * the last argument is the historical `centengine.cfg`. It is optional with `-p`.
+* `--cache-compression=on|off` decides whether the files written in the `-p` directory, `state.prot` and `downtimes.prot`, are compressed with zstd. Absent, the option is `on`; given without `-p`, it has no effect (see [Compression of the `.cache`](04-centralized-cache-en.md#compression-of-the-cache)).
 
 The `-c` (extended configuration) and `-l` (log file) options are independent of this mechanism.
 

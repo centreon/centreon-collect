@@ -1,13 +1,5 @@
 # Évolutions PHP
 
-* [Évolution 4 — Un poller arrêté garde ses liens dans la base de stockage](#évolution-4--un-poller-arrêté-garde-ses-liens-dans-la-base-de-stockage)
-  * [Ce qui change côté Broker](#ce-qui-change-côté-broker)
-  * [Pourquoi](#pourquoi)
-  * [La règle pour PHP](#la-règle-pour-php)
-  * [Requêtes à adapter](#requêtes-à-adapter)
-  * [Laissées en l'état](#laissées-en-létat)
-  * [Défauts trouvés au passage](#défauts-trouvés-au-passage)
-  * [Compatibilité](#compatibilité)
 <!-- TOC -->
 * [Évolutions PHP](#évolutions-php)
 * [Introduction](#introduction)
@@ -39,6 +31,15 @@
   * [Ce que la disparition de l'annonce signifie](#ce-que-la-disparition-de-lannonce-signifie)
   * [Rétrocompatibilité](#rétrocompatibilité)
   * [Limite assumée](#limite-assumée)
+* [Évolution 4 — Groupes, parents, tags et variables d'un poller arrêté : filtrer sur `enabled`](#évolution-4--groupes-parents-tags-et-variables-dun-poller-arrêté--filtrer-sur-enabled)
+  * [En bref](#en-bref)
+  * [Ce qui change côté Broker](#ce-qui-change-côté-broker)
+  * [Pourquoi](#pourquoi)
+  * [La règle pour PHP](#la-règle-pour-php)
+  * [Requêtes à adapter](#requêtes-à-adapter)
+  * [Laissées en l'état](#laissées-en-létat)
+  * [Défauts trouvés au passage](#défauts-trouvés-au-passage)
+  * [Compatibilité](#compatibilité)
 <!-- TOC -->
 
 ---
@@ -58,7 +59,7 @@ Il couvre les évolutions suivantes :
    commandes, avec une règle de routage qui dépend de quel composant possède la
    donnée (Engine ou Broker).
 3. **Un lot de configuration explicite**, `pollers.lck`, qui annonce un export dans son ensemble.
-4. **Un poller arrêté garde ses liens dans la base de stockage** : les requêtes qui les lisent doivent écarter les hosts et services désactivés.
+4. **Un poller arrêté garde ses liens dans la base de stockage** (appartenances aux groupes, parents, tags, variables personnalisées) : les requêtes qui les lisent doivent joindre les hosts et services avec `enabled = 1`.
 
 Les deux premières évolutions sont orthogonales — on peut déployer l'une sans l'autre. La quatrième doit être livrée avec la version de Broker qui l'implémente.
 
@@ -675,7 +676,32 @@ est de réexporter les deux pollers ensemble.
 
 ---
 
-# Évolution 4 — Un poller arrêté garde ses liens dans la base de stockage
+# Évolution 4 — Groupes, parents, tags et variables d'un poller arrêté : filtrer sur `enabled`
+
+## En bref
+
+**Avant.** Quand un poller s'arrêtait, Broker passait ses hosts, services et ressources à `enabled = 0`, **et supprimait leurs liens** : appartenances aux groupes de hosts et de services, parents de hosts, tags (catégories) et variables personnalisées. Une minute plus tard, il supprimait aussi les groupes restés vides. Une requête PHP qui lisait ces liens sans vérifier `enabled` ne voyait donc rien du poller arrêté, sans le savoir.
+
+**Maintenant**, en configuration centralisée, Broker **garde ces liens** et ne supprime plus les groupes vides : il se contente du `enabled = 0`. La base décrit ainsi toujours la configuration du poller, ce qu'exige la mise à jour par différences (voir [Pourquoi](#pourquoi)).
+
+**Impact côté PHP.** Les requêtes qui lisent ces liens sans joindre le host ou le service avec `enabled = 1` montrent maintenant les objets d'un poller arrêté :
+
+| Symptôme visible | Requêtes |
+|---|---|
+| un groupe de hosts ou de services dont tous les membres sont sur un poller arrêté reste listé (listes déroulantes, widgets, API v2) | 1, 2, 5 à 8 |
+| les services d'un poller arrêté apparaissent dans les vues par groupe de services, sont comptés, reçoivent le downtime posé sur leur groupe ou sont proposés par le sélecteur de la page Graphiques | 3, 4, 9, 10 |
+| un host garde son indicateur « parent » alors que tous ses enfants sont sur un poller arrêté | 11 |
+| une catégorie utilisée seulement par un poller arrêté reste proposée dans les filtres | 12, 13 |
+| la colonne de criticité s'affiche à cause des hosts ou services d'un poller arrêté | 14, 15 |
+| open-tickets retrouve et ferme le ticket d'un objet d'un poller arrêté : comportement à décider | 16 |
+
+**À faire.** Appliquer [la règle](#la-règle-pour-php) aux 16 requêtes listées dans [Requêtes à adapter](#requêtes-à-adapter), qui donne pour chacune le fichier, la ligne et la correction. Les autres requêtes filtrent déjà, ou n'ont pas à le faire ([Laissées en l'état](#laissées-en-létat)). Cette évolution doit être livrée avec la version de Broker correspondante ([Compatibilité](#compatibilité)).
+
+**Ce qui ne change pas.**
+
+* Hors configuration centralisée, Broker supprime toujours les liens à l'arrêt d'un poller.
+* Un host ou un service **retiré de la configuration** est traité comme avant : il passe à `enabled = 0`, ses parents et ses appartenances aux groupes sont supprimés. Ses tags et ses variables personnalisées restaient déjà en base : la règle couvre aussi ce cas, qui existait avant cette évolution.
+* Les downtimes, les commentaires et les modules sont traités comme avant.
 
 Les numéros de ligne ci-dessous se rapportent à centreon-web au commit `f9012b3083`.
 
