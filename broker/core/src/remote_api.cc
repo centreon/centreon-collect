@@ -59,6 +59,8 @@ constexpr int max_command_timeout_ms = 30000;
 /* Below the 30 s budget of the web, its own overhead included. */
 constexpr time_t deployment_progress_timeout = 20;
 constexpr time_t deployment_keep_duration = 3600;
+/* RemoteResult index of a plugin install outcome (cbmod). */
+constexpr int32_t plugins_result_index = -2;
 
 /* Status names of the HTTP contract. */
 constexpr const char* st_accepted = "ACCEPTED";
@@ -192,6 +194,8 @@ class api : public std::enable_shared_from_this<api> {
     std::string message;
     std::string config_version;
     std::vector<std::string> plugins_missing;
+    /* Plugin install outcome (index -2 results), null until the first. */
+    json plugins;
     time_t last_progress = 0;
     /* At least one "broker" file: the central cbd reloads itself when this
      * deployment targets its own poller. */
@@ -215,6 +219,8 @@ class api : public std::enable_shared_from_this<api> {
       _commands ABSL_GUARDED_BY(_m);
   absl::flat_hash_map<std::string, std::shared_ptr<deployment>> _deployments
       ABSL_GUARDED_BY(_m);
+  /* Last plugin install outcome per peer, kept across reconnects. */
+  absl::flat_hash_map<uint64_t, json> _plugins ABSL_GUARDED_BY(_m);
   absl::flat_hash_map<uint64_t, std::string> _config_versions
       ABSL_GUARDED_BY(_m);
   bool _stopped ABSL_GUARDED_BY(_m) = false;
@@ -792,12 +798,15 @@ void api::_post_deployment(const json& body, answer_function&& answer) {
 }
 
 json api::_deployment_json(const deployment& d) const {
-  return json{{"request_id", d.id},
-              {"poller_id", std::to_string(d.poller_id)},
-              {"status", d.status},
-              {"message", d.message},
-              {"config_version", d.config_version},
-              {"plugins_missing", d.plugins_missing}};
+  json j{{"request_id", d.id},
+         {"poller_id", std::to_string(d.poller_id)},
+         {"status", d.status},
+         {"message", d.message},
+         {"config_version", d.config_version},
+         {"plugins_missing", d.plugins_missing}};
+  if (!d.plugins.is_null())
+    j["plugins"] = d.plugins;
+  return j;
 }
 
 /**
@@ -857,8 +866,43 @@ json api::_pollers_json() const {
                        {"connected_since", i.connected_since},
                        {"config_version",
                         v == _config_versions.end() ? "" : v->second}});
+    auto p = _plugins.find(i.poller_id);
+    if (p != _plugins.end())
+      pollers.back()["plugins"] = p->second;
   }
   return json{{"pollers", pollers}};
+}
+
+/**
+ * @brief Plugin install outcome (RemoteResult index -2) as exposed by the API:
+ * RUNNING while the install runs, then INSTALLED, FAILED or PARTIAL.
+ */
+static json plugins_json(const RemoteResult& r) {
+  std::string status;
+  json packages = json::array();
+  if (r.status() == REMOTE_DELIVERED) {
+    status = "RUNNING";
+  } else if (r.status() == REMOTE_REJECTED) {
+    status = "FAILED";
+  } else {
+    size_t installed = 0, failed = 0;
+    for (auto& p : r.plugins()) {
+      if (p.status() == "installed")
+        ++installed;
+      else
+        ++failed;
+      packages.push_back({{"name", p.name()},
+                          {"status", p.status() == "installed" ? "installed"
+                                                               : "failed"},
+                          {"message", p.message()}});
+    }
+    status = failed == 0 ? "INSTALLED" : installed == 0 ? "FAILED" : "PARTIAL";
+  }
+  return json{{"deployment_id", r.request_id()},
+              {"status", status},
+              {"updated_at", time(nullptr)},
+              {"message", r.message()},
+              {"packages", packages}};
 }
 
 /**
@@ -880,6 +924,21 @@ void api::_on_result(uint64_t poller_id, const RemoteResult& r) {
       return;
   }
   absl::MutexLock lck(&_m);
+  if (r.index() == plugins_result_index) {
+    /* Plugin install outcome: independent of the deployment status, which
+     * may already be final. */
+    json p = plugins_json(r);
+    SPDLOG_LOGGER_INFO(_logger,
+                       "remote api: plugin install of deployment {} on poller "
+                       "{}: {} {}",
+                       r.request_id(), poller_id, p["status"].get<std::string>(),
+                       r.message());
+    auto dit = _deployments.find(r.request_id());
+    if (dit != _deployments.end() && dit->second->poller_id == poller_id)
+      dit->second->plugins = p;
+    _plugins[poller_id] = std::move(p);
+    return;
+  }
   auto cit = _commands.find(r.request_id());
   if (cit != _commands.end()) {
     auto req = cit->second.first;
@@ -975,6 +1034,18 @@ void api::_on_disconnect(uint64_t poller_id) {
   }
   /* The config version is kept: the delivered files stay on the poller disk
    * and a restart deployment reconnects with them. */
+
+  /* An install still running is lost with the engine (restart): report it. */
+  auto pit = _plugins.find(poller_id);
+  if (pit != _plugins.end() && pit->second["status"] == "RUNNING") {
+    json& p = pit->second;
+    p["status"] = "FAILED";
+    p["message"] = "interrupted: poller disconnected during the install";
+    p["updated_at"] = now;
+    auto dit = _deployments.find(p["deployment_id"].get<std::string>());
+    if (dit != _deployments.end() && dit->second->poller_id == poller_id)
+      dit->second->plugins = p;
+  }
 }
 
 void api::_start_housekeeping() {

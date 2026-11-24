@@ -112,4 +112,13 @@ message RemoteResult {
   string message = 4;
   string config_version = 5;
   repeated string plugins_missing = 6;
+  /* Plugin install outcome (index -2): one entry per package of plugins.json */
+  repeated PluginPackage plugins = 7;
+}
+
+/* Ignore */
+message PluginPackage {
+  string name = 1;
+  string status = 2;  // installed | failed
+  string message = 3;
 }

@@ -22,6 +22,8 @@
 #include "broker/core/bbdo/remote.hh"
 #include "com/centreon/common/file_system.hh"
 #include "com/centreon/common/pool.hh"
+#include "com/centreon/common/process/process.hh"
+#include "com/centreon/common/utf8.hh"
 #include "common/log_v2/log_v2.hh"
 
 #include <absl/container/flat_hash_map.h>
@@ -30,6 +32,7 @@
 #include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
 #include <openssl/evp.h>
+#include <cstdlib>
 #include <cstring>
 #include <boost/asio/steady_timer.hpp>
 #include <deque>
@@ -423,6 +426,234 @@ void delayed_restart() {
   });
 }
 
+/********************************************************************
+ * Plugin install (plugins.json committed by a deployment)
+ ********************************************************************/
+
+/* RemoteResult index of a plugin install outcome. */
+constexpr int32_t plugins_result_index = -2;
+constexpr std::chrono::seconds plugins_install_timeout{1800};
+
+struct plugins_install {
+  std::string id;
+  std::shared_ptr<bbdo::remote_channel> channel;
+  std::string plugins_json;
+};
+
+/* One install at a time; a newer trigger replaces the queued one. */
+absl::Mutex g_plugins_m;
+bool g_plugins_running ABSL_GUARDED_BY(g_plugins_m) = false;
+std::unique_ptr<plugins_install> g_plugins_queued ABSL_GUARDED_BY(g_plugins_m);
+
+/**
+ * @brief The engine plugins.json of the deployment when it is new or differs
+ * from the installed one, an empty path otherwise.
+ */
+fs::path plugins_json_changed(const deployment& d) {
+  for (auto& p : d.files) {
+    const staged_file& f = *p.second;
+    if (f.target != "engine" || f.path != "plugins.json")
+      continue;
+    std::error_code ec;
+    if (!fs::exists(f.final_path, ec))
+      return f.final_path;
+    std::string content;
+    try {
+      content = com::centreon::common::read_file_content(f.final_path);
+    } catch (const std::exception&) {
+      return f.final_path;
+    }
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    unsigned int size = 0;
+    EVP_Digest(content.data(), content.size(), hash, &size, EVP_sha256(),
+               nullptr);
+    if (to_hex(hash, size) != f.sha256)
+      return f.final_path;
+  }
+  return {};
+}
+
+void plugins_reply(const plugins_install& p,
+                   RemoteStatus status,
+                   const std::string& message,
+                   const std::vector<PluginPackage>& packages = {}) {
+  auto r = std::make_shared<bbdo::pb_remote_result>();
+  auto& obj = r->mut_obj();
+  obj.set_request_id(p.id);
+  obj.set_index(plugins_result_index);
+  obj.set_status(status);
+  obj.set_message(com::centreon::common::check_string_utf8(message));
+  for (auto& pkg : packages)
+    *obj.add_plugins() = pkg;
+  if (!p.channel->push(r, message.size()))
+    SPDLOG_LOGGER_WARN(logger(),
+                       "remote actions: cannot report the plugin install of "
+                       "deployment '{}', stream closed",
+                       p.id);
+}
+
+/**
+ * @brief Parse the install script output: one line per package,
+ * "installed <pkg>", "uptodate <pkg>" or "failed <pkg> <message>".
+ */
+std::vector<PluginPackage> parse_plugins_output(const std::string& out) {
+  std::vector<PluginPackage> retval;
+  for (std::string_view line : absl::StrSplit(out, '\n')) {
+    std::vector<std::string_view> parts =
+        absl::StrSplit(line, absl::MaxSplits(' ', 2), absl::SkipEmpty());
+    if (parts.size() < 2)
+      continue;
+    PluginPackage pkg;
+    pkg.set_name(com::centreon::common::check_string_utf8(parts[1]));
+    if (parts[0] == "installed") {
+      pkg.set_status("installed");
+    } else if (parts[0] == "uptodate") {
+      pkg.set_status("installed");
+      pkg.set_message("already installed");
+    } else if (parts[0] == "failed") {
+      pkg.set_status("failed");
+      pkg.set_message(com::centreon::common::check_string_utf8(
+          parts.size() > 2 ? parts[2] : "install failed"));
+    } else {
+      continue;
+    }
+    retval.push_back(std::move(pkg));
+  }
+  return retval;
+}
+
+void plugins_start(std::unique_ptr<plugins_install> p);
+
+/**
+ * @brief Start the queued install, if any, else mark the installer idle.
+ */
+void plugins_next() {
+  std::unique_ptr<plugins_install> next;
+  {
+    absl::MutexLock lck(&g_plugins_m);
+    std::swap(next, g_plugins_queued);
+    if (!next)
+      g_plugins_running = false;
+  }
+  if (next)
+    plugins_start(std::move(next));
+}
+
+/**
+ * @brief Run the install command on the shared pool and report its outcome.
+ * Called with g_plugins_running set.
+ */
+void plugins_start(std::unique_ptr<plugins_install> p) {
+  const char* cmd = std::getenv("CENTREON_PLUGINS_INSTALL");
+  if (!cmd || !*cmd) {
+    plugins_next();
+    return;
+  }
+  std::shared_ptr<plugins_install> sp(std::move(p));
+  SPDLOG_LOGGER_INFO(logger(),
+                     "remote actions: deployment '{}': plugins.json changed, "
+                     "running '{} {}'",
+                     sp->id, cmd, sp->plugins_json);
+  plugins_reply(*sp, REMOTE_DELIVERED, "plugin install started");
+  try {
+    auto proc = std::make_shared<com::centreon::common::process<true>>(
+        com::centreon::common::pool::io_context_ptr(), logger(),
+        std::string_view(cmd), true, false, {sp->plugins_json}, nullptr);
+    proc->start_process(
+        [sp](const com::centreon::common::process<true>&, int exit_code,
+             com::centreon::common::e_exit_status exit_status,
+             const std::string& out, const std::string& err) {
+          try {
+            if (exit_status == com::centreon::common::e_exit_status::timeout) {
+              SPDLOG_LOGGER_ERROR(logger(),
+                                  "remote actions: deployment '{}': plugin "
+                                  "install timeout",
+                                  sp->id);
+              plugins_reply(*sp, REMOTE_REJECTED, "timeout");
+            } else {
+              std::vector<PluginPackage> packages = parse_plugins_output(out);
+              if (packages.empty() &&
+                  (exit_status != com::centreon::common::e_exit_status::normal ||
+                   exit_code != 0)) {
+                std::string msg = fmt::format(
+                    "install command failed (exit {}): {}", exit_code,
+                    err.substr(0, 512));
+                SPDLOG_LOGGER_ERROR(logger(),
+                                    "remote actions: deployment '{}': {}",
+                                    sp->id, msg);
+                plugins_reply(*sp, REMOTE_REJECTED, msg);
+              } else {
+                size_t failed = 0;
+                for (auto& pkg : packages)
+                  if (pkg.status() == "failed")
+                    ++failed;
+                SPDLOG_LOGGER_INFO(logger(),
+                                   "remote actions: deployment '{}': plugin "
+                                   "install done, {} packages, {} failed",
+                                   sp->id, packages.size(), failed);
+                plugins_reply(*sp, REMOTE_APPLIED,
+                              fmt::format("{} packages, {} failed",
+                                          packages.size(), failed),
+                              packages);
+              }
+            }
+          } catch (const std::exception& e) {
+            SPDLOG_LOGGER_ERROR(logger(),
+                                "remote actions: plugin install report: {}",
+                                e.what());
+          }
+          plugins_next();
+        },
+        plugins_install_timeout);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(logger(),
+                        "remote actions: deployment '{}': cannot run the "
+                        "plugin install: {}",
+                        sp->id, e.what());
+    plugins_reply(*sp, REMOTE_REJECTED,
+                  fmt::format("cannot run the install command: {}", e.what()));
+    plugins_next();
+  }
+}
+
+/**
+ * @brief Install the plugins of a committed plugins.json, or queue it behind
+ * the running install (the last queued one wins).
+ */
+void plugins_trigger(const std::string& id,
+                     const std::shared_ptr<bbdo::remote_channel>& channel,
+                     const fs::path& plugins_json) {
+  const char* cmd = std::getenv("CENTREON_PLUGINS_INSTALL");
+  if (!cmd || !*cmd) {
+    SPDLOG_LOGGER_DEBUG(logger(),
+                        "remote actions: deployment '{}': plugins.json "
+                        "changed, CENTREON_PLUGINS_INSTALL not set, no install",
+                        id);
+    return;
+  }
+  auto p = std::make_unique<plugins_install>(
+      plugins_install{id, channel, plugins_json.string()});
+  {
+    absl::MutexLock lck(&g_plugins_m);
+    if (g_plugins_running) {
+      if (g_plugins_queued)
+        SPDLOG_LOGGER_INFO(logger(),
+                           "remote actions: plugin install of deployment '{}' "
+                           "superseded by deployment '{}'",
+                           g_plugins_queued->id, id);
+      else
+        SPDLOG_LOGGER_INFO(logger(),
+                           "remote actions: deployment '{}': plugin install "
+                           "queued behind the running one",
+                           id);
+      g_plugins_queued = std::move(p);
+      return;
+    }
+    g_plugins_running = true;
+  }
+  plugins_start(std::move(p));
+}
+
 void handle_commit(const ConfigCommit& c,
                    const std::shared_ptr<bbdo::remote_channel>& channel) {
   std::unique_ptr<deployment> d;
@@ -457,6 +688,8 @@ void handle_commit(const ConfigCommit& c,
                           c.files_count(), complete);
   }
   bool broker_changed = error.empty() && broker_config_changed(*d);
+  fs::path plugins_json =
+      error.empty() ? plugins_json_changed(*d) : fs::path();
   if (error.empty())
     error = swap_files(*d);
   remove_staging(*d);
@@ -506,6 +739,8 @@ void handle_commit(const ConfigCommit& c,
   } else {
     reply(channel, d->id, -1, REMOTE_APPLIED, "", version);
   }
+  if (!plugins_json.empty())
+    plugins_trigger(d->id, channel, plugins_json);
 }
 
 /**

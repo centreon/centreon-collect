@@ -149,6 +149,51 @@ BERA6
     Should Start With    ${answer}[pem]    -----BEGIN CERTIFICATE-----
     Should Not Contain    ${answer}[pem]    PRIVATE KEY
 
+BERA7
+    [Documentation]    Given cbmod with an install command (CENTREON_PLUGINS_INSTALL), when a deployment commits a
+    ...    new plugins.json, then the deployment is APPLIED and the install outcome reaches GET /v1/pollers and
+    ...    GET /v1/deployments/{id}: one package installed, one up to date, one failed gives PARTIAL. The same
+    ...    plugins.json again starts no install.
+    [Tags]    broker    engine    remote_actions
+    Ctn Config Remote Actions    ${True}
+    ${stub}    Set Variable    ${VarRoot}/plugins-install-stub.sh
+    Create File    ${stub}    \#!/bin/sh\necho "installed pkg-ok"\necho "uptodate pkg-up"\necho "failed pkg-ko unknown package"\n
+    Run    chmod 755 ${stub}
+    Set Environment Variable    CENTREON_PLUGINS_INSTALL    ${stub}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Remove Environment Variable    CENTREON_PLUGINS_INSTALL
+    Ctn Wait For Engine To Be Ready    ${start}
+    ${found}    Ctn Remote Api Wait Poller    1    60
+    Should Be True    ${found}    The poller did not announce remote actions.
+
+    ${since}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${plugins_json}    Set Variable    {"pkg-ok": "1", "pkg-up": "1", "pkg-ko": "1"}
+    ${code}    ${id}    ${answer}    Ctn Remote Api Deploy    1    engine    plugins.json    ${plugins_json}
+    Should Be Equal As Integers    ${code}    202
+    ${plugins}    Ctn Remote Api Wait Plugins    1    ${since}    60
+    Should Not Be Empty    ${plugins}    No plugin install outcome reported.
+    Should Be Equal As Strings    ${plugins}[status]    PARTIAL
+    Should Be Equal As Strings    ${plugins}[deployment_id]    ${id}
+    Length Should Be    ${plugins}[packages]    3
+    Should Be Equal As Strings    ${plugins}[packages][1][message]    already installed
+    Should Be Equal As Strings    ${plugins}[packages][2][status]    failed
+
+    ${code}    ${answer}    Ctn Remote Api Request    GET    /v1/deployments/${id}
+    Should Be Equal As Integers    ${code}    200
+    Should Be Equal As Strings    ${answer}[status]    APPLIED
+    Should Be Equal As Strings    ${answer}[plugins][status]    PARTIAL
+
+    ${code}    ${id2}    ${answer}    Ctn Remote Api Deploy    1    engine    plugins.json    ${plugins_json}
+    Should Be Equal As Integers    ${code}    202
+    ${content}    Create List    deployment '${id2}': 1 files installed
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True    ${result}    The second deployment was not installed.
+    ${content}    Create List    deployment '${id2}': plugins.json changed
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    5
+    Should Not Be True    ${result}    An unchanged plugins.json started an install.
+
 
 *** Keywords ***
 Ctn Config Remote Actions

@@ -52,7 +52,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     SMTP_HOST= \
     SMTP_PORT=25 \
     SMTP_FROM=centreon-engine@localhost \
-    SMTP_TLS=off
+    SMTP_TLS=off \
+    CENTREON_PLUGINS_INSTALL=/usr/local/lib/centreon-engine/plugins-install.sh
 
 # Create users and groups (must match current setup for compatibility)
 RUN bash -e <<EOF

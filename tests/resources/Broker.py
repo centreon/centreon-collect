@@ -3701,6 +3701,61 @@ def ctn_remote_api_wait_poller(poller_id: int, timeout: int = 60, remote_actions
     return False
 
 
+def ctn_remote_api_deploy(poller_id: int, target: str, path: str, content: str, action: str = "none"):
+    """
+    POST /v1/deployments with one file for one poller.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        target (str): engine or broker.
+        path (str): Path relative to the target directory.
+        content (str): File content.
+        action (str): none, reload or restart.
+
+    Returns:
+        A list [HTTP status, request id, decoded JSON body].
+    """
+    import base64
+    import hashlib
+    data = content.encode()
+    request_id = f"robot-{time.time_ns()}"
+    body = {"request_id": request_id, "poller_id": str(poller_id), "action": action,
+            "files": [{"target": target, "path": path,
+                       "sha256": hashlib.sha256(data).hexdigest(),
+                       "content_b64": base64.b64encode(data).decode()}]}
+    code, answer = ctn_remote_api_request("POST", "/v1/deployments", body)
+    logger.console(f"remote api deployment answer: {code} {answer}")
+    return [code, request_id, answer]
+
+
+def ctn_remote_api_wait_plugins(poller_id: int, since: int, timeout: int = 60):
+    """
+    Wait until GET /v1/pollers gives a final plugin install outcome for a
+    poller, updated at or after since.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        since (int): Epoch seconds.
+        timeout (int): Timeout in seconds.
+
+    Returns:
+        The plugins object, or {} on timeout.
+    """
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        code, body = ctn_remote_api_request("GET", "/v1/pollers", timeout=5)
+        if code == 200:
+            for p in body.get("pollers", []):
+                plugins = p.get("plugins")
+                if p.get("poller_id") == str(poller_id) and plugins \
+                        and plugins.get("updated_at", 0) >= int(since) \
+                        and plugins.get("status") != "RUNNING":
+                    logger.console(f"plugins: {plugins}")
+                    return plugins
+        time.sleep(1)
+    return {}
+
+
 def ctn_remote_api_send_commands(poller_id: int, *commands):
     """
     POST /v1/commands with the given external commands for one poller. The

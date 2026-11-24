@@ -1,12 +1,12 @@
 #!/bin/sh
-# Shared helper sourced by the container.d startup/watcher scripts.
+# Shared helper sourced by the container.d startup/watcher scripts and plugins-install.sh.
 # Single source of truth for "install APT packages safely".
 
 APT_LOCK="/var/lock/centreon-engine-apt.lock"
 
 # apt_install_pkgs <pkg> [pkg...]
 #
-# Serializes against the other concurrent apt callers (40/41/45/46) via flock to
+# Serializes against the other concurrent apt callers (40/41/46, plugins-install.sh) via flock to
 # avoid dpkg lock conflicts, refreshes the package lists, then batch-installs.
 #
 # Batch install is the fast path and resolves inter-package dependencies in one
