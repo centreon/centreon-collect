@@ -141,6 +141,7 @@ if(WITH_TESTING)
       ${TESTS_DIR}/opentelemetry/agent_check_result_builder_test.cc
       ${TESTS_DIR}/opentelemetry/agent_reverse_client_test.cc
       ${TESTS_DIR}/opentelemetry/certificate_service_test.cc
+      ${TESTS_DIR}/opentelemetry/conf_helper_test.cc
       ${TESTS_DIR}/opentelemetry/grpc_config_test.cc
       ${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc
       ${TESTS_DIR}/opentelemetry/open_telemetry_test.cc

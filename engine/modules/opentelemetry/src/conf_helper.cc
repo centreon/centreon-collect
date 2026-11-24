@@ -261,8 +261,8 @@ e_get_otel_commands_ret get_otel_commands(
 
       if (pb_config.enable_event_handlers() &&
           !pb_config.global_service_event_handler().empty()) {
-        _fill_service_event_handler(serv->event_handler(), macros, *serv,
-                                    whitelist_cache, logger,
+        _fill_service_event_handler(pb_config.global_service_event_handler(),
+                                    macros, *serv, whitelist_cache, logger,
                                     global_event_handler);
       }
 

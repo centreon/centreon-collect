@@ -18,16 +18,12 @@
 #ifndef CCE_MOD_CONF_HELPER_OPENTELEMETRY_HH
 #define CCE_MOD_CONF_HELPER_OPENTELEMETRY_HH
 
-#include <absl/container/flat_hash_map.h>
-#include <absl/functional/function_ref.h>
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/service.hh"
 
 #include "com/centreon/engine/commands/forward.hh"
-#include "com/centreon/engine/utils.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 
