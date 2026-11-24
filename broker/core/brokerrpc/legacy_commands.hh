@@ -69,7 +69,7 @@ grpc::Status service_notification_number(std::string_view args,
                                          ServiceNotificationNumberRequest* req);
 /* SEND_CUSTOM_{HOST,SVC}_NOTIFICATION;host[;svc];options;author;comment
  * options is the legacy bit mask 1 broadcast (ignored), 2 forced,
- * 4 increment. */
+ * 4 increment (ignored). */
 grpc::Status host_custom_notification(std::string_view args,
                                       HostCustomNotificationRequest* req);
 grpc::Status service_custom_notification(std::string_view args,
