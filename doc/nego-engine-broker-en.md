@@ -5167,6 +5167,17 @@ full-definition branch; the adaptive branch goes out in both modes. Test: `BEEXT
 (`DISABLE/ENABLE_HOST_CHECK` and `_SVC_CHECK` sent to Broker, checked in `hosts`, `services`
 and `resources`).
 
+*Batch 2, done on 2026-10-05: the mask in the cache.* `neb.proto` gains the `ModifiedAttribute`
+enum, same values as Engine's `MODATTR_*` under the `MOD_` prefix, and a `modified_attributes`
+field on `Host` and `Service`, which Engine never sends: the cache holds it. A `pb_adaptive_host`
+or `pb_adaptive_service` carries the toggled attribute only; when applying it, the cache sets its
+bit too. `notify` and `notification_period` set the bit only when Broker does not own the
+notifications, their toggle being otherwise a native override already persisted.
+`copy_*_runtime` carries the mask over, then each check attribute only when its bit is set: an
+export of the configuration takes the lead back on what was not toggled, and the toggle survives
+on the rest, exactly what the retention applier did with its mask. Unit test:
+`AdaptiveOverrideSurvivesRebuild`.
+
 **Step 4 — Engine.** In centralized configuration, Engine stops reading `retention.dat` as soon
 as a snapshot arrives, and keeps writing it as a safety net until validated. Scheduling and
 program block flags are not carried over. The fate of the `next_*_id` counters is still to be
