@@ -132,6 +132,7 @@ target_link_libraries(
           multiplexing
           ${TESTS_LIBRARIES}
           centreon_file_system
+          proto_file
           Boost::thread
           GTest::gtest
           GTest::gtest_main

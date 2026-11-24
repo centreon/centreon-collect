@@ -33,6 +33,7 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "common/engine_conf/host_helper.hh"
+#include "common/proto_file/proto_file.hh"
 
 using namespace com::centreon::broker;
 using config::applier::broker_state;
@@ -148,18 +149,18 @@ class BrokerStateRound : public ::testing::Test {
   /** @brief The version a stored protobuf State names. */
   std::string version_of(const std::string& name) {
     com::centreon::engine::configuration::State st;
-    std::ifstream f(_dir / name, std::ios::binary);
-    EXPECT_TRUE(f) << name;
-    EXPECT_TRUE(st.ParseFromIstream(&f)) << name;
+    std::error_code read_ec;
+    com::centreon::common::read_proto_file(_dir / name, st, read_ec);
+    EXPECT_FALSE(read_ec) << name << ": " << read_ec.message();
     return st.config_version();
   }
 
   /** @brief Whether a stored difference is a full configuration. */
   bool diff_is_full(const std::string& name) {
     com::centreon::engine::configuration::DiffState diff;
-    std::ifstream f(_dir / name, std::ios::binary);
-    EXPECT_TRUE(f) << name;
-    EXPECT_TRUE(diff.ParseFromIstream(&f)) << name;
+    std::error_code read_ec;
+    com::centreon::common::read_proto_file(_dir / name, diff, read_ec);
+    EXPECT_FALSE(read_ec) << name << ": " << read_ec.message();
     return diff.has_state();
   }
 
@@ -167,9 +168,9 @@ class BrokerStateRound : public ::testing::Test {
   std::pair<std::string, std::string> versions_of_diff(
       const std::string& name) {
     com::centreon::engine::configuration::DiffState diff;
-    std::ifstream f(_dir / name, std::ios::binary);
-    EXPECT_TRUE(f) << name;
-    EXPECT_TRUE(diff.ParseFromIstream(&f)) << name;
+    std::error_code read_ec;
+    com::centreon::common::read_proto_file(_dir / name, diff, read_ec);
+    EXPECT_FALSE(read_ec) << name << ": " << read_ec.message();
     return {diff.from_version(), diff.config_version()};
   }
 
@@ -433,9 +434,10 @@ TEST_F(BrokerStateRound, DiffFileIsWrittenWholeWithoutLeftover) {
   connect(1);
 
   com::centreon::engine::configuration::DiffState diff;
-  std::ifstream f(_dir / "new-diff-1.prot", std::ios::binary);
-  ASSERT_TRUE(f);
-  ASSERT_TRUE(diff.ParseFromIstream(&f));
+  std::error_code read_ec;
+  com::centreon::common::read_proto_file(_dir / "new-diff-1.prot", diff,
+                                         read_ec);
+  ASSERT_FALSE(read_ec) << read_ec.message();
   EXPECT_EQ(diff.state().config_version(), "v1");
 
   for (const auto& entry : std::filesystem::directory_iterator(_dir))
@@ -468,9 +470,10 @@ TEST_F(BrokerStateRound, DiffStartsFromStoredConfEvenIfPollerRunsAnother) {
   ASSERT_TRUE(_state->poller_needs_update(1));
 
   com::centreon::engine::configuration::DiffState diff;
-  std::ifstream f(_dir / "new-diff-1.prot", std::ios::binary);
-  ASSERT_TRUE(f);
-  ASSERT_TRUE(diff.ParseFromIstream(&f));
+  std::error_code read_ec;
+  com::centreon::common::read_proto_file(_dir / "new-diff-1.prot", diff,
+                                         read_ec);
+  ASSERT_FALSE(read_ec) << read_ec.message();
   EXPECT_FALSE(diff.has_state());
   EXPECT_EQ(diff.from_version(), "v1");
   EXPECT_EQ(diff.config_version(), "v2");
@@ -600,16 +603,16 @@ TEST_F(BrokerStateRound, AnnouncementOfThePreparedVersionAcknowledgesIt) {
   EXPECT_FALSE(std::filesystem::exists(_dir / "new-1.prot"));
   com::centreon::engine::configuration::State st;
   {
-    std::ifstream f(_dir / "1.prot", std::ios::binary);
-    ASSERT_TRUE(f);
-    ASSERT_TRUE(st.ParseFromIstream(&f));
+    std::error_code read_ec;
+    com::centreon::common::read_proto_file(_dir / "1.prot", st, read_ec);
+    ASSERT_FALSE(read_ec) << read_ec.message();
   }
   EXPECT_EQ(st.config_version(), "v2");
   com::centreon::engine::configuration::DiffState diff;
   {
-    std::ifstream f(_dir / "diff-1.prot", std::ios::binary);
-    ASSERT_TRUE(f);
-    ASSERT_TRUE(diff.ParseFromIstream(&f));
+    std::error_code read_ec;
+    com::centreon::common::read_proto_file(_dir / "diff-1.prot", diff, read_ec);
+    ASSERT_FALSE(read_ec) << read_ec.message();
   }
   EXPECT_EQ(diff.from_version(), "v1");
   EXPECT_EQ(diff.config_version(), "v2");
@@ -656,9 +659,9 @@ class BrokerStateNextDiff : public BrokerStateRound {
 
   DiffState read_diff(const std::string& name) {
     DiffState diff;
-    std::ifstream f(_dir / name, std::ios::binary);
-    EXPECT_TRUE(f) << name;
-    EXPECT_TRUE(diff.ParseFromIstream(&f)) << name;
+    std::error_code read_ec;
+    com::centreon::common::read_proto_file(_dir / name, diff, read_ec);
+    EXPECT_FALSE(read_ec) << name << ": " << read_ec.message();
     return diff;
   }
 
@@ -737,11 +740,42 @@ TEST_F(BrokerStateNextDiff, SecondAcknowledgementMergesIntoTheWaitingDiff) {
   EXPECT_EQ(merged.hosts().removed_size(), 0);
   State stored;
   {
-    std::ifstream f(_dir / "1.prot", std::ios::binary);
-    ASSERT_TRUE(stored.ParseFromIstream(&f));
+    std::error_code read_ec;
+    com::centreon::common::read_proto_file(_dir / "1.prot", stored, read_ec);
+    ASSERT_FALSE(read_ec) << read_ec.message();
   }
   EXPECT_EQ(stored.config_version(), "v3");
   EXPECT_FALSE(_state->try_close_conf_round());
+}
+
+/**
+ * Scenario: the files of a poller configuration follow cache_compression.
+ * Given a configuration prepared for poller 1
+ * When poller 1 connects, and its difference is written
+ * Then new-diff-1.prot starts with the compression header, which is the
+ * default
+ * And it is a plain protobuf message with cache_compression off
+ * And it is read back the same in both cases.
+ */
+TEST_F(BrokerStateRound, ConfFilesFollowCacheCompression) {
+  EXPECT_TRUE(_state->cache_compression());
+  for (const bool compress : {true, false}) {
+    SCOPED_TRACE(compress ? "compressed" : "plain");
+    std::filesystem::remove(_dir / "new-diff-1.prot");
+    _state->set_cache_compression(compress);
+    leave_prepared_conf(1, "v1");
+    connect(1);
+
+    std::ifstream f(_dir / "new-diff-1.prot", std::ios::binary);
+    ASSERT_TRUE(f);
+    char magic[4] = {};
+    f.read(magic, sizeof magic);
+    EXPECT_EQ(
+        std::string_view(magic, sizeof magic) == std::string_view("\0CBC", 4),
+        compress);
+    EXPECT_TRUE(diff_is_full("new-diff-1.prot"));
+    _state->remove_peer(1, "Poller1", "central");
+  }
 }
 
 /**
@@ -755,8 +789,14 @@ TEST_F(BrokerStateNextDiff, SecondAcknowledgementMergesIntoTheWaitingDiff) {
  */
 TEST_F(BrokerStateRound, BrokerPeerSharingAPollerIdPublishesNothing) {
   leave_stored_conf(1, "v1");
-  /* The muxer opens a queue file, which goes through the disk accessor. */
+  /* The muxer opens a queue file, which goes through the disk accessor, and
+   * names its filters through the event registry, which registers its
+   * protocols. The global environment loads the two registries, but every test
+   * going through config::applier::deinit() unloads them: load() only creates
+   * them when they are missing. */
   file::disk_accessor::load(0);
+  io::protocols::load();
+  io::events::load();
   multiplexing::muxer_filter filter{neb::pb_engine_state::static_type()};
   std::shared_ptr<multiplexing::muxer> mux = multiplexing::muxer::create(
       "ut_broker_state_round_engine_state",
@@ -978,8 +1018,10 @@ class BrokerStateRemovePoller : public BrokerStateRound {
   TopologyCache written_topology() {
     _state->save_topology_cache();
     TopologyCache cache;
-    std::ifstream f(_dir / "topology.cache", std::ios::binary);
-    EXPECT_TRUE(cache.ParseFromIstream(&f));
+    std::error_code read_ec;
+    com::centreon::common::read_proto_file(_dir / "topology.cache", cache,
+                                           read_ec);
+    EXPECT_FALSE(read_ec) << read_ec.message();
     return cache;
   }
 };
