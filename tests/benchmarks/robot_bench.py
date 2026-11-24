@@ -32,6 +32,7 @@ whether the load it built was real.
 """
 
 import datetime
+import json
 import os
 import re
 import sys
@@ -473,7 +474,8 @@ BAM_BI_CACHE_LOAD_OPENING = "reporting stream _load_kpi_ba_events"
 BAM_BI_CACHE_LOAD_CLOSING = "reporting stream _close_inconsistent events (type BA"
 # "BAM-BI: availabilities of 83 days written in 412 ms", and for a cbd from
 # before that line, the two debug lines that frame the same work.
-BAM_AVAIL = re.compile(r"BAM-BI: availabilities of (\d+) days written in (\d+) ms")
+BAM_AVAIL = re.compile(
+    r"BAM-BI: availabilities of (\d+) days written in (\d+) ms")
 BAM_AVAIL_OPENING = "BAM-BI: availability thread writing availabilities from"
 BAM_AVAIL_CLOSING = "BAM-BI: database closed"
 
@@ -533,7 +535,8 @@ def ctn_bench_bam_rebuild_timings(log_path: str) -> dict:
                 avail_opening = ts
             elif BAM_AVAIL_CLOSING in line and avail_opening is not None:
                 # Same fallback for the availabilities, at debug.
-                cache["availability_ms"] = (ts - avail_opening).total_seconds() * 1000
+                cache["availability_ms"] = (
+                    ts - avail_opening).total_seconds() * 1000
                 avail_opening = None
             elif BAM_AVAIL.search(line):
                 match = BAM_AVAIL.search(line)
@@ -571,3 +574,191 @@ def ctn_bench_process_rss_kb(pid) -> int:
     except (OSError, ValueError):
         return 0
     return 0
+
+
+# The timestamp spdlog opens every line with, in the configuration the test
+# suite writes: [2026-11-11T14:31:04.395+01:00].
+_LOG_TS = re.compile(
+    r"^\[(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d+[+-]\d\d:\d\d)\]")
+
+
+def ctn_bench_log_size(path: str) -> int:
+    """Return the size of a log, to read what is written after this point.
+
+    Args:
+        path (str): the log.
+
+    Returns:
+        Its size in bytes, 0 if it does not exist yet.
+    """
+    try:
+        return os.path.getsize(path)
+    except OSError:
+        return 0
+
+
+def ctn_bench_wait_log_line(path: str, offset: int, text: str,
+                            timeout: int = 300) -> float:
+    """Wait for a line containing a text to be written past an offset, and
+    return the time it was logged at.
+
+    Read as a stream from the offset, so that a log of hundreds of megabytes
+    costs nothing to search, and the timestamp is the one of the line itself:
+    the time this keyword noticed it would add the polling delay to every
+    measured duration.
+
+    Args:
+        path (str): the log.
+        offset (int): where to start reading, from ctn_bench_log_size().
+        text (str): the text to look for.
+        timeout (int, optional): seconds to wait. Defaults to 300.
+
+    Returns:
+        The time of the line, in seconds since the epoch; 0 on timeout.
+    """
+    limit = time.monotonic() + int(timeout)
+    pos = int(offset)
+    pending = b""
+    needle = text.encode()
+    while time.monotonic() < limit:
+        try:
+            with open(path, "rb") as f:
+                f.seek(pos)
+                chunk = f.read()
+        except OSError:
+            chunk = b""
+        if chunk:
+            pos += len(chunk)
+            lines = (pending + chunk).split(b"\n")
+            pending = lines.pop()
+            for line in lines:
+                if needle in line:
+                    m = _LOG_TS.match(line.decode(errors="replace"))
+                    if m:
+                        return datetime.datetime.fromisoformat(
+                            m.group(1)).timestamp()
+        else:
+            time.sleep(0.1)
+    return 0.0
+
+
+def ctn_bench_now() -> float:
+    """Return the current time, in seconds since the epoch, to the microsecond.
+
+    Robot's Get Time rounds to the second, which is the size of what is
+    measured here.
+    """
+    return time.time()
+
+
+def ctn_bench_cbd_cpu_s(config: str = "central-broker") -> float:
+    """Return the CPU time a cbd has used so far, user and system.
+
+    Args:
+        config (str, optional): a part of the configuration file name that tells
+            the cbd apart. Defaults to "central-broker".
+
+    Returns:
+        The CPU time in seconds; 0 if no such cbd runs.
+    """
+    tick = os.sysconf("SC_CLK_TCK")
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                cmdline = f.read().split(b"\0")
+            if not cmdline or not cmdline[0].endswith(b"cbd"):
+                continue
+            if not any(config.encode() in arg for arg in cmdline[1:]):
+                continue
+            with open(f"/proc/{pid}/stat", "r") as f:
+                # The command name may hold spaces: the fields after it are
+                # counted from the closing parenthesis.
+                fields = f.read().rsplit(")", 1)[1].split()
+            return (int(fields[11]) + int(fields[12])) / tick
+        except (OSError, IndexError, ValueError):
+            continue
+    return 0.0
+
+
+def _percentile(values: list, q: float) -> float:
+    """Return the q-th percentile of values, by nearest rank.
+
+    Args:
+        values (list): the values, not empty.
+        q (float): the percentile, from 0 to 100.
+    """
+    ordered = sorted(values)
+    rank = max(0, min(len(ordered) - 1,
+                      int(round(q / 100.0 * len(ordered) + 0.5)) - 1))
+    return ordered[rank]
+
+
+def ctn_bench_conf_export_summary(probe_file: str, exports: list,
+                                  timeout: float = 60.0) -> dict:
+    """Turn the samples of conf_export_probe.py and the export windows into the
+    metrics of the conf-export benchmark.
+
+    A sample belongs to an export when its way to the database -- from its
+    sending to its arrival -- overlaps the export, from the announcement to the
+    global diff: a flip sent just before the export and held up by it is what
+    the benchmark looks for. It belongs to the baseline when it arrived before
+    the first export started.
+
+    A flip that never reached the database is counted apart, in the probe_lost
+    metrics, and kept out of the latencies: it is not a slow flip but a lost
+    one. Engine applies the runtime snapshot sent with every DiffState, which
+    reverts a change it made but Broker had not received yet; the next flip of
+    that service is then a no-op for Engine, and never shows. Mixing those
+    with the latencies would turn every percentile into the timeout.
+
+    Args:
+        probe_file (str): the JSON written by conf_export_probe.py.
+        exports (list): one dictionary per export, with "start" and "end" in
+            seconds since the epoch, and "cpu_s", the CPU cbd used meanwhile.
+        timeout (float, optional): the probe timeout. Defaults to 60.
+
+    Returns:
+        The metrics, in milliseconds and seconds as their names say.
+    """
+    with open(probe_file, "r") as f:
+        data = json.load(f)
+    samples = data["samples"]
+
+    def arrival(s):
+        lat = timeout if s["latency"] is None else s["latency"]
+        return s["sent"] + lat
+
+    windows = [(float(e["start"]), float(e["end"])) for e in exports]
+    first = min(w[0] for w in windows)
+    in_baseline = [s for s in samples if arrival(s) < first]
+    in_export = [s for s in samples
+                 if any(s["sent"] <= b and arrival(s) >= a for a, b in windows)]
+    baseline = [s["latency"] * 1000.0 for s in in_baseline
+                if s["latency"] is not None]
+    during = [s["latency"] * 1000.0 for s in in_export
+              if s["latency"] is not None]
+    durations = [b - a for a, b in windows]
+    cpu = [float(e["cpu_s"]) for e in exports]
+
+    metrics = {
+        "exports": len(exports),
+        "export_s_mean": sum(durations) / len(durations),
+        "export_s_max": max(durations),
+        "cbd_cpu_s_per_export": sum(cpu) / len(cpu),
+        "probe_samples_baseline": len(baseline),
+        "probe_samples_export": len(during),
+        "probe_lost_baseline": len(in_baseline) - len(baseline),
+        "probe_lost_export": len(in_export) - len(during),
+        "probe_lost": sum(1 for s in samples if s["latency"] is None),
+        "results_submitted": data.get("submitted", 0),
+    }
+    if baseline:
+        metrics["probe_baseline_p50_ms"] = _percentile(baseline, 50)
+        metrics["probe_baseline_max_ms"] = max(baseline)
+    if during:
+        metrics["probe_export_p50_ms"] = _percentile(during, 50)
+        metrics["probe_export_p99_ms"] = _percentile(during, 99)
+        metrics["probe_export_max_ms"] = max(during)
+    return metrics

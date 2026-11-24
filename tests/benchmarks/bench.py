@@ -96,6 +96,11 @@ ROBOT_BENCHES = {
                    "How many UPDATE statements a passive result costs the "
                    "database in steady state, with and without the BAM "
                    "outputs: the share of BAM is the difference."),
+    "conf-export": ("conf_export_bench.robot",
+                    "What a configuration export costs a platform under load: "
+                    "its duration up to the global diff, the CPU of the "
+                    "central cbd, and the latency of the real-time flow "
+                    "meanwhile, timed by a probe on the adaptive path."),
     "bam-rebuild": ("bam_rebuild_bench.robot",
                     "How long the BI stream takes to rebuild the event "
                     "durations of a BA history, as that history grows. No "
