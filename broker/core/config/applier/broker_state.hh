@@ -150,7 +150,7 @@ class broker_state : public state {
   std::unique_ptr<boost::asio::strand<boost::asio::io_context::executor_type>>
       _watch_strand;
   mutable absl::Mutex _lck_set_m;
-  absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
+  absl::flat_hash_set<uint64_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
   /* Serializes every move of a configuration between `new-<ID>.prot`,
    * `new-diff-<ID>.prot`, `diff-<ID>.prot`, `next-<ID>.prot` and `<ID>.prot`
    * (cycle, acknowledgement, recovery,
@@ -222,27 +222,27 @@ class broker_state : public state {
     bool rescan_requested = false;
   };
   watch_report _read_watch_events() ABSL_LOCKS_EXCLUDED(_lck_set_m);
-  uint32_t _lck_file_for_poller(uint32_t poller_id) noexcept;
-  void _remove_lck_file(uint32_t poller_id) noexcept;
-  absl::flat_hash_set<uint32_t> _read_poller_batch();
+  uint64_t _lck_file_for_poller(uint64_t poller_id) noexcept;
+  void _remove_lck_file(uint64_t poller_id) noexcept;
+  absl::flat_hash_set<uint64_t> _read_poller_batch();
   void _remove_poller_batch();
-  absl::flat_hash_set<uint32_t> _scan_for_announcements(
-      const absl::flat_hash_set<uint32_t>& already_queued);
+  absl::flat_hash_set<uint64_t> _scan_for_announcements(
+      const absl::flat_hash_set<uint64_t>& already_queued);
   void _post_individual_work(bool force_scan) ABSL_LOCKS_EXCLUDED(_lck_set_m);
   void _post_batch_work();
 
   std::unique_ptr<engine::configuration::State> _read_poller_conf(
-      uint32_t poller_id,
+      uint64_t poller_id,
       const com::centreon::engine::configuration::foreign_objects& foreign,
       bool& refused) ABSL_LOCKS_EXCLUDED(_conf_handover_m);
-  bool _write_conf_file(uint32_t poller_id,
+  bool _write_conf_file(uint64_t poller_id,
                         const std::filesystem::path& path,
                         const engine::configuration::State& state)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
-  bool _write_new_conf(uint32_t poller_id,
+  bool _write_new_conf(uint64_t poller_id,
                        const engine::configuration::State& state)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
-  bool _write_next_conf(uint32_t poller_id,
+  bool _write_next_conf(uint64_t poller_id,
                         const engine::configuration::State& state)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   bool _poller_conf_in_flight(uint64_t poller_id) const
@@ -251,7 +251,7 @@ class broker_state : public state {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
   bool _promote_next_conf(uint64_t poller_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_conf_handover_m);
-  void _run_config_cycle(const absl::flat_hash_set<uint32_t>& pollers_set)
+  void _run_config_cycle(const absl::flat_hash_set<uint64_t>& pollers_set)
       ABSL_LOCKS_EXCLUDED(_conf_handover_m);
   bool _feed_cache_and_wake_up_resources(
       uint64_t poller_id,
@@ -303,7 +303,7 @@ class broker_state : public state {
   void set_broker_knows_poller_conf(uint64_t poller_id, bool known)
       ABSL_LOCKS_EXCLUDED(_poller_confs_m);
   bool try_close_conf_round() ABSL_LOCKS_EXCLUDED(_poller_confs_m);
-  bool set_poller_conf_sent(uint32_t poller_id, std::string_view version)
+  bool set_poller_conf_sent(uint64_t poller_id, std::string_view version)
       ABSL_LOCKS_EXCLUDED(_poller_confs_m);
   bool acknowledge_poller_conf(uint64_t poller_id, const std::string& version)
       ABSL_LOCKS_EXCLUDED(_poller_confs_m);

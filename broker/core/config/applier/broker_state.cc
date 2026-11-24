@@ -907,7 +907,7 @@ engine::configuration::foreign_objects broker_state::load_foreign_objects()
 void broker_state::recover_stored_conf(
     const com::centreon::engine::configuration::State& conf) {
   assert(conf.poller_id());
-  const uint32_t poller_id = conf.poller_id();
+  const uint64_t poller_id = conf.poller_id();
 
   if (!pollers_config_dir_usable()) {
     _logger->error(
@@ -1118,7 +1118,7 @@ bool broker_state::_feed_cache_and_wake_up_resources(
    * about a *later* push than the prepared file next to it. Handing the
    * prepared state over then would deliver the older of the two. */
   _logger->debug("Checking what is waiting for poller {}", poller_id);
-  if (uint32_t existing_lck = _lck_file_for_poller(poller_id)) {
+  if (uint64_t existing_lck = _lck_file_for_poller(poller_id)) {
     {
       absl::MutexLock lck(_lck_set_m);
       _lck_set.insert(existing_lck);
@@ -1266,7 +1266,7 @@ void broker_state::set_runtime_state_owed(uint64_t poller_id, bool owed) {
  * @param poller_id The poller ID.
  * @return The poller ID when a lock file is waiting for it, 0 otherwise.
  */
-uint32_t broker_state::_lck_file_for_poller(uint32_t poller_id) noexcept {
+uint64_t broker_state::_lck_file_for_poller(uint64_t poller_id) noexcept {
   /* No watcher means no cache directory to look into, and an empty one would
    * make the path below relative. */
   if (!_cache_config_dir_watcher || _cache_config_dir.empty()) {
@@ -1307,7 +1307,7 @@ uint32_t broker_state::_lck_file_for_poller(uint32_t poller_id) noexcept {
  *
  * @param poller_id The poller ID.
  */
-void broker_state::_remove_lck_file(uint32_t poller_id) noexcept {
+void broker_state::_remove_lck_file(uint64_t poller_id) noexcept {
   if (_cache_config_dir.empty())
     return;
   std::error_code ec;
@@ -1358,8 +1358,8 @@ void broker_state::_remove_poller_batch() {
  *
  * @return The poller IDs the batch names, empty when there is no batch.
  */
-absl::flat_hash_set<uint32_t> broker_state::_read_poller_batch() {
-  absl::flat_hash_set<uint32_t> retval;
+absl::flat_hash_set<uint64_t> broker_state::_read_poller_batch() {
+  absl::flat_hash_set<uint64_t> retval;
   if (_cache_config_dir.empty())
     return retval;
 
@@ -1379,7 +1379,7 @@ absl::flat_hash_set<uint32_t> broker_state::_read_poller_batch() {
     std::string_view id = absl::StripAsciiWhitespace(line);
     if (id.empty())
       continue;
-    uint32_t poller_id;
+    uint64_t poller_id;
     if (absl::SimpleAtoi(id, &poller_id))
       retval.insert(poller_id);
     else
@@ -1610,9 +1610,9 @@ bool broker_state::try_close_conf_round() {
  * the safety timer and by the first cycle, the two moments when events are not
  * what we are relying on.
  */
-absl::flat_hash_set<uint32_t> broker_state::_scan_for_announcements(
-    const absl::flat_hash_set<uint32_t>& already_queued) {
-  absl::flat_hash_set<uint32_t> found;
+absl::flat_hash_set<uint64_t> broker_state::_scan_for_announcements(
+    const absl::flat_hash_set<uint64_t>& already_queued) {
+  absl::flat_hash_set<uint64_t> found;
   if (_cache_config_dir.empty())
     return found;
 
@@ -1630,7 +1630,7 @@ absl::flat_hash_set<uint32_t> broker_state::_scan_for_announcements(
     const auto& p = entry.path();
     if (p.extension() != ".lck")
       continue;
-    uint32_t poller_id;
+    uint64_t poller_id;
     if (absl::SimpleAtoi(p.stem().string(), &poller_id)) {
       if (already_queued.contains(poller_id))
         continue;  // inotify reported it, so it is not orphan
@@ -1662,7 +1662,7 @@ void broker_state::_post_individual_work(bool force_scan) {
   boost::asio::post(*_config_strand, [this, force_scan] {
     if (_watch_engine_conf_stopped.load())
       return;
-    absl::flat_hash_set<uint32_t> pollers_set;
+    absl::flat_hash_set<uint64_t> pollers_set;
     {
       absl::MutexLock lck(_lck_set_m);
       pollers_set.swap(_lck_set);
@@ -1711,7 +1711,7 @@ void broker_state::_post_batch_work() {
   boost::asio::post(*_config_strand, [this] {
     if (_watch_engine_conf_stopped.load())
       return;
-    absl::flat_hash_set<uint32_t> batch = _read_poller_batch();
+    absl::flat_hash_set<uint64_t> batch = _read_poller_batch();
     if (batch.empty())
       return;
     _run_config_cycle(batch);
@@ -1748,7 +1748,7 @@ void broker_state::_post_batch_work() {
  * @return The validated state, ready to be stored; nullptr otherwise.
  */
 std::unique_ptr<engine::configuration::State> broker_state::_read_poller_conf(
-    uint32_t poller_id,
+    uint64_t poller_id,
     const engine::configuration::foreign_objects& foreign,
     bool& refused) {
   refused = false;
@@ -1819,7 +1819,7 @@ std::unique_ptr<engine::configuration::State> broker_state::_read_poller_conf(
  *
  * @return True when the state is on disk.
  */
-bool broker_state::_write_conf_file(uint32_t poller_id,
+bool broker_state::_write_conf_file(uint64_t poller_id,
                                     const std::filesystem::path& path,
                                     const engine::configuration::State& state) {
   if (!pollers_config_dir_usable()) {
@@ -1869,7 +1869,7 @@ bool broker_state::_write_conf_file(uint32_t poller_id,
  *
  * @return True when the state is on disk and the announcement consumed.
  */
-bool broker_state::_write_new_conf(uint32_t poller_id,
+bool broker_state::_write_new_conf(uint64_t poller_id,
                                    const engine::configuration::State& state) {
   const poller_conf_paths paths = poller_paths(poller_id);
   if (!_write_conf_file(poller_id, paths.new_path(), state))
@@ -1908,7 +1908,7 @@ bool broker_state::_write_new_conf(uint32_t poller_id,
  *
  * @return True when the state is on disk and the announcement consumed.
  */
-bool broker_state::_write_next_conf(uint32_t poller_id,
+bool broker_state::_write_next_conf(uint64_t poller_id,
                                     const engine::configuration::State& state) {
   const poller_conf_paths paths = poller_paths(poller_id);
   if (!_write_conf_file(poller_id, paths.next_path(), state))
@@ -2014,7 +2014,7 @@ bool broker_state::_promote_next_conf(uint64_t poller_id) {
  * @param pollers_set The pollers to handle. Never empty.
  */
 void broker_state::_run_config_cycle(
-    const absl::flat_hash_set<uint32_t>& pollers_set) {
+    const absl::flat_hash_set<uint64_t>& pollers_set) {
   _logger->trace("Handling the configuration of {} poller(s)",
                  pollers_set.size());
   /* What the cycle did, told at the end in one line. Broker cannot know how
@@ -2023,7 +2023,7 @@ void broker_state::_run_config_cycle(
   uint32_t conf_ready = 0;
   uint32_t conf_sent = 0;
   uint32_t conf_rejected = 0;
-  std::vector<uint32_t> pollers_away;
+  std::vector<uint64_t> pollers_away;
 
   /* Read once for the whole lot: on a deploy-all, pollers_set holds every
    * poller and re-reading the store for each of them would parse it as many
@@ -2031,7 +2031,7 @@ void broker_state::_run_config_cycle(
    * poller it validates. The read is deferred to the first poller of the lot,
    * so a cycle woken up for nothing pays nothing. */
   std::optional<engine::configuration::foreign_objects> foreign;
-  for (uint32_t poller_id : pollers_set) {
+  for (uint64_t poller_id : pollers_set) {
     _logger->debug(
         "Checking if there is a new Engine configuration for poller {}",
         poller_id);
@@ -2240,7 +2240,7 @@ broker_state::watch_report broker_state::_read_watch_events() {
     /* Gathered here and handed over in one go below: a deploy-all names one
      * poller per event, and taking the lock for each of them would serialize
      * the whole burst against the handling side for nothing. */
-    absl::flat_hash_set<uint32_t> found;
+    absl::flat_hash_set<uint64_t> found;
     auto it = _cache_config_dir_watcher->watch();
     /* The watcher reports when the kernel dropped events or when the watch had
      * to be established again. In both cases what happened in the directory is
@@ -2269,7 +2269,7 @@ broker_state::watch_report broker_state::_read_watch_events() {
           continue;
         }
         std::string_view prefix(name.data(), name.size() - 4);
-        uint32_t poller_id;
+        uint64_t poller_id;
         if (absl::SimpleAtoi(prefix, &poller_id)) {
           _logger->info(
               "New Engine configuration available, change in '{}' detected "
@@ -2403,7 +2403,7 @@ bool broker_state::_prepare_diff_for_poller(
     }
     /* The diff names the poller it is for: whoever sends it reads it there,
      * and the embedded full state is not always present to say so. */
-    diff_state->set_poller_id(static_cast<uint32_t>(poller_id));
+    diff_state->set_poller_id(poller_id);
     /* Beside new-<ID>.prot, and never diff-<ID>.prot: that one may hold a
      * difference this poller acknowledged, waiting for the rest of its round,
      * which an export must not touch. */
@@ -2744,7 +2744,7 @@ void broker_state::_publish_global_diff() {
  *
  * @return true if the poller is now marked as served.
  */
-bool broker_state::set_poller_conf_sent(uint32_t poller_id,
+bool broker_state::set_poller_conf_sent(uint64_t poller_id,
                                         std::string_view version) {
   absl::MutexLock lck(&_poller_confs_m);
   poller_conf* conf = _known_poller_conf(poller_id);

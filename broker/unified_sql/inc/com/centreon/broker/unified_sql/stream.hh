@@ -486,7 +486,7 @@ class stream : public io::stream {
   void _restore_overrides_from_hosts_services();
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _remove_poller_links(uint64_t instance_id);
-  void _wake_up_poller_resources(uint32_t poller_id);
+  void _wake_up_poller_resources(uint64_t poller_id);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();
   void _prepare_sg_insupdate_statement();

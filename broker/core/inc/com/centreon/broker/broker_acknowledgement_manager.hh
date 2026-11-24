@@ -53,16 +53,16 @@ class broker_acknowledgement_manager {
 
   uint64_t _create_comment(uint64_t host_id,
                            uint64_t service_id,
-                           uint32_t instance_id,
+                           uint64_t instance_id,
                            const std::string& author,
                            const std::string& comment_data,
                            bool persistent,
                            time_t entry_time);
-  void _delete_comment(uint64_t comment_id, uint32_t instance_id);
+  void _delete_comment(uint64_t comment_id, uint64_t instance_id);
   void _publish_ack_type(uint64_t host_id, uint64_t service_id, AckType type);
   void _publish_log(uint64_t host_id,
                     uint64_t service_id,
-                    uint32_t instance_id,
+                    uint64_t instance_id,
                     const std::string& author,
                     const std::string& output,
                     LogEntry_MsgType msg_type);

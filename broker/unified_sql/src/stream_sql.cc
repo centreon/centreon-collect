@@ -65,7 +65,7 @@ namespace {
  * @return The path, or an empty one if this instance stores no configuration
  * (not a Broker, or no pollers configuration directory).
  */
-std::filesystem::path stored_poller_config_path(uint32_t poller_id) {
+std::filesystem::path stored_poller_config_path(uint64_t poller_id) {
   auto& applier_state = config::applier::state::instance();
   if (applier_state.peer_type() != com::centreon::common::BROKER)
     return {};
@@ -82,7 +82,7 @@ std::filesystem::path stored_poller_config_path(uint32_t poller_id) {
  *
  * @param poller_id The poller ID.
  */
-bool poller_config_is_stored(uint32_t poller_id) {
+bool poller_config_is_stored(uint64_t poller_id) {
   const std::filesystem::path path = stored_poller_config_path(poller_id);
   std::error_code ec;
   return !path.empty() && std::filesystem::is_regular_file(path, ec);
@@ -3153,7 +3153,7 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
  *
  * @param poller_id The poller that started.
  */
-void stream::_wake_up_poller_resources(uint32_t poller_id) {
+void stream::_wake_up_poller_resources(uint64_t poller_id) {
   const std::filesystem::path path = stored_poller_config_path(poller_id);
   if (path.empty())
     return;

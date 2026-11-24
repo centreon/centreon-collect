@@ -40,7 +40,7 @@ bool is_broker_comment_id(uint64_t internal_id) noexcept;
 
 uint64_t publish_comment(uint64_t host_id,
                          uint64_t service_id,
-                         uint32_t instance_id,
+                         uint64_t instance_id,
                          Comment_EntryType entry_type,
                          Comment_Src source,
                          const std::string& author,
@@ -48,11 +48,11 @@ uint64_t publish_comment(uint64_t host_id,
                          bool persistent,
                          time_t entry_time);
 
-void publish_comment_deletion(uint64_t internal_id, uint32_t instance_id);
+void publish_comment_deletion(uint64_t internal_id, uint64_t instance_id);
 
 void publish_comments_deletion(uint64_t host_id,
                                uint64_t service_id,
-                               uint32_t instance_id);
+                               uint64_t instance_id);
 
 }  // namespace com::centreon::broker::broker_comments
 

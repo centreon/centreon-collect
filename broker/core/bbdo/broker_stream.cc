@@ -149,7 +149,7 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
                        "'{}': sending it whole",
                        poller_id, stored->config_version());
     obj.Clear();
-    obj.set_poller_id(static_cast<uint32_t>(poller_id));
+    obj.set_poller_id(poller_id);
     obj.set_allocated_state(stored.release());
   } else if (ec) {
     _logger->error(
@@ -182,7 +182,7 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
                          poller_id, engine_conf, obj.from_version(),
                          full->config_version());
       obj.Clear();
-      obj.set_poller_id(static_cast<uint32_t>(poller_id));
+      obj.set_poller_id(poller_id);
       obj.set_allocated_state(full.release());
     }
   }
@@ -193,7 +193,7 @@ void broker_stream::_send_diff_state_for_poller(uint64_t poller_id) {
                      "BBDO: sending DiffState to poller {} (unknown={})",
                      poller_id, obj.unknown());
   _write(pb_conf);
-  _state.set_poller_conf_sent(static_cast<uint32_t>(poller_id), version);
+  _state.set_poller_conf_sent(poller_id, version);
 }
 
 /**
@@ -334,7 +334,7 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       } else if (_state.is_relay()) {
         // Relay: received DiffState from central → queue for forwarding to
         // the Engine-connected stream.  No local storage.
-        uint32_t pid = diff->obj().poller_id();
+        uint64_t pid = diff->obj().poller_id();
         if (pid == 0 && diff->obj().has_state())
           pid = diff->obj().state().poller_id();
         SPDLOG_LOGGER_INFO(
@@ -422,7 +422,7 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 void broker_stream::_send_unknown_diff_state(uint64_t poller_id) {
   auto diff_state = std::make_shared<pb_diff_state>();
   diff_state->mut_obj().set_unknown(true);
-  diff_state->mut_obj().set_poller_id(static_cast<uint32_t>(poller_id));
+  diff_state->mut_obj().set_poller_id(poller_id);
   _write(diff_state);
 }
 
@@ -496,7 +496,7 @@ void broker_stream::_serve_engine_peer() {
 void broker_stream::_send_runtime_state_alone(uint64_t poller_id) {
   auto diff_state = std::make_shared<pb_diff_state>();
   auto& obj = diff_state->mut_obj();
-  obj.set_poller_id(static_cast<uint32_t>(poller_id));
+  obj.set_poller_id(poller_id);
   obj.set_config_version(_state.poller_engine_conf(poller_id));
   obj.set_runtime_only(true);
   _add_runtime_state(obj);
@@ -517,7 +517,7 @@ void broker_stream::_serve_broker_peer() {
   if (!_state.is_relay()) {
     for (uint64_t engine_id : _state.pop_pending_config_revokes(poller_id())) {
       auto rev = std::make_shared<pb_config_revoke>();
-      rev->mut_obj().set_poller_id(static_cast<uint32_t>(engine_id));
+      rev->mut_obj().set_poller_id(engine_id);
       SPDLOG_LOGGER_INFO(_logger,
                          "BBDO: sending ConfigRevoke to relay for poller {}",
                          engine_id);

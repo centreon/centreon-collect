@@ -88,7 +88,7 @@ broker_acknowledgement_manager& broker_acknowledgement_manager::instance() {
 uint64_t broker_acknowledgement_manager::_create_comment(
     uint64_t host_id,
     uint64_t service_id,
-    uint32_t instance_id,
+    uint64_t instance_id,
     const std::string& author,
     const std::string& comment_data,
     bool persistent,
@@ -106,7 +106,7 @@ uint64_t broker_acknowledgement_manager::_create_comment(
  * @param instance_id The poller id the comment was created with.
  */
 void broker_acknowledgement_manager::_delete_comment(uint64_t comment_id,
-                                                     uint32_t instance_id) {
+                                                     uint64_t instance_id) {
   broker_comments::publish_comment_deletion(comment_id, instance_id);
 }
 
@@ -154,7 +154,7 @@ void broker_acknowledgement_manager::_publish_ack_type(uint64_t host_id,
  */
 void broker_acknowledgement_manager::_publish_log(uint64_t host_id,
                                                   uint64_t service_id,
-                                                  uint32_t instance_id,
+                                                  uint64_t instance_id,
                                                   const std::string& author,
                                                   const std::string& output,
                                                   LogEntry_MsgType msg_type) {
@@ -216,7 +216,7 @@ std::string broker_acknowledgement_manager::acknowledge(
   auto h = cache.host(host_id);
   if (!h)
     return fmt::format("could not find host {}", host_id);
-  const uint32_t instance_id = h->obj().instance_id();
+  const uint64_t instance_id = h->obj().instance_id();
 
   uint32_t state = 0;
   std::string output;
@@ -318,7 +318,7 @@ std::string broker_acknowledgement_manager::remove(uint64_t host_id,
     return fmt::format("could not find host {}", host_id);
   if (service_id && !cache.service(host_id, service_id))
     return fmt::format("could not find service ({}, {})", host_id, service_id);
-  const uint32_t instance_id = h->obj().instance_id();
+  const uint64_t instance_id = h->obj().instance_id();
 
   auto ack = cache.acknowledgement(host_id, service_id);
   auto closed =
