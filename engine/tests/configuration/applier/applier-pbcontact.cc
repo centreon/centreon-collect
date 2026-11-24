@@ -172,7 +172,11 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   aply.add_object(ctct);
   configuration::error_cnt err;
   _state_hlp->expand(err);
+  /* hook() appends to a list, it does not replace it: emptied first, the host
+   * commands become cmd alone and the service ones stay svc1,svc2. */
+  ctct.mutable_host_notification_commands()->clear_data();
   ctct_hlp.hook("host_notification_commands", "cmd");
+  ctct.mutable_service_notification_commands()->clear_data();
   ctct_hlp.hook("service_notification_commands", "svc1,svc2");
   ASSERT_TRUE(ctct_hlp.insert_customvariable("_superVar", "Super"));
   ASSERT_TRUE(ctct_hlp.insert_customvariable("_superVar1", "Super1"));
@@ -191,6 +195,18 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   ASSERT_EQ(ct_it->second->get_alias(), std::string_view("newAlias"));
   ASSERT_FALSE(ct_it->second->notify_on(notifications::service_notification,
                                         notifications::unknown));
+
+  /* The host notification commands went from cmd1,cmd2 to cmd: the contact
+   * runs cmd alone, and the configuration index, which state.prot is written
+   * from, holds the new definition. */
+  const auto& host_cmds = ct_it->second->get_host_notification_commands();
+  ASSERT_EQ(host_cmds.size(), 1u);
+  EXPECT_EQ(host_cmds.front()->get_name(), "cmd");
+  const configuration::Contact& indexed =
+      *pb_indexed_config.contacts().at("test");
+  ASSERT_EQ(indexed.host_notification_commands().data().size(), 1);
+  EXPECT_EQ(indexed.host_notification_commands().data(0), "cmd");
+  EXPECT_EQ(indexed.alias(), "newAlias");
 
   auto found = pb_indexed_config.mut_commands().contains("cmd");
   pb_indexed_config.mut_commands().erase("cmd");
