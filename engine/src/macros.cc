@@ -979,6 +979,8 @@ int clear_volatile_macros_r(nagios_macros* mac) {
   mac->contact_ptr = nullptr;
   mac->contactgroup_ptr = nullptr;
 
+  mac->kept_macros.clear();
+
   /* clear on-demand macro */
   mac->ondemand = "";
 

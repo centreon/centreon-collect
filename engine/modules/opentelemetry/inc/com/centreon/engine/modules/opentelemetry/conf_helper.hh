@@ -19,12 +19,15 @@
 #define CCE_MOD_CONF_HELPER_OPENTELEMETRY_HH
 
 #include <absl/container/flat_hash_map.h>
+#include <absl/functional/function_ref.h>
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/macros.hh"
+#include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/service.hh"
 
 #include "com/centreon/engine/commands/forward.hh"
+#include "com/centreon/engine/utils.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 
@@ -40,137 +43,26 @@ struct whitelist_cache {
 
 enum class e_get_otel_commands_ret { success, unknown_host, no_cma_service };
 
-/**
- * @brief extract opentelemetry commands from an host list
- * This function must be called from engine main thread, not grpc ones
- *
- * @tparam command_handler callback called on every opentelemetry command found
- * @param host_name name of the host supervised by the agent or telegraf
- * @param handler
- * @return true at least one opentelemetry command was found
- * @return false
- */
-template <class command_handler>
+using command_cb =
+    absl::FunctionRef<bool(const std::string& /* command name */,
+                           const std::string& /* command line */,
+                           const std::string& /* service name */,
+                           uint64_t /* host id */,
+                           uint64_t /* service id */,
+                           uint32_t /* check interval*/,
+                           uint32_t /* retry interval */,
+                           uint32_t /* max checks attempts */,
+                           const std::string& /* check period */,
+                           const std::string& /* tz */,
+                           const std::string& /*global event handler */,
+                           const std::string& /* event handler */,
+                           const std::shared_ptr<spdlog::logger>&)>;
+
 e_get_otel_commands_ret get_otel_commands(
     const std::string& host_name,
-    command_handler&& handler,
+    command_cb&& handler,
     whitelist_cache& whitelist_cache,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  auto use_otl_command = [](const checkable& to_test) -> bool {
-    if (to_test.get_check_command_ptr()) {
-      if (to_test.get_check_command_ptr()->get_type() ==
-          commands::command::e_type::otel)
-        return true;
-      if (to_test.get_check_command_ptr()->get_type() ==
-          commands::command::e_type::forward) {
-        return std::static_pointer_cast<commands::forward>(
-                   to_test.get_check_command_ptr())
-                   ->get_sub_command()
-                   ->get_type() == commands::command::e_type::otel;
-      }
-    }
-    return false;
-  };
-
-  configuration::whitelist& wchecker = configuration::whitelist::instance();
-
-  auto allowed_by_white_list = [&](const std::string& cmd_line) {
-    auto cache_iter = whitelist_cache.data.find(cmd_line);
-    if (cache_iter != whitelist_cache.data.end()) {
-      return cache_iter->second;
-    }
-    bool allowed = wchecker.is_allowed_by_cma(cmd_line, host_name);
-
-    whitelist_cache.data.emplace(cmd_line, allowed);
-    return allowed;
-  };
-
-  if (wchecker.instance_id() != whitelist_cache.whitelist_instance_id) {
-    whitelist_cache.whitelist_instance_id = wchecker.instance_id();
-    whitelist_cache.data.clear();
-  }
-
-  e_get_otel_commands_ret ret = e_get_otel_commands_ret::no_cma_service;
-
-  auto hst_iter = host::hosts.find(host_name);
-  if (hst_iter == host::hosts.end()) {
-    SPDLOG_LOGGER_ERROR(
-        logger,
-        "Agent with host name '{}' not found in host list; unable to extract "
-        "OpenTelemetry commands for this agent",
-        host_name);
-    return e_get_otel_commands_ret::unknown_host;
-  }
-  std::shared_ptr<host> hst = hst_iter->second;
-  std::string cmd_line;
-  // host check use otl?
-  if (use_otl_command(*hst)) {
-    nagios_macros* macros(get_global_macros());
-    cmd_line = hst->get_check_command_line(macros);
-    clear_volatile_macros_r(macros);
-
-    if (allowed_by_white_list(cmd_line)) {
-      if (handler(hst->check_command(), cmd_line, "", hst->host_id(), 0,
-                  hst->check_interval(), hst->retry_interval(),
-                  hst->max_check_attempts(), hst->check_period(),
-                  hst->get_timezone(), hst->event_handler(), logger)) {
-        ret = e_get_otel_commands_ret::success;
-      }
-    } else {
-      SPDLOG_LOGGER_ERROR(
-          logger,
-          "host {}: this command cannot be executed because of "
-          "security restrictions on the poller. A whitelist has "
-          "been defined, and it does not include this command.",
-          host_name);
-      SPDLOG_LOGGER_DEBUG(logger,
-                          "host {}: command not allowed by whitelist {}",
-                          host_name, cmd_line);
-    }
-  } else {
-    SPDLOG_LOGGER_DEBUG(
-        logger, "host {} doesn't use opentelemetry to do his check", host_name);
-  }
-  // services of host
-  auto serv_iter = service::services_by_id.lower_bound({hst->host_id(), 0});
-  for (; serv_iter != service::services_by_id.end() &&
-         serv_iter->first.first == hst->host_id();
-       ++serv_iter) {
-    std::shared_ptr<service> serv = serv_iter->second;
-    if (use_otl_command(*serv)) {
-      nagios_macros* macros(get_global_macros());
-      cmd_line = serv->get_check_command_line(macros);
-      clear_volatile_macros_r(macros);
-
-      if (allowed_by_white_list(cmd_line)) {
-        if (handler(serv->check_command(), cmd_line, serv->name(),
-                    serv->host_id(), serv->service_id(), serv->check_interval(),
-                    serv->retry_interval(), serv->max_check_attempts(),
-                    serv->check_period(), serv->get_timezone(),
-                    serv->event_handler(), logger)) {
-          ret = e_get_otel_commands_ret::success;
-        }
-      } else {
-        SPDLOG_LOGGER_ERROR(
-            logger,
-            "service {}: this command cannot be executed because of "
-            "security restrictions on the poller. A whitelist has "
-            "been defined, and it does not include this command.",
-            serv->name());
-
-        SPDLOG_LOGGER_DEBUG(logger,
-                            "service {}: command not allowed by whitelist {}",
-                            serv->name(), cmd_line);
-      }
-    } else {
-      SPDLOG_LOGGER_DEBUG(
-          logger,
-          "host {} service {} doesn't use opentelemetry to do his check",
-          host_name, serv->name());
-    }
-  }
-  return ret;
-}
+    const std::shared_ptr<spdlog::logger>& logger);
 
 }  // namespace com::centreon::engine::modules::opentelemetry
 #endif

@@ -2322,6 +2322,9 @@ void service::check_for_flapping(bool update,
 
 /* handles changes in the state of a service */
 int service::handle_service_event() {
+  if (is_cma_service()) {
+    return OK;
+  }
   nagios_macros* mac(get_global_macros());
 
   engine_logger(dbg_functions, basic) << "handle_service_event()";

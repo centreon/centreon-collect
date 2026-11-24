@@ -212,6 +212,7 @@ class nagios_macros {
   std::array<std::string, MAX_COMMAND_ARGUMENTS> argv;
   std::array<std::string, MAX_CONTACT_ADDRESSES> contactaddress;
   std::string ondemand;
+  absl::flat_hash_set<std::string_view> kept_macros;
   com::centreon::engine::host* host_ptr;
   com::centreon::engine::hostgroup* hostgroup_ptr;
   com::centreon::engine::service* service_ptr;

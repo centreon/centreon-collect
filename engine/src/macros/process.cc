@@ -104,8 +104,13 @@ int process_macros_r(nagios_macros* mac,
     clean_options = 0;
 
     /* grab the macro value */
-    result = grab_macro_value_r(mac, token, token_resolved, &clean_options,
-                                &free_macro);
+    if (mac->kept_macros.contains(token)) {
+      token_resolved = token;
+      result = OK;
+    } else {
+      result = grab_macro_value_r(mac, token, token_resolved, &clean_options,
+                                  &free_macro);
+    }
 
     SPDLOG_LOGGER_TRACE(
         macros_logger, "  Processed '{}', To '{}', Clean Options: {}, Free: {}",

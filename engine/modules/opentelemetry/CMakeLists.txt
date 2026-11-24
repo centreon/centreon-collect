@@ -80,6 +80,7 @@ add_library(
   ${SRC_DIR}/centreon_agent/agent_service.cc
   ${SRC_DIR}/centreon_agent/agent_stat.cc
   ${SRC_DIR}/centreon_agent/to_agent_connector.cc
+  ${SRC_DIR}/conf_helper.cc
   ${SRC_DIR}/grpc_config.cc
   ${SRC_DIR}/host_serv_extractor.cc
   ${SRC_DIR}/open_telemetry.cc

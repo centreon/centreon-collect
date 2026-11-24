@@ -218,6 +218,7 @@ static bool add_command_to_agent_conf(
     uint32_t max_attempts,
     const std::string& check_period_name,
     const std::string& timezone,
+    const std::string& global_event_handler,
     const std::string& event_handler,
     com::centreon::agent::AgentConfiguration* cnf,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -268,6 +269,9 @@ static bool add_command_to_agent_conf(
     }
     serv->set_utc_offset(static_cast<int32_t>(tmv.tm_gmtoff));
     serv->set_dst_active(tmv.tm_isdst > 0);
+  }
+  if (!global_event_handler.empty()) {
+    serv->set_global_event_handler(global_event_handler);
   }
   if (!event_handler.empty()) {
     serv->set_event_handler(event_handler);
@@ -352,12 +356,15 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
               const std::string& service, uint64_t host_id, uint64_t service_id,
               uint32_t check_interval, uint32_t retry_interval,
               uint32_t max_attempts, const std::string& check_period_name,
-              const std::string& timezone, const std::string& event_handler,
+              const std::string& timezone,
+              const std::string& global_event_handler,
+              const std::string& event_handler,
               const std::shared_ptr<spdlog::logger>& logger) {
             return add_command_to_agent_conf(
                 cmd_name, cmd_line, service, host_id, service_id,
                 check_interval, retry_interval, max_attempts, check_period_name,
-                timezone, event_handler, cnf, logger, peer, crypt_credentials);
+                timezone, global_event_handler, event_handler, cnf, logger,
+                peer, crypt_credentials);
           },
           _whitelist_cache, _logger);
       if (command_added == e_get_otel_commands_ret::no_cma_service) {
@@ -381,17 +388,6 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
       }
     }
     _serialize_timeperiods(cnf);
-
-    if (pb_config.enable_event_handlers()) {
-      if (!pb_config.global_host_event_handler().empty()) {
-        cnf->set_global_host_event_handler(
-            pb_config.global_host_event_handler());
-      }
-      if (!pb_config.global_service_event_handler().empty()) {
-        cnf->set_global_service_event_handler(
-            pb_config.global_service_event_handler());
-      }
-    }
 
     if (!_last_sent_config ||
         !::google::protobuf::util::MessageDifferencer::Equals(

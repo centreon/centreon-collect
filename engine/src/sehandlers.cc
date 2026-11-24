@@ -384,6 +384,10 @@ int handle_host_event(com::centreon::engine::host* hst) {
   if (hst == nullptr)
     return ERROR;
 
+  if (hst->is_cma_host()) {
+    return OK;
+  }
+
   bool enable_event_handlers;
   std::string_view global_host_event_handler;
   enable_event_handlers = pb_config.enable_event_handlers();
