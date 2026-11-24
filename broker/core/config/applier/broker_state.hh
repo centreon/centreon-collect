@@ -218,6 +218,7 @@ class broker_state : public state {
                 const std::string& timezone) override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::string poller_timezone(uint64_t poller_id) const override;
+  std::string poller_engine_conf(uint64_t poller_id) const;
   bool broker_knows_poller_conf(uint64_t poller_id) const override;
   void remove_peer(uint64_t poller_id,
                    const std::string& poller_name,

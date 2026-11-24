@@ -23,10 +23,17 @@
 namespace com::centreon::broker::bbdo {
 class broker_stream : public stream {
   config::applier::broker_state& _state;
+  /* Whether the poller behind this connection was handed the runtime
+   * snapshot of its resources: once per connection, with the DiffState of a
+   * configuration it owes, or alone when it is up to date. */
+  bool _runtime_state_sent = false;
 
  protected:
   void _send_diff_state_for_poller(uint64_t poller_id);
   void _add_runtime_state(com::centreon::engine::configuration::DiffState& diff);
+  void _send_runtime_state_alone();
+  void _serve_engine_peer();
+  void _serve_broker_peer();
   void _handle_bbdo_event(const std::shared_ptr<io::data>& d) override;
 
  public:
