@@ -4716,14 +4716,8 @@ def ctn_get_broker_cache_file_format(name: str = "central-broker-master"):
         'zstd' if the file starts with the compressed cache header, 'plain' if it
         is a plain BrokerCache message, 'missing' if there is no such file.
     """
-    path = f"{VAR_ROOT}/lib/centreon-broker/{name}.cache"
-    if not os.path.exists(path):
-        return 'missing'
-    with open(path, "rb") as f:
-        header = f.read(6)
-    if header == b"\0CBC\x01\x01":
-        return 'zstd'
-    return 'plain'
+    return Common.ctn_get_proto_file_format(
+        f"{VAR_ROOT}/lib/centreon-broker/{name}.cache")
 
 
 def ctn_broker_schedule_host_downtime(hostname: str, duration: int,

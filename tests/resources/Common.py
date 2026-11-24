@@ -43,6 +43,7 @@ from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
 import state_pb2
+import zstandard
 from confcmp import ConfComparator
 import Engine
 
@@ -3333,6 +3334,51 @@ def ctn_create_tcp_server(port: int):
     return tcp_server(port)
 
 
+# Header of a protobuf file written compressed by common/proto_file: the magic,
+# the format version (1) and the algorithm (1 = zstd), then a zstd frame.
+PROTO_FILE_HEADER = b"\0CBC\x01\x01"
+
+
+def ctn_get_proto_file_format(path: str):
+    """
+    Tell how a protobuf file written by cbd or Engine (.prot, .cache) is
+    stored, from its header.
+
+    Args:
+        path: The file.
+
+    Returns:
+        'zstd' if the file starts with the compression header, 'plain' if it is
+        a plain protobuf message, 'missing' if there is no such file.
+    """
+    if not os.path.exists(path):
+        return 'missing'
+    with open(path, "rb") as f:
+        header = f.read(len(PROTO_FILE_HEADER))
+    return 'zstd' if header == PROTO_FILE_HEADER else 'plain'
+
+
+def _read_proto_file(path: str, message):
+    """
+    Parse a protobuf file written by cbd or Engine, compressed or not, the way
+    common::read_proto_file() does.
+
+    Args:
+        path: The file.
+        message: The protobuf message to fill.
+
+    Returns:
+        The message.
+    """
+    with open(path, "rb") as f:
+        content = f.read()
+    if content.startswith(PROTO_FILE_HEADER):
+        content = zstandard.ZstdDecompressor().decompress(
+            content[len(PROTO_FILE_HEADER):])
+    message.ParseFromString(content)
+    return message
+
+
 def ctn_check_state_configurations_are_equal(file1, file2):
     """
     ctn_check_state_configurations_are_equal
@@ -3379,16 +3425,8 @@ def ctn_check_state_configurations_are_equal(file1, file2):
         else:
             return d1 == d2
 
-    with open(file1, "rb") as f1:
-        content1 = f1.read()
-    with open(file2, "rb") as f2:
-        content2 = f2.read()
-
-    pb1 = state_pb2.State()
-    pb2 = state_pb2.State()
-
-    pb1.ParseFromString(content1)
-    pb2.ParseFromString(content2)
+    pb1 = _read_proto_file(file1, state_pb2.State())
+    pb2 = _read_proto_file(file2, state_pb2.State())
 
     dico1 = MessageToDict(pb1)
     dico2 = MessageToDict(pb2)

@@ -1,8 +1,8 @@
 *** Settings ***
-Documentation     Compression of the Broker cache file (cache_compression parameter).
-...               The cache file is compressed with zstd by default and read back from its
-...               header, whatever the parameter is: a plain file, as written by the previous
-...               versions, is still read.
+Documentation     Compression of the files Broker writes (cache_compression parameter): its
+...               cache file and the configuration files of the pollers. They are compressed
+...               with zstd by default and read back from their header, whatever the parameter
+...               is: a plain file, as written by the previous versions, is still read.
 
 Resource          ../resources/import.resource
 
@@ -78,6 +78,56 @@ BECACHECMP2
     Should Be Equal    ${format}    plain    The cache file should not be compressed any more
 
     Ctn Stop Engine
+
+BECACHECMP3
+    [Documentation]    Scenario: the poller configuration files of Broker follow cache_compression
+    ...    Given a centralized configuration with one poller
+    ...    And Broker configured with cache_compression set to false
+    ...    When the configuration is pushed and acknowledged
+    ...    Then 1.prot is a plain file
+    ...    When Broker is restarted with the default configuration, which compresses
+    ...    And a changed configuration is pushed
+    ...    Then the plain 1.prot is read to compute the difference, and the poller acknowledges it
+    ...    And 1.prot is now compressed with zstd
+    ...    And it holds the configuration the poller runs, as its state.prot does.
+    [Tags]    broker    engine    cache    config    centralized
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    cache_compression    ${False}
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    info
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+    Ctn Clear Logs
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    VAR    ${dir}    ${VarRoot}/lib/centreon-broker/central-broker-master/pollers-configuration
+    ${format}    Ctn Get Proto File Format    ${dir}/1.prot
+    Should Be Equal    ${format}    plain    1.prot should not be compressed
+
+    # Default configuration: compression enabled.
+    Ctn Kindly Stop Broker
+    Ctn Broker Config Remove Item    central    cache_compression
+    Ctn Start Broker    newGeneration=True
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    7
+    ${start}    Ctn Get Round Current Date
+    Ctn Push Configuration And Wait    ${start}    ${0}
+
+    ${format}    Ctn Get Proto File Format    ${dir}/1.prot
+    Should Be Equal    ${format}    zstd    1.prot should be compressed by default
+    ${result}    Ctn Check State Configurations Are Equal
+    ...    ${dir}/1.prot
+    ...    ${VarRoot}/lib/centreon-engine/config0/state.prot
+    Should Be True    ${result}    1.prot should hold the configuration the poller runs
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
 
 
 *** Keywords ***

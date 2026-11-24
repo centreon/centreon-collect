@@ -1,7 +1,10 @@
 # Python packages for the robot test suite.
 #
 # Single source of truth: create-dev-container.sh installs from this file, and
-# README.md documents it.
+# README.md documents it. The CI test images install from it too
+# (.github/docker/Dockerfile.centreon-collect-*-test), and so does
+# .github/scripts/wsl-collect-test-robot.sh. get-environment.yml hashes it into
+# the version of those images: a change here rebuilds them.
 #
 #   cd tests
 #   uv venv --python=/usr/bin/python3 robotframework   # first time only
@@ -30,14 +33,23 @@ robotframework-requests
 grpcio
 grpcio-tools
 
-# The driver DatabaseLibrary and Common.py use.
+# The driver DatabaseLibrary and Common.py use, and what it needs to
+# authenticate against MySQL 8 (caching_sha2_password).
 pymysql
+cryptography
 
 # Watches processes (Common.py, Broker.py).
 psutil
 
+# Parses the dates of the logs (Common.py, Engine.py).
+python-dateutil
+
 # Used by the vault tests.
 pyjwt
+
+# Reads the .prot and .cache files cbd and Engine write compressed (zstd behind
+# the \0CBC header, see common/proto_file).
+zstandard
 
 # Formatters: autopep8 for the Python under resources/, robocop for the .robot
 # files -- `robocop format` is what used to be the standalone robotidy, absorbed

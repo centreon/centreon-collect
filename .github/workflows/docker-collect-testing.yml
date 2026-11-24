@@ -16,6 +16,7 @@ on:
       - ".github/scripts/collect-setup-database.sh"
       - "vcpkg.json"
       - "resources/*.sql"
+      - "tests/requirements.txt"
   pull_request:
     paths:
       - ".github/docker/Dockerfile.centreon-collect-*-test"
@@ -23,6 +24,7 @@ on:
       - ".github/scripts/collect-setup-database.sh"
       - "vcpkg.json"
       - "resources/*.sql"
+      - "tests/requirements.txt"
 
 jobs:
   dependency-scan:

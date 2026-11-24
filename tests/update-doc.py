@@ -360,8 +360,9 @@ And now, we can install the required python modules for our tests:
 uv pip install -U -r requirements.txt
 ```
 
-The list lives in `tests/requirements.txt`, which `create-dev-container.sh`
-installs from as well: add a package there rather than in both places.
+The list lives in `tests/requirements.txt`, which `create-dev-container.sh`, the
+CI test images and the WSL script install from as well: add a package there
+rather than anywhere else.
 
 When you want to enable the virtual environment, you just have to execute the following command:
 
