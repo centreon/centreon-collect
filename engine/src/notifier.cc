@@ -650,16 +650,21 @@ void notifier::resolve_pointers() {
   // Refilled by {host,service}escalation resolution, which runs afterwards.
   _escalations.clear();
 
-  // Event handler command.
+  // Event handler command. Unwired when the configuration has none anymore,
+  // or the previous command would still be run after a reload.
+  commands::command* event_handler_cmd = nullptr;
   if (!event_handler().empty()) {
     size_t pos{event_handler().find_first_of('!')};
     std::string cmd_name{event_handler().substr(0, pos)};
     command_map::iterator cmd_found{commands::command::commands.find(cmd_name)};
     if (cmd_found != commands::command::commands.end() && cmd_found->second)
-      set_event_handler_ptr(cmd_found->second.get());
+      event_handler_cmd = cmd_found->second.get();
   }
+  set_event_handler_ptr(event_handler_cmd);
 
-  // Check command.
+  // Check command. An anomaly detection has none in its configuration and
+  // keeps the one it builds itself: the host and service appliers unwire it
+  // when the configuration has none anymore.
   if (!check_command().empty()) {
     size_t pos{check_command().find_first_of('!')};
     std::string cmd_name{check_command().substr(0, pos)};

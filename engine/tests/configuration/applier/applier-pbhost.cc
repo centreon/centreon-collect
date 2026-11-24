@@ -289,6 +289,40 @@ TEST_F(ProtobufHostEvents, CustomVariableEventsIdentifyOriginatingPoller) {
   }
 }
 
+// Given a host with a check command and an event handler
+// When a reload removes both from its configuration
+// Then the host has neither of them anymore.
+TEST_F(ApplierPbHost, RemovedCheckCommandAndEventHandlerAreUnwired) {
+  configuration::applier::host hst_aply;
+  configuration::applier::command cmd_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("/bin/true");
+  cmd_aply.add_object(cmd);
+
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_check_command("cmd");
+  hst.set_event_handler("cmd");
+  hst_hlp.set_default_values();
+  hst_aply.add_object(hst);
+  hst_aply.resolve_object(hst);
+  std::shared_ptr<engine::host> h = engine::host::hosts.at("test_host");
+  ASSERT_TRUE(h->get_check_command_ptr());
+  ASSERT_TRUE(h->get_event_handler_ptr());
+
+  hst.clear_check_command();
+  hst.clear_event_handler();
+  hst_aply.modify_object(pb_indexed_config.hosts().at(12).get(), hst);
+  hst_aply.resolve_object(hst);
+  ASSERT_FALSE(h->get_check_command_ptr());
+  ASSERT_FALSE(h->get_event_handler_ptr());
+}
+
 TEST_F(ApplierPbHost, PbHostRemoved) {
   configuration::applier::host hst_aply;
   configuration::Host hst;
