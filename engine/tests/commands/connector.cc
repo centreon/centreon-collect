@@ -17,12 +17,12 @@
  *
  */
 
-#include "com/centreon/engine/commands/connector.hh"
 #include <gtest/gtest.h>
 #include <signal.h>
 
 #include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/commands/forward.hh"
+#include "engine/macros/macro_context.hh"
 #include "helper.hh"
 
 extern std::shared_ptr<asio::io_context> g_io_context;
@@ -116,7 +116,7 @@ TEST_F(Connector, SimpleConnector) {
 // We don't test timeout because time is replaced by a fake function
 // and we don't control it during the execution of run().
 TEST_F(Connector, RunWithTimeout) {
-  nagios_macros macros = nagios_macros();
+  macro_context macros = macro_context();
   cmd_connector = commands::connector::load(
       "RunWithTimeout", "tests/bin_connector_test_run", g_io_context);
   result res;
@@ -127,7 +127,7 @@ TEST_F(Connector, RunWithTimeout) {
 
 TEST_F(Connector, RunConnectorAsync) {
   auto lstnr = std::make_shared<connector_listener>();
-  nagios_macros macros = nagios_macros();
+  macro_context macros = macro_context();
   cmd_connector = commands::connector::load(
       "RunConnectorAsync", "tests/bin_connector_test_run", g_io_context);
   cmd_connector->set_listener(lstnr);
@@ -157,7 +157,7 @@ TEST_F(Connector, RunWithConnectorSwitchedOff) {
                                 "tests/bin_connector_test_run", g_io_context);
 
   auto lstnr = std::make_shared<connector_listener>();
-  nagios_macros macros = nagios_macros();
+  macro_context macros = macro_context();
   cmd_connector->set_listener(lstnr);
   cmd_connector->run("beforekill", macros, 60,
                      std::make_shared<check_result>());
@@ -185,7 +185,7 @@ TEST_F(Connector, RunWithConnectorSwitchedOff) {
 
 TEST_F(Connector, RunConnectorSetCommandLine) {
   auto lstnr = std::make_shared<connector_listener>();
-  nagios_macros macros = nagios_macros();
+  macro_context macros = macro_context();
   cmd_connector = commands::connector::load(
       "SetCommandLine", "tests/bin_connector_test_run", g_io_context);
   cmd_connector->set_listener(lstnr);

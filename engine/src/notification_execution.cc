@@ -20,13 +20,14 @@
 #include "com/centreon/engine/notification_execution.hh"
 
 #include <absl/algorithm/container.h>
+#include <absl/strings/str_join.h>
 #include <fmt/format.h>
 
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/neberrors.hh"
+#include "engine/macros/macro_context.hh"
 
 namespace notifications = com::centreon::common::notifications;
 
@@ -84,10 +85,16 @@ absl::btree_set<std::string> run_notification_commands(
     const std::string& message,
     notifications::notification_option options) {
   absl::btree_set<std::string> notified;
-  nagios_macros* mac(get_global_macros());
+  macro_context mac;
 
-  /* Grab the macro variables */
-  n->grab_macros_r(mac);
+  /* The macros are about the resource; a service also brings its host. */
+  if (n->service_id() == 0)
+    mac.set_host(static_cast<host*>(n));
+  else {
+    service* svc = static_cast<service*>(n);
+    mac.set_host(svc->get_host_ptr().get());
+    mac.set_service(svc);
+  }
 
   /* The author is given by name; fall back to a lookup by alias. */
   contact* author_contact = nullptr;
@@ -99,88 +106,34 @@ absl::btree_set<std::string> run_notification_commands(
   if (it != contact::contacts.end())
     author_contact = it->second.get();
 
-  /* Get author and comment macros */
-  mac->x[MACRO_NOTIFICATIONAUTHOR] = author;
-  mac->x[MACRO_NOTIFICATIONCOMMENT] = message;
+  notification_values& values = mac.notification.emplace();
+  values.resource = n;
+  values.type = type;
+  values.id = notification_id;
+  values.number = notification_number;
+  values.is_escalated = escalated;
+  /* Every notification command knows all the recipients. */
+  values.recipients = absl::StrJoin(
+      to_notify, ",", [](std::string* out, const std::shared_ptr<contact>& c) {
+        out->append(c->get_name());
+      });
+  values.author = author;
+  values.comment = message;
   if (author_contact) {
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = author_contact->get_name();
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = author_contact->get_alias();
-  } else {
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = "";
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = "";
-  }
-
-  /* set the notification type macro */
-  switch (type) {
-    case notifications::reason_acknowledgement:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "ACKNOWLEDGEMENT";
-      break;
-    case notifications::reason_flappingstart:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTART";
-      break;
-    case notifications::reason_flappingstop:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTOP";
-      break;
-    case notifications::reason_flappingdisabled:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGDISABLED";
-      break;
-    case notifications::reason_downtimestart:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMESTART";
-      break;
-    case notifications::reason_downtimeend:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMEEND";
-      break;
-    case notifications::reason_downtimecancelled:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMECANCELLED";
-      break;
-    case notifications::reason_custom:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "CUSTOM";
-      break;
-    case notifications::reason_recovery:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "RECOVERY";
-      break;
-    default:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "PROBLEM";
-      break;
-  }
-
-  /* $NOTIFICATIONISESCALATED$ is historically "0"/"1"; cast the bool to int so
-   * fmt does not render it as "true"/"false". */
-  if (n->get_notifier_type() == notifications::host_notification) {
-    mac->x[MACRO_HOSTNOTIFICATIONNUMBER] = fmt::to_string(notification_number);
-    /* The $NOTIFICATIONNUMBER$ macro is maintained for backward compatibility
-     */
-    mac->x[MACRO_NOTIFICATIONNUMBER] = mac->x[MACRO_HOSTNOTIFICATIONNUMBER];
-    mac->x[MACRO_NOTIFICATIONISESCALATED] =
-        fmt::to_string(static_cast<int>(escalated));
-    mac->x[MACRO_HOSTNOTIFICATIONID] = fmt::to_string(notification_id);
-  } else {
-    mac->x[MACRO_SERVICENOTIFICATIONNUMBER] =
-        fmt::to_string(notification_number);
-    mac->x[MACRO_NOTIFICATIONNUMBER] = mac->x[MACRO_SERVICENOTIFICATIONNUMBER];
-    mac->x[MACRO_NOTIFICATIONISESCALATED] =
-        fmt::to_string(static_cast<int>(escalated));
-    mac->x[MACRO_SERVICENOTIFICATIONID] = fmt::to_string(notification_id);
+    values.author_name = author_contact->get_name();
+    values.author_alias = author_contact->get_alias();
   }
 
   for (const std::shared_ptr<contact>& ctc_ptr : to_notify) {
     contact* ctc = ctc_ptr.get();
 
-    /* grab the macro variables for this contact */
-    grab_contact_macros_r(mac, ctc);
-    /* clear summary macros (they are customized for each contact) */
-    clear_summary_macros_r(mac);
+    /* grab the macro variables for this contact, the summary macros are
+     * computed again for each of them */
+    mac.set_contact(ctc);
 
     if (n->notify_contact(mac, ctc, type, author, message, options,
-                          escalated) == OK) {
+                          escalated) == OK)
       notified.insert(ctc->get_name());
-      if (mac->x[MACRO_NOTIFICATIONRECIPIENTS].empty())
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS] = ctc->get_name();
-      else {
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS].append(",");
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS].append(ctc->get_name());
-      }
-    }
   }
   return notified;
 }

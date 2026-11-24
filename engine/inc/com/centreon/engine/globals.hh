@@ -22,6 +22,7 @@
 #define CCE_GLOBALS_HH
 
 #include "com/centreon/broker/neb/cbmod.hh"
+#include "com/centreon/engine/checks/stats.hh"
 #include "com/centreon/engine/circular_buffer.hh"
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/engine/events/timed_event.hh"
@@ -32,6 +33,13 @@
 #include "common/engine_conf/indexed_state.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/timeperiods/timeperiod.hh"
+
+namespace com::centreon::engine {
+class enginerpc;
+namespace commands {
+class command;
+}
+}  // namespace com::centreon::engine
 
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
@@ -59,13 +67,6 @@ extern std::string config_file;
  * are in new generation configuration if it is not empty */
 extern std::filesystem::path proto_conf;
 extern std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
-
-extern com::centreon::engine::commands::command* global_host_event_handler_ptr;
-extern com::centreon::engine::commands::command*
-    global_service_event_handler_ptr;
-
-extern com::centreon::engine::commands::command* ocsp_command_ptr;
-extern com::centreon::engine::commands::command* ochp_command_ptr;
 
 extern time_t last_command_check;
 extern time_t last_command_status_update;
@@ -100,9 +101,6 @@ extern circular_buffer<std::string> external_command_buffer;
 extern check_stats check_statistics[];
 
 extern sched_info scheduling_info;
-
-extern std::string macro_x_names[];
-extern std::string macro_user[];
 
 extern nebcallback* neb_callback_list[];
 

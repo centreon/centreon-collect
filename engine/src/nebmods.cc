@@ -19,6 +19,7 @@
  */
 
 #include "com/centreon/engine/broker/loader.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/neberrors.hh"
 

@@ -26,11 +26,11 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
@@ -39,6 +39,7 @@
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
 #include "common/timeperiods/timezone.hh"
+#include "engine/macros/process.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -1398,9 +1399,8 @@ int host::handle_async_check_result_3x(
   if (queued_check_result.get_check_options() & CHECK_OPTION_CMA_RESULT) {
     // as check is passive and done by cma, we have to send command line to
     // broker
-    nagios_macros* macros(get_global_macros());
+    macro_context macros;
     std::string cmdline = get_check_command_line(macros);
-    clear_volatile_macros_r(macros);
     if (!cmdline.empty()) {
       broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this,
                         checkable::check_passive, cmdline.c_str());
@@ -1597,7 +1597,7 @@ int host::run_async_check(int check_options,
   set_latency(latency);
 
   // Get current host macros.
-  nagios_macros* macros(get_global_macros());
+  macro_context macros;
 
   std::string processed_cmd = get_check_command_line(macros);
 
@@ -1669,7 +1669,7 @@ int host::run_async_check(int check_options,
       retry = false;
       try {
         // Run command.
-        get_check_command_ptr()->run(processed_cmd, *macros, host_check_timeout,
+        get_check_command_ptr()->run(processed_cmd, macros, host_check_timeout,
                                      check_result_info, this);
       } catch (std::exception const& e) {
         // Update check result.
@@ -1681,8 +1681,6 @@ int host::run_async_check(int check_options,
       }
     } while (retry);
   }
-  // Cleanup.
-  clear_volatile_macros_r(macros);
   return OK;
 }
 
@@ -2324,12 +2322,8 @@ bool host::verify_check_viability(int check_options,
   return result;
 }
 
-void host::grab_macros_r(nagios_macros* mac) {
-  grab_host_macros_r(mac, this);
-}
-
 /* notify a specific contact that an entire host is down or up */
-int host::notify_contact(nagios_macros* mac,
+int host::notify_contact(macro_context& mac,
                          contact* cntct,
                          notifications::reason_type type,
                          const std::string& not_author,
@@ -2341,7 +2335,7 @@ int host::notify_contact(nagios_macros* mac,
   bool early_timeout = false;
   double exectime;
   struct timeval start_time, end_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   SPDLOG_LOGGER_TRACE(functions_logger, "notify_contact_of_host()");
   notifications_logger->debug("** Notifying contact '{}'", cntct->get_name());
@@ -2358,15 +2352,15 @@ int host::notify_contact(nagios_macros* mac,
   for (std::shared_ptr<commands::command> const& cmd :
        cntct->get_host_notification_commands()) {
     /* get the raw command line */
-    get_raw_command_line_r(mac, cmd, cmd->get_command_line().c_str(),
-                           raw_command, macro_options);
+    raw_command = cmd->get_command_line();
     if (raw_command.empty())
       continue;
 
     notifications_logger->debug("Raw notification command: {}", raw_command);
 
     /* process any macros contained in the argument */
-    process_macros_r(mac, raw_command, processed_command, macro_options);
+    processed_command = com::centreon::engine::macros::process_macros(
+        mac, raw_command, macro_options);
     if (processed_command.empty())
       continue;
 
@@ -3553,12 +3547,11 @@ void host::set_check_command_ptr(
  *
  * @return std::string
  */
-std::string host::get_check_command_line(nagios_macros* macros) {
+std::string host::get_check_command_line(macro_context& macros) {
   auto cmd = get_check_command_ptr();
   if (cmd) {
-    grab_host_macros_r(macros, this);
-    std::string tmp;
-    get_raw_command_line_r(macros, cmd, check_command().c_str(), tmp, 0);
+    macros.set_host(this);
+    macros.set_arguments(check_command(), 0);
     return cmd->process_cmd(macros);
   } else {
     return "";

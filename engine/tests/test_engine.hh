@@ -22,6 +22,10 @@
 #define TEST_ENGINE_HH
 
 #include <gtest/gtest.h>
+#include <spdlog/sinks/sink.h>
+
+#include <string>
+#include <vector>
 
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -104,6 +108,25 @@ class TestEngine : public ::testing::Test {
   static void apply_same_timeranges_to_every_day(
       timeperiod* tp,
       const std::vector<std::pair<int, int>>& ranges);
+};
+
+/**
+ * @brief Captures the notification commands run while it lives, with their
+ * macros expanded. They are read from the trace "Processed notification
+ * command: ..." of the notifications logger.
+ */
+class notification_commands_capture {
+  std::shared_ptr<spdlog::sinks::sink> _sink;
+  spdlog::level::level_enum _level;
+  std::vector<std::string> _commands;
+
+ public:
+  notification_commands_capture();
+  ~notification_commands_capture() noexcept;
+  notification_commands_capture(const notification_commands_capture&) = delete;
+  notification_commands_capture& operator=(
+      const notification_commands_capture&) = delete;
+  const std::vector<std::string>& commands() const { return _commands; }
 };
 
 #endif /* !TEST_ENGINE_HH */

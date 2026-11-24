@@ -21,6 +21,8 @@
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/engine/commands/result.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/my_lock.hh"
+#include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -88,7 +90,7 @@ std::shared_ptr<connector> connector::load(
  *  @return The command id.
  */
 uint64_t connector::run(const std::string& processed_cmd,
-                        nagios_macros&,
+                        macro_context&,
                         uint32_t timeout,
                         const check_result::pointer& to_push_to_checker,
                         const notifier* caller) {
@@ -139,7 +141,7 @@ uint64_t connector::run(const std::string& processed_cmd,
  *  @param[out] res     The result of the command.
  */
 void connector::run(const std::string& processed_cmd,
-                    nagios_macros& macros,
+                    macro_context& macros,
                     uint32_t timeout,
                     result& res) {
   (void)macros;

@@ -23,10 +23,10 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging.hh"
-#include "com/centreon/engine/macros.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "engine/macros/process.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::downtimes;
@@ -42,8 +42,8 @@ int obsessive_compulsive_host_check_processor(
   std::string processed_command;
   bool early_timeout = false;
   double exectime = 0.0;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
-  nagios_macros* mac(get_global_macros());
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
+  macro_context mac;
 
   bool obsess_over_hosts;
   uint32_t ochp_timeout;
@@ -67,25 +67,29 @@ int obsessive_compulsive_host_check_processor(
     return ERROR;
 
   /* update macros */
-  grab_host_macros_r(mac, hst);
+  mac.set_host(hst);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, ochp_command_ptr, ochp_command.c_str(),
-                         raw_command, macro_options);
-  if (raw_command.empty()) {
-    clear_volatile_macros_r(mac);
+  const commands::command* cmd = commands::command::find_command(ochp_command);
+  if (!cmd) {
+    events_logger->error(
+        "Error: Obsessive compulsive host processor command '{}' is not "
+        "defined",
+        ochp_command);
     return ERROR;
   }
+  mac.set_arguments(ochp_command, macro_options);
+  raw_command = cmd->get_command_line();
+  if (raw_command.empty())
+    return ERROR;
 
   checks_logger->debug(
       "Raw obsessive compulsive host processor command line: {}", raw_command);
 
   /* process any macros in the raw command line */
-  process_macros_r(mac, raw_command, processed_command, macro_options);
-  if (processed_command.empty()) {
-    clear_volatile_macros_r(mac);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
+  if (processed_command.empty())
     return ERROR;
-  }
 
   checks_logger->debug(
       "Processed obsessive compulsive host processor "
@@ -111,7 +115,6 @@ int obsessive_compulsive_host_check_processor(
         "is not allowed by the whitelist",
         processed_command);
   }
-  clear_volatile_macros_r(mac);
 
   /* check to see if the command timed out */
   if (early_timeout)
@@ -127,7 +130,7 @@ int obsessive_compulsive_host_check_processor(
 /******************************************************************/
 
 /* runs the global service event handler */
-int run_global_service_event_handler(nagios_macros* mac,
+int run_global_service_event_handler(macro_context& mac,
                                      com::centreon::engine::service* svc) {
   std::string raw_command;
   std::string processed_command;
@@ -136,7 +139,7 @@ int run_global_service_event_handler(nagios_macros* mac,
   bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   functions_logger->trace("run_global_service_event_handler()");
 
@@ -168,9 +171,16 @@ int run_global_service_event_handler(nagios_macros* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, global_service_event_handler_ptr,
-                         global_service_event_handler.c_str(), raw_command,
-                         macro_options);
+  const commands::command* cmd =
+      commands::command::find_command(global_service_event_handler);
+  if (!cmd) {
+    events_logger->error(
+        "Error: Global service event handler command '{}' is not defined",
+        global_service_event_handler);
+    return ERROR;
+  }
+  mac.set_arguments(global_service_event_handler, macro_options);
+  raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -178,7 +188,7 @@ int run_global_service_event_handler(nagios_macros* mac,
                        raw_command);
 
   /* process any macros in the raw command line */
-  process_macros_r(mac, raw_command, processed_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -192,7 +202,7 @@ int run_global_service_event_handler(nagios_macros* mac,
         << svc->description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
         << global_service_event_handler;
-    process_macros_r(mac, oss.str(), processed_logentry, macro_options);
+    processed_logentry = macros::process_macros(mac, oss.str(), macro_options);
     events_logger->debug(processed_logentry);
   }
 
@@ -229,7 +239,7 @@ int run_global_service_event_handler(nagios_macros* mac,
 }
 
 /* runs a service event handler command */
-int run_service_event_handler(nagios_macros* mac,
+int run_service_event_handler(macro_context& mac,
                               com::centreon::engine::service* svc) {
   std::string raw_command;
   std::string processed_command;
@@ -238,7 +248,7 @@ int run_service_event_handler(nagios_macros* mac,
   bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   bool log_event_handlers;
   uint32_t event_handler_timeout;
@@ -261,9 +271,10 @@ int run_service_event_handler(nagios_macros* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, svc->get_event_handler_ptr(),
-                         svc->event_handler().c_str(), raw_command,
-                         macro_options);
+  if (!svc->get_event_handler_ptr())
+    return ERROR;
+  mac.set_arguments(svc->event_handler(), macro_options);
+  raw_command = svc->get_event_handler_ptr()->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -271,7 +282,7 @@ int run_service_event_handler(nagios_macros* mac,
                        raw_command);
 
   /* process any macros in the raw command line */
-  process_macros_r(mac, raw_command, processed_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -284,7 +295,7 @@ int run_service_event_handler(nagios_macros* mac,
         << svc->description()
         << ";$SERVICESTATE$;$SERVICESTATETYPE$;$SERVICEATTEMPT$;"
         << svc->event_handler();
-    process_macros_r(mac, oss.str(), processed_logentry, macro_options);
+    processed_logentry = macros::process_macros(mac, oss.str(), macro_options);
     events_logger->info(processed_logentry);
   }
 
@@ -322,7 +333,7 @@ int run_service_event_handler(nagios_macros* mac,
 
 /* handles a change in the status of a host */
 int handle_host_event(com::centreon::engine::host* hst) {
-  nagios_macros* mac(get_global_macros());
+  macro_context mac;
 
   functions_logger->trace("handle_host_event()");
 
@@ -342,7 +353,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
     return OK;
 
   /* update host macros */
-  grab_host_macros_r(mac, hst);
+  mac.set_host(hst);
 
   /* run the global host event handler */
   run_global_host_event_handler(mac, hst);
@@ -358,7 +369,7 @@ int handle_host_event(com::centreon::engine::host* hst) {
 }
 
 /* runs the global host event handler */
-int run_global_host_event_handler(nagios_macros* mac,
+int run_global_host_event_handler(macro_context& mac,
                                   com::centreon::engine::host* hst) {
   std::string raw_command;
   std::string processed_command;
@@ -367,7 +378,7 @@ int run_global_host_event_handler(nagios_macros* mac,
   bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   functions_logger->trace("run_global_host_event_handler()");
 
@@ -398,9 +409,16 @@ int run_global_host_event_handler(nagios_macros* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, global_host_event_handler_ptr,
-                         global_host_event_handler.c_str(), raw_command,
-                         macro_options);
+  const commands::command* cmd =
+      commands::command::find_command(global_host_event_handler);
+  if (!cmd) {
+    events_logger->error(
+        "Error: Global host event handler command '{}' is not defined",
+        global_host_event_handler);
+    return ERROR;
+  }
+  mac.set_arguments(global_host_event_handler, macro_options);
+  raw_command = cmd->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
@@ -408,7 +426,7 @@ int run_global_host_event_handler(nagios_macros* mac,
                        raw_command);
 
   /* process any macros in the raw command line */
-  process_macros_r(mac, raw_command, processed_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -420,7 +438,7 @@ int run_global_host_event_handler(nagios_macros* mac,
     oss << "GLOBAL HOST EVENT HANDLER: " << hst->name()
         << "$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
         << global_host_event_handler;
-    process_macros_r(mac, oss.str(), processed_logentry, macro_options);
+    processed_logentry = macros::process_macros(mac, oss.str(), macro_options);
     events_logger->info(processed_logentry);
   }
 
@@ -457,7 +475,7 @@ int run_global_host_event_handler(nagios_macros* mac,
 }
 
 /* runs a host event handler command */
-int run_host_event_handler(nagios_macros* mac,
+int run_host_event_handler(macro_context& mac,
                            com::centreon::engine::host* hst) {
   std::string raw_command;
   std::string processed_command;
@@ -466,7 +484,7 @@ int run_host_event_handler(nagios_macros* mac,
   bool early_timeout = false;
   double exectime = 0.0;
   struct timeval start_time;
-  int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
+  int macro_options = STRIP_ILLEGAL_MACRO_CHARS;
 
   bool log_event_handlers;
   uint32_t event_handler_timeout;
@@ -488,16 +506,17 @@ int run_host_event_handler(nagios_macros* mac,
   gettimeofday(&start_time, nullptr);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, hst->get_event_handler_ptr(),
-                         hst->event_handler().c_str(), raw_command,
-                         macro_options);
+  if (!hst->get_event_handler_ptr())
+    return ERROR;
+  mac.set_arguments(hst->event_handler(), macro_options);
+  raw_command = hst->get_event_handler_ptr()->get_command_line();
   if (raw_command.empty())
     return ERROR;
 
   events_logger->debug("Raw host event handler command line: {}", raw_command);
 
   /* process any macros in the raw command line */
-  process_macros_r(mac, raw_command, processed_command, macro_options);
+  processed_command = macros::process_macros(mac, raw_command, macro_options);
   if (processed_command.empty())
     return ERROR;
 
@@ -509,7 +528,7 @@ int run_host_event_handler(nagios_macros* mac,
     oss << "HOST EVENT HANDLER: " << hst->name()
         << ";$HOSTSTATE$;$HOSTSTATETYPE$;$HOSTATTEMPT$;"
         << hst->event_handler();
-    process_macros_r(mac, oss.str(), processed_logentry, macro_options);
+    processed_logentry = macros::process_macros(mac, oss.str(), macro_options);
     events_logger->info(processed_logentry);
   }
 

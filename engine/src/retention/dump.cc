@@ -21,11 +21,11 @@
 #include <fstream>
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "common/downtimes/downtime.hh"
+#include "com/centreon/engine/host.hh"
 #include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;

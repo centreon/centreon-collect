@@ -23,8 +23,8 @@
 
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/service.hh"
+#include "engine/macros/macro_context.hh"
 
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/engine/command_manager.hh"

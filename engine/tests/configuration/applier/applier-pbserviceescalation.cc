@@ -23,7 +23,7 @@
 #include <com/centreon/engine/configuration/applier/service.hh>
 #include <com/centreon/engine/configuration/applier/serviceescalation.hh>
 #include <com/centreon/engine/serviceescalation.hh>
-#include "common/engine_conf/serviceescalation_helper.hh"
+#include "com/centreon/engine/host.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

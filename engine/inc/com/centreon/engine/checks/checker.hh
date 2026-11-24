@@ -22,6 +22,7 @@
 
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/commands/command.hh"
+#include "com/centreon/engine/host.hh"
 
 namespace com::centreon::engine::checks {
 

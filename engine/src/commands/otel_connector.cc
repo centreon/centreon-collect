@@ -17,6 +17,8 @@
  */
 
 #include "com/centreon/engine/commands/otel_connector.hh"
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/service.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -174,7 +176,7 @@ void otel_connector::update(const std::string& cmd_line) {
  * @return uint64_t
  */
 uint64_t otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
-                             nagios_macros& macros [[maybe_unused]],
+                             macro_context& macros [[maybe_unused]],
                              uint32_t timeout [[maybe_unused]],
                              const check_result::pointer& to_push_to_checker
                              [[maybe_unused]],
@@ -213,7 +215,7 @@ uint64_t otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
  * @param res check result
  */
 void otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
-                         nagios_macros& macros [[maybe_unused]],
+                         macro_context& macros [[maybe_unused]],
                          uint32_t timeout [[maybe_unused]],
                          result& res [[maybe_unused]]) {
   SPDLOG_LOGGER_ERROR(

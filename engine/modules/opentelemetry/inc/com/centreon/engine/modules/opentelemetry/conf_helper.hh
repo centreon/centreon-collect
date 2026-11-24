@@ -21,8 +21,8 @@
 #include <absl/container/flat_hash_map.h>
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/service.hh"
+#include "engine/macros/macro_context.hh"
 
 #include "com/centreon/engine/commands/forward.hh"
 
@@ -105,9 +105,8 @@ e_get_otel_commands_ret get_otel_commands(
   std::string cmd_line;
   // host check use otl?
   if (use_otl_command(*hst)) {
-    nagios_macros* macros(get_global_macros());
+    macro_context macros;
     cmd_line = hst->get_check_command_line(macros);
-    clear_volatile_macros_r(macros);
 
     if (allowed_by_white_list(cmd_line)) {
       if (handler(hst->check_command(), cmd_line, "", hst->host_id(), 0,
@@ -138,9 +137,8 @@ e_get_otel_commands_ret get_otel_commands(
        ++serv_iter) {
     std::shared_ptr<service> serv = serv_iter->second;
     if (use_otl_command(*serv)) {
-      nagios_macros* macros(get_global_macros());
+      macro_context macros;
       cmd_line = serv->get_check_command_line(macros);
-      clear_volatile_macros_r(macros);
 
       if (allowed_by_white_list(cmd_line)) {
         if (handler(serv->check_command(), cmd_line, serv->name(),

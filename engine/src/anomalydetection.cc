@@ -22,9 +22,9 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/string.hh"
+#include "engine/macros/macro_context.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -161,12 +161,12 @@ class cancellable_command : public command {
   }
 
   uint64_t run(const std::string& processed_cmd,
-               nagios_macros& macors,
+               macro_context& macors,
                uint32_t timeout,
                const check_result::pointer& to_push_to_checker,
                const notifier* caller = nullptr) override;
   void run(const std::string& process_cmd,
-           nagios_macros& macros,
+           macro_context& macros,
            uint32_t timeout,
            result& res) override;
 
@@ -192,7 +192,7 @@ const std::string cancellable_command::_empty;
  */
 uint64_t cancellable_command::run(
     const std::string& processed_cmd,
-    nagios_macros& macros,
+    macro_context& macros,
     uint32_t timeout,
     const check_result::pointer& to_push_to_checker,
     const notifier* caller) {
@@ -217,7 +217,7 @@ uint64_t cancellable_command::run(
 }
 
 void cancellable_command::run(const std::string& process_cmd,
-                              nagios_macros& macros,
+                              macro_context& macros,
                               uint32_t timeout,
                               result& res) {
   if (_fake_result) {

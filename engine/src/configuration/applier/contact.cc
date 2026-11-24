@@ -22,6 +22,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
+#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 
@@ -302,6 +303,7 @@ void applier::contact::remove_object(const std::string& key) {
 
     for (auto& it_c : cntct->get_parent_groups())
       it_c.second->get_members().erase(key);
+    ++notifier::contacts_version;
 
     // Erase contact object (this will effectively delete the object).
     engine::contact::contacts.erase(it);

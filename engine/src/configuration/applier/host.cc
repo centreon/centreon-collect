@@ -26,6 +26,7 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/severity.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/severity_helper.hh"
@@ -467,6 +468,7 @@ void applier::host::remove_object(uint64_t host_id) {
     // Erase host object (will effectively delete the object).
     engine::host::hosts.erase(it->second->name());
     engine::host::hosts_by_id.erase(it);
+    ++notifier::contacts_version;
   }
 
   // Remove host from the global configuration set.

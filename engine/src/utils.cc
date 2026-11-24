@@ -38,7 +38,6 @@
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/downtimes/downtime_manager.hh"
@@ -53,7 +52,7 @@ using namespace com::centreon::engine::events;
 /******************************************************************/
 
 /* executes a system command - used for notifications, event handlers, etc. */
-int my_system_r(nagios_macros* mac,
+int my_system_r(macro_context& mac,
                 std::string const& cmd,
                 int timeout,
                 bool* early_timeout,
@@ -82,7 +81,7 @@ int my_system_r(nagios_macros* mac,
   std::shared_ptr<commands::raw_v2> raw_cmd =
       std::make_shared<commands::raw_v2>(g_io_context, "system", cmd);
   commands::result res;
-  raw_cmd->run(cmd, *mac, timeout, res);
+  raw_cmd->run(cmd, mac, timeout, res);
 
   end_time.tv_sec = res.end_time.to_seconds();
   end_time.tv_usec = res.end_time.to_useconds() - end_time.tv_sec * 1000000ull;
@@ -108,77 +107,6 @@ char const* my_ctime(time_t const* t) {
   if (buf != nullptr)
     buf[strlen(buf) - 1] = 0;
   return buf;
-}
-
-/* given a "raw" command, return the "expanded" or "whole" command line */
-int get_raw_command_line_r(nagios_macros* mac,
-                           commands::command* cmd_ptr,
-                           std::string const& cmd,
-                           std::string& full_command,
-                           int macro_options) {
-  std::string temp_arg;
-  temp_arg.reserve(MAX_COMMAND_BUFFER);
-  std::string arg_buffer;
-  unsigned int x = 0;
-  int escaped = false;
-
-  functions_logger->trace("get_raw_command_line_r()");
-
-  /* clear the argv macros */
-  clear_argv_macros_r(mac);
-
-  /* make sure we've got all the requirements */
-  if (cmd_ptr == nullptr) {
-    return ERROR;
-  }
-
-  SPDLOG_LOGGER_DEBUG(commands_logger, "Raw Command Input: {}",
-                      cmd_ptr->get_command_line());
-
-  /* get the full command line */
-  full_command = cmd_ptr->get_command_line();
-
-  /* get the command arguments */
-  if (!cmd.empty()) {
-    std::string::const_iterator arg_iter = cmd.begin();
-    /* skip the command name (we're about to get the arguments)... */
-    for (; arg_iter != cmd.end() && *arg_iter != '!'; ++arg_iter)
-      ;
-
-    /* get each command argument */
-    for (x = 0; x < MAX_COMMAND_ARGUMENTS && arg_iter != cmd.end(); ++x) {
-      /* get the next argument */
-      temp_arg.clear();
-      for (++arg_iter; arg_iter != cmd.end(); ++arg_iter) {
-        /* backslashes escape */
-        if (*arg_iter == '\\' && escaped == false) {
-          escaped = true;
-          continue;
-        }
-
-        /* end of argument */
-        if (*arg_iter == '!' && escaped == false)
-          break;
-
-        /* normal of escaped char */
-        temp_arg.push_back(*arg_iter);
-
-        /* clear escaped flag */
-        escaped = false;
-      }
-
-      /* ADDED 01/29/04 EG */
-      /* process any macros we find in the argument */
-      process_macros_r(mac, temp_arg, arg_buffer, macro_options);
-
-      mac->argv[x] = std::move(arg_buffer);
-    }
-  }
-
-  SPDLOG_LOGGER_DEBUG(commands_logger, "Expanded Command Output: {}",
-                      full_command);
-
-  return OK;
 }
 
 /******************************************************************/
@@ -293,28 +221,16 @@ void cleanup() {
     neb_deinit_modules();
   }
 
-  // Free all allocated memory - including macros.
-  free_memory(get_global_macros());
+  // Free all allocated memory.
+  free_memory();
 }
 
 /**
  *  Free the memory allocated to the linked lists.
- *
- *  @param[in,out] mac Macros.
  */
-void free_memory(nagios_macros* mac) {
+void free_memory() {
   // Free memory allocated to downtimes.
   downtime_manager::instance().clear_scheduled_downtimes();
-
-  /*
-  ** Free memory associated with macros. It's ok to only free the
-  ** volatile ones, as the non-volatile are always free()'d before
-  ** assignment if they're set. Doing a full free of them here means
-  ** we'll wipe the constant macros when we get a reload or restart
-  ** request through the command pipe, or when we receive a SIGHUP.
-  */
-  clear_volatile_macros_r(mac);
-  free_macrox_names();
 }
 
 // Thread-safe initialization guard

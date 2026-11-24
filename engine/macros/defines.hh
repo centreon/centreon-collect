@@ -1,36 +1,33 @@
-/*
-** Copyright 1999-2010 Ethan Galstad
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2010 Ethan Galstad
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_MACROS_DEFINES_HH_
 #define CCE_MACROS_DEFINES_HH_
 
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/servicegroup.hh"
+#include <cstddef>
 
 // Length Limitations
 #define MAX_COMMAND_ARGUMENTS 32  // maximum number of $ARGx$ macros
 
 // Macro Definitions
 #define MACRO_ENV_VAR_PREFIX "NAGIOS_"
-#define MAX_USER_MACROS 256  // maximum number of $USERx$ macros
 
 #define MACRO_HOSTNAME 0
 #define MACRO_HOSTALIAS 1
@@ -187,41 +184,18 @@
 #define MACRO_CONTACTTIMEZONE 159
 #define MACRO_POLLERNAME 160
 #define MACRO_POLLERID 161
-#define MACRO_X_COUNT 162  // size of macro_x[] array
-
-// Maximum recursion depth for macros within custom macros
-#define MAX_CUSTOM_MACRO_RECURSION_DEPTH 2
+#define MACRO_X_COUNT 162  // number of macros with an id
 
 // Macro Cleaning Options
 #define STRIP_ILLEGAL_MACRO_CHARS 1
-#define ESCAPE_MACRO_CHARS 2
 
-// NAGIOS_MACROS structure
-class nagios_macros {
- public:
-  nagios_macros()
-      : host_ptr{nullptr},
-        hostgroup_ptr{nullptr},
-        service_ptr{nullptr},
-        servicegroup_ptr{nullptr},
-        contact_ptr{nullptr},
-        contactgroup_ptr{nullptr},
-        custom_macro_recursion_depth{0} {};
-
-  std::array<std::string, MACRO_X_COUNT> x;
-  std::array<std::string, MAX_COMMAND_ARGUMENTS> argv;
-  std::array<std::string, MAX_CONTACT_ADDRESSES> contactaddress;
-  std::string ondemand;
-  com::centreon::engine::host* host_ptr;
-  com::centreon::engine::hostgroup* hostgroup_ptr;
-  com::centreon::engine::service* service_ptr;
-  com::centreon::engine::servicegroup* servicegroup_ptr;
-  com::centreon::engine::contact* contact_ptr;
-  com::centreon::engine::contactgroup* contactgroup_ptr;
-  com::centreon::engine::map_customvar custom_host_vars;
-  com::centreon::engine::map_customvar custom_service_vars;
-  com::centreon::engine::map_customvar custom_contact_vars;
-  int custom_macro_recursion_depth;
-};
+/* Number of $TOTAL*$ macros, from MACRO_TOTALHOSTSUP to
+ * MACRO_TOTALSERVICEPROBLEMSUNHANDLED. */
+constexpr size_t MACRO_SUMMARY_COUNT =
+    MACRO_TOTALSERVICEPROBLEMSUNHANDLED - MACRO_TOTALHOSTSUP + 1;
+/* Number of $TOTALHOSTSERVICES*$ macros, from MACRO_TOTALHOSTSERVICES to
+ * MACRO_TOTALHOSTSERVICESCRITICAL. */
+constexpr size_t MACRO_HOST_SERVICES_COUNT =
+    MACRO_TOTALHOSTSERVICESCRITICAL - MACRO_TOTALHOSTSERVICES + 1;
 
 #endif /* !CCE_MACROS_DEFINES_HH_ */

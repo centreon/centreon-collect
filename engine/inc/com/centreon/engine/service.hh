@@ -223,8 +223,7 @@ class service : public notifier {
   bool verify_check_viability(int check_options,
                               bool* time_is_valid,
                               time_t* new_time);
-  void grab_macros_r(nagios_macros* mac) override;
-  int notify_contact(nagios_macros* mac,
+  int notify_contact(macro_context& mac,
                      contact* cntct,
                      common::notifications::reason_type type,
                      std::string const& not_author,
@@ -265,7 +264,7 @@ class service : public notifier {
   static service_map services;
   static service_id_map services_by_id;
 
-  std::string get_check_command_line(nagios_macros* macros);
+  std::string get_check_command_line(macro_context& macros);
   bool is_cma_service() const { return _is_cma_service; }
   void set_is_cma_service(bool is_cma) { _is_cma_service = is_cma; }
 

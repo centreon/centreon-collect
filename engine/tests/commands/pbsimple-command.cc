@@ -17,13 +17,18 @@
  *
  */
 
+#include <absl/algorithm/container.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
 #include <spdlog/common.h>
-#include <com/centreon/engine/macros.hh>
+#include "engine/macros/macro_context.hh"
 
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/commands/raw_v2.hh"
+#include "com/centreon/engine/configuration/applier/host.hh"
+#include "com/centreon/engine/host.hh"
 #include "common/log_v2/log_v2.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -103,11 +108,11 @@ TEST_F(PbSimpleCommand, CommandAlreadyExisting) {
 TEST_F(PbSimpleCommand, NewCommandSync) {
   std::shared_ptr<commands::command> cmd{
       new commands::raw_v2(g_io_context, "test", "/bin/echo bonjour")};
-  nagios_macros* mac(get_global_macros());
+  macro_context mac;
   commands::result res;
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
-  cmd->run(cc, *mac, 2, res);
+  cmd->run(cc, mac, 2, res);
   ASSERT_EQ(res.output, "bonjour\n");
 }
 
@@ -121,10 +126,10 @@ TEST_F(PbSimpleCommand, NewCommandAsync) {
   std::shared_ptr<commands::command> cmd{
       new commands::raw_v2(g_io_context, "test", "/bin/echo bonjour")};
   cmd->set_listener(lstnr);
-  nagios_macros* mac(get_global_macros());
+  macro_context mac;
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  cmd->run(cc, mac, 2, std::make_shared<check_result>());
   int timeout{0};
   int max_timeout{3000};
   while (timeout < max_timeout && lstnr->get_result().output == "") {
@@ -140,14 +145,14 @@ TEST_F(PbSimpleCommand, LongCommandAsync) {
   std::shared_ptr<commands::command> cmd{
       new commands::raw_v2(g_io_context, "test", "/bin/sleep 10")};
   cmd->set_listener(lstnr);
-  nagios_macros* mac(get_global_macros());
+  macro_context mac;
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/sleep 10");
 
   // We force the time to be coherent with now because the function gettimeofday
   // that is not simulated.
   set_time(std::time(nullptr));
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  cmd->run(cc, mac, 2, std::make_shared<check_result>());
   int timeout{0};
   int max_timeout{15};
   while (timeout < max_timeout && lstnr->get_result().output == "") {
@@ -179,11 +184,11 @@ TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
   const notifier* caller[] = {reinterpret_cast<const notifier*>(1),
                               reinterpret_cast<const notifier*>(2)};
   cmd->add_caller_group(caller, caller + 2);
-  nagios_macros* mac(get_global_macros());
+  macro_context mac;
   std::string cc(cmd->process_cmd(mac));
   time_t now = 10000;
   set_time(now);
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[0]);
+  cmd->run(cc, mac, 2, std::make_shared<check_result>(), caller[0]);
   for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
        ++wait_ind) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -196,7 +201,7 @@ TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
   ASSERT_EQ(stat(path, &file_stat), 0);
   ASSERT_EQ(file_stat.st_size, 4);
   ++now;
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[1]);
+  cmd->run(cc, mac, 2, std::make_shared<check_result>(), caller[1]);
   for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
        ++wait_ind) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -229,11 +234,11 @@ TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
   const notifier* caller[] = {reinterpret_cast<const notifier*>(1),
                               reinterpret_cast<const notifier*>(2)};
   cmd->add_caller_group(caller, caller + 2);
-  nagios_macros* mac(get_global_macros());
+  macro_context mac;
   std::string cc(cmd->process_cmd(mac));
   time_t now = 10000;
   set_time(now);
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[0]);
+  cmd->run(cc, mac, 2, std::make_shared<check_result>(), caller[0]);
   for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
        ++wait_ind) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -248,7 +253,7 @@ TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
   now += 10;
   set_time(now);
   lstnr->get_result().output = "";
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[1]);
+  cmd->run(cc, mac, 2, std::make_shared<check_result>(), caller[1]);
   for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
        ++wait_ind) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -265,12 +270,12 @@ TEST_F(PbSimpleCommand, WithOneArgument) {
   std::shared_ptr<commands::command> cmd{std::make_unique<commands::raw_v2>(
       g_io_context, "test", "/bin/echo $ARG1$")};
   cmd->set_listener(lstnr);
-  nagios_macros* mac(get_global_macros());
-  mac->argv[0] = "Hello";
-  mac->argv[1] = "";
+  macro_context mac;
+  mac.argv[0] = "Hello";
+  mac.argv[1] = "";
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo Hello");
-  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  cmd->run(cc, mac, 2, std::make_shared<check_result>());
   int timeout{0};
   int max_timeout{3000};
   while (timeout < max_timeout && lstnr->get_result().output == "") {
@@ -279,4 +284,54 @@ TEST_F(PbSimpleCommand, WithOneArgument) {
   }
   ASSERT_TRUE(timeout < max_timeout);
   ASSERT_EQ(lstnr->get_result().output, "Hello\n");
+}
+
+// Given the environment macros enabled
+// When a command is run
+// Then the macros are given to it as NAGIOS_* environment variables.
+TEST_F(PbSimpleCommand, EnvironmentMacros) {
+  pb_indexed_config.mut_state().set_enable_environment_macros(true);
+  auto lstnr = std::make_shared<my_listener>();
+  std::shared_ptr<commands::command> cmd{
+      std::make_unique<commands::raw_v2>(g_io_context, "test", "/usr/bin/env")};
+  cmd->set_listener(lstnr);
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst_hlp.set_default_values();
+  hst.set_host_name("host_1");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+  hst_hlp.insert_customvariable("_FOO", "bar");
+  hst_aply.add_object(hst);
+
+  macro_context mac;
+  mac.host_ptr = host::hosts.find("host_1")->second.get();
+  mac.argv[0] = "Hello";
+  mac.argv[1].clear();
+  std::string cc(cmd->process_cmd(mac));
+  cmd->run(cc, mac, 2, std::make_shared<check_result>());
+  int timeout{0};
+  int max_timeout{3000};
+  while (timeout < max_timeout && lstnr->get_result().output == "") {
+    usleep(100000);
+    ++timeout;
+  }
+  mac.reset();
+  ASSERT_TRUE(timeout < max_timeout);
+  std::vector<std::string_view> lines =
+      absl::StrSplit(lstnr->get_result().output, '\n');
+  ASSERT_TRUE(absl::c_linear_search(lines, "NAGIOS_HOSTNAME=host_1"));
+  ASSERT_TRUE(absl::c_linear_search(lines, "NAGIOS_ARG1=Hello"));
+  ASSERT_TRUE(absl::c_linear_search(lines, "NAGIOS_ARG2="));
+  ASSERT_TRUE(absl::c_linear_search(lines, "NAGIOS__HOSTFOO=bar"));
+  /* Every macro of the table is exported, even when empty. */
+  auto has_key = [&lines](std::string_view key) {
+    return absl::c_any_of(lines, [key](std::string_view l) {
+      return absl::StartsWith(l, key) && l.size() > key.size() &&
+             l[key.size()] == '=';
+    });
+  };
+  ASSERT_TRUE(has_key("NAGIOS_SERVICEDESC"));
+  ASSERT_TRUE(has_key("NAGIOS_POLLERID"));
 }

@@ -20,8 +20,10 @@
 
 #ifndef CCE_OBJECTS_COMMENTS_HH
 #define CCE_OBJECTS_COMMENTS_HH
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/host.hh"
+#include <cstdint>
+#include <ctime>
+#include <ostream>
+#include <string>
 
 namespace com::centreon::engine {
 class comment;
