@@ -35,6 +35,8 @@
 #include <algorithm>
 #include <openssl/evp.h>
 #include <csignal>
+#include <cstdint>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <unistd.h>
@@ -159,6 +161,9 @@ class api : public std::enable_shared_from_this<api> {
     std::string private_key;
     std::string ca_certificate = "/etc/centreon-broker/certs/ca.crt";
     uint64_t max_body_size = 64u << 20;
+    /* uid of the engine running next to this cbd (env CENTRAL_POLLER_UID),
+     * 0 when unknown. */
+    uint64_t local_poller_uid = 0;
   };
 
  private:
@@ -191,8 +196,8 @@ class api : public std::enable_shared_from_this<api> {
     /* At least one "broker" file: the central cbd reloads itself when this
      * deployment targets its own poller. */
     bool broker_files = false;
-    /* The target engine runs next to this cbd: same poller id, or same
-     * poller name when the engine is identified by its uid. */
+    /* The target engine runs next to this cbd: same poller id, or its uid
+     * is CENTRAL_POLLER_UID. */
     bool own_poller = false;
     time_t finished_at = 0;
   };
@@ -728,10 +733,10 @@ void api::_post_deployment(const json& body, answer_function&& answer) {
     d->status = st_peer_too_old;
     d->message = "poller does not accept remote actions";
   } else {
-    const auto& st = config::applier::state::instance();
-    d->own_poller = d->poller_id == st.poller_id() ||
-                    (!st.poller_name().empty() &&
-                     channel->info().poller_name == st.poller_name());
+    d->own_poller =
+        d->poller_id == config::applier::state::instance().poller_id() ||
+        (_conf.local_poller_uid != 0 &&
+         d->poller_id == _conf.local_poller_uid);
     bool ok = true;
     for (uint32_t idx = 0; ok && idx < files.size(); ++idx) {
       const file& fl = files[idx];
@@ -1054,6 +1059,29 @@ bool remote_api::load(const std::map<std::string, std::string>& params) {
     if (!get("max_body_size").empty() &&
         !absl::SimpleAtoi(get("max_body_size"), &c.max_body_size))
       throw std::invalid_argument("remote_api: invalid max_body_size");
+    /* Not a JSON key: the configuration delivered by the web has no uid, it
+     * would be lost at the first delivery. */
+    if (const char* uid = std::getenv("CENTRAL_POLLER_UID"); uid && *uid) {
+      if (absl::SimpleAtoi(uid, &c.local_poller_uid) &&
+          c.local_poller_uid != 0 &&
+          c.local_poller_uid <= static_cast<uint64_t>(INT64_MAX))
+        SPDLOG_LOGGER_INFO(logger,
+                           "remote api: local engine uid {} (self-reload on "
+                           "its deployments)",
+                           c.local_poller_uid);
+      else {
+        c.local_poller_uid = 0;
+        SPDLOG_LOGGER_ERROR(logger,
+                            "remote api: CENTRAL_POLLER_UID '{}' is not a "
+                            "decimal integer in 1..2^63-1, ignored",
+                            uid);
+      }
+    } else {
+      SPDLOG_LOGGER_INFO(logger,
+                         "remote api: CENTRAL_POLLER_UID not set, self-reload "
+                         "only on deployments to poller id {}",
+                         config::applier::state::instance().poller_id());
+    }
 
     unload();
     auto a = std::make_shared<api>(c);
