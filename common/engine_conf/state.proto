@@ -1062,6 +1062,7 @@ message RuntimeState {
 }
 
 /* io::neb, neb::de_pb_global_diff_state, 52, DiffState */
+/* io::bbdo, bbdo::de_pb_diff_state, 56, DiffState, PollerDiffState */
 message DiffState {
   /* Modifications concerning timeperiods */
   DiffTimeperiod timeperiods = 1;
