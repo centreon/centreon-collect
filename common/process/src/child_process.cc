@@ -373,6 +373,15 @@ void child_process<use_mutex>::kill() {
       SPDLOG_LOGGER_INFO(_logger, "fail to kill with SIGKILL child pid:{}: {}",
                          child_pid, err.message());
     }
+#ifdef _WIN32
+    // terminate() kills the child only: its descendants are in the job. 260 is
+    // the exit code given by terminate().
+    if (_proc->job && !TerminateJobObject(_proc->job, 260)) {
+      SPDLOG_LOGGER_DEBUG(_logger, "fail to kill the descendants of pid:{}: {}",
+                          child_pid,
+                          std::system_category().message(GetLastError()));
+    }
+#endif
   }
 }
 

@@ -29,6 +29,8 @@
 #ifndef _WIN32
 #include <dirent.h>
 #include <sys/resource.h>
+#else
+#include <tlhelp32.h>
 #endif
 
 using namespace com::centreon::common;
@@ -306,6 +308,64 @@ TEST_F(process_test, kill_process) {
   ASSERT_EQ(kill(pid, 0), -1);
 #endif
 }
+
+#ifdef _WIN32
+/**
+ * @brief Returns the id of the first process named exe_name whose parent is
+ * parent_pid, 0 if there is none.
+ */
+static DWORD find_child_process(DWORD parent_pid, const wchar_t* exe_name) {
+  DWORD found = 0;
+  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (snapshot == INVALID_HANDLE_VALUE) {
+    return 0;
+  }
+  PROCESSENTRY32W entry{};
+  entry.dwSize = sizeof(entry);
+  for (BOOL ok = Process32FirstW(snapshot, &entry); ok && !found;
+       ok = Process32NextW(snapshot, &entry)) {
+    if (entry.th32ParentProcessID == parent_pid &&
+        !_wcsicmp(entry.szExeFile, exe_name)) {
+      found = entry.th32ProcessID;
+    }
+  }
+  CloseHandle(snapshot);
+  return found;
+}
+
+/**
+ * The children of a killed process must not survive it: a plugin killed on
+ * timeout must not leave processes that keep its files open.
+ */
+TEST_F(process_test, kill_process_kills_descendants) {
+  char system_dir[MAX_PATH];
+  ASSERT_NE(GetSystemDirectoryA(system_dir, MAX_PATH), 0u);
+  std::shared_ptr<process_wait> to_wait(new process_wait(
+      g_io_context, _logger, std::string(system_dir) + "\\cmd.exe",
+      {"/c", "ping", "-n", "30", "127.0.0.1"}));
+  to_wait->start_process();
+
+  DWORD child_pid = 0;
+  for (auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+       !child_pid && std::chrono::steady_clock::now() < end;
+       std::this_thread::sleep_for(std::chrono::milliseconds(100))) {
+    child_pid = find_child_process(to_wait->get_pid(), L"ping.exe");
+  }
+  ASSERT_NE(child_pid, 0u);
+  // opened before the kill, so that its id cannot be reused meanwhile
+  HANDLE child = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, FALSE, child_pid);
+  ASSERT_NE(child, nullptr);
+
+  to_wait->kill();
+  DWORD wait_result = WaitForSingleObject(child, 10000);
+  EXPECT_EQ(wait_result, WAIT_OBJECT_0);
+  if (wait_result != WAIT_OBJECT_0) {
+    TerminateProcess(child, 1);
+  }
+  CloseHandle(child);
+  to_wait->wait();
+}
+#endif
 
 TEST_F(process_test, timeout) {
   std::shared_ptr<process_wait> to_wait(

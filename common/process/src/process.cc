@@ -235,6 +235,81 @@ static std::filesystem::path _exe_path_from_utf8(const std::string& exe_path) {
   return std::filesystem::path(utf8_to_wstring(ensure_utf8(exe_path)));
 }
 
+/**
+ * @brief Create a job object that kills the processes it holds when its last
+ * handle is closed: when the process object is deleted, or when this program
+ * exits, even if it crashes.
+ *
+ * @param logger
+ * @return HANDLE the job, nullptr on failure
+ */
+static HANDLE _create_kill_on_close_job(
+    const std::shared_ptr<spdlog::logger>& logger) {
+  HANDLE job = CreateJobObjectW(nullptr, nullptr);
+  if (!job) {
+    SPDLOG_LOGGER_DEBUG(logger, "fail to create a job object: {}",
+                        std::system_category().message(GetLastError()));
+    return nullptr;
+  }
+  JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+  limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+  if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits,
+                               sizeof(limits))) {
+    SPDLOG_LOGGER_DEBUG(logger, "fail to configure a job object: {}",
+                        std::system_category().message(GetLastError()));
+    CloseHandle(job);
+    return nullptr;
+  }
+  return job;
+}
+
+namespace {
+/**
+ * @brief boost::process initializer that puts the child process in a job
+ * object. on_setup creates the child suspended, so that it cannot start a
+ * process outside the job before on_success assigns it and resumes it.
+ */
+struct job_assigner {
+  HANDLE job;
+  const std::shared_ptr<spdlog::logger>& logger;
+
+  // boost::process recognizes an initializer by a hook returning an error_code
+  template <typename launcher_type, typename path_type>
+  boost::system::error_code on_setup(launcher_type& launcher,
+                                     const path_type&,
+                                     std::wstring&) const {
+    if (job) {
+      launcher.creation_flags |= CREATE_SUSPENDED;
+    }
+    return {};
+  }
+
+  template <typename launcher_type, typename path_type>
+  void on_success(launcher_type& launcher,
+                  const path_type&,
+                  std::wstring&) const {
+    if (!job) {  // not created suspended
+      return;
+    }
+    const PROCESS_INFORMATION& info = launcher.process_information;
+    if (!AssignProcessToJobObject(job, info.hProcess)) {
+      SPDLOG_LOGGER_DEBUG(logger,
+                          "pid:{} fail to assign the process to a job object, "
+                          "its children will survive a kill: {}",
+                          info.dwProcessId,
+                          std::system_category().message(GetLastError()));
+    }
+    if (ResumeThread(info.hThread) == static_cast<DWORD>(-1)) {
+      SPDLOG_LOGGER_ERROR(logger, "pid:{} fail to resume the process: {}",
+                          info.dwProcessId,
+                          std::system_category().message(GetLastError()));
+      // a suspended process would never end
+      TerminateProcess(info.hProcess, 1);
+    }
+  }
+};
+}  // namespace
+
 template <bool use_mutex>
 void process<use_mutex>::_create_process() {
   boost::process::windows::default_launcher launcher;
@@ -244,20 +319,32 @@ void process<use_mutex>::_create_process() {
   // Agent only start console applications
   launcher.creation_flags |= CREATE_NO_WINDOW;
 
+  // Windows does not kill the children of a killed process: they are started in
+  // a job object, so that kill() and the deletion of this object end them too.
+  // Closed here if the process cannot be created.
+  std::unique_ptr<void, decltype(&CloseHandle)> job(
+      _create_kill_on_close_job(_logger), &CloseHandle);
+  job_assigner assigner{job.get(), _logger};
+
   if (_env && !_env->env_buffer.empty()) {
     _proc = new detail::boost_process(
         launcher(*this->_io_context, _exe_path_from_utf8(_args->get_exe_path()),
                  _args->get_args(),
                  boost::process::v2::process_stdio{
                      this->_stdin_pipe, this->_stdout_pipe, this->_stderr_pipe},
-                 *_env));
+                 *_env, assigner),
+        job.get());
   } else {
-    _proc = new detail::boost_process(launcher(
-        *this->_io_context, _exe_path_from_utf8(_args->get_exe_path()),
-        _args->get_args(),
-        boost::process::v2::process_stdio{this->_stdin_pipe, this->_stdout_pipe,
-                                          this->_stderr_pipe}));
+    _proc = new detail::boost_process(
+        launcher(*this->_io_context, _exe_path_from_utf8(_args->get_exe_path()),
+                 _args->get_args(),
+                 boost::process::v2::process_stdio{
+                     this->_stdin_pipe, this->_stdout_pipe, this->_stderr_pipe},
+                 assigner),
+        job.get());
   }
+  // now owned by _proc
+  job.release();
   if (!_use_stdin) {  // we don't want a stdin for child process => stdin read
                       // from child process will get an eof
     this->close_stdin();
