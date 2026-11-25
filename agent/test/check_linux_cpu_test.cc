@@ -168,7 +168,7 @@ TEST_F(proc_stat_file_test, no_threshold) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -241,7 +241,7 @@ TEST_F(proc_stat_file_test, no_threshold_detailed) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -373,7 +373,7 @@ TEST_F(proc_stat_file_test, threshold_nodetailed) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -454,7 +454,7 @@ TEST_F(proc_stat_file_test, threshold_nodetailed2) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -513,7 +513,7 @@ TEST_F(proc_stat_file_test, threshold_detailed) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -587,7 +587,7 @@ TEST_F(proc_stat_file_test, threshold_detailed2) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -661,7 +661,7 @@ TEST_F(proc_stat_file_test, threshold_detailed3) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);

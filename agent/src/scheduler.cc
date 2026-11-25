@@ -963,7 +963,7 @@ std::shared_ptr<check> scheduler::default_check_builder(
       return check_dummy::load(
           io_context, logger, first_start_expected, service,
           fmt::format("Unable to decrypt command line {}", e.what()), conf,
-          std::move(handler), stat);
+          std::move(handler), stat, credentials_decrypt);
     }
   } else {
     command_line = service.command_line();
@@ -998,11 +998,11 @@ std::shared_ptr<check> scheduler::default_check_builder(
       if (check_type == "cpu_percentage"sv) {
         result = std::make_shared<check_cpu>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
       } else if (check_type == "health"sv) {
         result = std::make_shared<check_health>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
       } else if (check_type == "custom"sv) {
         result = std::make_shared<check_custom>(
             io_context, logger, first_start_expected, service, *args, conf,
@@ -1011,39 +1011,39 @@ std::shared_ptr<check> scheduler::default_check_builder(
       } else if (check_type == "uptime"sv) {
         result = std::make_shared<check_uptime>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
       } else if (check_type == "storage"sv) {
         result = std::make_shared<check_drive_size>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
       } else if (check_type == "memory"sv) {
         result = std::make_shared<check_memory>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
       } else if (check_type == "service"sv) {
         result = std::make_shared<check_service>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
       } else if (check_type == "counter"sv) {
         result = std::make_shared<check_counter>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
       } else if (check_type == "tasksched"sv) {
         result = std::make_shared<check_sched>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
       } else if (check_type == "files"sv) {
         result = std::make_shared<check_files>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
       } else if (check_type == "eventlog_nscp"sv) {
         result = check_event_log::load(io_context, logger, first_start_expected,
                                        service, *args, conf, std::move(handler),
-                                       stat);
+                                       stat, credentials_decrypt);
       } else if (check_type == "process_nscp"sv) {
         result = std::make_shared<check_process>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat);
+            std::move(handler), stat, credentials_decrypt);
 #endif
       } else {
         throw exceptions::msg_fmt("command {}, unknown native check:{}",
@@ -1058,7 +1058,7 @@ std::shared_ptr<check> scheduler::default_check_builder(
       SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
       return check_dummy::load(io_context, logger, first_start_expected,
                                service, std::string(e.what()), conf,
-                               std::move(handler), stat);
+                               std::move(handler), stat, credentials_decrypt);
     }
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, first_start_expected, service,

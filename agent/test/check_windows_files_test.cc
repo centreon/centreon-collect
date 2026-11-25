@@ -138,7 +138,7 @@ TEST_F(check_files_test, default_behavior) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   checker->start_check(std::chrono::seconds(20));
 
@@ -183,7 +183,7 @@ TEST_F(check_files_test, test_filter) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   checker->start_check(std::chrono::seconds(20));
 
@@ -255,7 +255,7 @@ TEST_F(check_files_test, warning_status) {
           complete = true;
           output = outputs.front();
         },
-        std::make_shared<checks_statistics>());
+        std::make_shared<checks_statistics>(), nullptr);
 
     checker->start_check(std::chrono::seconds(20));
 
@@ -319,7 +319,7 @@ TEST_F(check_files_test, critical_status) {
           complete = true;
           output = outputs.front();
         },
-        std::make_shared<checks_statistics>());
+        std::make_shared<checks_statistics>(), nullptr);
 
     checker->start_check(std::chrono::seconds(120));
 
@@ -382,7 +382,7 @@ TEST_F(check_files_test, ok_status) {
           complete = true;
           output = outputs.front();
         },
-        std::make_shared<checks_statistics>());
+        std::make_shared<checks_statistics>(), nullptr);
 
     checker->start_check(std::chrono::seconds(120));
 
@@ -426,7 +426,7 @@ TEST_F(check_files_test, version) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   checker->start_check(std::chrono::seconds(120));
 
@@ -530,7 +530,7 @@ TEST_F(check_files_test, regex_failures) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   checker->start_check(std::chrono::seconds(120));
 
@@ -585,7 +585,7 @@ TEST_F(check_files_test, pattern_matching) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   checker->start_check(std::chrono::seconds(120));
 
@@ -654,7 +654,7 @@ TEST_F(check_files_test, no_dangling_pointer) {
           complete = true;
           output = outputs.front();
         },
-        std::make_shared<checks_statistics>());
+        std::make_shared<checks_statistics>(), nullptr);
 
     checker->start_check(std::chrono::seconds(10));
     checker.reset();  // Reset the checker to ensure it is deleted
@@ -709,7 +709,7 @@ TEST_F(check_files_test, two_checks_same_path) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   auto run_one_check = [&](std::chrono::seconds timeout) {
     {
@@ -796,7 +796,7 @@ TEST_F(check_files_test, status_updates_when_file_added_and_removed) {
         status = st;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   auto run_one_check = [&]() {
     {
@@ -875,7 +875,7 @@ TEST_F(check_files_test, non_ascii_path_pattern_and_filter) {
           status = st;
           *output = outputs.front();
         },
-        std::make_shared<checks_statistics>());
+        std::make_shared<checks_statistics>(), nullptr);
 
     checker->start_check(std::chrono::seconds(20));
     absl::MutexLock lck(wait_m);

@@ -93,7 +93,8 @@ class dummy_check : public check {
               serv,
               nullptr,
               handler,
-              std::make_shared<checks_statistics>()),
+              std::make_shared<checks_statistics>(),
+              nullptr),
         _command_duration(command_duration),
         _command_timer(*g_io_context) {}
 };

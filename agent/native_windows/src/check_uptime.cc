@@ -38,22 +38,28 @@ static const absl::flat_hash_map<std::string_view, unsigned> _unit_multiplier =
  * @param args
  * @param cnf
  * @param handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
  */
-check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
-                           const std::shared_ptr<spdlog::logger>& logger,
-                           time_point first_start_expected,
-                           const Service& serv,
-                           const rapidjson::Value& args,
-                           const engine_to_agent_request_ptr& cnf,
-                           check::completion_handler&& handler,
-                           const checks_statistics::pointer& stat)
+check_uptime::check_uptime(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    const Service& serv,
+    const rapidjson::Value& args,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat) {
+            stat,
+            credentials_decrypt) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {

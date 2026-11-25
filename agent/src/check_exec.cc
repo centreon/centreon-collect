@@ -28,6 +28,20 @@ using namespace com::centreon::agent;
  * check_exec
  ******************************************************************/
 
+/**
+ * @brief Construct a new check_exec object
+ *
+ * @param io_context
+ * @param logger
+ * @param first_start_expected start expected
+ * @param serv service
+ * @param command_line command line of the plugin
+ * @param cnf agent configuration
+ * @param handler completion handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ */
 check_exec::check_exec(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -44,12 +58,12 @@ check_exec::check_exec(
             serv,
             cnf,
             std::move(handler),
-            stat),
-      _credentials_decrypt(credentials_decrypt) {
+            stat,
+            credentials_decrypt) {
   _process_args =
       com::centreon::common::process<false>::parse_cmd_line(command_line);
-  if (_credentials_decrypt) {
-    _process_args->encrypt_args(*_credentials_decrypt);
+  if (get_credentials_decrypt()) {
+    _process_args->encrypt_args(*get_credentials_decrypt());
     _process_args->clear_unencrypted_args();
   }
 }
@@ -63,8 +77,12 @@ check_exec::check_exec(
  * @param logger
  * @param first_start_expected start expected
  * @param serv
+ * @param command_line command line of the plugin
  * @param cnf   agent configuration
  * @param handler  completion handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
  * @return std::shared_ptr<check_exec>
  */
 std::shared_ptr<check_exec> check_exec::load(
@@ -185,21 +203,38 @@ void check_exec::on_completion(unsigned running_index,
  * check_dummy
  ******************************************************************/
 
-check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
-                         const std::shared_ptr<spdlog::logger>& logger,
-                         time_point first_start_expected,
-                         const Service& serv,
-                         const std::string& output,
-                         const engine_to_agent_request_ptr& cnf,
-                         check::completion_handler&& handler,
-                         const checks_statistics::pointer& stat)
+/**
+ * @brief Construct a new check_dummy object
+ *
+ * @param io_context
+ * @param logger
+ * @param first_start_expected start expected
+ * @param serv service
+ * @param output output returned by the check
+ * @param cnf agent configuration
+ * @param handler completion handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ */
+check_dummy::check_dummy(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    const Service& serv,
+    const std::string& output,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat),
+            stat,
+            credentials_decrypt),
       _output(output) {}
 
 /**
@@ -210,8 +245,12 @@ check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
  * @param logger
  * @param first_start_expected start expected
  * @param serv
+ * @param output output returned by the check
  * @param cnf   agent configuration
  * @param handler  completion handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
  * @return std::shared_ptr<check_dummy>
  */
 std::shared_ptr<check_dummy> check_dummy::load(
@@ -222,10 +261,11 @@ std::shared_ptr<check_dummy> check_dummy::load(
     const std::string& output,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat) {
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
   std::shared_ptr<check_dummy> ret = std::make_shared<check_dummy>(
       io_context, logger, first_start_expected, serv, output, cnf,
-      std::move(handler), stat);
+      std::move(handler), stat, credentials_decrypt);
   return ret;
 }
 
@@ -314,6 +354,20 @@ static std::string _build_custom_command_line(const Service& serv,
   return cmd_line;
 }
 
+/**
+ * @brief Construct a new check_custom object
+ *
+ * @param io_context
+ * @param logger
+ * @param first_start_expected start expected
+ * @param serv service
+ * @param args name and arguments of the local custom check
+ * @param cnf agent configuration
+ * @param handler completion handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ */
 check_custom::check_custom(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,

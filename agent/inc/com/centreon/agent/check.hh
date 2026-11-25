@@ -212,6 +212,10 @@ class check : public std::enable_shared_from_this<check> {
 
   virtual void _on_timeout() {};
 
+  void _run_event_handler();
+
+  void _run_command(const std::string& raw_cmd);
+
  public:
   using pointer = std::shared_ptr<check>;
 
@@ -338,9 +342,9 @@ class check : public std::enable_shared_from_this<check> {
 
   void calcul_status_confirmation(unsigned status);
 
-  void run_event_handler();
-
-  void run_command(const std::string& raw_cmd);
+  std::shared_ptr<common::crypto::aes256> get_credentials_decrypt() const {
+    return _credentials_decrypt;
+  }
 };
 
 }  // namespace com::centreon::agent

@@ -57,7 +57,7 @@ TEST_F(check_event_log_test, empty) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   test_event_container cont(
       "System", "level in ('info', 'error', 'warning')", "level == 'warning'",
@@ -92,7 +92,7 @@ TEST_F(check_event_log_test, warning) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   test_event_container cont("System", "level in ('info', 'error', 'warning')",
                             "level == 'warning' and written > -2s",
@@ -149,7 +149,7 @@ TEST_F(check_event_log_test, critical) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   test_event_container cont(
       "System", "level in ('info', 'error', 'warning')", "level == 'warning'",
@@ -222,7 +222,7 @@ TEST_F(check_event_log_test, critical_verbose) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   test_event_container cont(
       "System", "level in ('info', 'error', 'warning')", "level == 'warning'",
@@ -283,7 +283,7 @@ TEST_F(check_event_log_test, critical_to_warning) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr);
 
   test_event_container cont("System", "level in ('info', 'error', 'warning')",
                             "level == 'warning' or level == 'error'",

@@ -47,7 +47,8 @@ struct test_check_process : public check_process {
                       args,
                       cnf,
                       std::move(handler),
-                      stat) {
+                      stat,
+                      nullptr) {
     cont = std::make_unique<process_container_mock>(std::move(*_processes));
   }
 };

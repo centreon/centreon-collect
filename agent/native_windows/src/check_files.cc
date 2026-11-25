@@ -568,25 +568,30 @@ struct result_summary : public testable {
  * @param cnf Shared pointer to the engine-to-agent request configuration.
  * @param handler Completion handler to be called when the check is finished.
  * @param stat Shared pointer to the statistics collector for checks.
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
  *
  * @throws std::exception If argument parsing fails or required parameters are
  * missing.
  */
-check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
-                         const std::shared_ptr<spdlog::logger>& logger,
-                         time_point first_start_expected,
-                         const Service& serv,
-                         const rapidjson::Value& args,
-                         const engine_to_agent_request_ptr& cnf,
-                         check::completion_handler&& handler,
-                         const checks_statistics::pointer& stat)
+check_files::check_files(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    const Service& serv,
+    const rapidjson::Value& args,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat) {
+            stat,
+            credentials_decrypt) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {

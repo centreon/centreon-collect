@@ -48,7 +48,14 @@ class tempo_check : public check {
               duration completion_delay,
               check::completion_handler&& handler,
               const checks_statistics::pointer& stat)
-      : check(io_context, logger, exp, serv, cnf, std::move(handler), stat),
+      : check(io_context,
+              logger,
+              exp,
+              serv,
+              cnf,
+              std::move(handler),
+              stat,
+              nullptr),
         _completion_timer(*io_context),
         _command_exit_status(command_exit_status),
         _completion_delay(completion_delay) {}
@@ -559,7 +566,14 @@ class cp1252_check : public check {
                const engine_to_agent_request_ptr& cnf,
                check::completion_handler&& handler,
                const checks_statistics::pointer& stat)
-      : check(io_context, logger, exp, serv, cnf, std::move(handler), stat) {}
+      : check(io_context,
+              logger,
+              exp,
+              serv,
+              cnf,
+              std::move(handler),
+              stat,
+              nullptr) {}
 
   void start_check(const duration& timeout) override {
     if (!_start_check(timeout)) {
@@ -646,7 +660,14 @@ class concurent_check : public check {
                   duration completion_delay,
                   check::completion_handler&& handler,
                   const checks_statistics::pointer& stat)
-      : check(io_context, logger, exp, serv, cnf, std::move(handler), stat),
+      : check(io_context,
+              logger,
+              exp,
+              serv,
+              cnf,
+              std::move(handler),
+              stat,
+              nullptr),
         _completion_timer(*io_context),
         _command_exit_status(command_exit_status),
         _completion_delay(completion_delay) {}
@@ -1049,7 +1070,14 @@ class scripted_check : public check {
                  check::completion_handler&& handler,
                  const checks_statistics::pointer& stat,
                  std::vector<unsigned> statuses)
-      : check(io_context, logger, exp, serv, cnf, std::move(handler), stat),
+      : check(io_context,
+              logger,
+              exp,
+              serv,
+              cnf,
+              std::move(handler),
+              stat,
+              nullptr),
         _completion_timer(*io_context),
         _statuses(std::move(statuses)),
         _completion_delay(completion_delay) {}
@@ -1393,10 +1421,9 @@ class build_counter_check_builder {
       const checks_statistics::pointer& stat,
       const std::shared_ptr<com::centreon::common::crypto::aes256>&) const {
     ++*_build_count;
-    return std::make_shared<tempo_check>(io_context, logger, start_expected,
-                                         service, engine_to_agent_request, 0,
-                                         std::chrono::milliseconds(50),
-                                         std::move(handler), stat);
+    return std::make_shared<tempo_check>(
+        io_context, logger, start_expected, service, engine_to_agent_request, 0,
+        std::chrono::milliseconds(50), std::move(handler), stat);
   }
 };
 

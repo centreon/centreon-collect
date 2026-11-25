@@ -132,10 +132,11 @@ std::string_view check::status_to_label(int status) {
  * @param logger
  * @param first_start_expected start expected
  * @param serv
- * @param command_name
- * @param cmd_line
  * @param cnf
  * @param handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
  */
 check::check(const std::shared_ptr<asio::io_context>& io_context,
              const std::shared_ptr<spdlog::logger>& logger,
@@ -428,20 +429,20 @@ void check::calcul_status_confirmation(unsigned status) {
 
   set_last_status(status);
   if (event_handler_to_run) {
-    run_event_handler();
+    _run_event_handler();
   }
 }
 
-void check::run_event_handler() {
+void check::_run_event_handler() {
   if (!_service.global_event_handler().empty()) {
-    run_command(_service.global_event_handler());
+    _run_command(_service.global_event_handler());
   }
   if (!_service.event_handler().empty()) {
-    run_command(_service.event_handler());
+    _run_command(_service.event_handler());
   }
 }
 
-void check::run_command(const std::string& raw_cmd) {
+void check::_run_command(const std::string& raw_cmd) {
   std::string_view status;
   if (!_service.service_id()) {
     status = _last_status ? "DOWN" : "UP";

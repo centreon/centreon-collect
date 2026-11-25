@@ -715,7 +715,18 @@ service_enumerator::constructor check_service::_enumerator_constructor = []() {
 };
 
 /**
- * @brief constructor
+ * @brief Construct a new check_service object
+ *
+ * @param io_context
+ * @param logger
+ * @param first_start_expected start expected
+ * @param serv service
+ * @param args native check arguments
+ * @param cnf agent configuration
+ * @param handler completion handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
  */
 check_service::check_service(
     const std::shared_ptr<asio::io_context>& io_context,
@@ -725,7 +736,8 @@ check_service::check_service(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat)
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
     : native_check_base(io_context,
                         logger,
                         first_start_expected,
@@ -733,7 +745,8 @@ check_service::check_service(
                         args,
                         cnf,
                         std::move(handler),
-                        stat),
+                        stat,
+                        credentials_decrypt),
       _filter(args),
       _enumerator(_enumerator_constructor()) {
   _measure_to_status.emplace(

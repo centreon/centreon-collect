@@ -54,14 +54,16 @@ class check_event_log : public check {
                                  const event_log::event& evt) const;
 
  public:
-  check_event_log(const std::shared_ptr<asio::io_context>& io_context,
-                  const std::shared_ptr<spdlog::logger>& logger,
-                  time_point first_start_expected,
-                  const Service& serv,
-                  const rapidjson::Value& args,
-                  const engine_to_agent_request_ptr& cnf,
-                  check::completion_handler&& handler,
-                  const checks_statistics::pointer& stat);
+  check_event_log(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point first_start_expected,
+      const Service& serv,
+      const rapidjson::Value& args,
+      const engine_to_agent_request_ptr& cnf,
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
 
   static std::shared_ptr<check_event_log> load(
       const std::shared_ptr<asio::io_context>& io_context,
@@ -71,7 +73,8 @@ class check_event_log : public check {
       const rapidjson::Value& args,
       const engine_to_agent_request_ptr& cnf,
       check::completion_handler&& handler,
-      const checks_statistics::pointer& stat);
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
 
   static void help(std::ostream& help_stream);
 

@@ -45,6 +45,8 @@ using namespace com::centreon::agent;
  * @param cnf Shared pointer to the engine to agent request configuration.
  * @param handler The completion handler for the check.
  * @param stat Shared pointer to the checks statistics.
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
  *
  * @throws std::exception If there is an error parsing the arguments.
  */
@@ -56,14 +58,16 @@ check_event_log::check_event_log(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat)
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat) {
+            stat,
+            credentials_decrypt) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
@@ -146,6 +150,8 @@ check_event_log::check_event_log(
  * @param cnf Shared pointer to the engine to agent request configuration.
  * @param handler The completion handler for the check.
  * @param stat Shared pointer to the checks statistics.
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
  *
  * @return A shared pointer to the initialized check_event_log object.
  */
@@ -157,10 +163,11 @@ std::shared_ptr<check_event_log> check_event_log::load(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat) {
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
   std::shared_ptr<check_event_log> ret = std::make_shared<check_event_log>(
       io_context, logger, first_start_expected, serv, args, cnf,
-      std::move(handler), stat);
+      std::move(handler), stat, credentials_decrypt);
 
   ret->_data->start();
 

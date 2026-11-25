@@ -63,7 +63,7 @@ TEST_F(check_health_test, no_threshold_no_reverse) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      stats);
+      stats, nullptr);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -109,7 +109,7 @@ TEST_F(check_health_test, no_threshold_reverse) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      stats);
+      stats, nullptr);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -155,7 +155,7 @@ TEST_F(check_health_test, threshold_1) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      stats);
+      stats, nullptr);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -207,7 +207,7 @@ TEST_F(check_health_test, threshold_1_1) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      stats);
+      stats, nullptr);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -259,7 +259,7 @@ TEST_F(check_health_test, threshold_2) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      stats);
+      stats, nullptr);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -311,7 +311,7 @@ TEST_F(check_health_test, threshold_3) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      stats);
+      stats, nullptr);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -363,7 +363,7 @@ TEST_F(check_health_test, threshold_4) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      stats);
+      stats, nullptr);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
