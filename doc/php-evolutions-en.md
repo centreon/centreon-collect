@@ -1,0 +1,823 @@
+# PHP evolutions
+
+<!-- TOC -->
+* [PHP evolutions](#php-evolutions)
+* [Introduction](#introduction)
+* [Evolution 1 — New Broker/Engine configuration parameters](#evolution-1--new-brokerengine-configuration-parameters)
+  * [Broker parameters](#broker-parameters)
+    * [`cache_config_directory`](#cache_config_directory)
+    * [`pollers_config_directory`](#pollers_config_directory)
+    * [`notification_mode`](#notification_mode)
+    * [`bbdo_version`](#bbdo_version)
+    * [`grpc` (rpc\_port / listen\_address)](#grpc-rpc_port--listen_address)
+  * [Engine parameters](#engine-parameters)
+    * [`broker_module_cfg_file`](#broker_module_cfg_file)
+    * [New-generation start (`-p`)](#new-generation-start--p)
+    * [`grpc_port` / `rpc_listen_address`](#grpc_port--rpc_listen_address)
+  * [Summary of who needs what](#summary-of-who-needs-what)
+* [Evolution 2 — External commands over gRPC](#evolution-2--external-commands-over-grpc)
+  * [Current situation](#current-situation)
+  * [Target: gRPC entry points](#target-grpc-entry-points)
+  * [Routing rule: Engine vs Broker](#routing-rule-engine-vs-broker)
+  * [Downtime example](#downtime-example)
+  * [Command catalogue](#command-catalogue)
+  * [Discovery and ports](#discovery-and-ports)
+  * [Ordering comments — do not rely on `internal_id`](#ordering-comments--do-not-rely-on-internal_id)
+* [Evolution 3 — An explicit configuration batch: `pollers.lck`](#evolution-3--an-explicit-configuration-batch-pollerslck)
+  * [The problem](#the-problem)
+  * [The target](#the-target)
+  * [The rules](#the-rules)
+  * [What Broker does with it](#what-broker-does-with-it)
+  * [What the announcement disappearing means](#what-the-announcement-disappearing-means)
+  * [Backward compatibility](#backward-compatibility)
+  * [Accepted limit](#accepted-limit)
+* [Evolution 4 — Groups, parents, tags and variables of a stopped poller: filter on `enabled`](#evolution-4--groups-parents-tags-and-variables-of-a-stopped-poller-filter-on-enabled)
+  * [In short](#in-short)
+  * [What changes in Broker](#what-changes-in-broker)
+  * [Why](#why)
+  * [The rule for PHP](#the-rule-for-php)
+  * [Queries to adapt](#queries-to-adapt)
+  * [Left as they are](#left-as-they-are)
+  * [Defects found on the way](#defects-found-on-the-way)
+  * [Compatibility](#compatibility)
+<!-- TOC -->
+
+---
+
+# Introduction
+
+This document gathers the changes the **PHP web interface** (and, where relevant,
+Gorgone) must make to follow the Engine/Broker evolutions described in
+[Negotiation between Engine and Broker](./nego-engine-broker/README-en.md).
+
+It covers the following evolutions:
+
+1. **New configuration parameters** that PHP must expose in the Broker and Engine
+   configuration forms so that centralized configuration and Broker-side downtime
+   management can be enabled.
+2. **External commands sent over gRPC** instead of the legacy command file, with a
+   routing rule that depends on which component owns the data (Engine or Broker).
+3. **An explicit configuration batch**, `pollers.lck`, announcing an export as a whole.
+4. **A stopped poller keeps its links in the storage database** (group memberships, parents, tags, custom variables): the queries reading them have to join the hosts and services with `enabled = 1`.
+
+The first two evolutions are orthogonal — one can be rolled out without the other. The fourth one must be delivered with the Broker version that implements it.
+
+---
+
+# Evolution 1 — New Broker/Engine configuration parameters
+
+These parameters already exist in the C++ code; what is missing is their exposure in
+the PHP configuration interfaces so that an administrator can set them.
+
+## Broker parameters
+
+All Broker parameters below live in the Broker JSON configuration file, under the
+top-level `centreonBroker` object, exactly like the existing `broker_name`,
+`cache_directory`, etc.
+
+### `cache_config_directory`
+
+* **Type:** string (absolute directory path)
+* **Where:** top-level key of `centreonBroker`
+* **Meaning:** the PHP cache directory — the directory where PHP writes the
+  configuration it generates for each poller. It contains one subdirectory per
+  poller (named with the poller ID) plus a `<poller_id>.lck` file that PHP
+  `touch()`es once the subdirectory is fully written.
+* **Effect:** as soon as this directory is set, Broker considers itself in the
+  **new generation** (centralized configuration) and starts watching the `.lck`
+  files. This is the discriminant that turns on centralized configuration on the
+  Broker side.
+
+Example layout PHP must produce:
+
+```
+<cache_config_directory>/
+├── 1/
+│   ├── centengine.cfg
+│   ├── services.cfg
+│   └── ...
+├── 1.lck          ← touched last, after 1/ is complete
+├── 2/
+│   └── ...
+└── 2.lck
+```
+
+> **Important:** the `.lck` file must be touched **only after** the poller's
+> subdirectory is completely written. Touching it early causes Broker to read a
+> half-written configuration and compute a wrong diff.
+
+### `pollers_config_directory`
+
+* **Type:** string (absolute directory path)
+* **Where:** top-level key of `centreonBroker`
+* **Meaning:** the directory where Broker maintains the serialized Protobuf
+  configuration of every poller (`<poller_id>.prot`). Broker owns and writes this
+  directory; PHP never writes into it.
+* **Effect:** a **central** Broker has this directory set (it owns the `.prot`
+  configs). A **relay** (Remote Server) leaves it empty and forwards configuration
+  requests upstream. PHP must therefore set it on the central Broker and leave it
+  unset on relays.
+
+### `notification_mode`
+
+* **Type:** string — `broker` or `engine`
+* **Where:** top-level key of `centreonBroker` (stored in the Broker `params` map)
+* **Default:** `engine` (absent ⇒ `engine`)
+* **Meaning:** decides who manages downtimes and acknowledgements:
+  * `broker` → Broker loads the `downtime_manager` and the acknowledgement
+    manager, owns downtimes, **acknowledgements and user comments**, schedules
+    BAM inherited
+    downtimes in-process and is the sole writer of `scheduled_downtime_depth`,
+    `acknowledged` and `acknowledgement_type`. Engine is never told about
+    downtimes nor acknowledgements: an acknowledgement command sent to Engine in
+    this mode is **lost** for Broker (the flag is overwritten by the next status
+    and no row is written to the database).
+  * `engine` → Engine manages downtimes and acknowledgements, BAM sends
+    `SCHEDULE_SVC_DOWNTIME` to Engine (legacy behaviour).
+* **PHP impact:** this value also decides where downtime/acknowledgement external
+  commands must be sent (see [Routing rule](#routing-rule-engine-vs-broker)).
+
+### `bbdo_version`
+
+* **Type:** string `"<major>.<minor>.<patch>"`, e.g. `"3.0.0"`
+* **Where:** top-level key of `centreonBroker`
+* **Constraint:** centralized configuration and Broker-managed downtimes only work
+  with **BBDO ≥ 3.0.0**. PHP must guarantee BBDO 3 is selected whenever the
+  centralized features are enabled.
+
+### `grpc` (rpc_port / listen_address)
+
+* **Where:** `centreonBroker.grpc` object — `rpc_port` (integer) and
+  `listen_address` (string).
+* **Meaning:** the address/port of Broker's gRPC server. Needed by Evolution 2 so
+  that PHP knows where to send downtime/acknowledgement commands when
+  `notification_mode=broker`.
+
+## Engine parameters
+
+### `broker_module_cfg_file`
+
+* **Where:** Engine configuration (`centengine.cfg`), key `broker_module_cfg_file`.
+* **Meaning:** path to the Broker module configuration file (e.g.
+  `/etc/centreon-broker/central-module.json`). Since `cbmod` became a library, this
+  replaces the old `broker_module` declaration line. The same information can be
+  passed on the command line with `-b <file>`.
+* **PHP impact:** PHP must write this key instead of (or in addition to, during the
+  transition) the legacy `broker_module` line. The old format still works but emits
+  a deprecation warning in the logs.
+
+### New-generation start (`-p`)
+
+* **Where:** Engine command line / unit file (managed by Gorgone, not the web form).
+* **Meaning:**
+  * `centengine -p /var/lib/centreon-engine` → **new generation**: Engine retrieves
+    its configuration during negotiation with Broker, using
+    `/var/lib/centreon-engine` (its `HOME`) as working directory.
+  * `centengine /etc/centreon-engine/centengine.cfg` → **legacy**: Engine reads its
+    configuration from the `.cfg` file.
+* **PHP/Gorgone impact:** the launch arguments Gorgone uses to start Engine must
+  switch to `-p` when centralized configuration is enabled. The two modes are not
+  incompatible (Engine can read a `.cfg` and still be updated by Broker during the
+  transition).
+
+### `grpc_port` / `rpc_listen_address`
+
+* **Where:** Engine configuration (`grpc_port`, `rpc_listen_address`).
+* **Meaning:** address/port of Engine's gRPC server (`enginerpc`). Needed by
+  Evolution 2 to send external commands to Engine.
+
+## Summary of who needs what
+
+| Capability | Parameter(s) PHP must set | Component | Owner-deciding effect |
+|---|---|---|---|
+| Centralized Engine configuration | `cache_config_directory` (Broker) + `bbdo_version ≥ 3` (Broker) + start Engine with `-p` | Broker + Engine launch | Set ⇒ **Broker** owns the Engine config |
+| Central vs relay | `pollers_config_directory` (Broker) | Broker | Set ⇒ **central**; empty ⇒ **relay** |
+| Downtime/ack ownership | `notification_mode` (Broker) | Broker | `broker` ⇒ **Broker** owns downtimes and acks |
+| gRPC endpoints (Evolution 2) | `grpc.rpc_port` (Broker), `grpc_port` (Engine) | Both | where external commands are sent |
+| Engine ↔ Broker module link | `broker_module_cfg_file` (Engine) | Engine | replaces legacy `broker_module` line |
+
+> These choices are detailed and motivated in the
+> [Overview: who handles what](./nego-engine-broker/01-negotiation-en.md#overview-who-handles-what-depending-on-configuration)
+> section of the negotiation document.
+
+---
+
+# Evolution 2 — External commands over gRPC
+
+## Current situation
+
+External commands (schedule a downtime, acknowledge a problem, add a comment, force
+a check…) are currently written by PHP to Engine's **command file** (a named pipe),
+one text line per command (`SCHEDULE_SVC_DOWNTIME;...`). This is asynchronous,
+unacknowledged and Engine-only: PHP gets no return value and there is no way to send
+a command to Broker.
+
+## Target: gRPC entry points
+
+Both Engine and Broker expose a gRPC service. PHP must send external commands as
+**gRPC calls** instead of writing the command file:
+
+* **Engine** — `enginerpc` service (`engine/enginerpc/engine.proto`). It already
+  exposes the full command set: `ScheduleHostDowntime`, `ScheduleServiceDowntime`,
+  `DeleteDowntime`, `AddHostComment`, `AcknowledgementHostProblem`,
+  `ProcessServiceCheckResult`, `ScheduleServiceCheck`, etc. Each returns a
+  `CommandSuccess`, so PHP gets a synchronous result.
+* **Broker** — `brokerrpc` service (`broker/core/brokerrpc/broker.proto`). It
+  exposes `ScheduleDowntime` (returning the new `downtime_id`), `DeleteDowntime`,
+  and the four acknowledgement RPCs `AcknowledgeHostProblem`,
+  `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`,
+  `RemoveServiceAcknowledgement`. These RPCs are **only available when
+  `notification_mode = broker`** (gRPC status `UNAVAILABLE` otherwise); failures
+  are reported through the gRPC status, there is no `CommandSuccess`.
+
+## Routing rule: Engine vs Broker
+
+The destination of a command depends on **who owns the underlying data**, which is
+driven by `notification_mode`:
+
+```mermaid
+flowchart TD
+    classDef engine fill:#e2725b,color:#fff;
+    classDef broker fill:#4a90d9,color:#fff;
+
+    CMD["External command from PHP"]
+    CMD --> Q1{"Downtime, acknowledgement<br/>or comment?"}
+    Q1 -- "no (check result,<br/>enable/disable, change var…)" --> ENG["Engine enginerpc"]:::engine
+    Q1 -- "yes" --> Q2{"Broker notification_mode = broker?"}
+    Q2 -- "yes" --> BRK["Broker brokerrpc<br/>ScheduleDowntime / DeleteDowntime<br/>Acknowledge*Problem / Remove*Acknowledgement<br/>Add*Comment / Delete*Comment(s)"]:::broker
+    Q2 -- "no (engine / absent)" --> ENG2["Engine enginerpc<br/>Schedule*Downtime / DeleteDowntime*<br/>Acknowledgement*Problem / Remove*Acknowledgement<br/>Add*Comment / Delete*Comment(s)"]:::engine
+```
+
+* **Downtimes, acknowledgements and comments** follow `notification_mode`:
+  * `notification_mode = broker` → call **Broker**'s `ScheduleDowntime` /
+    `DeleteDowntime`, `AcknowledgeHostProblem` / `AcknowledgeServiceProblem` /
+    `RemoveHostAcknowledgement` / `RemoveServiceAcknowledgement` and
+    `AddHostComment` / `AddServiceComment` / `DeleteComment` /
+    `DeleteAllHostComments` / `DeleteAllServiceComments`. Engine's acknowledgement
+    and comment RPCs must **no longer** be called in this mode.
+  * otherwise → call **Engine**'s downtime, acknowledgement and comment RPCs
+    (legacy).
+* **Per-host / per-service notification switches** (`ENABLE/DISABLE_HOST_NOTIFICATIONS`,
+  `*_SVC_NOTIFICATIONS`, `*_HOST_SVC_NOTIFICATIONS`, `*_HOST_AND_CHILD_NOTIFICATIONS`,
+  `*_ALL_NOTIFICATIONS_BEYOND_HOST`) follow `notification_mode` as well: in `broker`
+  mode, **Broker**'s `SetHostNotifications(HostNotificationsRequest { host, enabled,
+  scope })` and `SetServiceNotifications(ServiceNotificationsRequest { service,
+  enabled })`. The switch wins over the configured value and survives Broker and
+  Engine restarts, like a retained `MODATTR` on the Engine side.
+* **Contact switches and notification timeperiods**: in `broker` mode,
+  `ENABLE/DISABLE_CONTACT_{HOST,SVC}_NOTIFICATIONS` → `SetContactHostNotifications` /
+  `SetContactServiceNotifications(ContactNotificationsRequest { contact { name }, enabled })`,
+  `ENABLE/DISABLE_CONTACTGROUP_{HOST,SVC}_NOTIFICATIONS` → `SetContactgroupHostNotifications` /
+  `SetContactgroupServiceNotifications(ContactgroupNotificationsRequest { contactgroup { name },
+  enabled })` (fanned out to the members), `CHANGE_CONTACT_{HOST,SVC}_NOTIFICATION_TIMEPERIOD` →
+  `SetContactHostNotificationPeriod` / `SetContactServiceNotificationPeriod(
+  ContactNotificationPeriodRequest { contact { name }, timeperiod })`,
+  `CHANGE_{HOST,SVC}_NOTIFICATION_TIMEPERIOD` → `SetHostNotificationPeriod` /
+  `SetServiceNotificationPeriod({ host | service, timeperiod })`. One RPC per legacy command,
+  contacts and contactgroups designated by name, a timeperiod unknown to Broker is refused
+  (`NOT_FOUND`). Same persistence rules as the per-resource switches.
+* **Poller-wide switch**: `ENABLE/DISABLE_NOTIFICATIONS` (addressed to a poller) →
+  **Broker**'s `SetPollerNotifications(PollerNotificationsRequest { poller { poller_id |
+  poller_name }, enabled })` in `broker` mode. The scope stays the poller, as in legacy; for
+  the whole platform, loop over the pollers. Broker also relays the switch to the poller
+  (`ENABLE/DISABLE_NOTIFICATIONS` line on the downward channel) so that its flag, hence
+  `instances.notifications` in the database, follows.
+* **Notifier settings**: `SET_*_NOTIFICATION_NUMBER` → `SetHostNotificationNumber` /
+  `SetServiceNotificationNumber`, `SEND_CUSTOM_*_NOTIFICATION` →
+  `SendCustomHostNotification` / `SendCustomServiceNotification` (bit 2 becomes
+  the boolean `forced`; bits 1, `broadcast`, and 4, `increment`, are ignored).
+  These calls are applied asynchronously, like the pipe. `DELAY_*_NOTIFICATION` has no counterpart: the command
+  has no effect on the decision, neither on Engine nor on Broker.
+* **All other per-host / per-service commands** (check results, forced checks,
+  check / event handler / flapping switches, object variable changes…) go through
+  **Broker's generic pass-through** `ExecuteExternalCommand` (below), which hands them
+  to the owning poller. Engine's command RPCs remain usable but are **deprecated for
+  PHP**: with HA, PHP no longer knows which poller supervises a resource.
+* **Global and process commands** (`ENABLE_EVENT_HANDLERS`, `START_EXECUTING_*`,
+  `RESTART_PROGRAM`…) go through `ExecuteExternalCommand` as well, with the target
+  poller in the request (`poller { poller_id | poller_name }`): on the pipe, the pipe
+  designated the poller, here the request must. The scope stays one Engine; for the
+  whole platform, PHP loops over the pollers.
+* **Contact and contactgroup commands** outside `broker` mode: `ExecuteExternalCommand`
+  broadcasts them to every connected poller, each having its copy of the contacts.
+* **Group commands** (`*_HOSTGROUP_*`, `*_SERVICEGROUP_*`): Centreon no longer allows an
+  action on a group, PHP no longer emits them; Broker refuses them with `UNIMPLEMENTED`.
+
+## Generic pass-through: `ExecuteExternalCommand`
+
+```protobuf
+message ExternalCommandRequest {
+  string command = 1;          // "SCHEDULE_FORCED_SVC_CHECK;host_1;service_1;0"
+  PollerIdentifier poller = 2; // required for a global or process command
+}
+rpc ExecuteExternalCommand(ExternalCommandRequest) returns (google.protobuf.Empty) {}
+```
+
+PHP sends **the legacy line exactly as it already produces it** for the command
+pipe, with or without the `[timestamp] ` prefix (Broker adds it when missing).
+Broker reads only the command name and, for a host or service command, the host
+name (first argument) and the service description (second), resolves the poller in
+its cache and delivers the line to the poller, which executes it exactly as if it
+had come from its pipe. The call returns as soon as the command is queued for the
+poller; the execution stays asynchronous, as with the pipe, but refusals are
+synchronous:
+
+| gRPC status           | Case                                                                                         |
+|-----------------------|----------------------------------------------------------------------------------------------|
+| `INVALID_ARGUMENT`    | unknown or empty command, malformed timestamp prefix, missing host, service or contact name, `poller` missing for a global or process command |
+| `NOT_FOUND`           | host, service or poller unknown to the Broker cache                                          |
+| `UNAVAILABLE`         | the target poller is not connected (no poller connected for a contact command)              |
+| `UNIMPLEMENTED`       | group command; outside broker mode, downtime / comment designated by id; in broker mode, downtime deletion by criteria (`DEL_*_DOWNTIME_FULL`, `DEL_DOWNTIME_BY_*`) |
+| typed RPC error       | in `notification_mode = broker`, a command Broker owns (acknowledgement, downtime, comment, notification switch): Broker executes it itself through the equivalent typed RPC and returns its status; a missing or non-numeric argument gives `INVALID_ARGUMENT` naming the field |
+
+Routing by target:
+
+| Target                   | Destination                                                        |
+|--------------------------|--------------------------------------------------------------------|
+| host, service            | the poller supervising the host                                    |
+| contact, contactgroup    | every connected poller (each has its copy of the contacts)         |
+| global, process          | the poller named in `poller`                                       |
+| native in `broker` mode  | Broker itself, through the typed RPC (`ACKNOWLEDGE_SVC_PROBLEM` → `AcknowledgeServiceProblem`, `SCHEDULE_HOST_DOWNTIME` → `ScheduleDowntime`, `DISABLE_HOST_NOTIFICATIONS` → `SetHostNotifications`…) |
+
+**PHP therefore no longer needs to know `notification_mode`** for external commands: the
+same legacy line is accepted in every mode, and Broker chooses between the poller and
+itself. The typed RPCs remain the structured API, the only one returning an id
+(`downtime_id`, comment `internal_id`). Two legacy commands stand for several typed
+calls and are fanned out by Broker: `SCHEDULE_HOST_SVC_DOWNTIME` (one downtime per
+service of the host) and `SCHEDULE_AND_PROPAGATE(_TRIGGERED)_HOST_DOWNTIME` (the host and
+its descendants, triggered by the top downtime in the `TRIGGERED` form).
+`ENABLE/DISABLE_HOST_SVC_NOTIFICATIONS` only touches the services, as on Engine, not the
+`HOST_AND_SERVICES` scope which includes the host.
+
+**Ids win over names.** Broker attaches to the line the `host_id` / `service_id` it
+resolved, and the poller rewrites the host name and service description from these
+ids before parsing. A rename between the configuration export and the command is no
+longer lost. PHP's line keeps carrying the names, that is what the parser expects;
+Broker, for the commands it issues itself, may leave them empty.
+
+Passive results (`PROCESS_HOST_CHECK_RESULT`, `PROCESS_SERVICE_CHECK_RESULT`) are
+executed by the poller on reception, without waiting for its event loop, as with
+the pipe. Python example:
+
+```python
+req = broker_pb2.ExternalCommandRequest(
+    command="PROCESS_SERVICE_CHECK_RESULT;host_1;service_1;2;disk full")
+stub.ExecuteExternalCommand(req)
+```
+
+## Downtime example
+
+When `notification_mode = broker`, scheduling a downtime is a `ScheduleDowntime`
+gRPC call on Broker with the following request:
+
+```protobuf
+message ScheduleDowntimeRequest {
+  enum DowntimeType { HOST = 0; SERVICE = 1; }
+  DowntimeType type = 1;
+  oneof host    { string host_name = 2;          uint64 host_id = 3; }
+  oneof service { string service_description = 4; uint64 service_id = 5; }
+  int64  entry_time   = 6;
+  string author       = 7;
+  string comment_data = 8;
+  int64  start_time   = 9;
+  int64  end_time     = 10;
+  bool   fixed        = 11;
+  uint64 triggered_by = 12;
+  uint32 duration     = 13;
+}
+
+message ScheduleDowntimeResponse {
+  uint64 downtime_id = 1;   // PHP keeps this id to cancel the downtime later
+}
+```
+
+Broker resolves the host/service against its centralized cache, schedules the
+downtime in its `downtime_manager`, and returns the generated `downtime_id`.
+Cancellation uses `DeleteDowntime(DowntimeIdentifier { downtime_id })`.
+
+For the same operation in legacy mode (`notification_mode = engine`), PHP keeps
+calling Engine's `ScheduleHostDowntime` / `ScheduleServiceDowntime` /
+`ScheduleAndPropagateHostDowntime` / etc.
+
+## Acknowledgement example
+
+When `notification_mode = broker`, acknowledging a problem is an
+`AcknowledgeHostProblem` or `AcknowledgeServiceProblem` gRPC call on Broker. The
+request copies Engine's `EngineAcknowledgement` **field for field**: PHP switches
+the target and the RPC name, not the payload.
+
+```protobuf
+message AcknowledgementRequest {
+  string host_name    = 1;
+  string service_desc = 2;   // empty for a host acknowledgement
+  string ack_author   = 3;
+  string ack_data     = 4;
+  enum Type { NORMAL = 0; STICKY = 1; }
+  Type   type         = 5;   // NORMAL: cleared on any state change; STICKY: cleared on return to UP/OK
+  bool   notify       = 6;   // send the acknowledgement notification
+  bool   persistent   = 7;   // keep the comment once the acknowledgement is cleared
+}
+
+rpc AcknowledgeHostProblem(AcknowledgementRequest) returns (google.protobuf.Empty) {}
+rpc AcknowledgeServiceProblem(AcknowledgementRequest) returns (google.protobuf.Empty) {}
+```
+
+Broker resolves the resource against its cache, refuses with `FAILED_PRECONDITION`
+when it is UP/OK (like Engine: "cannot acknowledge a non-existent problem"), then
+writes the `acknowledgements` row, the comment, the `acknowledged` flags of
+`hosts`/`services`/`resources`, the `logs` entry, and triggers the acknowledgement
+notification when asked. Automatic clearing (recovery, state change of a non-sticky
+ack) is done by Broker, without any PHP action.
+
+Explicit removal uses `RemoveHostAcknowledgement(HostIdentifier)` and
+`RemoveServiceAcknowledgement(ServiceIdentifier)`:
+
+```protobuf
+message HostIdentifier    { oneof host { string host_name = 1; uint64 host_id = 2; } }
+message ServiceIdentifier {
+  oneof host    { string host_name = 1;   uint64 host_id = 2; }
+  oneof service { string description = 3; uint64 service_id = 4; }
+}
+```
+
+In legacy mode (`notification_mode = engine`), PHP keeps calling Engine's
+`AcknowledgementHostProblem` / `AcknowledgementServiceProblem` /
+`RemoveHostAcknowledgement` / `RemoveServiceAcknowledgement`.
+
+## Command catalogue
+
+| Command family | Engine (`enginerpc`) | Broker (`brokerrpc`) |
+|---|---|---|
+| Schedule downtime | `ScheduleHostDowntime`, `ScheduleServiceDowntime`, `ScheduleHostServicesDowntime`, `ScheduleHostGroupHostsDowntime`, `ScheduleHostGroupServicesDowntime`, `ScheduleServiceGroupHostsDowntime`, `ScheduleServiceGroupServicesDowntime`, `ScheduleAndPropagateHostDowntime`, `ScheduleAndPropagateTriggeredHostDowntime` | `ScheduleDowntime` |
+| Delete downtime | `DeleteDowntime`, `DeleteHostDowntimeFull`, `DeleteServiceDowntimeFull`, `DeleteDowntimeByHostName`, `DeleteDowntimeByHostGroupName`, `DeleteDowntimeByStartTimeComment` | `DeleteDowntime` |
+| Acknowledgements | `AcknowledgementHostProblem`, `AcknowledgementServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` | `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`, `RemoveHostAcknowledgement`, `RemoveServiceAcknowledgement` (when `notification_mode = broker`) |
+| Comments | `AddHostComment`, `AddServiceComment`, `DeleteComment`, `DeleteAllHostComments`, `DeleteAllServiceComments` | same names on Broker (`HostCommentRequest` / `ServiceCommentRequest` / `CommentIdentifier`), when `notification_mode = broker` |
+| Checks | `ProcessHostCheckResult`, `ProcessServiceCheckResult`, `ScheduleHostCheck`, `ScheduleServiceCheck`, `ScheduleHostServiceCheck` (deprecated for PHP) | `ExecuteExternalCommand` (legacy line, routed to the owning poller) |
+| Notifications / toggles | `EnableHostNotifications`, `DisableHostNotifications`, `EnableServiceNotifications`, … | `SetHostNotifications` (scopes HOST, HOST_AND_SERVICES, HOST_AND_CHILDREN, BEYOND_HOST), `SetServiceNotifications`, `SetContact{Host,Service}Notifications`, `SetContactgroup{Host,Service}Notifications`, `SetContact{Host,Service}NotificationPeriod`, `Set{Host,Service}NotificationPeriod`, `SetPollerNotifications` — when `notification_mode = broker`, for the per-host/service/contact/contactgroup switches and the notification timeperiods; the others stay on Engine |
+| Object variable changes | `ChangeHostObjectIntVar`, `ChangeServiceObjectCustomVar`, … (deprecated for PHP) | `ExecuteExternalCommand` (per-host / per-service `CHANGE_*`) |
+| Global, process | `EnableEventHandlers`, `RestartProgram`, … (deprecated for PHP) | `ExecuteExternalCommand` with `poller` |
+| Contacts outside broker mode | `EnableContactHostNotifications`, `ChangeContactCustomVar`, … | `ExecuteExternalCommand` (broadcast to every poller) |
+| Groups | `EnableHostgroupHostChecks`, … | — (no longer emitted by PHP; `UNIMPLEMENTED`) |
+
+> The list of which downtime/acknowledgement families will progressively move to
+> Broker is tracked under
+> [Moving external command sending to Broker](./nego-engine-broker/11-tickets-and-issues-en.md#moving-external-command-sending-to-broker).
+> Today `ScheduleDowntime` / `DeleteDowntime` and the four acknowledgement RPCs exist
+> on the Broker side: `AcknowledgeHostProblem`, `AcknowledgeServiceProblem`
+> (`AcknowledgementRequest`, same fields as `EngineAcknowledgement`),
+> `RemoveHostAcknowledgement` (`HostIdentifier`) and `RemoveServiceAcknowledgement`
+> (Broker's `ServiceIdentifier`). The other families remain on Engine even when
+> `notification_mode = broker`.
+
+### How the deprecation shows
+
+* **In `engine.proto`**: every deprecated command RPC carries
+  `option deprecated = true`. The mark is visible to every consumer of the descriptor
+  (reflection, generated documentation, grpcurl), and a unit test pins the exact list
+  (49 methods), so that marking or unmarking one is a conscious change. Deprecated: check results and forced checks, comments,
+  acknowledgements, downtimes (the nine `Schedule*Downtime` variants and the
+  deletions by criteria included), `Change*ObjectIntVar/CharVar/CustomVar` for hosts,
+  services and contacts, the `Enable/Disable*Notifications` switches,
+  `Delay*Notification`, `ChangeAnomalyDetectionSensitivity`.
+* **Not deprecated**: observation (`Get*`, stats, log settings) and process lifecycle
+  (`SignalProcess`, `ShutdownProgram`, `NewThresholdsFile`), which stay on Engine
+  because they concern the poller process itself, not the supervision of a
+  resource. Who drives the process in HA is a separate decision.
+* **At runtime**: a gRPC server interceptor on Engine logs, in the
+  `external_command` logger, once per Engine run on the first call of each method:
+  `gRPC method /com.centreon.engine.Engine/<Method> is deprecated: use Broker's gRPC
+  API instead, the typed RPC when one exists or ExecuteExternalCommand otherwise`. The
+  call is
+  still served. The interceptor reads the `deprecated` option of the method
+  descriptor: the proto file is the single source of truth.
+* **Removal** will come after the PHP migration, in a later version.
+
+## Discovery and ports
+
+* Engine's gRPC server is configured by `grpc_port` / `rpc_listen_address` in the
+  Engine configuration.
+* Broker's gRPC server is configured by `centreonBroker.grpc.rpc_port` /
+  `listen_address` in the Broker configuration.
+
+PHP must read these values from the configuration it generates to know which
+endpoint to call, and must apply the [routing rule](#routing-rule-engine-vs-broker)
+based on `notification_mode`.
+
+## Ordering comments — do not rely on `internal_id`
+
+When `notification_mode = broker`, the comment attached to a downtime is created by
+**Broker**, not Engine. To avoid clashing with the per-poller `internal_id` sequence
+Engine generates (it starts at 1 and resets on reload), Broker-originated comments
+use a **disjoint high range** of `internal_id`, starting at `INT32_MAX/2`
+(`1 073 741 823`). See
+[Comments for Broker-managed downtimes](./downtimes-integration-en.md#comments-for-broker-managed-downtimes).
+
+**Consequence for PHP:** the comment list must **not** be ordered or sorted by
+`internal_id`. `internal_id` has never been a global chronological sequence — it is
+only an idempotency / deletion key, scoped to
+`(entry_time, host_id, service_id, instance_id)` — and with Broker-originated
+comments its values are deliberately discontinuous. Order comments by `entry_time`
+(or by the `comment_id` primary key) instead.
+
+> If the current UI/API happens to order comments by `internal_id`, it must be fixed
+> **before** enabling `notification_mode = broker`: otherwise every Broker downtime
+> comment would sort after all Engine comments regardless of its real creation time.
+
+# Evolution 3 — An explicit configuration batch: `pollers.lck`
+
+## The problem
+
+The current contract asks PHP to touch `<poller_id>.lck` **once that poller's
+subdirectory is entirely written**. PHP therefore works poller by poller: it
+writes `1/`, touches `1.lck`, writes `2/`, touches `2.lck`. The interval between
+two `.lck` files is not the time it takes to write an empty file — it is the time
+to **fully generate** the next poller's configuration: SQL queries, template
+rendering, several megabytes of `.cfg` written. On a poller with 50,000 services,
+that is measured in seconds.
+
+Broker coalesces pushes that arrive close together and handles them as one batch,
+but that coalescing rests on a delay (500 ms by default): it cannot guess that a
+second configuration is still being generated. Past the delay, an export covering
+several pollers becomes **several batches**.
+
+This is not only about cost. An object **moved from one poller to another** — a
+common case: rebalancing a host — is only correct if both configurations are in
+the same batch. The global diff then reconciles the removal and the addition into
+a plain modification (`indexed_diff_state`), and the host changes poller without
+ever being disabled. In two batches that reconciliation does not happen:
+depending on the order of arrival, the host can end up **disabled in the database
+while a poller is still monitoring it**.
+
+## The target
+
+A single file, `pollers.lck`, takes the place of the individual `.lck` files on
+the PHP side and **lists the pollers of the batch**:
+
+```
+<cache_config_directory>/
+├── 1/
+│   ├── centengine.cfg
+│   └── ...
+├── 2/
+│   └── ...
+└── pollers.lck      ← touched last, holds "1" and "2"
+```
+
+Contents: one poller id per line, nothing else.
+
+```
+1
+2
+```
+
+Broker no longer has anything to guess: it knows exactly which pollers make up
+the batch, waits until it has them all, and makes a single pass over them — one
+read of the stored configurations, one global diff, no transient state in the
+database. How long PHP takes to generate no longer matters.
+
+## The rules
+
+1. **`pollers.lck` is touched last**, after *all* the batch's subdirectories are
+   complete. Same rule as today, moved from the poller to the batch.
+2. **Two ways of writing it, whichever suits.** Writing straight into it --
+   open, write the ids, close -- is fine: Broker waits for the file to be
+   **closed** (`IN_CLOSE_WRITE`), so it never reads it half-written. Going
+   through a temporary file in the same directory and a `rename()` is equally
+   fine, Broker listening for an arrival by rename too (`IN_MOVED_TO`).
+
+   What must not be done is leaving the file open after writing to it: nothing
+   is reported until it is closed, and the batch would wait for the next scan.
+3. **One batch at a time.** PHP must not write a new `pollers.lck` while the
+   previous one is still there: its disappearance is Broker's acknowledgement. A
+   further batch produced while one is being handled has to wait.
+4. **A batch only names pollers whose directory has been written.** Naming a
+   poller without having written its directory makes the validation of its
+   configuration fail.
+
+## What Broker does with it
+
+Today the `.lck` carries two distinct pieces of information: "here is a new
+configuration" and "this configuration is still waiting to be delivered to its
+poller" — which is why Broker keeps it while the poller is not connected. With
+`pollers.lck`, only the first stays PHP's concern. Tracking the delivery becomes
+internal to Broker, in the directory it owns (`pollers_config_directory`), and
+`pollers.lck` is consumed as soon as it is read.
+
+That makes the contract cleaner: PHP announces, Broker keeps track. PHP no longer
+has to wonder why a `.lck` it touched is still there.
+
+## What the announcement disappearing means
+
+Historically, a `<poller_id>.lck` disappeared once the configuration had **reached
+its poller**. That is no longer the case: both shapes disappear once **Broker has
+read the announcement and prepared the configurations** it named.
+
+The distinction matters to PHP:
+
+* what it can conclude from the disappearance is "Broker has taken the configuration
+  over, I may push the next one" -- which is precisely what it needs, and rule 3
+  above;
+* what it **cannot** conclude is that the poller received it. A stopped poller cannot
+  acknowledge anything, and waiting for it would block an otherwise correct export
+  indefinitely. Broker keeps the configuration and delivers it when the poller
+  connects, with no further action from PHP.
+
+An export aimed at a stopped poller is therefore a success as far as PHP is
+concerned. This has always been the behaviour of `pollers.lck`, now shared by both
+shapes.
+
+## Backward compatibility
+
+Broker reads **both shapes, for good**:
+
+* if `pollers.lck` is present, it prevails and defines the batch;
+* otherwise the individual `<poller_id>.lck` files are handled as they are today,
+  with the delay-based coalescing.
+
+Reading the individual `.lck` files is not a migration bridge to be removed
+later: it stays supported. A PHP older than this evolution, a platform upgraded
+in stages, or a third-party tool pushing a configuration therefore keep working
+untouched, with the limits described above — coalescing goes back to being a
+matter of delay, and an object moved across two batches stays exposed.
+
+A PHP that adopts `pollers.lck`, on the other hand, **stops writing** the
+`<poller_id>.lck` files: both signals must not be emitted for one export, or the
+same batch would be announced twice.
+
+## Accepted limit
+
+`pollers.lck` guarantees that one **export** is one batch, which covers moving an
+object between pollers as long as it is exported in one go — the normal case.
+
+It can do nothing for a move split across **two successive exports**: a user
+exporting the source poller first, then the target poller in a second export.
+`Broker` then sees two batches with nothing tying them together, and has no way
+of knowing that the removal on one side and the addition on the other are the
+same move.
+
+**That case is accepted**, as a usage mistake: a move is done in one export. The
+symptom, should it happen, is an object **disabled in the database while a poller
+is still monitoring it** — the removal asked for by the source poller applies
+whichever poller now monitors the object. The remedy is to re-export both pollers
+together.
+
+---
+
+# Evolution 4 — Groups, parents, tags and variables of a stopped poller: filter on `enabled`
+
+## In short
+
+**Before.** When a poller stopped, Broker set its hosts, services and resources to `enabled = 0`, **and deleted their links**: host group and service group memberships, host parents, tags (categories) and custom variables. One minute later, it also deleted the groups left empty. A PHP query reading those links without checking `enabled` therefore saw nothing of the stopped poller, without knowing it.
+
+**Now**, in centralized configuration, Broker **keeps those links** and no longer deletes empty groups: it only sets `enabled = 0`. The database thus always describes the poller's configuration, which the update by differences requires (see [Why](#why)).
+
+**Impact on PHP.** Queries reading those links without joining the host or the service with `enabled = 1` now show the objects of a stopped poller:
+
+| Visible symptom | Queries |
+|---|---|
+| a host group or service group whose members are all on a stopped poller stays listed (drop-down lists, widgets, API v2) | 1, 2, 5 to 8 |
+| the services of a stopped poller appear in the views by service group, are counted, receive the downtime set on their group or are offered by the selector of the Graphs page | 3, 4, 9, 10 |
+| a host keeps its "parent" flag although all its children are on a stopped poller | 11 |
+| a category only used by a stopped poller is still offered in the filters | 12, 13 |
+| the criticality column is displayed because of the hosts or services of a stopped poller | 14, 15 |
+| open-tickets finds and closes the ticket of an object of a stopped poller: behaviour to decide | 16 |
+
+**To do.** Apply [the rule](#the-rule-for-php) to the 16 queries listed in [Queries to adapt](#queries-to-adapt), which gives for each one the file, the line and the fix. The other queries already filter, or do not have to ([Left as they are](#left-as-they-are)). This evolution must be delivered with the matching Broker version ([Compatibility](#compatibility)).
+
+**What does not change.**
+
+* Without centralized configuration, Broker still deletes the links when a poller stops.
+* A host or a service **removed from the configuration** is handled as before: it is set to `enabled = 0`, its parents and group memberships are deleted. Its tags and custom variables already stayed in the database: the rule covers this case too, which existed before this evolution.
+* Downtimes, comments and modules are handled as before.
+
+The line numbers below refer to centreon-web at commit `f9012b3083`.
+
+## What changes in Broker
+
+When a poller stops, `unified_sql` cleans its rows in the storage database (`stream::clean_tables()`). Until now it did two things:
+
+* it **disabled** the poller's hosts, services and resources (`enabled=0`);
+* it **deleted** what they are linked to: host parents (`hosts_hosts_parents`), host group and service group memberships (`hosts_hostgroups`, `services_servicegroups`), tags (`resources_tags`) and custom variables (`customvariables`). One minute later, host groups and service groups left without members were deleted too (`hostgroups`, `servicegroups`).
+
+In centralized configuration, Broker **no longer deletes** those links when a poller stops: it only disables its hosts, services and resources. Nothing else changes: modules, downtimes and comments are handled as before, and without centralized configuration the links are still deleted.
+
+## Why
+
+In centralized configuration, Broker sends the database the **difference** between the configuration it stores for the poller and the new one. A difference only carries what changed. A link deleted when the poller stopped was therefore never written back when it started again, unless that very object changed: the database no longer described the configuration, and host parents, group memberships, tags and custom variables were lost until the next export touching them.
+
+Keeping the links makes the database describe the poller configuration at all times. The poller's objects being disabled, **it is up to the readers to filter them out**: a query reading these links has to check that the host, service or resource they belong to is enabled.
+
+## The rule for PHP
+
+Any query reading `hosts_hosts_parents`, `hosts_hostgroups`, `services_servicegroups`, `resources_tags`, the storage `customvariables`, or the storage `hostgroups` / `servicegroups` tables must exclude the rows of disabled hosts (`hosts.enabled = 1`), services (`services.enabled = 1`) or resources (`resources.enabled = 1`).
+
+Most queries already do so, because they join the hosts or services they display. The ones listed below do not.
+
+## Queries to adapt
+
+### Host groups and service groups
+
+1. **Host group dropdown of the legacy monitoring pages** — `www/include/monitoring/status/Common/commonJS.php:338`. The query reads `hostgroups` and `hosts_hostgroups` without joining `hosts`: a group whose members are all on a stopped poller stays in the list. Add `hosts h` to the `FROM` and `AND h.host_id = hhg.host_id AND h.enabled = 1` to the `WHERE`.
+2. **Service group dropdown of the legacy monitoring pages** — `www/include/monitoring/status/Common/commonJS.php:425`. Same for service groups. Add `services s` and `AND s.host_id = ssg.host_id AND s.service_id = ssg.service_id AND s.enabled = 1`.
+3. **Monitoring > Services by Service Group, grid** — `www/include/monitoring/status/ServicesServiceGroups/xml/serviceGridBySGXML.php:167` (pagination) and `:273` (data). `hosts` and `services` are joined without any condition on `enabled`: the services of a stopped poller are listed under their service groups. Add `AND h.enabled = 1 AND s.enabled = 1` to both `WHERE` clauses.
+4. **Monitoring > Services by Service Group, summary** — `www/include/monitoring/status/ServicesServiceGroups/xml/serviceSummaryBySGXML.php:164` and `:330`. Same pattern, the services of a stopped poller are counted. Add `h.enabled = 1` and `s.enabled = 1` to both queries.
+5. **Host group monitoring widget** — `www/widgets/hostgroup-monitoring/src/index.php:150` and `src/export.php:97`. The list of groups reads `hostgroups` alone: a group whose members are all disabled is shown with zero counters (it used to disappear one minute after the poller stopped). Add, through `CentreonUtils::conditionBuilder()`:
+
+   ```sql
+   EXISTS (SELECT 1 FROM hosts_hostgroups hhg
+           INNER JOIN hosts h ON h.host_id = hhg.host_id AND h.enabled = 1
+           WHERE hhg.hostgroup_id = hostgroups.hostgroup_id)
+   ```
+
+6. **Service group monitoring widget** — `www/widgets/servicegroup-monitoring/src/index.php:121` and `src/export.php:76`. Same for service groups:
+
+   ```sql
+   EXISTS (SELECT 1 FROM services_servicegroups ssg
+           INNER JOIN services s ON s.host_id = ssg.host_id
+             AND s.service_id = ssg.service_id AND s.enabled = 1
+           WHERE ssg.servicegroup_id = servicegroups.servicegroup_id)
+   ```
+
+7. **API v2 `/monitoring/hostgroups`** — `src/Centreon/Infrastructure/Monitoring/MonitoringRepositoryRDB.php:541` (`findHostGroups`). The enabled hosts are only checked when a host, service or category search is given (optional join at 505). Without one, the groups come straight from `hostgroups`. Add a join after the configuration join (a join rather than a `WHERE`, the request translator appends its own):
+
+   ```sql
+   INNER JOIN (SELECT DISTINCT hhg0.hostgroup_id
+               FROM `:dbstg`.hosts_hostgroups hhg0
+               INNER JOIN `:dbstg`.hosts h0
+                 ON h0.host_id = hhg0.host_id AND h0.enabled = '1') ahg
+     ON ahg.hostgroup_id = hg.hostgroup_id
+   ```
+
+8. **API v2 `/monitoring/servicegroups`** — `MonitoringRepositoryRDB.php:1466` (`findServiceGroups`). Same for service groups (optional join at 1422):
+
+   ```sql
+   INNER JOIN (SELECT DISTINCT ssg0.servicegroup_id
+               FROM `:dbstg`.services_servicegroups ssg0
+               INNER JOIN `:dbstg`.services s0
+                 ON s0.host_id = ssg0.host_id AND s0.service_id = ssg0.service_id
+                 AND s0.enabled = '1') asg
+     ON asg.servicegroup_id = sg.servicegroup_id
+   ```
+
+9. **Downtime on a service group** — `www/include/monitoring/downtime/AddDowntime.php:436`. The members are read from `services_servicegroups` alone: a downtime would also be sent for the disabled services of a stopped poller. Join `services`:
+
+   ```sql
+   SELECT ssg.host_id, ssg.service_id
+   FROM services_servicegroups ssg
+   INNER JOIN services s ON s.host_id = ssg.host_id
+     AND s.service_id = ssg.service_id AND s.enabled = 1
+   WHERE ssg.servicegroup_id = :sgId
+   ```
+
+10. **Graphs page, service picker** — `www/class/centreonPerformanceService.class.php:103` (host group condition at 77, service group condition at 88). Filtering the picker by a group also offers the services of a stopped poller. Low priority: without a group filter, this picker does not check `enabled` either. Add `AND hg.host_id IN (SELECT host_id FROM hosts WHERE enabled = 1)` to the host group condition and `AND (sg.host_id, sg.service_id) IN (SELECT host_id, service_id FROM services WHERE enabled = 1)` to the service group one.
+
+### Host parents
+
+11. **Monitoring > Hosts, "parent" flag** — `www/include/monitoring/status/Hosts/xml/hostXML.php:165`. The listed host is filtered (`h.enabled = 1`), but not its children: a host whose children are all on a stopped poller keeps its parent flag (`is_parent`) and its place in the parent grouping. Join the child host:
+
+    ```sql
+    LEFT JOIN (hosts_hosts_parents hph
+               INNER JOIN hosts hc ON hc.host_id = hph.child_id AND hc.enabled = 1)
+      ON hph.parent_id = h.host_id
+    ```
+
+### Categories (`resources_tags`)
+
+12. **API `GET /monitoring/hosts/categories`** — `src/Core/HostCategory/Infrastructure/Repository/DbReadRealTimeHostCategoryRepository.php:73` (administrator) and `:152` (ACL). `resources` is joined without `enabled`: a host category only used by a stopped poller is still offered in the filters. Add `AND resources.enabled = 1`.
+13. **API `GET /monitoring/services/categories`** — `src/Core/ServiceCategory/Infrastructure/Repository/DbReadRealTimeServiceCategoryRepository.php:79` (administrator) and `:175` (ACL). Same for service categories. Add `AND resources.enabled = 1`, and `AND parent_resource.enabled = 1` on the `parent_resource` join of the search branch.
+
+### Custom variables (criticality)
+
+14. **Monitoring > Hosts, criticality column** — `www/include/monitoring/status/Hosts/xml/hostXML.php:260`. The `CRITICALITY_ID` values are read without any filter, and their mere presence turns the criticality column on: it would be shown because of the hosts of a stopped poller. Join `hosts`:
+
+    ```sql
+    SELECT cv.value, cv.host_id FROM customvariables cv
+    INNER JOIN hosts h ON h.host_id = cv.host_id AND h.enabled = 1
+    WHERE cv.name = 'CRITICALITY_ID' AND cv.service_id = 0
+    ```
+
+15. **Monitoring > Services, criticality column** — `www/include/monitoring/status/Services/xml/serviceXML.php:336`. Same for services: join `services s ON s.host_id = cv.host_id AND s.service_id = cv.service_id AND s.enabled = 1`.
+
+### Open tickets: a decision to make
+
+16. **Automatic closing of a ticket** — `centreon-open-tickets/www/modules/centreon-open-tickets/class/automatic.class.php:1092` (`getHostTicket`) and `:1124` (`getServiceTicket`). The ticket is found through the custom variables of the host or service, without checking `enabled`. Until now, closing the ticket of a host or service on a stopped poller answered "no ticket found", since its custom variables were gone. From now on the ticket is found, closed, and the external commands resetting the macros are sent to the stopped poller. **The expected behaviour has to be decided.** To keep the current one, add `AND h.enabled = 1` (hosts) or join `services` with `s.enabled = 1` (services), or check `enabled` in `getHostInformation()` (708) and `getServiceInformation()` (620).
+
+## Left as they are
+
+* **Service group availability reports** — `www/class/centreonACL.class.php:1733`. They rely on the configuration activation flags; keeping the services of a stopped poller is the expected behaviour of a report.
+* **Existence checks of saved filters** — `src/Centreon/Infrastructure/Monitoring/HostGroup/HostGroupRepositoryRDB.php:107`/`:182`, `ServiceGroup/ServiceGroupRepositoryRDB.php:107`/`:182`. A group that still exists keeps a saved criterion valid, which is better than before.
+* **Host and service details** (`DbReadHostgroupRepository`, `DbReadServicegroupRepository`, `DbReadTagRepository::findAllByResourceAndTypeId`): the host or service is loaded first with `enabled = 1`, a disabled one is not found.
+* **Resource Status**, the dashboards and the other widgets: already filtered on `enabled`.
+* Dead code: `www/class/centreonCriticality.class.php:174` and `:199` have no caller; the `hosts_hosts_parents` join of `www/api/class/centreon_realtime_hosts.class.php:259` selects nothing.
+
+## Defects found on the way
+
+They exist today, independently of this evolution, but keeping the rows of stopped pollers makes the first two more visible.
+
+* **Service severity in Resource Status** — `src/Core/Infrastructure/RealTime/Repository/Service/DbReadServiceRepository.php:165`. The `CRITICALITY_LEVEL` custom variable is joined on `service_id` and `name` only, without `host_id`. For a service linked to several hosts, the severity is taken from any of them. Add `AND service_cvl.host_id = s.host_id`.
+* **Unhandled problems email, services** — `bin/email_status.pl:315` (join at 197). Same mistake: the `CRITICALITY_LEVEL` join does not match on `services.host_id`, so lines are duplicated and the criticality may be wrong. Join `cvservice.host_id = services.host_id AND cvservice.service_id = services.service_id` and drop the `hosts2` join.
+* **Unhandled problems email, `hostgroup` option** — `bin/email_status.pl:241` and `:309`. The condition `hostgroups.enabled = '1'` uses a column that the storage `hostgroups` table does not have: with this option, the query should fail. The condition must be removed.
+
+## Compatibility
+
+A Broker with this evolution and a PHP without it shows the effects described above as soon as a poller stops: empty groups listed, categories offered, criticality column shown, services of a stopped poller in the service group views. The two must be delivered together.

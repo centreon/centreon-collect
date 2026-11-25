@@ -1,11 +1,29 @@
 #!/bin/bash
 
+# Tells if the Debian package $1 is installed. A tool is also accepted when its
+# command is found in the PATH, since it may come from elsewhere than a Debian
+# package (e.g. sccache installed with cargo).
+is_installed() {
+  local cmd
+  case "$1" in
+    ninja-build) cmd=ninja ;;
+    cmake|curl|g++|gcc|git|mold|pkg-config|python3|sccache|zip) cmd="$1" ;;
+    *) cmd= ;;
+  esac
+  if [ -n "$cmd" ] && command -v "$cmd" >/dev/null ; then
+    return 0
+  fi
+  $dpkg -l "$1" | grep -q "^ii"
+}
+
 show_help() {
 cat << EOF
 Usage: ${0##*/} -n=[yes|no] -v
 
-This program build Centreon-broker
+This program builds Centreon-broker, Centreon-engine, Centreon-agent and their
+modules through cmake and vcpkg.
 
+    -b|--build-dir : specify build directory
     -f|--force    : force rebuild
     -r|--release  : Build on release mode
     -og           : C++14 standard
@@ -20,11 +38,41 @@ EOF
 
 BUILD_TYPE="Debug"
 
-export VCPKG_ROOT=vcpkg
+# Every path given to cmake is absolute: cmake stores them in its cache, and a
+# relative one breaks as soon as cmake is re-run from another directory (e.g.
+# by ninja from the build directory). The script can also be launched from
+# anywhere.
+SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_VCPKG="$SRC_DIR/vcpkg"
+# vcpkg release this tree is built with.
+VCPKG_TAG=2026.05.25
+
+# Prints the vcpkg directory to use when VCPKG_ROOT is not defined: the local
+# one if it exists, otherwise the one of another worktree of the repository if
+# it is at the release VCPKG_TAG, otherwise the local one (to be cloned).
+find_vcpkg() {
+  local wt
+  if [ -d "$LOCAL_VCPKG" ] ; then
+    echo "$LOCAL_VCPKG"
+    return
+  fi
+  while read -r wt ; do
+    if [ "$wt" != "$SRC_DIR" ] && [ -d "$wt/vcpkg" ] &&
+       [ "$(git -C "$wt/vcpkg" describe --tags --exact-match 2>/dev/null)" = "$VCPKG_TAG" ] ; then
+      echo "$wt/vcpkg"
+      return
+    fi
+  done < <(git -C "$SRC_DIR" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
+  echo "$LOCAL_VCPKG"
+}
+
+# An already defined VCPKG_ROOT is kept, only made absolute. A vcpkg borrowed
+# from another worktree is shared like it.
+export VCPKG_ROOT="$(realpath -m "${VCPKG_ROOT:-$(find_vcpkg)}")"
 export PATH="$VCPKG_ROOT:$PATH"
-#echo "Please, before the build, execute the following commands:"
-#echo "export VCPKG_ROOT=\$PWD/vcpkg"
-#echo "export PATH=\$VCPKG_ROOT:\$PATH"
+echo "vcpkg used: $VCPKG_ROOT"
+BUILD_DIR="$SRC_DIR/build"
+force=0
 
 COMPILER=gcc
 CC=gcc
@@ -32,56 +80,62 @@ CXX=g++
 DR=
 SC=0
 MOLD=
+LINK=
 
-for i in "$@"
+TRIPLET=x64-linux
+# Options not handled here are given to cmake.
+CMAKE_ARGS=()
+
+while [ $# -gt 0 ]
 do
-  case "$i" in
+  case "$1" in
     -f|--force)
       echo "Forced rebuild"
       force=1
+      ;;
+    -b|--build-dir)
+      echo "Build directory specified: $2"
+      # Absolute, as every path given to cmake.
+      BUILD_DIR="$(realpath -m "$2")"
       shift
       ;;
     -og)
       echo "C++14 applied on this compilation"
       STD="gnu14"
-      shift
       ;;
     -dr|--debug-robot)
       echo "DEBUG_ROBOT enabled"
       DR="-DDEBUG_ROBOT=ON"
-      shift
       ;;
     -r|--release)
       echo "Release build"
       BUILD_TYPE="RelWithDebInfo"
-      shift
       ;;
     -clang)
       COMPILER=clang
       CC=clang
       CXX=clang++
-      shift
+      # The vcpkg dependencies must be built with clang too.
+      TRIPLET=x64-linux-clang
       ;;
     -mold)
-      MOLD=-fuse-ld=mold
-      shift
+      LINK="-DCMAKE_LINKER_TYPE=MOLD"
       ;;
     -legacy-mold)
       MOLD="-B /usr/bin/mold"
-      shift
       ;;
     -sccache)
       SC="1"
-      shift
       ;;
     -h|--help)
       show_help
       exit 2
       ;;
     *)
-            # unknown option
-    ;;
+      CMAKE_ARGS+=("$1")
+      ;;
   esac
+  shift
 done
 
 # Am I root?
@@ -149,6 +203,7 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     libcurl-devel
     tar
     zlib-devel
+    libzstd-devel
     libstdc++-static
   )
   if [[ "$maj" == 'centos8' ]] ; then
@@ -210,24 +265,31 @@ elif [ -r /etc/issue ] ; then
       g++
       gcc
       curl
+      git
       libcurl4-openssl-dev
       libgcrypt20-dev
       libgnutls28-dev
       $lua_pkg
       libmariadb-dev
       libperl-dev
+      libhttp-daemon-ssl-perl
+      libjson-perl
       librrd-dev
       libssh2-1-dev
       libssl-dev
+      mold
       ninja-build
       pkg-config
       python3
       python3-pip
+      rrdtool
       zip
       zlib1g-dev
+      libzstd-dev
     )
+    apt update
     for i in "${pkgs[@]}"; do
-      if ! $dpkg -l $i | grep "^ii" ; then
+      if ! is_installed "$i" ; then
         if [[ "$my_id" == 0 ]] ; then
           apt install -y $i
         else
@@ -254,9 +316,10 @@ elif [ -r /etc/issue ] ; then
       libssl-dev
       libssh2-1-dev
       zlib1g-dev
+      libzstd-dev
     )
     for i in "${pkgs[@]}"; do
-      if ! $dpkg -l $i | grep "^ii" ; then
+      if ! is_installed "$i" ; then
         if [[ "$my_id" == 0 ]] ; then
           apt install -y $i
         else
@@ -269,18 +332,23 @@ elif [ -r /etc/issue ] ; then
 fi
 
 if [ "$force" = "1" ] ; then
-  echo "Build forced, removing the 'build' directory before recreating it"
-  rm -rf build
-  rm -rf vcpkg
-  mkdir build
+  echo "Build forced, removing the '$BUILD_DIR' directory before recreating it"
+  rm -rf "$BUILD_DIR"
+  # A vcpkg shared through VCPKG_ROOT belongs to other trees too: only the
+  # local one is removed.
+  if [ "$VCPKG_ROOT" = "$LOCAL_VCPKG" ] ; then
+    rm -rf "$LOCAL_VCPKG"
+  else
+    echo "Shared vcpkg '$VCPKG_ROOT' kept"
+  fi
+  mkdir "$BUILD_DIR"
+  ln -s "$SRC_DIR/overlays" "$BUILD_DIR/overlays"
 fi
 
-if [ ! -d vcpkg ] ; then
-  echo "No vcpkg directory. Cloning the repo"
-  echo "Current dir: $PWD"
-  git clone -b 2026.05.25 https://github.com/Microsoft/vcpkg.git
-  ./vcpkg/bootstrap-vcpkg.sh
-  echo "Current dir: $PWD"
+if [ ! -d "$VCPKG_ROOT" ] ; then
+  echo "No vcpkg directory. Cloning the repo into '$VCPKG_ROOT'"
+  git clone -b "$VCPKG_TAG" https://github.com/Microsoft/vcpkg.git "$VCPKG_ROOT"
+  "$VCPKG_ROOT/bootstrap-vcpkg.sh"
 fi
 
 case "$COMPILER" in
@@ -299,10 +367,10 @@ else
 fi
 
 if [[ "$maj" == "Raspbian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=$TRIPLET -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $LINK "${CMAKE_ARGS[@]}" -S "$SRC_DIR"
 
 elif [[ "$maj" == "Debian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=$TRIPLET -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $LINK "${CMAKE_ARGS[@]}" -S "$SRC_DIR"
 else
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_OVERLAY_PORTS=overlays -S . -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS="$SRC_DIR/custom-triplets" -DVCPKG_TARGET_TRIPLET=$TRIPLET -DVCPKG_OVERLAY_PORTS="$SRC_DIR/overlays" -S "$SRC_DIR" -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $LINK -DWITH_CONF=OFF "${CMAKE_ARGS[@]}"
 fi

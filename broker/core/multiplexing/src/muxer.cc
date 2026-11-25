@@ -927,7 +927,7 @@ void muxer::set_action_on_new_data(
     const std::shared_ptr<data_handler>& handler) {
   bool pending;
   {
-    absl::MutexLock lck(&_events_m);
+    absl::MutexLock lck(_events_m);
     _data_handler = handler;
     pending = _has_events_to_read();
   }

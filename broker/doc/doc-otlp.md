@@ -5,10 +5,10 @@
 The OTLP output is a Centreon Broker output module, `70-otlp.so`, used by endpoints of type `otlp`. It turns check results into OpenTelemetry metrics and pushes them to any OTLP collector through the gRPC `MetricsService/Export` call.
 
 - **Problem solved:** Centreon monitoring data (perfdata, thresholds, check states) can go to OpenTelemetry backends with standard OTel resource identity (`host.name`, `service.name`, `service.namespace`, `host.*`, `os.*`). Metric names can follow OTel semantic conventions through a mapping file that is reloaded when it changes.
-- **Place in the system:** the module runs inside `cbd` as an output endpoint fed by the muxer. It reads NEB status events directly. It does not depend on `unified_sql`, a database, or RRD. Resolving names and identities relies on the Broker global cache. Two supporting changes live outside the Broker:
+- **Place in the system:** the module runs inside `cbd` as an output endpoint fed by the muxer. It reads NEB status events directly. It does not depend on `unified_sql`, a database, or RRD. Resolving names and identities relies on the Broker cache (`broker_cache`). Two supporting changes live outside the Broker:
   - Engine sends the host information of Centreon Monitoring Agents (CMA) and tags custom variables with their poller.
   - The CMA collects OS, architecture and machine id.
-- **Input:** `neb::pb_service_status`, `neb::pb_host_status` and `neb::pb_agent_host_info` events. The global cache supplies host names, service descriptions and the OTel identity. A JSON mapping file is optional.
+- **Input:** `neb::pb_service_status`, `neb::pb_host_status` and `neb::pb_agent_host_info` events. `broker_cache` supplies host names, service descriptions and the OTel identity. A JSON mapping file is optional.
 - **Output:** `opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest` messages, sent as unary gRPC calls.
 
 ## 2. Architecture
@@ -27,12 +27,12 @@ flowchart LR
     end
     subgraph CENTRAL["Central: cbd"]
         ME["multiplexing::engine"]
-        GC[("global_cache<br/>memory-mapped file")]
+        GC[("broker_cache<br/>in memory")]
         FO["processing::failover<br/>+ muxer filter"]
         subgraph MOD["70-otlp.so"]
             ST["otlp::stream"]
             RB["request_builder"]
-            EN["global_cache_enricher"]
+            EN["broker_cache_enricher"]
             HMS["host_metadata_store"]
             MP["mapping_provider"]
             EX["otlp_exporter"]
@@ -65,22 +65,21 @@ The feature spans three binaries:
 | Agent (CMA) | `agent/` | Collects `os_type`, `os_name`, `os_version`, `arch`, `machine_id`, `ips` and sends them in `AgentInfo` when the connection is established. |
 | Engine | `engine/modules/opentelemetry/`, `engine/src/` | Turns `AgentInfo` into an `AgentHostInfo` BBDO event. Tags custom-variable events with `instance_id`. Sends host custom variables after the host. |
 | BBDO | `bbdo/` | New `AgentHostInfo` message and `instance_id` fields. New `pb_otel_grpc_lib` target that holds the `MetricsService` stub. |
-| Broker core | `broker/core/` | Global cache stores the per-host OTel identity. New BBDO2 → BBDO3 converter for `custom_variable_status`. Maps endpoint type `otlp` to `70-otlp.so`. |
+| Broker core | `broker/core/` | `broker_cache` stores the per-host OTel identity (section `CACHE_OTEL`). New BBDO2 → BBDO3 converter for `custom_variable_status`. Maps endpoint type `otlp` to `70-otlp.so`. |
 | Broker OTLP module | `broker/otlp/` | Builds the OTLP requests and exports them. |
 
 **Boundaries.** The module never reads from the network except the Export responses, and it never writes to the cache. Everything it knows about hosts comes from three places:
 
-- the global cache (read-only through `resource_enricher`);
+- `broker_cache` (read-only through `resource_enricher`);
 - `AgentHostInfo` events (kept in `host_metadata_store`);
 - the status events themselves.
 
-The cache itself is fed by `multiplexing::engine::_send_to_subscribers()`. That function writes every event to `cache::global_cache::instance_ptr()` before publishing it to the muxers, so a `Host` or `CustomVariable` event updates the cache before any later status reaches the stream.
+The cache itself is fed by `multiplexing::engine::_send_to_subscribers()`. That function feeds every batch to `config::applier::state::instance().cache().publish()` before publishing it to the muxers, so a `Host` or `CustomVariable` event updates the cache before any later status reaches the stream.
 
 **External libraries and protocols:**
 
 - gRPC C++ callback API (`MetricsService::Stub::async()->Export`) through `common::grpc::grpc_client_base`;
 - protobuf messages from `opentelemetry-proto`;
-- Boost.Interprocess, for the memory-mapped global cache;
 - Boost.Asio, to parse IP addresses and run the file watcher;
 - rapidjson with a JSON schema (`common::json_validator`) for the mapping file;
 - Abseil containers and mutexes.
@@ -133,7 +132,7 @@ classDiagram
       +service_description(host_id, service_id)
       +host_otel_service(host_id)
     }
-    class global_cache_enricher
+    class broker_cache_enricher
     class mapping_provider {
       +get() mapping_table
       +reload() bool
@@ -153,7 +152,7 @@ classDiagram
     io_stream <|-- stream
     exporter_base <|-- otlp_exporter
     grpc_client_base <|-- otlp_exporter
-    resource_enricher <|-- global_cache_enricher
+    resource_enricher <|-- broker_cache_enricher
     factory ..> connector : creates
     connector ..> stream : open()
     connector o-- mapping_provider
@@ -170,7 +169,7 @@ classDiagram
 Ownership and lifetime:
 
 - **Connector-level (one per endpoint):** `otlp_config`, `mapping_provider` and `host_metadata_store`. They outlive stream reopenings by `processing::failover`.
-- **Stream-level (one per `connector::open()`):** the `stream`, its `request_builder`, its `global_cache_enricher` and its `otlp_exporter`, which owns its own gRPC channel.
+- **Stream-level (one per `connector::open()`):** the `stream`, its `request_builder`, its `broker_cache_enricher` and its `otlp_exporter`, which owns its own gRPC channel.
 
 ### 2.3 Components
 
@@ -193,7 +192,7 @@ broker/CMakeLists.txt              (add_broker_module(OTLP ON))
 
 #### factory
 
-**Responsibility.** Recognizes `otlp` endpoints, validates and parses their parameters, loads the global cache and creates the `connector`.
+**Responsibility.** Recognizes `otlp` endpoints, validates and parses their parameters, enables the `broker_cache` sections it reads and creates the `connector`.
 
 **Main files**
 ```text
@@ -212,7 +211,7 @@ broker/otlp/inc/com/centreon/broker/otlp/otlp_config.hh
   - `endpoint` is missing;
   - a number or boolean parameter is not well-formed;
   - `max_datapoints_per_batch` or `max_inflight_requests` is 0.
-- When `config::applier::state::loaded()`, calls `cache::global_cache::load()` on `<cache_dir>.cache.global`, so that host names can be resolved.
+- When `config::applier::state::loaded()`, enables the `CACHE_HOSTS`, `CACHE_SERVICES` and `CACHE_OTEL` sections of `broker_cache`, so that host names, service descriptions and OTel identities are kept, and creates the persistent cache `<cache_dir>.cache.<endpoint>` of the connector.
 
 #### connector
 
@@ -230,7 +229,7 @@ broker/otlp/src/connector.cc
 - The mandatory muxer filter is `{pb_service_status, pb_host_status, pb_agent_host_info}`. The forbidden filter is its reverse. With that pair, `config::applier::endpoint` forces exactly this set and ignores any user `filters` block.
 - The constructor builds the `mapping_provider`: `mapping_provider::empty()` when `mapping_file` is empty, `mapping_provider::load()` otherwise. `load()` throws on an invalid file.
 - `open()` returns a new `stream` wired to the following:
-  - a new `global_cache_enricher`;
+  - a new `broker_cache_enricher`;
   - the shared `mapping_provider`;
   - a new `otlp_exporter`;
   - the shared `host_metadata_store`.
@@ -312,9 +311,9 @@ common/inc/com/centreon/common/file_watcher.hh
 - The watcher debounces events and calls `reload()` on the `io_context` thread.
 - `get()` may be called from any thread, under `absl::Mutex`.
 
-#### resource_enricher / global_cache_enricher
+#### resource_enricher / broker_cache_enricher
 
-**Responsibility.** A read-only interface to the names and identity stored in the global cache.
+**Responsibility.** A read-only interface to the names and identity stored in `broker_cache`.
 
 **Main files**
 ```text
@@ -324,37 +323,37 @@ broker/otlp/src/resource_enricher.cc
 
 **Main classes/functions.**
 - `resource_enricher` (abstract): `host_name()`, `service_description()`, `host_otel_service()`;
-- `global_cache_enricher` implements it;
+- `broker_cache_enricher` implements it;
 - the `otel_service` struct.
 
 **Interactions.**
-- Uses `cache::global_cache::instance_ptr()`: `get_host()`, `get_service()` and `get_otel_service()`.
-- Returns `nullopt` or empty values when the cache is not loaded.
+- Uses `config::applier::state::instance().cache()`: `host()`, `service()` and `host_otel_service()`.
+- Returns `nullopt` or empty values when the applier state is not loaded or the object is unknown.
 
-#### Global cache: OTel identity
+#### broker_cache: OTel identity
 
 **Responsibility.** Stores `OTEL_SERVICE_NAME` / `OTEL_SERVICE_NAMESPACE` for each host, and enforces which poller is allowed to update them.
 
 **Main files**
 ```text
-broker/core/cache/inc/com/centreon/broker/cache/global_cache.hh
-broker/core/cache/inc/com/centreon/broker/cache/global_cache_data.hh
-broker/core/cache/src/global_cache_data.cc
+broker/core/cache/broker_cache.hh
+broker/core/cache/broker_cache.cc
 broker/core/src/bbdo2_to_bbdo3.cc
 ```
 
 **Main classes/functions.**
-- `global_cache_data::id_to_otel_service`: the `host_otel_service` map in the memory-mapped file;
-- update paths: `_process_pb_custom_variable()`, `_process_pb_custom_variable_status()`, `_set_host_otel_service()`;
-- clean-up in `_process_pb_host()` and `_process_pb_instance()`;
-- `get_otel_service()`;
+- `broker_cache::_otel_services`: host id → `otel_service`, section `CACHE_OTEL`;
+- update paths: `update_custom_variable()` (for `pb_custom_variable` and `pb_custom_variable_status`), `_set_host_otel_service()`;
+- with the centralized configuration, `_set_otel_service_from_conf()` called by `merge()` and `apply()` from the host custom variables of the configuration;
+- clean-up in `update_host()`, `update_instance()` and when `apply()` removes a host;
+- `host_otel_service()`;
 - helper: `otel_service_field_of()`.
 
 **Interactions.**
-- Receives events in `_write_conf()`, which handles:
+- Receives events through `publish()`, which handles:
   - `pb_custom_variable` and `pb_custom_variable_status`;
   - the BBDO2 `custom_variable` and `custom_variable_status`, converted by `bbdo2_to_bbdo3()`.
-- `get_otel_service()` on a real-time cache delegates to the conf cache.
+- The identities are saved in `<cache_dir>.cache` (`BrokerCache.otel_services`) with the rest of the cache.
 
 #### host_metadata_store
 
@@ -470,13 +469,13 @@ The service identity is carried as datapoint attributes, not resource attributes
 ### 3.1 Check result to OTLP export
 
 1. Engine's cbmod emits a `pb_service_status` or `pb_host_status`.
-2. In the central Broker, `multiplexing::engine::_send_to_subscribers()` first writes the event to the global cache, then publishes it to the muxers. The OTLP muxer filter lets only the three event types of the connector through.
+2. In the central Broker, `multiplexing::engine::_send_to_subscribers()` first feeds the batch to `broker_cache::publish()`, then publishes it to the muxers. The OTLP muxer filter lets only the three event types of the connector through.
 3. `processing::failover` calls `stream::write(d)`. Under `_protect`:
    - `validate()` rejects null events.
    - A `pb_service_status` goes to `request_builder::add_service_status()`, a `pb_host_status` to `add_host_status()`.
    - The event is counted in `_acknowledged` in every case. When the host name is unknown, the builder returns `false` and `_stat_dropped_no_host_name` is incremented.
 4. `add_service_status()` works through the status:
-   - It resolves the host name through `global_cache_enricher::host_name()`, returning `false` if the name is unknown.
+   - It resolves the host name through `broker_cache_enricher::host_name()`, returning `false` if the name is unknown.
    - It resolves the service description, and converts `last_check` to nanoseconds.
    - It calls `_add_perfdata()`, then appends a `centreon.check.state` point when `send_status` is true.
 5. `_add_perfdata()` parses the perfdata. For each value it:
@@ -498,7 +497,7 @@ The service identity is carried as datapoint attributes, not resource attributes
 sequenceDiagram
     participant CBM as cbmod (Engine)
     participant ME as multiplexing::engine
-    participant GC as global_cache
+    participant GC as broker_cache
     participant FO as processing::failover
     participant ST as otlp::stream
     participant RB as request_builder
@@ -506,11 +505,11 @@ sequenceDiagram
     participant COL as OTLP collector
 
     CBM->>ME: pb_service_status (BBDO)
-    ME->>GC: write(event)
+    ME->>GC: publish(batch)
     ME->>FO: event (muxer filter)
     FO->>ST: write(event)
     ST->>RB: add_service_status(status)
-    RB->>GC: host_name, service_description, get_otel_service
+    RB->>GC: host, service, host_otel_service
     RB->>RB: parse_perfdata, map_metric, append points
     ST-->>FO: acknowledged count
     FO->>FO: muxer ack_events(count)
@@ -528,25 +527,25 @@ sequenceDiagram
 1. `applier::host::expand_objects()` sets `is_sent` on the host custom variables that are allowed by `enable_macros_filter` / `macros_filter`.
 2. `applier::host::add_object()` sends `NEBTYPE_HOST_ADD` first, then one `NEBTYPE_HOSTCUSTOMVARIABLE_ADD` for each variable with `is_sent`. `modify_object()` keeps `is_sent` when it updates a variable.
 3. `forward_pb_custom_variable()` builds `pb_custom_variable` with `instance_id = poller_id`. `CHANGE_CUSTOM_HOST_VAR` builds `pb_custom_variable_status` with `instance_id` too.
-4. In the Broker, `_write_conf()` routes the event to `_process_pb_custom_variable()` or `_process_pb_custom_variable_status()`. `otel_service_field_of()` keeps only host-level (`service_id == 0`) `OTEL_SERVICE_NAME` / `OTEL_SERVICE_NAMESPACE`, matched case-insensitively.
-5. `_set_host_otel_service()` checks the owner and updates or clears the field in `id_to_otel_service`.
-6. When `request_builder::_scope_for_host()` creates the resource of a host, it reads the identity through `global_cache_enricher::host_otel_service()`.
+4. In the Broker, `broker_cache::publish()` routes the event to `update_custom_variable()`. `otel_service_field_of()` keeps only host-level (`service_id == 0`) `OTEL_SERVICE_NAME` / `OTEL_SERVICE_NAMESPACE`, matched case-insensitively.
+5. `_set_host_otel_service()` checks the owner and updates or clears the field in `_otel_services`.
+6. When `request_builder::_scope_for_host()` creates the resource of a host, it reads the identity through `broker_cache_enricher::host_otel_service()`.
 
 ```mermaid
 sequenceDiagram
     participant APP as applier::host
     participant CBM as cbmod
-    participant GC as global_cache_data (conf)
+    participant GC as broker_cache
     participant RB as request_builder
 
     APP->>CBM: NEBTYPE_HOST_ADD
     CBM->>GC: pb_host (instance_id)
-    GC->>GC: _process_pb_host: reset identity if poller changed
+    GC->>GC: update_host: reset identity if poller changed
     APP->>CBM: NEBTYPE_HOSTCUSTOMVARIABLE_ADD
     CBM->>GC: pb_custom_variable (instance_id = poller_id)
     GC->>GC: _set_host_otel_service (owner check)
     Note over CBM,GC: CHANGE_CUSTOM_HOST_VAR sends pb_custom_variable_status
-    RB->>GC: get_otel_service(host_id)
+    RB->>GC: host_otel_service(host_id)
     GC-->>RB: name, name_space
 ```
 
@@ -675,14 +674,14 @@ A mapping file follows the schema in `semconv_mapping.cc` (`k_mapping_schema`). 
 | `send_*`, `host_ip_exclude_link_local` | `request_builder` |
 | `mapping_file` | `connector` → `mapping_provider` |
 
-4. **Host macros:** they reach the Broker as `CustomVariable` / `CustomVariableStatus` events, which `global_cache_data` stores. `global_cache_enricher` reads them back.
+4. **Host macros:** they reach the Broker as `CustomVariable` / `CustomVariableStatus` events, which `broker_cache` stores. `broker_cache_enricher` reads them back.
 
 ## 5. How It Works
 
 ### 5.1 Initialization
 
 1. `broker_module_init()` registers the `OTLP` protocol.
-2. `factory::new_endpoint()` parses the configuration, loads the global cache, and logs `otlp: endpoint '<name>' exporting to <host:port>`.
+2. `factory::new_endpoint()` parses the configuration, enables the `broker_cache` sections it reads, and logs `otlp: endpoint '<name>' exporting to <host:port>`.
 3. The `connector` constructor loads the mapping. A configured file must be valid at this point: `mapping_provider::load()` throws, and does not fall back to an empty table. The constructor then starts the file watcher.
 4. Each `connector::open()` creates a fresh `stream` with its own `request_builder` and `otlp_exporter`, and therefore its own gRPC channel. The mapping provider and the host-metadata store are kept across reopenings.
 
@@ -735,9 +734,9 @@ A mapping file follows the schema in `semconv_mapping.cc` (`k_mapping_schema`). 
 - `centreon.host.state`: value `HostStatus.state`, attribute `centreon.state.type`.
 - `add_host_status()` exits early when `send_status` is false and the host perfdata is empty. Host perfdata uses `service_id` 0, so its points have no service attributes.
 
-### 5.4 State changes of the OTel identity (global cache)
+### 5.4 State changes of the OTel identity (broker_cache)
 
-| Event | Condition | Effect on `id_to_otel_service` |
+| Event | Condition | Effect on `_otel_services` |
 |---|---|---|
 | `CustomVariable` for `OTEL_SERVICE_NAME` / `OTEL_SERVICE_NAMESPACE` (`service_id == 0`) | `enabled` | Sets the field to `value` (stored untrimmed). |
 | same | `!enabled` (deletion) | Clears the field. |
@@ -749,7 +748,7 @@ A mapping file follows the schema in `semconv_mapping.cc` (`k_mapping_schema`). 
 | `Instance` `running` | - | Entries of hosts owned by that instance are erased; the start-up dump that follows sets them again. |
 | Field cleared | both fields empty | Entry erased. |
 
-The map lives in the memory-mapped conf cache, so the identity survives a `cbd` restart without any replay.
+With the centralized configuration, the identity also comes from the host custom variables of the configuration (`merge()`, `apply()`), and a removed host loses its entry. Outside it, the map is saved in `<cache_dir>.cache` with the rest of the cache (every 10 s when it changed, and at stop), so the identity survives a `cbd` restart without any replay.
 
 The CMA information in `host_metadata_store` behaves differently:
 - it is in memory only, and each `AgentHostInfo` replaces the whole record of its host;

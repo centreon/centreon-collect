@@ -173,7 +173,7 @@ class fake_muxer {
   bool accepts_any(filter_mask batch) const { return (_filter & batch) != 0; }
 
   void publish(const std::deque<event_ptr>& batch) {
-    absl::MutexLock lck(&_m);
+    absl::MutexLock lck(_m);
     for (const auto& e : batch) {
       if (!(_filter & mask_of(e->type())))
         continue;
@@ -194,7 +194,7 @@ class fake_muxer {
    * two can be told apart.
    */
   void publish_one(const event_ptr& e) {
-    absl::MutexLock lck(&_m);
+    absl::MutexLock lck(_m);
     if (!(_filter & mask_of(e->type())))
       return;
     if (_queue.size() >= _queue_max)
@@ -235,13 +235,13 @@ class engine_current {
   explicit engine_current(asio::io_context& ctx) : _ctx{ctx} {}
 
   void subscribe(const std::shared_ptr<fake_muxer>& m) {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     _muxers.push_back(m);
   }
 
   void publish(const event_ptr& e) {
     {
-      absl::MutexLock lck(&_kiew_m);
+      absl::MutexLock lck(_kiew_m);
       _kiew.push_back(e);
     }
     _send_to_subscribers(nullptr);
@@ -256,7 +256,7 @@ class engine_current {
   bool drained() {
     if (_sending.load(std::memory_order_acquire))
       return false;
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     return _kiew.empty();
   }
 };
@@ -284,7 +284,7 @@ class engine_current::callback_caller {
         _callback();
       bool pending;
       {
-        absl::MutexLock lck(&_parent->_kiew_m);
+        absl::MutexLock lck(_parent->_kiew_m);
         pending = !_parent->_muxers.empty() && !_parent->_kiew.empty();
       }
       if (pending)
@@ -302,7 +302,7 @@ bool engine_current::_send_to_subscribers(completion&& callback) {
   std::shared_ptr<callback_caller> cb;
   bool retval = false;
   {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     if (_muxers.empty() || _kiew.empty()) {
       bool expected_true = true;
       _sending.compare_exchange_strong(expected_true, false);
@@ -425,7 +425,7 @@ class engine_next_impl {
     for (;;) {
       size_t turn;
       {
-        absl::MutexLock lck(&_kiew_m);
+        absl::MutexLock lck(_kiew_m);
         if (_kiew.empty()) {
           _draining = false;
           _turns = 0;
@@ -500,14 +500,14 @@ class engine_next_impl {
   explicit engine_next_impl(asio::io_context& ctx) : _ctx{ctx} {}
 
   void subscribe(const std::shared_ptr<fake_muxer>& m) {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     _muxers.push_back({m, m->filter()});
   }
 
   void publish(const event_ptr& e) {
     bool mine = false;
     {
-      absl::MutexLock lck(&_kiew_m);
+      absl::MutexLock lck(_kiew_m);
       _kiew.push_back(e);
       if (!_draining) {
         _draining = true;
@@ -521,7 +521,7 @@ class engine_next_impl {
   }
 
   bool drained() {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     return !_draining && _kiew.empty();
   }
 };
@@ -595,7 +595,7 @@ class engine_strand_2022 {
   void _send_to_subscribers() {
     std::deque<event_ptr> kiew;
     {
-      absl::MutexLock lck(&_kiew_m);
+      absl::MutexLock lck(_kiew_m);
       if (_kiew.empty()) {
         _sending = false;
         return;
@@ -651,7 +651,7 @@ class engine_strand_2022 {
   void publish(const event_ptr& e) {
     bool post_it = false;
     {
-      absl::MutexLock lck(&_kiew_m);
+      absl::MutexLock lck(_kiew_m);
       _kiew.push_back(e);
       if (!_sending) {
         _sending = true;
@@ -672,7 +672,7 @@ class engine_strand_2022 {
    * its promise — so this covers the whole fan-out.
    */
   bool drained() {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     return !_sending && _kiew.empty();
   }
 };
@@ -757,7 +757,7 @@ class engine_strand_next {
   void _drain() {
     for (;;) {
       {
-        absl::MutexLock lck(&_kiew_m);
+        absl::MutexLock lck(_kiew_m);
         if (_kiew.empty()) {
           _draining = false;
           return;
@@ -801,14 +801,14 @@ class engine_strand_next {
       : _ctx{ctx}, _strand{asio::make_strand(ctx)} {}
 
   void subscribe(const std::shared_ptr<fake_muxer>& m) {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     _muxers.push_back({m, m->filter()});
   }
 
   void publish(const event_ptr& e) {
     bool mine = false;
     {
-      absl::MutexLock lck(&_kiew_m);
+      absl::MutexLock lck(_kiew_m);
       _kiew.push_back(e);
       if (!_draining) {
         _draining = true;
@@ -820,7 +820,7 @@ class engine_strand_next {
   }
 
   bool drained() {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     return !_draining && _kiew.empty();
   }
 };

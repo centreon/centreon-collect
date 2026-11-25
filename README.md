@@ -214,6 +214,27 @@ tests/ut_engine
 
 You're done!
 
+### Unit tests
+
+You can run unit tests after compilation.
+
+Unit tests use Perl scripts, to be able to run them you need to install
+these Perl modules: JSON, http::daemon::ssl.
+
+For example, on Debian/Raspbian/Ubuntu you can run:
+
+```shell
+apt install libjson-perl libhttp-daemon-ssl-perl
+```
+
+Then, from the *build* directory you can execute these commands:
+```shell
+tests/ut_common
+tests/ut_clib
+tests/ut_broker
+tests/ut_engine
+```
+
 ### Inside a docker, ubuntu for example
 In my case I have the home directory of the centreon project in /data/dev/centreon-collect
 

@@ -182,7 +182,7 @@ bool state_helper::hook(std::string_view key, std::string_view value) {
           "a number of 'time units' or a number of seconds. For the latter, "
           "you must append a 's' after the number: the current incorrect value "
           "is: '{}'",
-          fmt::string_view(value.data(), value.size()));
+          value);
       return false;
     }
   } else if (key == "service_interleave_factor_method") {
@@ -204,7 +204,7 @@ bool state_helper::hook(std::string_view key, std::string_view value) {
       throw msg_fmt(
           "check_reaper_interval must be a strictly positive integer (current "
           "value '{}'",
-          fmt::string_view(value.data(), value.size()));
+          value);
     else
       obj->set_check_reaper_interval(res);
     return true;
@@ -217,7 +217,7 @@ bool state_helper::hook(std::string_view key, std::string_view value) {
         throw msg_fmt(
             "event_broker_options must be a positive integer or '-1' and not "
             "'{}'",
-            fmt::string_view(value.data(), value.size()));
+            value);
     } else
       obj->set_event_broker_options(static_cast<uint32_t>(-1));
     return true;
