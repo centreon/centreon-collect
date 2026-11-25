@@ -404,19 +404,24 @@ void api::start() {
       std::chrono::hours(1), 10, asio::ssl::context::tlsv12, _conf.public_cert,
       _conf.private_key);
   http_conf->set_max_request_body_size(_conf.max_body_size);
+  /* The HTTP layer traces whole requests and responses: never below debug,
+   * so that execution argv and outputs are not logged (contracts.md §12). */
+  std::shared_ptr<spdlog::logger> http_logger = _logger->clone("core");
+  if (http_logger->level() < spdlog::level::debug)
+    http_logger->set_level(spdlog::level::debug);
 
   if (crypted)
     _server = http::server::load(
-        _io_context, _logger, http_conf,
-        [http_conf, io_ctx = _io_context, logger = _logger, weak]() {
+        _io_context, http_logger, http_conf,
+        [http_conf, io_ctx = _io_context, logger = http_logger, weak]() {
           return std::make_shared<session<http::https_connection>>(
               io_ctx, logger, http_conf,
               http::https_connection::load_server_certificate, weak);
         });
   else
     _server = http::server::load(
-        _io_context, _logger, http_conf,
-        [http_conf, io_ctx = _io_context, logger = _logger, weak]() {
+        _io_context, http_logger, http_conf,
+        [http_conf, io_ctx = _io_context, logger = http_logger, weak]() {
           return std::make_shared<session<http::http_connection>>(
               io_ctx, logger, http_conf, nullptr, weak);
         });

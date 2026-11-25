@@ -20,6 +20,7 @@
 #define CCB_IO_PROTOBUF_HH
 
 #include <google/protobuf/util/message_differencer.h>
+#include "bbdo/events.hh"
 #include "com/centreon/common/fmt_protobuf.hh"
 
 #include "com/centreon/broker/io/data.hh"
@@ -218,7 +219,17 @@ bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump(fmt::format_context::iterator& stream) const {
   data::dump(stream);
-  fmt::format_to(stream, ",\"content\":{}", this->obj());
+  /* RemoteExec carries argv (credentials), RemoteExecResult a program output:
+   * never written to a log, at any level (contracts.md §12). */
+  namespace ccb = com::centreon::broker;
+  constexpr uint32_t exec_type =
+      ccb::make_type(ccb::io::bbdo, ccb::bbdo::de_pb_remote_exec);
+  constexpr uint32_t exec_result_type =
+      ccb::make_type(ccb::io::bbdo, ccb::bbdo::de_pb_remote_exec_result);
+  if constexpr (Typ == exec_type || Typ == exec_result_type)
+    fmt::format_to(stream, ",\"content\":\"(not logged)\"");
+  else
+    fmt::format_to(stream, ",\"content\":{}", this->obj());
 }
 
 }  // namespace com::centreon::broker::io

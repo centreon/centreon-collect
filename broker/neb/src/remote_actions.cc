@@ -878,12 +878,14 @@ struct exec_run : public std::enable_shared_from_this<exec_run> {
   std::string err_tail ABSL_GUARDED_BY(m);
   std::chrono::steady_clock::time_point last_sent ABSL_GUARDED_BY(m);
   bool finished ABSL_GUARDED_BY(m) = false;
+  bool timed_out ABSL_GUARDED_BY(m) = false;
   std::chrono::steady_clock::time_point started;
-  std::unique_ptr<boost::asio::steady_timer> heartbeat;
-  /* Timeout of the run: kills the whole process group (setpgid), so a
+  /* Both timers are created before the process starts and only used with m
+   * held. The deadline kills the whole process group (setpgid), so that a
    * grandchild holding the pipes cannot delay the answer. */
-  std::unique_ptr<boost::asio::steady_timer> deadline;
-  int pid = 0;
+  std::unique_ptr<boost::asio::steady_timer> heartbeat ABSL_GUARDED_BY(m);
+  std::unique_ptr<boost::asio::steady_timer> deadline ABSL_GUARDED_BY(m);
+  int pid ABSL_GUARDED_BY(m) = 0;
 
   /* Push one RemoteExecResult. Called with m held. */
   void send(ExecState state,
@@ -941,24 +943,50 @@ struct exec_run : public std::enable_shared_from_this<exec_run> {
       err_tail.erase(0, err_tail.size() - exec_stderr_tail);
   }
 
-  void arm_heartbeat() {
+  /* Called with m held. */
+  void arm_heartbeat() ABSL_EXCLUSIVE_LOCKS_REQUIRED(m) {
     heartbeat->expires_after(exec_heartbeat);
     heartbeat->async_wait(
         [me = shared_from_this()](const boost::system::error_code& err) {
           if (err)
             return;
-          {
-            absl::MutexLock lck(&me->m);
-            if (me->finished)
-              return;
-            if (std::chrono::steady_clock::now() - me->last_sent >=
-                exec_heartbeat)
-              me->send(EXEC_RUNNING, {});
-          }
+          absl::MutexLock lck(&me->m);
+          if (me->finished)
+            return;
+          if (std::chrono::steady_clock::now() - me->last_sent >=
+              exec_heartbeat)
+            me->send(EXEC_RUNNING, {});
           me->arm_heartbeat();
         });
   }
+
+  /* Called with m held. */
+  void arm_deadline() ABSL_EXCLUSIVE_LOCKS_REQUIRED(m);
 };
+
+void exec_finish(const std::shared_ptr<exec_run>& run,
+                 ExecState state,
+                 int exit_code,
+                 const std::string& message);
+
+void exec_run::arm_deadline() {
+  deadline->expires_after(std::chrono::seconds(timeout_s));
+  deadline->async_wait(
+      [me = shared_from_this()](const boost::system::error_code& err) {
+        if (err)
+          return;
+        {
+          absl::MutexLock lck(&me->m);
+          if (me->finished)
+            return;
+          me->timed_out = true;
+          if (me->pid > 0)
+            ::killpg(me->pid, SIGKILL);
+        }
+        exec_finish(me, EXEC_TIMEOUT, -1,
+                    fmt::format("killed after {} s", me->timeout_s));
+      });
+}
 
 absl::Mutex g_exec_m;
 size_t g_exec_running ABSL_GUARDED_BY(g_exec_m) = 0;
@@ -1005,11 +1033,11 @@ void exec_finish(const std::shared_ptr<exec_run>& run,
       o.set_output_bytes(total);
       o.set_message(message);
     });
+    if (run->heartbeat)
+      run->heartbeat->cancel();
+    if (run->deadline)
+      run->deadline->cancel();
   }
-  if (run->heartbeat)
-    run->heartbeat->cancel();
-  if (run->deadline)
-    run->deadline->cancel();
   auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
                      std::chrono::steady_clock::now() - run->started)
                      .count();
@@ -1028,11 +1056,15 @@ void exec_finish(const std::shared_ptr<exec_run>& run,
 /* Start a run; the caller has taken a slot. */
 void exec_start(const std::shared_ptr<exec_run>& run) {
   run->started = std::chrono::steady_clock::now();
-  run->heartbeat = std::make_unique<boost::asio::steady_timer>(
-      com::centreon::common::pool::io_context());
   {
     absl::MutexLock lck(&run->m);
+    run->heartbeat = std::make_unique<boost::asio::steady_timer>(
+        com::centreon::common::pool::io_context());
+    run->deadline = std::make_unique<boost::asio::steady_timer>(
+        com::centreon::common::pool::io_context());
     run->send(EXEC_RUNNING, {});
+    run->arm_heartbeat();
+    run->arm_deadline();
   }
   SPDLOG_LOGGER_INFO(logger(),
                      "remote exec: request '{}': {}, {} args, started",
@@ -1048,7 +1080,13 @@ void exec_start(const std::shared_ptr<exec_run>& run) {
               com::centreon::common::e_exit_status exit_status,
               const std::string&, const std::string&) {
           try {
-            if (exit_status == com::centreon::common::e_exit_status::timeout)
+            bool timed_out;
+            {
+              absl::MutexLock lck(&run->m);
+              timed_out = run->timed_out;
+            }
+            if (timed_out ||
+                exit_status == com::centreon::common::e_exit_status::timeout)
               exec_finish(run, EXEC_TIMEOUT, exit_code,
                           fmt::format("killed after {} s", run->timeout_s));
             else
@@ -1070,21 +1108,11 @@ void exec_start(const std::shared_ptr<exec_run>& run) {
           if (!err && !data.empty())
             run->on_stderr(data);
         },
-        /* Backstop only: the deadline timer below answers first. */
+        /* Backstop only: the deadline timer answers first. */
         std::chrono::seconds(run->timeout_s + 30));
-    run->pid = proc->get_pid();
-    run->deadline = std::make_unique<boost::asio::steady_timer>(
-        com::centreon::common::pool::io_context());
-    run->deadline->expires_after(std::chrono::seconds(run->timeout_s));
-    run->deadline->async_wait([run](const boost::system::error_code& err) {
-      if (err)
-        return;
-      if (run->pid > 0)
-        ::killpg(run->pid, SIGKILL);
-      exec_finish(run, EXEC_TIMEOUT, -1,
-                  fmt::format("killed after {} s", run->timeout_s));
-    });
-    run->arm_heartbeat();
+    absl::MutexLock lck(&run->m);
+    if (!run->finished)
+      run->pid = proc->get_pid();
   } catch (const std::exception&) {
     /* The exception text may quote the command line: not logged. */
     exec_finish(run, EXEC_FAILED, -1, "cannot start the program");
