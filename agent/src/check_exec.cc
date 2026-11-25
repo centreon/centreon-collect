@@ -150,11 +150,16 @@ void check_exec::start_check(const duration& timeout) {
  */
 void check_exec::on_completion(unsigned running_index,
                                int exit_code,
-                               int exit_status [[maybe_unused]],
+                               int exit_status,
                                const std::string& std_out) {
   if (running_index != _get_running_check_index()) {
-    SPDLOG_LOGGER_ERROR(_logger, "running_index={}, running_index={}",
-                        running_index, _get_running_check_index());
+    SPDLOG_LOGGER_ERROR(
+        _logger,
+        "service {} (host_id={}, service_id={}) cmd: {}: late process result "
+        "ignored, run {} already completed by timeout (current run index {}), "
+        "exit_code={}, exit_status={}",
+        get_service(), get_host_id(), get_service_id(), get_command_name(),
+        running_index, _get_running_check_index(), exit_code, exit_status);
     return;
   }
 
