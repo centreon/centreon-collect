@@ -99,6 +99,8 @@ enum data_element {
   de_pb_config_chunk = 12,
   de_pb_config_commit = 13,
   de_pb_remote_result = 14,
+  de_pb_remote_exec = 15,
+  de_pb_remote_exec_result = 16,
 };
 }
 namespace neb {

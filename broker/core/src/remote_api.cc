@@ -25,6 +25,7 @@
 #include "com/centreon/common/http/http_server.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
+#include "com/centreon/common/utf8.hh"
 #include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -37,6 +38,7 @@
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <unistd.h>
@@ -62,8 +64,23 @@ constexpr time_t deployment_keep_duration = 3600;
 /* RemoteResult index of a plugin install outcome (cbmod). */
 constexpr int32_t plugins_result_index = -2;
 
+/* Remote executions (contracts.md §12). */
+constexpr time_t exec_progress_timeout = 45;
+constexpr time_t exec_start_timeout = 600;
+constexpr time_t exec_deadline_margin = 60;
+constexpr time_t exec_keep_duration = 3600;
+constexpr size_t exec_max_pending = 256;
+constexpr size_t exec_max_kept_output = 64u << 20;
+constexpr size_t exec_max_output = 16u << 20;
+constexpr size_t exec_max_args = 256;
+constexpr size_t exec_max_argv_bytes = 64u << 10;
+constexpr uint32_t exec_max_timeout_s = 3600;
+
 /* Status names of the HTTP contract. */
 constexpr const char* st_accepted = "ACCEPTED";
+constexpr const char* st_running = "RUNNING";
+constexpr const char* st_done = "DONE";
+constexpr const char* st_failed = "FAILED";
 constexpr const char* st_not_connected = "NOT_CONNECTED";
 constexpr const char* st_peer_too_old = "PEER_TOO_OLD";
 constexpr const char* st_transferring = "TRANSFERRING";
@@ -89,6 +106,11 @@ int status_weight(const std::string& s) {
 bool is_final(const std::string& s) {
   return s == st_applied || s == st_rejected || s == st_timeout ||
          s == st_not_connected || s == st_peer_too_old;
+}
+
+bool exec_is_final(const std::string& s) {
+  return s == st_done || s == st_rejected || s == st_timeout ||
+         s == st_failed || s == st_not_connected || s == st_peer_too_old;
 }
 
 /**
@@ -166,6 +188,8 @@ class api : public std::enable_shared_from_this<api> {
     /* uid of the engine running next to this cbd (env CENTRAL_POLLER_UID),
      * 0 when unknown. */
     uint64_t local_poller_uid = 0;
+    /* Allow executions on a stream without a verified TLS peer (Robot). */
+    bool exec_insecure = false;
   };
 
  private:
@@ -206,6 +230,27 @@ class api : public std::enable_shared_from_this<api> {
     time_t finished_at = 0;
   };
 
+  /* A remote execution. argv is never kept: it is pushed and forgotten. */
+  struct execution {
+    std::string id;
+    uint64_t poller_id = 0;
+    std::string program;  // basename of argv[0], for the logs
+    uint32_t timeout_s = 300;
+    std::string status;
+    std::string message;
+    bool has_exit_code = false;
+    int32_t exit_code = 0;
+    std::string output;
+    uint64_t output_bytes = 0;
+    bool truncated = false;
+    std::string stderr_tail;
+    uint32_t last_seq = 0;
+    time_t accepted_at = 0;
+    time_t started_at = 0;
+    time_t last_progress = 0;
+    time_t finished_at = 0;
+  };
+
   const conf _conf;
   std::shared_ptr<spdlog::logger> _logger;
   std::shared_ptr<asio::io_context> _io_context;
@@ -218,6 +263,8 @@ class api : public std::enable_shared_from_this<api> {
                       std::pair<std::shared_ptr<command_request>, size_t>>
       _commands ABSL_GUARDED_BY(_m);
   absl::flat_hash_map<std::string, std::shared_ptr<deployment>> _deployments
+      ABSL_GUARDED_BY(_m);
+  absl::flat_hash_map<std::string, std::shared_ptr<execution>> _executions
       ABSL_GUARDED_BY(_m);
   /* Last plugin install outcome per peer, kept across reconnects. */
   absl::flat_hash_map<uint64_t, json> _plugins ABSL_GUARDED_BY(_m);
@@ -239,6 +286,13 @@ class api : public std::enable_shared_from_this<api> {
   json _deployment_json(const deployment& d) const;
   json _pollers_json() const;
   bool _ca_json(json& out) const;
+  void _post_execution(const json& body, answer_function&& answer);
+  json _execution_json(const execution& e) const;
+  void _finish_execution(execution& e,
+                         const char* status,
+                         const std::string& message,
+                         time_t now) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_m);
+  void _on_exec_result(uint64_t poller_id, const RemoteExecResult& r);
   void _on_result(uint64_t poller_id, const RemoteResult& r);
   void _on_disconnect(uint64_t poller_id);
   void _start_housekeeping();
@@ -327,6 +381,12 @@ void api::start() {
     if (a)
       a->_on_result(poller_id, r);
   });
+  reg.set_exec_result_handler(
+      [weak](uint64_t poller_id, const RemoteExecResult& r) {
+        auto a = weak.lock();
+        if (a)
+          a->_on_exec_result(poller_id, r);
+      });
   reg.set_disconnect_handler([weak](uint64_t poller_id) {
     auto a = weak.lock();
     if (a)
@@ -453,6 +513,30 @@ void api::handle(const std::shared_ptr<http::request_type>& request,
                       fmt::format("unknown deployment '{}'", id)));
       else
         answer(_response(bh::status::ok, _deployment_json(*it->second)));
+      return;
+    }
+
+    if (request->method() == bh::verb::get &&
+        absl::StartsWith(target, "/v1/executions/")) {
+      std::string id = target.substr(strlen("/v1/executions/"));
+      absl::MutexLock lck(&_m);
+      auto it = _executions.find(id);
+      if (it == _executions.end())
+        answer(_error(bh::status::not_found, "NOT_FOUND",
+                      fmt::format("unknown execution '{}'", id)));
+      else
+        answer(_response(bh::status::ok, _execution_json(*it->second)));
+      return;
+    }
+
+    if (request->method() == bh::verb::post && target == "/v1/executions") {
+      json body = json::parse(request->body(), nullptr, false);
+      if (body.is_discarded() || !body.is_object()) {
+        answer(_error(bh::status::bad_request, "BAD_REQUEST",
+                      "body is not a JSON object"));
+        return;
+      }
+      _post_execution(body, std::move(answer));
       return;
     }
 
@@ -797,6 +881,217 @@ void api::_post_deployment(const json& body, answer_function&& answer) {
   }
 }
 
+/**
+ * @brief POST /v1/executions: send a RemoteExec to one poller engine. The
+ * answer is 202 ACCEPTED, or 200 with a final status when nothing was sent.
+ * argv is validated, pushed and forgotten: never stored nor logged.
+ */
+void api::_post_execution(const json& body, answer_function&& answer) {
+  namespace bh = boost::beast::http;
+  auto bad = [&answer](const std::string& msg) {
+    answer(_error(bh::status::bad_request, "BAD_REQUEST", msg));
+  };
+  auto e = std::make_shared<execution>();
+  e->id = body.contains("request_id") && body["request_id"].is_string() &&
+                  !body["request_id"].get<std::string>().empty()
+              ? body["request_id"].get<std::string>()
+              : misc::Uuid().to_string();
+  if (!body.contains("poller_id") ||
+      !read_poller_id(body["poller_id"], e->poller_id)) {
+    bad("'poller_id' must be a positive integer");
+    return;
+  }
+  if (!body.contains("argv") || !body["argv"].is_array() ||
+      body["argv"].empty() || body["argv"].size() > exec_max_args) {
+    bad(fmt::format("'argv' must be an array of 1 to {} strings",
+                    exec_max_args));
+    return;
+  }
+  std::vector<std::string> argv;
+  size_t argv_bytes = 0;
+  for (const json& a : body["argv"]) {
+    if (!a.is_string()) {
+      bad("'argv' must contain strings only");
+      return;
+    }
+    argv.push_back(a.get<std::string>());
+    argv_bytes += argv.back().size();
+  }
+  if (argv_bytes > exec_max_argv_bytes) {
+    bad(fmt::format("'argv' is larger than {} bytes", exec_max_argv_bytes));
+    return;
+  }
+  if (argv[0].empty() || argv[0][0] != '/') {
+    bad("argv[0] must be an absolute path");
+    return;
+  }
+  e->program = std::filesystem::path(argv[0]).filename().string();
+  if (body.contains("timeout_s")) {
+    if (!body["timeout_s"].is_number_unsigned() ||
+        body["timeout_s"].get<uint64_t>() == 0 ||
+        body["timeout_s"].get<uint64_t>() > exec_max_timeout_s) {
+      bad(fmt::format("'timeout_s' must be in 1..{}", exec_max_timeout_s));
+      return;
+    }
+    e->timeout_s = body["timeout_s"].get<uint32_t>();
+  }
+  uint32_t max_output = 0;
+  if (body.contains("max_output_bytes")) {
+    if (!body["max_output_bytes"].is_number_unsigned() ||
+        body["max_output_bytes"].get<uint64_t>() > exec_max_output) {
+      bad(fmt::format("'max_output_bytes' must be in 0..{}", exec_max_output));
+      return;
+    }
+    max_output = body["max_output_bytes"].get<uint32_t>();
+  }
+
+  {
+    absl::MutexLock lck(&_m);
+    auto it = _executions.find(e->id);
+    if (it != _executions.end()) {
+      answer(_response(bh::status::ok, _execution_json(*it->second)));
+      return;
+    }
+    size_t pending = 0;
+    for (auto& p : _executions)
+      if (!exec_is_final(p.second->status))
+        ++pending;
+    if (pending >= exec_max_pending) {
+      answer(_error(bh::status::service_unavailable, "BUSY",
+                    fmt::format("{} executions are not finished", pending)));
+      return;
+    }
+  }
+
+  time_t now = time(nullptr);
+  e->accepted_at = e->last_progress = now;
+  auto channel = bbdo::remote_registry::instance().find(
+      e->poller_id, com::centreon::common::ENGINE);
+  if (!channel) {
+    e->status = st_not_connected;
+    e->message = "no BBDO stream from this poller engine";
+  } else if (!channel->info().remote_actions ||
+             !channel->info().remote_exec) {
+    e->status = st_peer_too_old;
+    e->message = "poller does not accept remote executions";
+  } else if (!channel->info().tls && !_conf.exec_insecure) {
+    e->status = st_rejected;
+    e->message = "stream not encrypted";
+  } else {
+    auto ev = std::make_shared<bbdo::pb_remote_exec>();
+    auto& obj = ev->mut_obj();
+    obj.set_request_id(e->id);
+    obj.set_deadline(now + exec_deadline_margin);
+    for (auto& a : argv)
+      obj.add_argv(std::move(a));
+    obj.set_timeout_s(e->timeout_s);
+    obj.set_max_output_bytes(max_output);
+    if (channel->push(ev, argv_bytes + 64)) {
+      e->status = st_accepted;
+    } else {
+      e->status = st_rejected;
+      e->message = "poller stream closed or queue full";
+    }
+  }
+  if (exec_is_final(e->status))
+    e->finished_at = now;
+  SPDLOG_LOGGER_INFO(_logger, "remote api: execution {} of {} on poller {}: {}",
+                     e->id, e->program, e->poller_id, e->status);
+  json j;
+  {
+    absl::MutexLock lck(&_m);
+    _executions[e->id] = e;
+    j = _execution_json(*e);
+  }
+  answer(_response(
+      e->status == st_accepted ? bh::status::accepted : bh::status::ok, j));
+}
+
+json api::_execution_json(const execution& e) const {
+  bool is_done = exec_is_final(e.status);
+  json j{{"request_id", e.id},
+         {"poller_id", std::to_string(e.poller_id)},
+         {"status", e.status},
+         {"message", e.message},
+         {"exit_code", nullptr},
+         {"output_b64", is_done ? absl::Base64Escape(e.output) : ""},
+         {"output_bytes", e.output_bytes},
+         {"truncated", e.truncated},
+         {"stderr_tail", e.stderr_tail},
+         {"accepted_at", e.accepted_at},
+         {"last_progress", e.last_progress},
+         {"finished_at", e.finished_at}};
+  if (e.has_exit_code)
+    j["exit_code"] = e.exit_code;
+  return j;
+}
+
+void api::_finish_execution(execution& e,
+                            const char* status,
+                            const std::string& message,
+                            time_t now) {
+  e.status = status;
+  e.message = message;
+  e.finished_at = now;
+  SPDLOG_LOGGER_INFO(_logger,
+                     "remote api: execution {} of {} on poller {}: {} {}, {} "
+                     "bytes{}",
+                     e.id, e.program, e.poller_id, e.status, e.message,
+                     e.output_bytes, e.truncated ? ", truncated" : "");
+}
+
+/**
+ * @brief A RemoteExecResult arrived from a poller (feeder thread of its
+ * stream). Output chunks are appended in sequence order.
+ */
+void api::_on_exec_result(uint64_t poller_id, const RemoteExecResult& r) {
+  time_t now = time(nullptr);
+  absl::MutexLock lck(&_m);
+  auto it = _executions.find(r.request_id());
+  if (it == _executions.end())
+    return;
+  execution& e = *it->second;
+  if (e.poller_id != poller_id || exec_is_final(e.status))
+    return;
+  e.last_progress = now;
+  if (r.seq() != e.last_seq + 1) {
+    _finish_execution(e, st_failed, "output lost", now);
+    e.output.clear();
+    return;
+  }
+  e.last_seq = r.seq();
+  if (!r.stdout_chunk().empty() &&
+      e.output.size() + r.stdout_chunk().size() <= exec_max_output)
+    e.output.append(r.stdout_chunk());
+  switch (r.state()) {
+    case EXEC_RUNNING:
+      if (e.status != st_running) {
+        e.status = st_running;
+        e.started_at = now;
+      }
+      return;
+    case EXEC_DONE:
+      e.has_exit_code = true;
+      e.exit_code = r.exit_code();
+      break;
+    case EXEC_REJECTED:
+    case EXEC_TIMEOUT:
+    case EXEC_FAILED:
+      break;
+    default:
+      return;
+  }
+  e.output_bytes = r.output_bytes();
+  e.truncated = r.truncated();
+  e.stderr_tail = com::centreon::common::check_string_utf8(r.stderr_tail());
+  _finish_execution(e,
+                    r.state() == EXEC_DONE       ? st_done
+                    : r.state() == EXEC_REJECTED ? st_rejected
+                    : r.state() == EXEC_TIMEOUT  ? st_timeout
+                                                 : st_failed,
+                    com::centreon::common::check_string_utf8(r.message()), now);
+}
+
 json api::_deployment_json(const deployment& d) const {
   json j{{"request_id", d.id},
          {"poller_id", std::to_string(d.poller_id)},
@@ -863,6 +1158,7 @@ json api::_pollers_json() const {
                        {"peer_type", "ENGINE"},
                        {"remote_actions", i.remote_actions},
                        {"tls", i.tls},
+                       {"remote_exec", i.remote_exec},
                        {"connected_since", i.connected_since},
                        {"config_version",
                         v == _config_versions.end() ? "" : v->second}});
@@ -1046,6 +1342,14 @@ void api::_on_disconnect(uint64_t poller_id) {
     if (dit != _deployments.end() && dit->second->poller_id == poller_id)
       dit->second->plugins = p;
   }
+
+  /* Results of a run in progress are lost with the stream (no replay). */
+  for (auto& p : _executions) {
+    execution& e = *p.second;
+    if (e.poller_id == poller_id && !exec_is_final(e.status))
+      _finish_execution(e, st_not_connected,
+                        "poller disconnected during the execution", now);
+  }
 }
 
 void api::_start_housekeeping() {
@@ -1081,6 +1385,45 @@ void api::_housekeep() {
       _deployments.erase(it++);
     else
       ++it;
+  }
+
+  /* Executions: no progress (3 missed heartbeats), never started by the
+   * poller (queued too long), or past their deadline. */
+  size_t kept = 0;
+  std::vector<std::shared_ptr<execution>> finals;
+  for (auto it = _executions.begin(); it != _executions.end();) {
+    execution& e = *it->second;
+    if (!exec_is_final(e.status)) {
+      if (e.status == st_accepted && now - e.accepted_at > exec_start_timeout)
+        _finish_execution(e, st_timeout, "not started by the poller", now);
+      else if (e.status == st_running &&
+               (now - e.last_progress > exec_progress_timeout ||
+                now - e.started_at >
+                    static_cast<time_t>(e.timeout_s) + exec_deadline_margin))
+        _finish_execution(e, st_timeout, "no progress from the poller", now);
+    }
+    if (e.finished_at && now - e.finished_at > exec_keep_duration) {
+      _executions.erase(it++);
+      continue;
+    }
+    if (e.finished_at) {
+      kept += e.output.size();
+      finals.push_back(it->second);
+    }
+    ++it;
+  }
+  /* Bounded output memory: forget the oldest final results first. */
+  if (kept > exec_max_kept_output) {
+    std::sort(finals.begin(), finals.end(),
+              [](const auto& a, const auto& b) {
+                return a->finished_at < b->finished_at;
+              });
+    for (auto& e : finals) {
+      if (kept <= exec_max_kept_output)
+        break;
+      kept -= e->output.size();
+      _executions.erase(e->id);
+    }
   }
 }
 
@@ -1130,6 +1473,13 @@ bool remote_api::load(const std::map<std::string, std::string>& params) {
     if (!get("max_body_size").empty() &&
         !absl::SimpleAtoi(get("max_body_size"), &c.max_body_size))
       throw std::invalid_argument("remote_api: invalid max_body_size");
+    c.exec_insecure = get("exec_insecure") == "yes" ||
+                      get("exec_insecure") == "true";
+    if (c.exec_insecure)
+      SPDLOG_LOGGER_WARN(logger,
+                         "remote api: exec_insecure is set, executions are "
+                         "sent on streams without a verified TLS peer (tests "
+                         "only)");
     /* Not a JSON key: the configuration delivered by the web has no uid, it
      * would be lost at the first delivery. */
     if (const char* uid = std::getenv("CENTRAL_POLLER_UID"); uid && *uid) {

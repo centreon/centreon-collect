@@ -3608,7 +3608,7 @@ def ctn_broker_get_bbdo_version():
             return "2.0.0"
 
 
-def ctn_broker_config_remote_api(name: str, port: int = 8099, token: str = "robot-token", ca_certificate: str = ""):
+def ctn_broker_config_remote_api(name: str, port: int = 8099, token: str = "robot-token", ca_certificate: str = "", exec_insecure: bool = False):
     """
     Enable the remote API (downstream commands and configuration, gorgone-less
     PoC) on a broker instance, listening on 127.0.0.1.
@@ -3618,6 +3618,7 @@ def ctn_broker_config_remote_api(name: str, port: int = 8099, token: str = "robo
         port (int): Listening port.
         token (str): Bearer token.
         ca_certificate (str): CA file served by GET /v1/ca (default path if empty).
+        exec_insecure (bool): Allow remote executions on streams without TLS.
 
     *Example:*
 
@@ -3626,6 +3627,8 @@ def ctn_broker_config_remote_api(name: str, port: int = 8099, token: str = "robo
     conf = {"listen_address": "127.0.0.1", "port": str(port), "token": token}
     if ca_certificate:
         conf["ca_certificate"] = ca_certificate
+    if exec_insecure:
+        conf["exec_insecure"] = "yes"
     ctn_broker_config_add_item(name, "remote_api", conf)
 
 
@@ -3752,6 +3755,56 @@ def ctn_remote_api_wait_plugins(poller_id: int, since: int, timeout: int = 60):
                         and plugins.get("status") != "RUNNING":
                     logger.console(f"plugins: {plugins}")
                     return plugins
+        time.sleep(1)
+    return {}
+
+
+def ctn_remote_api_exec(poller_id: int, argv: list, timeout_s: int = 30, max_output_bytes: int = 0):
+    """
+    POST /v1/executions for one poller.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        argv (list): Program and arguments, argv[0] absolute.
+        timeout_s (int): Timeout on the poller.
+        max_output_bytes (int): Output cap asked (0: the poller cap).
+
+    Returns:
+        A list [HTTP status, request id, decoded JSON body].
+    """
+    request_id = f"robot-exec-{time.time_ns()}"
+    body = {"request_id": request_id, "poller_id": str(poller_id),
+            "argv": list(argv), "timeout_s": int(timeout_s)}
+    if int(max_output_bytes):
+        body["max_output_bytes"] = int(max_output_bytes)
+    code, answer = ctn_remote_api_request("POST", "/v1/executions", body)
+    logger.console(f"remote api execution answer: {code} {answer.get('status')}")
+    return [code, request_id, answer]
+
+
+def ctn_remote_api_wait_exec(request_id: str, timeout: int = 60):
+    """
+    Poll GET /v1/executions/{id} until a final status.
+
+    Args:
+        request_id (str): Execution id.
+        timeout (int): Timeout in seconds.
+
+    Returns:
+        The execution object with an extra "output" key (decoded bytes as
+        latin-1 text), or {} on timeout.
+    """
+    import base64
+    final = ("DONE", "REJECTED", "TIMEOUT", "FAILED", "NOT_CONNECTED", "PEER_TOO_OLD")
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        code, body = ctn_remote_api_request("GET", f"/v1/executions/{request_id}", timeout=5)
+        if code == 200 and body.get("status") in final:
+            body["output"] = base64.b64decode(body.get("output_b64", "")).decode("latin-1")
+            logger.console(f"execution {request_id}: {body['status']} {body.get('message')} "
+                           f"exit {body.get('exit_code')} {len(body['output'])} bytes "
+                           f"of {body.get('output_bytes')} truncated {body.get('truncated')}")
+            return body
         time.sleep(1)
     return {}
 

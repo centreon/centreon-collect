@@ -186,6 +186,7 @@ class stream : public io::stream {
   std::shared_ptr<remote_channel> _remote;
   /* The peer announced in its Welcome that it accepts downstream events. */
   bool _peer_remote_actions = false;
+  bool _peer_remote_exec = false;
 
   bool _announce_remote_actions() const;
   bool _accept_remote_actions() const;

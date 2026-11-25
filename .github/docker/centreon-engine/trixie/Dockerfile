@@ -53,7 +53,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     SMTP_PORT=25 \
     SMTP_FROM=centreon-engine@localhost \
     SMTP_TLS=off \
-    CENTREON_PLUGINS_INSTALL=/usr/local/lib/centreon-engine/plugins-install.sh
+    CENTREON_PLUGINS_INSTALL=/usr/local/lib/centreon-engine/plugins-install.sh \
+    CENTREON_EXEC_ALLOWLIST_DIR=/etc/centreon-engine-exec
 
 # Create users and groups (must match current setup for compatibility)
 RUN bash -e <<EOF
@@ -239,6 +240,13 @@ COPY --chmod=755 \
      ./.github/docker/centreon-engine/trixie/entrypoint /usr/local/lib/centreon-engine
 
 COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d/centreon
+
+# Remote exec allow-list (contracts.md §12): root-owned, outside the
+# directories the central delivers, so the central cannot widen it. Default
+# deny: without a pattern, every RemoteExec is refused.
+COPY --chmod=644 <<EOF /etc/centreon-engine-exec/default.json
+{"exec": {"wildcard": ["/usr/lib/centreon/plugins/*", "/usr/lib/nagios/plugins/*"]}}
+EOF
 
 # Verify critical runtime files. Checking the dynamic linker can actually
 # resolve centengine's shared libs (rather than guessing their path with a

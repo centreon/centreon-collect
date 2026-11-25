@@ -191,6 +191,25 @@ void remote_registry::set_result_handler(result_handler&& h) {
   _result_handler = std::move(h);
 }
 
+void remote_registry::set_exec_result_handler(exec_result_handler&& h) {
+  absl::MutexLock lck(&_m);
+  _exec_result_handler = std::move(h);
+}
+
+/**
+ * @brief Hand a RemoteExecResult to the exec result handler (central side).
+ */
+void remote_registry::on_exec_result(uint64_t poller_id,
+                                     const RemoteExecResult& result) const {
+  exec_result_handler h;
+  {
+    absl::MutexLock lck(&_m);
+    h = _exec_result_handler;
+  }
+  if (h)
+    h(poller_id, result);
+}
+
 void remote_registry::set_disconnect_handler(disconnect_handler&& h) {
   absl::MutexLock lck(&_m);
   _disconnect_handler = std::move(h);

@@ -29,15 +29,20 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/match.h>
+#include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
+#include <fnmatch.h>
 #include <openssl/evp.h>
+#include <csignal>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include <boost/asio/steady_timer.hpp>
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <nlohmann/json.hpp>
 
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
@@ -745,6 +750,424 @@ void handle_commit(const ConfigCommit& c,
     plugins_trigger(d->id, channel, plugins_json);
 }
 
+/********************************************************************
+ * Remote exec (contracts.md §12): run an allow-listed program, return its
+ * output. argv, stdout and stderr are never logged.
+ ********************************************************************/
+
+constexpr uint32_t exec_default_timeout_s = 300;
+constexpr uint32_t exec_max_timeout_s = 3600;
+constexpr size_t exec_chunk_size = 256u << 10;
+constexpr size_t exec_default_cap = 8u << 20;
+constexpr size_t exec_max_cap = 16u << 20;
+constexpr size_t exec_stderr_tail = 4096;
+constexpr size_t exec_default_parallel = 4;
+constexpr size_t exec_queue_size = 64;
+constexpr std::chrono::seconds exec_heartbeat{15};
+
+/* The process class logs its arguments (timeout) and its output (trace):
+ * remote exec processes get a logger without sink. */
+std::shared_ptr<spdlog::logger> exec_process_logger() {
+  static std::shared_ptr<spdlog::logger> l = [] {
+    auto r = std::make_shared<spdlog::logger>("remote_exec_process");
+    r->set_level(spdlog::level::off);
+    return r;
+  }();
+  return l;
+}
+
+size_t env_size(const char* name, size_t def, size_t max) {
+  const char* v = std::getenv(name);
+  size_t r;
+  if (!v || !absl::SimpleAtoi(v, &r) || r == 0)
+    return def;
+  return std::min(r, max);
+}
+
+/* Allow-list: wildcard patterns on the real path of argv[0], read from
+ * *.json files of CENTREON_EXEC_ALLOWLIST_DIR. Empty means deny all. */
+absl::Mutex g_exec_allow_m;
+std::vector<std::string> g_exec_allow ABSL_GUARDED_BY(g_exec_allow_m);
+std::string g_exec_allow_error ABSL_GUARDED_BY(g_exec_allow_m);
+
+void load_exec_allowlist() {
+  const char* env = std::getenv("CENTREON_EXEC_ALLOWLIST_DIR");
+  fs::path dir(env && *env ? env : "/etc/centreon-engine-exec");
+  std::vector<std::string> patterns;
+  std::string error;
+  std::error_code ec;
+  if (fs::is_directory(dir, ec)) {
+    std::vector<fs::path> files;
+    for (auto& e : fs::directory_iterator(dir, ec))
+      if (e.path().extension() == ".json")
+        files.push_back(e.path());
+    std::sort(files.begin(), files.end());
+    for (auto& f : files) {
+      try {
+        nlohmann::json j =
+            nlohmann::json::parse(com::centreon::common::read_file_content(f));
+        const auto& w = j.at("exec").at("wildcard");
+        for (const auto& p : w) {
+          std::string s = p.get<std::string>();
+          if (s.empty() || s[0] != '/')
+            throw std::invalid_argument("patterns must be absolute paths");
+          patterns.push_back(std::move(s));
+        }
+      } catch (const std::exception& e) {
+        error = fmt::format("{}: {}", f.string(), e.what());
+        patterns.clear();
+        break;
+      }
+    }
+  }
+  absl::MutexLock lck(&g_exec_allow_m);
+  g_exec_allow = std::move(patterns);
+  g_exec_allow_error = error;
+  if (!error.empty())
+    SPDLOG_LOGGER_ERROR(logger(),
+                        "remote exec: invalid allow-list, exec disabled: {}",
+                        error);
+  else
+    SPDLOG_LOGGER_INFO(logger(),
+                       "remote exec: allow-list {}: {} patterns{}",
+                       dir.string(), g_exec_allow.size(),
+                       g_exec_allow.empty() ? ", exec disabled" : "");
+}
+
+/**
+ * @brief Check argv[0] against the allow-list.
+ *
+ * @param argv0 The requested program.
+ * @param real Filled with its real path when allowed.
+ * @return An empty string when allowed, the refusal reason otherwise.
+ */
+std::string exec_allowed(const std::string& argv0, std::string& real) {
+  if (argv0.empty() || argv0[0] != '/')
+    return "invalid argv: argv[0] must be an absolute path";
+  std::error_code ec;
+  fs::path p = fs::canonical(argv0, ec);
+  if (ec)
+    return "program not found";
+  real = p.string();
+  absl::MutexLock lck(&g_exec_allow_m);
+  if (!g_exec_allow_error.empty())
+    return "allow-list invalid";
+  if (g_exec_allow.empty())
+    return "remote exec disabled: empty allow-list";
+  for (const auto& w : g_exec_allow)
+    if (!fnmatch(w.c_str(), real.c_str(), FNM_PATHNAME | FNM_PERIOD))
+      return {};
+  return "program not in the allow-list";
+}
+
+struct exec_run : public std::enable_shared_from_this<exec_run> {
+  std::string id;
+  std::shared_ptr<bbdo::remote_channel> channel;
+  std::string program;  // real path of argv[0]
+  std::vector<std::string> args;
+  std::string name;  // basename, the only part that is logged
+  uint32_t timeout_s = exec_default_timeout_s;
+  size_t cap = exec_default_cap;
+
+  absl::Mutex m;
+  uint32_t seq ABSL_GUARDED_BY(m) = 0;
+  std::string pending ABSL_GUARDED_BY(m);
+  size_t kept ABSL_GUARDED_BY(m) = 0;
+  uint64_t total ABSL_GUARDED_BY(m) = 0;
+  bool truncated ABSL_GUARDED_BY(m) = false;
+  std::string err_tail ABSL_GUARDED_BY(m);
+  std::chrono::steady_clock::time_point last_sent ABSL_GUARDED_BY(m);
+  bool finished ABSL_GUARDED_BY(m) = false;
+  std::chrono::steady_clock::time_point started;
+  std::unique_ptr<boost::asio::steady_timer> heartbeat;
+  /* Timeout of the run: kills the whole process group (setpgid), so a
+   * grandchild holding the pipes cannot delay the answer. */
+  std::unique_ptr<boost::asio::steady_timer> deadline;
+  int pid = 0;
+
+  /* Push one RemoteExecResult. Called with m held. */
+  void send(ExecState state,
+            std::string&& chunk,
+            const std::function<void(RemoteExecResult&)>& fill = {})
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(m) {
+    auto r = std::make_shared<bbdo::pb_remote_exec_result>();
+    auto& obj = r->mut_obj();
+    obj.set_request_id(id);
+    obj.set_seq(++seq);
+    obj.set_state(state);
+    size_t size = chunk.size();
+    if (size)
+      obj.set_stdout_chunk(std::move(chunk));
+    if (fill)
+      fill(obj);
+    last_sent = std::chrono::steady_clock::now();
+    if (!channel->push(r, size + 64))
+      SPDLOG_LOGGER_DEBUG(logger(),
+                          "remote exec: request '{}': stream closed, result "
+                          "dropped",
+                          id);
+  }
+
+  /* Send the complete 256 KiB chunks, or everything with flush_all. */
+  void flush(bool flush_all) ABSL_EXCLUSIVE_LOCKS_REQUIRED(m) {
+    while (pending.size() >= exec_chunk_size ||
+           (flush_all && !pending.empty())) {
+      size_t n = std::min(pending.size(), exec_chunk_size);
+      std::string c = pending.substr(0, n);
+      pending.erase(0, n);
+      send(EXEC_RUNNING, std::move(c));
+    }
+  }
+
+  void on_stdout(std::string_view data) {
+    absl::MutexLock lck(&m);
+    if (finished)
+      return;
+    total += data.size();
+    if (kept < cap) {
+      size_t n = std::min(data.size(), cap - kept);
+      pending.append(data.data(), n);
+      kept += n;
+    }
+    if (total > cap)
+      truncated = true;
+    flush(false);
+  }
+
+  void on_stderr(std::string_view data) {
+    absl::MutexLock lck(&m);
+    err_tail.append(data.data(), data.size());
+    if (err_tail.size() > exec_stderr_tail)
+      err_tail.erase(0, err_tail.size() - exec_stderr_tail);
+  }
+
+  void arm_heartbeat() {
+    heartbeat->expires_after(exec_heartbeat);
+    heartbeat->async_wait(
+        [me = shared_from_this()](const boost::system::error_code& err) {
+          if (err)
+            return;
+          {
+            absl::MutexLock lck(&me->m);
+            if (me->finished)
+              return;
+            if (std::chrono::steady_clock::now() - me->last_sent >=
+                exec_heartbeat)
+              me->send(EXEC_RUNNING, {});
+          }
+          me->arm_heartbeat();
+        });
+  }
+};
+
+absl::Mutex g_exec_m;
+size_t g_exec_running ABSL_GUARDED_BY(g_exec_m) = 0;
+std::deque<std::shared_ptr<exec_run>> g_exec_queue ABSL_GUARDED_BY(g_exec_m);
+
+void exec_start(const std::shared_ptr<exec_run>& run);
+
+/* A run ended: start the next queued one, if any. */
+void exec_next() {
+  std::shared_ptr<exec_run> next;
+  {
+    absl::MutexLock lck(&g_exec_m);
+    if (!g_exec_queue.empty()) {
+      next = std::move(g_exec_queue.front());
+      g_exec_queue.pop_front();
+    } else if (g_exec_running) {
+      --g_exec_running;
+    }
+  }
+  if (next)
+    exec_start(next);
+}
+
+void exec_finish(const std::shared_ptr<exec_run>& run,
+                 ExecState state,
+                 int exit_code,
+                 const std::string& message) {
+  uint64_t total;
+  bool truncated;
+  {
+    absl::MutexLock lck(&run->m);
+    if (run->finished)
+      return;
+    run->flush(true);
+    run->finished = true;
+    total = run->total;
+    truncated = run->truncated;
+    std::string tail = std::move(run->err_tail);
+    run->send(state, {}, [&](RemoteExecResult& o) {
+      if (state == EXEC_DONE)
+        o.set_exit_code(exit_code);
+      o.set_stderr_tail(std::move(tail));
+      o.set_truncated(truncated);
+      o.set_output_bytes(total);
+      o.set_message(message);
+    });
+  }
+  if (run->heartbeat)
+    run->heartbeat->cancel();
+  if (run->deadline)
+    run->deadline->cancel();
+  auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                     std::chrono::steady_clock::now() - run->started)
+                     .count();
+  SPDLOG_LOGGER_INFO(logger(),
+                     "remote exec: request '{}': {} {} exit {}, {} bytes{} in "
+                     "{} s",
+                     run->id, run->name,
+                     state == EXEC_DONE      ? "done"
+                     : state == EXEC_TIMEOUT ? "timeout"
+                                             : "failed",
+                     exit_code, total, truncated ? ", truncated" : "",
+                     elapsed);
+  exec_next();
+}
+
+/* Start a run; the caller has taken a slot. */
+void exec_start(const std::shared_ptr<exec_run>& run) {
+  run->started = std::chrono::steady_clock::now();
+  run->heartbeat = std::make_unique<boost::asio::steady_timer>(
+      com::centreon::common::pool::io_context());
+  {
+    absl::MutexLock lck(&run->m);
+    run->send(EXEC_RUNNING, {});
+  }
+  SPDLOG_LOGGER_INFO(logger(),
+                     "remote exec: request '{}': {}, {} args, started",
+                     run->id, run->name, run->args.size() + 1);
+  try {
+    auto args = std::make_shared<com::centreon::common::process_args>(
+        run->program, std::vector<std::string>(run->args));
+    auto proc = std::make_shared<com::centreon::common::process<true>>(
+        com::centreon::common::pool::io_context_ptr(), exec_process_logger(),
+        args, true, false, nullptr);
+    proc->start_process(
+        [run](const com::centreon::common::process<true>&, int exit_code,
+              com::centreon::common::e_exit_status exit_status,
+              const std::string&, const std::string&) {
+          try {
+            if (exit_status == com::centreon::common::e_exit_status::timeout)
+              exec_finish(run, EXEC_TIMEOUT, exit_code,
+                          fmt::format("killed after {} s", run->timeout_s));
+            else
+              exec_finish(run, EXEC_DONE, exit_code,
+                          exit_status ==
+                                  com::centreon::common::e_exit_status::crash
+                              ? "killed by a signal"
+                              : "");
+          } catch (const std::exception& e) {
+            SPDLOG_LOGGER_ERROR(logger(), "remote exec: request '{}': {}",
+                                run->id, e.what());
+          }
+        },
+        [run](const boost::system::error_code& err, std::string_view data) {
+          if (!err && !data.empty())
+            run->on_stdout(data);
+        },
+        [run](const boost::system::error_code& err, std::string_view data) {
+          if (!err && !data.empty())
+            run->on_stderr(data);
+        },
+        /* Backstop only: the deadline timer below answers first. */
+        std::chrono::seconds(run->timeout_s + 30));
+    run->pid = proc->get_pid();
+    run->deadline = std::make_unique<boost::asio::steady_timer>(
+        com::centreon::common::pool::io_context());
+    run->deadline->expires_after(std::chrono::seconds(run->timeout_s));
+    run->deadline->async_wait([run](const boost::system::error_code& err) {
+      if (err)
+        return;
+      if (run->pid > 0)
+        ::killpg(run->pid, SIGKILL);
+      exec_finish(run, EXEC_TIMEOUT, -1,
+                  fmt::format("killed after {} s", run->timeout_s));
+    });
+    run->arm_heartbeat();
+  } catch (const std::exception&) {
+    /* The exception text may quote the command line: not logged. */
+    exec_finish(run, EXEC_FAILED, -1, "cannot start the program");
+  }
+}
+
+void exec_reject(const std::string& id,
+                 const std::shared_ptr<bbdo::remote_channel>& channel,
+                 const std::string& name,
+                 const std::string& reason) {
+  SPDLOG_LOGGER_INFO(logger(), "remote exec: request '{}': {} rejected: {}",
+                     id, name, reason);
+  auto r = std::make_shared<bbdo::pb_remote_exec_result>();
+  auto& obj = r->mut_obj();
+  obj.set_request_id(id);
+  obj.set_seq(1);
+  obj.set_state(EXEC_REJECTED);
+  obj.set_message(reason);
+  channel->push(r, reason.size());
+}
+
+void handle_exec(const RemoteExec& e,
+                 const std::shared_ptr<bbdo::remote_channel>& channel) {
+  const std::string& id = e.request_id();
+  if (!remember("exec:" + id)) {
+    SPDLOG_LOGGER_INFO(logger(),
+                       "remote exec: request '{}' already handled, ignored", id);
+    return;
+  }
+  std::string name =
+      e.argv_size() ? fs::path(e.argv(0)).filename().string() : "-";
+  time_t deadline = e.deadline();
+  if (deadline && time(nullptr) > deadline) {
+    exec_reject(id, channel, name, "request expired before reaching the poller");
+    return;
+  }
+  if (e.argv_size() == 0) {
+    exec_reject(id, channel, name, "invalid argv: empty");
+    return;
+  }
+  if (e.timeout_s() > exec_max_timeout_s) {
+    exec_reject(id, channel, name, "invalid timeout");
+    return;
+  }
+  auto run = std::make_shared<exec_run>();
+  std::string reason = exec_allowed(e.argv(0), run->program);
+  if (!reason.empty()) {
+    exec_reject(id, channel, name, reason);
+    return;
+  }
+  run->id = id;
+  run->channel = channel;
+  run->name = name;
+  run->args.assign(e.argv().begin() + 1, e.argv().end());
+  run->timeout_s = e.timeout_s() ? e.timeout_s() : exec_default_timeout_s;
+  size_t cap = env_size("CENTREON_EXEC_MAX_OUTPUT", exec_default_cap,
+                        exec_max_cap);
+  run->cap = e.max_output_bytes() ? std::min<size_t>(e.max_output_bytes(), cap)
+                                  : cap;
+  size_t parallel = env_size("CENTREON_EXEC_MAX_PARALLEL",
+                             exec_default_parallel, 64);
+  {
+    absl::MutexLock lck(&g_exec_m);
+    if (g_exec_running >= parallel) {
+      if (g_exec_queue.size() >= exec_queue_size) {
+        reason = "queue full";
+      } else {
+        g_exec_queue.push_back(run);
+        SPDLOG_LOGGER_INFO(logger(), "remote exec: request '{}': {} queued",
+                           id, name);
+        return;
+      }
+    } else {
+      ++g_exec_running;
+    }
+  }
+  if (!reason.empty()) {
+    exec_reject(id, channel, name, reason);
+    return;
+  }
+  exec_start(run);
+}
+
 /**
  * @brief Action handler registered in the BBDO remote registry. Called on the
  * thread owning the stream: it only does local file work, never waits on the
@@ -768,6 +1191,10 @@ void on_action(const std::shared_ptr<io::data>& d,
             std::static_pointer_cast<bbdo::pb_config_commit>(d)->obj(),
             channel);
         break;
+      case bbdo::pb_remote_exec::static_type():
+        handle_exec(std::static_pointer_cast<bbdo::pb_remote_exec>(d)->obj(),
+                    channel);
+        break;
       default:
         break;
     }
@@ -789,6 +1216,7 @@ void neb::remote_actions::load(const std::string& broker_config_file) {
     absl::MutexLock lck(&g_conf_m);
     g_broker_dir = fs::path(broker_config_file).parent_path();
   }
+  load_exec_allowlist();
   bbdo::remote_registry::instance().set_action_handler(&on_action);
 }
 
@@ -805,6 +1233,8 @@ void neb::remote_actions::unload() {
  */
 void neb::remote_actions::reload_done(bool success,
                                       const std::string& message) {
+  /* The exec allow-list is read again on every Engine reload. */
+  load_exec_allowlist();
   std::unique_ptr<pending_reload> p;
   {
     absl::MutexLock lck(&g_deploy_m);

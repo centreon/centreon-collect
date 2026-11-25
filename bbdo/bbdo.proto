@@ -43,6 +43,9 @@ message Welcome {
   /* The sender accepts downstream remote actions (commands, configuration)
    * on this stream. Set by a poller only when its configuration allows it. */
   bool remote_actions = 8;
+  /* The sender also runs RemoteExec requests (implemented and remote actions
+   * accepted; its allow-list may still refuse every program). */
+  bool remote_exec = 9;
 }
 
 /* io::bbdo, bbdo::de_pb_ack, 50 */
@@ -114,6 +117,41 @@ message RemoteResult {
   repeated string plugins_missing = 6;
   /* Plugin install outcome (index -2): one entry per package of plugins.json */
   repeated PluginPackage plugins = 7;
+}
+
+enum ExecState {
+  EXEC_UNKNOWN = 0;
+  EXEC_RUNNING = 1;   // started, an output chunk or a heartbeat
+  EXEC_DONE = 2;      // the process ended, exit_code set
+  EXEC_REJECTED = 3;  // refused before start (allow-list, queue, argv...)
+  EXEC_TIMEOUT = 4;   // killed at timeout_s
+  EXEC_FAILED = 5;    // could not start, or internal error
+}
+
+/* Run an allow-listed program on the poller and return its output (central
+ * Broker -> poller cbmod). argv is never logged. */
+/* io::bbdo, bbdo::de_pb_remote_exec, 65 */
+message RemoteExec {
+  string request_id = 1;
+  uint64 deadline = 2;          // epoch seconds, expired requests are refused
+  repeated string argv = 3;     // argv[0] absolute path, no shell
+  uint32 timeout_s = 4;         // 1..3600, 0 means 300
+  uint32 max_output_bytes = 5;  // 0 means the poller cap
+  reserved 6;                   // packages (plugin install before the run)
+}
+
+/* Progress and outcome of a RemoteExec (poller cbmod -> central Broker). */
+/* io::bbdo, bbdo::de_pb_remote_exec_result, 66 */
+message RemoteExecResult {
+  string request_id = 1;
+  uint32 seq = 2;  // 1, 2, 3... per request, no gap
+  ExecState state = 3;
+  bytes stdout_chunk = 4;  // at most 256 KiB, in order
+  int32 exit_code = 5;     // EXEC_DONE only
+  bytes stderr_tail = 6;   // final event, last 4 KiB of stderr
+  bool truncated = 7;      // final event, stdout went past the cap
+  uint64 output_bytes = 8; // final event, total stdout produced
+  string message = 9;      // reason, never argv
 }
 
 /* Ignore */

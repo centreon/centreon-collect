@@ -194,6 +194,65 @@ BERA7
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    5
     Should Not Be True    ${result}    An unchanged plugins.json started an install.
 
+BERA8
+    [Documentation]    Given a poller with an exec allow-list, when the web posts executions to the central remote API,
+    ...    then an allowed program returns its exit code, stdout and stderr tail; a large output is cut at the
+    ...    requested cap; a program outside the allow-list is REJECTED; a long one is killed with TIMEOUT; and no
+    ...    argument appears in the logs.
+    [Tags]    broker    engine    remote_actions
+    Ctn Config Remote Actions    ${True}
+    Ctn Broker Config Remote Api    central    exec_insecure=${True}
+    ${bin}    Set Variable    ${VarRoot}/exec-bin
+    ${allow}    Set Variable    ${VarRoot}/exec-allow
+    Create Directory    ${bin}
+    Create Directory    ${allow}
+    Create File    ${bin}/stub.sh
+    ...    \#!/bin/sh\ncase "$1" in\nout) printf hello; echo oops >&2; exit 3 ;;\nbig) head -c 2097152 /dev/zero | tr '\\0' a ;;\nsleep) sleep 30 ;;\nesac\n
+    Run    chmod 755 ${bin}/stub.sh
+    Create File    ${allow}/default.json    {"exec": {"wildcard": ["${bin}/*"]}}
+    Set Environment Variable    CENTREON_EXEC_ALLOWLIST_DIR    ${allow}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Remove Environment Variable    CENTREON_EXEC_ALLOWLIST_DIR
+    Ctn Wait For Engine To Be Ready    ${start}
+    ${found}    Ctn Remote Api Wait Poller    1    60
+    Should Be True    ${found}    The poller did not announce remote actions.
+
+    ${argv}    Create List    ${bin}/stub.sh    out    --password\=GLS_SECRET_MARKER
+    ${code}    ${id}    ${answer}    Ctn Remote Api Exec    1    ${argv}
+    Should Be Equal As Integers    ${code}    202
+    ${e}    Ctn Remote Api Wait Exec    ${id}    30
+    Should Be Equal As Strings    ${e}[status]    DONE
+    Should Be Equal As Integers    ${e}[exit_code]    3
+    Should Be Equal As Strings    ${e}[output]    hello
+    Should Be Equal As Strings    ${e}[stderr_tail]    oops\n
+
+    ${argv}    Create List    ${bin}/stub.sh    big
+    ${code}    ${id}    ${answer}    Ctn Remote Api Exec    1    ${argv}    30    1048576
+    ${e}    Ctn Remote Api Wait Exec    ${id}    60
+    Should Be Equal As Strings    ${e}[status]    DONE
+    Should Be True    ${e}[truncated]
+    Should Be Equal As Integers    ${e}[output_bytes]    2097152
+    ${len}    Get Length    ${e}[output]
+    Should Be Equal As Integers    ${len}    1048576
+
+    ${argv}    Create List    /bin/sh    -c    true
+    ${code}    ${id}    ${answer}    Ctn Remote Api Exec    1    ${argv}
+    ${e}    Ctn Remote Api Wait Exec    ${id}    30
+    Should Be Equal As Strings    ${e}[status]    REJECTED
+    Should Be Equal As Strings    ${e}[message]    program not in the allow-list
+
+    ${argv}    Create List    ${bin}/stub.sh    sleep
+    ${code}    ${id}    ${answer}    Ctn Remote Api Exec    1    ${argv}    2
+    ${e}    Ctn Remote Api Wait Exec    ${id}    30
+    Should Be Equal As Strings    ${e}[status]    TIMEOUT
+
+    ${log}    Get File    ${engineLog0}
+    Should Not Contain    ${log}    GLS_SECRET_MARKER
+    ${log}    Get File    ${centralLog}
+    Should Not Contain    ${log}    GLS_SECRET_MARKER
+
 
 *** Keywords ***
 Ctn Config Remote Actions

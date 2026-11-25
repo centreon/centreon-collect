@@ -47,6 +47,8 @@ class remote_channel {
     common::PeerType peer_type = common::UNKNOWN;
     /* The peer announced it accepts downstream events. */
     bool remote_actions = false;
+    /* The peer announced it runs RemoteExec requests. */
+    bool remote_exec = false;
     /* The stream is encrypted and the peer certificate is verified. */
     bool tls = false;
     time_t connected_since = 0;
@@ -81,7 +83,8 @@ class remote_channel {
  * On the central cbd, the remote API finds the channel of a poller here and
  * receives RemoteResult events through the result handler. On a poller
  * (cbmod), the action handler executes RemoteCommand, ConfigChunk and
- * ConfigCommit events and answers through the channel it receives.
+ * ConfigCommit and RemoteExec events and answers through the channel it
+ * receives. RemoteExecResult events reach the exec result handler (central).
  */
 class remote_registry {
  public:
@@ -90,6 +93,8 @@ class remote_registry {
                          const std::shared_ptr<remote_channel>& reply)>;
   using result_handler =
       std::function<void(uint64_t poller_id, const RemoteResult& result)>;
+  using exec_result_handler =
+      std::function<void(uint64_t poller_id, const RemoteExecResult& result)>;
   using disconnect_handler = std::function<void(uint64_t poller_id)>;
 
  private:
@@ -99,6 +104,7 @@ class remote_registry {
       _channels ABSL_GUARDED_BY(_m);
   action_handler _action_handler ABSL_GUARDED_BY(_m);
   result_handler _result_handler ABSL_GUARDED_BY(_m);
+  exec_result_handler _exec_result_handler ABSL_GUARDED_BY(_m);
   disconnect_handler _disconnect_handler ABSL_GUARDED_BY(_m);
 
   /* Configuration of this process (Broker configuration keys
@@ -127,10 +133,14 @@ class remote_registry {
 
   void set_action_handler(action_handler&& h) ABSL_LOCKS_EXCLUDED(_m);
   void set_result_handler(result_handler&& h) ABSL_LOCKS_EXCLUDED(_m);
+  void set_exec_result_handler(exec_result_handler&& h)
+      ABSL_LOCKS_EXCLUDED(_m);
   void set_disconnect_handler(disconnect_handler&& h) ABSL_LOCKS_EXCLUDED(_m);
 
   bool on_action(const std::shared_ptr<io::data>& d,
                  const std::shared_ptr<remote_channel>& reply) const
+      ABSL_LOCKS_EXCLUDED(_m);
+  void on_exec_result(uint64_t poller_id, const RemoteExecResult& result) const
       ABSL_LOCKS_EXCLUDED(_m);
   void on_result(uint64_t poller_id, const RemoteResult& result) const
       ABSL_LOCKS_EXCLUDED(_m);

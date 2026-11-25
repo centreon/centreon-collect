@@ -64,6 +64,14 @@ using pb_remote_result = com::centreon::broker::io::protobuf<
     com::centreon::broker::RemoteResult,
     make_type(io::bbdo, bbdo::de_pb_remote_result)>;
 
+using pb_remote_exec = com::centreon::broker::io::protobuf<
+    com::centreon::broker::RemoteExec,
+    make_type(io::bbdo, bbdo::de_pb_remote_exec)>;
+
+using pb_remote_exec_result = com::centreon::broker::io::protobuf<
+    com::centreon::broker::RemoteExecResult,
+    make_type(io::bbdo, bbdo::de_pb_remote_exec_result)>;
+
 using pb_bench = com::centreon::broker::io::
     protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;
 

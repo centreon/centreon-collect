@@ -782,6 +782,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       else
         obj.set_extended_negotiation(false);
       obj.set_remote_actions(_announce_remote_actions());
+      obj.set_remote_exec(obj.remote_actions());
       _write(welcome);
     }
   }
@@ -925,6 +926,7 @@ void stream::negotiate(stream::negotiation_type neg) {
         obj.set_extended_negotiation(false);
 
       obj.set_remote_actions(_announce_remote_actions());
+      obj.set_remote_exec(obj.remote_actions());
       _write(welcome);
       _substream->flush();
     }
@@ -935,6 +937,7 @@ void stream::negotiate(stream::negotiation_type neg) {
 
     _peer_type = w->obj().peer_type();
     _peer_remote_actions = w->obj().remote_actions();
+    _peer_remote_exec = w->obj().remote_exec();
     if (_peer_type != common::UNKNOWN) {
       /* We are in the bbdo stream, _poller_id, _broker_name,
        * _extended_negotiation are informations about the peer, not us. */
@@ -1169,6 +1172,8 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
     case pb_config_chunk::static_type():
     case pb_config_commit::static_type():
     case pb_remote_result::static_type():
+    case pb_remote_exec::static_type():
+    case pb_remote_exec_result::static_type():
       _handle_remote_event(d);
       break;
     default:
@@ -1799,6 +1804,7 @@ void stream::_register_remote() {
   info.broker_name = _broker_name;
   info.peer_type = _peer_type;
   info.remote_actions = _peer_remote_actions;
+  info.remote_exec = _peer_remote_exec;
   info.tls = peer_verified();
   info.connected_since = time(nullptr);
   _remote = std::make_shared<remote_channel>(info);
@@ -1870,9 +1876,20 @@ void stream::_handle_remote_event(const std::shared_ptr<io::data>& d) {
           _poller_id, std::static_pointer_cast<pb_remote_result>(d)->obj());
     return;
   }
+  if (d->type() == pb_remote_exec_result::static_type()) {
+    if (config::applier::state::instance().peer_type() == common::BROKER)
+      remote_registry::instance().on_exec_result(
+          _poller_id,
+          std::static_pointer_cast<pb_remote_exec_result>(d)->obj());
+    return;
+  }
 
   std::string request_id;
   switch (d->type()) {
+    case pb_remote_exec::static_type():
+      request_id =
+          std::static_pointer_cast<pb_remote_exec>(d)->obj().request_id();
+      break;
     case pb_remote_command::static_type():
       request_id =
           std::static_pointer_cast<pb_remote_command>(d)->obj().request_id();
@@ -1900,6 +1917,16 @@ void stream::_handle_remote_event(const std::shared_ptr<io::data>& d) {
   if (!refusal.empty()) {
     SPDLOG_LOGGER_WARN(_logger, "BBDO: downstream request '{}' refused: {}",
                        request_id, refusal);
+    if (d->type() == pb_remote_exec::static_type()) {
+      auto r = std::make_shared<pb_remote_exec_result>();
+      auto& obj = r->mut_obj();
+      obj.set_request_id(request_id);
+      obj.set_seq(1);
+      obj.set_state(EXEC_REJECTED);
+      obj.set_message(refusal);
+      _write(r);
+      return;
+    }
     auto r = std::make_shared<pb_remote_result>();
     auto& obj = r->mut_obj();
     obj.set_request_id(request_id);
