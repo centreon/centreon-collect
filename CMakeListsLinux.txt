@@ -172,6 +172,9 @@ add_definitions(
 
 set(CMAKE_INSTALL_PREFIX "/usr")
 option(WITH_TESTING "Build unit tests." OFF)
+# Benchmarks and measurements (*_bench): nothing runs them, neither the robots
+# nor the CI, so they are only built on demand.
+option(WITH_BENCHMARKS "Build the benchmark executables." OFF)
 
 option(WITH_CONF "Install configuration files." ON)
 

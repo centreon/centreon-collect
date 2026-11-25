@@ -569,7 +569,6 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
   add_subdirectory(test)
 endif()
 
-option(WITH_BENCHMARKS "Build Google Benchmark executables" OFF)
 if(WITH_BENCHMARKS)
   find_package(benchmark REQUIRED)
   add_subdirectory(test/google-benchmark)

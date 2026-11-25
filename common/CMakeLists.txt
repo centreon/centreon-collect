@@ -88,5 +88,8 @@ add_subdirectory(crypto)
 
 if(WITH_TESTING)
   add_subdirectory(tests)
+endif()
+
+if(WITH_BENCHMARKS)
   add_subdirectory(benchmark)
 endif()
