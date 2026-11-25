@@ -17,6 +17,7 @@
 # For more information : contact@centreon.com
 #
 
+import select
 import signal
 from os import setsid
 from os import makedirs
@@ -1595,6 +1596,69 @@ def ctn_broker_config_source_log(name, value):
     log["log_source"] = value
 
 
+def _ctn_stats_filename(name: str):
+    """
+    Name of the stats FIFO of the given broker instance.
+
+    Args:
+        name: The broker instance name among central, rrd and module%d.
+    """
+    if name == 'central':
+        return "central-broker-master-stats.json"
+    elif name == 'module':
+        return "central-module-master-stats.json"
+    else:
+        return "central-rrd-master-stats.json"
+
+
+def _ctn_read_stats(filename: str, limit: float):
+    """
+    Read one JSON document from a broker stats file before the limit.
+
+    The stats file is a FIFO (json_fifo): opening it for reading blocks until a
+    writer opens it, that is forever if cbd is dead. It is opened non blocking
+    and waited for with select(), so that the limit is always honoured.
+
+    Args:
+        filename: The stats file, under lib/centreon-broker.
+        limit: The deadline, as a time.time() value.
+
+    Returns:
+        The decoded document, or None if none could be read before the limit.
+    """
+    path = f"{VAR_ROOT}/lib/centreon-broker/{filename}"
+    while time.time() < limit:
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        except FileNotFoundError:
+            time.sleep(1)
+            continue
+        buf = b""
+        try:
+            while time.time() < limit:
+                readable, _, _ = select.select(
+                    [fd], [], [], max(0, min(1, limit - time.time())))
+                if not readable:
+                    continue
+                try:
+                    chunk = os.read(fd, 65536)
+                except BlockingIOError:
+                    continue
+                if not chunk:
+                    # The writer closed the FIFO: the document is complete.
+                    break
+                buf += chunk
+        finally:
+            os.close(fd)
+        if buf:
+            try:
+                return json.loads(buf)
+            except json.JSONDecodeError:
+                pass
+        time.sleep(0.2)
+    return None
+
+
 def ctn_check_broker_stats_exist(name: str, key1: str, key2: str, timeout: int = TIMEOUT):
     """
     Return True if the Broker stats file contain keys pair (key1,key2). key2 must
@@ -1613,27 +1677,12 @@ def ctn_check_broker_stats_exist(name: str, key1: str, key2: str, timeout: int =
     | ${exist} | Check Broker Stats Exist | mysql manager | poller | waiting tasks in connection 0 |
     | Should Be True | ${exist} |
     """
-    if name == 'central':
-        filename = "central-broker-master-stats.json"
-    elif name == 'module':
-        filename = "central-module-master-stats.json"
-    else:
-        filename = "central-rrd-master-stats.json"
+    filename = _ctn_stats_filename(name)
     limit = time.time() + timeout
     while time.time() < limit:
-        retry = True
-        while retry and time.time() < limit:
-            retry = False
-            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
-                buf = f.read()
-
-            try:
-                conf = json.loads(buf)
-            except json.JSONDecodeError:
-                retry = True
-        if key1 in conf:
-            if key2 in conf[key1]:
-                return True
+        conf = _ctn_read_stats(filename, limit)
+        if conf is not None and key1 in conf and key2 in conf[key1]:
+            return True
         time.sleep(1)
     return False
 
@@ -1659,29 +1708,13 @@ def ctn_get_broker_stats_size(name: str, key: str, min_expected_value: int, time
     """
     limit = time.time() + timeout
     value = 0
-    if name == 'central':
-        filename = "central-broker-master-stats.json"
-    elif name == 'module':
-        filename = "central-module-master-stats.json"
-    else:
-        filename = "central-rrd-master-stats.json"
+    filename = _ctn_stats_filename(name)
     while time.time() < limit:
-        retry = True
-        while retry and time.time() < limit:
-            retry = False
-            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
-                buf = f.read()
-            try:
-                conf = json.loads(buf)
-            except json.JSONDecodeError:
-                retry = True
-
-        if key in conf:
-            value = len(conf[key])
-        else:
-            value = 0
-        if value >= min_expected_value:
-            return value
+        conf = _ctn_read_stats(filename, limit)
+        if conf is not None:
+            value = len(conf[key]) if key in conf else 0
+            if value >= min_expected_value:
+                return value
         time.sleep(5)
     return value
 
@@ -1710,24 +1743,11 @@ def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
             return None
 
     limit = time.time() + timeout
-    if name == 'central':
-        filename = "central-broker-master-stats.json"
-    elif name == 'module':
-        filename = "central-module-master-stats.json"
-    else:
-        filename = "central-rrd-master-stats.json"
+    filename = _ctn_stats_filename(name)
     r_expected = re.compile(expected)
+    value = None
     while time.time() < limit:
-        retry = True
-        while retry and time.time() < limit:
-            retry = False
-            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
-                buf = f.read()
-                try:
-                    conf = json.loads(buf)
-                except json.JSONDecodeError:
-                    retry = True
-                    time.sleep(1)
+        conf = _ctn_read_stats(filename, limit)
         if conf is None:
             continue
         value = json_get(conf, keys, 0)
