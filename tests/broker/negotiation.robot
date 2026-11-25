@@ -101,7 +101,7 @@ BBDO_300_3100
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    No bbdo downgraded message in rrd logs.
 
-    ${content}    Create List    unserialized 20 bytes for event of type 131074
+    ${content}    Create List    deserialized 20 bytes for event of type 131074
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No bbdo2 ack received.
 
