@@ -97,6 +97,75 @@ function InternetCheckConnectionW(lpszUrl: string; dwFlags: DWORD; dwReserved: D
 procedure ExitProcess(uExitCode: UINT);
   external 'ExitProcess@kernel32.dll stdcall';
 
+// Service Control Manager: sc.exe stop returns as soon as the request is sent, the state
+// must be read to know when the service has stopped. A service reports SERVICE_STOPPED before its
+// process exits, and its files stay in use until then: the process itself must be waited for.
+const
+  SC_MANAGER_CONNECT = $0001;
+  SERVICE_QUERY_STATUS = $0004;
+  SERVICE_STOP = $0020;
+  SERVICE_CONTROL_STOP = $0001;
+  SERVICE_STOPPED = $0001;
+  SERVICE_STOP_PENDING = $0003;
+  SERVICE_STOP_TIMEOUT_MS = 30000;
+  SC_STATUS_PROCESS_INFO = 0;
+  // Size of TServiceStatusProcess: 9 DWORD
+  SERVICE_STATUS_PROCESS_SIZE = 36;
+  SYNCHRONIZE = $00100000;
+  WAIT_OBJECT_0 = 0;
+
+type
+  TServiceStatus = record
+    dwServiceType: DWORD;
+    dwCurrentState: DWORD;
+    dwControlsAccepted: DWORD;
+    dwWin32ExitCode: DWORD;
+    dwServiceSpecificExitCode: DWORD;
+    dwCheckPoint: DWORD;
+    dwWaitHint: DWORD;
+  end;
+
+  TServiceStatusProcess = record
+    dwServiceType: DWORD;
+    dwCurrentState: DWORD;
+    dwControlsAccepted: DWORD;
+    dwWin32ExitCode: DWORD;
+    dwServiceSpecificExitCode: DWORD;
+    dwCheckPoint: DWORD;
+    dwWaitHint: DWORD;
+    dwProcessId: DWORD;
+    dwServiceFlags: DWORD;
+  end;
+
+function OpenSCManager(lpMachineName, lpDatabaseName: String; dwDesiredAccess: DWORD): THandle;
+  external 'OpenSCManagerW@advapi32.dll stdcall';
+
+function OpenService(hSCManager: THandle; lpServiceName: String; dwDesiredAccess: DWORD): THandle;
+  external 'OpenServiceW@advapi32.dll stdcall';
+
+function QueryServiceStatus(hService: THandle; var lpServiceStatus: TServiceStatus): BOOL;
+  external 'QueryServiceStatus@advapi32.dll stdcall';
+
+function ControlService(hService: THandle; dwControl: DWORD; var lpServiceStatus: TServiceStatus): BOOL;
+  external 'ControlService@advapi32.dll stdcall';
+
+function CloseServiceHandle(hSCObject: THandle): BOOL;
+  external 'CloseServiceHandle@advapi32.dll stdcall';
+
+function QueryServiceStatusEx(hService: THandle; InfoLevel: DWORD; var lpBuffer: TServiceStatusProcess;
+  cbBufSize: DWORD; var pcbBytesNeeded: DWORD): BOOL;
+  external 'QueryServiceStatusEx@advapi32.dll stdcall';
+
+// bInheritHandle is a Win32 BOOL, a 32-bit integer: 0 for False
+function OpenProcess(dwDesiredAccess: DWORD; bInheritHandle: DWORD; dwProcessId: DWORD): THandle;
+  external 'OpenProcess@kernel32.dll stdcall';
+
+function WaitForSingleObject(hHandle: THandle; dwMilliseconds: DWORD): DWORD;
+  external 'WaitForSingleObject@kernel32.dll stdcall';
+
+function CloseHandle(hObject: THandle): BOOL;
+  external 'CloseHandle@kernel32.dll stdcall';
+
 { ────────────────────────────────────────────────────────────────────── }
 { ───────────────────── Global Variables and Wizard ──────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
@@ -157,6 +226,9 @@ var
   UninstallPluginsSelected: Boolean;
   FullUninstall: Boolean;
   HavePluginsInInstall: Boolean;
+
+  // Agent services stopped by PrepareToInstall, started again whatever the outcome of the installation
+  StoppedServices: array of string;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────── Event Handlers ─────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
@@ -501,6 +573,152 @@ begin
   LogLine := GetDateTimeString('yyyy-mm-dd hh:nn:ss', #0, #0) + ' - ' + Msg + #13#10;
   // Append log line to file, fail silently if error
   SaveStringToFile(LogFile, LogLine, True);
+end;
+
+// Returns the current state of the service SvcName (SERVICE_STOPPED, 4 for running...),
+// or 0 when the service does not exist or cannot be queried.
+function GetServiceState(const SvcName: String): DWORD;
+var
+  Manager, Service: THandle;
+  Status: TServiceStatus;
+begin
+  Result := 0;
+  Manager := OpenSCManager('', 'ServicesActive', SC_MANAGER_CONNECT);
+  if Manager = 0 then
+    Exit;
+  try
+    Service := OpenService(Manager, SvcName, SERVICE_QUERY_STATUS);
+    if Service <> 0 then
+    try
+      if QueryServiceStatus(Service, Status) then
+        Result := Status.dwCurrentState;
+    finally
+      CloseServiceHandle(Service);
+    end;
+  finally
+    CloseServiceHandle(Manager);
+  end;
+end;
+
+// Returns a handle to wait for the exit of the process of the service SvcName, or 0 when the service has no
+// process or cannot be queried. The caller closes it with CloseHandle.
+function OpenServiceProcess(const SvcName: String): THandle;
+var
+  Manager, Service: THandle;
+  Status: TServiceStatusProcess;
+  BytesNeeded: DWORD;
+begin
+  Result := 0;
+  Manager := OpenSCManager('', 'ServicesActive', SC_MANAGER_CONNECT);
+  if Manager = 0 then
+    Exit;
+  try
+    Service := OpenService(Manager, SvcName, SERVICE_QUERY_STATUS);
+    if Service <> 0 then
+    try
+      if QueryServiceStatusEx(Service, SC_STATUS_PROCESS_INFO, Status, SERVICE_STATUS_PROCESS_SIZE, BytesNeeded) then
+        if Status.dwProcessId <> 0 then
+          Result := OpenProcess(SYNCHRONIZE, 0, Status.dwProcessId);
+    finally
+      CloseServiceHandle(Service);
+    end;
+  finally
+    CloseServiceHandle(Manager);
+  end;
+end;
+
+// Asks the service SvcName to stop and waits until its process has exited, at most SERVICE_STOP_TIMEOUT_MS.
+// The agent reports SERVICE_STOPPED before it releases gRPC and its logs, and centagent.exe stays loaded until
+// its process exits: a file deleted or replaced before then is still in use.
+// Returns True when the process has exited, or when the service is stopped or does not exist.
+function StopServiceAndWait(const SvcName: String): Boolean;
+var
+  Manager, Service, Process: THandle;
+  Status: TServiceStatus;
+  State: DWORD;
+  Waited: Integer;
+begin
+  State := GetServiceState(SvcName);
+  Result := (State = 0) or (State = SERVICE_STOPPED);
+  if Result then
+    Exit;
+
+  // Opened before the stop request: the handle keeps the process id from being given to another process
+  Process := OpenServiceProcess(SvcName);
+  try
+    Manager := OpenSCManager('', 'ServicesActive', SC_MANAGER_CONNECT);
+    if Manager <> 0 then
+    try
+      Service := OpenService(Manager, SvcName, SERVICE_STOP);
+      if Service <> 0 then
+      try
+        // Fails when a stop is already pending: the wait below covers it
+        ControlService(Service, SERVICE_CONTROL_STOP, Status);
+      finally
+        CloseServiceHandle(Service);
+      end;
+    finally
+      CloseServiceHandle(Manager);
+    end;
+
+    Waited := 0;
+    repeat
+      State := GetServiceState(SvcName);
+      Result := (State = 0) or (State = SERVICE_STOPPED);
+      if Result then
+        Break;
+      Sleep(500);
+      Waited := Waited + 500;
+    until Waited >= SERVICE_STOP_TIMEOUT_MS;
+
+    if not Result then
+      Log(Format('Service %s still not stopped after %d ms (state %d)', [SvcName, SERVICE_STOP_TIMEOUT_MS, State]))
+    else if Process = 0 then
+      Log('Cannot wait for the exit of the process of service ' + SvcName)
+    else if WaitForSingleObject(Process, SERVICE_STOP_TIMEOUT_MS - Waited) <> WAIT_OBJECT_0 then
+    begin
+      Result := False;
+      Log(Format('Process of service %s still running %d ms after the stop request', [SvcName, SERVICE_STOP_TIMEOUT_MS]));
+    end;
+  finally
+    if Process <> 0 then
+      CloseHandle(Process);
+  end;
+end;
+
+// Starts again every service of StoppedServices that is stopped. Called after a successful installation
+// and when Setup ends, so that an aborted installation does not leave the host unmonitored.
+procedure RestartStoppedServices;
+var
+  i, rc, Waited: Integer;
+  State: DWORD;
+  Svc: String;
+begin
+  for i := 0 to GetArrayLength(StoppedServices) - 1 do
+  begin
+    Svc := StoppedServices[i];
+    // A stop that outlasts StopServiceAndWait completes after Setup has given up: wait for it, otherwise
+    // the service ends up stopped once Setup has exited
+    State := GetServiceState(Svc);
+    Waited := 0;
+    while (State = SERVICE_STOP_PENDING) and (Waited < SERVICE_STOP_TIMEOUT_MS) do
+    begin
+      Sleep(500);
+      Waited := Waited + 500;
+      State := GetServiceState(Svc);
+    end;
+
+    if State = SERVICE_STOPPED then
+    begin
+      Log('Starting service ' + Svc);
+      if not Exec(ExpandConstant('{sys}\sc.exe'), 'start "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc) then
+        LogToStdOutFile('Cannot start service ' + Svc + ': ' + SysErrorMessage(rc))
+      else if rc <> 0 then
+        LogToStdOutFile(Format('Cannot start service %s: sc.exe exit code %d', [Svc, rc]));
+    end
+    else if State = SERVICE_STOP_PENDING then
+      LogToStdOutFile('Service ' + Svc + ' still stopping: not started again');
+  end;
 end;
 
 
@@ -2179,6 +2397,35 @@ begin
     Result := True;
 end;
 
+// Runs on the Preparing to Install page, before Setup looks for the applications that use the files it
+// replaces. Every agent instance shares centagent.exe and runs the plugins, so all running instances are
+// stopped. Otherwise the Restart Manager stops the services itself and, when it cannot close another
+// application, a silent Setup aborts (exit code 5) and never starts them again.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  i: Integer;
+  State: DWORD;
+begin
+  Result := '';
+  SetArrayLength(StoppedServices, 0);
+  if not (WizardIsComponentSelected('agent') or WizardIsComponentSelected('plugins')) then
+    Exit;
+
+  LoadAgentRegistryKeys;
+  for i := 0 to GetArrayLength(AgentNames) - 1 do
+  begin
+    State := GetServiceState(AgentNames[i]);
+    if (State <> 0) and (State <> SERVICE_STOPPED) then
+    begin
+      // Recorded before the stop request, so that a service left half stopped is started again
+      SetArrayLength(StoppedServices, GetArrayLength(StoppedServices) + 1);
+      StoppedServices[GetArrayLength(StoppedServices) - 1] := AgentNames[i];
+      Log('Stopping service ' + AgentNames[i]);
+      StopServiceAndWait(AgentNames[i]);
+    end;
+  end;
+end;
+
 // Handles actions after installation step completes.
 // Sets registry values to enable the Modify button and specify the modify executable.
 // Keeps the Repair option hidden in the Windows Uninstall dialog.
@@ -2188,20 +2435,7 @@ var
   Key: string;
   rc, i: Integer;
 begin
-  if CurStep = ssPreInstall then
-  begin
-    // Stop service(s) before binaries are overwritten to avoid file locking.
-    if IsUpdateOnly and WizardIsComponentSelected('agent') then
-    begin
-      for i := 0 to GetArrayLength(AgentNames) - 1 do
-        Exec(ExpandConstant('{sys}\sc.exe'), 'stop ' + AgentNames[i],
-             '', SW_HIDE, ewWaitUntilTerminated, rc);
-    end
-    else if IsUpgradeMode and WizardIsComponentSelected('agent') then
-      Exec(ExpandConstant('{sys}\sc.exe'), 'stop ' + GetInstanceArgs(''),
-           '', SW_HIDE, ewWaitUntilTerminated, rc);
-  end
-  else if CurStep = ssPostInstall then
+  if CurStep = ssPostInstall then
   begin
     // Restart all instances after a binary-only update.
     if IsUpdateOnly and WizardIsComponentSelected('agent') then
@@ -2210,6 +2444,8 @@ begin
         Exec(ExpandConstant('{sys}\sc.exe'), 'start ' + AgentNames[i],
              '', SW_HIDE, ewWaitUntilTerminated, rc);
     end;
+    // Other instances stopped by PrepareToInstall
+    RestartStoppedServices;
 
     Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{' + '{#AppId}' + '}_is1';
 
@@ -2223,6 +2459,13 @@ begin
     // (optional) keep Repair hidden
     RegWriteDWordValue(HKEY_LOCAL_MACHINE, Key, 'NoRepair', 1);
   end;
+end;
+
+// Called when Setup ends, also after an abort or a cancel: the services stopped by PrepareToInstall
+// run again even if the files could not be replaced.
+procedure DeinitializeSetup();
+begin
+  RestartStoppedServices;
 end;
 
 { ───────────────────────────────────────────────────────────────────────────────── }
@@ -2239,7 +2482,7 @@ begin
   // stop/delete selected services
   for i := 0 to GetArrayLength(SelectedAgents) - 1 do begin
     Svc := SelectedAgents[i];
-    Exec(ExpandConstant('{sys}\sc.exe'), ' stop "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
+    StopServiceAndWait(Svc);
     Exec(ExpandConstant('{sys}\sc.exe'), ' delete "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
   end;
   // delete their registry configuration
@@ -2432,15 +2675,13 @@ var
 begin
   if CurStep = usUninstall then
   begin
-    // Stop & delete selected services first
+    // Stop & delete selected services first: their files are deleted once this step returns
     for i := 0 to GetArrayLength(SelectedAgents) - 1 do
     begin
       Svc := SelectedAgents[i];
-      Exec(ExpandConstant('{sys}\sc.exe'), ' stop "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
+      StopServiceAndWait(Svc);
       Exec(ExpandConstant('{sys}\sc.exe'), ' delete "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
     end;
-  // add a sleep here to ensure services are fully stopped before deleting registry keys & files
-  Sleep(2000);
   end
   else if CurStep = usPostUninstall then
   begin

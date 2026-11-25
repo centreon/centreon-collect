@@ -202,6 +202,13 @@ function test_all_silent_install_uninstall([string]$plugins_flag) {
         exit 1
     }
 
+    # The agent reports its service stopped before its process exits: an uninstaller that deletes the files
+    # without waiting for the exit cannot remove centagent.exe
+    if ([System.Io.File]::Exists("C:\Program Files\Centreon\CentreonMonitoringAgent\centagent.exe")) {
+        Write-Host "centagent.exe not removed"
+        exit 1
+    }
+
     #the only mean I have found to test key erasure under CI
     #Test-Path doesn't work
     $key_found = $true
@@ -245,8 +252,112 @@ function test_all_silent_install_uninstall([string]$plugins_flag) {
     Start-Sleep -Seconds 10
 }
 
+$plugin_path = "C:\Program Files\Centreon\Plugins\centreon_plugins.exe"
+
+function wait_service_running([string]$service_name) {
+    <#
+    .SYNOPSIS
+    Waits at most 30s for a service to be running. Returns $true if it is.
+    #>
+    for (($i = 0); $i -lt 30; $i++) {
+        $service = Get-Service -Name $service_name -ErrorAction SilentlyContinue
+        if ($service -and $service.Status -eq 'Running') {
+            return $true
+        }
+        Start-Sleep -Seconds 1
+    }
+    return $false
+}
+
+function wait_plugin_in_use() {
+    <#
+    .SYNOPSIS
+    Waits at most 30s until another process keeps the plugin file open. Returns $true if it does.
+    #>
+    if (![System.IO.File]::Exists($plugin_path)) {
+        Write-Host "$plugin_path does not exist"
+        return $false
+    }
+    for (($i = 0); $i -lt 30; $i++) {
+        try {
+            $file = [System.IO.File]::Open($plugin_path, 'Open', 'ReadWrite', 'None')
+            $file.Close()
+        }
+        catch {
+            # only a sharing violation (ERROR_SHARING_VIOLATION = 32) proves that another process holds the file
+            $e = $_.Exception
+            while ($e.InnerException) { $e = $e.InnerException }
+            if (($e.HResult -band 0xFFFF) -eq 32) {
+                return $true
+            }
+            Write-Host "cannot open $plugin_path : $($e.Message)"
+            return $false
+        }
+        Start-Sleep -Seconds 1
+    }
+    return $false
+}
+
+function show_last_setup_log() {
+    $setup_log = Get-ChildItem -Path $env:TEMP -Filter "Setup Log*.txt" | Sort-Object LastWriteTime | Select-Object -Last 1
+    if ($setup_log) {
+        Get-Content $setup_log.FullName | Write-Host
+    }
+}
+
+function test_update_and_uninstall_with_plugin_in_use() {
+    <#
+    .SYNOPSIS
+    Silent update while a process keeps the plugin file open: the installer must never leave the agent
+    service stopped.
+    #>
+    Write-Host "############################  update and uninstall with plugin in use  ############################"
+
+    $exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS="agent,plugins"', '/PLUGINSRC=embedded', '/HOST=my_host_name_1', '/ENDPOINT=127.0.0.1:4317', '/token=my_secure_token'
+    $expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'token' = 'my_secure_token' }
+    test_args_to_registry $installer_exepath $exe_args $expected "CentreonMonitoringAgent"
+    if (!(wait_service_running "CentreonMonitoringAgent")) {
+        Write-Host "CentreonMonitoringAgent not running after install"
+        exit 1
+    }
+
+    $update_args = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATEONLY /AGENTINSTANCE=CentreonMonitoringAgent /COMPONENTS=agent,plugins'
+    $process_output = @{}
+
+    # The installer does not stop a process that is not a plugin, so the update fails and rolls back,
+    # and the agent service must run afterwards. /NOCLOSEAPPLICATIONS keeps the Restart Manager from
+    # closing the holder: otherwise the update could succeed and the rollback would not be tested.
+    Write-Host "update while another process keeps the plugin file open"
+    $holder = Start-Process -PassThru -WindowStyle Hidden powershell.exe "-NoProfile -Command `"`$f = [System.IO.File]::Open('$plugin_path', 'Open', 'Read', 'Read'); Start-Sleep -Seconds 600`""
+    if (!(wait_plugin_in_use)) {
+        Write-Host "the holder process does not keep $plugin_path open"
+        exit 1
+    }
+    $exit_code = f_start_process $installer_exepath "$update_args /NOCLOSEAPPLICATIONS" ([ref]$process_output)
+    Stop-Process -Id $holder.Id -Force -ErrorAction SilentlyContinue
+    # 5: Setup aborted, the answer of /SUPPRESSMSGBOXES to the Abort/Retry/Ignore box of the file in use
+    if ($exit_code -ne 5) {
+        Write-Host "update with the plugin file held by another process, exit code: $exit_code, expected: 5"
+        show_last_setup_log
+        exit 1
+    }
+    if (!(wait_service_running "CentreonMonitoringAgent")) {
+        Write-Host "CentreonMonitoringAgent left stopped by the update"
+        show_last_setup_log
+        exit 1
+    }
+
+    $process_info = Start-Process -PassThru "C:\Program Files\Centreon\unins000.exe" "/VERYSILENT /FULL"
+    Wait-Process -Id $process_info.Id
+    if ($process_info.ExitCode -ne 0) {
+        Write-Host "bad uninstaller exit code"
+        exit 1
+    }
+}
+
 test_all_silent_install_uninstall("/PLUGINSRC=auto")
 test_all_silent_install_uninstall("/PLUGINSRC=embedded")
+test_update_and_uninstall_with_plugin_in_use
 
 Write-Host "############################  installer test  ############################"
 
