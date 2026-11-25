@@ -10,11 +10,17 @@
 # over the BBDO stream (first export from the web). An existing file is never
 # overwritten.
 #
+# At every start (POLLER_UID set), the CA is verified (BROKER_CA_FINGERPRINT)
+# and copied to /etc/centreon-broker/certs/ca.crt, the one path the delivered
+# cbmod configuration names; a cbmod output with an unreadable CA file is
+# reported as an error.
+#
 # Env: CENTRAL_BROKER_HOST, CENTRAL_BROKER_PORT (5669), POLLER_NAME, POLLER_ID,
-# POLLER_UID, BROKER_CA_CERT (/etc/centreon-broker/certs/ca.crt),
-# BROKER_TLS_HOSTNAME (default CENTRAL_BROKER_HOST), BROKER_CA_PEM (CA content,
-# written to BROKER_CA_CERT if absent), BROKER_CA_FINGERPRINT (SHA-256 of the
-# CA DER, fail closed on mismatch).
+# POLLER_UID, BROKER_CA_CERT (source CA file, default
+# /etc/centreon-broker/certs/ca.crt), BROKER_TLS_HOSTNAME (default
+# CENTRAL_BROKER_HOST), BROKER_CA_PEM (CA content, written to BROKER_CA_CERT if
+# absent), BROKER_CA_FINGERPRINT (SHA-256 of the CA DER, fail closed on
+# mismatch).
 
 ENGINE_DIR="/etc/centreon-engine"
 BROKER_DIR="/etc/centreon-broker"
@@ -32,20 +38,13 @@ is_set() {
 if [ -z "${POLLER_UID:-}" ]; then
     return 0 2>/dev/null || exit 0
 fi
-if is_set "$CFG"; then
-    echo "bootstrap: $CFG exists, keeping the delivered configuration"
-    return 0 2>/dev/null || exit 0
-fi
 
-: "${CENTRAL_BROKER_HOST:?bootstrap needs CENTRAL_BROKER_HOST}"
-: "${POLLER_NAME:?bootstrap needs POLLER_NAME}"
-CENTRAL_BROKER_PORT="${CENTRAL_BROKER_PORT:-5669}"
-POLLER_ID="${POLLER_ID:-$POLLER_UID}"
-BROKER_CA_CERT="${BROKER_CA_CERT:-$BROKER_DIR/certs/ca.crt}"
-BROKER_TLS_HOSTNAME="${BROKER_TLS_HOSTNAME:-$CENTRAL_BROKER_HOST}"
-MODULE_CFG="$BROKER_DIR/${POLLER_NAME}-module.json"
-MODULES_DIR="/usr/lib64/centreon-engine"
-[ -d "$MODULES_DIR" ] || MODULES_DIR="/usr/lib/centreon-engine"
+# One CA path for every poller (contracts.md §11.C5): the delivered cbmod
+# configuration always names $CA_CANON. The CA may come from BROKER_CA_PEM,
+# or from another file (BROKER_CA_CERT, e.g. a read-only mount by the install
+# script); it is verified, then copied to $CA_CANON at every start.
+CA_CANON="$BROKER_DIR/certs/ca.crt"
+BROKER_CA_CERT="${BROKER_CA_CERT:-$CA_CANON}"
 
 # CA handed out by the poller creation API (contracts.md §8.3): written only
 # if no CA file exists (an operator file wins).
@@ -62,7 +61,7 @@ if [ -n "${BROKER_CA_PEM:-}" ]; then
 fi
 
 # Optional pin of the CA actually used: SHA-256 of the DER of its first
-# certificate. Fail closed on mismatch.
+# certificate. Checked at every start, fail closed on mismatch.
 if [ -n "${BROKER_CA_FINGERPRINT:-}" ]; then
     want=$(printf '%s' "$BROKER_CA_FINGERPRINT" | tr -d ': ' | tr 'A-F' 'a-f')
     got=$(awk '/-----BEGIN CERTIFICATE-----/{p=1;next} /-----END CERTIFICATE-----/{if(p)exit} p' \
@@ -76,10 +75,53 @@ if [ -n "${BROKER_CA_FINGERPRINT:-}" ]; then
     echo "bootstrap: CA fingerprint verified ($want)"
 fi
 
-if [ ! -r "$BROKER_CA_CERT" ]; then
-    echo "bootstrap: WARNING: CA certificate $BROKER_CA_CERT not readable," \
+if [ "$BROKER_CA_CERT" != "$CA_CANON" ] && [ -r "$BROKER_CA_CERT" ]; then
+    if ! cmp -s "$BROKER_CA_CERT" "$CA_CANON"; then
+        if mkdir -p "$(dirname "$CA_CANON")" &&
+           cp "$BROKER_CA_CERT" "$CA_CANON.tmp" &&
+           chmod 0644 "$CA_CANON.tmp" &&
+           mv "$CA_CANON.tmp" "$CA_CANON"; then
+            echo "bootstrap: CA copied from $BROKER_CA_CERT to $CA_CANON"
+        else
+            rm -f "$CA_CANON.tmp"
+            echo "bootstrap: ERROR: cannot copy the CA from $BROKER_CA_CERT" \
+                 "to $CA_CANON, refusing to start" >&2
+            exit 1
+        fi
+    fi
+fi
+
+if [ ! -r "$CA_CANON" ]; then
+    echo "bootstrap: WARNING: CA certificate $CA_CANON not readable," \
          "the poller will not accept remote actions"
 fi
+
+# A cbmod output whose CA file is unreadable makes Engine stop at start (the
+# gRPC endpoint cannot be created): say it here, on the container log.
+for m in "$BROKER_DIR"/*module.json; do
+    [ -f "$m" ] || continue
+    sed -n 's/.*"ca_certificate"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$m" |
+    while read -r ca; do
+        if [ -n "$ca" ] && [ ! -r "$ca" ]; then
+            echo "bootstrap: ERROR: $m: ca_certificate '$ca' is not readable," \
+                 "cbmod cannot create its output and Engine will stop" >&2
+        fi
+    done
+done
+
+if is_set "$CFG"; then
+    echo "bootstrap: $CFG exists, keeping the delivered configuration"
+    return 0 2>/dev/null || exit 0
+fi
+
+: "${CENTRAL_BROKER_HOST:?bootstrap needs CENTRAL_BROKER_HOST}"
+: "${POLLER_NAME:?bootstrap needs POLLER_NAME}"
+CENTRAL_BROKER_PORT="${CENTRAL_BROKER_PORT:-5669}"
+POLLER_ID="${POLLER_ID:-$POLLER_UID}"
+BROKER_TLS_HOSTNAME="${BROKER_TLS_HOSTNAME:-$CENTRAL_BROKER_HOST}"
+MODULE_CFG="$BROKER_DIR/${POLLER_NAME}-module.json"
+MODULES_DIR="/usr/lib64/centreon-engine"
+[ -d "$MODULES_DIR" ] || MODULES_DIR="/usr/lib/centreon-engine"
 
 echo "bootstrap: rendering a minimal configuration for poller" \
      "'$POLLER_NAME' (uid $POLLER_UID) -> $CENTRAL_BROKER_HOST:$CENTRAL_BROKER_PORT"
@@ -156,7 +198,7 @@ if ! is_set "$MODULE_CFG"; then
         "host": "${CENTRAL_BROKER_HOST}",
         "port": "${CENTRAL_BROKER_PORT}",
         "encryption": "yes",
-        "ca_certificate": "${BROKER_CA_CERT}",
+        "ca_certificate": "${CA_CANON}",
         "ca_name": "${BROKER_TLS_HOSTNAME}"
       }
     ]
