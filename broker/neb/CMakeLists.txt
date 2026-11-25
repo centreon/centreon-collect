@@ -111,6 +111,7 @@ target_link_libraries(
   -Wl,--no-whole-archive
   multiplexing
   centreon_process
+  centreon_hexdump
   centreon_pb_bbdo)
 
 get_property(
