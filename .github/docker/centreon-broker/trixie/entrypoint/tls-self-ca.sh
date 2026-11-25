@@ -5,7 +5,9 @@
 # The pollers get ca.crt through the poller creation API (cbd GET /v1/ca),
 # never through the BBDO stream. Rules:
 # - central.crt and central.key present: nothing is generated (corporate PKI
-#   or already generated; a read-only mount is fine).
+#   or already generated; a read-only mount is fine), except with ca.key
+#   present (self-generated PKI) and a SAN list that differs from
+#   BROKER_TLS_SAN: the server pair is renewed with the same CA.
 # - ca.crt and ca.key present: a new server pair is signed by that CA
 #   (renewal: delete central.* and restart, the CA never changes).
 # - nothing present: generate the CA, then the server pair.
@@ -20,9 +22,44 @@
 DIR="${BROKER_CERTS_DIR:-/etc/centreon-broker/certs}"
 SAN_LIST="${BROKER_TLS_SAN:-centreon-broker}"
 
+# Wanted SAN list, as openssl writes it: DNS:<name> / IP:<address>.
+SAN=""
+CN=""
+OLD_IFS="$IFS"
+IFS=","
+for name in $SAN_LIST; do
+    name=$(echo "$name" | tr -d ' ')
+    [ -n "$name" ] || continue
+    [ -n "$CN" ] || CN="$name"
+    case "$name" in
+        *[!0-9.]*) entry="DNS:$name" ;;
+        *) entry="IP:$name" ;;
+    esac
+    SAN="${SAN:+$SAN,}$entry"
+done
+IFS="$OLD_IFS"
+
+# SAN list of a certificate, normalised like $SAN.
+cert_san() {
+    openssl x509 -in "$1" -noout -ext subjectAltName 2>/dev/null \
+        | sed -n '2p' | sed 's/IP Address:/IP:/g' | tr -d ' '
+}
+
 if [ -f "$DIR/central.crt" ] && [ -f "$DIR/central.key" ]; then
-    echo "tls: server certificate present in $DIR, nothing generated"
-    exit 0
+    # Self-generated PKI (ca.key here): renew the server pair when
+    # BROKER_TLS_SAN changed, with the same CA (fingerprint unchanged). A
+    # mounted pair without ca.key (corporate PKI) is never touched.
+    OLD_SAN=$(cert_san "$DIR/central.crt")
+    if [ ! -f "$DIR/ca.key" ] || [ ! -f "$DIR/ca.crt" ] || [ "$OLD_SAN" = "$SAN" ]; then
+        echo "tls: server certificate present in $DIR, nothing generated"
+        exit 0
+    fi
+    if [ ! -w "$DIR" ]; then
+        echo "tls: WARNING: SAN changed ($OLD_SAN -> $SAN) but $DIR is not" \
+             "writable, keeping the current server certificate" >&2
+        exit 0
+    fi
+    echo "tls: SAN changed ($OLD_SAN -> $SAN), server certificate renewed"
 fi
 
 if [ ! -d "$DIR" ] || [ ! -w "$DIR" ]; then
@@ -49,22 +86,6 @@ elif [ ! -f "$DIR/ca.crt" ] || [ ! -f "$DIR/ca.key" ]; then
          "central.crt/central.key: mount the full PKI or remove it" >&2
     exit 1
 fi
-
-SAN=""
-CN=""
-OLD_IFS="$IFS"
-IFS=","
-for name in $SAN_LIST; do
-    name=$(echo "$name" | tr -d ' ')
-    [ -n "$name" ] || continue
-    [ -n "$CN" ] || CN="$name"
-    case "$name" in
-        *[!0-9.]*) entry="DNS:$name" ;;
-        *) entry="IP:$name" ;;
-    esac
-    SAN="${SAN:+$SAN,}$entry"
-done
-IFS="$OLD_IFS"
 
 echo "tls: generating the server certificate ($SAN) signed by $DIR/ca.crt"
 EXT="$DIR/central.ext"
