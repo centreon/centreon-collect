@@ -110,6 +110,7 @@ target_link_libraries(
   Boost::thread
   -Wl,--no-whole-archive
   multiplexing
+  centreon_process
   centreon_pb_bbdo)
 
 get_property(
