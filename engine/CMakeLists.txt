@@ -515,8 +515,11 @@ target_link_libraries(
   timeperiods
   fmt::fmt
   spdlog::spdlog
-  downtimes_lib
-  cbmod)
+  # cbmod.so does not embed downtimes_lib: it uses the downtime_manager of the
+  # executable that loads it. downtimes_lib comes after it so that the linker
+  # pulls from it what cbmod.so needs.
+  cbmod
+  downtimes_lib)
 
 # centengine target.
 

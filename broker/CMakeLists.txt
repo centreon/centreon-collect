@@ -322,7 +322,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/modules/handle.cc
     ${SRC_DIR}/broker_acknowledgement_manager.cc
     ${SRC_DIR}/broker_comments.cc
-    ${SRC_DIR}/broker_downtime_callbacks.cc
     ${SRC_DIR}/broker_notification_dispatcher.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
@@ -352,7 +351,6 @@ target_link_libraries(
   sql
   broker_cache
   bbdo_bbdo
-  downtimes_lib
   notifications
   timeperiods
   pb_broker_lib
