@@ -305,11 +305,31 @@ function show_last_setup_log() {
     }
 }
 
+function start_plugin_holder() {
+    <#
+    .SYNOPSIS
+    Starts a console process that keeps the plugin file open without sharing its deletion, and returns it.
+
+    .DESCRIPTION
+    centreon_plugins.exe is a PAR::Packer executable: its real interpreter runs as a child, extracted
+    under %TEMP%\par-<user>\cache-<name>, and keeps the plugin file open to read the archive it contains.
+    When a check times out, an agent without job objects kills the parent only, so the interpreter keeps
+    running and keeps the plugin file open, as this process does.
+    #>
+    $holder = Start-Process -PassThru -WindowStyle Hidden powershell.exe "-NoProfile -Command `"`$f = [System.IO.File]::Open('$plugin_path', 'Open', 'Read', 'Read'); Start-Sleep -Seconds 600`""
+    if (!(wait_plugin_in_use)) {
+        Stop-Process -Id $holder.Id -Force -ErrorAction SilentlyContinue
+        Write-Host "the holder process does not keep $plugin_path open"
+        exit 1
+    }
+    return $holder
+}
+
 function test_update_and_uninstall_with_plugin_in_use() {
     <#
     .SYNOPSIS
-    Silent update while a process keeps the plugin file open: the installer must never leave the agent
-    service stopped.
+    Silent update while a process keeps the plugin file open: the update must close it and never leave the
+    agent service stopped.
     #>
     Write-Host "############################  update and uninstall with plugin in use  ############################"
 
@@ -324,15 +344,31 @@ function test_update_and_uninstall_with_plugin_in_use() {
     $update_args = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATEONLY /AGENTINSTANCE=CentreonMonitoringAgent /COMPONENTS=agent,plugins'
     $process_output = @{}
 
-    # The installer does not stop a process that is not a plugin, so the update fails and rolls back,
-    # and the agent service must run afterwards. /NOCLOSEAPPLICATIONS keeps the Restart Manager from
-    # closing the holder: otherwise the update could succeed and the rollback would not be tested.
-    Write-Host "update while another process keeps the plugin file open"
-    $holder = Start-Process -PassThru -WindowStyle Hidden powershell.exe "-NoProfile -Command `"`$f = [System.IO.File]::Open('$plugin_path', 'Open', 'Read', 'Read'); Start-Sleep -Seconds 600`""
-    if (!(wait_plugin_in_use)) {
-        Write-Host "the holder process does not keep $plugin_path open"
+    Write-Host "update while a plugin process keeps the plugin file open"
+    $holder = start_plugin_holder
+    $exit_code = f_start_process $installer_exepath $update_args ([ref]$process_output)
+    $holder_closed = $holder.HasExited
+    Stop-Process -Id $holder.Id -Force -ErrorAction SilentlyContinue
+    if ($exit_code -ne 0) {
+        Write-Host "update failed, exit code: $exit_code"
+        show_last_setup_log
         exit 1
     }
+    if (!(wait_service_running "CentreonMonitoringAgent")) {
+        Write-Host "CentreonMonitoringAgent not running after update"
+        show_last_setup_log
+        exit 1
+    }
+    if (!$holder_closed) {
+        Write-Host "process holding the plugin file not closed by the update"
+        show_last_setup_log
+        exit 1
+    }
+
+    # When the plugin file stays in use, the update fails and rolls back, and the agent service must run
+    # afterwards. /NOCLOSEAPPLICATIONS keeps the Restart Manager from closing the holder.
+    Write-Host "update while the plugin file stays in use"
+    $holder = start_plugin_holder
     $exit_code = f_start_process $installer_exepath "$update_args /NOCLOSEAPPLICATIONS" ([ref]$process_output)
     Stop-Process -Id $holder.Id -Force -ErrorAction SilentlyContinue
     # 5: Setup aborted, the answer of /SUPPRESSMSGBOXES to the Abort/Retry/Ignore box of the file in use

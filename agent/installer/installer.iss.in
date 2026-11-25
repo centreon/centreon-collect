@@ -50,6 +50,11 @@ PrivilegesRequiredOverridesAllowed=commandline
 UsePreviousAppDir=no
 AlwaysUsePersonalGroup=false
 SetupLogging=yes
+; An agent stops its plugins with it, but the agents that predate the kill of the whole process tree left
+; the plugin processes of a timed-out check running, and they keep centreon_plugins.exe open. force lets
+; the Restart Manager terminate the processes that hold the files Setup replaces when they do not close on
+; request: otherwise the file stays in use and a silent Setup aborts (exit code 5).
+CloseApplications=force
 Uninstallable=yes
 DisableStartupPrompt=yes
 WizardImageFile={#CentreonLogoLarge}
