@@ -107,6 +107,11 @@ class MacroGolden : public TestEngine {
   void _build_poller() {
     auto& st = pb_indexed_config.mut_state();
     st.set_poller_name("poller-golden");
+    /* Their defaults are built from the install prefix (DEFAULT_*_FILE): set
+     * them so that the reference does not depend on how cmake was called. */
+    st.set_status_file("/var/log/centreon-engine/status.dat");
+    st.set_state_retention_file("/var/log/centreon-engine/retention.dat");
+    st.set_command_file("/var/lib/centreon-engine/rw/centengine.cmd");
     st.set_admin_email("admin@example.com");
     st.set_admin_pager("+33611111111");
     st.set_illegal_output_chars("`~$&|'\"<>");
