@@ -1735,7 +1735,7 @@ static void forward_downtime(int type,
                              uint32_t duration,
                              uint64_t downtime_id) noexcept {
   // Log message.
-  fmt::string_view type_str;
+  std::string_view type_str;
   switch (type) {
     case 1100:
       type_str = "DOWNTIME_ADD";
@@ -2914,8 +2914,7 @@ static void set_log_data(neb::log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le.retry = retry;
@@ -2941,8 +2940,7 @@ static void set_log_data(neb::log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le.retry = retry;
@@ -3015,8 +3013,7 @@ static void set_log_data(neb::log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le.retry = retry;
@@ -3047,8 +3044,7 @@ static void set_log_data(neb::log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le.retry = retry;
@@ -3122,8 +3118,7 @@ static void set_log_data(neb::log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le.retry = retry;
@@ -3154,8 +3149,7 @@ static void set_log_data(neb::log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le.retry = retry;
@@ -3182,8 +3176,7 @@ static void set_log_data(neb::log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le.retry = retry;
@@ -3214,8 +3207,7 @@ static void set_log_data(neb::log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le.retry = retry;
@@ -3298,8 +3290,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le_obj.set_retry(retry);
@@ -3325,8 +3316,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le_obj.set_retry(retry);
@@ -3402,8 +3392,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le_obj.set_retry(retry);
@@ -3435,8 +3424,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le_obj.set_retry(retry);
@@ -3513,8 +3501,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le_obj.set_retry(retry);
@@ -3546,8 +3533,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le_obj.set_retry(retry);
@@ -3575,8 +3561,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le_obj.set_retry(retry);
@@ -3608,8 +3593,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
       neb_logger->error(
-          "Retry value in log message should be an integer and not '{}'",
-          fmt::string_view(ait->data(), ait->size()));
+          "Retry value in log message should be an integer and not '{}'", *ait);
       return;
     }
     le_obj.set_retry(retry);
