@@ -32,7 +32,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup pulp-cli
-      uses: ./.github/actions/setup-pulp-cli
+      uses: centreon/github-actions/pulp/setup-cli@pulp/v1
       with:
         pulp_url: ${{ inputs.pulp_url }}
         audience: ${{ inputs.audience }}
