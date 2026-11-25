@@ -407,6 +407,8 @@ static const absl::flat_hash_map<std::string_view, mem_to_status_constructor>
  * @param stat statistics of the checks
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check_memory::check_memory(
     const std::shared_ptr<asio::io_context>& io_context,
@@ -417,7 +419,8 @@ check_memory::check_memory(
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : native_check_base(io_context,
                         logger,
                         first_start_expected,
@@ -426,7 +429,8 @@ check_memory::check_memory(
                         cnf,
                         std::move(handler),
                         stat,
-                        credentials_decrypt) {
+                        credentials_decrypt,
+                        std::move(cmd_executor)) {
   _no_percent_unit = "B";
   if (args.IsObject()) {
     for (auto member_iter = args.MemberBegin(); member_iter != args.MemberEnd();

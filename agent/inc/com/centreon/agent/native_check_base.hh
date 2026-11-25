@@ -133,7 +133,8 @@ class native_check_base : public check {
       const engine_to_agent_request_ptr& cnf,
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
-      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      command_executor&& cmd_executor);
 
   std::shared_ptr<native_check_base<nb_metric>> shared_from_this() {
     return std::static_pointer_cast<native_check_base<nb_metric>>(

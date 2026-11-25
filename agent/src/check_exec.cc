@@ -41,6 +41,8 @@ using namespace com::centreon::agent;
  * @param stat statistics of the checks
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check_exec::check_exec(
     const std::shared_ptr<asio::io_context>& io_context,
@@ -51,7 +53,8 @@ check_exec::check_exec(
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
@@ -59,7 +62,8 @@ check_exec::check_exec(
             cnf,
             std::move(handler),
             stat,
-            credentials_decrypt) {
+            credentials_decrypt,
+            std::move(cmd_executor)) {
   _process_args =
       com::centreon::common::process<false>::parse_cmd_line(command_line);
   if (get_credentials_decrypt()) {
@@ -83,6 +87,8 @@ check_exec::check_exec(
  * @param stat statistics of the checks
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  * @return std::shared_ptr<check_exec>
  */
 std::shared_ptr<check_exec> check_exec::load(
@@ -94,10 +100,11 @@ std::shared_ptr<check_exec> check_exec::load(
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor) {
   std::shared_ptr<check_exec> ret = std::make_shared<check_exec>(
       io_context, logger, first_start_expected, serv, command_line, cnf,
-      std::move(handler), stat, credentials_decrypt);
+      std::move(handler), stat, credentials_decrypt, std::move(cmd_executor));
   return ret;
 }
 
@@ -117,8 +124,8 @@ void check_exec::start_check(const duration& timeout) {
     auto proc = std::make_shared<com::centreon::common::process<false>>(
         _io_context, _logger, _process_args, true, false, nullptr);
 
-    if (_credentials_decrypt) {
-      _process_args->decrypt_args(*_credentials_decrypt);
+    if (get_credentials_decrypt()) {
+      _process_args->decrypt_args(*get_credentials_decrypt());
     }
     // we add 100ms to time out in order to let check class manage timeout
     proc->start_process(
@@ -130,11 +137,11 @@ void check_exec::start_check(const duration& timeout) {
         },
         effective_timeout + std::chrono::milliseconds(100));
     _pid = proc->get_pid();
-    if (_credentials_decrypt) {
+    if (get_credentials_decrypt()) {
       _process_args->clear_unencrypted_args();
     }
   } catch (const boost::system::system_error& e) {
-    if (_credentials_decrypt) {
+    if (get_credentials_decrypt()) {
       _process_args->clear_unencrypted_args();
     }
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
@@ -216,6 +223,8 @@ void check_exec::on_completion(unsigned running_index,
  * @param stat statistics of the checks
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check_dummy::check_dummy(
     const std::shared_ptr<asio::io_context>& io_context,
@@ -226,7 +235,8 @@ check_dummy::check_dummy(
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
@@ -234,7 +244,8 @@ check_dummy::check_dummy(
             cnf,
             std::move(handler),
             stat,
-            credentials_decrypt),
+            credentials_decrypt,
+            std::move(cmd_executor)),
       _output(output) {}
 
 /**
@@ -251,6 +262,8 @@ check_dummy::check_dummy(
  * @param stat statistics of the checks
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  * @return std::shared_ptr<check_dummy>
  */
 std::shared_ptr<check_dummy> check_dummy::load(
@@ -262,10 +275,11 @@ std::shared_ptr<check_dummy> check_dummy::load(
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor) {
   std::shared_ptr<check_dummy> ret = std::make_shared<check_dummy>(
       io_context, logger, first_start_expected, serv, output, cnf,
-      std::move(handler), stat, credentials_decrypt);
+      std::move(handler), stat, credentials_decrypt, std::move(cmd_executor));
   return ret;
 }
 
@@ -367,6 +381,8 @@ static std::string _build_custom_command_line(const Service& serv,
  * @param stat statistics of the checks
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check_custom::check_custom(
     const std::shared_ptr<asio::io_context>& io_context,
@@ -377,7 +393,8 @@ check_custom::check_custom(
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check_exec(io_context,
                  logger,
                  first_start_expected,
@@ -386,4 +403,5 @@ check_custom::check_custom(
                  cnf,
                  std::move(handler),
                  stat,
-                 credentials_decrypt) {}
+                 credentials_decrypt,
+                 std::move(cmd_executor)) {}

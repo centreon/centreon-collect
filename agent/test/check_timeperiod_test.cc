@@ -172,7 +172,7 @@ class tp_check : public check {
            const engine_to_agent_request_ptr& req,
            check::completion_handler&& h,
            const checks_statistics::pointer& stat)
-      : check(io, log, exp, svc, req, std::move(h), stat, nullptr),
+      : check(io, log, exp, svc, req, std::move(h), stat, nullptr, {}),
         _timer(*io) {}
 
   void start_check(const duration& timeout) override {
@@ -204,8 +204,8 @@ static scheduler::check_builder tp_check_builder =
        const engine_to_agent_request_ptr& req,
        check::completion_handler&& h,
        const checks_statistics::pointer& stat,
-       const std::shared_ptr<com::centreon::common::crypto::aes256>&)
-    -> check::pointer {
+       const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+       check::command_executor&&) -> check::pointer {
   return std::make_shared<tp_check>(io, log, exp, svc, req, std::move(h), stat);
 };
 

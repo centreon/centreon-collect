@@ -37,6 +37,8 @@ using namespace com::centreon::agent;
  * @param stat statistics of the checks
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check_health::check_health(
     const std::shared_ptr<asio::io_context>& io_context,
@@ -47,7 +49,8 @@ check_health::check_health(
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
@@ -55,7 +58,8 @@ check_health::check_health(
             cnf,
             std::move(handler),
             stat,
-            credentials_decrypt),
+            credentials_decrypt,
+            std::move(cmd_executor)),
       _measure_timer(*io_context) {
   com::centreon::common::rapidjson_helper arg(args);
   try {

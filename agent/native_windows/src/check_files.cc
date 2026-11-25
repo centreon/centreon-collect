@@ -570,6 +570,8 @@ struct result_summary : public testable {
  * @param stat Shared pointer to the statistics collector for checks.
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  *
  * @throws std::exception If argument parsing fails or required parameters are
  * missing.
@@ -583,7 +585,8 @@ check_files::check_files(
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
@@ -591,7 +594,8 @@ check_files::check_files(
             cnf,
             std::move(handler),
             stat,
-            credentials_decrypt) {
+            credentials_decrypt,
+            std::move(cmd_executor)) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {

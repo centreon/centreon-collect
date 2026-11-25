@@ -17,6 +17,7 @@
  */
 
 #include "check.hh"
+#include <exception>
 #include <string>
 #include "absl/strings/str_replace.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -137,6 +138,8 @@ std::string_view check::status_to_label(int status) {
  * @param stat statistics of the checks
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check::check(const std::shared_ptr<asio::io_context>& io_context,
              const std::shared_ptr<spdlog::logger>& logger,
@@ -145,7 +148,8 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
              const engine_to_agent_request_ptr& cnf,
              completion_handler&& handler,
              const checks_statistics::pointer& stat,
-             const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+             const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+             command_executor&& cmd_executor)
     : _start_expected_normal(first_start_expected,
                              serv.check_interval()
                                  ? std::chrono::seconds(serv.check_interval())
@@ -160,6 +164,7 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
       _completion_handler(handler),
       _stat(stat),
       _credentials_decrypt(credentials_decrypt),
+      _command_executor(std::move(cmd_executor)),
       _io_context(io_context),
       _logger(logger) {}
 
@@ -451,15 +456,37 @@ void check::_run_command(const std::string& raw_cmd) {
   }
   std::string attempt = std::to_string(_current_attempt);
   std::string_view state_type = _status_confirmed ? "HARD" : "SOFT";
-  std::string cmdline = raw_cmd;
+  std::string command_line = raw_cmd;
+
+  try {
+    decrypt_command_line(command_line, _credentials_decrypt);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "Fail to decrypt event handler command for service {}",
+                        _service.service_description());
+    return;
+  }
+
   if (!_service.service_id())
     absl::StrReplaceAll({{"HOSTSTATE", status},
                          {"HOSTSTATETYPE", state_type},
                          {"HOSTATTEMPT", attempt}},
-                        &cmdline);
+                        &command_line);
   else
     absl::StrReplaceAll({{"SERVICESTATE", status},
                          {"SERVICESTATETYPE", state_type},
                          {"SERVICEATTEMPT", attempt}},
-                        &cmdline);
+                        &command_line);
+  if (_command_executor) {
+    _command_executor(command_line);
+  }
+}
+
+void check::decrypt_command_line(
+    std::string& command_line,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
+  if (credentials_decrypt && !command_line.compare(0, 9, "encrypt::")) {
+    command_line =
+        credentials_decrypt->decrypt(std::string_view(command_line).substr(9));
+  }
 }

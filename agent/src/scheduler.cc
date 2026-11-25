@@ -488,7 +488,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                 const std::list<std::string>& outputs) {
               me->_check_handler(check, status, perfdata, outputs);
             },
-            statistics, _credentials_decrypt);
+            statistics, _credentials_decrypt, [](const std::string&) {});
         last_inserted_iter = _waiting_check_queue.emplace_hint(
             last_inserted_iter, step_index, check_to_schedule);
         next += first_inter_check_delay;
@@ -948,26 +948,23 @@ std::shared_ptr<check> scheduler::default_check_builder(
     const engine_to_agent_request_ptr& conf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
-  std::string command_line;
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    check::command_executor&& event_handler_executor) {
+  std::string command_line = service.command_line();
   // has to decrypt cmd_line
-  if (credentials_decrypt &&
-      !service.command_line().compare(0, 9, "encrypt::")) {
-    try {
-      command_line = credentials_decrypt->decrypt(
-          std::string_view(service.command_line()).substr(9));
-    } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(logger,
-                          "Fail to decrypt command line for service {} : {}",
-                          service.service_description(), e.what());
-      return check_dummy::load(
-          io_context, logger, first_start_expected, service,
-          fmt::format("Unable to decrypt command line {}", e.what()), conf,
-          std::move(handler), stat, credentials_decrypt);
-    }
-  } else {
-    command_line = service.command_line();
+  try {
+    check::decrypt_command_line(command_line, credentials_decrypt);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(logger,
+                        "Fail to decrypt command line for service {} : {}",
+                        service.service_description(), e.what());
+    return check_dummy::load(
+        io_context, logger, first_start_expected, service,
+        fmt::format("Unable to decrypt command line {}", e.what()), conf,
+        std::move(handler), stat, credentials_decrypt,
+        std::move(event_handler_executor));
   }
+
   using namespace std::literals;
   // test native checks where cmd_line is a json
   try {
@@ -998,52 +995,64 @@ std::shared_ptr<check> scheduler::default_check_builder(
       if (check_type == "cpu_percentage"sv) {
         result = std::make_shared<check_cpu>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
       } else if (check_type == "health"sv) {
         result = std::make_shared<check_health>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
       } else if (check_type == "custom"sv) {
         result = std::make_shared<check_custom>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
 #ifdef _WIN32
       } else if (check_type == "uptime"sv) {
         result = std::make_shared<check_uptime>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
       } else if (check_type == "storage"sv) {
         result = std::make_shared<check_drive_size>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
       } else if (check_type == "memory"sv) {
         result = std::make_shared<check_memory>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
       } else if (check_type == "service"sv) {
         result = std::make_shared<check_service>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
       } else if (check_type == "counter"sv) {
         result = std::make_shared<check_counter>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
       } else if (check_type == "tasksched"sv) {
         result = std::make_shared<check_sched>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
       } else if (check_type == "files"sv) {
         result = std::make_shared<check_files>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
       } else if (check_type == "eventlog_nscp"sv) {
         result = check_event_log::load(io_context, logger, first_start_expected,
                                        service, *args, conf, std::move(handler),
-                                       stat, credentials_decrypt);
+                                       stat, credentials_decrypt,
+                                       std::move(event_handler_executor));
       } else if (check_type == "process_nscp"sv) {
         result = std::make_shared<check_process>(
             io_context, logger, first_start_expected, service, *args, conf,
-            std::move(handler), stat, credentials_decrypt);
+            std::move(handler), stat, credentials_decrypt,
+            std::move(event_handler_executor));
 #endif
       } else {
         throw exceptions::msg_fmt("command {}, unknown native check:{}",
@@ -1058,11 +1067,13 @@ std::shared_ptr<check> scheduler::default_check_builder(
       SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
       return check_dummy::load(io_context, logger, first_start_expected,
                                service, std::string(e.what()), conf,
-                               std::move(handler), stat, credentials_decrypt);
+                               std::move(handler), stat, credentials_decrypt,
+                               std::move(event_handler_executor));
     }
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, first_start_expected, service,
                             command_line, conf, std::move(handler), stat,
-                            credentials_decrypt);
+                            credentials_decrypt,
+                            std::move(event_handler_executor));
   }
 }

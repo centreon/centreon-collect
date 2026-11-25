@@ -727,6 +727,8 @@ service_enumerator::constructor check_service::_enumerator_constructor = []() {
  * @param stat statistics of the checks
  * @param credentials_decrypt key used to decrypt the encrypted event
  * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check_service::check_service(
     const std::shared_ptr<asio::io_context>& io_context,
@@ -737,7 +739,8 @@ check_service::check_service(
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
-    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : native_check_base(io_context,
                         logger,
                         first_start_expected,
@@ -746,7 +749,8 @@ check_service::check_service(
                         cnf,
                         std::move(handler),
                         stat,
-                        credentials_decrypt),
+                        credentials_decrypt,
+                        std::move(cmd_executor)),
       _filter(args),
       _enumerator(_enumerator_constructor()) {
   _measure_to_status.emplace(

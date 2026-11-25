@@ -256,7 +256,8 @@ class check_drive_size : public check {
       const engine_to_agent_request_ptr& cnf,
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
-      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      command_executor&& cmd_executor);
 
   virtual ~check_drive_size() = default;
 

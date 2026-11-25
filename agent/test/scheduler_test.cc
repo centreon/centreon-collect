@@ -55,7 +55,8 @@ class tempo_check : public check {
               cnf,
               std::move(handler),
               stat,
-              nullptr),
+              nullptr,
+              {}),
         _completion_timer(*io_context),
         _command_exit_status(command_exit_status),
         _completion_delay(completion_delay) {}
@@ -177,9 +178,8 @@ TEST_F(scheduler_test, no_config) {
          const Service&,
          const engine_to_agent_request_ptr& /*engine to agent request*/,
          check::completion_handler&&, const checks_statistics::pointer&,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
-        return std::shared_ptr<check>();
-      });
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) { return std::shared_ptr<check>(); });
 
   std::weak_ptr<scheduler> weak_shed(sched);
   sched.reset();
@@ -265,7 +265,8 @@ TEST_F(scheduler_test, correct_schedule) {
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) {
         return std::make_shared<tempo_check>(io_context, logger, start_expected,
                                              service, engine_to_agent_request,
                                              0, std::chrono::milliseconds(50),
@@ -354,7 +355,8 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) {
         return std::make_shared<tempo_check>(io_context, logger, start_expected,
                                              service, engine_to_agent_request,
                                              0, std::chrono::milliseconds(50),
@@ -435,7 +437,8 @@ TEST_F(scheduler_test, time_out) {
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) {
         return std::make_shared<tempo_check>(io_context, logger, start_expected,
                                              service, engine_to_agent_request,
                                              0, std::chrono::milliseconds(1500),
@@ -489,7 +492,8 @@ TEST_F(scheduler_test, correct_output_examplar) {
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) {
         return std::make_shared<tempo_check>(io_context, logger, start_expected,
                                              service, engine_to_agent_request,
                                              0, std::chrono::milliseconds(10),
@@ -573,7 +577,8 @@ class cp1252_check : public check {
               cnf,
               std::move(handler),
               stat,
-              nullptr) {}
+              nullptr,
+              {}) {}
 
   void start_check(const duration& timeout) override {
     if (!_start_check(timeout)) {
@@ -612,7 +617,8 @@ TEST_F(scheduler_test, non_utf8_metric_name_and_unit) {
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) {
         return std::make_shared<cp1252_check>(
             io_context, logger, start_expected, service,
             engine_to_agent_request, std::move(handler), stat);
@@ -667,7 +673,8 @@ class concurent_check : public check {
               cnf,
               std::move(handler),
               stat,
-              nullptr),
+              nullptr,
+              {}),
         _completion_timer(*io_context),
         _command_exit_status(command_exit_status),
         _completion_delay(completion_delay) {}
@@ -727,7 +734,8 @@ TEST_F(scheduler_test, max_concurent) {
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) {
         return std::make_shared<concurent_check>(
             io_context, logger, start_expected, service,
             engine_to_agent_request, 0,
@@ -769,7 +777,8 @@ TEST_F(scheduler_test, force_check) {
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) {
         return std::make_shared<concurent_check>(
             io_context, logger, start_expected, service,
             engine_to_agent_request, 0, std::chrono::milliseconds(500),
@@ -833,11 +842,12 @@ TEST_F(scheduler_test, can_not_decrypt) {
           check::completion_handler&& handler,
           const checks_statistics::pointer& stat,
           const std::shared_ptr<com::centreon::common::crypto::aes256>&
-              credentials_decrypt) {
+              credentials_decrypt,
+          check::command_executor&& event_handler_executor) {
         created = scheduler::default_check_builder(
             io_context, logger, start_expected, service,
             engine_to_agent_request, std::move(handler), stat,
-            credentials_decrypt);
+            credentials_decrypt, std::move(event_handler_executor));
         return created;
       });
 
@@ -885,11 +895,12 @@ TEST_F(scheduler_test, can_decrypt) {
           check::completion_handler&& handler,
           const checks_statistics::pointer& stat,
           const std::shared_ptr<com::centreon::common::crypto::aes256>&
-              credentials_decrypt) {
+              credentials_decrypt,
+          check::command_executor&& event_handler_executor) {
         created = scheduler::default_check_builder(
             io_context, logger, start_expected, service,
             engine_to_agent_request, std::move(handler), stat,
-            credentials_decrypt);
+            credentials_decrypt, std::move(event_handler_executor));
         return created;
       });
 
@@ -923,7 +934,8 @@ static std::shared_ptr<check> build_native_check(
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&) {});
 }
 
 /**
@@ -1077,7 +1089,8 @@ class scripted_check : public check {
               cnf,
               std::move(handler),
               stat,
-              nullptr),
+              nullptr,
+              {}),
         _completion_timer(*io_context),
         _statuses(std::move(statuses)),
         _completion_delay(completion_delay) {}
@@ -1206,7 +1219,8 @@ TEST_F(scheduler_test, retry_interval_is_used_until_hard_then_check_interval) {
          const engine_to_agent_request_ptr& req,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) {
         // OK hard, CRIT soft1, CRIT soft1, CRIT hard, OK hard , OK hard
         std::vector<unsigned> status_script = {
             static_cast<unsigned>(e_status::ok),
@@ -1311,7 +1325,8 @@ TEST_F(scheduler_test, multiple_services_intervals_are_respected) {
          const engine_to_agent_request_ptr& req,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
-         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         check::command_executor&&) {
         std::vector<unsigned> status_script;
         // Three deterministic scenarios to exercise Nagios-like state
         // transitions:
@@ -1419,7 +1434,8 @@ class build_counter_check_builder {
       const engine_to_agent_request_ptr& engine_to_agent_request,
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
-      const std::shared_ptr<com::centreon::common::crypto::aes256>&) const {
+      const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+      check::command_executor&&) const {
     ++*_build_count;
     return std::make_shared<tempo_check>(
         io_context, logger, start_expected, service, engine_to_agent_request, 0,
@@ -1468,8 +1484,7 @@ TEST_F(scheduler_test, custom_checks_file_update_reloads_commands) {
     asio::post(*g_io_context, [&read_promise]() {
       const auto& custom_checks = config::instance().get_custom_checks();
       auto found = custom_checks.find("check_echo");
-      read_promise.set_value(found == custom_checks.end() ? ""
-                                                          : found->second);
+      read_promise.set_value(found == custom_checks.end() ? "" : found->second);
     });
     return read_promise.get_future().get();
   };
