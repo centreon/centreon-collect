@@ -161,6 +161,9 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
 
   void _start_waiting_check();
 
+  void _run_event_handler(const std::string& command_line,
+                          const std::shared_ptr<check>& service);
+
  public:
   template <typename sender, typename chck_builder>
   scheduler(const std::shared_ptr<asio::io_context>& io_context,

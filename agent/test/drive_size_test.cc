@@ -240,7 +240,7 @@ TEST_F(drive_size_test, test_fs_filter1) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -311,7 +311,7 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -382,7 +382,7 @@ TEST_F(drive_size_test, test_fs_filter2) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -441,7 +441,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -509,7 +509,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -571,7 +571,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
   {
@@ -640,7 +640,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -704,7 +704,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -768,7 +768,7 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -831,7 +831,7 @@ TEST_F(drive_size_test, test_fs_filter_free_bytes) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -890,7 +890,7 @@ TEST_F(drive_size_test, test_fs_no_storage_found) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -932,7 +932,7 @@ TEST_F(drive_size_test, test_fs_format_filter) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -975,7 +975,7 @@ TEST_F(drive_size_test, test_fs_empty_filters) {
         output = outputs.front();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 

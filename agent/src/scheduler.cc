@@ -488,7 +488,14 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                 const std::list<std::string>& outputs) {
               me->_check_handler(check, status, perfdata, outputs);
             },
-            statistics, _credentials_decrypt, [](const std::string&) {});
+            statistics, _credentials_decrypt,
+            [me = weak_from_this()](const std::string& command_line,
+                                    const std::shared_ptr<check>& service) {
+              auto sched = me.lock();
+              if (sched) {
+                sched->_run_event_handler(command_line, service);
+              }
+            });
         last_inserted_iter = _waiting_check_queue.emplace_hint(
             last_inserted_iter, step_index, check_to_schedule);
         next += first_inter_check_delay;
@@ -1077,3 +1084,6 @@ std::shared_ptr<check> scheduler::default_check_builder(
                             std::move(event_handler_executor));
   }
 }
+
+void scheduler::_run_event_handler(const std::string& command_line,
+                                   const std::shared_ptr<check>& service) {}

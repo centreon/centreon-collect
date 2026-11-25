@@ -935,7 +935,7 @@ static std::shared_ptr<check> build_native_check(
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
 }
 
 /**

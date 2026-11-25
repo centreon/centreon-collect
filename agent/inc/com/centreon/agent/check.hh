@@ -158,7 +158,8 @@ class check : public std::enable_shared_from_this<check> {
       const std::list<com::centreon::common::perfdata>& perfdata,
       const std::list<std::string>& outputs)>;
 
-  using command_executor = std::function<void(const std::string&)>;
+  using command_executor =
+      std::function<void(const std::string&, const std::shared_ptr<check>&)>;
 
  private:
   //_start_expected is set on construction on config receive

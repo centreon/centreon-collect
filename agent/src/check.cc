@@ -478,7 +478,7 @@ void check::_run_command(const std::string& raw_cmd) {
                          {"SERVICEATTEMPT", attempt}},
                         &command_line);
   if (_command_executor) {
-    _command_executor(command_line);
+    _command_executor(command_line, shared_from_this());
   }
 }
 

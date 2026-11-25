@@ -17,7 +17,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <memory>
 #include "agent.pb.h"
 #include "check.hh"
 
@@ -73,7 +72,7 @@ TEST_F(check_exec_test, echo) {
         cond.notify_one();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
@@ -102,7 +101,7 @@ TEST_F(check_exec_test, timeout) {
         cond.notify_one();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
   check->start_check(std::chrono::seconds(1));
 
   int pid = check->get_pid();
@@ -155,7 +154,7 @@ TEST_F(check_exec_test, bad_command) {
         cond.notify_one();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
@@ -190,7 +189,7 @@ TEST_F(check_exec_test, recurse_not_lock) {
           cond.notify_one();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
   check->start_check(std::chrono::seconds(1));
 
   std::mutex mut;
@@ -225,7 +224,7 @@ TEST_F(check_exec_test, echo_perfdata) {
         cond.notify_one();
       },
       std::make_shared<checks_statistics>(), nullptr,
-      [](const std::string&) {});
+      [](const std::string&, const std::shared_ptr<check>&) {});
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
