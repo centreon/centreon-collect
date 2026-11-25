@@ -1744,7 +1744,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
     ${start}    Ctn Get Round Current Date
     ${resources_list}    Ctn Create Otl Request    ${0}    host_2
 
-    ${host_name}  Ctn Get Hostname
+    ${host_name}    Ctn Get Fqdn Hostname
     Ctn Send Otl To Engine Secure    ${host_name}:4318    ${resources_list}    /tmp/server_grpc.crt
 
     #if pass telegraph can connect to engine without token
@@ -1836,7 +1836,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2
     ${start}    Ctn Get Round Current Date
     ${resources_list}    Ctn Create Otl Request    ${0}    host_2
 
-    ${host_name}  Ctn Get Hostname
+    ${host_name}    Ctn Get Fqdn Hostname
     Ctn Send Otl To Engine Secure    ${host_name}:4318    ${resources_list}    /tmp/server_grpc.crt
 
     #if pass telegraph can connect to engine without token
