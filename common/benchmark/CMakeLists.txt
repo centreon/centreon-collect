@@ -68,7 +68,11 @@ target_link_libraries(common_perfdata_bench
     absl::flat_hash_set
     absl::strings
     spdlog::spdlog
-    fmt::fmt)
+    fmt::fmt
+    # precomp.hh pulls boost/asio/ssl in; gcc emits its inline error category,
+    # which calls ERR_reason_error_string() and ERR_lib_error_string().
+    OpenSSL::SSL
+    OpenSSL::Crypto)
 
 # Micro-benchmark: month-name lookup, linear array scan vs absl::flat_hash_map.
 add_executable(common_month_id_bench month_id.cc)
