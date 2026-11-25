@@ -17,6 +17,7 @@ BRGC1
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
     Ctn Config Broker    module
+    Ctn Broker Config Flush
 
     ${bbdo_version}    Ctn Broker Get Bbdo Version
     Ctn Broker Config Log    central    bbdo    info
@@ -47,6 +48,7 @@ BRCTS1
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
     Ctn Config Broker    module
+    Ctn Broker Config Flush
 
     ${bbdo_version}    Ctn Broker Get Bbdo Version
     Ctn Broker Config Log    central    bbdo    info
