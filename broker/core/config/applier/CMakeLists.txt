@@ -44,7 +44,13 @@ set_target_properties(broker_applier_state PROPERTIES POSITION_INDEPENDENT_CODE 
 
 target_link_libraries(broker_applier_state PRIVATE proto_file)
 
-add_dependencies(broker_applier_state process_stat)
+# The precompiled header of Broker includes the headers generated from the bbdo,
+# broker and engine_conf protos: they must exist before any source is compiled.
+add_dependencies(
+  broker_applier_state
+  process_stat pb_bbdo_lib pb_bam_lib pb_extcmd_lib pb_header_lib pb_neb_lib
+  pb_storage_lib pb_open_telemetry_lib pb_broker_lib target_broker_message
+  centreon_engine_conf)
 
 add_library(cbmod_applier_state STATIC
   cbmod_state.cc
@@ -65,7 +71,11 @@ target_precompile_headers(cbmod_applier_state PRIVATE ../../precomp_inc/precomp.
 
 set_target_properties(cbmod_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_dependencies(cbmod_applier_state process_stat)
+add_dependencies(
+  cbmod_applier_state
+  process_stat pb_bbdo_lib pb_bam_lib pb_extcmd_lib pb_header_lib pb_neb_lib
+  pb_storage_lib pb_open_telemetry_lib pb_broker_lib target_broker_message
+  centreon_engine_conf)
 
 if(WITH_TESTING)
   set(TESTS_SOURCES
