@@ -285,17 +285,17 @@ std::string check_event_log::print_event_detail(
     std::string written_str = std::format("{:%FT%T}", evt.get_time());
     return std::vformat(
         _event_detail_syntax,
-        std::make_format_args(file, event_id, evt.get_provider(),
-                              evt.get_message(), status_label[status], time_s,
-                              record_id, evt.get_computer(), evt.get_channel(),
-                              evt.get_str_keywords(), level, written_str));
+        std::make_format_args(
+            file, event_id, evt.get_provider(), evt.get_message(),
+            status_to_label(status), time_s, record_id, evt.get_computer(),
+            evt.get_channel(), evt.get_str_keywords(), level, written_str));
   } else {
     return std::vformat(
         _event_detail_syntax,
-        std::make_format_args(file, event_id, evt.get_provider(),
-                              evt.get_message(), status_label[status], time_s,
-                              record_id, evt.get_computer(), evt.get_channel(),
-                              evt.get_str_keywords(), level));
+        std::make_format_args(
+            file, event_id, evt.get_provider(), evt.get_message(),
+            status_to_label(status), time_s, record_id, evt.get_computer(),
+            evt.get_channel(), evt.get_str_keywords(), level));
   }
 }
 

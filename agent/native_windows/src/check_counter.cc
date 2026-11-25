@@ -812,21 +812,11 @@ void check_counter::_print_counter(std::string* output, e_status status) {
   }
   list_str += _ok_list_str;
 
-  std::string status_label;
-  if (status == e_status::ok) {
-    status_label = "OK";
-  } else if (status == e_status::warning) {
-    status_label = "WARNING";
-  } else if (status == e_status::critical) {
-    status_label = "CRITICAL";
-  } else {
-    status_label = "UNKNOWN";
-  }
   // format the output string
   *output = std::vformat(
       _output_syntax,
-      std::make_format_args(status_label, count, total, list_str, warn_count,
-                            _warning_list_str, crit_count, _critical_list_str,
-                            problem_count, _problem_list_str, ok_count,
-                            _ok_list_str));
+      std::make_format_args(status_to_label(status), count, total, list_str,
+                            warn_count, _warning_list_str, crit_count,
+                            _critical_list_str, problem_count,
+                            _problem_list_str, ok_count, _ok_list_str));
 }

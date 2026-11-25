@@ -19,6 +19,8 @@
 #ifndef CENTREON_AGENT_CHECK_HH
 #define CENTREON_AGENT_CHECK_HH
 
+#include "common/crypto/aes256.hh"
+
 #include "agent.pb.h"
 #include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/threshold.hh"
@@ -186,6 +188,8 @@ class check : public std::enable_shared_from_this<check> {
   time_point _last_start;
   checks_statistics::pointer _stat;
 
+  std::shared_ptr<common::crypto::aes256> _credentials_decrypt;
+
   int _current_attempt = 1;
   bool _status_confirmed = true; /* we consider the status as confirmed */
   unsigned int _last_status =
@@ -213,13 +217,16 @@ class check : public std::enable_shared_from_this<check> {
 
   static const std::array<std::string_view, 4> status_label;
 
+  static std::string_view status_to_label(int status);
+
   check(const std::shared_ptr<asio::io_context>& io_context,
         const std::shared_ptr<spdlog::logger>& logger,
         time_point first_start_expected,
         const Service& serv,
         const engine_to_agent_request_ptr& cnf,
         completion_handler&& handler,
-        const checks_statistics::pointer& stat);
+        const checks_statistics::pointer& stat,
+        const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
 
   virtual ~check() = default;
 
@@ -330,6 +337,10 @@ class check : public std::enable_shared_from_this<check> {
   void set_last_status(int status) { _last_status = status; }
 
   void calcul_status_confirmation(unsigned status);
+
+  void run_event_handler();
+
+  void run_command(const std::string& raw_cmd);
 };
 
 }  // namespace com::centreon::agent

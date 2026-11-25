@@ -303,9 +303,9 @@ e_status check_process::compute(process::container& cont,
       }
     }
 
-    *output = std::vformat(
-        *output_format,
-        std::make_format_args(status_label[ret], process_count, problem_list));
+    *output = std::vformat(*output_format,
+                           std::make_format_args(status_to_label(ret),
+                                                 process_count, problem_list));
 
     if (_verbose) {
       for (const process::process_data& to_dump :

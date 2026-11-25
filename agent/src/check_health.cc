@@ -180,7 +180,7 @@ e_status check_health::compute(
                                     const auto& iter) {
     if (written_to_output.insert(iter->cmd_name).second) {
       if (temp_output->empty()) {
-        *temp_output = status_label[status];
+        *temp_output = status_to_label(status);
         temp_output->append(": ");
       } else {
         temp_output->push_back(',');

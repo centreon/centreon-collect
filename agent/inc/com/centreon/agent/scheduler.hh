@@ -19,10 +19,8 @@
 #ifndef CENTREON_AGENT_SCHEDULER_HH
 #define CENTREON_AGENT_SCHEDULER_HH
 
-#include <memory>
 #include "check.hh"
 #include "com/centreon/common/file_watcher.hh"
-#include "common/crypto/aes256.hh"
 #include "common/engine_conf/timeperiod.pb.h"
 
 namespace com::centreon::agent {

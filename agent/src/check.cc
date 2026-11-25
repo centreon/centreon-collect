@@ -17,6 +17,8 @@
  */
 
 #include "check.hh"
+#include <string>
+#include "absl/strings/str_replace.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::agent;
@@ -116,6 +118,13 @@ void checks_statistics::add_duration_stat(const std::string& cmd_name,
 const std::array<std::string_view, 4> check::status_label = {
     "OK", "WARNING", "CRITICAL", "UNKNOWN"};
 
+std::string_view check::status_to_label(int status) {
+  if (status >= 0 && status < (int)status_label.size()) {
+    return status_label[status];
+  }
+  return status_to_label(e_status::unknown);
+}
+
 /**
  * @brief Construct a new check::check object
  *
@@ -134,7 +143,8 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
              const Service& serv,
              const engine_to_agent_request_ptr& cnf,
              completion_handler&& handler,
-             const checks_statistics::pointer& stat)
+             const checks_statistics::pointer& stat,
+             const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
     : _start_expected_normal(first_start_expected,
                              serv.check_interval()
                                  ? std::chrono::seconds(serv.check_interval())
@@ -148,6 +158,7 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
       _time_out_timer(*io_context),
       _completion_handler(handler),
       _stat(stat),
+      _credentials_decrypt(credentials_decrypt),
       _io_context(io_context),
       _logger(logger) {}
 
@@ -364,6 +375,7 @@ void check::calcul_status_confirmation(unsigned status) {
   const bool is_ok = (status == e_status::ok);
   const int max_attempts = std::max<int>(1, get_max_attempts());
   const bool was_problem = (last_status > 0);
+  bool event_handler_to_run = false;
 
   // ---- Case 1: OK (recovery handling) --------------------------------------
   if (is_ok) {
@@ -373,6 +385,7 @@ void check::calcul_status_confirmation(unsigned status) {
     // - If previous problem was SOFT, the recovery is SOFT (status_confirmed =
     // false).
     if (was_problem) {
+      event_handler_to_run = true;
       set_status_confirmed(prev_confirmed);
       // - If previous confirmed was true, reset attempts.
       if (prev_confirmed)
@@ -381,7 +394,6 @@ void check::calcul_status_confirmation(unsigned status) {
         // it s a soft recovery
         increment_cur_attempt();
       }
-
     } else {
       // - If previous ok was HARD, nothing to do (confirmed = true).
       // - if last_status == -1 it s the first status we consider it as hard ok
@@ -401,14 +413,52 @@ void check::calcul_status_confirmation(unsigned status) {
       increment_cur_attempt();
       set_status_confirmed(false);
     } else if (!was_problem) {
+      event_handler_to_run = true;
       set_current_attempt(1);
       set_status_confirmed(false);
     }
 
     if (get_current_attempt() >= max_attempts) {
-      set_status_confirmed(true);  // Problem is now HARD.
+      if (!prev_confirmed) {
+        event_handler_to_run = true;
+        set_status_confirmed(true);  // Problem is now HARD.
+      }
     }
   }
 
   set_last_status(status);
+  if (event_handler_to_run) {
+    run_event_handler();
+  }
+}
+
+void check::run_event_handler() {
+  if (!_service.global_event_handler().empty()) {
+    run_command(_service.global_event_handler());
+  }
+  if (!_service.event_handler().empty()) {
+    run_command(_service.event_handler());
+  }
+}
+
+void check::run_command(const std::string& raw_cmd) {
+  std::string_view status;
+  if (!_service.service_id()) {
+    status = _last_status ? "DOWN" : "UP";
+  } else {
+    status = status_to_label(_last_status);
+  }
+  std::string attempt = std::to_string(_current_attempt);
+  std::string_view state_type = _status_confirmed ? "HARD" : "SOFT";
+  std::string cmdline = raw_cmd;
+  if (!_service.service_id())
+    absl::StrReplaceAll({{"HOSTSTATE", status},
+                         {"HOSTSTATETYPE", state_type},
+                         {"HOSTATTEMPT", attempt}},
+                        &cmdline);
+  else
+    absl::StrReplaceAll({{"SERVICESTATE", status},
+                         {"SERVICESTATETYPE", state_type},
+                         {"SERVICEATTEMPT", attempt}},
+                        &cmdline);
 }

@@ -973,24 +973,20 @@ void check_files::_print_format(std::string& output, e_status status) {
   }
   list_str += _ok_list_str;
 
-  std::string_view status_label;
+  std::string_view status_label = status_to_label(status);
   const std::string* chosen_syntax = &_output_syntax;
 
   switch (status) {
     case e_status::ok:
-      status_label = "OK";
       chosen_syntax = &_ok_syntax;
       break;
     case e_status::warning:
-      status_label = "WARNING";
       chosen_syntax = &_output_syntax;
       break;
     case e_status::critical:
-      status_label = "CRITICAL";
       chosen_syntax = &_output_syntax;
       break;
     default:
-      status_label = "UNKNOWN";
       chosen_syntax = &_output_syntax;
       break;
   }
@@ -1103,25 +1099,11 @@ void check_files::_completion_handler(
   perfs.emplace_back(std::move(perf));
 
   if (_verbose) {
-    std::string status_str;
-    switch (ret) {
-      case e_status::ok:
-        status_str = "OK";
-        break;
-      case e_status::warning:
-        status_str = "WARNING";
-        break;
-      case e_status::critical:
-        status_str = "CRITICAL";
-        break;
-      default:
-        status_str = "UNKNOWN";
-        break;
-    }
-    output = fmt::format(
-        "{}: Ok:{}/Nok:{}/total:{}  warning:{}/critical:{}\n", status_str,
-        _ok_list.size(), _warning_list.size() + _critical_list.size(),
-        result.size(), _warning_list.size(), _critical_list.size());
+    output =
+        fmt::format("{}: Ok:{}/Nok:{}/total:{}  warning:{}/critical:{}\n",
+                    status_to_label(ret), _ok_list.size(),
+                    _warning_list.size() + _critical_list.size(), result.size(),
+                    _warning_list.size(), _critical_list.size());
     for (const auto& [path, metadata_ptr] : result) {
       const file_metadata& metadata = *metadata_ptr;
       output += fmt::format(
