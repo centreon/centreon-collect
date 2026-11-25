@@ -91,8 +91,8 @@ add_dependencies(sql process_stat pb_common_lib target_broker_message)
 # header: they must exist before the first source of the target is compiled.
 add_dependencies(
   sql
-  pb_bam_lib pb_bbdo_lib pb_header_lib pb_neb_lib pb_storage_lib
-  target_state_proto)
+  pb_bam_lib pb_bbdo_lib pb_header_lib pb_neb_lib pb_open_telemetry_lib
+  pb_storage_lib target_state_proto)
 
 if(WITH_TESTING)
   set(TESTS_SOURCES

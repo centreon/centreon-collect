@@ -36,7 +36,7 @@ add_dependencies(broker_cache process_stat)
 add_dependencies(
   broker_cache
   pb_bam_lib pb_common_lib pb_header_lib pb_neb_lib pb_storage_lib
-  target_broker_message target_state_proto)
+  pb_open_telemetry_lib target_broker_message target_state_proto)
 
 if(WITH_TESTING)
   set(TESTS_SOURCES
