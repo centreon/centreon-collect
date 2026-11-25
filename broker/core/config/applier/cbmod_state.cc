@@ -191,7 +191,7 @@ void cbmod_state::set_diff_state_applied(const std::string& config_version) {
   set_engine_conf(config_version);
   DiffStateAck ack;
   ack.set_config_version(config_version);
-  absl::MutexLock lck(&_diff_state_ack_m);
+  absl::MutexLock lck(_diff_state_ack_m);
   _diff_state_ack = std::move(ack);
 }
 
@@ -210,7 +210,7 @@ void cbmod_state::set_diff_state_failed(const std::string& failed_version,
   ack.set_config_version(engine_conf());
   ack.set_failed_version(failed_version);
   ack.set_error(error);
-  absl::MutexLock lck(&_diff_state_ack_m);
+  absl::MutexLock lck(_diff_state_ack_m);
   _diff_state_ack = std::move(ack);
 }
 
@@ -221,7 +221,7 @@ void cbmod_state::set_diff_state_failed(const std::string& failed_version,
  * @return The acknowledgement, without its poller_id, or std::nullopt.
  */
 std::optional<DiffStateAck> cbmod_state::take_diff_state_ack() {
-  absl::MutexLock lck(&_diff_state_ack_m);
+  absl::MutexLock lck(_diff_state_ack_m);
   return std::exchange(_diff_state_ack, std::nullopt);
 }
 

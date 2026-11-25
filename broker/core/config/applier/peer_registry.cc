@@ -48,7 +48,7 @@ std::vector<peer_registry::engine_peer> peer_registry::connected_pollers()
  */
 std::optional<peer_registry::engine_peer> peer_registry::engine_peer_of(
     uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(_connected_peers_m);
   auto it = _engine_peers.find(poller_id);
   if (it == _engine_peers.end())
     return std::nullopt;
@@ -329,7 +329,7 @@ peer_registry::relay_registration peer_registry::register_poller_via_relay(
  * otherwise, the registry knowing nothing of it, whether it did before or not.
  */
 bool peer_registry::forget_poller(uint64_t poller_id) {
-  absl::WriterMutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(_connected_peers_m);
   auto it = _engine_peers.find(poller_id);
   if (it != _engine_peers.end()) {
     if (it->second.connected())

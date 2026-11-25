@@ -430,7 +430,7 @@ void broker_state::load_topology_cache() {
   }
   _peers.restore_pollers_from_cache(cache);
   {
-    absl::MutexLock lck(&_poller_confs_m);
+    absl::MutexLock lck(_poller_confs_m);
     for (const auto& e : cache.entries())
       _poller_confs.try_emplace(e.poller_id(), e.poller_id(), _logger)
           .first->second.on_expected();
@@ -636,7 +636,7 @@ std::optional<uint64_t> broker_state::poller_id_by_name(
  * otherwise.
  */
 bool broker_state::remove_poller(uint64_t poller_id) {
-  absl::MutexLock lck(&_conf_handover_m);
+  absl::MutexLock lck(_conf_handover_m);
   if (!_peers.forget_poller(poller_id)) {
     _logger->warn("Poller {} is not removed: it is connected", poller_id);
     return false;
@@ -660,7 +660,7 @@ bool broker_state::remove_poller(uint64_t poller_id) {
     /* An expected poller_conf goes with the registry entry just forgotten. A
      * connected one stays: the poller came back through a relay since, and
      * every Engine entry of the registry has its poller_conf. */
-    absl::MutexLock lck(&_poller_confs_m);
+    absl::MutexLock lck(_poller_confs_m);
     auto it = _poller_confs.find(poller_id);
     if (it != _poller_confs.end() && it->second.registration_status() !=
                                          poller_conf::registration::connected)
@@ -794,7 +794,7 @@ void broker_state::load_pollers_config_in_cache() {
     if (!std::filesystem::exists(poller_paths(id).diff_path(), exists_ec))
       continue;
     _declare_poller_conf(id);
-    absl::MutexLock lck(&_poller_confs_m);
+    absl::MutexLock lck(_poller_confs_m);
     _poller_confs.at(id).on_pending_diff_loaded();
     pending.push_back(id);
   }
@@ -813,7 +813,7 @@ void broker_state::load_pollers_config_in_cache() {
       "database before Broker stopped, and no configuration is left to "
       "deliver: the round is closed now",
       fmt::join(pending, ", "));
-  absl::MutexLock handover_lck(&_conf_handover_m);
+  absl::MutexLock handover_lck(_conf_handover_m);
   _close_conf_round_if_over();
 }
 
@@ -925,7 +925,7 @@ void broker_state::recover_stored_conf(
      * diff from a <ID>.prot being replaced. The cache is fed after, out of
      * it: _feed_cache_and_wake_up_resources() may hand over a prepared
      * new-<ID>.prot, which takes it. */
-    absl::MutexLock handover_lck(&_conf_handover_m);
+    absl::MutexLock handover_lck(_conf_handover_m);
 
     // Logs the skip reason, records that Broker knows this poller's
     // configuration, and signals to the caller that creation should be skipped.
@@ -1003,7 +1003,7 @@ void broker_state::add_peer(uint64_t poller_id,
    * version it was known to run is kept if it announces none. */
   std::string engine_conf_known = engine_conf;
   if (peer_type != common::BROKER) {
-    absl::MutexLock lck(&_poller_confs_m);
+    absl::MutexLock lck(_poller_confs_m);
     poller_conf& conf =
         _poller_confs.try_emplace(poller_id, poller_id, _logger).first->second;
     if (peer_type == common::ENGINE) {
@@ -1159,7 +1159,7 @@ bool broker_state::_feed_cache_and_wake_up_resources(
           "Poller {} announces configuration '{}' and Broker stores '{}' for "
           "it, with nothing newer: it is owed the stored one, whole",
           poller_id, *announced, stored_version);
-      absl::MutexLock lck(&_poller_confs_m);
+      absl::MutexLock lck(_poller_confs_m);
       if (poller_conf* conf = _known_poller_conf(poller_id))
         conf->on_stored_conf_owed(stored_version, *announced);
     }
@@ -1203,7 +1203,7 @@ std::string broker_state::poller_timezone(uint64_t poller_id) const {
  * @return Its configuration version, empty if the poller is unknown.
  */
 std::string broker_state::poller_engine_conf(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_poller_confs_m);
+  absl::ReaderMutexLock lck(_poller_confs_m);
   const poller_conf* conf = _known_poller_conf(poller_id);
   return conf ? conf->engine_conf() : std::string{};
 }
@@ -1217,7 +1217,7 @@ std::string broker_state::poller_engine_conf(uint64_t poller_id) const {
  * prepared.
  */
 std::string broker_state::poller_available_conf(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_poller_confs_m);
+  absl::ReaderMutexLock lck(_poller_confs_m);
   const poller_conf* conf = _known_poller_conf(poller_id);
   return conf ? conf->available_conf() : std::string{};
 }
@@ -1232,7 +1232,7 @@ std::string broker_state::poller_available_conf(uint64_t poller_id) const {
  * poller is unknown.
  */
 bool broker_state::runtime_state_owed(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_poller_confs_m);
+  absl::ReaderMutexLock lck(_poller_confs_m);
   const poller_conf* conf = _known_poller_conf(poller_id);
   return conf && conf->runtime_state_owed();
 }
@@ -1245,7 +1245,7 @@ bool broker_state::runtime_state_owed(uint64_t poller_id) const {
  * was sent.
  */
 void broker_state::set_runtime_state_owed(uint64_t poller_id, bool owed) {
-  absl::MutexLock lck(&_poller_confs_m);
+  absl::MutexLock lck(_poller_confs_m);
   if (poller_conf* conf = _known_poller_conf(poller_id))
     conf->set_runtime_state_owed(owed);
 }
@@ -1407,7 +1407,7 @@ absl::flat_hash_set<uint64_t> broker_state::_read_poller_batch() {
  */
 void broker_state::set_broker_knows_poller_conf(uint64_t poller_id,
                                                 bool known) {
-  absl::MutexLock lck(&_poller_confs_m);
+  absl::MutexLock lck(_poller_confs_m);
   poller_conf* conf = _known_poller_conf(poller_id);
   if (!conf)
     return;
@@ -1428,7 +1428,7 @@ void broker_state::set_broker_knows_poller_conf(uint64_t poller_id,
  * @return true if the configuration is known, false if unknown.
  */
 bool broker_state::broker_knows_poller_conf(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_poller_confs_m);
+  absl::ReaderMutexLock lck(_poller_confs_m);
   const poller_conf* conf = _known_poller_conf(poller_id);
   return !conf || conf->broker_knows_conf();
 }
@@ -1447,7 +1447,7 @@ void broker_state::remove_peer(uint64_t poller_id,
   if (what == peer_registry::removed::engine) {
     /* The poller_conf stays, in its initial state: it is no longer part of the
      * round, and its next connection works out again what it is owed. */
-    absl::MutexLock lck(&_poller_confs_m);
+    absl::MutexLock lck(_poller_confs_m);
     if (auto it = _poller_confs.find(poller_id); it != _poller_confs.end())
       it->second.on_disconnected();
   }
@@ -1517,7 +1517,7 @@ std::vector<broker_state::connected_poller> broker_state::connected_pollers()
   const std::vector<engine_peer> peers = _peers.connected_pollers();
   std::vector<connected_poller> retval;
   retval.reserve(peers.size());
-  absl::ReaderMutexLock lck(&_poller_confs_m);
+  absl::ReaderMutexLock lck(_poller_confs_m);
   for (const engine_peer& peer : peers) {
     auto it = _poller_confs.find(peer.poller_id);
     if (it != _poller_confs.end())
@@ -1533,7 +1533,7 @@ std::vector<broker_state::connected_poller> broker_state::connected_pollers()
  */
 std::vector<broker_state::peer> broker_state::connected_peers() const {
   std::vector<peer> retval = _peers.connected_peers();
-  absl::ReaderMutexLock lck(&_poller_confs_m);
+  absl::ReaderMutexLock lck(_poller_confs_m);
   for (peer& p : retval) {
     if (p.peer_type != common::ENGINE)
       continue;
@@ -1562,7 +1562,7 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
  * false otherwise.
  */
 bool broker_state::try_close_conf_round() {
-  absl::MutexLock lck(&_poller_confs_m);
+  absl::MutexLock lck(_poller_confs_m);
   bool retval = true;
   uint32_t engine_count = 0;
   uint32_t engine_good = 0;
@@ -1933,7 +1933,7 @@ bool broker_state::_write_next_conf(uint64_t poller_id,
  * @return true when the poller still owes an answer about its configuration.
  */
 bool broker_state::_poller_conf_in_flight(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_poller_confs_m);
+  absl::ReaderMutexLock lck(_poller_confs_m);
   const poller_conf* conf = _known_poller_conf(poller_id);
   return conf && conf->awaits_acknowledgement();
 }
@@ -2048,7 +2048,7 @@ void broker_state::_run_config_cycle(
 
     /* Reading took the time, handing over takes the lock: an acknowledgement
      * must not slip between the two files written below. */
-    absl::MutexLock handover_lck(&_conf_handover_m);
+    absl::MutexLock handover_lck(_conf_handover_m);
     if (_poller_conf_in_flight(poller_id)) {
       /* The poller is applying a configuration: this one waits for its
        * answer, and no difference is computed yet, its base is not known. */
@@ -2422,7 +2422,7 @@ bool broker_state::_prepare_diff_for_poller(
        * new-<poller-ID>.prot. Once acknowledged, this file is renamed into
        * <poller-ID>.prot and new-diff-<poller-ID>.prot into
        * diff-<poller-ID>.prot, for the database. */
-      absl::MutexLock lck(&_poller_confs_m);
+      absl::MutexLock lck(_poller_confs_m);
       if (poller_conf* conf = _known_poller_conf(poller_id))
         conf->prepare(new_version);
       return true;
@@ -2431,7 +2431,7 @@ bool broker_state::_prepare_diff_for_poller(
         "Poller '{}' with id {} already runs '{}', the configuration prepared "
         "for it: its announcement counts as the acknowledgement",
         peer->poller_name, poller_id, new_version);
-    absl::MutexLock lck(&_poller_confs_m);
+    absl::MutexLock lck(_poller_confs_m);
     if (poller_conf* conf = _known_poller_conf(poller_id))
       conf->on_announced(new_version);
   }
@@ -2456,7 +2456,7 @@ bool broker_state::_prepare_diff_for_poller(
  */
 
 bool broker_state::poller_needs_update(uint64_t poller_id) const {
-  absl::ReaderMutexLock lck(&_poller_confs_m);
+  absl::ReaderMutexLock lck(_poller_confs_m);
   const poller_conf* conf = _known_poller_conf(poller_id);
   if (!conf || !conf->needs_update())
     return false;
@@ -2476,7 +2476,7 @@ bool broker_state::poller_needs_update(uint64_t poller_id) const {
  */
 bool broker_state::acknowledge_poller_conf(uint64_t poller_id,
                                            const std::string& version) {
-  absl::MutexLock lck(&_poller_confs_m);
+  absl::MutexLock lck(_poller_confs_m);
   poller_conf* conf = _known_poller_conf(poller_id);
   if (!conf) {
     _logger->info("Acknowledgement of '{}' from unknown poller {}: ignored",
@@ -2502,7 +2502,7 @@ bool broker_state::acknowledge_poller_conf(uint64_t poller_id,
  */
 void broker_state::on_poller_conf_acknowledged(uint64_t poller_id,
                                                const std::string& version) {
-  absl::MutexLock lck(&_conf_handover_m);
+  absl::MutexLock lck(_conf_handover_m);
   if (!acknowledge_poller_conf(poller_id, version)) {
     _logger->info(
         "Poller {} acknowledged '{}', which is not the configuration prepared "
@@ -2658,10 +2658,10 @@ void broker_state::on_poller_conf_rejected(uint64_t poller_id,
                                            const std::string& running_version,
                                            const std::string& failed_version,
                                            const std::string& error) {
-  absl::MutexLock lck(&_conf_handover_m);
+  absl::MutexLock lck(_conf_handover_m);
   bool prepared = false;
   {
-    absl::MutexLock conf_lck(&_poller_confs_m);
+    absl::MutexLock conf_lck(_poller_confs_m);
     if (poller_conf* conf = _known_poller_conf(poller_id))
       prepared = conf->on_rejected(running_version, failed_version, error);
     else
@@ -2747,7 +2747,7 @@ void broker_state::_publish_global_diff() {
  */
 bool broker_state::set_poller_conf_sent(uint64_t poller_id,
                                         std::string_view version) {
-  absl::MutexLock lck(&_poller_confs_m);
+  absl::MutexLock lck(_poller_confs_m);
   poller_conf* conf = _known_poller_conf(poller_id);
   if (!conf) {
     _logger->info("Unable to send configuration to poller {}: it doesn't exist",
@@ -2881,7 +2881,7 @@ void broker_state::register_poller_via_relay(
   const peer_registry::relay_registration reg =
       _peers.register_poller_via_relay(poller_id, poller_name, relay_poller_id);
   {
-    absl::MutexLock lck(&_poller_confs_m);
+    absl::MutexLock lck(_poller_confs_m);
     poller_conf& conf =
         _poller_confs.try_emplace(poller_id, poller_id, _logger).first->second;
     /* The version the relay knows is what the poller runs. */
@@ -2948,7 +2948,7 @@ std::optional<bool> broker_state::_prepare_diff_from_new_prot_file(
     return std::nullopt;
   }
   const auto new_file = poller_paths(poller_id).new_path();
-  absl::MutexLock lck(&_conf_handover_m);
+  absl::MutexLock lck(_conf_handover_m);
   auto state = std::make_unique<engine::configuration::State>();
   std::error_code ec;
   if (!std::filesystem::exists(new_file, ec)) {
@@ -3040,7 +3040,7 @@ const poller_conf* broker_state::_known_poller_conf(uint64_t poller_id) const {
  * @param poller_id The poller ID.
  */
 void broker_state::_declare_poller_conf(uint64_t poller_id) {
-  absl::MutexLock lck(&_poller_confs_m);
+  absl::MutexLock lck(_poller_confs_m);
   _poller_confs.try_emplace(poller_id, poller_id, _logger);
 }
 
