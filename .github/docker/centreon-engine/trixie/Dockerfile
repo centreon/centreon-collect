@@ -244,8 +244,13 @@ COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d
 # Remote exec allow-list (contracts.md §12): root-owned, outside the
 # directories the central delivers, so the central cannot widen it. Default
 # deny: without a pattern, every RemoteExec is refused.
-COPY --chmod=644 <<EOF /etc/centreon-engine-exec/default.json
-{"exec": {"wildcard": ["/usr/lib/centreon/plugins/*", "/usr/lib/nagios/plugins/*"]}}
+# (Written by RUN, not COPY --chmod: COPY would give the created directory
+# the file mode 644, which the engine user cannot traverse.)
+RUN bash -e <<'EOF'
+install -d -m 0755 /etc/centreon-engine-exec
+printf '%s\n' '{"exec": {"wildcard": ["/usr/lib/centreon/plugins/*", "/usr/lib/nagios/plugins/*"]}}' \
+    > /etc/centreon-engine-exec/default.json
+chmod 0644 /etc/centreon-engine-exec/default.json
 EOF
 
 # Verify critical runtime files. Checking the dynamic linker can actually
