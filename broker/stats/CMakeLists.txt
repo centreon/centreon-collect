@@ -47,6 +47,11 @@ set_target_properties("${STATS}" PROPERTIES PREFIX ""
 target_link_libraries("${STATS}" PRIVATE spdlog::spdlog)
 target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hh)
 add_dependencies(${STATS} process_stat pb_common_lib target_broker_message)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(
+  ${STATS}
+  pb_bam_lib pb_header_lib pb_neb_lib pb_storage_lib target_state_proto)
 
 # Testing.
 if(WITH_TESTING)

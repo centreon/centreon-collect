@@ -59,6 +59,9 @@ target_precompile_headers(${INFLUXDB} PRIVATE precomp_inc/precomp.hh)
 set_target_properties("${INFLUXDB}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${INFLUXDB}" nebbase process_stat target_broker_message)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies("${INFLUXDB}" target_state_proto)
 
 # Testing.
 if(WITH_TESTING)

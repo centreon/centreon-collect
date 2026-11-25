@@ -81,6 +81,9 @@ add_library(
   ${SRC_DIR}/broker.cc)
 
 add_dependencies(${NEB} nebbase target_broker_message)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(${NEB} target_state_proto)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(${NEB} PRIVATE -Wl,--whole-archive nebbase -Wl,--no-whole-archive fmt::fmt)

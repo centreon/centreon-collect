@@ -29,6 +29,9 @@ target_link_libraries(broker_bbdo PRIVATE centreon_engine_conf proto_file)
 add_dependencies(broker_bbdo pb_bbdo_lib pb_extcmd_lib process_stat
                  pb_open_telemetry_lib pb_neb_lib pb_storage_lib
                  target_broker_message centreon_engine_conf)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(broker_bbdo pb_bam_lib)
 target_precompile_headers(broker_bbdo PRIVATE precomp_inc/precomp.hh)
 
 set_target_properties(broker_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -44,6 +47,9 @@ target_link_libraries(cbmod_bbdo PRIVATE centreon_engine_conf)
 add_dependencies(cbmod_bbdo pb_bbdo_lib pb_extcmd_lib process_stat
                  pb_open_telemetry_lib pb_neb_lib pb_storage_lib
                  target_broker_message centreon_engine_conf)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(cbmod_bbdo pb_bam_lib)
 target_precompile_headers(cbmod_bbdo PRIVATE precomp_inc/precomp.hh)
 
 set_target_properties(cbmod_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)

@@ -70,6 +70,11 @@ set_target_properties("${OTLP}" PROPERTIES PREFIX ""
 # messages) arrives transitively through centreon_pb_bbdo. Neither tree is
 # duplicated into this module: see broker/doc/otlp_output_architecture.md.
 add_dependencies("${OTLP}" pb_otel_grpc_lib pb_neb_lib)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(
+  "${OTLP}"
+  target_broker_message target_state_proto target_process_stat_proto)
 
 target_link_libraries("${OTLP}"
   pb_otel_grpc_lib

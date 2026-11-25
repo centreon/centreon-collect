@@ -55,6 +55,9 @@ add_library("${VICTORIA_METRICS}" SHARED
 set_target_properties("${VICTORIA_METRICS}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${VICTORIA_METRICS}" target_broker_message)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies("${VICTORIA_METRICS}" target_state_proto)
 target_link_libraries("${VICTORIA_METRICS}"
   http_tsdb
   centreon_http

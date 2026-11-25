@@ -150,6 +150,9 @@ add_library(
 set_target_properties(bbdo_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_bbdo PRIVATE precomp_inc/precomp.hh)
 add_dependencies(bbdo_bbdo pb_bbdo_lib pb_extcmd_lib)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(bbdo_bbdo target_state_proto)
 
 add_library(
   bbdo_storage STATIC

@@ -74,6 +74,9 @@ add_library(
 
 add_dependencies(enginerpc centreon_common process_stat cerpc pb_neb_lib
                  pb_storage_lib pb_open_telemetry_lib target_state_proto)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(enginerpc pb_bbdo_lib pb_common_lib)
 target_precompile_headers(enginerpc PRIVATE precomp_inc/precomp.hh)
 
 # Prettier name.

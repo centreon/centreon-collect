@@ -50,6 +50,9 @@ target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hh)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${GRAPHITE}" nebbase target_broker_message)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies("${GRAPHITE}" target_state_proto)
 
 # Testing.
 if (WITH_TESTING)

@@ -42,6 +42,9 @@ set_target_properties("${TCP}" PROPERTIES PREFIX ""
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib"
 )
 add_dependencies("${TCP}" process_stat pb_common_lib target_broker_message)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies("${TCP}" pb_header_lib pb_neb_lib)
 target_link_libraries("${TCP}" spdlog::spdlog)
 target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hh)
 

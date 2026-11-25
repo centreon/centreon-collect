@@ -38,6 +38,9 @@ target_precompile_headers("externalcmd" PRIVATE precomp_inc/precomp.hh)
 
 add_dependencies(externalcmd centreon_clib pb_neb_lib pb_storage_lib
                  pb_open_telemetry_lib target_state_proto process_stat)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(externalcmd pb_bbdo_lib pb_common_lib)
 target_link_libraries(externalcmd PRIVATE centreon_clib)
 
 install(
