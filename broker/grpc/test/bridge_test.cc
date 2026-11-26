@@ -25,6 +25,7 @@
 #include "com/centreon/broker/grpc/grpc_bridge.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -102,4 +103,43 @@ TEST_F(grpc_bridge_test, every_protobuf_event_has_a_field) {
   EXPECT_TRUE(missing.empty())
       << "protobuf events without a field in the gRPC oneof: "
       << fmt::format("{}", fmt::join(missing, ", "));
+}
+
+/**
+ * @brief An event received on a serialized gRPC stream keeps its message in
+ * the received CentreonEvent, not in the _obj of io::protobuf: a copy of it
+ * (the copy-on-write of the Broker cache clones its entries this way) and an
+ * assignment to it must go through obj()/mut_obj(), otherwise they produce an
+ * empty message (host_id 0) or leave the received one unchanged.
+ */
+TEST(grpc_received_protobuf, copy_and_assignment_keep_the_message) {
+  auto make_received = [](uint64_t host_id, const std::string& name) {
+    auto host = std::make_shared<neb::pb_host>();
+    host->mut_obj().set_host_id(host_id);
+    host->mut_obj().set_name(name);
+    auto to_send = com::centreon::broker::grpc::create_event_with_data(host);
+    auto received =
+        std::make_shared<com::centreon::broker::grpc::grpc_event_type>(
+            to_send->grpc_event);
+    return std::static_pointer_cast<neb::pb_host>(
+        com::centreon::broker::grpc::protobuf_to_event(received));
+  };
+
+  auto received = make_received(50, "host_50");
+  ASSERT_TRUE(received);
+  ASSERT_EQ(received->obj().host_id(), 50u);
+
+  neb::pb_host copy(*received);
+  EXPECT_EQ(copy.obj().host_id(), 50u);
+  EXPECT_EQ(copy.obj().name(), "host_50");
+
+  neb::pb_host assigned;
+  assigned = *received;
+  EXPECT_EQ(assigned.obj().host_id(), 50u);
+
+  auto target = make_received(15, "host_15");
+  ASSERT_TRUE(target);
+  *target = *received;
+  EXPECT_EQ(target->obj().host_id(), 50u);
+  EXPECT_EQ(target->obj().name(), "host_50");
 }

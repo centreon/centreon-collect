@@ -129,12 +129,30 @@ class protobuf : public protobuf_base {
     destination_id = dest_id;
   }
 
+  /**
+   * @brief Copy constructor of a protobuf object.
+   *
+   * obj() is virtual: a grpc::detail::received_protobuf keeps its message in
+   * the received CentreonEvent, not in _obj
+   *
+   * @param to_clone The message to clone.
+   */
   protobuf(const protobuf& to_clone) : protobuf_base(Typ, &_obj) {
-    _obj.CopyFrom(to_clone._obj);
+    _obj.CopyFrom(to_clone.obj());
   }
 
+  /**
+   * @brief Assignment operator of protobuf objects.
+   *
+   * obj() is virtual: a grpc::detail::received_protobuf keeps its message in
+   * the received CentreonEvent, not in _obj
+   *
+   * @param to_clone The message to clone.
+   *
+   * @return A reference to the copy.
+   */
   protobuf& operator=(const protobuf& to_clone) {
-    _obj.CopyFrom(to_clone._obj);
+    mut_obj().CopyFrom(to_clone.obj());
     return *this;
   }
 
@@ -200,7 +218,8 @@ class protobuf : public protobuf_base {
   /* A shared_ptr and not a raw pointer: the caller needs one anyway, and
    * building it from a released unique_ptr meant the object and its control
    * block were two separate allocations. make_shared fuses them. */
-  static std::shared_ptr<io::data> deserialize(const char* buffer, size_t size) {
+  static std::shared_ptr<io::data> deserialize(const char* buffer,
+                                               size_t size) {
     auto retval = std::make_shared<protobuf<T, Typ>>();
     if (!retval->mut_msg()->ParseFromArray(buffer, size))
       throw com::centreon::exceptions::msg_fmt(

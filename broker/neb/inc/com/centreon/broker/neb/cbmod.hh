@@ -25,7 +25,6 @@
 
 #include "bbdo/bbdo.pb.h"
 #include "bbdo/bbdo_version.hh"
-// #include "com/centreon/broker/config/applier/cbmod_state.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/internal.hh"
