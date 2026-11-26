@@ -103,13 +103,13 @@ std::string _format_value(unsigned metric, double value) {
 /**
  * @brief traffic with its share of the link speed when the speed is known
  */
-std::string _format_traffic(const std::optional<double>& bits_per_second,
+std::string _format_traffic(double bits_per_second,
                             const std::optional<double>& percent) {
   if (percent) {
-    return fmt::format("{} ({:.2f}%)", _format_bit_rate(*bits_per_second),
+    return fmt::format("{} ({:.2f}%)", _format_bit_rate(bits_per_second),
                        *percent);
   }
-  return _format_bit_rate(*bits_per_second);
+  return _format_bit_rate(bits_per_second);
 }
 
 std::string _format_speed(uint64_t speed_in, uint64_t speed_out) {
@@ -691,9 +691,9 @@ e_status check_network::compute(const network_snapshot& first_measure,
         "discards in {}, out {}",
         itf.name, _status_labels[itf.status],
         _format_speed(itf.speed_in, itf.speed_out),
-        _format_traffic(values[e_metric::traffic_in],
+        _format_traffic(*values[e_metric::traffic_in],
                         values[e_metric::traffic_in_prct]),
-        _format_traffic(values[e_metric::traffic_out],
+        _format_traffic(*values[e_metric::traffic_out],
                         values[e_metric::traffic_out_prct]),
         _format_value(e_metric::errors_in, *values[e_metric::errors_in]),
         _format_value(e_metric::errors_out, *values[e_metric::errors_out]),
