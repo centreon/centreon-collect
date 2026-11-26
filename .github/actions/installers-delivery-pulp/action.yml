@@ -44,7 +44,7 @@ runs:
   steps:
     # the installers family is not edition-scoped, so it lives in "default" alongside repo-files
     - name: Setup pulp-cli
-      uses: ./.github/actions/setup-pulp-cli
+      uses: centreon/github-actions/pulp/setup-cli@pulp/v1
       with:
         pulp_url: ${{ inputs.pulp_url }}
         audience: ${{ inputs.audience }}

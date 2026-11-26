@@ -24,7 +24,7 @@ switch_pulp_domain() {
 # the github actions oidc token expires ~5 minutes after issuance, which is
 # shorter than a large delivery: refresh it before it goes stale whenever the
 # job can mint tokens (id-token: write context + audience exported by
-# setup-pulp-cli). The fresh token is propagated to the following steps
+# the shared setup-cli action). The fresh token is propagated to the following steps
 # (GITHUB_ENV) and to the pulp-cli config so the pulp commands keep working.
 refresh_pulp_token() {
   local now token
