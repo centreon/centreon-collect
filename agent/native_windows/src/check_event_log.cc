@@ -293,21 +293,22 @@ std::string check_event_log::print_event_detail(
   uint64_t time_s = std::chrono::duration_cast<std::chrono::seconds>(
                         evt.get_time().time_since_epoch())
                         .count();
+  std::string_view status_label = status_to_label(status);
   if constexpr (need_written_str) {
     std::string written_str = std::format("{:%FT%T}", evt.get_time());
     return std::vformat(
         _event_detail_syntax,
-        std::make_format_args(
-            file, event_id, evt.get_provider(), evt.get_message(),
-            status_to_label(status), time_s, record_id, evt.get_computer(),
-            evt.get_channel(), evt.get_str_keywords(), level, written_str));
+        std::make_format_args(file, event_id, evt.get_provider(),
+                              evt.get_message(), status_label, time_s,
+                              record_id, evt.get_computer(), evt.get_channel(),
+                              evt.get_str_keywords(), level, written_str));
   } else {
     return std::vformat(
         _event_detail_syntax,
-        std::make_format_args(
-            file, event_id, evt.get_provider(), evt.get_message(),
-            status_to_label(status), time_s, record_id, evt.get_computer(),
-            evt.get_channel(), evt.get_str_keywords(), level));
+        std::make_format_args(file, event_id, evt.get_provider(),
+                              evt.get_message(), status_label, time_s,
+                              record_id, evt.get_computer(), evt.get_channel(),
+                              evt.get_str_keywords(), level));
   }
 }
 

@@ -138,7 +138,8 @@ TEST_F(check_files_test, default_behavior) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(20));
 
@@ -183,7 +184,8 @@ TEST_F(check_files_test, test_filter) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(20));
 
@@ -255,7 +257,8 @@ TEST_F(check_files_test, warning_status) {
           complete = true;
           output = outputs.front();
         },
-        std::make_shared<checks_statistics>(), nullptr);
+        std::make_shared<checks_statistics>(), nullptr,
+        [](const std::string&, const std::shared_ptr<check>&) {});
 
     checker->start_check(std::chrono::seconds(20));
 
@@ -319,7 +322,8 @@ TEST_F(check_files_test, critical_status) {
           complete = true;
           output = outputs.front();
         },
-        std::make_shared<checks_statistics>(), nullptr);
+        std::make_shared<checks_statistics>(), nullptr,
+        [](const std::string&, const std::shared_ptr<check>&) {});
 
     checker->start_check(std::chrono::seconds(120));
 
@@ -382,7 +386,8 @@ TEST_F(check_files_test, ok_status) {
           complete = true;
           output = outputs.front();
         },
-        std::make_shared<checks_statistics>(), nullptr);
+        std::make_shared<checks_statistics>(), nullptr,
+        [](const std::string&, const std::shared_ptr<check>&) {});
 
     checker->start_check(std::chrono::seconds(120));
 
@@ -426,7 +431,8 @@ TEST_F(check_files_test, version) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(120));
 
@@ -530,7 +536,8 @@ TEST_F(check_files_test, regex_failures) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(120));
 
@@ -585,7 +592,8 @@ TEST_F(check_files_test, pattern_matching) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(120));
 
@@ -654,7 +662,8 @@ TEST_F(check_files_test, no_dangling_pointer) {
           complete = true;
           output = outputs.front();
         },
-        std::make_shared<checks_statistics>(), nullptr);
+        std::make_shared<checks_statistics>(), nullptr,
+        [](const std::string&, const std::shared_ptr<check>&) {});
 
     checker->start_check(std::chrono::seconds(10));
     checker.reset();  // Reset the checker to ensure it is deleted
@@ -709,7 +718,8 @@ TEST_F(check_files_test, two_checks_same_path) {
         complete = true;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   auto run_one_check = [&](std::chrono::seconds timeout) {
     {
@@ -796,7 +806,8 @@ TEST_F(check_files_test, status_updates_when_file_added_and_removed) {
         status = st;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   auto run_one_check = [&]() {
     {
@@ -814,7 +825,9 @@ TEST_F(check_files_test, status_updates_when_file_added_and_removed) {
       << "expected OK when no file is present, got: " << output;
 
   // 2) create the file -> count > 0 -> CRITICAL
-  { std::ofstream(watched) << "hello\n"; }
+  {
+    std::ofstream(watched) << "hello\n";
+  }
   run_one_check();
   EXPECT_EQ(status, e_status::critical)
       << "expected CRITICAL once the file exists, got: " << output;
@@ -835,9 +848,15 @@ TEST_F(check_files_test, non_ascii_path_pattern_and_filter) {
   fs::path dir = fs::temp_directory_path() / L"check_files_Données";
   fs::remove_all(dir);
   fs::create_directories(dir);
-  { std::ofstream(dir / L"Café.csv") << "a\nb\n"; }
-  { std::ofstream(dir / L"Москва.csv") << "a\n"; }
-  { std::ofstream(dir / L"plain.txt") << "a\n"; }
+  {
+    std::ofstream(dir / L"Café.csv") << "a\nb\n";
+  }
+  {
+    std::ofstream(dir / L"Москва.csv") << "a\n";
+  }
+  {
+    std::ofstream(dir / L"plain.txt") << "a\n";
+  }
 
   std::string dir_utf8 =
       com::centreon::common::wstring_to_utf8(dir.generic_wstring());
@@ -875,7 +894,8 @@ TEST_F(check_files_test, non_ascii_path_pattern_and_filter) {
           status = st;
           *output = outputs.front();
         },
-        std::make_shared<checks_statistics>(), nullptr);
+        std::make_shared<checks_statistics>(), nullptr,
+        [](const std::string&, const std::shared_ptr<check>&) {});
 
     checker->start_check(std::chrono::seconds(20));
     absl::MutexLock lck(wait_m);

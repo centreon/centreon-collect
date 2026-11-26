@@ -54,7 +54,8 @@ class test_check : public check_memory {
                const std::list<com::centreon::common::perfdata>& perfdata,
                const std::list<std::string>& outputs) {},
             std::make_shared<checks_statistics>(),
-            nullptr) {}
+            nullptr,
+            [](const std::string&, const std::shared_ptr<check>&) {}) {}
 
   std::shared_ptr<native_check_detail::snapshot<
       native_check_detail::e_memory_metric::nb_metric>>

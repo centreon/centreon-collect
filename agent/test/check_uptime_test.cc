@@ -54,13 +54,13 @@ TEST_F(native_check_uptime_test, ok) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output,
-                      &perf);
+      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output, &perf);
   ASSERT_EQ(status, e_status::ok);
   ASSERT_EQ(output,
             "OK: System uptime is: 5d 1h 1m 1s"
@@ -88,13 +88,13 @@ TEST_F(native_check_uptime_test, ok_m) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output,
-                      &perf);
+      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output, &perf);
   ASSERT_EQ(status, e_status::ok);
   ASSERT_EQ(output,
             "OK: System uptime is: 5d 1h 1m 1s"
@@ -122,13 +122,13 @@ TEST_F(native_check_uptime_test, ok_h) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output,
-                      &perf);
+      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output, &perf);
   ASSERT_EQ(status, e_status::ok);
   ASSERT_EQ(output,
             "OK: System uptime is: 5d 1h 1m 1s"
@@ -156,13 +156,13 @@ TEST_F(native_check_uptime_test, ok_d) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output,
-                      &perf);
+      checker.compute((86400 * 5 + 3600 + 60 + 1) * 1000, now, &output, &perf);
   ASSERT_EQ(status, e_status::ok);
   ASSERT_EQ(output,
             "OK: System uptime is: 5d 1h 1m 1s"
@@ -190,13 +190,13 @@ TEST_F(native_check_uptime_test, ok_w) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   com::centreon::common::perfdata perf;
   e_status status =
-      checker.compute((86400 * 14 + 3600 + 60 + 1) * 1000, now, &output,
-                      &perf);
+      checker.compute((86400 * 14 + 3600 + 60 + 1) * 1000, now, &output, &perf);
   ASSERT_EQ(status, e_status::ok);
   ASSERT_EQ(output,
             "OK: System uptime is: 14d 1h 1m 1s"
@@ -224,7 +224,8 @@ TEST_F(native_check_uptime_test, warning) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -257,7 +258,8 @@ TEST_F(native_check_uptime_test, warning_bis) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -291,12 +293,13 @@ TEST_F(native_check_uptime_test, critical) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   com::centreon::common::perfdata perf;
-  e_status status = checker.compute((86400 + 3600 * 4) * 1000, now, &output,
-                                    &perf);
+  e_status status =
+      checker.compute((86400 + 3600 * 4) * 1000, now, &output, &perf);
   ASSERT_EQ(status, e_status::critical);
   ASSERT_EQ(output,
             "CRITICAL: System uptime is: 1d 4h 0m 0s"
@@ -324,12 +327,13 @@ TEST_F(native_check_uptime_test, critical_bis) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   com::centreon::common::perfdata perf;
-  e_status status = checker.compute((86400 + 3600 * 4) * 1000, now, &output,
-                                    &perf);
+  e_status status =
+      checker.compute((86400 + 3600 * 4) * 1000, now, &output, &perf);
   ASSERT_EQ(status, e_status::critical);
   ASSERT_EQ(output,
             "CRITICAL: System uptime is: 1d 4h 0m 0s"

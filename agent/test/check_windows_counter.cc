@@ -58,7 +58,8 @@ TEST_F(counter_check_windows_test, constructor) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   ASSERT_TRUE(checker.have_multi_return());
   ASSERT_EQ(checker.counter_name(), "\\LogicalDisk(*)\\% Free Space"s);
@@ -77,7 +78,8 @@ TEST_F(counter_check_windows_test, constructor) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   ASSERT_FALSE(checker1.have_multi_return());
   ASSERT_EQ(checker1.counter_name(), "\\System\\Processes"s);
@@ -96,7 +98,8 @@ TEST_F(counter_check_windows_test, constructor) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   ASSERT_TRUE(checker2.have_multi_return());
   ASSERT_EQ(checker2.counter_name(), "\\Thread(*)\\Context Switches/sec"s);
@@ -124,7 +127,8 @@ TEST_F(counter_check_windows_test, single_return) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   std::list<com::centreon::common::perfdata> perf;
@@ -164,7 +168,8 @@ TEST_F(counter_check_windows_test, multiple_return) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   std::list<com::centreon::common::perfdata> perf;
@@ -204,7 +209,8 @@ TEST_F(counter_check_windows_test, need_two_samples) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   std::list<com::centreon::common::perfdata> perf;
@@ -251,7 +257,8 @@ TEST_F(counter_check_windows_test, complex_rules) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -290,7 +297,8 @@ TEST_F(counter_check_windows_test, complex_rules_2) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -329,7 +337,8 @@ TEST_F(counter_check_windows_test, complex_rules_3) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -367,7 +376,8 @@ TEST_F(counter_check_windows_test, complex_rules_4) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -411,7 +421,8 @@ TEST_F(counter_check_windows_test, complex_rules_5) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -450,7 +461,8 @@ TEST_F(counter_check_windows_test, complex_rules_6) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -490,7 +502,8 @@ TEST_F(counter_check_windows_test, complex_rules_7) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -527,7 +540,8 @@ TEST_F(counter_check_windows_test, complex_rules_8) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -564,7 +578,8 @@ TEST_F(counter_check_windows_test, threshold_greater) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -601,7 +616,8 @@ TEST_F(counter_check_windows_test, threshold_range) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -639,7 +655,8 @@ TEST_F(counter_check_windows_test, threshold_inside_range) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
@@ -677,7 +694,8 @@ TEST_F(counter_check_windows_test, threshold_below) {
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
          [[maybe_unused]] const std::list<std::string>& outputs) {},
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   absl::flat_hash_map<std::string, double> data = {
       {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
