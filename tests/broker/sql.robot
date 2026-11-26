@@ -1,12 +1,12 @@
 *** Settings ***
-Documentation       Centreon Broker Mariadb access
+Documentation     Centreon Broker Mariadb access
 
-Resource            ../resources/import.resource
+Resource          ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup       Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup        Ctn Stop Processes
+Test Teardown     Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -69,9 +69,10 @@ BDB3
     Ctn Broker Config Log    central    sql    debug
     ${start}    Get Current Date
     Ctn Start Broker
-    ${content}    Create List    connected to 'MariaDB' Server
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Should Be True    ${result}
+    # MariaDB or MySQL: cbd names the server, or gives its bare version.
+    ${content}    Create List    connected to '.+' Server
+    ${result}    ${lines}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    No message about the connection to the database.
     Ctn Kindly Stop Broker
 
 BEDB1
