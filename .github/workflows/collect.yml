@@ -1048,7 +1048,7 @@ jobs:
         # version_tag from dockerize-engine-broker (only produced after
         # robot-test passed) or if the ghcr.io push itself fails —
         # continue-on-error swallows that into a warning below, mirroring how
-        # promote-to-stable-pulp is called. Deliberately no fallback to the
+        # the shared promote-to-stable action is called. Deliberately no fallback to the
         # legacy release_type-based tag: that tag is written at build time,
         # before container e2e tests run, so it's never a validated candidate.
         continue-on-error: true
@@ -1261,7 +1261,7 @@ jobs:
 
       - name: Deliver packages on Pulp
         id: deliver_rpm_pulp
-        uses: ./.github/actions/package-delivery-pulp
+        uses: centreon/github-actions/pulp/package-delivery@pulp/v1
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
@@ -1312,7 +1312,7 @@ jobs:
 
       - name: Deliver packages on Pulp
         id: deliver_deb_pulp
-        uses: ./.github/actions/package-delivery-pulp
+        uses: centreon/github-actions/pulp/package-delivery@pulp/v1
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
@@ -1350,7 +1350,7 @@ jobs:
 
       - name: Promote ${{ matrix.distrib }} to stable on Pulp
         id: promote_pulp
-        uses: ./.github/actions/promote-to-stable-pulp
+        uses: centreon/github-actions/pulp/promote-to-stable@pulp/v1
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
