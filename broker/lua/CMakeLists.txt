@@ -63,6 +63,9 @@ add_library(
   "${INC_DIR}/stream.hh")
 add_dependencies(${LUA} pb_neb_lib pb_storage_lib pb_bam_lib process_stat
                  pb_open_telemetry_lib target_broker_message)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(${LUA} target_state_proto)
 
 target_link_libraries(
   "${LUA}"

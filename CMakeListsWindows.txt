@@ -93,6 +93,9 @@ add_custom_target(opentelemetry-proto-files DEPENDS  ${CMAKE_SOURCE_DIR}/opentel
     ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
 )
 
+# Every target uses the compiled spdlog library (see CMakeListsLinux.txt).
+link_libraries(fmt::fmt spdlog::spdlog)
+
 add_subdirectory(common)
 add_subdirectory(agent)
 

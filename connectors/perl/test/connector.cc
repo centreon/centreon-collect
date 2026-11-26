@@ -167,7 +167,7 @@ void process::start() {
       [me = shared_from_this()](const com::centreon::common::process<true>&,
                                 int exit_code,
                                 com::centreon::common::e_exit_status,
-                                const std::string& stdout, const std::string&) {
+                                const std::string&, const std::string&) {
         absl::MutexLock l(me->_exit_code_m);
         me->_exit_code = exit_code;
       },
@@ -653,6 +653,6 @@ TEST_F(TestConnector, TimeoutTerm) {
 
   ASSERT_EQ(retval, 0);
   std::string expected(TimeoutKillRESULT,
-                       TimeoutKillRESULT + sizeof(TimeoutKillRESULT) - 1);
+                       &TimeoutKillRESULT[sizeof(TimeoutKillRESULT) - 1]);
   ASSERT_EQ(output, expected);
 }

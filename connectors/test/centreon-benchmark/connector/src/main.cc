@@ -115,13 +115,13 @@ static options parse_options(int ac, char** av) {
     opt.args.push_back(av[optind++]);
 
   if (!opt.args.size() && !opt.is_plugin)
-    throw(basic_exception("invalid args"));
+    throw basic_exception("invalid args");
   if (opt.commands_file.empty())
-    throw(basic_exception("invalid commands file"));
+    throw basic_exception("invalid commands file");
   if (!opt.limit_running)
-    throw(basic_exception("invalid limit concurrency"));
+    throw basic_exception("invalid limit concurrency");
   if (!opt.total_request)
-    throw(basic_exception("invalid total request"));
+    throw basic_exception("invalid total request");
 
   return (opt);
 }

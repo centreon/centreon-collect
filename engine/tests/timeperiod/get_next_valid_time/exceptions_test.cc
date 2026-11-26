@@ -70,7 +70,7 @@ time_t gmt_strtotimet(std::string const& str) {
   tm t;
   memset(&t, 0, sizeof(t));
   if (!strptime(str.c_str(), "%Y-%m-%d %H:%M:%S", &t))
-    throw(engine_error() << "invalid date format");
+    throw engine_error() << "invalid date format";
   t.tm_isdst = 0;
   return (timegm(&t));
 }

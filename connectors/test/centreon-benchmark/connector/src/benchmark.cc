@@ -126,7 +126,7 @@ void benchmark::set_output_file(std::string const& file) {
   _output.open(_output_file.c_str(),
                std::ofstream::binary | std::ofstream::trunc);
   if (!_output.is_open())
-    throw(basic_exception("failed to open output file"));
+    throw basic_exception("failed to open output file");
 }
 
 /**

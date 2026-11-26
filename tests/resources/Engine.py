@@ -141,9 +141,6 @@ class EngineInstance:
                     shutil.rmtree(item)
                 else:
                     os.remove(item)
-        else:
-            makedirs(f"{VAR_ROOT}/lib/centreon/config",
-                     mode=0o777, exist_ok=True)
         # Wipe the engine runtime dir but keep the rw/ subdirectory: it holds
         # the live external command FIFO of an already-running engine when
         # Ctn Config Engine is called again to reconfigure before a reload. The
@@ -204,17 +201,16 @@ class EngineInstance:
                         makedirs(sav_dir, mode=0o777, exist_ok=True)
                         for f in cfg_files:
                             shutil.copy(f, sav_dir)
-                        logger.console(f"Saved {len(cfg_files)} cfg files to {sav_dir}")
+                        logger.console(
+                            f"Saved {len(cfg_files)} cfg files to {sav_dir}")
             for item in glob.glob(f"{VAR_ROOT}/lib/centreon/config/*"):
                 if os.path.isdir(item):
                     shutil.rmtree(item)
                 else:
                     os.remove(item)
-        else:
-            makedirs(f"{VAR_ROOT}/lib/centreon/config",
-                     mode=0o777, exist_ok=True)
 
-        self.build_configs(hosts, services_by_host, True, 0, custom_command, check_active, create_lck=False)
+        self.build_configs(hosts, services_by_host, True, 0,
+                           custom_command, check_active, create_lck=False)
 
     def get_config_dir(self, inst: int):
         """
@@ -599,7 +595,8 @@ define command {{
     members                         {','.join(mbs)}
 }}
 """
-        logger.console('\n'.join(_truncate_line(line) for line in retval.splitlines()))
+        logger.console('\n'.join(_truncate_line(line)
+                       for line in retval.splitlines()))
         return retval
 
     @staticmethod
@@ -611,7 +608,8 @@ define command {{
     members                         {','.join(mbs)}
 }}
 """
-        logger.console('\n'.join(_truncate_line(line) for line in retval.splitlines()))
+        logger.console('\n'.join(_truncate_line(line)
+                       for line in retval.splitlines()))
         return retval
 
     def create_all_host_groups(self, nb_group_per_host: int, nb_group: int):
@@ -679,7 +677,8 @@ define command {{
     members                        {1}
 }}
 """.format(cg_name, ",".join(mbs))
-        logger.console('\n'.join(_truncate_line(line) for line in retval.splitlines()))
+        logger.console('\n'.join(_truncate_line(line)
+                       for line in retval.splitlines()))
         return retval
 
     def create_severities(self, idx: int, nb: int, offset: int,
@@ -1113,7 +1112,8 @@ define contact {
         if any(r.match(line) for line in lines):
             return
         with open(f"{config_dir}/centengine.cfg", "w") as f:
-            f.writelines(f"cfg_file={ETC_ROOT}/centreon-engine/config0/anomaly_detection.cfg\n")
+            f.writelines(
+                f"cfg_file={ETC_ROOT}/centreon-engine/config0/anomaly_detection.cfg\n")
             f.writelines(lines)
 
     def process_all_services_check_result_with_metrics(self, state: int, output: str, metrics: int, metric_name: str = 'metric'):
@@ -1159,7 +1159,8 @@ def ctn_update_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, c
         custom_command: if not empty, services use this command instead of check.pl, with some extra macros
         check_active: if false, all services and hosts will use only passive checks
     """
-    ctn_prepare_engine_config(num, hosts, srv_by_host, custom_command, check_active)
+    ctn_prepare_engine_config(num, hosts, srv_by_host,
+                              custom_command, check_active)
     # The whole platform is rebuilt here: that is one export, so one
     # announcement naming every poller rather than one per poller.
     Common.ctn_notify_broker_of_engine_config_change(*range(num))
@@ -1184,7 +1185,8 @@ def ctn_prepare_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, 
     if engine is None:
         raise Exception(
             "EngineInstance not initialized, please call ctn_config_engine or ctn_config_centralized_engine first")
-    engine.update_configs(num, hosts, srv_by_host, custom_command, check_active)
+    engine.update_configs(num, hosts, srv_by_host,
+                          custom_command, check_active)
 
 
 def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
@@ -2509,7 +2511,8 @@ def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: li
     members                         {mbs_str}
 }}
 """
-    logger.console('\n'.join(_truncate_line(line) for line in defn.splitlines()))
+    logger.console('\n'.join(_truncate_line(line)
+                   for line in defn.splitlines()))
     with open(f"{config_dir}/hostgroups.cfg", "w") as f:
         f.write(defn)
 
@@ -2861,7 +2864,8 @@ def ctn_modify_anomaly_detection(index: int, service_id: int, field: str, value:
         field (str): The field to modify.
         value (str): The new value to set.
     """
-    logger.console(f"Modifying anomaly detection {service_id} field {field} to {value}")
+    logger.console(
+        f"Modifying anomaly detection {service_id} field {field} to {value}")
     config_dir = engine.get_config_dir(index)
     filename = f"{config_dir}/anomaly_detection.cfg"
     with open(filename, "r") as f:
@@ -3118,7 +3122,8 @@ def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, chec
             stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_NORMAL_SVC_CHECK_INTERVAL;{hst};{svc};{check_interval}")
+        ctn_send_external_command(
+            f"CHANGE_NORMAL_SVC_CHECK_INTERVAL;{hst};{svc};{check_interval}")
 
 
 def ctn_change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
@@ -3136,7 +3141,8 @@ def ctn_change_normal_host_check_interval(use_grpc: int, hst: str, check_interva
             stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_NORMAL_HOST_CHECK_INTERVAL;{hst};{check_interval}")
+        ctn_send_external_command(
+            f"CHANGE_NORMAL_HOST_CHECK_INTERVAL;{hst};{check_interval}")
 
 
 def ctn_change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
@@ -3155,7 +3161,8 @@ def ctn_change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry
             stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_RETRY_SVC_CHECK_INTERVAL;{hst};{svc};{retry_interval}")
+        ctn_send_external_command(
+            f"CHANGE_RETRY_SVC_CHECK_INTERVAL;{hst};{svc};{retry_interval}")
 
 
 def ctn_change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
@@ -3173,7 +3180,8 @@ def ctn_change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval
             stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_RETRY_HOST_CHECK_INTERVAL;{hst};{retry_interval}")
+        ctn_send_external_command(
+            f"CHANGE_RETRY_HOST_CHECK_INTERVAL;{hst};{retry_interval}")
 
 
 def ctn_change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
@@ -3192,7 +3200,8 @@ def ctn_change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_che
             stub.ChangeServiceObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_MAX_SVC_CHECK_ATTEMPTS;{hst};{svc};{max_check_attempts}")
+        ctn_send_external_command(
+            f"CHANGE_MAX_SVC_CHECK_ATTEMPTS;{hst};{svc};{max_check_attempts}")
 
 
 def ctn_change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
@@ -3210,7 +3219,8 @@ def ctn_change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attemp
             stub.ChangeHostObjectIntVar(engine_pb2.ChangeObjectInt(
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_MAX_HOST_CHECK_ATTEMPTS;{hst};{max_check_attempts}")
+        ctn_send_external_command(
+            f"CHANGE_MAX_HOST_CHECK_ATTEMPTS;{hst};{max_check_attempts}")
 
 
 def ctn_change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
@@ -3228,7 +3238,8 @@ def ctn_change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: 
             stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
                 host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_HOST_CHECK_TIMEPERIOD;{hst};{check_timeperiod}")
+        ctn_send_external_command(
+            f"CHANGE_HOST_CHECK_TIMEPERIOD;{hst};{check_timeperiod}")
 
 
 def ctn_change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
@@ -3246,7 +3257,8 @@ def ctn_change_host_notification_timeperiod(use_grpc: int, hst: str, notificatio
             stub.ChangeHostObjectCharVar(engine_pb2.ChangeObjectChar(
                 host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{hst};{notification_timeperiod}")
+        ctn_send_external_command(
+            f"CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{hst};{notification_timeperiod}")
 
 
 def ctn_change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
@@ -3265,7 +3277,8 @@ def ctn_change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_tim
             stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
                 host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_SVC_CHECK_TIMEPERIOD;{hst};{svc};{check_timeperiod}")
+        ctn_send_external_command(
+            f"CHANGE_SVC_CHECK_TIMEPERIOD;{hst};{svc};{check_timeperiod}")
 
 
 def ctn_change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
@@ -3284,7 +3297,8 @@ def ctn_change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, no
             stub.ChangeServiceObjectCharVar(engine_pb2.ChangeObjectChar(
                 host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{hst};{svc};{notification_timeperiod}")
+        ctn_send_external_command(
+            f"CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{hst};{svc};{notification_timeperiod}")
 
 
 def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
@@ -3301,7 +3315,8 @@ def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
             stub.DisableHostAndChildNotifications(
                 engine_pb2.NameOrIdIdentifier(name=hst), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{hst}")
+        ctn_send_external_command(
+            f"DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{hst}")
 
 
 def ctn_enable_host_and_child_notifications(use_grpc: int, hst: str):
@@ -3485,7 +3500,8 @@ def ctn_update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: 
             stub.ChangeAnomalyDetectionSensitivity(engine_pb2.ChangeServiceNumber(serv=engine_pb2.ServiceIdentifier(
                 names=engine_pb2.PairNamesIdentifier(host_name=hst, service_name=serv)), dval=sensitivity), timeout=GRPC_TIMEOUT)
     else:
-        ctn_send_external_command(f"CHANGE_ANOMALYDETECTION_SENSITIVITY;{hst};{serv};{sensitivity}")
+        ctn_send_external_command(
+            f"CHANGE_ANOMALYDETECTION_SENSITIVITY;{hst};{serv};{sensitivity}")
 
 
 def ctn_disable_host_svc_checks(use_grpc: int, hst: str):
@@ -3697,7 +3713,8 @@ def ctn_send_external_command(*commands, config: int = 0, port: int = 51001):
     if _external_command_mode() == "broker":
         # The command pipe blocks until Engine reads it; Broker instead answers
         # UNAVAILABLE while the poller is not connected (typically right after a
-        # Broker restart). Retry that case for a while to keep the pipe semantics.
+        # Broker restart) or has not sent its whole configuration yet. Retry
+        # that case for a while to keep the pipe semantics.
         limit = time.time() + 60
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
@@ -3761,8 +3778,9 @@ def ctn_wait_for_broker_cache_knows_engine(nb_engine: int = 1, port: int = 51001
     In broker external command mode (see `Ctn Set External Command Mode`),
     wait until the Broker cache knows every host and service of the Engine
     legacy configurations. Broker resolves a command from its cache: a command
-    sent before the poller's initial dump reached it is answered NOT_FOUND,
-    whereas the command pipe just waits for Engine. Does nothing in pipe mode,
+    sent before the poller's initial dump reached it is answered UNAVAILABLE
+    (`Ctn Send External Command` retries it), whereas the command pipe just
+    waits for Engine. Does nothing in pipe mode,
     unless always is set (a test calling Broker's RPC directly).
 
     Args:
@@ -3914,7 +3932,8 @@ def ctn_delete_host_downtimes(poller: int, hst: str):
         poller (int): Poller ID.
         hst (str): host name of the host.
     """
-    ctn_send_external_command(f"DEL_HOST_DOWNTIME_FULL;{hst};;;;;;;;", config=poller)
+    ctn_send_external_command(
+        f"DEL_HOST_DOWNTIME_FULL;{hst};;;;;;;;", config=poller)
 
 
 def ctn_delete_service_downtime_full(poller: int, hst: str, svc: str):
@@ -3926,7 +3945,8 @@ def ctn_delete_service_downtime_full(poller: int, hst: str, svc: str):
         hst (str): host name of the service.
         svc (str):  service description of the service.
     """
-    ctn_send_external_command(f"DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;", config=poller)
+    ctn_send_external_command(
+        f"DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;", config=poller)
 
 
 def ctn_schedule_forced_service_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
@@ -3991,7 +4011,8 @@ def ctn_add_severity_to_all_hosts(poller: int, severity_id: int):
     for line in lines:
         new_lines.append(line)
         if r.match(line):
-            new_lines.append(f"    severity_id                     {severity_id}\n")
+            new_lines.append(
+                f"    severity_id                     {severity_id}\n")
     with open(f"{conf_dir}/hosts.cfg", "w") as ff:
         ff.writelines(new_lines)
 
@@ -4016,7 +4037,8 @@ def ctn_add_severity_to_all_services(poller: int, severity_id: int):
     for line in lines:
         new_lines.append(line)
         if r.match(line):
-            new_lines.append(f"    severity_id                     {severity_id}\n")
+            new_lines.append(
+                f"    severity_id                     {severity_id}\n")
     with open(f"{conf_dir}/services.cfg", "w") as ff:
         ff.writelines(new_lines)
 
@@ -4524,7 +4546,7 @@ def _remove_tag_types_from_cfg(conf_dir: str, tag_types: list):
         ff.writelines(result)
 
 
-def ctn_remove_tags_from_services(poller: int, type: str="all"):
+def ctn_remove_tags_from_services(poller: int, type: str = "all"):
     """
     Remove tags from services and the corresponding tag definitions from
     tags.cfg.
@@ -4553,7 +4575,7 @@ def ctn_remove_tags_from_services(poller: int, type: str="all"):
         _remove_tag_types_from_cfg(conf_dir, tag_types)
 
 
-def ctn_remove_tags_from_hosts(poller: int, type: str="all"):
+def ctn_remove_tags_from_hosts(poller: int, type: str = "all"):
     """
     Remove tags from hosts and the corresponding tag definitions from
     tags.cfg.
@@ -4838,7 +4860,8 @@ def ctn_process_service_check_result(hst: str, svc: str, state: int, output: str
 
     else:
         if nb_check == 1:
-            cmds = [f"PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}"]
+            cmds = [
+                f"PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}"]
         else:
             cmds = [f"PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}"
                     for i in range(nb_check)]
@@ -5322,7 +5345,8 @@ def ctn_get_engine_process_stat(port, timeout=10):
             # same for engine and broker
             stub = engine_pb2_grpc.EngineStub(channel)
             try:
-                res = stub.GetProcessStats(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                res = stub.GetProcessStats(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 return res
             except Exception:
                 logger.console("gRPC server not ready")
@@ -5342,7 +5366,8 @@ def ctn_send_bench(id: int, port: int):
     ts.GetCurrentTime()
     with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
-        stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts), timeout=GRPC_TIMEOUT)
+        stub.SendBench(engine_pb2.BenchParam(
+            id=id, ts=ts), timeout=GRPC_TIMEOUT)
 
 
 def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
@@ -5501,7 +5526,8 @@ def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             try:
-                logs = stub.GetLogInfo(empty_pb2.Empty(), timeout=max(1, limit - time.time()))
+                logs = stub.GetLogInfo(
+                    empty_pb2.Empty(), timeout=max(1, limit - time.time()))
                 return logs.level[log]
 
             except Exception:
@@ -5925,7 +5951,8 @@ def ctn_get_host_info_grpc(host_id:  int):
                 stub = engine_pb2_grpc.EngineStub(channel)
                 request = engine_pb2.NameOrIdIdentifier(id=host_id)
                 try:
-                    host = stub.GetHost(request, timeout=max(1, limit - time.time()))
+                    host = stub.GetHost(
+                        request, timeout=max(1, limit - time.time()))
                     host_dict = MessageToDict(
                         host, always_print_fields_with_no_presence=True)
                     return host_dict
@@ -5987,7 +6014,8 @@ def ctn_get_contact_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                contact = stub.GetContact(request, timeout=max(1, limit - time.time()))
+                contact = stub.GetContact(
+                    request, timeout=max(1, limit - time.time()))
                 contact_dict = MessageToDict(
                     contact, always_print_fields_with_no_presence=True)
                 return contact_dict
@@ -6013,7 +6041,8 @@ def ctn_get_hostgroup_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                hg = stub.GetHostGroup(request, timeout=max(1, limit - time.time()))
+                hg = stub.GetHostGroup(
+                    request, timeout=max(1, limit - time.time()))
                 hg_dict = MessageToDict(
                     hg, always_print_fields_with_no_presence=True)
                 return hg_dict
@@ -6039,7 +6068,8 @@ def ctn_get_servicegroup_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                sg = stub.GetServiceGroup(request, timeout=max(1, limit - time.time()))
+                sg = stub.GetServiceGroup(
+                    request, timeout=max(1, limit - time.time()))
                 sg_dict = MessageToDict(
                     sg, always_print_fields_with_no_presence=True)
                 return sg_dict
@@ -6065,7 +6095,8 @@ def ctn_get_contactgroup_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                cg = stub.GetContactGroup(request, timeout=max(1, limit - time.time()))
+                cg = stub.GetContactGroup(
+                    request, timeout=max(1, limit - time.time()))
                 cg_dict = MessageToDict(
                     cg, always_print_fields_with_no_presence=True)
                 return cg_dict
@@ -6091,7 +6122,8 @@ def ctn_get_command_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                command = stub.GetCommand(request, timeout=max(1, limit - time.time()))
+                command = stub.GetCommand(
+                    request, timeout=max(1, limit - time.time()))
                 command_dict = MessageToDict(
                     command, always_print_fields_with_no_presence=True)
                 return command_dict
@@ -6117,7 +6149,8 @@ def ctn_get_connector_info_grpc(name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             request = engine_pb2.NameIdentifier(name=name)
             try:
-                connector = stub.GetConnector(request, timeout=max(1, limit - time.time()))
+                connector = stub.GetConnector(
+                    request, timeout=max(1, limit - time.time()))
                 connector_dict = MessageToDict(
                     connector, always_print_fields_with_no_presence=True)
                 return connector_dict
@@ -6144,7 +6177,8 @@ def ctn_get_service_escalation_info_grpc(host_name: str, service_name: str):
             identifier = engine_pb2.PairNamesIdentifier(
                 host_name=host_name, service_name=service_name)
             try:
-                ServiceEscalation = stub.GetServiceEscalation(identifier, timeout=max(1, limit - time.time()))
+                ServiceEscalation = stub.GetServiceEscalation(
+                    identifier, timeout=max(1, limit - time.time()))
                 ServiceEscalation_dict = MessageToDict(
                     ServiceEscalation, always_print_fields_with_no_presence=True)
                 return ServiceEscalation_dict
@@ -6173,7 +6207,8 @@ def ctn_get_host_escalation_info_grpc(host_name: str):
             stub = engine_pb2_grpc.EngineStub(channel)
             identifier = engine_pb2.NameIdentifier(name=host_name)
             try:
-                hostEscalation = stub.GetHostEscalation(identifier, timeout=max(1, limit - time.time()))
+                hostEscalation = stub.GetHostEscalation(
+                    identifier, timeout=max(1, limit - time.time()))
                 hostEscalation_dict = MessageToDict(
                     hostEscalation, always_print_fields_with_no_presence=True)
                 return hostEscalation_dict
@@ -6460,6 +6495,7 @@ def ctn_clear_engine_configurations():
         elif os.path.isdir(config_file):
             shutil.rmtree(config_file)
 
+
 def ctn_clear_instances():
     """
     Destroy all the Engine configurations in memory.
@@ -6467,12 +6503,14 @@ def ctn_clear_instances():
     global engine
     engine = None
 
+
 def ctn_clear_engine_white_list():
     """
     Clear the Centreon Engine whitelist by removing the centreon-engine-whitelist
     directory content.
     """
-    whitelist_dir = ["/etc/centreon-engine-whitelist", "/usr/share/centreon-engine/whitelist.conf.d"]
+    whitelist_dir = ["/etc/centreon-engine-whitelist",
+                     "/usr/share/centreon-engine/whitelist.conf.d"]
     try:
         for directory in whitelist_dir:
             for item in os.listdir(directory):
@@ -6483,7 +6521,6 @@ def ctn_clear_engine_white_list():
                     shutil.rmtree(item_path)
     except Exception as e:
         logger.console(f"Error while cleaning the directory: {e}")
-
 
 
 def _ctn_take_cfg_blocks(filename: str, kind: str, host: str):

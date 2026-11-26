@@ -171,9 +171,9 @@ void environment::_realloc_buffer(uint32_t size) {
  */
 void environment::_realloc_env(uint32_t size) {
   if (_size_env >= size)
-    throw(engine_error()
+    throw engine_error()
           << "Invalid size for command environment reallocation: "
-          << "Environment size is greater than the requested size");
+          << "Environment size is greater than the requested size";
   char** new_env(new char*[size]);
   if (_env)
     memcpy(new_env, _env, sizeof(*new_env) * (_pos_env + 1));

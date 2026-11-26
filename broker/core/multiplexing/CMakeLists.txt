@@ -30,6 +30,12 @@ set(SOURCES ${SRC_DIR}/engine.cc ${SRC_DIR}/muxer.cc ${SRC_DIR}/publisher.cc)
 add_library(multiplexing STATIC ${SOURCES})
 add_dependencies(multiplexing pb_bbdo_lib pb_extcmd_lib process_stat
                  target_broker_message)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies(
+  multiplexing
+  pb_bam_lib pb_header_lib pb_neb_lib pb_open_telemetry_lib pb_storage_lib
+  target_state_proto)
 
 set_target_properties(multiplexing PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(multiplexing PRIVATE ../precomp_inc/precomp.hh)

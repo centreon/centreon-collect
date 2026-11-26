@@ -18,6 +18,7 @@ dnf install --best -y \
     git \
     gnutls \
     iproute \
+    iptables \
     libgcrypt \
     lua \
     mariadb-connector-c \

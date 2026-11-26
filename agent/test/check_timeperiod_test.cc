@@ -184,7 +184,7 @@ class tp_check : public check {
     // Complete quickly.
     _timer.expires_after(std::chrono::milliseconds(10));
     _timer.async_wait(
-        [me = shared_from_this(), this,
+        [me = shared_from_this(),
          idx = _get_running_check_index()](const boost::system::error_code&) {
           me->on_completion(idx, 0, {}, {"OK"});
         });

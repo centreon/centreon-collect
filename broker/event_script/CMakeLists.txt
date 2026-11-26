@@ -40,6 +40,9 @@ set_target_properties("80-event_script" PROPERTIES PREFIX ""
 
 add_dependencies("80-event_script" process_stat pb_common_lib
                  target_broker_message)
+# Headers generated from protos and included, often through the precompiled
+# header: they must exist before the first source of the target is compiled.
+add_dependencies("80-event_script" pb_header_lib pb_neb_lib)
 
 #Testing.
 if(WITH_TESTING)

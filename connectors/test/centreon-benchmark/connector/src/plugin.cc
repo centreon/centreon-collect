@@ -87,7 +87,7 @@ void plugin::run() {
       while (_current_running > _limit_running)
         _wait_plugin(true);
       if (wordexp(_commands[i % nb_commands].c_str(), &p, 0))
-        throw(basic_exception("parsing argument failed"));
+        throw basic_exception("parsing argument failed");
       _start_plugin(p.we_wordv);
       wordfree(&p);
       _wait_plugin(false);
@@ -110,7 +110,7 @@ void plugin::_cleanup() {
   while (_current_running) {
     pid_t pid(waitpid(-1, &status, 0));
     if (pid == -1)
-      throw(basic_exception(strerror(errno)));
+      throw basic_exception(strerror(errno));
     if (pid)
       --_current_running;
   }
@@ -143,7 +143,7 @@ void plugin::_recv_data(int fd) {
   char buffer[4096];
   int ret(read(fd, buffer, sizeof(buffer)));
   if (ret == -1)
-    throw(basic_exception(strerror(errno)));
+    throw basic_exception(strerror(errno));
   if (ret)
     _write(buffer, ret);
 }
@@ -156,11 +156,11 @@ void plugin::_recv_data(int fd) {
 void plugin::_start_plugin(char** args) {
   int pipe_out[2];
   if (pipe(pipe_out) == -1)
-    throw(basic_exception(strerror(errno)));
+    throw basic_exception(strerror(errno));
 
   pid_t pid(fork());
   if (pid == -1)
-    throw(basic_exception(strerror(errno)));
+    throw basic_exception(strerror(errno));
 
   if (!pid) {
     close(pipe_out[0]);
@@ -186,12 +186,12 @@ void plugin::_wait_plugin(bool block) {
   int status;
   pid_t pid(waitpid(-1, &status, block ? 0 : WNOHANG));
   if (pid == -1)
-    throw(basic_exception(strerror(errno)));
+    throw basic_exception(strerror(errno));
   if (!pid)
     return;
   std::map<pid_t, int>::iterator it(_pid.find(pid));
   if (it == _pid.end())
-    throw(basic_exception("pid not found"));
+    throw basic_exception("pid not found");
   _recv_data(it->second);
   close(it->second);
   _pid.erase(it);

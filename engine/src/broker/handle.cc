@@ -196,16 +196,16 @@ void handle::open() {
 
     int api_version(*static_cast<int*>(_handle->resolve("__neb_api_version")));
     if (api_version != CURRENT_NEB_API_VERSION)
-      throw(engine_error() << "Module is using an old or unspecified "
-                              "version of the event broker API");
+      throw engine_error() << "Module is using an old or unspecified "
+                              "version of the event broker API";
 
     typedef int (*func_init)(int, char const*, void*);
     func_init init((func_init)_handle->resolve_proc("nebmodule_init"));
 
     if (init(NEBMODULE_NORMAL_LOAD | NEBMODULE_ENGINE, _args.c_str(), this) !=
         OK)
-      throw(engine_error() << "Function nebmodule_init "
-                              "returned an error");
+      throw engine_error() << "Function nebmodule_init "
+                              "returned an error";
 
   } catch (std::exception const& e) {
     process_logger->error("fail to load broker module '{}': {}", _filename,

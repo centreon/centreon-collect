@@ -566,7 +566,7 @@ class cp1252_check : public check {
       return;
     }
     asio::post(*_io_context,
-               [me = shared_from_this(), this,
+               [me = shared_from_this(),
                 check_running_index = _get_running_check_index()]() {
                  com::centreon::common::perfdata perf;
                  perf.name("C=FR, S=C\xf4te-d'Or#cert.expires");
