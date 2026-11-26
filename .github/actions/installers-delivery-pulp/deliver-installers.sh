@@ -24,7 +24,7 @@ INSTALLER_OS="${INSTALLER_OS:-windows}"
 
 RELEASE_TYPE="${RELEASE_TYPE:-}"
 
-# same segments as the rpm/deb repositories (see pulp-repository-properties/properties.sh): a
+# same segments as the rpm/deb repositories (see the shared pulp actions): a
 # release and a hotfix of one major land in separate testing repositories, so neither delivery
 # erases the other when superseded builds are removed below.
 case "$STABILITY" in
