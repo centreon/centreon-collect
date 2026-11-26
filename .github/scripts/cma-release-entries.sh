@@ -5,7 +5,7 @@ set -euo pipefail
 # attached to its GitHub release. Reading the release back (rather than reconstructing names)
 # is what keeps the published url and its checksum from ever disagreeing.
 #
-# Emits on stdout the TSV publish-download-release.sh consumes:
+# Emits on stdout the TSV the shared download-site publication action consumes:
 #   product  train  state  os  version  file  date  md5  size
 # and writes the windows installer's catalog entry to $AGENT_ENTRY_FILE as
 #   version<TAB>file_url<TAB>md5<TAB>size

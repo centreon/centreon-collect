@@ -1215,9 +1215,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: centreon-collect
+          persist-credentials: false
 
       - name: Deliver sources
-        uses: ./centreon-collect/.github/actions/release-sources
+        uses: centreon/github-actions/download-site/sources-delivery@download-site/v1
         with:
           bucket_directory: centreon-collect
           module_directory: centreon-collect
