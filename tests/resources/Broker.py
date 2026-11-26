@@ -694,6 +694,14 @@ def ctn_broker_config_flush(is_broker: bool = True):
         with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
             f.write(json.dumps(conf, indent=2))
 
+        # In centralized configuration, Broker watches the directory PHP
+        # writes to and stops if it is missing: on a fresh test machine,
+        # nothing but the Engine configuration keywords creates it.
+        cache_config_dir = conf["centreonBroker"].get(
+            "cache_config_directory")
+        if cache_config_dir:
+            makedirs(cache_config_dir, mode=0o777, exist_ok=True)
+
 
 def ctn_broker_config_reset():
     """

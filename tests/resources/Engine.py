@@ -141,9 +141,6 @@ class EngineInstance:
                     shutil.rmtree(item)
                 else:
                     os.remove(item)
-        else:
-            makedirs(f"{VAR_ROOT}/lib/centreon/config",
-                     mode=0o777, exist_ok=True)
         # Wipe the engine runtime dir but keep the rw/ subdirectory: it holds
         # the live external command FIFO of an already-running engine when
         # Ctn Config Engine is called again to reconfigure before a reload. The
@@ -210,9 +207,6 @@ class EngineInstance:
                     shutil.rmtree(item)
                 else:
                     os.remove(item)
-        else:
-            makedirs(f"{VAR_ROOT}/lib/centreon/config",
-                     mode=0o777, exist_ok=True)
 
         self.build_configs(hosts, services_by_host, True, 0, custom_command, check_active, create_lck=False)
 
