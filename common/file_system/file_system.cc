@@ -16,6 +16,8 @@
  * For more information : contact@centreon.com
  */
 #include <dirent.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 #include <system_error>
 

@@ -190,8 +190,13 @@ endif()
 set(protobuf_MODULE_COMPATIBLE True)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR} ${VCPKG_INCLUDE_DIR} fmt::fmt spdlog::spdlog
+  ${CMAKE_SOURCE_DIR} ${VCPKG_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/clib/inc ${CMAKE_CURRENT_BINARY_DIR})
+
+# Every target uses the compiled spdlog library: a target built in header-only
+# mode gets its own spdlog registry, and spdlog::get() then misses the loggers
+# that log_v2 registered in the other one.
+link_libraries(fmt::fmt spdlog::spdlog)
 
 add_subdirectory(clib)
 add_subdirectory(common)
