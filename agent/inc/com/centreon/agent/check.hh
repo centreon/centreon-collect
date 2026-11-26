@@ -277,7 +277,7 @@ class check : public std::enable_shared_from_this<check> {
                                   : _start_expected_retry;
   }
 
-  const std::string& get_service() const {
+  const std::string& get_service_description() const {
     return _service.service_description();
   }
 
@@ -335,6 +335,8 @@ class check : public std::enable_shared_from_this<check> {
   }
 
   const std::string& get_timezone() const { return _service.timezone(); }
+
+  const Service& get_service() const { return _service; }
 
   void increment_cur_attempt() { ++_current_attempt; }
   int get_current_attempt() const { return _current_attempt; }

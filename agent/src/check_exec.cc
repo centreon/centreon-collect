@@ -145,7 +145,8 @@ void check_exec::start_check(const duration& timeout) {
       _process_args->clear_unencrypted_args();
     }
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
-                        get_service(), get_command_line(), e.code().message());
+                        get_service_description(), get_command_line(),
+                        e.code().message());
     asio::post(*_io_context,
                [me = check::shared_from_this(),
                 start_check_index = _get_running_check_index(), e]() {
@@ -158,7 +159,8 @@ void check_exec::start_check(const duration& timeout) {
   } catch (const std::exception& e) {
     std::string output =
         fmt::format("Fail to execute {} : {}", get_command_line(), e.what());
-    SPDLOG_LOGGER_ERROR(_logger, " serv {} {}", get_service(), output);
+    SPDLOG_LOGGER_ERROR(_logger, " serv {} {}", get_service_description(),
+                        output);
     asio::post(*_io_context, [me = check::shared_from_this(),
                               start_check_index = _get_running_check_index(),
                               output]() {

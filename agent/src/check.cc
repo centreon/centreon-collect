@@ -438,6 +438,14 @@ void check::calcul_status_confirmation(unsigned status) {
   }
 }
 
+/**
+ * @brief run the event handlers of this check
+ *
+ * Called by calcul_status_confirmation when a status transition must raise
+ * the event handler. Executes the global event handler and the per
+ * host/service event handler, each one only when it is defined.
+ * Each command line is expanded and executed by _run_command.
+ */
 void check::_run_event_handler() {
   if (!_service.global_event_handler().empty()) {
     _run_command(_service.global_event_handler());
@@ -447,6 +455,24 @@ void check::_run_event_handler() {
   }
 }
 
+/**
+ * @brief expand an event handler command line and give it to the command
+ * executor
+ *
+ * The command line, possibly encrypt::-prefixed, is first decrypted with
+ * the credentials given at construction: on decryption failure the execution
+ * is silently aborted (an error is logged). Then the state macros resolved
+ * by the CMA are substituted: HOSTSTATE, HOSTSTATETYPE and HOSTATTEMPT for
+ * a host, SERVICESTATE, SERVICESTATETYPE and SERVICEATTEMPT for a service
+ * (they are not expanded earlier by engine so that the values reported here
+ * are the ones of the state transition that raised the handler).
+ * Finally the command executor injected at construction is invoked (nothing
+ * is executed when it is empty) with this check as second argument, so that
+ * the scheduler can schedule the handler execution as a pseudo check
+ * (see scheduler::_run_event_handler).
+ *
+ * @param raw_cmd event handler command line as configured in engine
+ */
 void check::_run_command(const std::string& raw_cmd) {
   std::string_view status;
   if (!_service.service_id()) {

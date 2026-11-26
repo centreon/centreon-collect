@@ -205,6 +205,7 @@ static scheduler::check_builder tp_check_builder =
        check::completion_handler&& h,
        const checks_statistics::pointer& stat,
        const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+       const std::string& /*event handler command line*/,
        check::command_executor&&) -> check::pointer {
   return std::make_shared<tp_check>(io, log, exp, svc, req, std::move(h), stat);
 };

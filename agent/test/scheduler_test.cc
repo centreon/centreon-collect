@@ -76,7 +76,8 @@ class tempo_check : public check {
                                       _get_running_check_index()](
                                      [[maybe_unused]] const boost::system::
                                          error_code& err) {
-      SPDLOG_TRACE("end of completion timer for serv {}", get_service());
+      SPDLOG_TRACE("end of completion timer for serv {}",
+                   get_service_description());
       me->on_completion(
           check_running_index, _command_exit_status,
           com::centreon::common::perfdata::parse_perfdata(
@@ -179,6 +180,7 @@ TEST_F(scheduler_test, no_config) {
          const engine_to_agent_request_ptr& /*engine to agent request*/,
          check::completion_handler&&, const checks_statistics::pointer&,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) { return std::shared_ptr<check>(); });
 
   std::weak_ptr<scheduler> weak_shed(sched);
@@ -266,6 +268,7 @@ TEST_F(scheduler_test, correct_schedule) {
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) {
         return std::make_shared<tempo_check>(io_context, logger, start_expected,
                                              service, engine_to_agent_request,
@@ -356,6 +359,7 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) {
         return std::make_shared<tempo_check>(io_context, logger, start_expected,
                                              service, engine_to_agent_request,
@@ -382,7 +386,7 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
         // check if we have a delay of 450ms between two checks
         SPDLOG_INFO(
             "Checking tempo_check delay for serv{}: after={}, before={}",
-            check_time.first->get_service(), check_time.second,
+            check_time.first->get_service_description(), check_time.second,
             previous.second);
         ASSERT_PRED3(tempo_check_assert_pred3, check_time.second,
                      previous.second, min_interval);
@@ -438,6 +442,7 @@ TEST_F(scheduler_test, time_out) {
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) {
         return std::make_shared<tempo_check>(io_context, logger, start_expected,
                                              service, engine_to_agent_request,
@@ -493,6 +498,7 @@ TEST_F(scheduler_test, correct_output_examplar) {
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) {
         return std::make_shared<tempo_check>(io_context, logger, start_expected,
                                              service, engine_to_agent_request,
@@ -618,6 +624,7 @@ TEST_F(scheduler_test, non_utf8_metric_name_and_unit) {
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) {
         return std::make_shared<cp1252_check>(
             io_context, logger, start_expected, service,
@@ -701,7 +708,8 @@ class concurent_check : public check {
         active_checks.erase(this);
         checked.insert(this);
       }
-      SPDLOG_TRACE("end of completion timer for serv {}", get_service());
+      SPDLOG_TRACE("end of completion timer for serv {}",
+                   get_service_description());
       me->on_completion(
           check_running_index, _command_exit_status,
           com::centreon::common::perfdata::parse_perfdata(
@@ -735,6 +743,7 @@ TEST_F(scheduler_test, max_concurent) {
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) {
         return std::make_shared<concurent_check>(
             io_context, logger, start_expected, service,
@@ -778,6 +787,7 @@ TEST_F(scheduler_test, force_check) {
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) {
         return std::make_shared<concurent_check>(
             io_context, logger, start_expected, service,
@@ -843,11 +853,13 @@ TEST_F(scheduler_test, can_not_decrypt) {
           const checks_statistics::pointer& stat,
           const std::shared_ptr<com::centreon::common::crypto::aes256>&
               credentials_decrypt,
+          const std::string& event_handler_cmd_line,
           check::command_executor&& event_handler_executor) {
         created = scheduler::default_check_builder(
             io_context, logger, start_expected, service,
             engine_to_agent_request, std::move(handler), stat,
-            credentials_decrypt, std::move(event_handler_executor));
+            credentials_decrypt, event_handler_cmd_line,
+            std::move(event_handler_executor));
         return created;
       });
 
@@ -896,11 +908,13 @@ TEST_F(scheduler_test, can_decrypt) {
           const checks_statistics::pointer& stat,
           const std::shared_ptr<com::centreon::common::crypto::aes256>&
               credentials_decrypt,
+          const std::string& event_handler_cmd_line,
           check::command_executor&& event_handler_executor) {
         created = scheduler::default_check_builder(
             io_context, logger, start_expected, service,
             engine_to_agent_request, std::move(handler), stat,
-            credentials_decrypt, std::move(event_handler_executor));
+            credentials_decrypt, event_handler_cmd_line,
+            std::move(event_handler_executor));
         return created;
       });
 
@@ -934,7 +948,7 @@ static std::shared_ptr<check> build_native_check(
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>(), nullptr,
+      std::make_shared<checks_statistics>(), nullptr, "",
       [](const std::string&, const std::shared_ptr<check>&) {});
 }
 
@@ -1134,7 +1148,8 @@ class scripted_check : public check {
         } else {
           SPDLOG_ERROR(
               "skipping datapoint for check {} id_data={} current_id={}",
-              get_service(), map_check_starts[this].back().id_data, me->_id);
+              get_service_description(), map_check_starts[this].back().id_data,
+              me->_id);
         }
 
         // restore last status and confirmed it will be done in the handler
@@ -1220,6 +1235,7 @@ TEST_F(scheduler_test, retry_interval_is_used_until_hard_then_check_interval) {
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) {
         // OK hard, CRIT soft1, CRIT soft1, CRIT hard, OK hard , OK hard
         std::vector<unsigned> status_script = {
@@ -1326,6 +1342,7 @@ TEST_F(scheduler_test, multiple_services_intervals_are_respected) {
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat,
          const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+         const std::string& /*event handler command line*/,
          check::command_executor&&) {
         std::vector<unsigned> status_script;
         // Three deterministic scenarios to exercise Nagios-like state
@@ -1392,10 +1409,10 @@ TEST_F(scheduler_test, multiple_services_intervals_are_respected) {
       //      "check {} start[{}] id_data={} time={} status={} last_status={} "
       //      "confirmed={} current_attempt={}/{}, check_interval={}s "
       //      ",check_retry={}s",
-      //      check->get_service(), i, starts[i].id_data, starts[i].time,
-      //      starts[i].status, starts[i].last_status, starts[i].confirmed,
-      //      starts[i].current_attempt, check->get_max_attempts(),
-      //      check_interval, retry_interval);
+      //      check->get_service_description(), i, starts[i].id_data,
+      //      starts[i].time, starts[i].status, starts[i].last_status,
+      //      starts[i].confirmed, starts[i].current_attempt,
+      //      check->get_max_attempts(), check_interval, retry_interval);
 
       ASSERT_TRUE(
           delta_about(starts[i].time, starts[i - 1].time,
@@ -1435,6 +1452,7 @@ class build_counter_check_builder {
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
       const std::shared_ptr<com::centreon::common::crypto::aes256>&,
+      const std::string& /*event handler command line*/,
       check::command_executor&&) const {
     ++*_build_count;
     return std::make_shared<tempo_check>(

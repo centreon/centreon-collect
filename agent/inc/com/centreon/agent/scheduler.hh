@@ -45,6 +45,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       check::completion_handler&&,
       const checks_statistics::pointer& /*stat*/,
       const std::shared_ptr<common::crypto::aes256> /*credentials_decrypt*/,
+      const std::string& /*event handler command line */,
       check::command_executor&& /* event handler executor*/
       )>;
 
@@ -163,6 +164,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
 
   void _run_event_handler(const std::string& command_line,
                           const std::shared_ptr<check>& service);
+  void _insert_in_queue(const check::pointer& check);
 
  public:
   template <typename sender, typename chck_builder>
@@ -212,6 +214,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
       const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      const std::string& event_handler_cmd_line,
       check::command_executor&& event_handler_executor);
 
   engine_to_agent_request_ptr get_last_message_to_agent() const {

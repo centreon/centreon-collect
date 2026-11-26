@@ -298,7 +298,7 @@ TEST(config, custom_check_command_refreshed_after_reload) {
                [[maybe_unused]] const std::list<
                    com::centreon::common::perfdata>& perfdata,
                [[maybe_unused]] const std::list<std::string>& outputs) {},
-            std::make_shared<checks_statistics>(), nullptr,
+            std::make_shared<checks_statistics>(), nullptr, "",
             [](const std::string&, const std::shared_ptr<check>&) {}));
   };
 

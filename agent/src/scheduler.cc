@@ -290,7 +290,7 @@ void scheduler::_start_waiting_check() {
       SPDLOG_LOGGER_DEBUG(
           _logger,
           "timeperiod check: service='{}' period='{}' now={} in_period={}",
-          to_check->second->get_service(),
+          to_check->second->get_service_description(),
           period_name.empty() ? "(none)" : period_name, now_t, in_period);
       if (!in_period) {
         // next_valid_time_in_period_by_name returns now_t (= orig) when no
@@ -309,7 +309,8 @@ void scheduler::_start_waiting_check() {
               _logger,
               "service '{}': outside period '{}', next open at {} ({}s from "
               "now)",
-              deferred->get_service(), period_name, next_t, next_t - now_t);
+              deferred->get_service_description(), period_name, next_t,
+              next_t - now_t);
           slot.increment_to_after_min(
               std::chrono::system_clock::from_time_t(next_t));
         } else {
@@ -323,15 +324,15 @@ void scheduler::_start_waiting_check() {
               _logger,
               "service '{}': period '{}' has no active time in the next "
               "year, deferring by one year",
-              deferred->get_service(), period_name);
+              deferred->get_service_description(), period_name);
           slot.increment_to_after_min(now + one_year);
         }
         save_defer_checks.push_back(std::pair(deferred, slot.get_step_index()));
         continue;
       }
-      SPDLOG_LOGGER_DEBUG(_logger,
-                          "service '{}': inside period '{}', starting check",
-                          to_check->second->get_service(), period_name);
+      SPDLOG_LOGGER_DEBUG(
+          _logger, "service '{}': inside period '{}', starting check",
+          to_check->second->get_service_description(), period_name);
       _start_check(to_check->second);
       to_check = _waiting_check_queue.erase(to_check);
     }
@@ -488,7 +489,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                 const std::list<std::string>& outputs) {
               me->_check_handler(check, status, perfdata, outputs);
             },
-            statistics, _credentials_decrypt,
+            statistics, _credentials_decrypt, "",
             [me = weak_from_this()](const std::string& command_line,
                                     const std::shared_ptr<check>& service) {
               auto sched = me.lock();
@@ -555,7 +556,7 @@ void scheduler::force_check(const engine_to_agent_request_ptr& request) {
       if (to_check->second->get_service_id() == force.serv_id() &&
           to_check->second->get_host_id() == force.host_id()) {
         SPDLOG_LOGGER_INFO(_logger, "force check of service {} {}@{}",
-                           to_check->second->get_service(),
+                           to_check->second->get_service_description(),
                            to_check->second->get_service_id(),
                            to_check->second->get_host_id());
         _start_check(to_check->second);
@@ -579,10 +580,11 @@ void scheduler::_start_check(const check::pointer& check) {
   ++_active_check;
   if (_logger->level() <= spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(_logger, "start check for service {} command {}",
-                        check->get_service(), check->get_command_line());
+                        check->get_service_description(),
+                        check->get_command_line());
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "start check for service {}",
-                        check->get_service());
+                        check->get_service_description());
   }
   check->start_check(std::chrono::seconds(_conf->config().check_timeout()));
 }
@@ -606,13 +608,13 @@ void scheduler::_check_handler(
     return;
   }
 
-  SPDLOG_LOGGER_DEBUG(_logger,
-                      "end check for service {} command {}, status {} {} "
-                      "CA:{}/{} , outputs: {}",
-                      check->get_service(), check->get_command_line(), status,
-                      check->get_status_confirmed() ? "HARD" : "SOFT",
-                      check->get_current_attempt(), check->get_max_attempts(),
-                      outputs.front());
+  SPDLOG_LOGGER_DEBUG(
+      _logger,
+      "end check for service {} command {}, status {} {} "
+      "CA:{}/{} , outputs: {}",
+      check->get_service_description(), check->get_command_line(), status,
+      check->get_status_confirmed() ? "HARD" : "SOFT",
+      check->get_current_attempt(), check->get_max_attempts(), outputs.front());
 
   if (_conf->config().use_exemplar()) {
     _store_result_in_metrics_and_exemplars(check, status, perfdata, outputs);
@@ -622,6 +624,21 @@ void scheduler::_check_handler(
 
   --_active_check;
 
+  _insert_in_queue(check);
+}
+
+/**
+ * @brief insert a check into the waiting check queue
+ *
+ * The next start timepoint of the check is first pushed after now (following
+ * its normal or retry cadence according to its confirmed status), then the
+ * check is stored in the first free slot at or after that timepoint. Slots
+ * are one _check_time_step long, so at most one check starts per slot.
+ * When the scheduler is stopped, the check is simply dropped.
+ *
+ * @param check check to schedule (re-scheduled if it was already queued)
+ */
+void scheduler::_insert_in_queue(const check::pointer& check) {
   if (_alive) {
     time_point now = std::chrono::system_clock::now();
 
@@ -638,9 +655,9 @@ void scheduler::_check_handler(
     SPDLOG_LOGGER_DEBUG(_logger,
                         "next check expected at {} for {}, slot time "
                         "{} [index : {}] , check insert at index {}",
-                        check->get_start_expected(), check->get_service(),
-                        slot_search.value(), slot_search.get_step_index(),
-                        steps);
+                        check->get_start_expected(),
+                        check->get_service_description(), slot_search.value(),
+                        slot_search.get_step_index(), steps);
   }
 }
 
@@ -676,7 +693,7 @@ void scheduler::_store_result_in_metrics(
     [[maybe_unused]] const std::list<com::centreon::common::perfdata>& perfdata,
     [[maybe_unused]] const std::list<std::string>& outputs) {
   // auto scope_metrics =
-  //     get_scope_metrics(check->get_host(), check->get_service());
+  //     get_scope_metrics(check->get_host(), check->get_service_description());
   // unsigned now = std::chrono::duration_cast<std::chrono::nanoseconds>(
   //                    std::chrono::system_clock::now().time_since_epoch())
   //                    .count();
@@ -711,13 +728,13 @@ void scheduler::_store_result_in_metrics_and_exemplars(
     const std::list<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
   // we don't want to erase existing previous metrics, so we send right now
-  auto exist = _serv_to_scope_metrics.find(check->get_service());
+  auto exist = _serv_to_scope_metrics.find(check->get_service_description());
   if (exist != _serv_to_scope_metrics.end()) {
     _metric_sender(_current_request);
     _init_export_request();
   }
 
-  auto& scope_metrics = _get_scope_metrics(check->get_service());
+  auto& scope_metrics = _get_scope_metrics(check->get_service_description());
   uint64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(
                      std::chrono::system_clock::now().time_since_epoch())
                      .count();
@@ -935,16 +952,24 @@ void scheduler::_add_exemplar(
 }
 
 /**
- * @brief build a check object from command lline
+ * @brief build a check object from the service command line
+ *
+ * Native checks (json command line) are parsed and executed by the agent
+ * itself, other command lines run as plugin processes.
  *
  * @param io_context
  * @param logger logger that will be used by the check
- * @param start_expected timepoint of first check
- * @param service
- * @param cmd_name
- * @param cmd_line
+ * @param first_start_expected timepoint of first check
+ * @param service service to check
  * @param conf conf given by engine
  * @param handler handler that will be called on check completion
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted command lines,
+ * null when command lines are not encrypted
+ * @param event_handler_cmd_line event handler command line to build the check
+ * from, empty to build a regular check from the service command line
+ * @param event_handler_executor callback the check calls to execute its own
+ * event handlers, empty for check without event handler command
  * @return std::shared_ptr<check>
  */
 std::shared_ptr<check> scheduler::default_check_builder(
@@ -956,8 +981,11 @@ std::shared_ptr<check> scheduler::default_check_builder(
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
     const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    const std::string& event_handler_cmd_line,
     check::command_executor&& event_handler_executor) {
-  std::string command_line = service.command_line();
+  std::string command_line = event_handler_cmd_line.empty()
+                                 ? service.command_line()
+                                 : event_handler_cmd_line;
   // has to decrypt cmd_line
   try {
     check::decrypt_command_line(command_line, credentials_decrypt);
@@ -1085,5 +1113,41 @@ std::shared_ptr<check> scheduler::default_check_builder(
   }
 }
 
+/**
+ * @brief execute an event handler of a check
+ *
+ * Called through the command_executor given to checks: a check that has to
+ * run its global or per host/service event handler resolves its macros
+ * (HOSTSTATE, SERVICESTATETYPE, SERVICEATTEMPT...) and delegates here the
+ * execution of the resulting command line.
+ * The handler is turned into a pseudo check by _check_builder (so the command
+ * line, possibly encrypt::-prefixed, is handled by the same build path as any
+ * check) and queued by _insert_in_queue: it starts like a regular check and
+ * counts against max_concurrent_checks.
+ * Its completion handler only releases that concurrency slot, status, outputs
+ * and perfdata of an event handler are dropped, and the pseudo check is given
+ * an empty command executor so that it cannot trigger nested event handlers.
+ *
+ * @param command_line event handler command line to execute
+ * @param service the check that raised the event
+ */
 void scheduler::_run_event_handler(const std::string& command_line,
-                                   const std::shared_ptr<check>& service) {}
+                                   const std::shared_ptr<check>& service) {
+  time_step next_slot(_check_time_step);
+  next_slot.increment_to_after_now();
+
+  auto event_handler_check = _check_builder(
+      _io_context, _logger, next_slot.value(), service->get_service(),
+      service->get_conf(),
+      [me = weak_from_this()](const check::pointer&, unsigned,
+                              const std::list<com::centreon::common::perfdata>&,
+                              const std::list<std::string>&) {
+        auto sched = me.lock();
+        if (sched && sched->_active_check) {
+          --sched->_active_check;
+        }
+      },
+      std::make_shared<checks_statistics>(), _credentials_decrypt, command_line,
+      [](const std::string&, const std::shared_ptr<check>&) {});
+  _insert_in_queue(event_handler_check);
+}
