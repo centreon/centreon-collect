@@ -199,12 +199,18 @@ bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
     throw exceptions::connection_closed("{} connection is down",
                                         __PRETTY_FUNCTION__);
   }
+  /* stop() wakes us up: a stream that dies while we wait (a refused
+   * connection for example) must not keep us until the deadline. */
   _read_cond.wait_until(l, std::chrono::system_clock::from_time_t(deadline),
-                        [this]() { return !_read_queue.empty(); });
+                        [this]() { return !_read_queue.empty() || !_alive; });
   if (!_read_queue.empty())
     return extract_event();
-  else
-    return false;
+  if (!_alive) {
+    d.reset();
+    throw exceptions::connection_closed("{} connection is down",
+                                        __PRETTY_FUNCTION__);
+  }
+  return false;
 }
 
 /**
@@ -411,6 +417,12 @@ uint32_t stream<bireactor_class>::stop() {
     SPDLOG_LOGGER_DEBUG(_logger, "{:p} {}::stop", static_cast<void*>(this),
                         _class_name);
     _alive = false;
+    {
+      /* Taking _read_m orders this change with the predicate check of a
+       * read() about to wait: the notification cannot be lost. */
+      std::lock_guard rl(_read_m);
+    }
+    _read_cond.notify_all();
     this->shutdown();
   }
   return 0;
