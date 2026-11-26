@@ -281,6 +281,33 @@ def ctn_check_pl_command(arg: str):
         return "/tmp/var/lib/centreon-engine/check.pl " + arg
 
 
+def ctn_event_handler_command(to_write: str) -> str:
+    """
+    ctn_event_handler_command
+    return an event handler command usable by testing agent OS that appends
+    to_write as a new line of the file given by ctn_event_handler_output_file
+    Args:
+        to_write: text to append, engine and agent macros are allowed
+    """
+    if environ.get("RUN_ENV", "") == "WSL":
+        return '"' + environ.get('PWSH_PATH') + '"' + " -NoProfile -Command \"Add-Content -Path C:/Users/Public/event_handler.log -Value '" + to_write + "'\""
+    else:
+        return '/bin/sh -c "echo ' + to_write + ' >> ' + VAR_ROOT + '/lib/centreon-engine/event_handler.log"'
+
+
+def ctn_event_handler_output_file() -> str:
+    """
+    ctn_event_handler_output_file
+    return the path, readable by robot, of the file written by the command
+    given by ctn_event_handler_command
+    """
+    if environ.get("RUN_ENV", "") == "WSL":
+        # the agent runs on the windows host, whose C: drive is seen by wsl
+        return "/mnt/c/Users/Public/event_handler.log"
+    else:
+        return VAR_ROOT + "/lib/centreon-engine/event_handler.log"
+
+
 def ctn_get_drive_names():
     """
     ctn_get_drive_names

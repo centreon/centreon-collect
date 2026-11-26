@@ -631,6 +631,33 @@ def ctn_check_reschedule_with_timeout(log: str, date, content: str, retry: bool,
     return False
 
 
+def ctn_wait_for_lines_in_file(file_path: str, expected_lines: list, timeout: int) -> bool:
+    """
+    ctn_wait_for_lines_in_file
+    wait until the lines of a file, without their end of line characters, are
+    exactly expected_lines
+    Args:
+        file_path: file to read
+        expected_lines: list of the expected lines, in order
+        timeout: timeout in seconds
+    Returns:
+        True if the file content matches before timeout, False otherwise
+    """
+    limit = time.time() + timeout
+    lines = []
+    while time.time() < limit:
+        if os.path.exists(file_path):
+            with open(file_path, encoding="utf-8-sig") as f:
+                lines = [line.rstrip("\r\n") for line in f]
+            if lines == expected_lines:
+                return True
+            if len(lines) > len(expected_lines):
+                break
+        time.sleep(1)
+    logger.console(f"{file_path} contains {lines}, expected {expected_lines}")
+    return False
+
+
 def ctn_clear_commands_status():
     if os.path.exists("/tmp/states"):
         os.remove("/tmp/states")
