@@ -230,7 +230,7 @@ jobs:
 
       - name: Deliver packages on Pulp
         id: deliver_rpm_pulp
-        uses: ./.github/actions/package-delivery-pulp
+        uses: centreon/github-actions/pulp/package-delivery@pulp/v1
         with:
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
@@ -271,7 +271,7 @@ jobs:
 
       - name: Deliver packages on Pulp
         id: deliver_deb_pulp
-        uses: ./.github/actions/package-delivery-pulp
+        uses: centreon/github-actions/pulp/package-delivery@pulp/v1
         with:
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
@@ -308,7 +308,7 @@ jobs:
 
       - name: Promote ${{ matrix.distrib }} to stable on Pulp
         id: promote_pulp
-        uses: ./.github/actions/promote-to-stable-pulp
+        uses: centreon/github-actions/pulp/promote-to-stable@pulp/v1
         with:
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
