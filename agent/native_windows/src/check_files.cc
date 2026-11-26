@@ -568,25 +568,34 @@ struct result_summary : public testable {
  * @param cnf Shared pointer to the engine-to-agent request configuration.
  * @param handler Completion handler to be called when the check is finished.
  * @param stat Shared pointer to the statistics collector for checks.
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  *
  * @throws std::exception If argument parsing fails or required parameters are
  * missing.
  */
-check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
-                         const std::shared_ptr<spdlog::logger>& logger,
-                         time_point first_start_expected,
-                         const Service& serv,
-                         const rapidjson::Value& args,
-                         const engine_to_agent_request_ptr& cnf,
-                         check::completion_handler&& handler,
-                         const checks_statistics::pointer& stat)
+check_files::check_files(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    const Service& serv,
+    const rapidjson::Value& args,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat) {
+            stat,
+            credentials_decrypt,
+            std::move(cmd_executor)) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
@@ -973,24 +982,20 @@ void check_files::_print_format(std::string& output, e_status status) {
   }
   list_str += _ok_list_str;
 
-  std::string_view status_label;
+  std::string_view status_label = status_to_label(status);
   const std::string* chosen_syntax = &_output_syntax;
 
   switch (status) {
     case e_status::ok:
-      status_label = "OK";
       chosen_syntax = &_ok_syntax;
       break;
     case e_status::warning:
-      status_label = "WARNING";
       chosen_syntax = &_output_syntax;
       break;
     case e_status::critical:
-      status_label = "CRITICAL";
       chosen_syntax = &_output_syntax;
       break;
     default:
-      status_label = "UNKNOWN";
       chosen_syntax = &_output_syntax;
       break;
   }
@@ -1103,25 +1108,11 @@ void check_files::_completion_handler(
   perfs.emplace_back(std::move(perf));
 
   if (_verbose) {
-    std::string status_str;
-    switch (ret) {
-      case e_status::ok:
-        status_str = "OK";
-        break;
-      case e_status::warning:
-        status_str = "WARNING";
-        break;
-      case e_status::critical:
-        status_str = "CRITICAL";
-        break;
-      default:
-        status_str = "UNKNOWN";
-        break;
-    }
-    output = fmt::format(
-        "{}: Ok:{}/Nok:{}/total:{}  warning:{}/critical:{}\n", status_str,
-        _ok_list.size(), _warning_list.size() + _critical_list.size(),
-        result.size(), _warning_list.size(), _critical_list.size());
+    output =
+        fmt::format("{}: Ok:{}/Nok:{}/total:{}  warning:{}/critical:{}\n",
+                    status_to_label(ret), _ok_list.size(),
+                    _warning_list.size() + _critical_list.size(), result.size(),
+                    _warning_list.size(), _critical_list.size());
     for (const auto& [path, metadata_ptr] : result) {
       const file_metadata& metadata = *metadata_ptr;
       output += fmt::format(

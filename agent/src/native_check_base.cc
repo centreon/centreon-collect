@@ -75,6 +75,11 @@ void measure_to_status<nb_metric>::compute_status(
  * @param args native plugin arguments
  * @param cnf engine configuration received object
  * @param handler called at measure completion
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 template <unsigned nb_metric>
 native_check_base<nb_metric>::native_check_base(
@@ -85,14 +90,18 @@ native_check_base<nb_metric>::native_check_base(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat)
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat) {}
+            stat,
+            credentials_decrypt,
+            std::move(cmd_executor)) {}
 
 /**
  * @brief start a measure
@@ -149,7 +158,7 @@ e_status native_check_base<nb_metric>::compute(
     mem_status.second->compute_status(data, &status);
   }
 
-  *output = status_label[status];
+  *output = status_to_label(status);
   output->append(": ");
   data.dump_to_output(output);
 

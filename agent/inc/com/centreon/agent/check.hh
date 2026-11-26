@@ -19,6 +19,8 @@
 #ifndef CENTREON_AGENT_CHECK_HH
 #define CENTREON_AGENT_CHECK_HH
 
+#include "common/crypto/aes256.hh"
+
 #include "agent.pb.h"
 #include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/threshold.hh"
@@ -156,6 +158,9 @@ class check : public std::enable_shared_from_this<check> {
       const std::list<com::centreon::common::perfdata>& perfdata,
       const std::list<std::string>& outputs)>;
 
+  using command_executor =
+      std::function<void(const std::string&, const std::shared_ptr<check>&)>;
+
  private:
   //_start_expected is set on construction on config receive
   // it's updated on check_start and added of multiple of check_interval
@@ -186,11 +191,15 @@ class check : public std::enable_shared_from_this<check> {
   time_point _last_start;
   checks_statistics::pointer _stat;
 
+  std::shared_ptr<common::crypto::aes256> _credentials_decrypt;
+
   int _current_attempt = 1;
   bool _status_confirmed = true; /* we consider the status as confirmed */
   unsigned int _last_status =
       e_status::ok; /* for initial state we consider it as OK */
   bool _last_confirmed = true;
+
+  command_executor _command_executor;
 
  protected:
   std::shared_ptr<asio::io_context> _io_context;
@@ -208,10 +217,16 @@ class check : public std::enable_shared_from_this<check> {
 
   virtual void _on_timeout() {};
 
+  void _run_event_handler();
+
+  void _run_command(const std::string& raw_cmd);
+
  public:
   using pointer = std::shared_ptr<check>;
 
   static const std::array<std::string_view, 4> status_label;
+
+  static std::string_view status_to_label(int status);
 
   check(const std::shared_ptr<asio::io_context>& io_context,
         const std::shared_ptr<spdlog::logger>& logger,
@@ -219,7 +234,9 @@ class check : public std::enable_shared_from_this<check> {
         const Service& serv,
         const engine_to_agent_request_ptr& cnf,
         completion_handler&& handler,
-        const checks_statistics::pointer& stat);
+        const checks_statistics::pointer& stat,
+        const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+        command_executor&& cmd_executor);
 
   virtual ~check() = default;
 
@@ -260,7 +277,7 @@ class check : public std::enable_shared_from_this<check> {
                                   : _start_expected_retry;
   }
 
-  const std::string& get_service() const {
+  const std::string& get_service_description() const {
     return _service.service_description();
   }
 
@@ -319,6 +336,8 @@ class check : public std::enable_shared_from_this<check> {
 
   const std::string& get_timezone() const { return _service.timezone(); }
 
+  const Service& get_service() const { return _service; }
+
   void increment_cur_attempt() { ++_current_attempt; }
   int get_current_attempt() const { return _current_attempt; }
   void set_current_attempt(int attempt) { _current_attempt = attempt; }
@@ -326,10 +345,18 @@ class check : public std::enable_shared_from_this<check> {
   bool get_status_confirmed() const { return _status_confirmed; }
   void set_status_confirmed(bool status) { _status_confirmed = status; }
 
-  int get_last_status() const { return _last_status; }
-  void set_last_status(int status) { _last_status = status; }
+  unsigned get_last_status() const { return _last_status; }
+  void set_last_status(unsigned status) { _last_status = status; }
 
   void calcul_status_confirmation(unsigned status);
+
+  std::shared_ptr<common::crypto::aes256> get_credentials_decrypt() const {
+    return _credentials_decrypt;
+  }
+
+  static void decrypt_command_line(
+      std::string& command_line,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
 };
 
 }  // namespace com::centreon::agent

@@ -88,14 +88,17 @@ class check_counter : public check {
   std::function<void(filter*)> _checker_builder;
 
  public:
-  check_counter(const std::shared_ptr<asio::io_context>& io_context,
-                const std::shared_ptr<spdlog::logger>& logger,
-                time_point first_start_expected,
-                const Service& serv,
-                const rapidjson::Value& args,
-                const engine_to_agent_request_ptr& cnf,
-                check::completion_handler&& handler,
-                const checks_statistics::pointer& state);
+  check_counter(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point first_start_expected,
+      const Service& serv,
+      const rapidjson::Value& args,
+      const engine_to_agent_request_ptr& cnf,
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      command_executor&& cmd_executor);
 
   ~check_counter();
   static void help(std::ostream& help_stream);

@@ -19,10 +19,9 @@
 #ifndef CENTREON_AGENT_SCHEDULER_HH
 #define CENTREON_AGENT_SCHEDULER_HH
 
-#include <memory>
+#include "absl/functional/function_ref.h"
 #include "check.hh"
 #include "com/centreon/common/file_watcher.hh"
-#include "common/crypto/aes256.hh"
 #include "common/engine_conf/timeperiod.pb.h"
 
 namespace com::centreon::agent {
@@ -45,7 +44,9 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const engine_to_agent_request_ptr& /*engine to agent request*/,
       check::completion_handler&&,
       const checks_statistics::pointer& /*stat*/,
-      const std::shared_ptr<common::crypto::aes256> /*credentials_decrypt*/
+      const std::shared_ptr<common::crypto::aes256> /*credentials_decrypt*/,
+      const std::string& /*event handler command line */,
+      check::command_executor&& /* event handler executor*/
       )>;
 
  private:
@@ -161,6 +162,10 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
 
   void _start_waiting_check();
 
+  void _run_event_handler(const std::string& command_line,
+                          const std::shared_ptr<check>& service);
+  void _insert_in_queue(const check::pointer& check);
+
  public:
   template <typename sender, typename chck_builder>
   scheduler(const std::shared_ptr<asio::io_context>& io_context,
@@ -208,7 +213,9 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const engine_to_agent_request_ptr& conf,
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
-      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      const std::string& event_handler_cmd_line,
+      check::command_executor&& event_handler_executor);
 
   engine_to_agent_request_ptr get_last_message_to_agent() const {
     return _conf;

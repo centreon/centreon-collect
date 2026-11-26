@@ -576,8 +576,6 @@ std::ostream& operator<<(std::ostream& os,
      << "\n  host_ptr:                             "
      << (hst ? hst->name() : "\"nullptr\"")
      << "\n  event_handler_ptr:                    " << evt_str
-     << "\n  event_handler_args:                   "
-     << obj.get_event_handler_args()
      << "\n  check_command_ptr:                    " << cmd_str
      << "\n  check_command_args:                   "
      << obj.get_check_command_args()
@@ -1055,24 +1053,6 @@ void service::set_description(const std::string& desc) {
  */
 const std::string& service::description() const {
   return name();
-}
-
-/**
- * @brief set the event handler arguments
- *
- *  @param[in] event_hdl_args the event handler arguments
- */
-void service::set_event_handler_args(const std::string& event_hdl_args) {
-  _event_handler_args = event_hdl_args;
-}
-
-/**
- * @brief Get the event handler arguments of the service.
- *
- * @return A string reference to the event handler arguments.
- */
-const std::string& service::get_event_handler_args() const {
-  return _event_handler_args;
 }
 
 /**
@@ -2342,6 +2322,9 @@ void service::check_for_flapping(bool update,
 
 /* handles changes in the state of a service */
 int service::handle_service_event() {
+  if (is_cma_service()) {
+    return OK;
+  }
   nagios_macros* mac(get_global_macros());
 
   engine_logger(dbg_functions, basic) << "handle_service_event()";
@@ -4040,6 +4023,9 @@ std::string service::get_check_command_line(nagios_macros* macros) {
       grab_host_macros_r(macros, host.get());
     }
     grab_service_macros_r(macros, this);
+    // Called for its side effect: it splits check_command() ("name!arg1!...")
+    // on '!' and fills the $ARGn$ macros (macros->argv) that process_cmd()
+    // substitutes below. The raw command line written to tmp is not needed.
     std::string tmp;
     get_raw_command_line_r(macros, get_check_command_ptr(),
                            check_command().c_str(), tmp, 0);

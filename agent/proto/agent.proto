@@ -121,6 +121,8 @@ message Service {
   string timezone = 10;
   optional sint32 utc_offset = 11;
   optional bool dst_active = 12;
+  string global_event_handler = 13;
+  string event_handler = 14;
 }
 
 // message used by engine to make agent do a force check

@@ -17,6 +17,7 @@
  */
 
 #include "check.hh"
+#include "absl/strings/str_replace.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::agent;
@@ -116,6 +117,13 @@ void checks_statistics::add_duration_stat(const std::string& cmd_name,
 const std::array<std::string_view, 4> check::status_label = {
     "OK", "WARNING", "CRITICAL", "UNKNOWN"};
 
+std::string_view check::status_to_label(int status) {
+  if (status >= 0 && status < (int)status_label.size()) {
+    return status_label[status];
+  }
+  return status_to_label(e_status::unknown);
+}
+
 /**
  * @brief Construct a new check::check object
  *
@@ -123,10 +131,13 @@ const std::array<std::string_view, 4> check::status_label = {
  * @param logger
  * @param first_start_expected start expected
  * @param serv
- * @param command_name
- * @param cmd_line
  * @param cnf
  * @param handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check::check(const std::shared_ptr<asio::io_context>& io_context,
              const std::shared_ptr<spdlog::logger>& logger,
@@ -134,7 +145,9 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
              const Service& serv,
              const engine_to_agent_request_ptr& cnf,
              completion_handler&& handler,
-             const checks_statistics::pointer& stat)
+             const checks_statistics::pointer& stat,
+             const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+             command_executor&& cmd_executor)
     : _start_expected_normal(first_start_expected,
                              serv.check_interval()
                                  ? std::chrono::seconds(serv.check_interval())
@@ -148,6 +161,8 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
       _time_out_timer(*io_context),
       _completion_handler(handler),
       _stat(stat),
+      _credentials_decrypt(credentials_decrypt),
+      _command_executor(std::move(cmd_executor)),
       _io_context(io_context),
       _logger(logger) {}
 
@@ -359,11 +374,12 @@ std::optional<bool> check::get_bool(const std::string& cmd_name,
  * @param status
  */
 void check::calcul_status_confirmation(unsigned status) {
-  const int last_status = get_last_status();
+  const unsigned last_status = get_last_status();
   const bool prev_confirmed = get_status_confirmed();
   const bool is_ok = (status == e_status::ok);
   const int max_attempts = std::max<int>(1, get_max_attempts());
   const bool was_problem = (last_status > 0);
+  bool event_handler_to_run = false;
 
   // ---- Case 1: OK (recovery handling) --------------------------------------
   if (is_ok) {
@@ -373,6 +389,7 @@ void check::calcul_status_confirmation(unsigned status) {
     // - If previous problem was SOFT, the recovery is SOFT (status_confirmed =
     // false).
     if (was_problem) {
+      event_handler_to_run = true;
       set_status_confirmed(prev_confirmed);
       // - If previous confirmed was true, reset attempts.
       if (prev_confirmed)
@@ -381,7 +398,6 @@ void check::calcul_status_confirmation(unsigned status) {
         // it s a soft recovery
         increment_cur_attempt();
       }
-
     } else {
       // - If previous ok was HARD, nothing to do (confirmed = true).
       // - if last_status == -1 it s the first status we consider it as hard ok
@@ -397,6 +413,15 @@ void check::calcul_status_confirmation(unsigned status) {
     // - If was_problem, increment attempt.
     // - If coming from OK or a different non-OK, reset attempt to 1.
 
+    if (!was_problem) {
+      event_handler_to_run = true;
+    }
+    if (!get_status_confirmed()) {
+      event_handler_to_run = true;
+    }
+    if (last_status != status) {
+      event_handler_to_run = true;
+    }
     if (was_problem && get_current_attempt() < max_attempts) {
       increment_cur_attempt();
       set_status_confirmed(false);
@@ -406,9 +431,105 @@ void check::calcul_status_confirmation(unsigned status) {
     }
 
     if (get_current_attempt() >= max_attempts) {
-      set_status_confirmed(true);  // Problem is now HARD.
+      if (!get_status_confirmed()) {
+        set_status_confirmed(true);  // Problem is now HARD.
+      }
     }
   }
 
   set_last_status(status);
+  if (event_handler_to_run) {
+    _run_event_handler();
+  }
+}
+
+/**
+ * @brief run the event handlers of this check
+ *
+ * Called by calcul_status_confirmation when a status transition must raise
+ * the event handler. Executes the global event handler and the per
+ * host/service event handler, each one only when it is defined.
+ * Each command line is expanded and executed by _run_command.
+ */
+void check::_run_event_handler() {
+  if (!_service.global_event_handler().empty()) {
+    _run_command(_service.global_event_handler());
+  }
+  if (!_service.event_handler().empty()) {
+    _run_command(_service.event_handler());
+  }
+}
+
+/**
+ * @brief expand an event handler command line and give it to the command
+ * executor
+ *
+ * The command line, possibly encrypt::-prefixed, is first decrypted with
+ * the credentials given at construction: on decryption failure the execution
+ * is silently aborted (an error is logged). Then the state macros resolved
+ * by the CMA are substituted: HOSTSTATE, HOSTSTATETYPE and HOSTATTEMPT for
+ * a host, SERVICESTATE, SERVICESTATETYPE and SERVICEATTEMPT for a service
+ * (they are not expanded earlier by engine so that the values reported here
+ * are the ones of the state transition that raised the handler).
+ * Finally the command executor injected at construction is invoked (nothing
+ * is executed when it is empty) with this check as second argument, so that
+ * the scheduler can schedule the handler execution as a pseudo check
+ * (see scheduler::_run_event_handler).
+ *
+ * @param raw_cmd event handler command line as configured in engine
+ */
+void check::_run_command(const std::string& raw_cmd) {
+  std::string_view status;
+  if (!_service.service_id()) {
+    switch (_last_status) {
+      case 0:
+        status = "UP";
+        break;
+      case 2:
+        status = "UNREACHABLE";
+        break;
+      default:
+        status = "DOWN";
+        break;
+    }
+  } else {
+    status = status_to_label(_last_status);
+  }
+  std::string attempt = std::to_string(_current_attempt);
+  std::string_view state_type = _status_confirmed ? "HARD" : "SOFT";
+  std::string command_line = raw_cmd;
+
+  try {
+    decrypt_command_line(command_line, _credentials_decrypt);
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "Fail to decrypt event handler command for service {}",
+                        _service.service_description());
+    return;
+  }
+
+  if (!_service.service_id())
+    absl::StrReplaceAll({{"$HOSTSTATE$", status},
+                         {"$HOSTSTATETYPE$", state_type},
+                         {"$HOSTATTEMPT$", attempt}},
+                        &command_line);
+  else
+    absl::StrReplaceAll({{"$SERVICESTATE$", status},
+                         {"$SERVICESTATETYPE$", state_type},
+                         {"$SERVICEATTEMPT$", attempt}},
+                        &command_line);
+  if (_command_executor) {
+    SPDLOG_LOGGER_DEBUG(_logger, "schedule event handler for service {}",
+                        _service.service_description());
+    _command_executor(command_line, shared_from_this());
+  }
+}
+
+void check::decrypt_command_line(
+    std::string& command_line,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
+  if (credentials_decrypt && !command_line.compare(0, 9, "encrypt::")) {
+    command_line =
+        credentials_decrypt->decrypt(std::string_view(command_line).substr(9));
+  }
 }

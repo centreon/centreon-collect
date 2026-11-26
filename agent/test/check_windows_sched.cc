@@ -110,7 +110,8 @@ TEST_F(check_windows_sched, default_check_sched) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -263,7 +264,8 @@ TEST_F(check_windows_sched, filter_task1) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
@@ -293,7 +295,8 @@ TEST_F(check_windows_sched, filter_task2) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
@@ -323,7 +326,8 @@ TEST_F(check_windows_sched, filter_task3) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
@@ -354,7 +358,8 @@ TEST_F(check_windows_sched, warning_filter) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
@@ -388,7 +393,8 @@ TEST_F(check_windows_sched, exclude_tasks) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
@@ -426,7 +432,8 @@ TEST_F(check_windows_sched, output_format) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
@@ -456,7 +463,8 @@ TEST_F(check_windows_sched, output_format_2) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
@@ -487,7 +495,8 @@ TEST_F(check_windows_sched, filter_by_name_and_author) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
@@ -525,7 +534,8 @@ TEST_F(check_windows_sched, filter_by_last_run) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
@@ -559,7 +569,8 @@ TEST_F(check_windows_sched, warning_last_run) {
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker.get_mutable_tasks()[g_data1.name] = g_data1;
   checker.get_mutable_tasks()[g_data2.name] = g_data2;

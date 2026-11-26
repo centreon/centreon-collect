@@ -161,8 +161,6 @@ class service : public notifier {
   void set_name(std::string const& desc) override;
   void set_description(std::string const& desc);
   const std::string& description() const;
-  void set_event_handler_args(std::string const& event_hdl_args);
-  std::string const& get_event_handler_args() const;
   void set_check_command_args(std::string const& cmd_args);
   std::string const& get_check_command_args() const;
   time_t get_last_time_ok() const;
@@ -281,7 +279,6 @@ class service : public notifier {
   uint64_t _host_id;
   uint64_t _service_id;
   std::string _hostname;
-  std::string _event_handler_args;
   std::string _check_command_args;
 
   int _process_performance_data;

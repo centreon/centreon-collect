@@ -47,6 +47,11 @@ static std::string _to_lower_utf8(std::wstring str) {
  * @param args
  * @param cnf
  * @param handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check_counter::check_counter(
     const std::shared_ptr<asio::io_context>& io_context,
@@ -56,14 +61,18 @@ check_counter::check_counter(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat)
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat),
+            stat,
+            credentials_decrypt,
+            std::move(cmd_executor)),
       _measure_timer(*io_context) {
   com::centreon::common::rapidjson_helper arg(args);
   // check if the arguments are valid
@@ -812,16 +821,7 @@ void check_counter::_print_counter(std::string* output, e_status status) {
   }
   list_str += _ok_list_str;
 
-  std::string status_label;
-  if (status == e_status::ok) {
-    status_label = "OK";
-  } else if (status == e_status::warning) {
-    status_label = "WARNING";
-  } else if (status == e_status::critical) {
-    status_label = "CRITICAL";
-  } else {
-    status_label = "UNKNOWN";
-  }
+  std::string_view status_label = status_to_label(status);
   // format the output string
   *output = std::vformat(
       _output_syntax,

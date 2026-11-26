@@ -239,7 +239,8 @@ TEST_F(drive_size_test, test_fs_filter1) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -309,7 +310,8 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -379,7 +381,8 @@ TEST_F(drive_size_test, test_fs_filter2) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -437,7 +440,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -504,7 +508,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -565,7 +570,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
   {
@@ -633,7 +639,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -696,7 +703,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -759,7 +767,8 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -821,7 +830,8 @@ TEST_F(drive_size_test, test_fs_filter_free_bytes) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -879,7 +889,8 @@ TEST_F(drive_size_test, test_fs_no_storage_found) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -920,7 +931,8 @@ TEST_F(drive_size_test, test_fs_format_filter) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -962,7 +974,8 @@ TEST_F(drive_size_test, test_fs_empty_filters) {
         perfs = perfdata;
         output = outputs.front();
       },
-      std::make_shared<checks_statistics>());
+      std::make_shared<checks_statistics>(), nullptr,
+      [](const std::string&, const std::shared_ptr<check>&) {});
 
   checker->start_check(std::chrono::seconds(1));
 

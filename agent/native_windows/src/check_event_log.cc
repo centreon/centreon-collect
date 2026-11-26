@@ -45,6 +45,10 @@ using namespace com::centreon::agent;
  * @param cnf Shared pointer to the engine to agent request configuration.
  * @param handler The completion handler for the check.
  * @param stat Shared pointer to the checks statistics.
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  *
  * @throws std::exception If there is an error parsing the arguments.
  */
@@ -56,14 +60,18 @@ check_event_log::check_event_log(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat)
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat) {
+            stat,
+            credentials_decrypt,
+            std::move(cmd_executor)) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
@@ -146,6 +154,8 @@ check_event_log::check_event_log(
  * @param cnf Shared pointer to the engine to agent request configuration.
  * @param handler The completion handler for the check.
  * @param stat Shared pointer to the checks statistics.
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
  *
  * @return A shared pointer to the initialized check_event_log object.
  */
@@ -157,10 +167,12 @@ std::shared_ptr<check_event_log> check_event_log::load(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat) {
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor) {
   std::shared_ptr<check_event_log> ret = std::make_shared<check_event_log>(
       io_context, logger, first_start_expected, serv, args, cnf,
-      std::move(handler), stat);
+      std::move(handler), stat, credentials_decrypt, std::move(cmd_executor));
 
   ret->_data->start();
 
@@ -281,19 +293,20 @@ std::string check_event_log::print_event_detail(
   uint64_t time_s = std::chrono::duration_cast<std::chrono::seconds>(
                         evt.get_time().time_since_epoch())
                         .count();
+  std::string_view status_label = status_to_label(status);
   if constexpr (need_written_str) {
     std::string written_str = std::format("{:%FT%T}", evt.get_time());
     return std::vformat(
         _event_detail_syntax,
         std::make_format_args(file, event_id, evt.get_provider(),
-                              evt.get_message(), status_label[status], time_s,
+                              evt.get_message(), status_label, time_s,
                               record_id, evt.get_computer(), evt.get_channel(),
                               evt.get_str_keywords(), level, written_str));
   } else {
     return std::vformat(
         _event_detail_syntax,
         std::make_format_args(file, event_id, evt.get_provider(),
-                              evt.get_message(), status_label[status], time_s,
+                              evt.get_message(), status_label, time_s,
                               record_id, evt.get_computer(), evt.get_channel(),
                               evt.get_str_keywords(), level));
   }

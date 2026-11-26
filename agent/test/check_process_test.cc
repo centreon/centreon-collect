@@ -40,14 +40,17 @@ struct test_check_process : public check_process {
                      const engine_to_agent_request_ptr& cnf,
                      check::completion_handler&& handler,
                      const checks_statistics::pointer& stat)
-      : check_process(io_context,
-                      logger,
-                      first_start_expected,
-                      serv,
-                      args,
-                      cnf,
-                      std::move(handler),
-                      stat) {
+      : check_process(
+            io_context,
+            logger,
+            first_start_expected,
+            serv,
+            args,
+            cnf,
+            std::move(handler),
+            stat,
+            nullptr,
+            [](const std::string&, const std::shared_ptr<check>&) {}) {
     cont = std::make_unique<process_container_mock>(std::move(*_processes));
   }
 };

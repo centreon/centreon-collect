@@ -33,22 +33,20 @@ class check_exec : public check {
   common::process_args::pointer _process_args;
   int _pid;
 
-  std::shared_ptr<common::crypto::aes256> _credentials_decrypt;
-
  protected:
   using check::completion_handler;
 
  public:
-  check_exec(
-      const std::shared_ptr<asio::io_context>& io_context,
-      const std::shared_ptr<spdlog::logger>& logger,
-      time_point first_start_expected,
-      const Service& serv,
-      const std::string& command_line,
-      const engine_to_agent_request_ptr& cnf,
-      check::completion_handler&& handler,
-      const checks_statistics::pointer& stat,
-      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
+  check_exec(const std::shared_ptr<asio::io_context>& io_context,
+             const std::shared_ptr<spdlog::logger>& logger,
+             time_point first_start_expected,
+             const Service& serv,
+             const std::string& command_line,
+             const engine_to_agent_request_ptr& cnf,
+             check::completion_handler&& handler,
+             const checks_statistics::pointer& stat,
+             const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+             command_executor&& cmd_executor);
 
   static std::shared_ptr<check_exec> load(
       const std::shared_ptr<asio::io_context>& io_context,
@@ -59,7 +57,8 @@ class check_exec : public check {
       const engine_to_agent_request_ptr& cnf,
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
-      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      command_executor&& cmd_executor);
 
   void start_check(const duration& timeout) override;
 
@@ -98,14 +97,17 @@ class check_dummy : public check {
   using check::completion_handler;
 
  public:
-  check_dummy(const std::shared_ptr<asio::io_context>& io_context,
-              const std::shared_ptr<spdlog::logger>& logger,
-              time_point first_start_expected,
-              const Service& serv,
-              const std::string& output,
-              const engine_to_agent_request_ptr& cnf,
-              check::completion_handler&& handler,
-              const checks_statistics::pointer& stat);
+  check_dummy(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point first_start_expected,
+      const Service& serv,
+      const std::string& output,
+      const engine_to_agent_request_ptr& cnf,
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      command_executor&& cmd_executor);
 
   static std::shared_ptr<check_dummy> load(
       const std::shared_ptr<asio::io_context>& io_context,
@@ -115,7 +117,9 @@ class check_dummy : public check {
       const std::string& output,
       const engine_to_agent_request_ptr& cnf,
       check::completion_handler&& handler,
-      const checks_statistics::pointer& stat);
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      command_executor&& cmd_executor);
 
   void start_check(const duration& timeout) override;
 
@@ -138,7 +142,8 @@ class check_custom : public check_exec {
       const engine_to_agent_request_ptr& cnf,
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
-      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      command_executor&& cmd_executor);
 };
 }  // namespace com::centreon::agent
 

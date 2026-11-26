@@ -203,14 +203,17 @@ class check_files : public check {
       const std::string& msg_err);
 
  public:
-  check_files(const std::shared_ptr<asio::io_context>& io_context,
-              const std::shared_ptr<spdlog::logger>& logger,
-              time_point first_start_expected,
-              const Service& serv,
-              const rapidjson::Value& args,
-              const engine_to_agent_request_ptr& cnf,
-              check::completion_handler&& handler,
-              const checks_statistics::pointer& stat);
+  check_files(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point first_start_expected,
+      const Service& serv,
+      const rapidjson::Value& args,
+      const engine_to_agent_request_ptr& cnf,
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      command_executor&& cmd_executor);
 
   std::shared_ptr<check_files> shared_from_this() {
     return std::static_pointer_cast<check_files>(check::shared_from_this());

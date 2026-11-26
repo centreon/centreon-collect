@@ -33,6 +33,11 @@ using namespace com::centreon::agent::process;
  * @param args
  * @param cnf
  * @param handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 check_process::check_process(
     const std::shared_ptr<asio::io_context>& io_context,
@@ -42,14 +47,18 @@ check_process::check_process(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat)
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat) {
+            stat,
+            credentials_decrypt,
+            std::move(cmd_executor)) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
@@ -303,9 +312,10 @@ e_status check_process::compute(process::container& cont,
       }
     }
 
+    std::string_view label_status = status_to_label(ret);
     *output = std::vformat(
         *output_format,
-        std::make_format_args(status_label[ret], process_count, problem_list));
+        std::make_format_args(label_status, process_count, problem_list));
 
     if (_verbose) {
       for (const process::process_data& to_dump :

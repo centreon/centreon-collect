@@ -103,6 +103,17 @@ int process_macros_r(nagios_macros* mac,
     /* reset clean options */
     clean_options = 0;
 
+    size_t next_offset =
+        tag_type == simple_dollar_tag ? tag_end + 1 : tag_end + 3;
+
+    // kept macros are resolved later by another program (the agent), so the
+    // whole tag is copied as is, without any cleaning
+    if (mac->kept_macros.contains(token)) {
+      output_buffer.append(input_buffer.substr(offset, next_offset - offset));
+      offset = next_offset;
+      continue;
+    }
+
     /* grab the macro value */
     result = grab_macro_value_r(mac, token, token_resolved, &clean_options,
                                 &free_macro);
@@ -164,7 +175,7 @@ int process_macros_r(nagios_macros* mac,
       }
     }
 
-    offset = tag_type == simple_dollar_tag ? tag_end + 1 : tag_end + 3;
+    offset = next_offset;
   }
 
   // append any trailing text after the last macro

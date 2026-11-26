@@ -213,14 +213,17 @@ class native_check_cpu : public check {
       std::list<common::perfdata>* perfs);
 
  public:
-  native_check_cpu(const std::shared_ptr<asio::io_context>& io_context,
-                   const std::shared_ptr<spdlog::logger>& logger,
-                   time_point first_start_expected,
-                   const Service& serv,
-                   const rapidjson::Value& args,
-                   const engine_to_agent_request_ptr& cnf,
-                   check::completion_handler&& handler,
-                   const checks_statistics::pointer& stat);
+  native_check_cpu(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point first_start_expected,
+      const Service& serv,
+      const rapidjson::Value& args,
+      const engine_to_agent_request_ptr& cnf,
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+      command_executor&& cmd_executor);
 
   virtual ~native_check_cpu() = default;
 

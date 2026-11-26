@@ -440,6 +440,22 @@ void drive_size_thread::async_get_fs_stats(
  *              check_drive_size
  *********************************************************************************/
 
+/**
+ * @brief Construct a new check_drive_size object
+ *
+ * @param io_context
+ * @param logger
+ * @param first_start_expected start expected
+ * @param serv service
+ * @param args native check arguments
+ * @param cnf agent configuration
+ * @param handler completion handler
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
+ */
 check_drive_size::check_drive_size(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -448,14 +464,18 @@ check_drive_size::check_drive_size(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat)
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat),
+            stat,
+            credentials_decrypt,
+            std::move(cmd_executor)),
       _filter(std::make_shared<check_drive_size_detail::filter>(args)),
       _prct_threshold(false),
       _free_threshold(false),

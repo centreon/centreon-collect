@@ -2902,6 +2902,80 @@ BEOTEL_CENTREON_AGENT_ACCENTED_PERFDATA
 
 
 
+BEOTEL_CENTREON_AGENT_EVENT_HANDLER
+    [Documentation]    Scenario: the agent runs the event handler of a service on state changes
+    ...    Given an agent that checks service_1 with max_check_attempts 2
+    ...    And service_1 has an event handler writing $SERVICESTATE$ $SERVICESTATETYPE$ $SERVICEATTEMPT$ to a file
+    ...    When service_1 goes CRITICAL until HARD, then OK
+    ...    Then the agent runs the event handler on CRITICAL SOFT 1, CRITICAL HARD 2 and OK HARD 1
+    ...    And the state macros are replaced by the agent with the state of each transition
+    [Tags]    broker    engine    agent    opentelemetry    MON-198462
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive    0    service_1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    max_check_attempts    2
+
+    ${check_cmd}    Ctn Check Pl Command    --id 456
+    Ctn Engine Config Add Command    ${0}    otel_check    ${check_cmd}    OTEL connector
+
+    # the state macros are not expanded by engine, the agent replaces them
+    ${event_handler_cmd}    Ctn Event Handler Command    $SERVICESTATE$ $SERVICESTATETYPE$ $SERVICEATTEMPT$
+    Ctn Engine Config Add Command    ${0}    event_handler_cmd    ${event_handler_cmd}
+    Ctn Engine Config Set Value In Services    ${0}    service_1    event_handler    event_handler_cmd
+    Ctn Engine Config Set Value In Services    ${0}    service_1    event_handler_enabled    1
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    ${event_handler_file}    Ctn Event Handler Output File
+    Remove File    ${event_handler_file}
+
+    # service_1 check fails CRITICAL
+    Ctn Set Command Status    456    ${2}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Clear Db    resources
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    2    120    HARD
+    Should Be True    ${result}    service_1 should be CRITICAL HARD
+
+    ${expected}    Create List    CRITICAL SOFT 1    CRITICAL HARD 2
+    ${result}    Ctn Wait For Lines In File    ${event_handler_file}    ${expected}    60
+    Should Be True    ${result}    the event handler should have been run on CRITICAL SOFT 1 and CRITICAL HARD 2
+
+    # service_1 check recovers
+    Ctn Set Command Status    456    ${0}
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
+    Should Be True    ${result}    service_1 should be OK HARD
+
+    ${expected}    Create List    CRITICAL SOFT 1    CRITICAL HARD 2    OK HARD 1
+    ${result}    Ctn Wait For Lines In File    ${event_handler_file}    ${expected}    60
+    Should Be True    ${result}    the event handler should have been run on the OK HARD 1 recovery
+
+
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side

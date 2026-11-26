@@ -215,6 +215,11 @@ void cpu_to_status<nb_metric>::compute_status(
  * @param args native plugin arguments
  * @param cnf engine configuration received object
  * @param handler called at measure completion
+ * @param stat statistics of the checks
+ * @param credentials_decrypt key used to decrypt the encrypted event
+ * handler command lines, null when command lines are not encrypted
+ * @param cmd_executor function called to run the expanded event handler
+ * command lines
  */
 template <unsigned nb_metric>
 native_check_cpu<nb_metric>::native_check_cpu(
@@ -225,14 +230,18 @@ native_check_cpu<nb_metric>::native_check_cpu(
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat)
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt,
+    command_executor&& cmd_executor)
     : check(io_context,
             logger,
             first_start_expected,
             serv,
             cnf,
             std::move(handler),
-            stat),
+            stat,
+            credentials_decrypt,
+            std::move(cmd_executor)),
 
       _nb_core(std::thread::hardware_concurrency()),
       _cpu_detailed(false),
@@ -374,7 +383,7 @@ e_status native_check_cpu<nb_metric>::_compute(
         } else {
           output->push_back(' ');
         }
-        *output += status_label[cpu_status.second];
+        *output += status_to_label(cpu_status.second);
         output->append(": ");
         delta[cpu_status.first].dump(cpu_status.first, summary_labels, output);
       }
