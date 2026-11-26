@@ -622,6 +622,12 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex, _config_listeners_m);
   absl::flat_hash_map<uint64_t, instance_info> _instances
       ABSL_GUARDED_BY(_mutex);
+  /* Pollers whose initial dump has reached the cache: their
+   * InstanceConfiguration is published after all their objects. Erased when the
+   * poller starts again (Instance event). Not saved in the cache file. Only
+   * meaningful in the legacy configuration, where this dump is the only source
+   * of the poller's objects. */
+  absl::flat_hash_set<uint64_t> _synced_pollers ABSL_GUARDED_BY(_mutex);
   /* host_id => OTel service identity (section CACHE_OTEL). */
   absl::flat_hash_map<uint64_t, otel_service> _otel_services
       ABSL_GUARDED_BY(_mutex);
@@ -1058,6 +1064,7 @@ class broker_cache {
   void update_instance(const std::shared_ptr<neb::pb_instance>& instance)
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool has_instance(uint64_t instance_id) const ABSL_LOCKS_EXCLUDED(_mutex);
+  bool is_poller_synced(uint64_t poller_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   void update_hostgroup(const std::shared_ptr<neb::pb_host_group>& group)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_servicegroup(const std::shared_ptr<neb::pb_service_group>& group)

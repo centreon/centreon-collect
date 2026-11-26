@@ -78,6 +78,43 @@ class capturing_sink
 };
 
 /**
+ * @brief Answer for a host or a service that the broker cache does not know.
+ *
+ * In the legacy configuration, the cache learns the hosts and services of a
+ * poller from its initial dump only. Right after the poller connects, this dump
+ * may not have reached the cache yet (for example while the multiplexing engine
+ * waits for its outputs to start): the object is then unknown for now, not
+ * unknown for good. While a connected poller has not published its
+ * InstanceConfiguration, the answer is UNAVAILABLE so that the client retries;
+ * NOT_FOUND otherwise.
+ *
+ * In the centralized configuration, the cache already holds the stored
+ * configurations of the pollers before any of them connects, and receives an
+ * acknowledged configuration from the BBDO stream: an unknown object is
+ * NOT_FOUND.
+ *
+ * @param state  The Broker applier state.
+ * @param what   The description of the missing object, for the message.
+ *
+ * @return The status to return.
+ */
+grpc::Status unknown_object_status(config::applier::broker_state& state,
+                                   const std::string& what) {
+  if (!state.supports_centralized_conf()) {
+    for (const auto& p : state.connected_pollers()) {
+      if (!state.cache().is_poller_synced(p.peer.poller_id))
+        return grpc::Status(
+            grpc::StatusCode::UNAVAILABLE,
+            fmt::format("{} is not known yet: poller {} has not sent its "
+                        "whole configuration",
+                        what, p.peer.poller_id));
+    }
+  }
+  return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                      fmt::format("unknown {}", what));
+}
+
+/**
  * @brief Guard of the Broker-owned features (downtimes, comments,
  * acknowledgements, notification switches...), available only in
  * notification_mode = broker.
@@ -2388,8 +2425,8 @@ grpc::Status broker_impl::ExecuteExternalCommand(
       std::string host_name(fields[1]);
       auto h = state.cache().host(host_name);
       if (!h)
-        return grpc::Status(grpc::StatusCode::NOT_FOUND,
-                            fmt::format("unknown host '{}'", host_name));
+        return unknown_object_status(state,
+                                     fmt::format("host '{}'", host_name));
       uint64_t poller_id = h->obj().instance_id();
       uint64_t host_id = h->obj().host_id();
       uint64_t service_id = 0;
@@ -2402,9 +2439,9 @@ grpc::Status broker_impl::ExecuteExternalCommand(
         std::string description(fields[2]);
         auto s = state.cache().service(host_name, description);
         if (!s)
-          return grpc::Status(grpc::StatusCode::NOT_FOUND,
-                              fmt::format("unknown service ('{}', '{}')",
-                                          host_name, description));
+          return unknown_object_status(
+              state,
+              fmt::format("service ('{}', '{}')", host_name, description));
         service_id = s->obj().service_id();
       }
       if (!state.is_poller_connected(poller_id))

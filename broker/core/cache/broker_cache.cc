@@ -2942,6 +2942,23 @@ bool broker_cache::has_instance(uint64_t instance_id) const {
 }
 
 /**
+ * @brief Tell whether the initial dump of a poller has reached the cache.
+ *
+ * Engine sends an InstanceConfiguration after all the objects of its initial
+ * dump (or after a reload). Until it is published here, a host or a service of
+ * this poller may still be missing from the cache.
+ *
+ * @param poller_id The poller ID.
+ *
+ * @return true if the poller's InstanceConfiguration was published since its
+ * last start.
+ */
+bool broker_cache::is_poller_synced(uint64_t poller_id) const {
+  absl::ReaderMutexLock l{_mutex};
+  return _synced_pollers.contains(poller_id);
+}
+
+/**
  * @brief Remove an instance from the cache.
  *
  * @param instance_id The ID of the instance to remove
@@ -6220,9 +6237,23 @@ void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
       update_service(
           std::static_pointer_cast<neb::pb_adaptive_service_status>(evt));
       break;
-    case neb::pb_instance::static_type():
-      update_instance(std::static_pointer_cast<neb::pb_instance>(evt));
-      break;
+    case neb::pb_instance::static_type(): {
+      auto instance = std::static_pointer_cast<neb::pb_instance>(evt);
+      {
+        /* A (re)starting Engine sends its whole configuration again. */
+        absl::WriterMutexLock l{_mutex};
+        _synced_pollers.erase(instance->obj().instance_id());
+      }
+      update_instance(instance);
+    } break;
+    case neb::pb_instance_configuration::static_type(): {
+      const auto& ic =
+          std::static_pointer_cast<neb::pb_instance_configuration>(evt)->obj();
+      if (ic.loaded()) {
+        absl::WriterMutexLock l{_mutex};
+        _synced_pollers.insert(ic.poller_id());
+      }
+    } break;
     case make_type(io::neb, neb::de_service_status):
       update_service(std::static_pointer_cast<neb::pb_service_status>(
           bbdo2_to_bbdo3(evt)));

@@ -3713,7 +3713,8 @@ def ctn_send_external_command(*commands, config: int = 0, port: int = 51001):
     if _external_command_mode() == "broker":
         # The command pipe blocks until Engine reads it; Broker instead answers
         # UNAVAILABLE while the poller is not connected (typically right after a
-        # Broker restart). Retry that case for a while to keep the pipe semantics.
+        # Broker restart) or has not sent its whole configuration yet. Retry
+        # that case for a while to keep the pipe semantics.
         limit = time.time() + 60
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
@@ -3777,8 +3778,9 @@ def ctn_wait_for_broker_cache_knows_engine(nb_engine: int = 1, port: int = 51001
     In broker external command mode (see `Ctn Set External Command Mode`),
     wait until the Broker cache knows every host and service of the Engine
     legacy configurations. Broker resolves a command from its cache: a command
-    sent before the poller's initial dump reached it is answered NOT_FOUND,
-    whereas the command pipe just waits for Engine. Does nothing in pipe mode,
+    sent before the poller's initial dump reached it is answered UNAVAILABLE
+    (`Ctn Send External Command` retries it), whereas the command pipe just
+    waits for Engine. Does nothing in pipe mode,
     unless always is set (a test calling Broker's RPC directly).
 
     Args:
