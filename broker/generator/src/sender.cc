@@ -57,6 +57,6 @@ bool sender::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 uint32_t sender::write(std::shared_ptr<io::data> const& d) {
   (void)d;
-  throw(exceptions::shutdown() << "cannot write to event sender (generator)");
+  throw exceptions::shutdown() << "cannot write to event sender (generator)";
   return 1;
 }

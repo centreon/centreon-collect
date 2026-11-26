@@ -73,8 +73,8 @@ void diagnostic::generate(std::string const& cfg_file,
   {
     char tmp_dir_ptr[] = "/tmp/brokerXXXXXX";
     if (!mkdtemp(tmp_dir_ptr))
-      throw(engine_error()
-            << "Cannot generate diagnostic temporary directory path.");
+      throw engine_error()
+            << "Cannot generate diagnostic temporary directory path.";
     tmp_dir = tmp_dir_ptr;
   }
 
@@ -167,8 +167,8 @@ void diagnostic::generate(std::string const& cfg_file,
   std::string tmp_cfg_dir(tmp_dir + "/cfg/");
   if (mkdir(tmp_cfg_dir.c_str(), S_IRWXU)) {
     char const* msg(strerror(errno));
-    throw(engine_error() << "Cannot create temporary configuration directory '"
-                         << tmp_cfg_dir << "': " << msg);
+    throw engine_error() << "Cannot create temporary configuration directory '"
+                         << tmp_cfg_dir << "': " << msg;
   }
 
   // Copy base configuration file.
@@ -191,8 +191,8 @@ void diagnostic::generate(std::string const& cfg_file,
   std::string tmp_log_dir(tmp_dir + "/log/");
   if (mkdir(tmp_log_dir.c_str(), S_IRWXU)) {
     char const* msg(strerror(errno));
-    throw(engine_error() << "Cannot create temporary log directory '"
-                         << tmp_log_dir << "': " << msg);
+    throw engine_error() << "Cannot create temporary log directory '"
+                         << tmp_log_dir << "': " << msg;
   }
 
   // Log file.

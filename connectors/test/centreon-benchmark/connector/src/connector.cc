@@ -186,7 +186,7 @@ std::string connector::_get_next_result() {
 void connector::_recv_data(int timeout) {
   int ret(poll(&_pfd, 1, timeout));
   if (ret == -1)
-    throw(basic_exception(strerror(errno)));
+    throw basic_exception(strerror(errno));
   else if (ret && (_pfd.revents & (POLLNVAL | POLLHUP)) &&
            !(_pfd.revents & (POLLIN | POLLPRI)))
     throw(
@@ -196,7 +196,7 @@ void connector::_recv_data(int timeout) {
     return;
   char buffer[4096];
   if ((ret = read(_pipe_out[0], buffer, sizeof(buffer))) == -1)
-    throw(basic_exception(strerror(errno)));
+    throw basic_exception(strerror(errno));
   if (ret)
     _results.append(buffer, ret);
 }
@@ -253,9 +253,9 @@ std::string connector::_request_version() {
 void connector::_send_data(std::string const& data) {
   int ret(write(_pipe_in[1], data.c_str(), data.size()));
   if (ret < 0)
-    throw(basic_exception(strerror(errno)));
+    throw basic_exception(strerror(errno));
   if (static_cast<unsigned int>(ret) != data.size())
-    throw(basic_exception("send data failed"));
+    throw basic_exception("send data failed");
   ++_current_running;
 }
 
@@ -264,11 +264,11 @@ void connector::_send_data(std::string const& data) {
  */
 void connector::_start_connector() {
   if (pipe(_pipe_in) == -1 || pipe(_pipe_out) == -1)
-    throw(basic_exception(strerror(errno)));
+    throw basic_exception(strerror(errno));
 
   _pid = fork();
   if (_pid == -1)
-    throw(basic_exception(strerror(errno)));
+    throw basic_exception(strerror(errno));
 
   if (!_pid) {
     close(_pipe_out[0]);

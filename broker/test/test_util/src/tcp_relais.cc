@@ -242,8 +242,8 @@ tcp_relais_impl::tcp_relais_impl(const std::string& listen_interface,
   if (endpoints.empty()) {
     std::cerr << __FUNCTION__ << "unable to resolve " << listen_interface << ':'
               << listen_port << std::endl;
-    throw(std::invalid_argument("unable to resolve " + listen_interface + ':' +
-                                std::to_string(listen_port)));
+    throw std::invalid_argument("unable to resolve " + listen_interface + ':' +
+                                std::to_string(listen_port));
   }
 
   tcp::resolver::results_type dest_endpoints =
@@ -251,8 +251,8 @@ tcp_relais_impl::tcp_relais_impl(const std::string& listen_interface,
   if (dest_endpoints.empty()) {
     std::cerr << __FUNCTION__ << "unable to resolve " << dest_host << ':'
               << dest_host << std::endl;
-    throw(std::invalid_argument("unable to resolve " + dest_host + ':' +
-                                std::to_string(dest_port)));
+    throw std::invalid_argument("unable to resolve " + dest_host + ':' +
+                                std::to_string(dest_port));
   }
   _dest = *dest_endpoints.begin();
   _acceptor =

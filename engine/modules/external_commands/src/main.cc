@@ -151,7 +151,7 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
     // Register callbacks.
     if (neb_register_callback(NEBCALLBACK_EXTERNAL_COMMAND_DATA, gl_mod_handle,
                               0, callback_external_command)) {
-      throw(engine_error() << "register callback failed");
+      throw engine_error() << "register callback failed";
     }
   } catch (std::exception const& e) {
     runtime_logger->error("external command runtime error '{}'.", e.what());

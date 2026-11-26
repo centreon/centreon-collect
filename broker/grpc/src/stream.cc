@@ -196,8 +196,8 @@ bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
   }
   if (!_alive) {
     d.reset();
-    throw(exceptions::connection_closed("{} connection is down",
-                                        __PRETTY_FUNCTION__));
+    throw exceptions::connection_closed("{} connection is down",
+                                        __PRETTY_FUNCTION__);
   }
   _read_cond.wait_until(l, std::chrono::system_clock::from_time_t(deadline),
                         [this]() { return !_read_queue.empty(); });
@@ -285,8 +285,8 @@ void stream<bireactor_class>::OnWriteDone(bool ok) {
 template <class bireactor_class>
 uint32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
   if (!_alive)
-    throw(exceptions::connection_closed("{} connection is down",
-                                        __PRETTY_FUNCTION__));
+    throw exceptions::connection_closed("{} connection is down",
+                                        __PRETTY_FUNCTION__);
   event_with_data::pointer to_send;
 
   if (_conf->get_grpc_serialized() &&

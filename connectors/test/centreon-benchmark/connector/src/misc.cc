@@ -34,7 +34,7 @@ com::centreon::benchmark::connector::load_commands_file(
   std::ifstream is;
   is.open(file.c_str(), std::ios::in);
   if (!is.is_open())
-    throw(basic_exception("open commands file failed"));
+    throw basic_exception("open commands file failed");
   while (is.good()) {
     std::string line;
     std::getline(is, line, '\n');

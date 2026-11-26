@@ -56,7 +56,7 @@ hostgroup::hostgroup(uint64_t id,
   // Make sure we have the data we need.
   if (name.empty()) {
     config_logger->error("Error: Hostgroup name is NULL");
-    throw(engine_error() << "Could not register host group '" << name << "'");
+    throw engine_error() << "Could not register host group '" << name << "'";
   }
 
   // Check if the host group already exist.
@@ -64,7 +64,7 @@ hostgroup::hostgroup(uint64_t id,
   if (found != hostgroup::hostgroups.end()) {
     config_logger->error("Error: Hostgroup '{}' has already been defined",
                          name);
-    throw(engine_error() << "Could not register host group '" << name << "'");
+    throw engine_error() << "Could not register host group '" << name << "'";
   }
 }
 
