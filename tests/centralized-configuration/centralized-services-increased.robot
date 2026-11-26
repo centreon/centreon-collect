@@ -25,7 +25,7 @@ BECNSVC1
     ...    And poller 3 should monitor exactly (16 hosts × services) + 16 hosts
     ...    And each verification should complete within 30 seconds
     ...    And the load balancing should remain stable during scaling
-    [Tags]    broker    engine    services    protobuf    unstable
+    [Tags]    broker    engine    services    protobuf
     Ctn Clear Engine Configurations
     Ctn Clear Prot Files
 

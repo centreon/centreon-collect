@@ -585,11 +585,13 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
         conf = json.loads(buf)
         current_configs[key] = conf
 
+        # The helpers below find the configuration by its key: "central_map"
+        # is stored as "central".
         if default_bbdo_version is not None:
             if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
-                ctn_config_broker_sql_output(name, 'unified_sql')
+                ctn_config_broker_sql_output(key, 'unified_sql')
             ctn_broker_config_add_item(
-                name, "bbdo_version", default_bbdo_version)
+                key, "bbdo_version", default_bbdo_version)
         elif "bbdo_version" not in conf["centreonBroker"]:
             # The version is always written: a missing bbdo_version must not
             # depend on the default of the binaries.
@@ -597,12 +599,12 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
         if default_transport == "grpc":
             if name == "central" or name == "central_map":
                 ctn_config_broker_bbdo_input(
-                    name, "bbdo_server", "5669", "grpc")
+                    key, "bbdo_server", "5669", "grpc")
                 ctn_config_broker_bbdo_output(
-                    name, "bbdo_client", "5670", "grpc", "localhost")
+                    key, "bbdo_client", "5670", "grpc", "localhost")
             else:
                 ctn_config_broker_bbdo_input(
-                    name, "bbdo_server", "5670", "grpc")
+                    key, "bbdo_server", "5670", "grpc")
 
 
 def ctn_change_broker_tcp_output_to_grpc(name: str):
