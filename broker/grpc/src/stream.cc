@@ -470,6 +470,17 @@ bool stream<bireactor_class>::peer_verified() const {
   return !_conf->get_authorization().empty();
 }
 
+/**
+ * @brief The channel is encrypted when the endpoint has 'encryption' set: the
+ * gRPC server then only accepts TLS and the client only dials TLS.
+ *
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+bool stream<bireactor_class>::encrypted() const {
+  return _conf->is_crypted();
+}
+
 namespace com::centreon::broker::grpc {
 
 template class stream<

@@ -49,7 +49,9 @@ class remote_channel {
     bool remote_actions = false;
     /* The peer announced it runs RemoteExec requests. */
     bool remote_exec = false;
-    /* The stream is encrypted and the peer certificate is verified. */
+    /* The stream is encrypted on the wire (TLS on TCP or gRPC encryption). A
+     * cbd server does not authenticate its engine peers; the peer cbmod
+     * verifies the central certificate before it announces remote actions. */
     bool tls = false;
     time_t connected_since = 0;
   };

@@ -149,6 +149,7 @@ class stream : public io::stream,
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;
   bool peer_verified() const override;
+  bool encrypted() const override;
 };
 
 /**

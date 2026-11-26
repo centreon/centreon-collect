@@ -1805,14 +1805,14 @@ void stream::_register_remote() {
   info.peer_type = _peer_type;
   info.remote_actions = _peer_remote_actions;
   info.remote_exec = _peer_remote_exec;
-  info.tls = peer_verified();
+  info.tls = encrypted();
   info.connected_since = time(nullptr);
   _remote = std::make_shared<remote_channel>(info);
   remote_registry::instance().add(_remote);
   if (config::applier::state::instance().peer_type() == common::ENGINE &&
       remote_registry::instance().remote_actions()) {
     if (_accept_remote_actions()) {
-      if (remote_registry::instance().insecure() && !info.tls)
+      if (remote_registry::instance().insecure() && !peer_verified())
         SPDLOG_LOGGER_WARN(
             _logger,
             "BBDO: remote actions accepted from '{}' WITHOUT a verified TLS "

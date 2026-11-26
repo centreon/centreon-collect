@@ -72,6 +72,13 @@ bool stream::peer_verified() const {
 }
 
 /**
+ * @brief By default, a stream is as encrypted as its substream.
+ */
+bool stream::encrypted() const {
+  return _substream && _substream->encrypted();
+}
+
+/**
  *  Generate statistics about the stream.
  *
  *  @param[out] tree Output tree.

@@ -55,6 +55,7 @@ class stream : public io::stream {
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override { return 0; }
   bool peer_verified() const override;
+  bool encrypted() const override { return true; }
   long long write_encrypted(void const* buffer, long long size);
 };
 
