@@ -328,8 +328,9 @@ function start_plugin_holder() {
 function test_update_and_uninstall_with_plugin_in_use() {
     <#
     .SYNOPSIS
-    Silent update while a process keeps the plugin file open: the update must close it and never leave the
-    agent service stopped.
+    Silent update and uninstall while a process keeps the plugin file open: the update must close it and
+    never leave the agent service stopped, and the file the uninstaller cannot remove must not block the next
+    install.
     #>
     Write-Host "############################  update and uninstall with plugin in use  ############################"
 
@@ -383,10 +384,33 @@ function test_update_and_uninstall_with_plugin_in_use() {
         exit 1
     }
 
+    # The uninstaller stops no process: the plugin file still in use stays behind. Setup refuses to install a
+    # file whose deletion is pending until the next restart, and a /VERYSILENT Setup then restarts Windows: the
+    # next install must replace the file instead.
+    Write-Host "uninstall while a process keeps the plugin file open, then install again"
+    $holder = start_plugin_holder
+    $process_info = Start-Process -PassThru "C:\Program Files\Centreon\unins000.exe" "/VERYSILENT /FULL"
+    Wait-Process -Id $process_info.Id
+    Stop-Process -Id $holder.Id -Force -ErrorAction SilentlyContinue
+    if ($process_info.ExitCode -ne 0) {
+        Write-Host "bad uninstaller exit code"
+        exit 1
+    }
+    test_args_to_registry $installer_exepath $exe_args $expected "CentreonMonitoringAgent"
+    if (!(wait_service_running "CentreonMonitoringAgent")) {
+        Write-Host "CentreonMonitoringAgent not running after the install that follows the uninstall"
+        show_last_setup_log
+        exit 1
+    }
+
     $process_info = Start-Process -PassThru "C:\Program Files\Centreon\unins000.exe" "/VERYSILENT /FULL"
     Wait-Process -Id $process_info.Id
     if ($process_info.ExitCode -ne 0) {
         Write-Host "bad uninstaller exit code"
+        exit 1
+    }
+    if ([System.Io.File]::Exists($plugin_path)) {
+        Write-Host "$plugin_path not removed"
         exit 1
     }
 }
