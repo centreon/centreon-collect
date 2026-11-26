@@ -36,7 +36,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
  public:
   using metric_sender =
       std::function<void(const std::shared_ptr<MessageFromAgent>&)>;
-  using check_builder = absl::FunctionRef<std::shared_ptr<check>(
+  using check_builder = std::function<std::shared_ptr<check>(
       const std::shared_ptr<asio::io_context>&,
       const std::shared_ptr<spdlog::logger>& /*logger*/,
       time_point /* start expected*/,

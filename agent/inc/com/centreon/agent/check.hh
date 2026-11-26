@@ -345,8 +345,8 @@ class check : public std::enable_shared_from_this<check> {
   bool get_status_confirmed() const { return _status_confirmed; }
   void set_status_confirmed(bool status) { _status_confirmed = status; }
 
-  int get_last_status() const { return _last_status; }
-  void set_last_status(int status) { _last_status = status; }
+  unsigned get_last_status() const { return _last_status; }
+  void set_last_status(unsigned status) { _last_status = status; }
 
   void calcul_status_confirmation(unsigned status);
 

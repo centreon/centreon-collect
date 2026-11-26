@@ -17,8 +17,6 @@
  */
 
 #include "check.hh"
-#include <exception>
-#include <string>
 #include "absl/strings/str_replace.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -376,7 +374,7 @@ std::optional<bool> check::get_bool(const std::string& cmd_name,
  * @param status
  */
 void check::calcul_status_confirmation(unsigned status) {
-  const int last_status = get_last_status();
+  const unsigned last_status = get_last_status();
   const bool prev_confirmed = get_status_confirmed();
   const bool is_ok = (status == e_status::ok);
   const int max_attempts = std::max<int>(1, get_max_attempts());
@@ -415,18 +413,25 @@ void check::calcul_status_confirmation(unsigned status) {
     // - If was_problem, increment attempt.
     // - If coming from OK or a different non-OK, reset attempt to 1.
 
+    if (!was_problem) {
+      event_handler_to_run = true;
+    }
+    if (!get_status_confirmed()) {
+      event_handler_to_run = true;
+    }
+    if (last_status != status) {
+      event_handler_to_run = true;
+    }
     if (was_problem && get_current_attempt() < max_attempts) {
       increment_cur_attempt();
       set_status_confirmed(false);
     } else if (!was_problem) {
-      event_handler_to_run = true;
       set_current_attempt(1);
       set_status_confirmed(false);
     }
 
     if (get_current_attempt() >= max_attempts) {
-      if (!prev_confirmed) {
-        event_handler_to_run = true;
+      if (!get_status_confirmed()) {
         set_status_confirmed(true);  // Problem is now HARD.
       }
     }
@@ -476,7 +481,17 @@ void check::_run_event_handler() {
 void check::_run_command(const std::string& raw_cmd) {
   std::string_view status;
   if (!_service.service_id()) {
-    status = _last_status ? "DOWN" : "UP";
+    switch (_last_status) {
+      case 0:
+        status = "UP";
+        break;
+      case 2:
+        status = "UNREACHABLE";
+        break;
+      default:
+        status = "DOWN";
+        break;
+    }
   } else {
     status = status_to_label(_last_status);
   }
@@ -494,16 +509,18 @@ void check::_run_command(const std::string& raw_cmd) {
   }
 
   if (!_service.service_id())
-    absl::StrReplaceAll({{"HOSTSTATE", status},
-                         {"HOSTSTATETYPE", state_type},
-                         {"HOSTATTEMPT", attempt}},
+    absl::StrReplaceAll({{"$HOSTSTATE$", status},
+                         {"$HOSTSTATETYPE$", state_type},
+                         {"$HOSTATTEMPT$", attempt}},
                         &command_line);
   else
-    absl::StrReplaceAll({{"SERVICESTATE", status},
-                         {"SERVICESTATETYPE", state_type},
-                         {"SERVICEATTEMPT", attempt}},
+    absl::StrReplaceAll({{"$SERVICESTATE$", status},
+                         {"$SERVICESTATETYPE$", state_type},
+                         {"$SERVICEATTEMPT$", attempt}},
                         &command_line);
   if (_command_executor) {
+    SPDLOG_LOGGER_DEBUG(_logger, "schedule event handler for service {}",
+                        _service.service_description());
     _command_executor(command_line, shared_from_this());
   }
 }

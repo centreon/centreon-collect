@@ -1542,3 +1542,272 @@ TEST_F(scheduler_test, custom_checks_file_update_reloads_commands) {
   fs::remove(json_path);
 }
 #endif
+
+/**
+ * @brief check that ends with a fixed status, used to test event handlers
+ * Every start is recorded with the label given at construction.
+ */
+class event_handler_test_check : public check {
+  asio::system_timer _completion_timer;
+  unsigned _status;
+  std::string _label;
+
+ public:
+  static std::mutex starts_m;
+  static std::vector<std::string> starts;
+
+  event_handler_test_check(const std::shared_ptr<asio::io_context>& io_context,
+                           const std::shared_ptr<spdlog::logger>& logger,
+                           time_point exp,
+                           const Service& serv,
+                           const engine_to_agent_request_ptr& cnf,
+                           check::completion_handler&& handler,
+                           const checks_statistics::pointer& stat,
+                           check::command_executor&& executor,
+                           unsigned status,
+                           const std::string& label)
+      : check(io_context,
+              logger,
+              exp,
+              serv,
+              cnf,
+              std::move(handler),
+              stat,
+              nullptr,
+              std::move(executor)),
+        _completion_timer(*io_context),
+        _status(status),
+        _label(label) {}
+
+  void start_check(const duration& timeout) override {
+    if (!_start_check(timeout)) {
+      return;
+    }
+    {
+      std::lock_guard l(starts_m);
+      starts.push_back(_label);
+    }
+    _completion_timer.expires_after(std::chrono::milliseconds(10));
+    _completion_timer.async_wait([me = shared_from_this(), this,
+                                  running_index = _get_running_check_index()](
+                                     const boost::system::error_code& err) {
+      if (err) {
+        return;
+      }
+      on_completion(running_index, _status,
+                    std::list<com::centreon::common::perfdata>(),
+                    {_label + " output"});
+    });
+  }
+};
+
+std::mutex event_handler_test_check::starts_m;
+std::vector<std::string> event_handler_test_check::starts;
+
+/**
+ * @brief wait until pred returns true or timeout expires
+ * @return the last value returned by pred
+ */
+template <typename predicate>
+static bool wait_until(predicate&& pred, std::chrono::milliseconds timeout) {
+  time_point deadline = std::chrono::system_clock::now() + timeout;
+  while (!pred()) {
+    if (std::chrono::system_clock::now() > deadline) {
+      return pred();
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
+  return true;
+}
+
+/**
+ * The event handler raised by a check is built by the check builder from the
+ * expanded event handler command line and run as a pseudo check:
+ * - it is raised on SOFT 1 and on the switch to HARD only,
+ * - it can't raise an event handler itself,
+ * - its result is not exported,
+ * - it releases its concurrency slot: with max_concurrent_checks = 1, the
+ *   service check keeps running.
+ */
+TEST_F(scheduler_test, event_handler_runs_as_pseudo_check) {
+  {
+    std::lock_guard l(event_handler_test_check::starts_m);
+    event_handler_test_check::starts.clear();
+  }
+
+  auto conf = std::make_shared<com::centreon::agent::MessageToAgent>();
+  auto cnf = conf->mutable_config();
+  cnf->set_export_period(1);
+  cnf->set_max_concurrent_checks(1);
+  cnf->set_check_timeout(5);
+  cnf->set_use_exemplar(true);
+  auto* serv = cnf->add_services();
+  serv->set_service_description("svc_event_handler");
+  serv->set_command_name("cmd");
+  serv->set_command_line("cmdline");
+  serv->set_check_interval(1);
+  serv->set_retry_interval(1);
+  serv->set_max_attempts(2);
+  serv->set_host_id(1);
+  serv->set_service_id(1);
+  serv->set_event_handler("hnd $SERVICESTATE$ $SERVICESTATETYPE$");
+
+  std::mutex m;
+  std::vector<std::string> built_event_handlers;
+  std::vector<std::string> exports;
+
+  // the builder captures locals by reference: they must outlive the scheduler
+  auto builder =
+      [&](const std::shared_ptr<asio::io_context>& io_context,
+          const std::shared_ptr<spdlog::logger>& logger,
+          time_point start_expected, const Service& service,
+          const engine_to_agent_request_ptr& req,
+          check::completion_handler&& handler,
+          const checks_statistics::pointer& stat,
+          const std::shared_ptr<
+              com::centreon::common::crypto::aes256>& /*credentials*/,
+          const std::string& event_handler_cmd_line,
+          check::command_executor&& executor) -> std::shared_ptr<check> {
+    if (event_handler_cmd_line.empty()) {
+      return std::make_shared<event_handler_test_check>(
+          io_context, logger, start_expected, service, req, std::move(handler),
+          stat, std::move(executor), e_status::critical, "check");
+    }
+    {
+      std::lock_guard l(m);
+      built_event_handlers.push_back(event_handler_cmd_line);
+    }
+    // the pseudo check ends CRITICAL: from its initial OK state, it would
+    // raise the event handler again if its executor did something
+    return std::make_shared<event_handler_test_check>(
+        io_context, logger, start_expected, service, req, std::move(handler),
+        stat, std::move(executor), e_status::critical, event_handler_cmd_line);
+  };
+
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host", conf,
+      [&](const std::shared_ptr<MessageFromAgent>& msg) {
+        std::lock_guard l(m);
+        exports.push_back(fmt::format("{}", msg->otel_request()));
+      },
+      builder);
+
+  scheduler_closer closer(sched);
+
+  auto starts_of = [](const std::string& label) {
+    std::lock_guard l(event_handler_test_check::starts_m);
+    return std::count(event_handler_test_check::starts.begin(),
+                      event_handler_test_check::starts.end(), label);
+  };
+
+  // SOFT 1, HARD 2, then 2 more checks in HARD state
+  ASSERT_TRUE(wait_until([&] { return starts_of("check") >= 4; },
+                         std::chrono::seconds(10)))
+      << "the service check must go on after its event handlers";
+  ASSERT_TRUE(wait_until([&] { return starts_of("hnd CRITICAL SOFT") == 1; },
+                         std::chrono::seconds(2)));
+  ASSERT_TRUE(wait_until([&] { return starts_of("hnd CRITICAL HARD") == 1; },
+                         std::chrono::seconds(2)));
+
+  // let a last export happen
+  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+
+  std::lock_guard l(m);
+  std::vector<std::string> expected{"hnd CRITICAL SOFT", "hnd CRITICAL HARD"};
+  EXPECT_EQ(built_event_handlers, expected);
+
+  bool check_exported = false;
+  for (const std::string& exported : exports) {
+    EXPECT_EQ(exported.find("hnd CRITICAL"), std::string::npos)
+        << "event handler result must not be exported: " << exported;
+    if (exported.find("check output") != std::string::npos) {
+      check_exported = true;
+    }
+  }
+  EXPECT_TRUE(check_exported);
+}
+
+/**
+ * @brief build a check with scheduler::default_check_builder
+ * The check keeps a reference to serv: serv must outlive it.
+ */
+static std::shared_ptr<check> build_with_event_handler(
+    const Service& serv,
+    const std::shared_ptr<com::centreon::common::crypto::aes256>& crypto,
+    const std::string& event_handler_cmd_line,
+    check::command_executor&& executor) {
+  return scheduler::default_check_builder(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      serv, nullptr,
+      [](const std::shared_ptr<check>&, int,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {},
+      std::make_shared<checks_statistics>(), crypto, event_handler_cmd_line,
+      std::move(executor));
+}
+
+static Service create_event_handler_service() {
+  Service serv;
+  serv.set_service_description("serv");
+  serv.set_command_name("command");
+  serv.set_command_line("/usr/bin/ls -l");
+  serv.set_check_interval(10);
+  serv.set_host_id(1);
+  serv.set_service_id(1);
+  return serv;
+}
+
+// given an event handler command line, the builder builds the check from it
+// instead of the service command line
+TEST_F(scheduler_test, builder_uses_event_handler_cmd_line) {
+  Service serv = create_event_handler_service();
+
+  auto created = std::dynamic_pointer_cast<check_exec>(
+      build_with_event_handler(serv, nullptr, "/usr/bin/echo hello", {}));
+  ASSERT_TRUE(created);
+  EXPECT_EQ(created->get_process_args()->get_exe_path(), "/usr/bin/echo");
+  ASSERT_EQ(created->get_process_args()->get_args().size(), 1);
+  EXPECT_EQ(created->get_process_args()->get_args()[0], "hello");
+}
+
+// an encrypted event handler command line is decrypted by the builder
+TEST_F(scheduler_test, builder_decrypts_event_handler_cmd_line) {
+  auto crypto = std::make_shared<com::centreon::common::crypto::aes256>(
+      "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
+  Service serv = create_event_handler_service();
+
+  auto created = std::dynamic_pointer_cast<check_exec>(build_with_event_handler(
+      serv, crypto, "encrypt::" + crypto->encrypt("/usr/bin/echo hello"), {}));
+  ASSERT_TRUE(created);
+  created->get_process_args()->decrypt_args(*crypto);
+  EXPECT_EQ(created->get_process_args()->get_exe_path(), "/usr/bin/echo");
+  ASSERT_EQ(created->get_process_args()->get_args().size(), 1);
+  EXPECT_EQ(created->get_process_args()->get_args()[0], "hello");
+}
+
+// the event handler executor given to the builder reaches the check it builds,
+// whatever the kind of check
+TEST_F(scheduler_test, builder_gives_executor_to_check) {
+  auto crypto = std::make_shared<com::centreon::common::crypto::aes256>(
+      "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
+
+  Service exec_serv = create_event_handler_service();
+  exec_serv.set_event_handler("hnd $SERVICESTATE$");
+  Service dummy_serv = exec_serv;
+  dummy_serv.set_command_line("encrypt::not an aes256 content");
+
+  for (const Service* serv : {&exec_serv, &dummy_serv}) {
+    std::vector<std::string> executed;
+    std::shared_ptr<check> created = build_with_event_handler(
+        *serv, crypto, "",
+        [&](const std::string& cmd_line, const std::shared_ptr<check>&) {
+          executed.push_back(cmd_line);
+        });
+    ASSERT_TRUE(created);
+    created->calcul_status_confirmation(e_status::critical);
+    std::vector<std::string> expected{"hnd CRITICAL"};
+    EXPECT_EQ(executed, expected) << serv->command_line();
+  }
+  EXPECT_TRUE(std::dynamic_pointer_cast<check_dummy>(
+      build_with_event_handler(dummy_serv, crypto, "", {})));
+}
