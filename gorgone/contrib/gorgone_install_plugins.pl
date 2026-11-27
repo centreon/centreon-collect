@@ -41,6 +41,25 @@ if (scalar(@$plugins) <= 0) {
     exit(0);
 }
 
+# Each call runs exactly one command (no '&&' or ';'), so that the shell can
+# later be removed in favour of a list-form execution.
+sub run_command {
+    my ($command) = @_;
+
+    my $output = `$command`;
+    if ($? == -1) {
+        print "failed to execute: $!\n";
+        exit(1);
+    } elsif ($? & 127) {
+        printf "child died with signal %d, %s coredump\n",
+            ($? & 127), ($? & 128) ? 'with' : 'without';
+        exit(1);
+    }
+
+    my $exit = $? >> 8;
+    print "succeeded command (code: $exit): " . $output;
+}
+
 my $command;
 if ($type eq 'rpm') {
     if (-x '/usr/bin/dnf' or -x '/usr/sbin/dnf') {
@@ -49,6 +68,11 @@ if ($type eq 'rpm') {
       $command = 'yum -y install';
     }
 } elsif ($type eq 'deb') {
+    # apt does not refresh its package index by itself: without an update, a
+    # plugin version published after the last refresh cannot be found.
+    # A failed update (e.g. one unreachable repository) must not prevent the
+    # install from the other repositories, so its exit code is only reported.
+    run_command('apt-get update 2>&1');
     $command = 'apt-get -y install';
 }
 foreach (@$plugins) {
@@ -56,16 +80,5 @@ foreach (@$plugins) {
 }
 $command .= ' 2>&1';
 
-my $output = `$command`;
-if ($? == -1) {
-    print "failed to execute: $!\n";
-    exit(1);
-} elsif ($? & 127) {
-    printf "child died with signal %d, %s coredump\n",
-        ($? & 127), ($? & 128) ? 'with' : 'without';
-    exit(1);
-}
-
-my $exit = $? >> 8;
-print "succeeded command (code: $exit): " . $output;
+run_command($command);
 exit(0);
