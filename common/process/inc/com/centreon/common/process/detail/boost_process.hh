@@ -34,10 +34,40 @@ struct boost_process {
           proc_created)
       : proc(std::move(proc_created)) {}
 
+#ifdef _WIN32
+  /**
+   * @brief Takes ownership of job_created, the job object that holds the
+   * process and its descendants.
+   */
+  boost_process(boost::process::v2::basic_process<
+                    asio::io_context::executor_type>&& proc_created,
+                HANDLE job_created)
+      : proc(std::move(proc_created)), job(job_created) {}
+
+  /**
+   * @brief The job is created with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: closing
+   * it kills the descendants still running.
+   */
+  ~boost_process() {
+    if (job) {
+      CloseHandle(job);
+    }
+  }
+#endif
+
   boost_process(const boost_process&) = delete;
   boost_process& operator=(const boost_process&) = delete;
 
   boost::process::v2::basic_process<asio::io_context::executor_type> proc;
+
+#ifdef _WIN32
+  /**
+   * Windows does not kill the children of a killed process. The child process
+   * is started in this job object, and its descendants inherit it, so that
+   * they can all be killed with it. nullptr if the job could not be created.
+   */
+  HANDLE job = nullptr;
+#endif
 };
 }  // namespace com::centreon::common::detail
 

@@ -116,13 +116,18 @@ TEST_F(check_exec_test, timeout) {
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
 #ifdef _WIN32
+  // Once the killed process and its children are gone, nothing holds a handle
+  // on it any more and Windows deletes it: OpenProcess fails
   auto process_handle =
       OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-  ASSERT_NE(process_handle, nullptr);
-  DWORD exit_code;
-  ASSERT_EQ(GetExitCodeProcess(process_handle, &exit_code), TRUE);
-  ASSERT_NE(exit_code, STILL_ACTIVE);
-  CloseHandle(process_handle);
+  if (process_handle) {
+    DWORD exit_code;
+    ASSERT_EQ(GetExitCodeProcess(process_handle, &exit_code), TRUE);
+    ASSERT_NE(exit_code, STILL_ACTIVE);
+    CloseHandle(process_handle);
+  } else {
+    ASSERT_EQ(GetLastError(), static_cast<DWORD>(ERROR_INVALID_PARAMETER));
+  }
 #else
   ASSERT_EQ(kill(pid, 0), -1);
 #endif
