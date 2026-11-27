@@ -50,7 +50,7 @@ overrides:
       - centreon-broker-storage-dbgsym
 
 rpm:
-  summary: Debuginfo package for centreon-broker.
+  summary: Debuginfo package for centreon-broker-core.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
