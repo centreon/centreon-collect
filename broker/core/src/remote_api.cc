@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <openssl/evp.h>
 #include <csignal>
+#include <cctype>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
@@ -81,7 +82,6 @@ constexpr uint32_t exec_max_timeout_s = 3600;
 /* Plugin installs on request (contracts.md §14). */
 constexpr size_t install_max_packages = 16;
 constexpr size_t install_max_field = 128;
-constexpr size_t install_max_id = 64;
 constexpr uint32_t install_default_timeout_s = 600;
 constexpr uint32_t install_max_timeout_s = 1800;
 constexpr time_t install_start_timeout = 1800;
@@ -162,6 +162,21 @@ bool valid_relative_path(const std::string& p) {
     if (part.empty() || part == "." || part == "..")
       return false;
   }
+  return true;
+}
+
+/**
+ * @brief A request id given by the client: 1 to 64 characters among
+ * [A-Za-z0-9._:-]. It is a URL path segment of the GET that follows, so a
+ * control character or a space would make the request unreachable.
+ */
+bool valid_request_id(const std::string& id) {
+  if (id.empty() || id.size() > 64)
+    return false;
+  for (char c : id)
+    if (!std::isalnum(static_cast<unsigned char>(c)) && c != '.' && c != '_' &&
+        c != ':' && c != '-')
+      return false;
   return true;
 }
 
@@ -966,10 +981,19 @@ void api::_post_execution(const json& body, answer_function&& answer) {
     answer(_error(bh::status::bad_request, "BAD_REQUEST", msg));
   };
   auto e = std::make_shared<execution>();
-  e->id = body.contains("request_id") && body["request_id"].is_string() &&
-                  !body["request_id"].get<std::string>().empty()
-              ? body["request_id"].get<std::string>()
-              : misc::Uuid().to_string();
+  /* An empty request id means "let cbd choose", as before. */
+  if (body.contains("request_id") &&
+      !(body["request_id"].is_string() &&
+        body["request_id"].get<std::string>().empty())) {
+    if (!body["request_id"].is_string() ||
+        !valid_request_id(body["request_id"].get<std::string>())) {
+      bad("'request_id' must be 1 to 64 characters among [A-Za-z0-9._:-]");
+      return;
+    }
+    e->id = body["request_id"].get<std::string>();
+  } else {
+    e->id = misc::Uuid().to_string();
+  }
   if (!body.contains("poller_id") ||
       !read_poller_id(body["poller_id"], e->poller_id)) {
     bad("'poller_id' must be a positive integer");
@@ -1228,17 +1252,19 @@ void api::_post_plugin_install(const json& body, answer_function&& answer) {
     answer(_error(bh::status::bad_request, "BAD_REQUEST", msg));
   };
   auto i = std::make_shared<plugin_install>();
-  if (body.contains("request_id")) {
+  /* An empty request id means "let cbd choose", as before. */
+  if (body.contains("request_id") &&
+      !(body["request_id"].is_string() &&
+        body["request_id"].get<std::string>().empty())) {
     if (!body["request_id"].is_string() ||
-        body["request_id"].get<std::string>().size() > install_max_id) {
-      bad(fmt::format("'request_id' must be a string of at most {} characters",
-                      install_max_id));
+        !valid_request_id(body["request_id"].get<std::string>())) {
+      bad("'request_id' must be 1 to 64 characters among [A-Za-z0-9._:-]");
       return;
     }
     i->id = body["request_id"].get<std::string>();
-  }
-  if (i->id.empty())
+  } else {
     i->id = misc::Uuid().to_string();
+  }
   if (!body.contains("poller_id") ||
       !read_poller_id(body["poller_id"], i->poller_id)) {
     bad("'poller_id' must be a positive integer");
