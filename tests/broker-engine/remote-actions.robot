@@ -256,7 +256,8 @@ BERA8
 
 BERA9
     [Documentation]    Given cbmod with an install command (CENTREON_PLUGINS_INSTALL), when the web posts a plugin
-    ...    install to the central remote API, then the requested packages are installed without any plugins.json;
+    ...    install to the central remote API, then the requested packages are installed without any plugins.json
+    ...    (names lowercased as check_plugins.py does);
     ...    forged package names and versions are REJECTED by the poller; a request over the cbd limits gets 400; a
     ...    long install is killed with TIMEOUT.
     [Tags]    broker    engine    remote_actions
@@ -279,7 +280,7 @@ BERA9
     ${code}    ${answer}    Ctn Remote Api Request    GET    /v1/pollers
     Should Be True    ${answer}[pollers][0][plugin_install]
 
-    ${code}    ${id}    ${answer}    Ctn Remote Api Install    1    {"centreon-plugin-b": "2025", "centreon-plugin-a": ""}
+    ${code}    ${id}    ${answer}    Ctn Remote Api Install    1    {"centreon-plugin-B": "2025", "centreon-plugin-a": ""}
     Should Be Equal As Integers    ${code}    202
     ${i}    Ctn Remote Api Wait Install    ${id}    30
     Should Be Equal As Strings    ${i}[status]    INSTALLED

@@ -28,6 +28,7 @@
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/strings/ascii.h>
 #include <absl/strings/match.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_join.h>
@@ -836,7 +837,7 @@ void plugins_trigger(const std::string& id,
 }
 
 /**
- * @brief A deb name allowed in a PluginInstall request:
+ * @brief A deb name allowed in a PluginInstall request, once lowercased:
  * ^centreon-plugin-[a-z0-9][a-z0-9.+-]{0,126}$ (checked by hand).
  */
 bool valid_plugin_package(const std::string& n) {
@@ -891,9 +892,12 @@ void handle_plugin_install(
                        install_max_packages));
     return;
   }
-  /* Sorted, so that the file and the logs do not depend on the map order. */
-  std::map<std::string, std::string> packages(req.packages().begin(),
-                                              req.packages().end());
+  /* Lowercased first, as check_plugins.py does: PPM stores the deb names in
+   * RPM case (centreon-plugin-Applications-Protocol-Snmp). Sorted, so that
+   * the file and the logs do not depend on the map order. */
+  std::map<std::string, std::string> packages;
+  for (auto& [name, version] : req.packages())
+    packages.emplace(absl::AsciiStrToLower(name), version);
   for (auto& [name, version] : packages) {
     if (!valid_plugin_package(name)) {
       reject("invalid package name");
