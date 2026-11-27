@@ -187,8 +187,10 @@ class stream : public io::stream {
   /* The peer announced in its Welcome that it accepts downstream events. */
   bool _peer_remote_actions = false;
   bool _peer_remote_exec = false;
+  bool _peer_plugin_install = false;
 
   bool _announce_remote_actions() const;
+  static bool _plugin_install_available();
   bool _accept_remote_actions() const;
   void _register_remote();
   void _unregister_remote();

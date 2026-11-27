@@ -30,9 +30,11 @@
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/match.h>
 #include <absl/strings/numbers.h>
+#include <absl/strings/str_join.h>
 #include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
 #include <fnmatch.h>
+#include <unistd.h>
 #include <openssl/evp.h>
 #include <csignal>
 #include <cstdlib>
@@ -42,6 +44,7 @@
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <nlohmann/json.hpp>
 
 using namespace com::centreon::broker;
@@ -439,16 +442,43 @@ void delayed_restart() {
 constexpr int32_t plugins_result_index = -2;
 constexpr std::chrono::seconds plugins_install_timeout{1800};
 
+/* An install run: the plugins.json of a deployment (2f, contracts.md §10.C)
+ * or a PluginInstall request (§14.C). */
 struct plugins_install {
   std::string id;
   std::shared_ptr<bbdo::remote_channel> channel;
+  /* File given to the install command. */
   std::string plugins_json;
+  /* PluginInstall request: plugins_json is a private temporary file removed
+   * after the run, the timeout is the request one and answers TIMEOUT. */
+  bool request = false;
+  std::vector<std::string> names;  // requested packages, sorted
+  uint32_t timeout_s = 0;
+
+  absl::Mutex m;
+  bool finished ABSL_GUARDED_BY(m) = false;
+  int pid ABSL_GUARDED_BY(m) = 0;
+  std::unique_ptr<boost::asio::steady_timer> deadline ABSL_GUARDED_BY(m);
+
+  const char* label() const {
+    return request ? "plugin install" : "deployment";
+  }
 };
 
-/* One install at a time; a newer trigger replaces the queued one. */
+/* PluginInstall limits (contracts.md §14.2). */
+constexpr size_t install_max_packages = 16;
+constexpr size_t install_max_queued = 16;
+constexpr uint32_t install_default_timeout_s = 600;
+constexpr uint32_t install_max_timeout_s = 1800;
+
+/* One install process at a time per engine. Waiting PluginInstall requests
+ * run first, in arrival order; the plugins.json slot keeps the last trigger
+ * only. */
 absl::Mutex g_plugins_m;
 bool g_plugins_running ABSL_GUARDED_BY(g_plugins_m) = false;
 std::unique_ptr<plugins_install> g_plugins_queued ABSL_GUARDED_BY(g_plugins_m);
+std::deque<std::unique_ptr<plugins_install>> g_install_requests
+    ABSL_GUARDED_BY(g_plugins_m);
 
 /**
  * @brief The engine plugins.json of the deployment when it is new or differs
@@ -478,23 +508,31 @@ fs::path plugins_json_changed(const deployment& d) {
   return {};
 }
 
-void plugins_reply(const plugins_install& p,
-                   RemoteStatus status,
-                   const std::string& message,
-                   const std::vector<PluginPackage>& packages = {}) {
+void plugins_send(const std::string& id,
+                  const std::shared_ptr<bbdo::remote_channel>& channel,
+                  RemoteStatus status,
+                  const std::string& message,
+                  const std::vector<PluginPackage>& packages = {}) {
   auto r = std::make_shared<bbdo::pb_remote_result>();
   auto& obj = r->mut_obj();
-  obj.set_request_id(p.id);
+  obj.set_request_id(id);
   obj.set_index(plugins_result_index);
   obj.set_status(status);
   obj.set_message(com::centreon::common::check_string_utf8(message));
   for (auto& pkg : packages)
     *obj.add_plugins() = pkg;
-  if (!p.channel->push(r, message.size()))
+  if (!channel->push(r, message.size()))
     SPDLOG_LOGGER_WARN(logger(),
-                       "remote actions: cannot report the plugin install of "
-                       "deployment '{}', stream closed",
-                       p.id);
+                       "remote actions: cannot report the plugin install '{}', "
+                       "stream closed",
+                       id);
+}
+
+void plugins_reply(const plugins_install& p,
+                   RemoteStatus status,
+                   const std::string& message,
+                   const std::vector<PluginPackage>& packages = {}) {
+  plugins_send(p.id, p.channel, status, message, packages);
 }
 
 /**
@@ -530,13 +568,18 @@ std::vector<PluginPackage> parse_plugins_output(const std::string& out) {
 void plugins_start(std::unique_ptr<plugins_install> p);
 
 /**
- * @brief Start the queued install, if any, else mark the installer idle.
+ * @brief Start the next install, if any, else mark the installer idle.
  */
 void plugins_next() {
   std::unique_ptr<plugins_install> next;
   {
     absl::MutexLock lck(&g_plugins_m);
-    std::swap(next, g_plugins_queued);
+    if (!g_install_requests.empty()) {
+      next = std::move(g_install_requests.front());
+      g_install_requests.pop_front();
+    } else {
+      std::swap(next, g_plugins_queued);
+    }
     if (!next)
       g_plugins_running = false;
   }
@@ -545,20 +588,126 @@ void plugins_next() {
 }
 
 /**
+ * @brief Write the packages of a PluginInstall request to a private file
+ * (mkstemp, 0600) read by the install command, in the plugins.json format.
+ *
+ * @return the file path, empty on error.
+ */
+std::string write_install_request(
+    const std::map<std::string, std::string>& packages) {
+  const char* tmp = std::getenv("TMPDIR");
+  std::string tmpl = fmt::format("{}/centreon-plugin-install-XXXXXX",
+                                 tmp && *tmp ? tmp : "/tmp");
+  int fd = ::mkstemp(tmpl.data());
+  if (fd < 0)
+    return {};
+  nlohmann::json j = nlohmann::json::object();
+  for (auto& [name, version] : packages)
+    j[name] = version;
+  std::string content = j.dump();
+  bool ok = ::write(fd, content.data(), content.size()) ==
+            static_cast<ssize_t>(content.size());
+  ok = ::close(fd) == 0 && ok;
+  if (!ok) {
+    ::unlink(tmpl.c_str());
+    return {};
+  }
+  return tmpl;
+}
+
+/**
+ * @brief Outcome of a finished install process: parse its output and report.
+ * A PluginInstall request reports every requested package, and only them.
+ */
+void plugins_report(const plugins_install& p,
+                    int exit_code,
+                    com::centreon::common::e_exit_status exit_status,
+                    const std::string& out,
+                    const std::string& err) {
+  if (exit_status == com::centreon::common::e_exit_status::timeout) {
+    SPDLOG_LOGGER_ERROR(logger(),
+                        "remote actions: {} '{}': plugin install timeout",
+                        p.label(), p.id);
+    if (p.request)
+      plugins_reply(p, REMOTE_TIMEOUT,
+                    fmt::format("killed after {} s", p.timeout_s));
+    else
+      plugins_reply(p, REMOTE_REJECTED, "timeout");
+    return;
+  }
+  std::vector<PluginPackage> packages = parse_plugins_output(out);
+  if (packages.empty() &&
+      (exit_status != com::centreon::common::e_exit_status::normal ||
+       exit_code != 0)) {
+    std::string msg = fmt::format("install command failed (exit {}): {}",
+                                  exit_code, err.substr(0, 512));
+    SPDLOG_LOGGER_ERROR(logger(), "remote actions: {} '{}': {}", p.label(),
+                        p.id, msg);
+    plugins_reply(p, REMOTE_REJECTED, msg);
+    return;
+  }
+  if (p.request) {
+    std::vector<PluginPackage> requested;
+    for (auto& name : p.names) {
+      auto it = std::find_if(packages.begin(), packages.end(),
+                             [&name](const PluginPackage& pkg) {
+                               return pkg.name() == name;
+                             });
+      if (it != packages.end()) {
+        requested.push_back(*it);
+      } else {
+        PluginPackage pkg;
+        pkg.set_name(name);
+        pkg.set_status("failed");
+        pkg.set_message("no result from the installer");
+        requested.push_back(std::move(pkg));
+      }
+    }
+    packages = std::move(requested);
+  }
+  size_t failed = 0;
+  for (auto& pkg : packages)
+    if (pkg.status() == "failed")
+      ++failed;
+  SPDLOG_LOGGER_INFO(logger(),
+                     "remote actions: {} '{}': plugin install done, {} "
+                     "packages, {} failed",
+                     p.label(), p.id, packages.size(), failed);
+  plugins_reply(p, REMOTE_APPLIED,
+                fmt::format("{} packages, {} failed", packages.size(), failed),
+                packages);
+}
+
+/**
  * @brief Run the install command on the shared pool and report its outcome.
- * Called with g_plugins_running set.
+ * Called with g_plugins_running set. The slot is freed when the process
+ * ends, also after a timeout answer, so that two apt runs never overlap.
  */
 void plugins_start(std::unique_ptr<plugins_install> p) {
+  std::shared_ptr<plugins_install> sp(std::move(p));
+  auto cleanup = [sp]() {
+    if (sp->request && !sp->plugins_json.empty()) {
+      std::error_code ec;
+      fs::remove(sp->plugins_json, ec);
+    }
+  };
   const char* cmd = std::getenv("CENTREON_PLUGINS_INSTALL");
   if (!cmd || !*cmd) {
+    if (sp->request)
+      plugins_reply(*sp, REMOTE_REJECTED, "plugin install not available");
+    cleanup();
     plugins_next();
     return;
   }
-  std::shared_ptr<plugins_install> sp(std::move(p));
-  SPDLOG_LOGGER_INFO(logger(),
-                     "remote actions: deployment '{}': plugins.json changed, "
-                     "running '{} {}'",
-                     sp->id, cmd, sp->plugins_json);
+  if (sp->request)
+    SPDLOG_LOGGER_INFO(logger(),
+                       "remote actions: plugin install '{}': {} started",
+                       sp->id, absl::StrJoin(sp->names, " "));
+  else
+    SPDLOG_LOGGER_INFO(logger(),
+                       "remote actions: deployment '{}': plugins.json changed, "
+                       "running '{} {}'",
+                       sp->id, cmd, sp->plugins_json);
   plugins_reply(*sp, REMOTE_DELIVERED, "plugin install started");
   try {
     auto args = std::make_shared<com::centreon::common::process_args>(
@@ -566,59 +715,82 @@ void plugins_start(std::unique_ptr<plugins_install> p) {
     auto proc = std::make_shared<com::centreon::common::process<true>>(
         com::centreon::common::pool::io_context_ptr(), logger(), args, true,
         false, nullptr);
+    if (sp->request) {
+      /* The deadline answers TIMEOUT at once and kills the process group
+       * (setpgid). Children run through sudo are root and survive (EPERM):
+       * the slot stays taken until the install command itself has ended. */
+      absl::MutexLock lck(&sp->m);
+      sp->deadline = std::make_unique<boost::asio::steady_timer>(
+          com::centreon::common::pool::io_context());
+      sp->deadline->expires_after(std::chrono::seconds(sp->timeout_s));
+      sp->deadline->async_wait([sp](const boost::system::error_code& err) {
+        if (err)
+          return;
+        {
+          absl::MutexLock lck(&sp->m);
+          if (sp->finished)
+            return;
+          sp->finished = true;
+          if (sp->pid > 0)
+            ::killpg(sp->pid, SIGKILL);
+        }
+        SPDLOG_LOGGER_ERROR(logger(),
+                            "remote actions: plugin install '{}': killed "
+                            "after {} s",
+                            sp->id, sp->timeout_s);
+        plugins_reply(*sp, REMOTE_TIMEOUT,
+                      fmt::format("killed after {} s", sp->timeout_s));
+      });
+    }
     proc->start_process(
-        [sp](const com::centreon::common::process<true>&, int exit_code,
-             com::centreon::common::e_exit_status exit_status,
-             const std::string& out, const std::string& err) {
+        [sp, cleanup](const com::centreon::common::process<true>&,
+                      int exit_code,
+                      com::centreon::common::e_exit_status exit_status,
+                      const std::string& out, const std::string& err) {
           try {
-            if (exit_status == com::centreon::common::e_exit_status::timeout) {
-              SPDLOG_LOGGER_ERROR(logger(),
-                                  "remote actions: deployment '{}': plugin "
-                                  "install timeout",
-                                  sp->id);
-              plugins_reply(*sp, REMOTE_REJECTED, "timeout");
-            } else {
-              std::vector<PluginPackage> packages = parse_plugins_output(out);
-              if (packages.empty() &&
-                  (exit_status != com::centreon::common::e_exit_status::normal ||
-                   exit_code != 0)) {
-                std::string msg = fmt::format(
-                    "install command failed (exit {}): {}", exit_code,
-                    err.substr(0, 512));
-                SPDLOG_LOGGER_ERROR(logger(),
-                                    "remote actions: deployment '{}': {}",
-                                    sp->id, msg);
-                plugins_reply(*sp, REMOTE_REJECTED, msg);
-              } else {
-                size_t failed = 0;
-                for (auto& pkg : packages)
-                  if (pkg.status() == "failed")
-                    ++failed;
-                SPDLOG_LOGGER_INFO(logger(),
-                                   "remote actions: deployment '{}': plugin "
-                                   "install done, {} packages, {} failed",
-                                   sp->id, packages.size(), failed);
-                plugins_reply(*sp, REMOTE_APPLIED,
-                              fmt::format("{} packages, {} failed",
-                                          packages.size(), failed),
-                              packages);
-              }
+            bool report = true;
+            {
+              absl::MutexLock lck(&sp->m);
+              if (sp->finished)
+                report = false;
+              sp->finished = true;
+              if (sp->deadline)
+                sp->deadline->cancel();
             }
+            if (report)
+              plugins_report(*sp, exit_code, exit_status, out, err);
           } catch (const std::exception& e) {
             SPDLOG_LOGGER_ERROR(logger(),
                                 "remote actions: plugin install report: {}",
                                 e.what());
           }
+          cleanup();
           plugins_next();
         },
-        plugins_install_timeout);
+        sp->request ? std::chrono::seconds(sp->timeout_s + 30)
+                    : plugins_install_timeout);
+    absl::MutexLock lck(&sp->m);
+    if (!sp->finished)
+      sp->pid = proc->get_pid();
   } catch (const std::exception& e) {
+    bool report = true;
+    {
+      absl::MutexLock lck(&sp->m);
+      if (sp->finished)
+        report = false;
+      sp->finished = true;
+      if (sp->deadline)
+        sp->deadline->cancel();
+    }
     SPDLOG_LOGGER_ERROR(logger(),
-                        "remote actions: deployment '{}': cannot run the "
-                        "plugin install: {}",
-                        sp->id, e.what());
-    plugins_reply(*sp, REMOTE_REJECTED,
-                  fmt::format("cannot run the install command: {}", e.what()));
+                        "remote actions: {} '{}': cannot run the plugin "
+                        "install: {}",
+                        sp->label(), sp->id, e.what());
+    if (report)
+      plugins_reply(*sp, REMOTE_REJECTED,
+                    fmt::format("cannot run the install command: {}",
+                                e.what()));
+    cleanup();
     plugins_next();
   }
 }
@@ -638,8 +810,10 @@ void plugins_trigger(const std::string& id,
                         id);
     return;
   }
-  auto p = std::make_unique<plugins_install>(
-      plugins_install{id, channel, plugins_json.string()});
+  auto p = std::make_unique<plugins_install>();
+  p->id = id;
+  p->channel = channel;
+  p->plugins_json = plugins_json.string();
   {
     absl::MutexLock lck(&g_plugins_m);
     if (g_plugins_running) {
@@ -654,6 +828,124 @@ void plugins_trigger(const std::string& id,
                            "queued behind the running one",
                            id);
       g_plugins_queued = std::move(p);
+      return;
+    }
+    g_plugins_running = true;
+  }
+  plugins_start(std::move(p));
+}
+
+/**
+ * @brief A deb name allowed in a PluginInstall request:
+ * ^centreon-plugin-[a-z0-9][a-z0-9.+-]{0,126}$ (checked by hand).
+ */
+bool valid_plugin_package(const std::string& n) {
+  constexpr std::string_view prefix = "centreon-plugin-";
+  if (n.size() <= prefix.size() || n.size() > prefix.size() + 127 ||
+      !absl::StartsWith(n, prefix))
+    return false;
+  for (size_t i = prefix.size(); i < n.size(); ++i) {
+    char c = n[i];
+    bool alnum = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+    if (i == prefix.size() ? !alnum
+                           : !(alnum || c == '.' || c == '+' || c == '-'))
+      return false;
+  }
+  return true;
+}
+
+/**
+ * @brief A version prefix: ^[0-9A-Za-z.+~:-]{0,64}$.
+ */
+bool valid_plugin_version(const std::string& v) {
+  if (v.size() > 64)
+    return false;
+  for (char c : v) {
+    bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '.' || c == '+' || c == '~' ||
+              c == ':' || c == '-';
+    if (!ok)
+      return false;
+  }
+  return true;
+}
+
+/**
+ * @brief PluginInstall (contracts.md §14.2): validate the whole request, then
+ * run it or queue it. A refused request installs nothing. Only package names
+ * and statuses are logged.
+ */
+void handle_plugin_install(
+    const PluginInstall& req,
+    const std::shared_ptr<bbdo::remote_channel>& channel) {
+  const std::string& id = req.request_id();
+  auto reject = [&](const std::string& message) {
+    SPDLOG_LOGGER_WARN(logger(),
+                       "remote actions: plugin install '{}' refused: {}", id,
+                       message);
+    plugins_send(id, channel, REMOTE_REJECTED, message);
+  };
+  if (req.packages().empty() ||
+      static_cast<size_t>(req.packages().size()) > install_max_packages) {
+    reject(fmt::format("invalid request: 1 to {} packages",
+                       install_max_packages));
+    return;
+  }
+  /* Sorted, so that the file and the logs do not depend on the map order. */
+  std::map<std::string, std::string> packages(req.packages().begin(),
+                                              req.packages().end());
+  for (auto& [name, version] : packages) {
+    if (!valid_plugin_package(name)) {
+      reject("invalid package name");
+      return;
+    }
+    if (!valid_plugin_version(version)) {
+      reject("invalid package version");
+      return;
+    }
+  }
+  if (req.timeout_s() > install_max_timeout_s) {
+    reject("invalid timeout");
+    return;
+  }
+  if (req.deadline() &&
+      static_cast<uint64_t>(time(nullptr)) > req.deadline()) {
+    reject("request expired before reaching the poller");
+    return;
+  }
+  const char* cmd = std::getenv("CENTREON_PLUGINS_INSTALL");
+  if (!cmd || !*cmd) {
+    reject("plugin install not available");
+    return;
+  }
+
+  auto p = std::make_unique<plugins_install>();
+  p->id = id;
+  p->channel = channel;
+  p->request = true;
+  p->timeout_s = req.timeout_s() ? req.timeout_s() : install_default_timeout_s;
+  for (auto& pkg : packages)
+    p->names.push_back(pkg.first);
+  {
+    absl::MutexLock lck(&g_plugins_m);
+    if (g_plugins_running && g_install_requests.size() >= install_max_queued) {
+      reject("queue full");
+      return;
+    }
+  }
+  p->plugins_json = write_install_request(packages);
+  if (p->plugins_json.empty()) {
+    reject("cannot write the install request file");
+    return;
+  }
+  {
+    absl::MutexLock lck(&g_plugins_m);
+    if (g_plugins_running) {
+      SPDLOG_LOGGER_INFO(logger(),
+                         "remote actions: plugin install '{}': {} queued "
+                         "behind the running install",
+                         id, absl::StrJoin(p->names, " "));
+      g_install_requests.push_back(std::move(p));
       return;
     }
     g_plugins_running = true;
@@ -1222,6 +1514,11 @@ void on_action(const std::shared_ptr<io::data>& d,
       case bbdo::pb_remote_exec::static_type():
         handle_exec(std::static_pointer_cast<bbdo::pb_remote_exec>(d)->obj(),
                     channel);
+        break;
+      case bbdo::pb_plugin_install::static_type():
+        handle_plugin_install(
+            std::static_pointer_cast<bbdo::pb_plugin_install>(d)->obj(),
+            channel);
         break;
       default:
         break;

@@ -240,6 +240,8 @@ events::events() : _logger{log_v2::instance().get(log_v2::CONFIG)} {
                  &bbdo::pb_remote_exec::operations);
   register_event(bbdo::pb_remote_exec_result::static_type(),
                  "RemoteExecResult", &bbdo::pb_remote_exec_result::operations);
+  register_event(bbdo::pb_plugin_install::static_type(), "PluginInstall",
+                 &bbdo::pb_plugin_install::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,

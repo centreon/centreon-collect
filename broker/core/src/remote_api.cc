@@ -32,6 +32,7 @@
 #include <absl/strings/ascii.h>
 #include <absl/strings/escaping.h>
 #include <absl/strings/match.h>
+#include <absl/strings/str_join.h>
 #include <absl/strings/str_split.h>
 #include <algorithm>
 #include <openssl/evp.h>
@@ -40,6 +41,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <unistd.h>
 #include <nlohmann/json.hpp>
@@ -76,6 +78,17 @@ constexpr size_t exec_max_args = 256;
 constexpr size_t exec_max_argv_bytes = 64u << 10;
 constexpr uint32_t exec_max_timeout_s = 3600;
 
+/* Plugin installs on request (contracts.md §14). */
+constexpr size_t install_max_packages = 16;
+constexpr size_t install_max_field = 128;
+constexpr size_t install_max_id = 64;
+constexpr uint32_t install_default_timeout_s = 600;
+constexpr uint32_t install_max_timeout_s = 1800;
+constexpr time_t install_start_timeout = 1800;
+constexpr time_t install_deadline_margin = 60;
+constexpr time_t install_keep_duration = 3600;
+constexpr size_t install_max_pending = 256;
+
 /* Status names of the HTTP contract. */
 constexpr const char* st_accepted = "ACCEPTED";
 constexpr const char* st_running = "RUNNING";
@@ -88,6 +101,8 @@ constexpr const char* st_delivered = "DELIVERED";
 constexpr const char* st_applied = "APPLIED";
 constexpr const char* st_rejected = "REJECTED";
 constexpr const char* st_timeout = "TIMEOUT";
+constexpr const char* st_installed = "INSTALLED";
+constexpr const char* st_partial = "PARTIAL";
 
 int status_weight(const std::string& s) {
   if (s == st_rejected)
@@ -106,6 +121,10 @@ int status_weight(const std::string& s) {
 bool is_final(const std::string& s) {
   return s == st_applied || s == st_rejected || s == st_timeout ||
          s == st_not_connected || s == st_peer_too_old;
+}
+
+bool install_is_final(const std::string& s) {
+  return s != st_accepted && s != st_running;
 }
 
 bool exec_is_final(const std::string& s) {
@@ -251,6 +270,21 @@ class api : public std::enable_shared_from_this<api> {
     time_t finished_at = 0;
   };
 
+  /* A plugin install request (§14): packages only, no secret. */
+  struct plugin_install {
+    std::string id;
+    uint64_t poller_id = 0;
+    std::string names;  // requested packages, for the logs
+    uint32_t timeout_s = install_default_timeout_s;
+    std::string status;
+    std::string message;
+    json packages = json::array();
+    time_t accepted_at = 0;
+    time_t started_at = 0;
+    time_t updated_at = 0;
+    time_t finished_at = 0;
+  };
+
   const conf _conf;
   std::shared_ptr<spdlog::logger> _logger;
   std::shared_ptr<asio::io_context> _io_context;
@@ -265,6 +299,8 @@ class api : public std::enable_shared_from_this<api> {
   absl::flat_hash_map<std::string, std::shared_ptr<deployment>> _deployments
       ABSL_GUARDED_BY(_m);
   absl::flat_hash_map<std::string, std::shared_ptr<execution>> _executions
+      ABSL_GUARDED_BY(_m);
+  absl::flat_hash_map<std::string, std::shared_ptr<plugin_install>> _installs
       ABSL_GUARDED_BY(_m);
   /* Last plugin install outcome per peer, kept across reconnects. */
   absl::flat_hash_map<uint64_t, json> _plugins ABSL_GUARDED_BY(_m);
@@ -293,6 +329,14 @@ class api : public std::enable_shared_from_this<api> {
                          const std::string& message,
                          time_t now) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_m);
   void _on_exec_result(uint64_t poller_id, const RemoteExecResult& r);
+  void _post_plugin_install(const json& body, answer_function&& answer);
+  json _install_json(const plugin_install& i) const;
+  void _finish_install(plugin_install& i,
+                       const char* status,
+                       const std::string& message,
+                       time_t now) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_m);
+  bool _on_install_result(uint64_t poller_id, const RemoteResult& r)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_m);
   void _on_result(uint64_t poller_id, const RemoteResult& r);
   void _on_disconnect(uint64_t poller_id);
   void _start_housekeeping();
@@ -531,6 +575,31 @@ void api::handle(const std::shared_ptr<http::request_type>& request,
                       fmt::format("unknown execution '{}'", id)));
       else
         answer(_response(bh::status::ok, _execution_json(*it->second)));
+      return;
+    }
+
+    if (request->method() == bh::verb::get &&
+        absl::StartsWith(target, "/v1/plugin-installs/")) {
+      std::string id = target.substr(strlen("/v1/plugin-installs/"));
+      absl::MutexLock lck(&_m);
+      auto it = _installs.find(id);
+      if (it == _installs.end())
+        answer(_error(bh::status::not_found, "NOT_FOUND",
+                      fmt::format("unknown plugin install '{}'", id)));
+      else
+        answer(_response(bh::status::ok, _install_json(*it->second)));
+      return;
+    }
+
+    if (request->method() == bh::verb::post &&
+        target == "/v1/plugin-installs") {
+      json body = json::parse(request->body(), nullptr, false);
+      if (body.is_discarded() || !body.is_object()) {
+        answer(_error(bh::status::bad_request, "BAD_REQUEST",
+                      "body is not a JSON object"));
+        return;
+      }
+      _post_plugin_install(body, std::move(answer));
       return;
     }
 
@@ -1148,6 +1217,214 @@ bool api::_ca_json(json& out) const {
   return true;
 }
 
+/**
+ * @brief POST /v1/plugin-installs: send a PluginInstall to one poller engine.
+ * cbd checks the shape only: the poller is the single judge of the package
+ * names (contracts.md §14.2), so a forged name comes back REJECTED from it.
+ */
+void api::_post_plugin_install(const json& body, answer_function&& answer) {
+  namespace bh = boost::beast::http;
+  auto bad = [&answer](const std::string& msg) {
+    answer(_error(bh::status::bad_request, "BAD_REQUEST", msg));
+  };
+  auto i = std::make_shared<plugin_install>();
+  if (body.contains("request_id")) {
+    if (!body["request_id"].is_string() ||
+        body["request_id"].get<std::string>().size() > install_max_id) {
+      bad(fmt::format("'request_id' must be a string of at most {} characters",
+                      install_max_id));
+      return;
+    }
+    i->id = body["request_id"].get<std::string>();
+  }
+  if (i->id.empty())
+    i->id = misc::Uuid().to_string();
+  if (!body.contains("poller_id") ||
+      !read_poller_id(body["poller_id"], i->poller_id)) {
+    bad("'poller_id' must be a positive integer");
+    return;
+  }
+  if (!body.contains("packages") || !body["packages"].is_object() ||
+      body["packages"].empty() ||
+      body["packages"].size() > install_max_packages) {
+    bad(fmt::format("'packages' must be an object of 1 to {} entries",
+                    install_max_packages));
+    return;
+  }
+  std::map<std::string, std::string> packages;
+  for (auto& [name, version] : body["packages"].items()) {
+    if (!version.is_string()) {
+      bad("'packages' values must be strings");
+      return;
+    }
+    if (name.size() > install_max_field ||
+        version.get<std::string>().size() > install_max_field) {
+      bad(fmt::format("package names and versions are limited to {} bytes",
+                      install_max_field));
+      return;
+    }
+    packages.emplace(name, version.get<std::string>());
+  }
+  if (body.contains("timeout_s")) {
+    if (!body["timeout_s"].is_number_unsigned() ||
+        body["timeout_s"].get<uint64_t>() > install_max_timeout_s) {
+      bad(fmt::format("'timeout_s' must be in 0..{}", install_max_timeout_s));
+      return;
+    }
+    uint32_t t = body["timeout_s"].get<uint32_t>();
+    if (t)
+      i->timeout_s = t;
+  }
+  {
+    std::vector<std::string> names;
+    for (auto& p : packages)
+      names.push_back(com::centreon::common::check_string_utf8(p.first));
+    i->names = absl::StrJoin(names, " ");
+  }
+
+  {
+    absl::MutexLock lck(&_m);
+    auto it = _installs.find(i->id);
+    if (it != _installs.end()) {
+      answer(_response(bh::status::ok, _install_json(*it->second)));
+      return;
+    }
+    size_t pending = 0;
+    for (auto& p : _installs)
+      if (!install_is_final(p.second->status))
+        ++pending;
+    if (pending >= install_max_pending) {
+      answer(_error(bh::status::service_unavailable, "BUSY",
+                    fmt::format("{} plugin installs are not finished",
+                                pending)));
+      return;
+    }
+  }
+
+  time_t now = time(nullptr);
+  i->accepted_at = i->updated_at = now;
+  auto channel = bbdo::remote_registry::instance().find(
+      i->poller_id, com::centreon::common::ENGINE);
+  if (!channel) {
+    i->status = st_not_connected;
+    i->message = "no BBDO stream from this poller engine";
+  } else if (!channel->info().remote_actions ||
+             !channel->info().plugin_install) {
+    i->status = st_peer_too_old;
+    i->message = "poller does not accept plugin installs";
+  } else if (!channel->info().tls && !_conf.exec_insecure) {
+    i->status = st_rejected;
+    i->message = "stream not encrypted";
+  } else {
+    auto ev = std::make_shared<bbdo::pb_plugin_install>();
+    auto& obj = ev->mut_obj();
+    obj.set_request_id(i->id);
+    obj.set_deadline(now + install_deadline_margin);
+    obj.set_timeout_s(i->timeout_s);
+    size_t bytes = 64;
+    for (auto& [name, version] : packages) {
+      bytes += name.size() + version.size();
+      (*obj.mutable_packages())[name] = version;
+    }
+    if (channel->push(ev, bytes)) {
+      i->status = st_accepted;
+    } else {
+      i->status = st_rejected;
+      i->message = "poller stream closed or queue full";
+    }
+  }
+  if (install_is_final(i->status))
+    i->finished_at = now;
+  SPDLOG_LOGGER_INFO(_logger,
+                     "remote api: plugin install {} of {} on poller {}: {} {}",
+                     i->id, i->names, i->poller_id, i->status, i->message);
+  json j;
+  {
+    absl::MutexLock lck(&_m);
+    _installs[i->id] = i;
+    j = _install_json(*i);
+  }
+  answer(_response(
+      i->status == st_accepted ? bh::status::accepted : bh::status::ok, j));
+}
+
+json api::_install_json(const plugin_install& i) const {
+  return json{{"request_id", i.id},
+              {"poller_id", std::to_string(i.poller_id)},
+              {"status", i.status},
+              {"message", i.message},
+              {"packages", i.packages},
+              {"accepted_at", i.accepted_at},
+              {"updated_at", i.updated_at},
+              {"finished_at", i.finished_at}};
+}
+
+void api::_finish_install(plugin_install& i,
+                          const char* status,
+                          const std::string& message,
+                          time_t now) {
+  i.status = status;
+  i.message = message;
+  i.updated_at = i.finished_at = now;
+  SPDLOG_LOGGER_INFO(_logger,
+                     "remote api: plugin install {} of {} on poller {}: {} {}",
+                     i.id, i.names, i.poller_id, i.status, i.message);
+}
+
+/**
+ * @brief A RemoteResult that answers a plugin install request: RUNNING, then
+ * INSTALLED, PARTIAL or FAILED from the packages, or REJECTED / TIMEOUT.
+ *
+ * @return true if the result belongs to a plugin install request.
+ */
+bool api::_on_install_result(uint64_t poller_id, const RemoteResult& r) {
+  auto it = _installs.find(r.request_id());
+  if (it == _installs.end())
+    return false;
+  plugin_install& i = *it->second;
+  if (i.poller_id != poller_id || install_is_final(i.status))
+    return true;
+  time_t now = time(nullptr);
+  i.updated_at = now;
+  switch (r.status()) {
+    case REMOTE_DELIVERED:
+      if (i.status == st_accepted) {
+        i.status = st_running;
+        i.started_at = now;
+      }
+      break;
+    case REMOTE_APPLIED: {
+      size_t installed = 0, failed = 0;
+      json packages = json::array();
+      for (auto& p : r.plugins()) {
+        bool ok = p.status() == "installed";
+        if (ok)
+          ++installed;
+        else
+          ++failed;
+        packages.push_back({{"name", p.name()},
+                            {"status", ok ? "installed" : "failed"},
+                            {"message", p.message()}});
+      }
+      i.packages = std::move(packages);
+      _finish_install(i,
+                      failed == 0      ? st_installed
+                      : installed == 0 ? st_failed
+                                       : st_partial,
+                      r.message(), now);
+    } break;
+    case REMOTE_REJECTED:
+      _finish_install(i, st_rejected, r.message(), now);
+      break;
+    case REMOTE_TIMEOUT:
+      _finish_install(i, st_timeout, r.message(), now);
+      break;
+    default:
+      break;
+  }
+  return true;
+}
+
 json api::_pollers_json() const {
   json pollers = json::array();
   auto channels = bbdo::remote_registry::instance().list();
@@ -1164,6 +1441,7 @@ json api::_pollers_json() const {
                        {"remote_actions", i.remote_actions},
                        {"tls", i.tls},
                        {"remote_exec", i.remote_exec},
+                       {"plugin_install", i.plugin_install},
                        {"connected_since", i.connected_since},
                        {"config_version",
                         v == _config_versions.end() ? "" : v->second}});
@@ -1210,6 +1488,13 @@ static json plugins_json(const RemoteResult& r) {
  * @brief A RemoteResult arrived from a poller (feeder thread of its stream).
  */
 void api::_on_result(uint64_t poller_id, const RemoteResult& r) {
+  {
+    /* Plugin install requests first: their answers never touch the
+     * deployments nor the last plugins.json result of the peer. */
+    absl::MutexLock lck(&_m);
+    if (_on_install_result(poller_id, r))
+      return;
+  }
   std::string status;
   switch (r.status()) {
     case REMOTE_DELIVERED:
@@ -1348,6 +1633,13 @@ void api::_on_disconnect(uint64_t poller_id) {
       dit->second->plugins = p;
   }
 
+  for (auto& p : _installs) {
+    plugin_install& i = *p.second;
+    if (i.poller_id == poller_id && !install_is_final(i.status))
+      _finish_install(i, st_not_connected,
+                      "poller disconnected during the install", now);
+  }
+
   /* Results of a run in progress are lost with the stream (no replay). */
   for (auto& p : _executions) {
     execution& e = *p.second;
@@ -1388,6 +1680,22 @@ void api::_housekeep() {
     }
     if (d.finished_at && now - d.finished_at > deployment_keep_duration)
       _deployments.erase(it++);
+    else
+      ++it;
+  }
+
+  /* Plugin installs: never started (queued behind another install too
+   * long), or no result past their timeout. */
+  for (auto it = _installs.begin(); it != _installs.end();) {
+    plugin_install& i = *it->second;
+    if (i.status == st_accepted && now - i.accepted_at > install_start_timeout)
+      _finish_install(i, st_timeout, "not started by the poller", now);
+    else if (i.status == st_running &&
+             now - i.started_at >
+                 static_cast<time_t>(i.timeout_s) + install_deadline_margin)
+      _finish_install(i, st_timeout, "no result from the poller", now);
+    if (i.finished_at && now - i.finished_at > install_keep_duration)
+      _installs.erase(it++);
     else
       ++it;
   }

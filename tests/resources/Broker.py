@@ -3809,6 +3809,50 @@ def ctn_remote_api_wait_exec(request_id: str, timeout: int = 60):
     return {}
 
 
+def ctn_remote_api_install(poller_id: int, packages: str, timeout_s: int = 0):
+    """
+    POST /v1/plugin-installs for one poller.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        packages (str): JSON object, deb name -> version prefix.
+        timeout_s (int): Timeout on the poller (0: the poller default).
+
+    Returns:
+        A list [HTTP status, request id, decoded JSON body].
+    """
+    request_id = f"robot-install-{time.time_ns()}"
+    body = {"request_id": request_id, "poller_id": str(poller_id),
+            "packages": json.loads(packages)}
+    if int(timeout_s):
+        body["timeout_s"] = int(timeout_s)
+    code, answer = ctn_remote_api_request("POST", "/v1/plugin-installs", body)
+    logger.console(f"remote api plugin install answer: {code} {answer.get('status')}")
+    return [code, request_id, answer]
+
+
+def ctn_remote_api_wait_install(request_id: str, timeout: int = 60):
+    """
+    Poll GET /v1/plugin-installs/{id} until a final status.
+
+    Args:
+        request_id (str): Install request id.
+        timeout (int): Timeout in seconds.
+
+    Returns:
+        The install object, or {} on timeout.
+    """
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        code, body = ctn_remote_api_request("GET", f"/v1/plugin-installs/{request_id}", timeout=5)
+        if code == 200 and body.get("status") not in ("ACCEPTED", "RUNNING"):
+            logger.console(f"plugin install {request_id}: {body['status']} {body.get('message')} "
+                           f"{body.get('packages')}")
+            return body
+        time.sleep(1)
+    return {}
+
+
 def ctn_remote_api_send_commands(poller_id: int, *commands):
     """
     POST /v1/commands with the given external commands for one poller. The

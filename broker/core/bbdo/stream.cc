@@ -20,6 +20,7 @@
 
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
+#include <cstdlib>
 
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
@@ -783,6 +784,7 @@ void stream::negotiate(stream::negotiation_type neg) {
         obj.set_extended_negotiation(false);
       obj.set_remote_actions(_announce_remote_actions());
       obj.set_remote_exec(obj.remote_actions());
+      obj.set_plugin_install(obj.remote_actions() && _plugin_install_available());
       _write(welcome);
     }
   }
@@ -927,6 +929,7 @@ void stream::negotiate(stream::negotiation_type neg) {
 
       obj.set_remote_actions(_announce_remote_actions());
       obj.set_remote_exec(obj.remote_actions());
+      obj.set_plugin_install(obj.remote_actions() && _plugin_install_available());
       _write(welcome);
       _substream->flush();
     }
@@ -938,6 +941,7 @@ void stream::negotiate(stream::negotiation_type neg) {
     _peer_type = w->obj().peer_type();
     _peer_remote_actions = w->obj().remote_actions();
     _peer_remote_exec = w->obj().remote_exec();
+    _peer_plugin_install = w->obj().plugin_install();
     if (_peer_type != common::UNKNOWN) {
       /* We are in the bbdo stream, _poller_id, _broker_name,
        * _extended_negotiation are informations about the peer, not us. */
@@ -1174,6 +1178,7 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
     case pb_remote_result::static_type():
     case pb_remote_exec::static_type():
     case pb_remote_exec_result::static_type():
+    case pb_plugin_install::static_type():
       _handle_remote_event(d);
       break;
     default:
@@ -1776,6 +1781,18 @@ bool stream::_announce_remote_actions() const {
 }
 
 /**
+ * @brief Tell if this process can install plugin packages on request: an
+ * install command is configured (env CENTREON_PLUGINS_INSTALL, set by the
+ * engine image). Only meaningful when remote actions are announced.
+ *
+ * @return true if PluginInstall requests can be run.
+ */
+bool stream::_plugin_install_available() {
+  const char* cmd = std::getenv("CENTREON_PLUGINS_INSTALL");
+  return cmd && *cmd;
+}
+
+/**
  * @brief Tell if downstream events received on this stream may be executed:
  * remote actions enabled on this poller, sender is a Broker and the running
  * stream has verified it (or the insecure PoC flag is set).
@@ -1805,6 +1822,7 @@ void stream::_register_remote() {
   info.peer_type = _peer_type;
   info.remote_actions = _peer_remote_actions;
   info.remote_exec = _peer_remote_exec;
+  info.plugin_install = _peer_plugin_install;
   info.tls = encrypted();
   info.connected_since = time(nullptr);
   _remote = std::make_shared<remote_channel>(info);
@@ -1894,6 +1912,10 @@ void stream::_handle_remote_event(const std::shared_ptr<io::data>& d) {
       request_id =
           std::static_pointer_cast<pb_remote_command>(d)->obj().request_id();
       break;
+    case pb_plugin_install::static_type():
+      request_id =
+          std::static_pointer_cast<pb_plugin_install>(d)->obj().request_id();
+      break;
     case pb_config_chunk::static_type():
       request_id =
           std::static_pointer_cast<pb_config_chunk>(d)->obj().request_id();
@@ -1930,7 +1952,8 @@ void stream::_handle_remote_event(const std::shared_ptr<io::data>& d) {
     auto r = std::make_shared<pb_remote_result>();
     auto& obj = r->mut_obj();
     obj.set_request_id(request_id);
-    obj.set_index(-1);
+    /* A plugin install is answered at index -2, like its outcome. */
+    obj.set_index(d->type() == pb_plugin_install::static_type() ? -2 : -1);
     obj.set_status(REMOTE_REJECTED);
     obj.set_message(refusal);
     _write(r);

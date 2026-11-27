@@ -254,6 +254,60 @@ BERA8
     Should Not Contain    ${log}    GLS_SECRET_MARKER
 
 
+BERA9
+    [Documentation]    Given cbmod with an install command (CENTREON_PLUGINS_INSTALL), when the web posts a plugin
+    ...    install to the central remote API, then the requested packages are installed without any plugins.json;
+    ...    forged package names and versions are REJECTED by the poller; a request over the cbd limits gets 400; a
+    ...    long install is killed with TIMEOUT.
+    [Tags]    broker    engine    remote_actions
+    Ctn Config Remote Actions    ${True}
+    Ctn Broker Config Remote Api    central    exec_insecure=${True}
+    ${stub}    Set Variable    ${VarRoot}/plugin-install-stub.sh
+    ${copy}    Set Variable    ${VarRoot}/plugin-install-request.json
+    Remove File    ${copy}
+    Create File    ${stub}
+    ...    \#!/bin/sh\ncp "$1" ${copy}\nfor p in $(grep -o 'centreon-plugin-[a-z0-9.+-]*' "$1"); do\ncase "$p" in *slow*) sleep 30 ;; esac\necho "installed $p"\ndone\n
+    Run    chmod 755 ${stub}
+    Set Environment Variable    CENTREON_PLUGINS_INSTALL    ${stub}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Remove Environment Variable    CENTREON_PLUGINS_INSTALL
+    Ctn Wait For Engine To Be Ready    ${start}
+    ${found}    Ctn Remote Api Wait Poller    1    60
+    Should Be True    ${found}    The poller did not announce remote actions.
+    ${code}    ${answer}    Ctn Remote Api Request    GET    /v1/pollers
+    Should Be True    ${answer}[pollers][0][plugin_install]
+
+    ${code}    ${id}    ${answer}    Ctn Remote Api Install    1    {"centreon-plugin-b": "2025", "centreon-plugin-a": ""}
+    Should Be Equal As Integers    ${code}    202
+    ${i}    Ctn Remote Api Wait Install    ${id}    30
+    Should Be Equal As Strings    ${i}[status]    INSTALLED
+    Length Should Be    ${i}[packages]    2
+    Should Be Equal As Strings    ${i}[packages][0][name]    centreon-plugin-a
+    ${request}    Get File    ${copy}
+    Should Be Equal As Strings    ${request}    {"centreon-plugin-a":"","centreon-plugin-b":"2025"}
+
+    ${code}    ${id}    ${answer}    Ctn Remote Api Install    1    {"bash": ""}
+    Should Be Equal As Integers    ${code}    202
+    ${i}    Ctn Remote Api Wait Install    ${id}    30
+    Should Be Equal As Strings    ${i}[status]    REJECTED
+    Should Be Equal As Strings    ${i}[message]    invalid package name
+    ${code}    ${id}    ${answer}    Ctn Remote Api Install    1    {"centreon-plugin-x": "1;id"}
+    ${i}    Ctn Remote Api Wait Install    ${id}    30
+    Should Be Equal As Strings    ${i}[status]    REJECTED
+    Should Be Equal As Strings    ${i}[message]    invalid package version
+    ${code}    ${id}    ${answer}    Ctn Remote Api Install    1    {"centreon-plugin-x": ""}    1801
+    Should Be Equal As Integers    ${code}    400
+
+    ${code}    ${id}    ${answer}    Ctn Remote Api Install    1    {"centreon-plugin-slow": ""}    2
+    ${i}    Ctn Remote Api Wait Install    ${id}    30
+    Should Be Equal As Strings    ${i}[status]    TIMEOUT
+    Should Be Equal As Strings    ${i}[message]    killed after 2 s
+
+    ${code}    ${answer}    Ctn Remote Api Request    GET    /v1/pollers
+    Dictionary Should Not Contain Key    ${answer}[pollers][0]    plugins
+
 *** Keywords ***
 Ctn Config Remote Actions
     [Arguments]    ${enabled}    ${insecure}=${True}

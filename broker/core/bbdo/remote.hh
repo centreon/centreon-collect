@@ -49,6 +49,8 @@ class remote_channel {
     bool remote_actions = false;
     /* The peer announced it runs RemoteExec requests. */
     bool remote_exec = false;
+    /* The peer announced it installs plugin packages on request. */
+    bool plugin_install = false;
     /* The stream is encrypted on the wire (TLS on TCP or gRPC encryption). A
      * cbd server does not authenticate its engine peers; the peer cbmod
      * verifies the central certificate before it announces remote actions. */

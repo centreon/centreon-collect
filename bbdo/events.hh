@@ -101,6 +101,7 @@ enum data_element {
   de_pb_remote_result = 14,
   de_pb_remote_exec = 15,
   de_pb_remote_exec_result = 16,
+  de_pb_plugin_install = 17,
 };
 }
 namespace neb {
