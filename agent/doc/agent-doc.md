@@ -245,3 +245,22 @@ Then it:
  * enumerates hangs processes and update processes states
  * applies filters
  * calc status, output and perfdata
+
+### Network interfaces (windows)
+The `network` check measures, per interface, the inbound and outbound traffic (bits/s and percent of the link speed), the packets in error and discarded per second, and the operational state.
+
+One call to GetIfTable2Ex (IP Helper, already used by agent_info) returns, for each interface, its 64 bits counters, its link speeds and its IF-MIB operational state. Traffic is a rate, so the check works like the cpu one: a first snapshot when the check starts, a second one when a timer expires at max time_out or check_interval minus 1 second, then rates are the counter differences divided by the elapsed time measured between the two snapshots (steady clock).
+
+Interface selection:
+* Interfaces are matched between the two snapshots by LUID: an interface index can be reused, a LUID can't. An interface that appears during the measure has no rate and is ignored until the next check.
+* The table also contains the NDIS filter interfaces (QoS Packet Scheduler, WFP...) bound to each adapter. They repeat the counters of their adapter and are always skipped.
+* By default (`physical-only`), only interfaces with a connector are kept, the same set as `Get-NetAdapter -Physical`: physical adapters and adapters exposed by a hypervisor to a VM. HardwareInterface is not used because it stays set on a removed adapter (an unplugged USB Wi-Fi dongle for example).
+* `filter-name`, `exclude-name`, `filter-description` and `exclude-description` are RE2 regexes that must match the whole UTF-8 name or description, case insensitive, as in the service check.
+
+Other choices:
+* An unknown link speed (0 or NET_IF_LINK_SPEED_UNKNOWN) gives no percentage metric, so percentage thresholds can't trigger on such an interface.
+* A counter that decreases means the interface was reset during the measure: the value since the reset is used.
+* Thresholds are Nagios ranges (common::threshold) reported in perfdata. States are matched by regex against IF-MIB names in lower case (up, down, testing, unknown, dormant, notpresent, lowerlayerdown), as `warning-state`/`critical-state` of the service check. A state regex that matches no state is a configuration error, so that a typo doesn't disable the threshold silently.
+* The output starts with the critical problems, then the warning ones, or with a count of interfaces per state when all is ok; then one line per interface.
+
+Unit tests feed fabricated MIB_IF_ROW2 rows to network_snapshot and compare two snapshots with compute(). A mock that overrides measure() tests the asynchronous flow.

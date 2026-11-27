@@ -157,6 +157,7 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/event_log/data.cc
   ${NATIVE_SRC}/event_log/uniq.cc
   ${NATIVE_SRC}/check_memory.cc
+  ${NATIVE_SRC}/check_network.cc
   ${NATIVE_SRC}/check_service.cc
   ${NATIVE_SRC}/windows_util.cc
   ${NATIVE_SRC}/ntdll.cc

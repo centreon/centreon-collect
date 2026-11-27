@@ -30,6 +30,7 @@ else()
       check_event_log_filter_test.cc
       check_event_log_test.cc
       check_event_log_uniq_test.cc
+      check_network_test.cc
       check_process_container_test.cc
       check_process_data_test.cc
       check_process_filter_test.cc
