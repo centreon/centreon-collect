@@ -82,10 +82,10 @@ TEST(DirectoryWatcher, WatchNonBlockingFromAnotherThread) {
                                           &count, &watcher]() {
     uint32_t thread_id;
     {
-      thread_count_m.Lock();
+      thread_count_m.lock();
       thread_count++;
       thread_id = thread_count;
-      thread_count_m.Unlock();
+      thread_count_m.unlock();
     }
     for (int i = 0; i < 1000; i++) {
       auto it = watcher.watch();
@@ -99,9 +99,9 @@ TEST(DirectoryWatcher, WatchNonBlockingFromAnotherThread) {
   });
 
   auto thread_started = [&thread_count]() { return thread_count == 1; };
-  thread_count_m.Lock();
+  thread_count_m.lock();
   thread_count_m.Await(absl::Condition(&thread_started));
-  thread_count_m.Unlock();
+  thread_count_m.unlock();
   auto file = std::fstream(filename, std::ios::out);
   std::cout << "file created" << std::endl;
   file.open(filename, std::ios::out);
@@ -127,9 +127,9 @@ TEST(DirectoryWatcher, WatchNonBlockingMultipleFiles) {
 
   /* Start the watcher in a separate thread. */
   std::thread thread([&started, &filenames_m, &watcher, &filenames]() {
-    filenames_m.Lock();
+    filenames_m.lock();
     started = true;
-    filenames_m.Unlock();
+    filenames_m.unlock();
 
     auto it = watcher.watch();
     while (it == watcher.end()) {
@@ -146,10 +146,10 @@ TEST(DirectoryWatcher, WatchNonBlockingMultipleFiles) {
   });
 
   /* Wait for the watcher to start. */
-  filenames_m.Lock();
+  filenames_m.lock();
   auto wait_watcher = [&started] { return started; };
   filenames_m.Await(absl::Condition(&wait_watcher));
-  filenames_m.Unlock();
+  filenames_m.unlock();
 
   /* Create 200 files. */
   for (int count = 0; count < 200; count++) {
