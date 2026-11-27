@@ -49,7 +49,6 @@ class state {
   std::list<std::string> _module_list;
   std::map<std::string, std::string> _params;
   uint64_t _poller_id;
-  uint64_t _uid;
   std::string _poller_name;
   size_t _pool_size;
 
@@ -135,9 +134,6 @@ class state {
   const std::map<std::string, std::string>& params() const noexcept;
   void poller_id(uint64_t id) noexcept;
   uint64_t poller_id() const noexcept;
-  void uid(uint64_t id) noexcept;
-  uint64_t uid() const noexcept;
-  uint64_t original_poller_id() const noexcept;
   void pool_size(int size) noexcept;
   int pool_size() const noexcept;
   void poller_name(const std::string& name);

@@ -568,7 +568,9 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
   char* name(my_strtok(args, ";"));
 
   host* hst{nullptr};
-  hst = host::find_host(name).get();
+  host_map::const_iterator it(host::hosts.find(name));
+  if (it != host::hosts.end())
+    hst = it->second.get();
 
   if (!hst) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown host: {}", name);
@@ -585,7 +587,9 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
   std::string name(my_strtok(args, ";"));
 
   host* hst{nullptr};
-  hst = host::find_host(name).get();
+  host_map::const_iterator it(host::hosts.find(name));
+  if (it != host::hosts.end())
+    hst = it->second.get();
 
   if (!hst) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown host: {}", name);
@@ -626,14 +630,15 @@ void processing::_redirector_service(int id, time_t entry_time, char* args) {
   char* name(my_strtok(args, ";"));
   char* description(my_strtok(NULL, ";"));
 
-  std::shared_ptr<service> found{service::find_service(name, description)};
+  service_map::const_iterator found(
+      service::services.find({name, description}));
 
-  if (!found) {
+  if (found == service::services.end() || !found->second) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service: {}@{}",
                         description, name);
     return;
   }
-  (*fptr)(found.get());
+  (*fptr)(found->second.get());
 }
 
 template <void (*fptr)(service*, char*)>
@@ -643,14 +648,15 @@ void processing::_redirector_service(int id, time_t entry_time, char* args) {
 
   std::string name{my_strtok(args, ";")};
   std::string description{my_strtok(NULL, ";")};
-  std::shared_ptr<service> found{service::find_service(name, description)};
+  service_map::const_iterator found{
+      service::services.find({name, description})};
 
-  if (!found) {
+  if (found == service::services.end() || !found->second) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service: {}@{}",
                         description, name);
     return;
   }
-  (*fptr)(found.get(), args + name.length() + description.length() + 2);
+  (*fptr)(found->second.get(), args + name.length() + description.length() + 2);
 }
 
 template <void (*fptr)(service*)>
@@ -697,7 +703,9 @@ void processing::_redirector_servicegroup(int id,
        end2(sg_it->second->members.end());
        it2 != end2; ++it2) {
     host* hst{nullptr};
-    hst = host::find_host(it2->first.first).get();
+    host_map::const_iterator found(host::hosts.find(it2->first.first));
+    if (found != host::hosts.end())
+      hst = found->second.get();
 
     if (!hst || hst == last_host)
       continue;
@@ -760,22 +768,23 @@ void processing::_redirector_anomalydetection(int id,
 
   std::string name{my_strtok(args, ";")};
   std::string description{my_strtok(NULL, ";")};
-  std::shared_ptr<service> found{service::find_service(name, description)};
+  service_map::const_iterator found{
+      service::services.find({name, description})};
 
-  if (!found) {
+  if (found == service::services.end() || !found->second) {
     SPDLOG_LOGGER_ERROR(external_command_logger,
                         "unknown anomaly detection {}@{}", description, name);
     return;
   }
 
-  if (found->get_service_type() != service_type::ANOMALY_DETECTION) {
+  if (found->second->get_service_type() != service_type::ANOMALY_DETECTION) {
     SPDLOG_LOGGER_ERROR(external_command_logger,
                         "{}@{} is not an anomalydetection", description, name);
     return;
   }
 
   std::shared_ptr<anomalydetection> ano =
-      std::static_pointer_cast<anomalydetection>(found);
+      std::static_pointer_cast<anomalydetection>(found->second);
   (*fptr)(ano.get(), args + name.length() + description.length() + 2);
 }
 

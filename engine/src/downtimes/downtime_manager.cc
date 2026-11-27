@@ -307,11 +307,6 @@ int downtime_manager::
       comment.empty())
     return deleted;
 
-  /* Downtimes are compared with the real host name: find_host() also resolves
-   * the BAM virtual host named after the other poller id (uid or poller_id). */
-  std::shared_ptr<host> hst = host::find_host(hostname);
-  const std::string& real_hostname = hst ? hst->name() : hostname;
-
   std::pair<std::multimap<time_t, std::shared_ptr<downtime>>::iterator,
             std::multimap<time_t, std::shared_ptr<downtime>>::iterator>
       range;
@@ -330,12 +325,12 @@ int downtime_manager::
       /* If service is specified, then do not delete the host downtime. */
       if (!service_description.empty())
         continue;
-      if (!real_hostname.empty() && name != real_hostname)
+      if (!hostname.empty() && name != hostname)
         continue;
     } else if (downtime::service_downtime == it->second->get_type()) {
       service_downtime* sdt = static_cast<service_downtime*>(it->second.get());
       auto p = get_host_and_service_names(sdt->host_id(), sdt->service_id());
-      if (!real_hostname.empty() && p.first != real_hostname)
+      if (!hostname.empty() && p.first != hostname)
         continue;
 
       if (p.second != service_description)

@@ -253,7 +253,6 @@ class host : public notifier {
   host_map_unsafe child_hosts;
   static host_map hosts;
   static host_id_map hosts_by_id;
-  static std::shared_ptr<host> find_host(const std::string_view& name);
 
   service_map_unsafe services;
   std::list<hostgroup*> const& get_parent_groups() const;

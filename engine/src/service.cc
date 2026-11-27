@@ -18,7 +18,6 @@
  */
 
 #include <absl/strings/match.h>
-#include <absl/strings/numbers.h>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -156,42 +155,6 @@ service::~service() noexcept {
     cmd->remove_caller(this);
     cmd->unregister_host_serv(_hostname, description());
   }
-}
-
-/**
- * @brief Find a service by host name and description.
- *
- * Same fallback as host::find_host(): when the host is the BAM virtual host
- * '_Module_BAM_<poller id>' and the exact pair is not found, the service is
- * looked up again on the virtual host named with the other id (Broker 'uid'
- * or 'poller_id').
- *
- * @param hostname Host name.
- * @param name Service description.
- *
- * @return The service, or nullptr if it does not exist.
- */
-std::shared_ptr<service> service::find_service(const std::string& hostname,
-                                               const std::string& name) {
-  auto search = services.find(make_pair(hostname, name));
-  if (search != services.end()) {
-    return search->second;
-  }
-  if (!hostname.compare(0, 12, "_Module_BAM_")) {
-    uint64_t host_poller_id;
-    if (absl::SimpleAtoi(std::string_view(hostname).substr(12),
-                         &host_poller_id) &&
-        cbm && cbm->poller_id() != cbm->original_poller_id()) {
-      if (host_poller_id == cbm->poller_id()) {
-        search = services.find(std::make_pair(
-            fmt::format("_Module_BAM_{}", cbm->original_poller_id()), name));
-      } else if (host_poller_id == cbm->original_poller_id()) {
-        search = services.find(std::make_pair(
-            fmt::format("_Module_BAM_{}", cbm->poller_id()), name));
-      }
-    }
-  }
-  return search != services.end() ? search->second : std::shared_ptr<service>();
 }
 
 time_t service::get_last_time_ok() const {

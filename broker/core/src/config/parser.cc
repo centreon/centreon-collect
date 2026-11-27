@@ -180,6 +180,7 @@ state parser::parse(std::string const& file, bool neb_module) {
     if (json_document.is_object() &&
         json_document["centreonBroker"].is_object()) {
       std::string module;
+      bool uid_set = false;
       for (auto it = json_document["centreonBroker"].begin();
            it != json_document["centreonBroker"].end(); ++it) {
         if (it.key() == "command_file" && it.value().is_object())
@@ -247,12 +248,13 @@ state parser::parse(std::string const& file, bool neb_module) {
         else if (it.key() == "uid") {
           const json& v = it.value();
           if (v.is_number()) {
-            retval.uid(v.get<uint64_t>());
+            retval.poller_id(v.get<uint64_t>());
+            uid_set = true;
           } else
             throw msg_fmt(
                 "config parser: cannot parse key 'uid': value must be a "
                 "64-bit integer");
-        } else if (it.key() == "poller_id") {
+        } else if (it.key() == "poller_id" && !uid_set) {
           const json& v = it.value();
           if (v.is_number())
             retval.poller_id(static_cast<uint64_t>(v.get<int64_t>()));

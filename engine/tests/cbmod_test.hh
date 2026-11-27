@@ -41,16 +41,7 @@ class cbmod_test : public com::centreon::broker::neb::cbmod {
     if (record)
       written.push_back(d);
   }
-  /* Ids returned by poller_id() (the Broker uid when set) and
-   * original_poller_id() (the 'poller_id' key), for tests of the BAM virtual
-   * host lookup. */
-  uint64_t poller_id_value = 1;
-  uint64_t original_poller_id_value = 1;
-
-  uint64_t poller_id() const { return poller_id_value; }
-  uint64_t original_poller_id() const override {
-    return original_poller_id_value;
-  }
+  uint64_t poller_id() const { return 1; }
   const std::string& poller_name() const { return _poller_name; }
 };
 }  // namespace com::centreon::broker::neb

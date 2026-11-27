@@ -1358,8 +1358,6 @@ TEST(parser, uid_overrides_poller_id) {
   ::remove(config_file.c_str());
 
   ASSERT_EQ(s.poller_id(), 123456789012345678ULL);
-  ASSERT_EQ(s.uid(), 123456789012345678ULL);
-  ASSERT_EQ(s.original_poller_id(), 2ULL);
 }
 
 // uid absent -> poller_id() returns the legacy
@@ -1384,8 +1382,6 @@ TEST(parser, no_uid_keeps_poller_id) {
   ::remove(config_file.c_str());
 
   ASSERT_EQ(s.poller_id(), 3ULL);
-  ASSERT_EQ(s.uid(), 0ULL);
-  ASSERT_EQ(s.original_poller_id(), 3ULL);
 }
 
 // uid present -> poller_id() returns the 64-bit value.
@@ -1411,6 +1407,4 @@ TEST(parser, uid_overrides_poller_id_2) {
   ::remove(config_file.c_str());
 
   ASSERT_EQ(s.poller_id(), 123456789012345678ULL);
-  ASSERT_EQ(s.uid(), 123456789012345678ULL);
-  ASSERT_EQ(s.original_poller_id(), 2ULL);
 }

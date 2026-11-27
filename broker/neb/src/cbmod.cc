@@ -103,17 +103,6 @@ uint64_t cbmod::poller_id() const {
   return config::applier::state::instance().poller_id();
 }
 
-/**
- * @brief Poller ID from the 'poller_id' key of the Broker configuration, even
- * when a 'uid' overrides it in poller_id(). Engine uses it to find objects
- * named after the poller ID before the migration to UIDs.
- *
- * @return Poller ID from the 'poller_id' key.
- */
-uint64_t cbmod::original_poller_id() const {
-  return config::applier::state::instance().original_poller_id();
-}
-
 const std::string& cbmod::poller_name() const {
   return config::applier::state::instance().poller_name();
 }

@@ -52,7 +52,6 @@ class cbmod {
   virtual ~cbmod() noexcept;
   virtual void write(const std::shared_ptr<io::data>& msg);
   virtual uint64_t poller_id() const;
-  virtual uint64_t original_poller_id() const;
   virtual const std::string& poller_name() const;
 
   const bbdo::bbdo_version bbdo_version() const;

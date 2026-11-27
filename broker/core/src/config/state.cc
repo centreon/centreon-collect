@@ -37,7 +37,6 @@ state::state()
       _command_protocol{"json"},
       _event_queue_max_size{10000},
       _poller_id{0},
-      _uid(0),
       _pool_size{0},
       _log_conf{"/var/log/centreon-broker/",
                 log_v2_config::logger_type::LOGGER_FILE, 5u, false, false} {
@@ -66,7 +65,6 @@ state::state(const state& other)
       _module_list(other._module_list),
       _params(other._params),
       _poller_id(other._poller_id),
-      _uid(other._uid),
       _poller_name(other._poller_name),
       _pool_size(other._pool_size),
       _log_conf(other._log_conf) {}
@@ -98,7 +96,6 @@ state& state::operator=(state const& other) {
     _module_list = other._module_list;
     _params = other._params;
     _poller_id = other._poller_id;
-    _uid = other._uid;
     _poller_name = other._poller_name;
     _pool_size = other._pool_size;
   }
@@ -122,7 +119,6 @@ void state::clear() {
   _module_list.clear();
   _params.clear();
   _poller_id = 0;
-  _uid = 0;
   _poller_name.clear();
   _pool_size = 0;
 }
@@ -386,41 +382,11 @@ void state::poller_id(uint64_t id) noexcept {
 }
 
 /**
- * @brief Set the poller UID (key 'uid' of the configuration). When not zero,
- * it takes precedence over the 'poller_id' key in poller_id().
- *
- * @param[in] id  Poller UID.
- */
-void state::uid(uint64_t id) noexcept {
-  _uid = id;
-}
-
-/**
- *  Get the poller ID: the UID when it is set, the 'poller_id' key otherwise.
+ *  Get the poller ID.
  *
  *  @return Poller ID.
  */
 uint64_t state::poller_id() const noexcept {
-  return _uid ? _uid : _poller_id;
-}
-
-/**
- * @brief Get the poller UID (key 'uid' of the configuration).
- *
- * @return Poller UID, 0 if not set.
- */
-uint64_t state::uid() const noexcept {
-  return _uid;
-}
-
-/**
- * @brief Get the poller ID read from the 'poller_id' key, even when a UID is
- * set. Objects created before the migration to UIDs are still named after
- * it, such as the BAM virtual host '_Module_BAM_<poller_id>'.
- *
- * @return Poller ID from the 'poller_id' key, 0 if not set.
- */
-uint64_t state::original_poller_id() const noexcept {
   return _poller_id;
 }
 

@@ -51,7 +51,6 @@ state::state(common::PeerType peer_type,
              const std::shared_ptr<spdlog::logger>& logger)
     : _peer_type{peer_type},
       _poller_id(0),
-      _original_poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
       _modules{logger},
@@ -111,7 +110,6 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
 
   // Set poller instance.
   _poller_id = s.poller_id();
-  _original_poller_id = s.original_poller_id();
   _broker_name = s.broker_name();
   _poller_name = s.poller_name();
   _rpc_port = s.rpc_port();

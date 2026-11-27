@@ -58,7 +58,6 @@ class state {
   const common::PeerType _peer_type;
   std::string _cache_dir;
   uint64_t _poller_id;
-  uint64_t _original_poller_id;
   uint32_t _rpc_port;
   bbdo::bbdo_version _bbdo_version;
   std::string _poller_name;
@@ -114,11 +113,6 @@ class state {
   uint32_t rpc_port() const noexcept;
   bbdo::bbdo_version get_bbdo_version() const noexcept;
   uint64_t poller_id() const noexcept;
-  /**
-   * @brief Poller ID from the 'poller_id' configuration key, even when a
-   * 'uid' overrides it in poller_id() (see config::state::original_poller_id).
-   */
-  uint64_t original_poller_id() const { return _original_poller_id; }
   size_t pool_size() const noexcept;
   const std::string& broker_name() const noexcept;
   const std::string& poller_name() const noexcept;

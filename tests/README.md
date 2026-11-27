@@ -182,19 +182,10 @@ Here is the list of the currently implemented tests:
       * Then both downtimes are still present with no duplicates
       * When the downtime is removed from the service
       * Then the inherited downtime is deleted
-30. **BEBAMIDTU3**: 
-      * Given BBDO version 3.0.1 is running
-      * And the central Broker and the Engine Broker module have the poller_id 1 and the uid 1001
-      * And the BAM virtual host of the Engine configuration is named '_Module_BAM_1'
-      * And a BA of type 'worst' with one service is in critical state due to its service
-      * When a downtime is set on this service
-      * Then BAM sends the inherited downtime to '_Module_BAM_1001' and Engine sets it on the BA
-      * When the downtime is removed from the service
-      * Then BAM deletes the inherited downtime on '_Module_BAM_1001' and Engine removes it from the BA
-31. **BEBAMIGNDT1**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
-32. **BEBAMIGNDT2**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
-33. **BEBAMIGNDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
-34. **BEBAMIGNDTU2**: 
+30. **BEBAMIGNDT1**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
+31. **BEBAMIGNDT2**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
+32. **BEBAMIGNDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
+33. **BEBAMIGNDTU2**: 
       * Given BBDO version 3.0.1 is configured
       * And a BA of type "worst" with two services is set up
       * And the downtime policy on this BA is "Ignore the indicator in the calculation"
@@ -205,15 +196,15 @@ Here is the list of the currently implemented tests:
       * Then the BA state should still be OK
       * When the second downtime reaches its end
       * Then the BA should be in a critical state
-35. **BEPB_BA_DURATION_EVENT**: use of pb_ba_duration_event message.
-36. **BEPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
-37. **BEPB_DIMENSION_BA_EVENT**: bbdo_version 3 use pb_dimension_ba_event message.
-38. **BEPB_DIMENSION_BA_TIMEPERIOD_RELATION**: use of pb_dimension_ba_timeperiod_relation message.
-39. **BEPB_DIMENSION_BV_EVENT**: bbdo_version 3 use pb_dimension_bv_event message.
-40. **BEPB_DIMENSION_KPI_EVENT**: bbdo_version 3 use pb_dimension_kpi_event message.
-41. **BEPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
-42. **BEPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
-43. **BEPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
+34. **BEPB_BA_DURATION_EVENT**: use of pb_ba_duration_event message.
+35. **BEPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
+36. **BEPB_DIMENSION_BA_EVENT**: bbdo_version 3 use pb_dimension_ba_event message.
+37. **BEPB_DIMENSION_BA_TIMEPERIOD_RELATION**: use of pb_dimension_ba_timeperiod_relation message.
+38. **BEPB_DIMENSION_BV_EVENT**: bbdo_version 3 use pb_dimension_bv_event message.
+39. **BEPB_DIMENSION_KPI_EVENT**: bbdo_version 3 use pb_dimension_kpi_event message.
+40. **BEPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
+41. **BEPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
+42. **BEPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
 
 ### Broker
 1. **BBDO_300_3100**: 
@@ -1055,7 +1046,7 @@ Here is the list of the currently implemented tests:
 320. **EBPN1**: verify relation parent child when delete parent.
 321. **EBPN2**: verify relation parent child when delete child.
 322. **EBPS2**: 1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
-323. **EBSAU2**: New services with action_url with more than 2000 characters
+323. **EBSAU2**: New hosts with action_url with more than 2000 characters
 324. **EBSG_1**: Scenario: Service group creation and membership updates with unified SQL and BBDO3
       * And a service group 1 is defined with 7 members across hosts (including host_1 services 1-5 and host_2 services 6-7)
       * When the broker and engine start and the engine becomes ready
@@ -1064,9 +1055,9 @@ Here is the list of the currently implemented tests:
       * When service host_1/service_1 is removed and servicegroup_1 members are updated to exclude service_1
       * And the engine is reloaded
       * Then the system reports 6 relations between servicegroup 1 and its services
-325. **EBSN3**: New services with notes with more than 500 characters
+325. **EBSN3**: New hosts with notes with more than 500 characters
 326. **EBSN4**: New hosts with No Alias / Alias and have A Template
-327. **EBSNU1**: New services with notes_url with more than 2000 characters
+327. **EBSNU1**: New hosts with notes_url with more than 2000 characters
 328. **ENGINE_ENCRYPTION_BAD_CONF**: 
       * Given an engine with configured encryption, but without key and salt, 
       * we give him several macros and we expect to retrieve them in logs without decrypt.
@@ -1615,4 +1606,4 @@ Here is the list of the currently implemented tests:
 11. **BWVC6**: Broker is tuned with strange keys APP_SECRET and salt that are not base64 encoded.
 
 
-715 tests currently implemented.
+714 tests currently implemented.

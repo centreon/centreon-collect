@@ -261,10 +261,6 @@ class service : public notifier {
       const std::shared_ptr<commands::command>& cmd) override;
 
   static service_map services;
-
-  static std::shared_ptr<service> find_service(const std::string& hostname,
-                                               const std::string& name);
-
   static service_id_map services_by_id;
 
   std::string get_check_command_line(nagios_macros* macros);
