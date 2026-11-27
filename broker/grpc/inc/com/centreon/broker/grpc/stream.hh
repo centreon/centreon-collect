@@ -148,6 +148,8 @@ class stream : public io::stream,
   const io::endpoint* parent() const { return _parent; }
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;
+  bool peer_verified() const override;
+  bool encrypted() const override;
 };
 
 /**

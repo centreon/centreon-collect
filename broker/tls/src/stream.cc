@@ -89,6 +89,16 @@ void stream::init(const params& param) {
 
   // Check certificate.
   param.validate_cert(_session);
+  /* validate_cert() throws when a CA is set and the peer does not match. An
+   * anonymous session (no local certificate) never loads the CA. */
+  _peer_verified = param.has_trusted_ca() && param.uses_certificates();
+}
+
+/**
+ * @brief The peer is verified when a CA was configured for the handshake.
+ */
+bool stream::peer_verified() const {
+  return _peer_verified || io::stream::peer_verified();
 }
 
 /**

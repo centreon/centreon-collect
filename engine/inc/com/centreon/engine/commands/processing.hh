@@ -33,12 +33,12 @@ namespace commands {
 namespace detail {
 struct command_info {
   command_info(int _id = 0,
-               void (*_func)(int, time_t, char*) = NULL,
+               int (*_func)(int, time_t, char*) = NULL,
                bool is_thread_safe = false)
       : id(_id), func(_func), thread_safe(is_thread_safe) {}
   ~command_info() throw() {}
   int id;
-  void (*func)(int id, time_t entry_time, char* args);
+  int (*func)(int id, time_t entry_time, char* args);
   bool thread_safe;
 };
 
@@ -47,6 +47,7 @@ struct command_info {
 class processing {
  public:
   static bool execute(std::string const& cmd);
+  static int execute_with_status(const std::string& cmd, std::string* error);
   static bool is_thread_safe(char const* cmd);
 
   static void wrapper_enable_host_and_child_notifications(host* hst);
@@ -78,72 +79,74 @@ class processing {
                                                    char* args);
 
   template <void (*fptr)()>
-  static void _redirector(int id, time_t entry_time, char* args) {
+  static int _redirector(int id, time_t entry_time, char* args) {
     (void)id;
     (void)entry_time;
     (void)args;
     (*fptr)();
+    return 0;
   }
 
   template <int (*fptr)()>
-  static void _redirector(int id, time_t entry_time, char* args) {
+  static int _redirector(int id, time_t entry_time, char* args) {
     (void)id;
     (void)entry_time;
     (void)args;
-    (*fptr)();
+    return (*fptr)();
   }
 
   template <void (*fptr)(int, char*)>
-  static void _redirector(int id, time_t entry_time, char* args) {
+  static int _redirector(int id, time_t entry_time, char* args) {
     (void)entry_time;
     (*fptr)(id, args);
+    return 0;
   }
 
   template <int (*fptr)(int, char*)>
-  static void _redirector(int id, time_t entry_time, char* args) {
+  static int _redirector(int id, time_t entry_time, char* args) {
     (void)entry_time;
-    (*fptr)(id, args);
+    return (*fptr)(id, args);
   }
 
   template <int (*fptr)(int, time_t, char*)>
-  static void _redirector(int id, time_t entry_time, char* args) {
-    (*fptr)(id, entry_time, args);
+  static int _redirector(int id, time_t entry_time, char* args) {
+    return (*fptr)(id, entry_time, args);
   }
 
   template <void (*fptr)(host*)>
-  static void _redirector_host(int id, time_t entry_time, char* args);
+  static int _redirector_host(int id, time_t entry_time, char* args);
 
   template <void (*fptr)(host*, char*)>
-  static void _redirector_host(int id, time_t entry_time, char* args);
+  static int _redirector_host(int id, time_t entry_time, char* args);
 
   template <void (*fptr)(host*)>
-  static void _redirector_hostgroup(int id, time_t entry_time, char* args);
+  static int _redirector_hostgroup(int id, time_t entry_time, char* args);
 
   template <void (*fptr)(service*)>
-  static void _redirector_service(int id, time_t entry_time, char* args);
+  static int _redirector_service(int id, time_t entry_time, char* args);
 
   template <void (*fptr)(service*, char*)>
-  static void _redirector_service(int id, time_t entry_time, char* args);
+  static int _redirector_service(int id, time_t entry_time, char* args);
 
   template <void (*fptr)(service*)>
-  static void _redirector_servicegroup(int id, time_t entry_time, char* args);
+  static int _redirector_servicegroup(int id, time_t entry_time, char* args);
 
   template <void (*fptr)(host*)>
-  static void _redirector_servicegroup(int id, time_t entry_time, char* args);
+  static int _redirector_servicegroup(int id, time_t entry_time, char* args);
 
   template <void (*fptr)(contact*)>
-  static void _redirector_contact(int id, time_t entry_time, char* args);
+  static int _redirector_contact(int id, time_t entry_time, char* args);
 
   template <void (*fptr)(char*)>
-  static void _redirector_file(int id __attribute__((unused)),
+  static int _redirector_file(int id __attribute__((unused)),
                                time_t entry_time __attribute__((unused)),
                                char* args);
 
   template <void (*fptr)(contact*)>
-  static void _redirector_contactgroup(int id, time_t entry_time, char* args);
+  static int _redirector_contactgroup(int id, time_t entry_time, char* args);
 
   template <void (*fptr)(anomalydetection*, char*)>
-  static void _redirector_anomalydetection(int id,
+  static int _redirector_anomalydetection(int id,
                                            time_t entry_time,
                                            char* args);
 

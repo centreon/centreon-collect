@@ -52,6 +52,8 @@ class http_config {
   std::string _key_path;
   // Should we verify peer (available for a https client, default value: true)
   bool _verify_peer = true;
+  // Maximum size of a received request body (server), 0: beast default
+  uint64_t _max_request_body_size = 0;
 
  public:
   using pointer = std::shared_ptr<http_config>;
@@ -150,6 +152,10 @@ class http_config {
   const std::string& get_key_path() const { return _key_path; }
   void set_verify_peer(bool verify_peer) { _verify_peer = verify_peer; }
   bool verify_peer() const { return _verify_peer; }
+  void set_max_request_body_size(uint64_t size) {
+    _max_request_body_size = size;
+  }
+  uint64_t get_max_request_body_size() const { return _max_request_body_size; }
 };
 
 }  // namespace com::centreon::common::http

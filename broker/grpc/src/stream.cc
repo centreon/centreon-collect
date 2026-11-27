@@ -32,6 +32,31 @@ using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
+namespace {
+/* A gRPC event as written in the trace logs. RemoteExec carries argv
+ * (credentials) and RemoteExecResult a program output: their content is
+ * never logged (contracts.md §12). */
+struct traced_event {
+  const grpc_event_type& event;
+};
+}  // namespace
+
+namespace fmt {
+template <>
+struct formatter<traced_event> {
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const traced_event& t, FormatContext& ctx) const
+      -> decltype(ctx.out()) {
+    if (t.event.content_case() == grpc_event_type::kRemoteExec ||
+        t.event.content_case() == grpc_event_type::kRemoteExecResult)
+      return fmt::format_to(ctx.out(), "{{remote exec event, not logged}}");
+    return fmt::format_to(ctx.out(), "{}", t.event);
+  }
+};
+}  // namespace fmt
+
 /**
  * @brief this header is used to identify poller
  *
@@ -139,7 +164,7 @@ void stream<bireactor_class>::OnReadDone(bool ok) {
       std::unique_lock l(_read_m);
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} receive: {}",
                           static_cast<const void*>(this), _class_name,
-                          *_read_current);
+                          traced_event{*_read_current});
       _read_queue.push(_read_current);
       _read_current.reset();
     }
@@ -232,7 +257,7 @@ void stream<bireactor_class>::start_write() {
                         _class_name, *to_send->bbdo_event);
   else
     SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write: {}", static_cast<void*>(this),
-                        _class_name, to_send->grpc_event);
+                        _class_name, traced_event{to_send->grpc_event});
 
   bireactor_class::StartWrite(&to_send->grpc_event);
 }
@@ -258,7 +283,7 @@ void stream<bireactor_class>::OnWriteDone(bool ok) {
       else
         SPDLOG_LOGGER_TRACE(_logger, "{:p} {} write done: {}",
                             static_cast<void*>(this), _class_name,
-                            written->grpc_event);
+                            traced_event{written->grpc_event});
 
       _write_queue.pop();
       _write_pending = false;
@@ -426,6 +451,34 @@ bool stream<bireactor_class>::wait_for_all_events_written(unsigned ms_timeout) {
   std::unique_lock l(_write_m);
   return _write_cond.wait_for(l, std::chrono::milliseconds(ms_timeout),
                               [this]() { return _write_queue.empty(); });
+}
+
+/**
+ * @brief The peer is verified when the channel is encrypted and, as a client,
+ * the server certificate is checked against a configured CA or, as a server,
+ * the client sent the configured authorization token (the server does not
+ * request client certificates).
+ *
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+bool stream<bireactor_class>::peer_verified() const {
+  if (!_conf->is_crypted())
+    return false;
+  if (_class_name == "client")
+    return !_conf->get_ca().empty();
+  return !_conf->get_authorization().empty();
+}
+
+/**
+ * @brief The channel is encrypted when the endpoint has 'encryption' set: the
+ * gRPC server then only accepts TLS and the client only dials TLS.
+ *
+ * @tparam bireactor_class
+ */
+template <class bireactor_class>
+bool stream<bireactor_class>::encrypted() const {
+  return _conf->is_crypted();
 }
 
 namespace com::centreon::broker::grpc {

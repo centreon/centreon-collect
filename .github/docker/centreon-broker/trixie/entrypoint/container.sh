@@ -22,14 +22,29 @@ if [ -n "$APP_SECRET" ] && [ -n "$SALT" ]; then
     echo "Engine secrets written to $ENGINE_CONTEXT"
 fi
 
-# Find the config path in "$@": refuse to start on the untouched package
-# default (no SQL/storage output, would run but persist nothing), else tail
-# its log file.
-DEFAULT_SUM=$(cat /var/lib/centreon-broker/.default-config.sha256 2>/dev/null || true)
+# Central PKI for the BBDO gRPC TLS input: generated once, then kept.
+/usr/local/lib/centreon-broker/tls-self-ca.sh
+
+# First central config from env when none was delivered yet (gorgone-less
+# PoC): no-op without CENTREON_BROKER_API_TOKEN or with a delivered file.
 for arg in "$@"; do
     case "$arg" in
         *.json)
-            if [ -n "$DEFAULT_SUM" ] && [ "$(sha256sum "$arg" 2>/dev/null | cut -d' ' -f1)" = "$DEFAULT_SUM" ]; then
+            /usr/local/lib/centreon-broker/bootstrap-config.sh "$arg"
+            break
+            ;;
+    esac
+done
+
+# Find the config path in "$@": refuse to start on the untouched package
+# default (no SQL/storage output, would run but persist nothing), else tail
+# its log file.
+DEFAULTS=/usr/share/centreon-broker/defaults.sha256
+for arg in "$@"; do
+    case "$arg" in
+        *.json)
+            SUM=$(sha256sum "$arg" 2>/dev/null | cut -d' ' -f1)
+            if [ -n "$SUM" ] && grep -q "^$SUM " "$DEFAULTS" 2>/dev/null; then
                 echo "ERROR: $arg is still the package-default config (no SQL/storage output) - mount a real broker config" >&2
                 exit 1
             fi

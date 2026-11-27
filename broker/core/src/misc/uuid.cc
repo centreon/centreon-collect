@@ -17,6 +17,7 @@
 */
 
 #include <com/centreon/broker/misc/uuid.hh>
+#include <cstdio>
 #include <random>
 
 using namespace com::centreon::broker;
@@ -61,16 +62,17 @@ misc::Uuid const& misc::Uuid::operator=(Uuid const& uuid) {
 }
 
 std::string misc::Uuid::to_string() const {
-  std::string uuid("", 37);
-  int c;
+  /* 36 characters and the terminator written by snprintf, which must not
+   * end up in the string. */
+  char buffer[37];
+  int c = snprintf(buffer, sizeof(buffer),
+                   "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                   _time_low, _time_mid, _time_hi_and_version,
+                   _clock_seq_hi_and_reserved, _clock_seq_low, _node[0],
+                   _node[1], _node[2], _node[3], _node[4], _node[5]);
 
-  c = snprintf(&uuid[0], 37, "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-               _time_low, _time_mid, _time_hi_and_version,
-               _clock_seq_hi_and_reserved, _clock_seq_low, _node[0], _node[1],
-               _node[2], _node[3], _node[4], _node[5]);
-
-  if (c < 0)
+  if (c != 36)
     return std::string();
 
-  return uuid;
+  return std::string(buffer, 36);
 }

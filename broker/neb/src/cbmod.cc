@@ -21,6 +21,7 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/neb/remote_actions.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
@@ -69,6 +70,9 @@ cbmod::cbmod(const std::string& config_file)
   /* Once the configuration is applied, we can know if we use protobuf or not */
   _use_protobuf =
       config::applier::state::instance().get_bbdo_version().major_v > 2;
+
+  /* Downstream remote actions from the central (BBDO). */
+  remote_actions::load(config_file);
 }
 
 /**
@@ -91,6 +95,7 @@ cbmod::cbmod()
 
 cbmod::~cbmod() noexcept {
   _neb_logger->debug("cbmod: destruction...");
+  remote_actions::unload();
   while (!_downtimes.empty()) {
     uint64_t downtime_id = _downtimes.begin()->first;
     remove_downtime(downtime_id);
@@ -399,5 +404,17 @@ void cbmod::reload() {
     ic->poller_id = config::applier::state::instance().poller_id();
     write(ic);
   }
+}
+}  // namespace com::centreon::broker::neb
+
+namespace com::centreon::broker::neb {
+/**
+ * @brief Called by Engine when a configuration reload ends.
+ *
+ * @param success true if the new configuration is applied.
+ * @param message Reason of a failure.
+ */
+void cbmod::reload_done(bool success, const std::string& message) {
+  remote_actions::reload_done(success, message);
 }
 }  // namespace com::centreon::broker::neb

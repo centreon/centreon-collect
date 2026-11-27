@@ -3606,3 +3606,325 @@ def ctn_broker_get_bbdo_version():
             return conf["centreonBroker"]["bbdo_version"]
         else:
             return "2.0.0"
+
+
+def ctn_broker_config_remote_api(name: str, port: int = 8099, token: str = "robot-token", ca_certificate: str = "", exec_insecure: bool = False):
+    """
+    Enable the remote API (downstream commands and configuration, gorgone-less
+    PoC) on a broker instance, listening on 127.0.0.1.
+
+    Args:
+        name (str): Which broker instance: central, rrd or module%d.
+        port (int): Listening port.
+        token (str): Bearer token.
+        ca_certificate (str): CA file served by GET /v1/ca (default path if empty).
+        exec_insecure (bool): Allow remote executions on streams without TLS.
+
+    *Example:*
+
+    | Ctn Broker Config Remote Api | central | 8099 | robot-token |
+    """
+    conf = {"listen_address": "127.0.0.1", "port": str(port), "token": token}
+    if ca_certificate:
+        conf["ca_certificate"] = ca_certificate
+    if exec_insecure:
+        conf["exec_insecure"] = "yes"
+    ctn_broker_config_add_item(name, "remote_api", conf)
+
+
+def ctn_certificate_fingerprint_sha256(cert: str):
+    """
+    SHA-256 of the DER encoding of the first certificate of a PEM file, as
+    lowercase hex (the fingerprint of cbd GET /v1/ca).
+
+    Args:
+        cert (str): Path of the PEM file.
+    """
+    import hashlib
+    import ssl
+    with open(cert) as f:
+        pem = f.read()
+    end = "-----END CERTIFICATE-----"
+    first = pem[pem.index("-----BEGIN CERTIFICATE-----"):pem.index(end) + len(end)]
+    return hashlib.sha256(ssl.PEM_cert_to_DER_cert(first)).hexdigest()
+
+
+def ctn_remote_api_request(method: str, path: str, body=None, token: str = "robot-token", port: int = 8099, timeout: int = 40):
+    """
+    Send a request to the remote API of the central broker.
+
+    Args:
+        method (str): GET or POST.
+        path (str): Path, e.g. /v1/pollers.
+        body: Python object sent as JSON, or None.
+        token (str): Bearer token.
+        port (int): API port.
+        timeout (int): Socket timeout in seconds.
+
+    Returns:
+        A list [HTTP status, decoded JSON body] ([0, {}] if unreachable).
+    """
+    import urllib.request
+    import urllib.error
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(
+        f"http://127.0.0.1:{port}{path}", data=data, method=method,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return [r.status, json.loads(r.read() or b"{}")]
+    except urllib.error.HTTPError as e:
+        return [e.code, json.loads(e.read() or b"{}")]
+    except Exception as e:
+        logger.console(f"remote api request failed: {e}")
+        return [0, {}]
+
+
+def ctn_remote_api_wait_poller(poller_id: int, timeout: int = 60, remote_actions: bool = True):
+    """
+    Wait until GET /v1/pollers lists the engine of a poller with the given
+    remote_actions flag.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        timeout (int): Timeout in seconds.
+        remote_actions (bool): Expected remote_actions value.
+
+    Returns:
+        True if found before the timeout.
+    """
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        code, body = ctn_remote_api_request("GET", "/v1/pollers", timeout=5)
+        if code == 200:
+            for p in body.get("pollers", []):
+                if p.get("poller_id") == str(poller_id) and p.get("remote_actions") == remote_actions:
+                    return True
+        time.sleep(1)
+    return False
+
+
+def ctn_remote_api_deploy(poller_id: int, target: str, path: str, content: str, action: str = "none"):
+    """
+    POST /v1/deployments with one file for one poller.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        target (str): engine or broker.
+        path (str): Path relative to the target directory.
+        content (str): File content.
+        action (str): none, reload or restart.
+
+    Returns:
+        A list [HTTP status, request id, decoded JSON body].
+    """
+    import base64
+    import hashlib
+    data = content.encode()
+    request_id = f"robot-{time.time_ns()}"
+    body = {"request_id": request_id, "poller_id": str(poller_id), "action": action,
+            "files": [{"target": target, "path": path,
+                       "sha256": hashlib.sha256(data).hexdigest(),
+                       "content_b64": base64.b64encode(data).decode()}]}
+    code, answer = ctn_remote_api_request("POST", "/v1/deployments", body)
+    logger.console(f"remote api deployment answer: {code} {answer}")
+    return [code, request_id, answer]
+
+
+def ctn_remote_api_wait_plugins(poller_id: int, since: int, timeout: int = 60):
+    """
+    Wait until GET /v1/pollers gives a final plugin install outcome for a
+    poller, updated at or after since.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        since (int): Epoch seconds.
+        timeout (int): Timeout in seconds.
+
+    Returns:
+        The plugins object, or {} on timeout.
+    """
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        code, body = ctn_remote_api_request("GET", "/v1/pollers", timeout=5)
+        if code == 200:
+            for p in body.get("pollers", []):
+                plugins = p.get("plugins")
+                if p.get("poller_id") == str(poller_id) and plugins \
+                        and plugins.get("updated_at", 0) >= int(since) \
+                        and plugins.get("status") != "RUNNING":
+                    logger.console(f"plugins: {plugins}")
+                    return plugins
+        time.sleep(1)
+    return {}
+
+
+def ctn_remote_api_exec(poller_id: int, argv: list, timeout_s: int = 30, max_output_bytes: int = 0):
+    """
+    POST /v1/executions for one poller.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        argv (list): Program and arguments, argv[0] absolute.
+        timeout_s (int): Timeout on the poller.
+        max_output_bytes (int): Output cap asked (0: the poller cap).
+
+    Returns:
+        A list [HTTP status, request id, decoded JSON body].
+    """
+    request_id = f"robot-exec-{time.time_ns()}"
+    body = {"request_id": request_id, "poller_id": str(poller_id),
+            "argv": list(argv), "timeout_s": int(timeout_s)}
+    if int(max_output_bytes):
+        body["max_output_bytes"] = int(max_output_bytes)
+    code, answer = ctn_remote_api_request("POST", "/v1/executions", body)
+    logger.console(f"remote api execution answer: {code} {answer.get('status')}")
+    return [code, request_id, answer]
+
+
+def ctn_remote_api_wait_exec(request_id: str, timeout: int = 60):
+    """
+    Poll GET /v1/executions/{id} until a final status.
+
+    Args:
+        request_id (str): Execution id.
+        timeout (int): Timeout in seconds.
+
+    Returns:
+        The execution object with an extra "output" key (decoded bytes as
+        latin-1 text), or {} on timeout.
+    """
+    import base64
+    final = ("DONE", "REJECTED", "TIMEOUT", "FAILED", "NOT_CONNECTED", "PEER_TOO_OLD")
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        code, body = ctn_remote_api_request("GET", f"/v1/executions/{request_id}", timeout=5)
+        if code == 200 and body.get("status") in final:
+            body["output"] = base64.b64decode(body.get("output_b64", "")).decode("latin-1")
+            logger.console(f"execution {request_id}: {body['status']} {body.get('message')} "
+                           f"exit {body.get('exit_code')} {len(body['output'])} bytes "
+                           f"of {body.get('output_bytes')} truncated {body.get('truncated')}")
+            return body
+        time.sleep(1)
+    return {}
+
+
+def ctn_remote_api_install(poller_id: int, packages: str, timeout_s: int = 0):
+    """
+    POST /v1/plugin-installs for one poller.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        packages (str): JSON object, deb name -> version prefix.
+        timeout_s (int): Timeout on the poller (0: the poller default).
+
+    Returns:
+        A list [HTTP status, request id, decoded JSON body].
+    """
+    request_id = f"robot-install-{time.time_ns()}"
+    body = {"request_id": request_id, "poller_id": str(poller_id),
+            "packages": json.loads(packages)}
+    if int(timeout_s):
+        body["timeout_s"] = int(timeout_s)
+    code, answer = ctn_remote_api_request("POST", "/v1/plugin-installs", body)
+    logger.console(f"remote api plugin install answer: {code} {answer.get('status')}")
+    return [code, request_id, answer]
+
+
+def ctn_remote_api_wait_install(request_id: str, timeout: int = 60):
+    """
+    Poll GET /v1/plugin-installs/{id} until a final status.
+
+    Args:
+        request_id (str): Install request id.
+        timeout (int): Timeout in seconds.
+
+    Returns:
+        The install object, or {} on timeout.
+    """
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        code, body = ctn_remote_api_request("GET", f"/v1/plugin-installs/{request_id}", timeout=5)
+        if code == 200 and body.get("status") not in ("ACCEPTED", "RUNNING"):
+            logger.console(f"plugin install {request_id}: {body['status']} {body.get('message')} "
+                           f"{body.get('packages')}")
+            return body
+        time.sleep(1)
+    return {}
+
+
+def ctn_remote_api_send_commands(poller_id: int, *commands):
+    """
+    POST /v1/commands with the given external commands for one poller. The
+    string TS in a command is replaced by the current timestamp.
+
+    Args:
+        poller_id (int): Poller id (Welcome id).
+        commands: Commands, e.g. "[TS] SCHEDULE_FORCED_SVC_CHECK;host_1;service_1;TS".
+
+    Returns:
+        A list [HTTP status, elapsed seconds, decoded JSON body].
+    """
+    now = str(int(time.time()))
+    body = {"request_id": f"robot-{time.time_ns()}", "timeout_ms": 10000,
+            "items": [{"poller_id": str(poller_id),
+                       "commands": [c.replace("TS", now) for c in commands]}]}
+    start = time.time()
+    code, answer = ctn_remote_api_request("POST", "/v1/commands", body)
+    elapsed = time.time() - start
+    logger.console(f"remote api answer in {elapsed:.1f}s: {code} {answer}")
+    return [code, elapsed, answer]
+
+
+def ctn_config_remote_actions_tls(central_cert: str, central_key: str, poller_ca: str, ca_name: str = "localhost"):
+    """
+    Switch the central input and the module0 output to gRPC with TLS, as in
+    the gorgone-less PoC contract (central: encryption + certificate + key,
+    poller: encryption + CA + ca_name).
+
+    Args:
+        central_cert (str): Certificate of the central broker.
+        central_key (str): Private key of the central broker.
+        poller_ca (str): CA the poller trusts to verify the central.
+        ca_name (str): Name expected in the central certificate.
+    """
+    ctn_change_broker_tcp_input_to_grpc("central")
+    ctn_change_broker_tcp_output_to_grpc("module0")
+
+    def central(conf):
+        for v in conf["centreonBroker"]["input"]:
+            if v.get("type") == "grpc" or v.get("transport_protocol") == "grpc":
+                v["encryption"] = "yes"
+                v["public_cert"] = central_cert
+                v["private_key"] = central_key
+
+    def poller(conf):
+        for v in conf["centreonBroker"]["output"]:
+            if v.get("type") == "grpc" or v.get("transport_protocol") == "grpc":
+                v["encryption"] = "yes"
+                v["ca_certificate"] = poller_ca
+                v["ca_name"] = ca_name
+
+    _apply_conf("central", central)
+    _apply_conf("module0", poller)
+
+
+def ctn_create_self_signed_server_certificate(host: str, key: str, cert: str):
+    """
+    Create a self-signed server certificate with CN and SAN set to host (and
+    IP 127.0.0.1), usable as its own CA by a gRPC client.
+
+    Args:
+        host (str): Name written in CN and SAN.
+        key (str): Path of the private key to write.
+        cert (str): Path of the certificate to write.
+    """
+    os.makedirs(os.path.dirname(key), mode=0o777, exist_ok=True)
+    os.makedirs(os.path.dirname(cert), mode=0o777, exist_ok=True)
+    out = getoutput(
+        f"openssl req -new -newkey rsa:2048 -days 1 -nodes -x509 -keyout {key} -out {cert} "
+        f"-subj '/CN={host}' -addext 'subjectAltName=DNS:{host},IP:127.0.0.1' 2>&1")
+    if not os.path.exists(cert):
+        logger.console(f"certificate creation failed: {out}")
+    os.chmod(key, 0o644)
+    os.chmod(cert, 0o644)

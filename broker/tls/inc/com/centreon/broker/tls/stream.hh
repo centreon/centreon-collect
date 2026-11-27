@@ -39,6 +39,8 @@ class stream : public io::stream {
   time_t _deadline;
   gnutls_session_t _session;
   std::shared_ptr<spdlog::logger> _logger;
+  /* The peer certificate was checked against a CA during the handshake. */
+  bool _peer_verified = false;
 
  public:
   stream(unsigned int session_flags);
@@ -52,6 +54,8 @@ class stream : public io::stream {
   long long read_encrypted(void* buffer, long long size);
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override { return 0; }
+  bool peer_verified() const override;
+  bool encrypted() const override { return true; }
   long long write_encrypted(void const* buffer, long long size);
 };
 

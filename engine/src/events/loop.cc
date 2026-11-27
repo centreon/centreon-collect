@@ -98,6 +98,8 @@ loop::loop() : _need_reload(false), _reload_running(false) {}
 static void apply_conf(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
+  bool success = false;
+  std::string message;
   try {
     configuration::State config;
     configuration::state_helper config_hlp(&config);
@@ -109,10 +111,17 @@ static void apply_conf(std::atomic<bool>* reloading) {
     configuration::extended_conf::update_state(&config);
     configuration::applier::state::instance().apply(config, err);
     process_logger->info("Configuration reloaded, main loop continuing.");
+    success = err.config_errors == 0;
+    if (!success)
+      message = fmt::format("{} configuration errors", err.config_errors);
   } catch (std::exception const& e) {
     config_logger->error("Error: {}", e.what());
+    message = e.what();
   }
   *reloading = false;
+  /* Downstream deployments wait for this outcome. */
+  if (cbm)
+    cbm->reload_done(success, message);
   process_logger->info("Reload configuration finished.");
 }
 

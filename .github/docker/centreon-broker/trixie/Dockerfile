@@ -95,13 +95,15 @@ apt-get install -y --no-install-recommends \
     libssh2-1t64 \
     libcurl4t64 \
     zlib1g \
-    ca-certificates
+    ca-certificates \
+    openssl
 rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* /usr/share/info/* /usr/share/locale/* /var/cache/apt/* /var/log/*
 EOF
 
 # Create directory structure
 RUN bash -e <<EOF
 mkdir -p /etc/centreon-broker \
+         /etc/centreon-broker/certs \
          /var/lib/centreon-broker \
          /var/log/centreon-broker \
          /usr/share/centreon/lib/centreon-broker \
@@ -117,6 +119,9 @@ chmod 775 /etc/centreon-broker \
           /var/log/centreon-broker \
           /usr/share/centreon-broker \
           /usr/share/centreon-broker/lua
+# Self-generated PKI (tls-self-ca.sh): keys 0600, directory readable by the
+# central engine that mounts the same volume to read ca.crt.
+chmod 0755 /etc/centreon-broker/certs
 chmod 0755 /var/spool/centreon
 chmod 0755 /var/lib/centreon-engine
 chmod 0755 /var/lib/centreon-gorgone
@@ -156,14 +161,17 @@ RUN chmod 0775 /etc/centreon-broker /etc/centreon-engine
 COPY --chmod=755 \
      ./.github/docker/centreon-broker/trixie/entrypoint /usr/local/lib/centreon-broker
 
-# Fingerprint of the package-default config (no SQL/storage output - cbd
-# would run but persist nothing). container.sh refuses to start if the
-# config it's given still matches this, instead of running uselessly. Stored
-# under /var/lib/centreon-broker, NOT /etc/centreon-broker - the latter is
-# the real-world volume mount point for a real config, and an empty mount
-# would mask a fingerprint stored there too, silently disabling this check.
+# Fingerprints of the package-default configs (no SQL/storage output - cbd
+# would run but persist nothing). container.sh refuses to run cbd on one of
+# them, and the bootstrap treats them as absent (a named volume seeded from
+# /etc/centreon-broker by Docker copy-up holds them). Stored in the image
+# layer, outside every volume mount point (/etc/centreon-broker,
+# /var/lib/centreon-broker), so that no mount masks or freezes them.
 RUN bash -eo pipefail <<'EOF'
-sha256sum /etc/centreon-broker/central-broker.json | cut -d' ' -f1 > /var/lib/centreon-broker/.default-config.sha256
+sha256sum /etc/centreon-broker/central-broker.json \
+          /etc/centreon-broker/central-rrd.json \
+          /etc/centreon-broker/watchdog.json \
+    > /usr/share/centreon-broker/defaults.sha256
 EOF
 
 # Verify critical runtime files. Checking the dynamic linker can actually
@@ -223,6 +231,8 @@ EXPOSE 5670
 EXPOSE 51002
 # api_control.py (reload/restart shim)
 EXPOSE 8080
+# remote_api (downstream commands and configuration, gorgone-less PoC)
+EXPOSE 8099
 
 WORKDIR /var/lib/centreon-broker
 

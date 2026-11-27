@@ -48,6 +48,34 @@ using pb_engine_configuration = com::centreon::broker::io::protobuf<
     com::centreon::broker::EngineConfiguration,
     make_type(io::bbdo, bbdo::de_pb_engine_configuration)>;
 
+using pb_remote_command = com::centreon::broker::io::protobuf<
+    com::centreon::broker::RemoteCommand,
+    make_type(io::bbdo, bbdo::de_pb_remote_command)>;
+
+using pb_config_chunk = com::centreon::broker::io::protobuf<
+    com::centreon::broker::ConfigChunk,
+    make_type(io::bbdo, bbdo::de_pb_config_chunk)>;
+
+using pb_config_commit = com::centreon::broker::io::protobuf<
+    com::centreon::broker::ConfigCommit,
+    make_type(io::bbdo, bbdo::de_pb_config_commit)>;
+
+using pb_remote_result = com::centreon::broker::io::protobuf<
+    com::centreon::broker::RemoteResult,
+    make_type(io::bbdo, bbdo::de_pb_remote_result)>;
+
+using pb_remote_exec = com::centreon::broker::io::protobuf<
+    com::centreon::broker::RemoteExec,
+    make_type(io::bbdo, bbdo::de_pb_remote_exec)>;
+
+using pb_remote_exec_result = com::centreon::broker::io::protobuf<
+    com::centreon::broker::RemoteExecResult,
+    make_type(io::bbdo, bbdo::de_pb_remote_exec_result)>;
+
+using pb_plugin_install = com::centreon::broker::io::protobuf<
+    com::centreon::broker::PluginInstall,
+    make_type(io::bbdo, bbdo::de_pb_plugin_install)>;
+
 using pb_bench = com::centreon::broker::io::
     protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;
 

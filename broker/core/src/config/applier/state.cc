@@ -17,6 +17,8 @@
  */
 
 #include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/bbdo/remote.hh"
+#include <absl/strings/numbers.h>
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 #include <fmt/format.h>
@@ -143,6 +145,26 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
       set_pollers_config_dir(cache_dir / "pollers-configuration/");
     else
       set_pollers_config_dir(s.pollers_config_dir());
+  }
+
+  // Downstream remote actions (poller cbmod side).
+  {
+    auto read_bool = [&s](const char* key) {
+      auto it = s.params().find(key);
+      if (it == s.params().end())
+        return false;
+      bool v = false;
+      if (absl::SimpleAtob(it->second, &v))
+        return v;
+      return it->second == "yes";
+    };
+    bool ra = read_bool("remote_actions");
+    bool insecure = read_bool("remote_actions_insecure");
+    com::centreon::broker::bbdo::remote_registry::instance().set_config(
+        ra, insecure);
+    if (ra)
+      logger->info("applier: remote actions enabled{}",
+                   insecure ? " WITHOUT TLS verification (PoC only)" : "");
   }
 
   // Apply modules configuration.

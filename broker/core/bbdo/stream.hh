@@ -24,6 +24,7 @@
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
+#include "broker/core/bbdo/remote.hh"
 
 namespace com::centreon::broker::bbdo {
 /**
@@ -179,6 +180,22 @@ class stream : public io::stream {
   /* Currently, this is a hash of the Engine configuration directory. It's
    * filled when neb::pb_instance is sent to Broker. */
   std::string _config_version;
+
+  /* Downstream events (remote commands, configuration) of this stream. Set
+   * once the stream is negotiated with a peer of BBDO > 3.0.0. */
+  std::shared_ptr<remote_channel> _remote;
+  /* The peer announced in its Welcome that it accepts downstream events. */
+  bool _peer_remote_actions = false;
+  bool _peer_remote_exec = false;
+  bool _peer_plugin_install = false;
+
+  bool _announce_remote_actions() const;
+  static bool _plugin_install_available();
+  bool _accept_remote_actions() const;
+  void _register_remote();
+  void _unregister_remote();
+  void _drain_remote();
+  void _handle_remote_event(const std::shared_ptr<io::data>& d);
 
   io::data* unserialize(uint32_t event_type,
                         uint32_t source_id,

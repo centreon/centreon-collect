@@ -52,7 +52,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     SMTP_HOST= \
     SMTP_PORT=25 \
     SMTP_FROM=centreon-engine@localhost \
-    SMTP_TLS=off
+    SMTP_TLS=off \
+    CENTREON_PLUGINS_INSTALL=/usr/local/lib/centreon-engine/plugins-install.sh \
+    CENTREON_EXEC_ALLOWLIST_DIR=/etc/centreon-engine-exec
 
 # Create users and groups (must match current setup for compatibility)
 RUN bash -e <<EOF
@@ -212,6 +214,24 @@ COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
 RUN chmod 0775 /etc/centreon-engine /etc/centreon-engine/conf.d /etc/centreon-broker \
     /etc/pki /etc/pki/centreon-engine
 
+# Directories seeded into empty named volumes by Docker copy-up (no
+# volumes-init container): owner and mode come from here. The engine applies
+# delivered broker files and the bootstrap writes the cbmod JSON and the CA
+# as 901 in 902-owned, setgid 901, group-writable directories.
+# defaults.sha256 lists the package-default files: the bootstrap treats them
+# as absent (copy-up seeds them too). Kept in the image layer, outside every
+# volume mount point.
+RUN bash -eo pipefail <<'EOF'
+mkdir -p /etc/centreon-broker/certs
+chown centreon-broker:centreon-engine /etc/centreon-broker /etc/centreon-broker/certs
+chmod 2775 /etc/centreon-broker /etc/centreon-broker/certs
+mkdir -p /usr/share/centreon-engine
+sha256sum /etc/centreon-engine/centengine.cfg \
+          /etc/centreon-engine/engine-context.json \
+          /etc/centreon-broker/central-module.json \
+    > /usr/share/centreon-engine/defaults.sha256
+EOF
+
 # Copy entrypoint and sudoers (from source repo, not from .deb packages).
 # Root-owned and outside /var/lib/centreon-engine (the engine user's home and
 # cbmod's default cache directory), so that directory can be persisted on a
@@ -220,6 +240,18 @@ COPY --chmod=755 \
      ./.github/docker/centreon-engine/trixie/entrypoint /usr/local/lib/centreon-engine
 
 COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d/centreon
+
+# Remote exec allow-list (contracts.md §12): root-owned, outside the
+# directories the central delivers, so the central cannot widen it. Default
+# deny: without a pattern, every RemoteExec is refused.
+# (Written by RUN, not COPY --chmod: COPY would give the created directory
+# the file mode 644, which the engine user cannot traverse.)
+RUN bash -e <<'EOF'
+install -d -m 0755 /etc/centreon-engine-exec
+printf '%s\n' '{"exec": {"wildcard": ["/usr/lib/centreon/plugins/*", "/usr/lib/nagios/plugins/*"]}}' \
+    > /etc/centreon-engine-exec/default.json
+chmod 0644 /etc/centreon-engine-exec/default.json
+EOF
 
 # Verify critical runtime files. Checking the dynamic linker can actually
 # resolve centengine's shared libs (rather than guessing their path with a

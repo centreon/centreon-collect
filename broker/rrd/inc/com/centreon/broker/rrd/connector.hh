@@ -35,6 +35,7 @@ class connector : public io::endpoint {
 
   uint32_t _cache_size;
   std::string _cached_local;
+  std::string _cached_host;
   uint16_t _cached_port;
   bool _ignore_update_errors;
   std::string _metrics_path;
@@ -50,7 +51,7 @@ class connector : public io::endpoint {
   std::shared_ptr<io::stream> open() override;
   void set_cache_size(uint32_t cache_size);
   void set_cached_local(std::string const& local_socket);
-  void set_cached_net(uint16_t port) noexcept;
+  void set_cached_net(std::string const& host, uint16_t port);
   void set_ignore_update_errors(bool ignore) noexcept;
   void set_metrics_path(std::string const& metrics_path);
   void set_status_path(std::string const& status_path);

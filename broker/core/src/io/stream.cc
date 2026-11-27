@@ -65,6 +65,20 @@ std::shared_ptr<stream> stream::get_substream() {
 }
 
 /**
+ * @brief By default, a stream is as verified as its substream.
+ */
+bool stream::peer_verified() const {
+  return _substream && _substream->peer_verified();
+}
+
+/**
+ * @brief By default, a stream is as encrypted as its substream.
+ */
+bool stream::encrypted() const {
+  return _substream && _substream->encrypted();
+}
+
+/**
  *  Generate statistics about the stream.
  *
  *  @param[out] tree Output tree.

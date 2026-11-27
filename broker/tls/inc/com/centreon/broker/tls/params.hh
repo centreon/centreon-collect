@@ -63,6 +63,8 @@ class params {
   void set_cert(std::string const& cert, std::string const& key);
   void set_compression(bool compress = false);
   void set_trusted_ca(std::string const& ca_cert);
+  bool has_trusted_ca() const { return !_ca.empty(); }
+  bool uses_certificates() const { return !_cert.empty() && !_key.empty(); }
   void set_tls_hostname(std::string const& tls_hostname);
   void validate_cert(gnutls_session_t session) const;
 };

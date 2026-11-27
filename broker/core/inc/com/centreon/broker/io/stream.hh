@@ -73,6 +73,19 @@ class stream {
   const std::string& get_name() const { return _name; }
 
   virtual bool wait_for_all_events_written(unsigned ms_timeout);
+
+  /**
+   * @brief Tell if this stream or one of its substreams is encrypted and has
+   * verified the peer certificate against a configured CA.
+   */
+  virtual bool peer_verified() const;
+
+  /**
+   * @brief Tell if this stream or one of its substreams encrypts the data on
+   * the wire (TLS on TCP, encryption on gRPC), whether or not the peer is
+   * authenticated.
+   */
+  virtual bool encrypted() const;
 };
 }  // namespace com::centreon::broker::io
 

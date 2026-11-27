@@ -561,7 +561,7 @@ const std::unordered_map<std::string, command_info> processing::_lst_command(
  * redirectors
  ********************************************************************/
 template <void (*fptr)(host*)>
-void processing::_redirector_host(int id, time_t entry_time, char* args) {
+int processing::_redirector_host(int id, time_t entry_time, char* args) {
   (void)id;
   (void)entry_time;
 
@@ -572,13 +572,14 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
 
   if (!hst) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown host: {}", name);
-    return;
+    return ERROR;
   }
   (*fptr)(hst);
+  return OK;
 }
 
 template <void (*fptr)(host*, char*)>
-void processing::_redirector_host(int id, time_t entry_time, char* args) {
+int processing::_redirector_host(int id, time_t entry_time, char* args) {
   (void)id;
   (void)entry_time;
 
@@ -589,13 +590,14 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
 
   if (!hst) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown host: {}", name);
-    return;
+    return ERROR;
   }
   (*fptr)(hst, args + name.length() + 1);
+  return OK;
 }
 
 template <void (*fptr)(host*)>
-void processing::_redirector_hostgroup(int id, time_t entry_time, char* args) {
+int processing::_redirector_hostgroup(int id, time_t entry_time, char* args) {
   (void)id;
   (void)entry_time;
 
@@ -608,7 +610,7 @@ void processing::_redirector_hostgroup(int id, time_t entry_time, char* args) {
   if (!group) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown group: {}",
                         group_name);
-    return;
+    return ERROR;
   }
 
   for (host_map_unsafe::iterator it(group->members.begin()),
@@ -616,10 +618,11 @@ void processing::_redirector_hostgroup(int id, time_t entry_time, char* args) {
        it != end; ++it)
     if (it->second)
       (*fptr)(it->second);
+  return OK;
 }
 
 template <void (*fptr)(service*)>
-void processing::_redirector_service(int id, time_t entry_time, char* args) {
+int processing::_redirector_service(int id, time_t entry_time, char* args) {
   (void)id;
   (void)entry_time;
 
@@ -631,13 +634,14 @@ void processing::_redirector_service(int id, time_t entry_time, char* args) {
   if (!found) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service: {}@{}",
                         description, name);
-    return;
+    return ERROR;
   }
   (*fptr)(found.get());
+  return OK;
 }
 
 template <void (*fptr)(service*, char*)>
-void processing::_redirector_service(int id, time_t entry_time, char* args) {
+int processing::_redirector_service(int id, time_t entry_time, char* args) {
   (void)id;
   (void)entry_time;
 
@@ -648,13 +652,14 @@ void processing::_redirector_service(int id, time_t entry_time, char* args) {
   if (!found) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service: {}@{}",
                         description, name);
-    return;
+    return ERROR;
   }
   (*fptr)(found.get(), args + name.length() + description.length() + 2);
+  return OK;
 }
 
 template <void (*fptr)(service*)>
-void processing::_redirector_servicegroup(int id,
+int processing::_redirector_servicegroup(int id,
                                           time_t entry_time,
                                           char* args) {
   (void)id;
@@ -666,7 +671,7 @@ void processing::_redirector_servicegroup(int id,
   if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service group: {}",
                         group_name);
-    return;
+    return ERROR;
   }
 
   for (service_map_unsafe::iterator it2(sg_it->second->members.begin()),
@@ -674,10 +679,11 @@ void processing::_redirector_servicegroup(int id,
        it2 != end2; ++it2)
     if (it2->second)
       (*fptr)(it2->second);
+  return OK;
 }
 
 template <void (*fptr)(host*)>
-void processing::_redirector_servicegroup(int id,
+int processing::_redirector_servicegroup(int id,
                                           time_t entry_time,
                                           char* args) {
   (void)id;
@@ -689,7 +695,7 @@ void processing::_redirector_servicegroup(int id,
   if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service group: {}",
                         group_name);
-    return;
+    return ERROR;
   }
 
   host* last_host{nullptr};
@@ -704,10 +710,11 @@ void processing::_redirector_servicegroup(int id,
     (*fptr)(hst);
     last_host = hst;
   }
+  return OK;
 }
 
 template <void (*fptr)(contact*)>
-void processing::_redirector_contact(int id, time_t entry_time, char* args) {
+int processing::_redirector_contact(int id, time_t entry_time, char* args) {
   (void)id;
   (void)entry_time;
 
@@ -715,21 +722,23 @@ void processing::_redirector_contact(int id, time_t entry_time, char* args) {
   contact_map::const_iterator ct_it{contact::contacts.find(name)};
   if (ct_it == contact::contacts.end()) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown contact: {}", name);
-    return;
+    return ERROR;
   }
   (*fptr)(ct_it->second.get());
+  return OK;
 }
 
 template <void (*fptr)(char*)>
-void processing::_redirector_file(int id __attribute__((unused)),
+int processing::_redirector_file(int id __attribute__((unused)),
                                   time_t entry_time __attribute__((unused)),
                                   char* args) {
   char* filename(my_strtok(args, ";"));
   (*fptr)(filename);
+  return OK;
 }
 
 template <void (*fptr)(contact*)>
-void processing::_redirector_contactgroup(int id,
+int processing::_redirector_contactgroup(int id,
                                           time_t entry_time,
                                           char* args) {
   (void)id;
@@ -741,7 +750,7 @@ void processing::_redirector_contactgroup(int id,
   if (it_cg == contactgroup::contactgroups.end() || !it_cg->second) {
     SPDLOG_LOGGER_ERROR(external_command_logger, "unknown contact group: {}",
                         group_name);
-    return;
+    return ERROR;
   }
 
   for (contact_map::const_iterator it = it_cg->second->get_members().begin(),
@@ -749,10 +758,11 @@ void processing::_redirector_contactgroup(int id,
        it != end; ++it)
     if (it->second)
       (*fptr)(it->second.get());
+  return OK;
 }
 
 template <void (*fptr)(anomalydetection*, char*)>
-void processing::_redirector_anomalydetection(int id,
+int processing::_redirector_anomalydetection(int id,
                                               time_t entry_time,
                                               char* args) {
   (void)id;
@@ -765,21 +775,44 @@ void processing::_redirector_anomalydetection(int id,
   if (!found) {
     SPDLOG_LOGGER_ERROR(external_command_logger,
                         "unknown anomaly detection {}@{}", description, name);
-    return;
+    return ERROR;
   }
 
   if (found->get_service_type() != service_type::ANOMALY_DETECTION) {
     SPDLOG_LOGGER_ERROR(external_command_logger,
                         "{}@{} is not an anomalydetection", description, name);
-    return;
+    return ERROR;
   }
 
   std::shared_ptr<anomalydetection> ano =
       std::static_pointer_cast<anomalydetection>(found);
   (*fptr)(ano.get(), args + name.length() + description.length() + 2);
+  return OK;
 }
 
-bool processing::execute(const std::string& cmdstr) {
+/**
+ *  Fill the error message of a malformed external command.
+ *
+ *  @return -1
+ */
+static int _syntax_error(std::string* error, const std::string& cmdstr) {
+  if (error)
+    *error = fmt::format("invalid external command syntax: '{}'",
+                         cmdstr.substr(0, 64));
+  return -1;
+}
+
+/**
+ *  Execute an external command and report its result.
+ *
+ *  @param[in]  cmdstr Command line "[timestamp] COMMAND;args".
+ *  @param[out] error  Reason of a failure, may be null.
+ *
+ *  @return OK if the command ran successfully, -1 if it could not be
+ *  parsed or is unknown, the error code of the command otherwise.
+ */
+int processing::execute_with_status(const std::string& cmdstr,
+                                    std::string* error) {
   engine_logger(dbg_functions, basic) << "processing external command";
   functions_logger->trace("processing external command {}", cmdstr);
 
@@ -797,36 +830,36 @@ bool processing::execute(const std::string& cmdstr) {
   trimming(cmd_sv);
 
   if (cmd_sv.empty() || cmd_sv.front() != '[')
-    return false;
+    return _syntax_error(error, cmdstr);
 
   // Find closing ']'
   std::size_t closing = cmd_sv.find(']');
   if (closing == std::string_view::npos)
-    return false;
+    return _syntax_error(error, cmdstr);
 
   // Extract timestamp between [ ... ]
   std::string_view time_part = cmd_sv.substr(1, closing - 1);
   trimming(time_part);
 
   if (time_part.empty())
-    return false;
+    return _syntax_error(error, cmdstr);
 
   // Convert timestamp safely
   long long tmp_time = 0;
   if (!absl::SimpleAtoi(time_part, &tmp_time))
-    return false;
+    return _syntax_error(error, cmdstr);
   time_t entry_time = static_cast<time_t>(tmp_time);
 
   // After ] must be a space
   if (closing + 1 >= cmd_sv.size() || cmd_sv[closing + 1] != ' ')
-    return false;
+    return _syntax_error(error, cmdstr);
 
   // Command part begins after "] "
   std::string_view rest = cmd_sv.substr(closing + 2);
   trimming(rest);
 
   if (rest.empty())
-    return false;
+    return _syntax_error(error, cmdstr);
 
   // Split on semicolon: "CMD;args"
   std::string_view cmd_name_sv, args_sv;
@@ -843,7 +876,7 @@ bool processing::execute(const std::string& cmdstr) {
   trimming(args_sv);
 
   if (cmd_name_sv.empty())
-    return false;
+    return _syntax_error(error, cmdstr);
 
   std::string command_name(cmd_name_sv);
   std::string args(args_sv);
@@ -859,7 +892,9 @@ bool processing::execute(const std::string& cmdstr) {
         << "Warning: Unrecognized external command -> " << command_name;
     external_command_logger->warn(
         "Warning: Unrecognized external command -> {}", command_name);
-    return false;
+    if (error)
+      *error = fmt::format("unknown external command {}", command_name);
+    return -1;
   }
 
   // Update statistics for external commands.
@@ -896,13 +931,30 @@ bool processing::execute(const std::string& cmdstr) {
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, command_id,
                           const_cast<char*>(args.c_str()));
 
+  int retval = OK;
   if (it != _lst_command.end())
-    (*it->second.func)(command_id, entry_time, const_cast<char*>(args.c_str()));
+    retval = (*it->second.func)(command_id, entry_time,
+                                const_cast<char*>(args.c_str()));
 
   // Send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_END, command_id,
                           const_cast<char*>(args.c_str()));
-  return true;
+  if (retval != OK && error)
+    *error =
+        fmt::format("command {} failed, see the engine log", command_name);
+  return retval;
+}
+
+/**
+ *  Execute an external command (FIFO, enginerpc).
+ *
+ *  @param[in] cmdstr  Command line "[timestamp] COMMAND;args".
+ *
+ *  @return true if the command was parsed and dispatched, whatever its own
+ *  result.
+ */
+bool processing::execute(const std::string& cmdstr) {
+  return execute_with_status(cmdstr, nullptr) != -1;
 }
 
 /**
